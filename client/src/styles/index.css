@@ -79,6 +79,17 @@
   line-height: 1.8;
 }
 
+/* Ruby/Furigana styling */
+.japanese-text ruby {
+  ruby-align: center;
+}
+
+.japanese-text rt {
+  font-size: 0.6em;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 /* Flowline canvas container */
 .flowline-container {
   @apply relative overflow-hidden;
