@@ -9,6 +9,7 @@ import episodeRoutes from './routes/episodes.js';
 import dialogueRoutes from './routes/dialogue.js';
 import audioRoutes from './routes/audio.js';
 import imageRoutes from './routes/images.js';
+import { audioWorker } from './jobs/audioQueue.js';
 
 dotenv.config();
 

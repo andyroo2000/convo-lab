@@ -22,14 +22,27 @@ async function enrichDialogueWithFurigana(episode: any) {
   console.log('Target language:', targetLanguage);
   console.log('Number of sentences:', episode.dialogue.sentences.length);
 
-  // Generate furigana for all sentences
+  // Generate furigana for all sentences and their variations
   const enrichedSentences = await Promise.all(
     episode.dialogue.sentences.map(async (sentence: any) => {
+      // Process main text
       const metadata = await processLanguageText(sentence.text, targetLanguage);
       console.log('Sentence:', sentence.text, '-> metadata:', metadata);
+
+      // Process variations if they exist
+      let variationsMetadata = [];
+      if (sentence.variations && sentence.variations.length > 0) {
+        variationsMetadata = await Promise.all(
+          sentence.variations.map((variation: string) =>
+            processLanguageText(variation, targetLanguage)
+          )
+        );
+      }
+
       return {
         ...sentence,
         metadata,
+        variationsMetadata,
       };
     })
   );

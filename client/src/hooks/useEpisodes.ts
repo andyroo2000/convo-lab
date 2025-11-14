@@ -76,25 +76,35 @@ export function useEpisodes() {
     dialogueId: string,
     speed: 'normal' | 'slow' = 'normal',
     pauseMode: boolean = false
-  ): Promise<void> => {
+  ): Promise<string> => {
+    console.log('generateAudio function called with:', { episodeId, dialogueId, speed, pauseMode });
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/episodes/${episodeId}/audio`, {
+      console.log('Making POST request to:', `${API_URL}/api/audio/generate`);
+      const response = await fetch(`${API_URL}/api/audio/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ dialogueId, speed, pauseMode }),
+        body: JSON.stringify({ episodeId, dialogueId, speed, pauseMode }),
       });
+
+      console.log('Response received:', response.status, response.statusText);
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to generate audio');
       }
+
+      const data = await response.json();
+      console.log('Audio generation response data:', data);
+      return data.jobId;
     } catch (err) {
+      console.error('generateAudio error:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
       throw err;
@@ -128,22 +138,44 @@ export function useEpisodes() {
     }
   };
 
-  const pollJobStatus = async (jobId: string): Promise<'completed' | 'failed' | 'pending'> => {
-    try {
-      const response = await fetch(`${API_URL}/api/dialogue/job/${jobId}`, {
-        credentials: 'include',
-      });
+  const pollJobStatus = async (
+    jobId: string,
+    onStatusChange?: (status: 'completed' | 'failed' | 'pending') => void | Promise<void>,
+    endpoint: 'dialogue' | 'audio' = 'dialogue'
+  ): Promise<'completed' | 'failed' | 'pending'> => {
+    const checkStatus = async (): Promise<'completed' | 'failed' | 'pending'> => {
+      try {
+        const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch job status');
+        if (!response.ok) {
+          throw new Error('Failed to fetch job status');
+        }
+
+        const data = await response.json();
+        return data.state === 'completed' ? 'completed' : data.state === 'failed' ? 'failed' : 'pending';
+      } catch (err) {
+        console.error('Error polling job status:', err);
+        return 'pending';
+      }
+    };
+
+    // Poll every 2 seconds until completed or failed
+    let status: 'completed' | 'failed' | 'pending' = 'pending';
+    while (status === 'pending') {
+      status = await checkStatus();
+
+      if (onStatusChange) {
+        await onStatusChange(status);
       }
 
-      const data = await response.json();
-      return data.state === 'completed' ? 'completed' : data.state === 'failed' ? 'failed' : 'pending';
-    } catch (err) {
-      console.error('Error polling job status:', err);
-      return 'pending';
+      if (status === 'pending') {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
     }
+
+    return status;
   };
 
   return {

@@ -59,6 +59,7 @@ export interface Sentence {
 
   // Language-specific metadata (extensible)
   metadata: LanguageMetadata;
+  variationsMetadata?: LanguageMetadata[];
 
   // Audio timing
   audioUrl?: string;
