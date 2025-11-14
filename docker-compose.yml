@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: languageflow-db
+    environment:
+      POSTGRES_DB: languageflow
+      POSTGRES_USER: languageflow
+      POSTGRES_PASSWORD: languageflow_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U languageflow"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for job queue
+  redis:
+    image: redis:7-alpine
+    container_name: languageflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend server
+  server:
+    build:
+      context: ./server
+      target: production
+    container_name: languageflow-server
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://languageflow:languageflow_dev_password@postgres:5432/languageflow?schema=public
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: dev-secret-key-change-in-production
+      COOKIE_SECRET: dev-cookie-secret-change-in-production
+      # Add your Google Cloud credentials here
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
+      GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/src:/app/src
+      - ./server/gcloud-key.json:/app/gcloud-key.json:ro
+    command: npm run dev
+
+  # Frontend client
+  client:
+    build:
+      context: ./client
+      target: builder
+    container_name: languageflow-client
+    depends_on:
+      - server
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client/src:/app/src
+      - ./client/public:/app/public
+    environment:
+      VITE_API_URL: http://localhost:3001
+    command: npm run dev
+
+volumes:
+  postgres_data:
+  redis_data:

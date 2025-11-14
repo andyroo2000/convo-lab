@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  episodes  Episode[]
+
+  @@index([email])
+}
+
+model Episode {
+  id             String   @id @default(uuid())
+  userId         String
+  title          String
+  sourceText     String   @db.Text
+  targetLanguage String   // Language code: 'ja', 'zh', etc.
+  nativeLanguage String   // User's native language
+  status         String   @default("draft") // draft, generating, ready, error
+  audioUrl       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dialogue       Dialogue?
+  images         Image[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Dialogue {
+  id        String   @id @default(uuid())
+  episodeId String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  episode   Episode    @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  sentences Sentence[]
+  speakers  Speaker[]
+
+  @@index([episodeId])
+}
+
+model Speaker {
+  id         String  @id @default(uuid())
+  dialogueId String
+  name       String
+  voiceId    String  // Google Cloud TTS voice ID
+  proficiency String // beginner, intermediate, advanced, native
+  tone       String  // casual, polite, formal
+  color      String? // For UI differentiation
+
+  dialogue  Dialogue   @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
+  sentences Sentence[]
+
+  @@index([dialogueId])
+}
+
+model Sentence {
+  id          String   @id @default(uuid())
+  dialogueId  String
+  speakerId   String
+  order       Int
+  text        String   @db.Text
+  translation String   @db.Text
+
+  // Language-specific metadata stored as JSON
+  // Structure: { japanese?: { kanji, kana, furigana }, chinese?: { characters, pinyin }, ... }
+  metadata    Json
+
+  audioUrl    String?
+  startTime   Int?     // milliseconds
+  endTime     Int?     // milliseconds
+  variations  Json?    // Array of alternative phrasings
+  selected    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  dialogue    Dialogue @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
+  speaker     Speaker  @relation(fields: [speakerId], references: [id])
+
+  @@index([dialogueId])
+  @@index([order])
+}
+
+model Image {
+  id               String   @id @default(uuid())
+  episodeId        String
+  url              String
+  prompt           String   @db.Text
+  order            Int
+  sentenceStartId  String?
+  sentenceEndId    String?
+  createdAt        DateTime @default(now())
+
+  episode          Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@index([episodeId])
+  @@index([order])
+}
