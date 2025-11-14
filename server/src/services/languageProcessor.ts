@@ -1,16 +1,5 @@
-import Kuroshiro from 'kuroshiro';
-import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji';
-
-// Initialize Kuroshiro for Japanese processing
-let kuroshiro: Kuroshiro | null = null;
-
-async function initKuroshiro() {
-  if (!kuroshiro) {
-    kuroshiro = new Kuroshiro();
-    await kuroshiro.init(new KuromojiAnalyzer());
-  }
-  return kuroshiro;
-}
+// Furigana service endpoint
+const FURIGANA_SERVICE_URL = process.env.FURIGANA_SERVICE_URL || 'http://localhost:8000';
 
 export interface JapaneseMetadata {
   kanji: string;
@@ -30,29 +19,28 @@ export interface LanguageMetadata {
 
 /**
  * Process Japanese text to extract kanji, kana, and bracket-style furigana
+ * Uses Python microservice for furigana generation
  */
 export async function processJapanese(text: string): Promise<JapaneseMetadata> {
   try {
-    const kuro = await initKuroshiro();
-
-    // Convert to hiragana to get pure kana reading
-    const kana = await kuro.convert(text, {
-      to: 'hiragana',
-      mode: 'normal',
+    const response = await fetch(`${FURIGANA_SERVICE_URL}/furigana`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
     });
 
-    // Generate bracket-style furigana
-    const furigana = await kuro.convert(text, {
-      to: 'hiragana',
-      mode: 'furigana',
-      delimiter_start: '[',
-      delimiter_end: ']',
-    });
+    if (!response.ok) {
+      throw new Error(`Furigana service error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
 
     return {
-      kanji: text,
-      kana,
-      furigana,
+      kanji: data.kanji,
+      kana: data.kana,
+      furigana: data.furigana,
     };
   } catch (error) {
     console.error('Japanese processing error:', error);

@@ -1,6 +1,5 @@
 import { generateWithGemini } from './geminiClient.js';
 import { prisma } from '../db/client.js';
-import { processLanguageText } from './languageProcessor.js';
 
 interface Speaker {
   name: string;
@@ -51,8 +50,16 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
     // Generate dialogue with Gemini
     const response = await generateWithGemini(prompt, systemInstruction);
 
+    // Strip markdown code fences if present
+    let jsonText = response.trim();
+    // Remove opening fence (```json or ``` followed by optional newline)
+    jsonText = jsonText.replace(/^```(?:json)?[\r\n]*/, '');
+    // Remove closing fence (``` at end, with optional preceding newline)
+    jsonText = jsonText.replace(/[\r\n]*```\s*$/, '');
+    jsonText = jsonText.trim();
+
     // Parse response (expected JSON format)
-    const dialogueData = JSON.parse(response);
+    const dialogueData = JSON.parse(jsonText);
 
     // Create dialogue and sentences in database
     const dialogue = await createDialogueInDB(
@@ -182,9 +189,6 @@ async function createDialogueInDB(
         throw new Error(`Unknown speaker: ${sent.speaker}`);
       }
 
-      // Process language-specific metadata
-      const metadata = await processLanguageText(sent.text, targetLanguage);
-
       return prisma.sentence.create({
         data: {
           dialogueId: dialogue.id,
@@ -192,7 +196,7 @@ async function createDialogueInDB(
           order: index,
           text: sent.text,
           translation: sent.translation,
-          metadata,
+          metadata: {}, // Empty metadata - furigana generated on-the-fly
           variations: sent.variations || [],
           selected: false,
         },

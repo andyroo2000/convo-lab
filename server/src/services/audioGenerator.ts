@@ -122,30 +122,12 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 }
 
 async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
-  // Write to temp file to analyze with ffmpeg
-  const tempFile = path.join(os.tmpdir(), `audio-${Date.now()}.mp3`);
-
-  try {
-    await fs.writeFile(tempFile, audioBuffer);
-
-    return new Promise((resolve, reject) => {
-      ffmpeg.ffprobe(tempFile, (err, metadata) => {
-        if (err) {
-          reject(err);
-        } else {
-          const duration = metadata.format.duration || 0;
-          resolve(duration * 1000); // Convert to milliseconds
-        }
-      });
-    });
-  } finally {
-    // Cleanup
-    try {
-      await fs.unlink(tempFile);
-    } catch (e) {
-      // Ignore cleanup errors
-    }
-  }
+  // Estimate duration based on MP3 bitrate
+  // Google Cloud TTS typically generates at ~24 kbps for Neural2 voices
+  // Formula: (file size in bytes * 8) / (bitrate in bits per second) * 1000 for milliseconds
+  const bitrate = 24000; // 24 kbps
+  const durationSeconds = (audioBuffer.length * 8) / bitrate;
+  return durationSeconds * 1000; // Convert to milliseconds
 }
 
 async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {

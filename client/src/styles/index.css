@@ -3,10 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-soft-sand text-navy;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -78,18 +74,9 @@
 .japanese-text {
   font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP',
                'Yu Gothic', 'Meiryo', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
   line-height: 1.8;
-}
-
-/* Furigana styling */
-ruby {
-  ruby-position: over;
-}
-
-rt {
-  @apply text-xs text-gray-600;
-  font-size: 0.5em;
-  line-height: 1;
 }
 
 /* Flowline canvas container */

@@ -2,11 +2,46 @@ import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { processLanguageText } from '../services/languageProcessor.js';
 
 const router = Router();
 
 // All episode routes require authentication
 router.use(requireAuth);
+
+// Helper function to add furigana metadata to dialogue sentences on-the-fly
+async function enrichDialogueWithFurigana(episode: any) {
+  console.log('enrichDialogueWithFurigana called for episode:', episode.id);
+
+  if (!episode.dialogue?.sentences) {
+    console.log('No dialogue or sentences found');
+    return episode;
+  }
+
+  const targetLanguage = episode.targetLanguage;
+  console.log('Target language:', targetLanguage);
+  console.log('Number of sentences:', episode.dialogue.sentences.length);
+
+  // Generate furigana for all sentences
+  const enrichedSentences = await Promise.all(
+    episode.dialogue.sentences.map(async (sentence: any) => {
+      const metadata = await processLanguageText(sentence.text, targetLanguage);
+      console.log('Sentence:', sentence.text, '-> metadata:', metadata);
+      return {
+        ...sentence,
+        metadata,
+      };
+    })
+  );
+
+  return {
+    ...episode,
+    dialogue: {
+      ...episode.dialogue,
+      sentences: enrichedSentences,
+    },
+  };
+}
 
 // Get all episodes for current user
 router.get('/', async (req: AuthRequest, res, next) => {
@@ -25,7 +60,12 @@ router.get('/', async (req: AuthRequest, res, next) => {
       orderBy: { updatedAt: 'desc' },
     });
 
-    res.json(episodes);
+    // Add furigana metadata to all episodes with dialogues
+    const enrichedEpisodes = await Promise.all(
+      episodes.map(episode => enrichDialogueWithFurigana(episode))
+    );
+
+    res.json(enrichedEpisodes);
   } catch (error) {
     next(error);
   }
@@ -58,7 +98,12 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
       throw new AppError('Episode not found', 404);
     }
 
-    res.json(episode);
+    // Add furigana metadata on-the-fly
+    const enrichedEpisode = await enrichDialogueWithFurigana(episode);
+
+    // Disable caching since furigana is generated dynamically
+    res.set('Cache-Control', 'no-store');
+    res.json(enrichedEpisode);
   } catch (error) {
     next(error);
   }
