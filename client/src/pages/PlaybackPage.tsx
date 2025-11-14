@@ -6,10 +6,11 @@ import JapaneseText from '../components/JapaneseText';
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
-  const { getEpisode, loading } = useEpisodes();
+  const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [selectedVariations, setSelectedVariations] = useState<Map<string, number>>(new Map());
   const [openSelector, setOpenSelector] = useState<string | null>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   useEffect(() => {
     if (episodeId) {
@@ -19,8 +20,11 @@ export default function PlaybackPage() {
 
   const loadEpisode = async () => {
     if (!episodeId) return;
+    console.log('loadEpisode called for episodeId:', episodeId);
     try {
       const data = await getEpisode(episodeId);
+      console.log('Episode loaded:', data);
+      console.log('Episode audioUrl:', data.audioUrl);
       setEpisode(data);
     } catch (err) {
       console.error('Failed to load episode:', err);
@@ -42,6 +46,35 @@ export default function PlaybackPage() {
       return sentence.variations[selectedIdx];
     }
     return sentence.text;
+  };
+
+  const handleGenerateAudio = async () => {
+    console.log('handleGenerateAudio called');
+    if (!episode || !episode.dialogue) {
+      console.log('No episode or dialogue');
+      return;
+    }
+
+    console.log('Starting audio generation for episode:', episode.id, 'dialogue:', episode.dialogue.id);
+    setIsGeneratingAudio(true);
+    try {
+      const jobId = await generateAudio(episode.id, episode.dialogue.id);
+      console.log('Got job ID:', jobId);
+
+      // Poll for completion
+      await pollJobStatus(jobId, async (status) => {
+        console.log('Job status:', status);
+        if (status === 'completed') {
+          // Reload episode to get audio URLs
+          await loadEpisode();
+        }
+      }, 'audio');
+    } catch (err) {
+      console.error('Failed to generate audio:', err);
+      alert('Failed to generate audio. Please try again.');
+    } finally {
+      setIsGeneratingAudio(false);
+    }
   };
 
   if (loading) {
@@ -87,8 +120,13 @@ export default function PlaybackPage() {
             <button className="btn-outline text-sm">
               Edit
             </button>
-            <button className="btn-primary text-sm">
-              Generate Audio
+            <button
+              type="button"
+              className="btn-primary text-sm"
+              onClick={handleGenerateAudio}
+              disabled={isGeneratingAudio}
+            >
+              {isGeneratingAudio ? 'Generating...' : 'Generate Audio'}
             </button>
           </div>
         </div>
@@ -112,6 +150,22 @@ export default function PlaybackPage() {
         </div>
       </div>
 
+      {/* Audio Player */}
+      {episode.audioUrl && (
+        <div className="card bg-pale-sky">
+          <h3 className="text-lg font-semibold text-navy mb-3">
+            Episode Audio
+          </h3>
+          <audio
+            controls
+            className="w-full"
+            src={episode.audioUrl}
+          >
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      )}
+
       {/* Dialogue */}
       <div className="space-y-3">
         {sentences.map((sentence, index) => {
@@ -126,22 +180,27 @@ export default function PlaybackPage() {
           // All options: original text + variations
           const allOptions = [sentence.text, ...(sentence.variations || [])];
 
+          // Convert hex color to rgba with opacity
+          const hexToRgba = (hex: string, alpha: number) => {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          };
+
           return (
             <div
               key={sentence.id}
               className="card hover:shadow-md transition-shadow cursor-pointer"
+              style={{
+                backgroundColor: hexToRgba(speaker.color, 0.08),
+                borderLeft: `4px solid ${speaker.color}`
+              }}
               onClick={() => hasVariations && toggleSelector(sentence.id)}
             >
-              <div className="flex items-start gap-4">
-                {/* Speaker indicator */}
-                <div
-                  className="w-1 h-full rounded-full flex-shrink-0"
-                  style={{ backgroundColor: speaker.color }}
-                />
-
-                <div className="flex-1 space-y-3">
-                  {/* Header */}
-                  <div className="flex items-center justify-between">
+              <div className="space-y-3">
+                {/* Header */}
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-navy">
                         {speaker.name}
@@ -160,86 +219,88 @@ export default function PlaybackPage() {
                         {isOpen ? '▲' : '▼'} {allOptions.length} options
                       </div>
                     )}
-                  </div>
-
-                  {/* Japanese Text */}
-                  <div>
-                    <p className="text-2xl text-navy leading-relaxed">
-                      <JapaneseText
-                        text={displayText}
-                        metadata={sentence.metadata}
-                      />
-                    </p>
-                  </div>
-
-                  {/* Translation */}
-                  <div className="border-t pt-2">
-                    <p className="text-gray-600 italic">
-                      {sentence.translation}
-                    </p>
-                  </div>
-
-                  {/* Variation Selector */}
-                  {isOpen && hasVariations && (
-                    <div
-                      className="border-t pt-3"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <p className="text-xs font-medium text-gray-500 mb-2">
-                        Select a variation:
-                      </p>
-                      <div className="space-y-2">
-                        {allOptions.map((option, optIdx) => {
-                          const isSelected = selectedIdx === undefined
-                            ? optIdx === 0
-                            : selectedIdx === optIdx - 1;
-                          const isOriginal = optIdx === 0;
-
-                          return (
-                            <div
-                              key={optIdx}
-                              onClick={() => {
-                                if (isOriginal) {
-                                  // Remove selection to show original
-                                  const newMap = new Map(selectedVariations);
-                                  newMap.delete(sentence.id);
-                                  setSelectedVariations(newMap);
-                                  setOpenSelector(null);
-                                } else {
-                                  selectVariation(sentence.id, optIdx - 1);
-                                }
-                              }}
-                              className={`
-                                text-sm px-3 py-2 rounded cursor-pointer transition-all
-                                ${isSelected
-                                  ? 'bg-indigo text-white font-medium shadow-sm'
-                                  : 'text-gray-700 hover:bg-pale-sky hover:text-navy'
-                                }
-                              `}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span>
-                                  <JapaneseText
-                                    text={option}
-                                    metadata={sentence.metadata}
-                                  />
-                                </span>
-                                {isOriginal && (
-                                  <span className="text-xs ml-2 opacity-75">
-                                    (Original)
-                                  </span>
-                                )}
-                                {isSelected && (
-                                  <span className="ml-2">✓</span>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
                 </div>
+
+                {/* Japanese Text */}
+                <div>
+                  <p className="text-2xl text-navy leading-relaxed">
+                    <JapaneseText
+                      text={displayText}
+                      metadata={sentence.metadata}
+                    />
+                  </p>
+                </div>
+
+                {/* Translation */}
+                <div className="border-t pt-2">
+                  <p className="text-gray-600 italic">
+                    {sentence.translation}
+                  </p>
+                </div>
+
+                {/* Variation Selector */}
+                {isOpen && hasVariations && (
+                  <div
+                    className="border-t pt-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-xs font-medium text-gray-500 mb-2">
+                      Select a variation:
+                    </p>
+                    <div className="space-y-2">
+                      {allOptions.map((option, optIdx) => {
+                        const isSelected = selectedIdx === undefined
+                          ? optIdx === 0
+                          : selectedIdx === optIdx - 1;
+                        const isOriginal = optIdx === 0;
+
+                        return (
+                          <div
+                            key={optIdx}
+                            onClick={() => {
+                              if (isOriginal) {
+                                // Remove selection to show original
+                                const newMap = new Map(selectedVariations);
+                                newMap.delete(sentence.id);
+                                setSelectedVariations(newMap);
+                                setOpenSelector(null);
+                              } else {
+                                selectVariation(sentence.id, optIdx - 1);
+                              }
+                            }}
+                            className={`
+                              text-sm px-3 py-2 rounded cursor-pointer transition-all
+                              ${isSelected
+                                ? 'bg-indigo text-white font-medium shadow-sm'
+                                : 'text-gray-700 hover:bg-pale-sky hover:text-navy'
+                              }
+                            `}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span>
+                                <JapaneseText
+                                  text={option}
+                                  metadata={isOriginal
+                                    ? sentence.metadata
+                                    : sentence.variationsMetadata?.[optIdx - 1]
+                                  }
+                                />
+                              </span>
+                              {isOriginal && (
+                                <span className="text-xs ml-2 opacity-75">
+                                  (Original)
+                                </span>
+                              )}
+                              {isSelected && (
+                                <span className="ml-2">✓</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );
