@@ -137,11 +137,12 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
   const tempDir = path.join(os.tmpdir(), `audio-probe-${Date.now()}`);
   await fs.mkdir(tempDir, { recursive: true });
 
+  const tempFile = path.join(tempDir, 'temp.mp3');
+
   try {
-    const tempFile = path.join(tempDir, 'temp.mp3');
     await fs.writeFile(tempFile, audioBuffer);
 
-    return new Promise<number>((resolve, reject) => {
+    const duration = await new Promise<number>((resolve, reject) => {
       ffmpeg.ffprobe(tempFile, (err, metadata) => {
         if (err) {
           reject(err);
@@ -152,13 +153,19 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
         resolve(durationSeconds * 1000); // Convert to milliseconds
       });
     });
-  } finally {
-    // Cleanup temp directory
+
+    // Cleanup temp directory after ffprobe completes
+    await fs.rm(tempDir, { recursive: true, force: true });
+
+    return duration;
+  } catch (error) {
+    // Cleanup on error
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
     } catch (e) {
       // Ignore cleanup errors
     }
+    throw error;
   }
 }
 
