@@ -22,6 +22,7 @@ export default function DialogueGenerator() {
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage] = useState<LanguageCode>('ja'); // Fixed for now
   const [nativeLanguage] = useState<LanguageCode>('en');
+  const [dialogueLength, setDialogueLength] = useState(6);
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>([
     {
       name: 'Speaker 1',
@@ -136,7 +137,8 @@ export default function DialogueGenerator() {
           tone: s.tone,
           color: s.color,
         })),
-        3 // Generate 3 variations per sentence
+        3, // Generate 3 variations per sentence
+        dialogueLength // Number of dialogue turns
       );
 
       // Save job ID for polling
@@ -222,7 +224,7 @@ export default function DialogueGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-2">
                 Target Language
@@ -248,6 +250,23 @@ export default function DialogueGenerator() {
                 disabled
                 className="input bg-gray-50 cursor-not-allowed"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Dialogue Length
+              </label>
+              <input
+                type="number"
+                min="2"
+                max="50"
+                value={dialogueLength}
+                onChange={(e) => setDialogueLength(Math.max(2, Math.min(50, parseInt(e.target.value) || 6)))}
+                className="input"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                2-50 turns (default: 6)
+              </p>
             </div>
           </div>
         </div>
@@ -294,7 +313,7 @@ export default function DialogueGenerator() {
               with {speakers.length} speakers, including variations and translations.
             </p>
             <ul className="text-sm text-gray-600 space-y-1 mb-4">
-              <li>✓ 8-12 dialogue exchanges</li>
+              <li>✓ {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
               <li>✓ 3 variations per sentence</li>
               <li>✓ English translations</li>
               <li>✓ Proficiency-matched language</li>

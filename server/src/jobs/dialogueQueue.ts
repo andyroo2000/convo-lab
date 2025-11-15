@@ -15,7 +15,7 @@ export const dialogueQueue = new Queue('dialogue-generation', { connection });
 export const dialogueWorker = new Worker(
   'dialogue-generation',
   async (job) => {
-    const { userId, episodeId, speakers, variationCount } = job.data;
+    const { userId, episodeId, speakers, variationCount, dialogueLength } = job.data;
 
     try {
       await job.updateProgress(10);
@@ -24,6 +24,7 @@ export const dialogueWorker = new Worker(
         episodeId,
         speakers,
         variationCount,
+        dialogueLength,
       });
 
       await job.updateProgress(100);

@@ -13,10 +13,11 @@ interface GenerateDialogueRequest {
   episodeId: string;
   speakers: Speaker[];
   variationCount?: number;
+  dialogueLength?: number;
 }
 
 export async function generateDialogue(request: GenerateDialogueRequest) {
-  const { episodeId, speakers, variationCount = 3 } = request;
+  const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = request;
 
   // Get episode
   const episode = await prisma.episode.findUnique({
@@ -44,7 +45,8 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
     const prompt = buildDialoguePrompt(
       episode.sourceText,
       speakers,
-      variationCount
+      variationCount,
+      dialogueLength
     );
 
     // Generate dialogue with Gemini
@@ -116,7 +118,8 @@ Speakers: ${speakers.map(s => `${s.name} (${s.proficiency}, ${s.tone})`).join(',
 function buildDialoguePrompt(
   sourceText: string,
   speakers: Speaker[],
-  variationCount: number
+  variationCount: number,
+  dialogueLength: number
 ): string {
   return `Based on this story/experience, create a natural dialogue:
 
@@ -139,7 +142,7 @@ Return your response as JSON in this exact format:
 }
 
 Requirements:
-- Generate 8-12 dialogue lines (back and forth)
+- Generate EXACTLY ${dialogueLength} dialogue lines (back and forth turns)
 - Each line should be conversational and natural
 - Progress the conversation naturally through the experience
 - Include reactions, questions, and natural flow
