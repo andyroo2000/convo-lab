@@ -1,22 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEpisodes } from '../hooks/useEpisodes';
+import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { Episode, Sentence, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
   const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
+  const { audioRef, currentTime } = useAudioPlayer();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [selectedVariations, setSelectedVariations] = useState<Map<string, number>>(new Map());
   const [openSelector, setOpenSelector] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
   useEffect(() => {
     if (episodeId) {
       loadEpisode();
     }
   }, [episodeId]);
+
+  // Auto-scroll to currently playing sentence
+  useEffect(() => {
+    if (!episode?.dialogue?.sentences) return;
+
+    const currentSentence = episode.dialogue.sentences.find(
+      (sentence) =>
+        sentence.startTime !== undefined &&
+        sentence.endTime !== undefined &&
+        currentTime * 1000 >= sentence.startTime &&
+        currentTime * 1000 < sentence.endTime
+    );
+
+    if (currentSentence) {
+      const element = sentenceRefs.current.get(currentSentence.id);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }
+  }, [currentTime, episode]);
 
   const loadEpisode = async () => {
     if (!episodeId) return;
@@ -157,6 +183,7 @@ export default function PlaybackPage() {
             Episode Audio
           </h3>
           <audio
+            ref={audioRef}
             controls
             className="w-full"
             src={episode.audioUrl}
@@ -180,6 +207,13 @@ export default function PlaybackPage() {
           // All options: original text + variations
           const allOptions = [sentence.text, ...(sentence.variations || [])];
 
+          // Check if this sentence is currently being spoken
+          const isCurrentlySpeaking =
+            sentence.startTime !== undefined &&
+            sentence.endTime !== undefined &&
+            currentTime * 1000 >= sentence.startTime &&
+            currentTime * 1000 < sentence.endTime;
+
           // Convert hex color to rgba with opacity
           const hexToRgba = (hex: string, alpha: number) => {
             const r = parseInt(hex.slice(1, 3), 16);
@@ -191,10 +225,18 @@ export default function PlaybackPage() {
           return (
             <div
               key={sentence.id}
-              className="card hover:shadow-md transition-shadow cursor-pointer"
+              ref={(el) => {
+                if (el) sentenceRefs.current.set(sentence.id, el);
+                else sentenceRefs.current.delete(sentence.id);
+              }}
+              className={`card hover:shadow-md transition-all duration-300 cursor-pointer ${
+                isCurrentlySpeaking ? 'ring-4 ring-yellow-400 ring-opacity-70 shadow-lg' : ''
+              }`}
               style={{
-                backgroundColor: hexToRgba(speaker.color, 0.08),
-                borderLeft: `4px solid ${speaker.color}`
+                backgroundColor: isCurrentlySpeaking
+                  ? hexToRgba('#FCD34D', 0.15)
+                  : hexToRgba(speaker.color, 0.08),
+                borderLeft: `4px solid ${isCurrentlySpeaking ? '#F59E0B' : speaker.color}`
               }}
               onClick={() => hasVariations && toggleSelector(sentence.id)}
             >
