@@ -138,6 +138,29 @@ export function useEpisodes() {
     }
   };
 
+  const deleteEpisode = async (episodeId: string): Promise<void> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete episode');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const pollJobStatus = async (
     jobId: string,
     onStatusChange?: (status: 'completed' | 'failed' | 'pending') => void | Promise<void>,
@@ -185,6 +208,7 @@ export function useEpisodes() {
     generateDialogue,
     generateAudio,
     getEpisode,
+    deleteEpisode,
     pollJobStatus,
   };
 }
