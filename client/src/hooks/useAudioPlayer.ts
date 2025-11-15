@@ -25,20 +25,16 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
     },
     handleLoadedMetadata: () => {
       if (audioElementRef.current) {
-        console.log('Audio metadata loaded, duration:', audioElementRef.current.duration);
         setDuration(audioElementRef.current.duration);
       }
     },
     handlePlay: () => {
-      console.log('Audio started playing');
       setIsPlaying(true);
     },
     handlePause: () => {
-      console.log('Audio paused');
       setIsPlaying(false);
     },
     handleEnded: () => {
-      console.log('Audio ended');
       setIsPlaying(false);
       setCurrentTime(0);
     },
@@ -47,7 +43,6 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
   const audioRef = useCallback((element: HTMLAudioElement | null) => {
     // Clean up previous element
     if (audioElementRef.current) {
-      console.log('useAudioPlayer: cleaning up previous audio element');
       const prevAudio = audioElementRef.current;
       prevAudio.removeEventListener('timeupdate', handlersRef.current.handleTimeUpdate);
       prevAudio.removeEventListener('loadedmetadata', handlersRef.current.handleLoadedMetadata);
@@ -58,7 +53,6 @@ export function useAudioPlayer(): UseAudioPlayerReturn {
 
     // Set up new element
     if (element) {
-      console.log('useAudioPlayer: setting up new audio element');
       audioElementRef.current = element;
 
       element.addEventListener('timeupdate', handlersRef.current.handleTimeUpdate);

@@ -32,6 +32,7 @@ model Episode {
   nativeLanguage String   // User's native language
   status         String   @default("draft") // draft, generating, ready, error
   audioUrl       String?
+  audioSpeed     String?  @default("medium") // very-slow, slow, medium, normal
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

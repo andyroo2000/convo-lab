@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Episode, CreateEpisodeRequest, Speaker } from '../types';
+import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -75,15 +75,13 @@ export function useEpisodes() {
   const generateAudio = async (
     episodeId: string,
     dialogueId: string,
-    speed: 'normal' | 'slow' = 'normal',
+    speed: AudioSpeed = 'medium',
     pauseMode: boolean = false
   ): Promise<string> => {
-    console.log('generateAudio function called with:', { episodeId, dialogueId, speed, pauseMode });
     setLoading(true);
     setError(null);
 
     try {
-      console.log('Making POST request to:', `${API_URL}/api/audio/generate`);
       const response = await fetch(`${API_URL}/api/audio/generate`, {
         method: 'POST',
         headers: {
@@ -93,19 +91,14 @@ export function useEpisodes() {
         body: JSON.stringify({ episodeId, dialogueId, speed, pauseMode }),
       });
 
-      console.log('Response received:', response.status, response.statusText);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
         throw new Error(errorData.error || 'Failed to generate audio');
       }
 
       const data = await response.json();
-      console.log('Audio generation response data:', data);
       return data.jobId;
     } catch (err) {
-      console.error('generateAudio error:', err);
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
       throw err;

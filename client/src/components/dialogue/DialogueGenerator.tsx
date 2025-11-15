@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
+import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import SpeakerConfig from './SpeakerConfig';
 
@@ -23,6 +23,7 @@ export default function DialogueGenerator() {
   const [targetLanguage] = useState<LanguageCode>('ja'); // Fixed for now
   const [nativeLanguage] = useState<LanguageCode>('en');
   const [dialogueLength, setDialogueLength] = useState(6);
+  const [audioSpeed, setAudioSpeed] = useState<AudioSpeed>('medium');
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>([
     {
       name: 'Speaker 1',
@@ -122,6 +123,7 @@ export default function DialogueGenerator() {
           tone: s.tone,
           color: s.color,
         })),
+        audioSpeed,
       });
 
       setGeneratedEpisodeId(episode.id);
@@ -224,7 +226,7 @@ export default function DialogueGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-navy mb-2">
                 Target Language
@@ -266,6 +268,25 @@ export default function DialogueGenerator() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 2-50 turns (default: 6)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Audio Speed
+              </label>
+              <select
+                value={audioSpeed}
+                onChange={(e) => setAudioSpeed(e.target.value as AudioSpeed)}
+                className="input"
+              >
+                <option value="very-slow">Very Slow</option>
+                <option value="slow">Slow</option>
+                <option value="medium">Medium</option>
+                <option value="normal">Normal</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Default speed for audio
               </p>
             </div>
           </div>
