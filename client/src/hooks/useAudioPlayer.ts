@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface UseAudioPlayerReturn {
-  audioRef: React.RefObject<HTMLAudioElement>;
+  audioRef: (element: HTMLAudioElement | null) => void;
   currentTime: number;
   duration: number;
   isPlaying: boolean;
@@ -11,64 +11,77 @@ interface UseAudioPlayerReturn {
 }
 
 export function useAudioPlayer(): UseAudioPlayerReturn {
-  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleLoadedMetadata = () => {
-      setDuration(audio.duration);
-    };
-
-    const handlePlay = () => {
+  // Store handlers in refs so they can be properly removed during cleanup
+  const handlersRef = useRef({
+    handleTimeUpdate: () => {
+      if (audioElementRef.current) {
+        setCurrentTime(audioElementRef.current.currentTime);
+      }
+    },
+    handleLoadedMetadata: () => {
+      if (audioElementRef.current) {
+        console.log('Audio metadata loaded, duration:', audioElementRef.current.duration);
+        setDuration(audioElementRef.current.duration);
+      }
+    },
+    handlePlay: () => {
+      console.log('Audio started playing');
       setIsPlaying(true);
-    };
-
-    const handlePause = () => {
+    },
+    handlePause: () => {
+      console.log('Audio paused');
       setIsPlaying(false);
-    };
-
-    const handleEnded = () => {
+    },
+    handleEnded: () => {
+      console.log('Audio ended');
       setIsPlaying(false);
       setCurrentTime(0);
-    };
+    },
+  });
 
-    // Add event listeners
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('ended', handleEnded);
+  const audioRef = useCallback((element: HTMLAudioElement | null) => {
+    // Clean up previous element
+    if (audioElementRef.current) {
+      console.log('useAudioPlayer: cleaning up previous audio element');
+      const prevAudio = audioElementRef.current;
+      prevAudio.removeEventListener('timeupdate', handlersRef.current.handleTimeUpdate);
+      prevAudio.removeEventListener('loadedmetadata', handlersRef.current.handleLoadedMetadata);
+      prevAudio.removeEventListener('play', handlersRef.current.handlePlay);
+      prevAudio.removeEventListener('pause', handlersRef.current.handlePause);
+      prevAudio.removeEventListener('ended', handlersRef.current.handleEnded);
+    }
 
-    // Cleanup
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('ended', handleEnded);
-    };
+    // Set up new element
+    if (element) {
+      console.log('useAudioPlayer: setting up new audio element');
+      audioElementRef.current = element;
+
+      element.addEventListener('timeupdate', handlersRef.current.handleTimeUpdate);
+      element.addEventListener('loadedmetadata', handlersRef.current.handleLoadedMetadata);
+      element.addEventListener('play', handlersRef.current.handlePlay);
+      element.addEventListener('pause', handlersRef.current.handlePause);
+      element.addEventListener('ended', handlersRef.current.handleEnded);
+    } else {
+      audioElementRef.current = null;
+    }
   }, []);
 
   const play = () => {
-    audioRef.current?.play();
+    audioElementRef.current?.play();
   };
 
   const pause = () => {
-    audioRef.current?.pause();
+    audioElementRef.current?.pause();
   };
 
   const seek = (time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
+    if (audioElementRef.current) {
+      audioElementRef.current.currentTime = time;
     }
   };
 
