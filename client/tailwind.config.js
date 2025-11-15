@@ -44,6 +44,8 @@ export default {
       animation: {
         'flow-wave': 'flow-wave 3s ease-in-out infinite',
         'flow-pulse': 'flow-pulse 2s ease-in-out infinite',
+        'fadeIn': 'fadeIn 0.2s ease-out',
+        'slideUp': 'slideUp 0.3s ease-out',
       },
       keyframes: {
         'flow-wave': {
@@ -53,6 +55,14 @@ export default {
         'flow-pulse': {
           '0%, 100%': { opacity: '0.8' },
           '50%': { opacity: '1' },
+        },
+        'fadeIn': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'slideUp': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
         },
       },
     },
