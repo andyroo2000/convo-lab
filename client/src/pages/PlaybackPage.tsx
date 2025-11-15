@@ -247,13 +247,14 @@ export default function PlaybackPage() {
                 else sentenceRefs.current.delete(sentence.id);
               }}
               className={`card hover:shadow-md transition-all duration-300 cursor-pointer ${
-                isCurrentlySpeaking ? 'ring-4 ring-yellow-400 ring-opacity-70 shadow-lg' : ''
+                isCurrentlySpeaking ? 'shadow-lg' : ''
               }`}
               style={{
-                backgroundColor: isCurrentlySpeaking
-                  ? hexToRgba('#FCD34D', 0.15)
-                  : hexToRgba(speaker.color, 0.08),
-                borderLeft: `4px solid ${isCurrentlySpeaking ? '#F59E0B' : speaker.color}`
+                backgroundColor: hexToRgba(speaker.color, isCurrentlySpeaking ? 0.18 : 0.08),
+                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speaker.color}`,
+                borderRight: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
+                borderTop: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
+                borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
               }}
               onClick={() => hasVariations && toggleSelector(sentence.id)}
             >
