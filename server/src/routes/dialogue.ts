@@ -10,7 +10,7 @@ router.use(requireAuth);
 // Generate dialogue for an episode
 router.post('/generate', async (req: AuthRequest, res, next) => {
   try {
-    const { episodeId, speakers, variationCount = 3 } = req.body;
+    const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
 
     if (!episodeId || !speakers || !Array.isArray(speakers)) {
       throw new AppError('Missing required fields', 400);
@@ -22,6 +22,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
       episodeId,
       speakers,
       variationCount,
+      dialogueLength,
     });
 
     res.json({

@@ -40,7 +40,8 @@ export function useEpisodes() {
   const generateDialogue = async (
     episodeId: string,
     speakers: Speaker[],
-    variationCount: number = 3
+    variationCount: number = 3,
+    dialogueLength: number = 6
   ): Promise<{ jobId: string }> => {
     setLoading(true);
     setError(null);
@@ -52,7 +53,7 @@ export function useEpisodes() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ episodeId, speakers, variationCount }),
+        body: JSON.stringify({ episodeId, speakers, variationCount, dialogueLength }),
       });
 
       if (!response.ok) {
