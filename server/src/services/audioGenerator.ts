@@ -5,6 +5,17 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
+
+// Configure ffmpeg/ffprobe paths
+try {
+  const ffprobePath = execSync('which ffprobe').toString().trim();
+  const ffmpegPath = execSync('which ffmpeg').toString().trim();
+  if (ffprobePath) ffmpeg.setFfprobePath(ffprobePath);
+  if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
+} catch (e) {
+  console.warn('Could not find ffmpeg/ffprobe in PATH');
+}
 
 interface GenerateAudioRequest {
   episodeId: string;
