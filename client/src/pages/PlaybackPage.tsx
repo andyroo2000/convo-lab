@@ -281,21 +281,29 @@ export default function PlaybackPage() {
                     )}
                 </div>
 
-                {/* Japanese Text */}
-                <div>
-                  <p className="text-2xl text-navy leading-relaxed">
-                    <JapaneseText
-                      text={displayText}
-                      metadata={sentence.metadata}
-                    />
-                  </p>
-                </div>
+                {/* Japanese Text and Translation - Side by Side */}
+                <div className="flex gap-0 py-3">
+                  {/* Japanese Text - Left Column */}
+                  <div className="flex-1 pr-6">
+                    <p className="text-2xl text-navy leading-relaxed">
+                      <JapaneseText
+                        text={displayText}
+                        metadata={sentence.metadata}
+                      />
+                    </p>
+                  </div>
 
-                {/* Translation */}
-                <div className="border-t pt-2">
-                  <p className="text-gray-600 italic">
-                    {sentence.translation}
-                  </p>
+                  {/* Translation - Right Column */}
+                  <div
+                    className="flex-1 pl-6"
+                    style={{
+                      borderLeft: `1px solid ${hexToRgba(speaker.color, 0.3)}`
+                    }}
+                  >
+                    <p className="text-gray-600 italic">
+                      {sentence.translation}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Variation Selector */}
