@@ -125,7 +125,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 // Create new episode
 router.post('/', async (req: AuthRequest, res, next) => {
   try {
-    const { title, sourceText, targetLanguage, nativeLanguage } = req.body;
+    const { title, sourceText, targetLanguage, nativeLanguage, audioSpeed = 'medium' } = req.body;
 
     if (!title || !sourceText || !targetLanguage || !nativeLanguage) {
       throw new AppError('Missing required fields', 400);
@@ -138,6 +138,7 @@ router.post('/', async (req: AuthRequest, res, next) => {
         sourceText,
         targetLanguage,
         nativeLanguage,
+        audioSpeed,
         status: 'draft',
       },
     });

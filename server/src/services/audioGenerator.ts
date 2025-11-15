@@ -17,15 +17,26 @@ try {
   console.warn('Could not find ffmpeg/ffprobe in PATH');
 }
 
+// Audio speed presets mapping
+const SPEED_PRESETS: Record<string, number> = {
+  'very-slow': 0.65,
+  'slow': 0.85,
+  'medium': 1.0,
+  'normal': 1.15,
+};
+
 interface GenerateAudioRequest {
   episodeId: string;
   dialogueId: string;
-  speed?: 'normal' | 'slow';
+  speed?: 'very-slow' | 'slow' | 'medium' | 'normal';
   pauseMode?: boolean;
 }
 
 export async function generateEpisodeAudio(request: GenerateAudioRequest) {
-  const { episodeId, dialogueId, speed = 'normal', pauseMode = false } = request;
+  const { episodeId, dialogueId, speed = 'medium', pauseMode = false } = request;
+
+  // Convert speed preset to numeric value
+  const numericSpeed = SPEED_PRESETS[speed] || 1.0;
 
   // Get dialogue with sentences and speakers
   const dialogue = await prisma.dialogue.findUnique({
@@ -68,12 +79,10 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 
     // Prepare text (with SSML if needed)
     let text = sentence.text;
-    const useSSML = pauseMode || speed === 'slow';
+    const useSSML = pauseMode;
 
     if (pauseMode) {
       text = createSSMLWithPauses(text, '1.5s');
-    } else if (speed === 'slow') {
-      text = createSSMLSlow(text, 0.75);
     }
 
     // Generate audio
@@ -81,7 +90,7 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
       text,
       voiceId: speaker.voiceId,
       languageCode: episode.targetLanguage === 'ja' ? 'ja-JP' : episode.targetLanguage,
-      speed: speed === 'slow' ? 0.75 : 1.0,
+      speed: numericSpeed,
       useSSML,
     });
 
@@ -119,10 +128,13 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
     speed === 'slow' ? 'slow' : pauseMode ? 'pause' : 'normal'
   );
 
-  // Update episode with audio URL
+  // Update episode with audio URL and speed
   await prisma.episode.update({
     where: { id: episodeId },
-    data: { audioUrl },
+    data: {
+      audioUrl,
+      audioSpeed: speed,
+    },
   });
 
   return {

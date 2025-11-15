@@ -6,6 +6,8 @@ export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'nativ
 
 export type ToneStyle = 'casual' | 'polite' | 'formal';
 
+export type AudioSpeed = 'very-slow' | 'slow' | 'medium' | 'normal';
+
 export interface User {
   id: string;
   email: string;
@@ -27,6 +29,7 @@ export interface Episode {
   dialogue?: Dialogue;
   images?: Image[];
   audioUrl?: string;
+  audioSpeed?: AudioSpeed;
 }
 
 export interface Dialogue {
@@ -109,6 +112,7 @@ export interface CreateEpisodeRequest {
   targetLanguage: LanguageCode;
   nativeLanguage: LanguageCode;
   speakers: Omit<Speaker, 'id'>[];
+  audioSpeed?: AudioSpeed;
 }
 
 export interface GenerateDialogueRequest {
@@ -126,7 +130,7 @@ export interface GenerateDialogueResponse {
 export interface GenerateAudioRequest {
   episodeId: string;
   dialogueId: string;
-  speed?: 'normal' | 'slow';
+  speed?: AudioSpeed;
   pauseMode?: boolean;
 }
 

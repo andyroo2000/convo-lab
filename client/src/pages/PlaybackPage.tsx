@@ -2,23 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { Episode, Sentence, Speaker } from '../types';
+import { Episode, Sentence, Speaker, AudioSpeed } from '../types';
 import JapaneseText from '../components/JapaneseText';
+import AudioPlayer from '../components/AudioPlayer';
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
   const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
-  const { audioRef, currentTime, isPlaying } = useAudioPlayer();
+  const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const [episode, setEpisode] = useState<Episode | null>(null);
-  const [selectedVariations, setSelectedVariations] = useState<Map<string, number>>(new Map());
-  const [openSelector, setOpenSelector] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  // Debug: Log when currentTime or isPlaying changes
-  useEffect(() => {
-    console.log('Audio state changed - Time:', currentTime, 'Playing:', isPlaying);
-  }, [currentTime, isPlaying]);
 
   useEffect(() => {
     if (episodeId) {
@@ -26,31 +22,54 @@ export default function PlaybackPage() {
     }
   }, [episodeId]);
 
+  // Initialize selectedSpeed from episode data
+  useEffect(() => {
+    if (episode?.audioSpeed) {
+      setSelectedSpeed(episode.audioSpeed as AudioSpeed);
+    }
+  }, [episode]);
+
+  // Keyboard controls: Space bar to play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle space bar
+      if (e.code !== 'Space') return;
+
+      // Don't trigger if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+        return;
+      }
+
+      // Prevent default scroll behavior
+      e.preventDefault();
+
+      // Toggle play/pause
+      if (isPlaying) {
+        pause();
+      } else {
+        play();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, play, pause]);
+
   // Auto-scroll to currently playing sentence
   useEffect(() => {
     if (!episode?.dialogue?.sentences) return;
 
-    // Debug: Log timing info
-    console.log('Current time (seconds):', currentTime);
-    console.log('Current time (ms):', currentTime * 1000);
-
     const currentSentence = episode.dialogue.sentences.find(
       (sentence) => {
-        const isMatch = sentence.startTime !== undefined &&
+        return sentence.startTime !== undefined &&
           sentence.endTime !== undefined &&
           currentTime * 1000 >= sentence.startTime &&
           currentTime * 1000 < sentence.endTime;
-
-        if (sentence.startTime !== undefined && sentence.endTime !== undefined) {
-          console.log(`Sentence ${sentence.order}: ${sentence.startTime}-${sentence.endTime}ms, Match: ${isMatch}`);
-        }
-
-        return isMatch;
       }
     );
 
     if (currentSentence) {
-      console.log('Currently playing sentence:', currentSentence.order, currentSentence.text);
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
         element.scrollIntoView({
@@ -63,50 +82,34 @@ export default function PlaybackPage() {
 
   const loadEpisode = async () => {
     if (!episodeId) return;
-    console.log('loadEpisode called for episodeId:', episodeId);
     try {
       const data = await getEpisode(episodeId);
-      console.log('Episode loaded:', data);
-      console.log('Episode audioUrl:', data.audioUrl);
       setEpisode(data);
     } catch (err) {
       console.error('Failed to load episode:', err);
     }
   };
 
-  const selectVariation = (sentenceId: string, variationIndex: number) => {
-    setSelectedVariations(new Map(selectedVariations.set(sentenceId, variationIndex)));
-    setOpenSelector(null);
-  };
-
-  const toggleSelector = (sentenceId: string) => {
-    setOpenSelector(openSelector === sentenceId ? null : sentenceId);
-  };
-
-  const getDisplayText = (sentence: Sentence): string => {
-    const selectedIdx = selectedVariations.get(sentence.id);
-    if (selectedIdx !== undefined && sentence.variations && sentence.variations[selectedIdx]) {
-      return sentence.variations[selectedIdx];
+  const seekToSentence = (sentence: Sentence) => {
+    if (sentence.startTime !== undefined) {
+      // Convert milliseconds to seconds
+      seek(sentence.startTime / 1000);
+      // Play if not already playing
+      if (!isPlaying) {
+        play();
+      }
     }
-    return sentence.text;
   };
 
   const handleGenerateAudio = async () => {
-    console.log('handleGenerateAudio called');
-    if (!episode || !episode.dialogue) {
-      console.log('No episode or dialogue');
-      return;
-    }
+    if (!episode || !episode.dialogue) return;
 
-    console.log('Starting audio generation for episode:', episode.id, 'dialogue:', episode.dialogue.id);
     setIsGeneratingAudio(true);
     try {
-      const jobId = await generateAudio(episode.id, episode.dialogue.id);
-      console.log('Got job ID:', jobId);
+      const jobId = await generateAudio(episode.id, episode.dialogue.id, selectedSpeed);
 
       // Poll for completion
       await pollJobStatus(jobId, async (status) => {
-        console.log('Job status:', status);
         if (status === 'completed') {
           // Reload episode to get audio URLs
           await loadEpisode();
@@ -148,6 +151,9 @@ export default function PlaybackPage() {
   // Create speaker map for quick lookup
   const speakerMap = new Map(speakers.map(s => [s.id, s]));
 
+  // Check if speed has changed from episode's saved speed
+  const hasSpeedChanged = selectedSpeed !== (episode.audioSpeed || 'medium');
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Episode Header */}
@@ -159,15 +165,27 @@ export default function PlaybackPage() {
               Created {new Date(episode.createdAt).toLocaleDateString()}
             </p>
           </div>
-          <div className="flex gap-2">
-            <button className="btn-outline text-sm">
-              Edit
-            </button>
+          <div className="flex gap-3 items-end">
+            {/* Speed Selector */}
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 mb-1">Audio Speed</label>
+              <select
+                value={selectedSpeed}
+                onChange={(e) => setSelectedSpeed(e.target.value as AudioSpeed)}
+                className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo"
+              >
+                <option value="very-slow">Very Slow</option>
+                <option value="slow">Slow</option>
+                <option value="medium">Medium</option>
+                <option value="normal">Normal</option>
+              </select>
+            </div>
+
             <button
               type="button"
               className="btn-primary text-sm"
               onClick={handleGenerateAudio}
-              disabled={isGeneratingAudio}
+              disabled={isGeneratingAudio || (!hasSpeedChanged && !!episode.audioUrl)}
             >
               {isGeneratingAudio ? 'Generating...' : 'Generate Audio'}
             </button>
@@ -193,20 +211,14 @@ export default function PlaybackPage() {
         </div>
       </div>
 
-      {/* Audio Player */}
+      {/* Audio Player - Sticky */}
       {episode.audioUrl && (
-        <div className="card bg-pale-sky">
-          <h3 className="text-lg font-semibold text-navy mb-3">
-            Episode Audio
-          </h3>
-          <audio
-            ref={audioRef}
-            controls
-            className="w-full"
+        <div className="sticky top-0 z-10 card bg-pale-sky py-3 px-4 shadow-md">
+          <AudioPlayer
             src={episode.audioUrl}
-          >
-            Your browser does not support the audio element.
-          </audio>
+            audioRef={audioRef}
+            key={episode.audioUrl}
+          />
         </div>
       )}
 
@@ -215,14 +227,6 @@ export default function PlaybackPage() {
         {sentences.map((sentence, index) => {
           const speaker = speakerMap.get(sentence.speakerId);
           if (!speaker) return null;
-
-          const displayText = getDisplayText(sentence);
-          const selectedIdx = selectedVariations.get(sentence.id);
-          const isOpen = openSelector === sentence.id;
-          const hasVariations = sentence.variations && sentence.variations.length > 0;
-
-          // All options: original text + variations
-          const allOptions = [sentence.text, ...(sentence.variations || [])];
 
           // Check if this sentence is currently being spoken
           const isCurrentlySpeaking =
@@ -256,29 +260,17 @@ export default function PlaybackPage() {
                 borderTop: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
                 borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
               }}
-              onClick={() => hasVariations && toggleSelector(sentence.id)}
+              onClick={() => seekToSentence(sentence)}
             >
               <div className="space-y-3">
                 {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-navy">
-                        {speaker.name}
-                      </span>
-                      <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
-                        #{index + 1}
-                      </span>
-                      {selectedIdx !== undefined && (
-                        <span className="text-xs px-2 py-1 bg-indigo text-white rounded">
-                          Variation {selectedIdx + 1}
-                        </span>
-                      )}
-                    </div>
-                    {hasVariations && (
-                      <div className="text-xs text-gray-400">
-                        {isOpen ? '▲' : '▼'} {allOptions.length} options
-                      </div>
-                    )}
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-navy">
+                    {speaker.name}
+                  </span>
+                  <span className="text-xs px-2 py-1 bg-gray-100 rounded text-gray-600">
+                    #{index + 1}
+                  </span>
                 </div>
 
                 {/* Japanese Text and Translation - Side by Side */}
@@ -287,7 +279,7 @@ export default function PlaybackPage() {
                   <div className="flex-1 pr-6">
                     <p className="text-2xl text-navy leading-relaxed">
                       <JapaneseText
-                        text={displayText}
+                        text={sentence.text}
                         metadata={sentence.metadata}
                       />
                     </p>
@@ -305,87 +297,11 @@ export default function PlaybackPage() {
                     </p>
                   </div>
                 </div>
-
-                {/* Variation Selector */}
-                {isOpen && hasVariations && (
-                  <div
-                    className="border-t pt-3"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <p className="text-xs font-medium text-gray-500 mb-2">
-                      Select a variation:
-                    </p>
-                    <div className="space-y-2">
-                      {allOptions.map((option, optIdx) => {
-                        const isSelected = selectedIdx === undefined
-                          ? optIdx === 0
-                          : selectedIdx === optIdx - 1;
-                        const isOriginal = optIdx === 0;
-
-                        return (
-                          <div
-                            key={optIdx}
-                            onClick={() => {
-                              if (isOriginal) {
-                                // Remove selection to show original
-                                const newMap = new Map(selectedVariations);
-                                newMap.delete(sentence.id);
-                                setSelectedVariations(newMap);
-                                setOpenSelector(null);
-                              } else {
-                                selectVariation(sentence.id, optIdx - 1);
-                              }
-                            }}
-                            className={`
-                              text-sm px-3 py-2 rounded cursor-pointer transition-all
-                              ${isSelected
-                                ? 'bg-indigo text-white font-medium shadow-sm'
-                                : 'text-gray-700 hover:bg-pale-sky hover:text-navy'
-                              }
-                            `}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span>
-                                <JapaneseText
-                                  text={option}
-                                  metadata={isOriginal
-                                    ? sentence.metadata
-                                    : sentence.variationsMetadata?.[optIdx - 1]
-                                  }
-                                />
-                              </span>
-                              {isOriginal && (
-                                <span className="text-xs ml-2 opacity-75">
-                                  (Original)
-                                </span>
-                              )}
-                              {isSelected && (
-                                <span className="ml-2">✓</span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           );
         })}
       </div>
-
-      {/* Story Source */}
-      {episode.sourceText && (
-        <div className="card bg-pale-sky">
-          <h3 className="text-sm font-semibold text-navy mb-2">
-            Original Story
-          </h3>
-          <p className="text-sm text-gray-700 whitespace-pre-wrap">
-            {episode.sourceText}
-          </p>
-        </div>
-      )}
     </div>
   );
 }
