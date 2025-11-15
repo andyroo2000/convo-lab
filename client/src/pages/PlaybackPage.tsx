@@ -8,12 +8,17 @@ import JapaneseText from '../components/JapaneseText';
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
   const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
-  const { audioRef, currentTime } = useAudioPlayer();
+  const { audioRef, currentTime, isPlaying } = useAudioPlayer();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [selectedVariations, setSelectedVariations] = useState<Map<string, number>>(new Map());
   const [openSelector, setOpenSelector] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+
+  // Debug: Log when currentTime or isPlaying changes
+  useEffect(() => {
+    console.log('Audio state changed - Time:', currentTime, 'Playing:', isPlaying);
+  }, [currentTime, isPlaying]);
 
   useEffect(() => {
     if (episodeId) {
@@ -25,15 +30,27 @@ export default function PlaybackPage() {
   useEffect(() => {
     if (!episode?.dialogue?.sentences) return;
 
+    // Debug: Log timing info
+    console.log('Current time (seconds):', currentTime);
+    console.log('Current time (ms):', currentTime * 1000);
+
     const currentSentence = episode.dialogue.sentences.find(
-      (sentence) =>
-        sentence.startTime !== undefined &&
-        sentence.endTime !== undefined &&
-        currentTime * 1000 >= sentence.startTime &&
-        currentTime * 1000 < sentence.endTime
+      (sentence) => {
+        const isMatch = sentence.startTime !== undefined &&
+          sentence.endTime !== undefined &&
+          currentTime * 1000 >= sentence.startTime &&
+          currentTime * 1000 < sentence.endTime;
+
+        if (sentence.startTime !== undefined && sentence.endTime !== undefined) {
+          console.log(`Sentence ${sentence.order}: ${sentence.startTime}-${sentence.endTime}ms, Match: ${isMatch}`);
+        }
+
+        return isMatch;
+      }
     );
 
     if (currentSentence) {
+      console.log('Currently playing sentence:', currentSentence.order, currentSentence.text);
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
         element.scrollIntoView({
