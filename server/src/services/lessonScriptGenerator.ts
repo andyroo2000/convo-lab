@@ -4,8 +4,8 @@ import { CoreItem } from './courseItemExtractor';
 
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
-  | { type: 'narration_L1'; text: string; voiceId: string }
-  | { type: 'L2'; text: string; reading?: string; voiceId: string; speed?: number }
+  | { type: 'narration_L1'; text: string; voiceId: string; pitch?: number }
+  | { type: 'L2'; text: string; reading?: string; voiceId: string; speed?: number; pitch?: number }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
 

@@ -10,13 +10,13 @@ export const GOOGLE_TO_EDGE_VOICE_MAPPING: Record<string, string> = {
   'en-US-Neural2-A': 'en-US-JennyNeural', // Female alternative
 
   // Japanese voices (L2 - Dialogue speakers)
-  'ja-JP-Neural2-B': 'ja-JP-NanamiNeural', // Female, bright, cheerful
-  'ja-JP-Neural2-C': 'ja-JP-KeitaNeural',  // Male, casual, engaging
-  'ja-JP-Neural2-D': 'ja-JP-AoiNeural',    // Female, curious, cheerful
-  'ja-JP-Wavenet-A': 'ja-JP-NanamiNeural', // Fallback for older Wavenet voices
-  'ja-JP-Wavenet-B': 'ja-JP-KeitaNeural',
-  'ja-JP-Wavenet-C': 'ja-JP-DaichiNeural', // Male
-  'ja-JP-Wavenet-D': 'ja-JP-ShioriNeural', // Female
+  'ja-JP-Neural2-B': 'ja-JP-NanamiNeural',  // Female, bright, cheerful
+  'ja-JP-Neural2-C': 'ja-JP-DaichiNeural',  // Male (changed from KeitaNeural - sounded like child)
+  'ja-JP-Neural2-D': 'ja-JP-DaichiNeural',  // Male (changed from AoiNeural which was female)
+  'ja-JP-Wavenet-A': 'ja-JP-NanamiNeural',  // Fallback for older Wavenet voices
+  'ja-JP-Wavenet-B': 'ja-JP-DaichiNeural',  // Male (changed from KeitaNeural - sounded like child)
+  'ja-JP-Wavenet-C': 'ja-JP-DaichiNeural',  // Male
+  'ja-JP-Wavenet-D': 'ja-JP-ShioriNeural',  // Female
 };
 
 /**

@@ -23,6 +23,7 @@ export class EdgeTTSProvider implements TTSProvider {
       voiceId,
       languageCode,
       speed = 1.0,
+      pitch = 0,
       ssml = false,
     } = options;
 
@@ -33,6 +34,10 @@ export class EdgeTTSProvider implements TTSProvider {
     // speed 1.0 -> +0%, 0.75 -> -25%, 1.25 -> +25%
     const ratePercent = Math.round((speed - 1.0) * 100);
     const rateParam = `${ratePercent >= 0 ? '+' : ''}${ratePercent}%`;
+
+    // Convert pitch to Edge TTS pitch format
+    // pitch is in Hz: -50 to +50, where negative = deeper, positive = higher
+    const pitchParam = `${pitch >= 0 ? '+' : ''}${pitch}Hz`;
 
     // Create temporary files for input and output
     const tempDir = os.tmpdir();
@@ -53,11 +58,12 @@ export class EdgeTTSProvider implements TTSProvider {
         'edge-tts',
         `--voice ${edgeVoiceId}`,
         `--rate=${rateParam}`,
+        `--pitch=${pitchParam}`,
         `--file ${inputFile}`,
         `--write-media ${outputFile}`,
       ].join(' ');
 
-      console.log(`[EdgeTTS] Synthesizing with voice: ${edgeVoiceId}, rate: ${rateParam}`);
+      console.log(`[EdgeTTS] Synthesizing with voice: ${edgeVoiceId}, rate: ${rateParam}, pitch: ${pitchParam}`);
 
       // Execute edge-tts
       await execAsync(command, {

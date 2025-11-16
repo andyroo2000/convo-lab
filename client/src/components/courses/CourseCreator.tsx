@@ -19,10 +19,8 @@ export default function CourseCreator({
   const [title, setTitle] = useState('');
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
-  const [useDraftMode, setUseDraftMode] = useState(false);
+  const [useDraftMode, setUseDraftMode] = useState(true);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
-  const [speaker1Gender, setSpeaker1Gender] = useState<'male' | 'female'>('male');
-  const [speaker2Gender, setSpeaker2Gender] = useState<'male' | 'female'>('female');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,8 +88,8 @@ export default function CourseCreator({
           l1VoiceId: selectedVoice,
           useDraftMode,
           jlptLevel,
-          speaker1Gender,
-          speaker2Gender,
+          speaker1Gender: 'female', // Hardcoded: Speaker 1 is always female
+          speaker2Gender: 'male',   // Hardcoded: Speaker 2 is always male
         } as CreateCourseRequest),
       });
 
@@ -135,11 +133,11 @@ export default function CourseCreator({
       onClick={!isCreating ? onClose : undefined}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full animate-slideUp"
+        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-slideUp"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold text-navy">Create Audio Course</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -156,7 +154,7 @@ export default function CourseCreator({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Title Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -197,97 +195,22 @@ export default function CourseCreator({
             </p>
           </div>
 
-          {/* Dialogue Character Genders */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Dialogue Character Genders
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Speaker 1 */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-700 mb-2">
-                  Speaker 1
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="speaker1"
-                      value="male"
-                      checked={speaker1Gender === 'male'}
-                      onChange={(e) => setSpeaker1Gender(e.target.value as 'male' | 'female')}
-                      disabled={isCreating}
-                      className="mr-2 disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-700">Male</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="speaker1"
-                      value="female"
-                      checked={speaker1Gender === 'female'}
-                      onChange={(e) => setSpeaker1Gender(e.target.value as 'male' | 'female')}
-                      disabled={isCreating}
-                      className="mr-2 disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-700">Female</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Speaker 2 */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="text-sm font-medium text-gray-700 mb-2">
-                  Speaker 2
-                </div>
-                <div className="space-y-2">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="speaker2"
-                      value="male"
-                      checked={speaker2Gender === 'male'}
-                      onChange={(e) => setSpeaker2Gender(e.target.value as 'male' | 'female')}
-                      disabled={isCreating}
-                      className="mr-2 disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-700">Male</span>
-                  </label>
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="speaker2"
-                      value="female"
-                      checked={speaker2Gender === 'female'}
-                      onChange={(e) => setSpeaker2Gender(e.target.value as 'male' | 'female')}
-                      disabled={isCreating}
-                      className="mr-2 disabled:opacity-50"
-                    />
-                    <span className="text-sm text-gray-700">Female</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Select preferred genders for the two speakers in {episode.targetLanguage.toUpperCase()} dialogue
-            </p>
-          </div>
-
           {/* Max Lesson Duration */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Max Lesson Duration (minutes)
+              Max Lesson Duration
             </label>
-            <input
-              type="number"
+            <select
               value={maxDuration}
-              onChange={(e) => setMaxDuration(Math.max(10, Math.min(60, parseInt(e.target.value) || 30)))}
+              onChange={(e) => setMaxDuration(parseInt(e.target.value))}
               disabled={isCreating}
-              min={10}
-              max={60}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
-            />
+            >
+              <option value={10}>10 minutes</option>
+              <option value={15}>15 minutes</option>
+              <option value={20}>20 minutes</option>
+              <option value={30}>30 minutes</option>
+            </select>
             <p className="text-xs text-gray-500 mt-1">
               Lessons longer than this will be split into multiple parts
             </p>
@@ -357,7 +280,7 @@ export default function CourseCreator({
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg">
+        <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg flex-shrink-0">
           <button
             onClick={onClose}
             disabled={isCreating}
