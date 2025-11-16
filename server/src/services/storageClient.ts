@@ -1,6 +1,7 @@
 import { Storage } from '@google-cloud/storage';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { createReadStream } from 'fs';
 
 const storage = new Storage();
 const bucketName = process.env.GCS_BUCKET_NAME!;
@@ -35,6 +36,51 @@ export async function uploadToGCS(options: UploadOptions): Promise<string> {
     return `https://storage.googleapis.com/${bucketName}/${filepath}`;
   } catch (error) {
     console.error('GCS upload error:', error);
+    throw new Error('Failed to upload file to Google Cloud Storage');
+  }
+}
+
+export interface UploadFileOptions {
+  filePath: string;
+  filename: string;
+  contentType: string;
+  folder?: string;
+}
+
+/**
+ * Upload a file to GCS using streaming (memory-efficient for large files)
+ */
+export async function uploadFileToGCS(options: UploadFileOptions): Promise<string> {
+  const { filePath, filename, contentType, folder = 'uploads' } = options;
+
+  try {
+    const bucket = storage.bucket(bucketName);
+    const uniqueFilename = `${uuidv4()}-${filename}`;
+    const filepath = folder ? `${folder}/${uniqueFilename}` : uniqueFilename;
+    const file = bucket.file(filepath);
+
+    // Stream the file to GCS instead of loading into memory
+    await new Promise<void>((resolve, reject) => {
+      createReadStream(filePath)
+        .pipe(
+          file.createWriteStream({
+            contentType,
+            metadata: {
+              cacheControl: 'public, max-age=31536000',
+            },
+          })
+        )
+        .on('error', reject)
+        .on('finish', resolve);
+    });
+
+    // Make file publicly accessible
+    await file.makePublic();
+
+    // Return public URL
+    return `https://storage.googleapis.com/${bucketName}/${filepath}`;
+  } catch (error) {
+    console.error('GCS streaming upload error:', error);
     throw new Error('Failed to upload file to Google Cloud Storage');
   }
 }
