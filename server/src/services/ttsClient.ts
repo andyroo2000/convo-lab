@@ -16,6 +16,7 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
     voiceId,
     languageCode,
     speed = 1.0,
+    pitch = 0,
     useSSML = false,
     useDraftMode = false,
   } = options;
@@ -32,6 +33,7 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
       voiceId,
       languageCode,
       speed,
+      pitch,
       ssml: useSSML,
     });
 

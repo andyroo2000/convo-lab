@@ -748,7 +748,9 @@ Guidelines:
 - AVOID run-on sentences or multiple topics in one turn
 - Each turn should focus on ONE idea that's easy to hold in working memory
 - Include practical, useful phrases
-- For vocabulary, focus on verbs, key nouns, and useful expressions
+- For vocabulary, extract words/phrases in the EXACT form used in the sentence (e.g., past tense "楽しかった" not dictionary form "楽しい")
+- Extract meaningful chunks, not just single words (e.g., "was fun" not just "fun", "I rode" not just "rode")
+- The translation should match the exact form extracted (e.g., "was fun" for "楽しかった", not "fun")
 
 Examples of GOOD turn length:
 - "How was your trip to Hokkaido?" (simple question)
@@ -814,7 +816,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Define multiple voices per gender for each language (to support same-gender dialogues)
     const voicesByGender: Record<string, { male: string[]; female: string[] }> = {
       'ja': {
-        male: ['ja-JP-Neural2-C', 'ja-JP-Neural2-D'], // Avoiding D as primary (sounds young)
+        male: ['ja-JP-Neural2-D', 'ja-JP-Wavenet-D'], // Removed Neural2-C (sounds like a child)
         female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-B']
       },
       'zh': {
@@ -838,12 +840,11 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Get voices for target language with fallback to English
     const languageVoices = voicesByGender[targetLanguage] || voicesByGender['en'];
 
-    // Create ordered voice array based on gender preferences
-    // First unique speaker gets first voice of their gender, second gets second voice
-    // This ensures different voices even if both speakers are the same gender
+    // Always use female for speaker 1 (the friend) and male for speaker 2 (the listener)
+    // This provides clear voice differentiation and avoids the child-sounding male voice
     const availableVoices = [
-      languageVoices[speaker1Gender][0], // First voice for speaker 1's gender
-      languageVoices[speaker2Gender][speaker1Gender === speaker2Gender ? 1 : 0], // If same gender, use second voice
+      languageVoices['female'][0], // Speaker 1 (friend) is always female
+      languageVoices['male'][0],   // Speaker 2 (listener) is always male
     ];
 
     // Track unique speakers and assign voices

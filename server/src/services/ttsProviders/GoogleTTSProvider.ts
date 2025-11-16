@@ -26,11 +26,17 @@ export class GoogleTTSProvider implements TTSProvider {
       voiceId,
       languageCode,
       speed = 1.0,
+      pitch = 0,
       ssml = false,
     } = options;
 
     // Extract language code from voice ID if not provided
     const lang = languageCode || this.extractLanguageCode(voiceId);
+
+    // Convert Hz pitch to semitones for Google Cloud TTS
+    // Edge TTS uses Hz (-50 to +50), Google uses semitones (-20.0 to +20.0)
+    // Rough conversion: 1 semitone ≈ 6% frequency change ≈ 3Hz at middle frequencies
+    const pitchSemitones = pitch / 3.0;
 
     try {
       const request = {
@@ -44,7 +50,7 @@ export class GoogleTTSProvider implements TTSProvider {
         audioConfig: {
           audioEncoding: 'MP3' as const,
           speakingRate: speed,
-          pitch: 0,
+          pitch: pitchSemitones,
           effectsProfileId: ['headphone-class-device'],
         } as IAudioConfig,
       };

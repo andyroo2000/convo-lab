@@ -366,13 +366,16 @@ async function generateResponseTeachingUnits(
     }
 
     // STEP 2: Progressive phrase building (NEW!)
-    // Generate intermediate phrase chunks using AI
-    const progressiveChunks = await generateProgressivePhraseChunks(
-      exchange.textL2,
-      exchange.translationL1,
-      exchange.vocabularyItems,
-      context.targetLanguage
-    );
+    // Generate intermediate phrase chunks using AI - BUT ONLY if we taught vocabulary
+    // If we filtered out all vocab, skip progressive building (full phrase was likely taught earlier)
+    const progressiveChunks = vocabToTeach.length > 0
+      ? await generateProgressivePhraseChunks(
+          exchange.textL2,
+          exchange.translationL1,
+          vocabToTeach, // Use only the vocab we ACTUALLY taught
+          context.targetLanguage
+        )
+      : [];
 
     // Teach each progressive chunk
     for (const chunk of progressiveChunks) {

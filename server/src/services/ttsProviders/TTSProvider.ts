@@ -8,6 +8,7 @@ export interface TTSOptions {
   voiceId: string;
   languageCode?: string;
   speed?: number; // 0.75 = slow, 1.0 = normal, 1.25 = fast
+  pitch?: number; // -50 to +50Hz, negative = deeper, positive = higher
   ssml?: boolean; // Whether text is SSML formatted
 }
 

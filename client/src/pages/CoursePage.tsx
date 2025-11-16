@@ -14,6 +14,12 @@ export default function CoursePage() {
   const [generationProgress, setGenerationProgress] = useState<number | null>(null);
   const { audioRef } = useAudioPlayer();
 
+  // Inline editing state
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+
   useEffect(() => {
     if (courseId) {
       loadCourse();
@@ -83,6 +89,64 @@ export default function CoursePage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const updateCourse = async (updates: { title?: string; description?: string }) => {
+    if (!courseId) return;
+
+    try {
+      const response = await fetch(`/api/courses/${courseId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(updates),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update course');
+      }
+
+      // Reload course to get updated data
+      await loadCourse();
+    } catch (err) {
+      console.error('Error updating course:', err);
+    }
+  };
+
+  const handleTitleEdit = () => {
+    if (!course) return;
+    setEditedTitle(course.title);
+    setEditingTitle(true);
+  };
+
+  const handleTitleSave = async () => {
+    if (editedTitle.trim() && editedTitle !== course?.title) {
+      await updateCourse({ title: editedTitle.trim() });
+    }
+    setEditingTitle(false);
+  };
+
+  const handleDescriptionEdit = () => {
+    if (!course) return;
+    setEditedDescription(course.description || '');
+    setEditingDescription(true);
+  };
+
+  const handleDescriptionSave = async () => {
+    if (editedDescription !== course?.description) {
+      await updateCourse({ description: editedDescription });
+    }
+    setEditingDescription(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, saveHandler: () => void) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      saveHandler();
+    } else if (e.key === 'Escape') {
+      setEditingTitle(false);
+      setEditingDescription(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -118,9 +182,46 @@ export default function CoursePage() {
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-navy">{course.title}</h1>
-          {course.description && (
-            <p className="text-gray-600 mt-2">{course.description}</p>
+          {/* Editable Title */}
+          {editingTitle ? (
+            <input
+              type="text"
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              onBlur={handleTitleSave}
+              onKeyDown={(e) => handleKeyDown(e, handleTitleSave)}
+              className="text-3xl font-bold text-navy bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full"
+              autoFocus
+            />
+          ) : (
+            <h1
+              className="text-3xl font-bold text-navy cursor-pointer hover:text-indigo-600 transition-colors"
+              onClick={handleTitleEdit}
+              title="Click to edit"
+            >
+              {course.title}
+            </h1>
+          )}
+
+          {/* Editable Description */}
+          {editingDescription ? (
+            <textarea
+              value={editedDescription}
+              onChange={(e) => setEditedDescription(e.target.value)}
+              onBlur={handleDescriptionSave}
+              onKeyDown={(e) => handleKeyDown(e, handleDescriptionSave)}
+              className="text-gray-600 mt-2 bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full resize-none"
+              rows={2}
+              autoFocus
+            />
+          ) : (
+            <p
+              className="text-gray-600 mt-2 cursor-pointer hover:text-indigo-600 transition-colors"
+              onClick={handleDescriptionEdit}
+              title="Click to edit"
+            >
+              {course.description || 'Click to add description...'}
+            </p>
           )}
         </div>
       </div>

@@ -69,6 +69,7 @@ export async function assembleLessonAudio(
             voiceId: unit.voiceId,
             languageCode: getLanguageCode(nativeLanguage),
             speed: 1.0,
+            pitch: unit.pitch || 0,
             useSSML: false,
             useDraftMode,
           });
@@ -82,6 +83,7 @@ export async function assembleLessonAudio(
             voiceId: unit.voiceId,
             languageCode: getLanguageCode(targetLanguage),
             speed: unit.speed || 1.0,
+            pitch: unit.pitch || 0,
             useSSML: false,
             useDraftMode,
           });
