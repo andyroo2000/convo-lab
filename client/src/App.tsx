@@ -5,6 +5,7 @@ import StudioPage from './pages/StudioPage';
 import PlaybackPage from './pages/PlaybackPage';
 import PracticePage from './pages/PracticePage';
 import LibraryPage from './pages/LibraryPage';
+import CoursePage from './pages/CoursePage';
 import LoginPage from './pages/LoginPage';
 
 function App() {
@@ -20,6 +21,7 @@ function App() {
             <Route path="studio/:episodeId" element={<StudioPage />} />
             <Route path="playback/:episodeId" element={<PlaybackPage />} />
             <Route path="practice/:episodeId" element={<PracticePage />} />
+            <Route path="courses/:courseId" element={<CoursePage />} />
           </Route>
         </Routes>
       </AuthProvider>

@@ -18,7 +18,7 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-soft-sand">
-      <nav className="bg-white border-b border-warm-gray">
+      <nav className="sticky top-0 z-20 bg-white border-b border-warm-gray shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">

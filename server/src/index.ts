@@ -9,7 +9,9 @@ import episodeRoutes from './routes/episodes.js';
 import dialogueRoutes from './routes/dialogue.js';
 import audioRoutes from './routes/audio.js';
 import imageRoutes from './routes/images.js';
+import courseRoutes from './routes/courses.js';
 import { audioWorker } from './jobs/audioQueue.js';
+import { courseWorker } from './jobs/courseQueue.js';
 
 dotenv.config();
 
@@ -39,6 +41,7 @@ app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/courses', courseRoutes);
 
 // Error handling
 app.use(errorHandler);

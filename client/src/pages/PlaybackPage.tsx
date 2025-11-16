@@ -1,18 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { Episode, Sentence, Speaker, AudioSpeed } from '../types';
+import { Episode, Sentence, Speaker, AudioSpeed, CourseStatusResponse } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
+import CourseCreator from '../components/courses/CourseCreator';
+import Toast from '../components/common/Toast';
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
+  const navigate = useNavigate();
   const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
+  const [showCourseCreator, setShowCourseCreator] = useState(false);
+  const [generatingCourseId, setGeneratingCourseId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
 
@@ -123,6 +130,47 @@ export default function PlaybackPage() {
     }
   };
 
+  const handleCourseCreated = (courseId: string) => {
+    setGeneratingCourseId(courseId);
+    setToastMessage('Course generation started! This may take a few minutes...');
+    setToastType('info');
+  };
+
+  // Poll for course status while generating
+  useEffect(() => {
+    if (!generatingCourseId) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`/api/courses/${generatingCourseId}/status`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to check course status');
+        }
+
+        const statusData: CourseStatusResponse = await response.json();
+
+        if (statusData.status === 'ready') {
+          clearInterval(pollInterval);
+          setGeneratingCourseId(null);
+          setToastMessage('Course generated successfully! Check the Library to view it.');
+          setToastType('success');
+        } else if (statusData.status === 'error') {
+          clearInterval(pollInterval);
+          setGeneratingCourseId(null);
+          setToastMessage('Course generation failed. Please try again.');
+          setToastType('error');
+        }
+      } catch (err) {
+        console.error('Error polling course status:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [generatingCourseId]);
+
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -189,6 +237,20 @@ export default function PlaybackPage() {
             >
               {isGeneratingAudio ? 'Generating...' : 'Generate Audio'}
             </button>
+
+            {/* Create Audio Course Button */}
+            {dialogue && (
+              <button
+                type="button"
+                className={`btn-outline text-sm bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 border-0 ${
+                  generatingCourseId ? 'animate-pulse' : ''
+                }`}
+                onClick={() => setShowCourseCreator(true)}
+                disabled={!!generatingCourseId}
+              >
+                {generatingCourseId ? 'Generating Course...' : 'Create Audio Course'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -213,7 +275,7 @@ export default function PlaybackPage() {
 
       {/* Audio Player - Sticky */}
       {episode.audioUrl && (
-        <div className="sticky top-0 z-10 card bg-pale-sky py-3 px-4 shadow-md">
+        <div className="sticky top-16 z-10 card bg-pale-sky py-3 px-4 shadow-md">
           <AudioPlayer
             src={episode.audioUrl}
             audioRef={audioRef}
@@ -302,6 +364,24 @@ export default function PlaybackPage() {
           );
         })}
       </div>
+
+      {/* Course Creator Modal */}
+      {episode && (
+        <CourseCreator
+          isOpen={showCourseCreator}
+          episode={episode}
+          onClose={() => setShowCourseCreator(false)}
+          onCourseCreated={handleCourseCreated}
+        />
+      )}
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage || ''}
+        type={toastType}
+        isVisible={!!toastMessage}
+        onClose={() => setToastMessage(null)}
+      />
     </div>
   );
 }

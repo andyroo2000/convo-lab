@@ -37,6 +37,7 @@ export interface VocabularyItem {
   textL2: string;
   readingL2?: string;
   translationL1: string;
+  jlptLevel?: string; // JLPT level: N5, N4, N3, N2, N1 (for Japanese vocabulary)
   components?: PhraseComponent[]; // Backward-build components for this word/phrase
 }
 
@@ -702,7 +703,9 @@ export async function extractDialogueExchangesFromSourceText(
   nativeLanguage: string,
   targetDurationMinutes: number = 15,
   jlptLevel?: string,
-  speakerVoices?: { speakerName: string; voiceId: string }[]
+  speakerVoices?: { speakerName: string; voiceId: string }[],
+  speaker1Gender: 'male' | 'female' = 'male',
+  speaker2Gender: 'male' | 'female' = 'female'
 ): Promise<DialogueExchange[]> {
   console.log(`Extracting dialogue from source text for episode: ${episodeTitle}`);
   console.log(`Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`);
@@ -760,8 +763,14 @@ ${targetLanguage === 'ja' ? `
 IMPORTANT for Japanese vocabulary:
 - "word" should contain ONLY Japanese characters (kanji/kana), NO romanization
 - "reading" should contain the hiragana reading (e.g., "ほっかいどう" for 北海道)
+- "jlptLevel" should indicate the JLPT level where this word is typically taught (N5, N4, N3, N2, N1)
+  - N5 = beginner (basic words like これ, ありがとう, 行く)
+  - N4 = upper beginner
+  - N3 = intermediate
+  - N2 = upper intermediate
+  - N1 = advanced
 - Do NOT include romanization in parentheses
-- Example: {"word": "北海道", "reading": "ほっかいどう", "translation": "Hokkaido"}
+- Example: {"word": "北海道", "reading": "ほっかいどう", "translation": "Hokkaido", "jlptLevel": "N4"}
 ` : ''}
 
 Return ONLY a JSON object (no markdown, no explanation):
@@ -774,8 +783,8 @@ Return ONLY a JSON object (no markdown, no explanation):
       "textL2": "...",
       "translation": "...",
       "vocabulary": [
-        {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...",' : ''} "translation": "..."},
-        {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...",' : ''} "translation": "..."}
+        {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...", "jlptLevel": "N4",' : ''} "translation": "..."},
+        {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...", "jlptLevel": "N3",' : ''} "translation": "..."}
       ]
     }
   ]
@@ -802,17 +811,40 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Build dialogue exchanges
     const exchanges: DialogueExchange[] = [];
 
-    // Define default adult voices for each language
-    const defaultVoices: Record<string, string[]> = {
-      'ja': ['ja-JP-Neural2-C', 'ja-JP-Neural2-B'], // Male, Female (avoiding D which sounds childish)
-      'zh': ['zh-CN-YunxiNeural', 'zh-CN-XiaoxiaoNeural'],
-      'es': ['es-ES-AlvaroNeural', 'es-ES-ElviraNeural'],
-      'fr': ['fr-FR-HenriNeural', 'fr-FR-DeniseNeural'],
-      'en': ['en-US-Journey-D', 'en-US-Journey-F'],
+    // Define multiple voices per gender for each language (to support same-gender dialogues)
+    const voicesByGender: Record<string, { male: string[]; female: string[] }> = {
+      'ja': {
+        male: ['ja-JP-Neural2-C', 'ja-JP-Neural2-D'], // Avoiding D as primary (sounds young)
+        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-B']
+      },
+      'zh': {
+        male: ['zh-CN-YunxiNeural', 'zh-CN-YunyangNeural'],
+        female: ['zh-CN-XiaoxiaoNeural', 'zh-CN-XiaoyiNeural']
+      },
+      'es': {
+        male: ['es-ES-AlvaroNeural', 'es-ES-PabloNeural'],
+        female: ['es-ES-ElviraNeural', 'es-ES-AbrilNeural']
+      },
+      'fr': {
+        male: ['fr-FR-HenriNeural', 'fr-FR-AlainNeural'],
+        female: ['fr-FR-DeniseNeural', 'fr-FR-BrigitteNeural']
+      },
+      'en': {
+        male: ['en-US-Journey-D', 'en-US-Neural2-D'],
+        female: ['en-US-Journey-F', 'en-US-Neural2-F']
+      },
     };
 
-    // Get available voices for target language
-    const availableVoices = defaultVoices[targetLanguage] || defaultVoices['en'];
+    // Get voices for target language with fallback to English
+    const languageVoices = voicesByGender[targetLanguage] || voicesByGender['en'];
+
+    // Create ordered voice array based on gender preferences
+    // First unique speaker gets first voice of their gender, second gets second voice
+    // This ensures different voices even if both speakers are the same gender
+    const availableVoices = [
+      languageVoices[speaker1Gender][0], // First voice for speaker 1's gender
+      languageVoices[speaker2Gender][speaker1Gender === speaker2Gender ? 1 : 0], // If same gender, use second voice
+    ];
 
     // Track unique speakers and assign voices
     const speakerVoiceMap = new Map<string, string>();
@@ -849,6 +881,7 @@ Return ONLY a JSON object (no markdown, no explanation):
             textL2: cleanedWord,
             readingL2: vocab.reading || undefined,
             translationL1: vocab.translation,
+            jlptLevel: vocab.jlptLevel || undefined,
           });
         }
       }

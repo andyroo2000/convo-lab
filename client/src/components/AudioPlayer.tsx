@@ -17,7 +17,11 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
   const combinedRef = useCallback((element: HTMLAudioElement | null) => {
     audioElementRef.current = element;
     audioRef(element);
+  }, [audioRef]);
 
+  // Set up event listeners when audio element is available
+  useEffect(() => {
+    const element = audioElementRef.current;
     if (!element) return;
 
     const updateDuration = () => setDuration(element.duration);
@@ -39,7 +43,7 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
       element.removeEventListener('pause', handlePause);
       element.removeEventListener('ended', handleEnded);
     };
-  }, [audioRef]);
+  }, [src]); // Re-run when src changes
 
   // Smooth progress updates using requestAnimationFrame - runs continuously
   useEffect(() => {

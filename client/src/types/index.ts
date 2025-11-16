@@ -153,3 +153,101 @@ export interface GenerateImagesRequest {
 export interface GenerateImagesResponse {
   images: Image[];
 }
+
+// Pimsleur-style Course Types
+
+export interface Course {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  status: 'draft' | 'generating' | 'ready' | 'error';
+  nativeLanguage: LanguageCode;
+  targetLanguage: LanguageCode;
+  maxLessonDurationMinutes: number;
+  l1VoiceId: string;
+  useDraftMode: boolean;
+  jlptLevel?: string; // N5, N4, N3, N2, N1
+  speaker1Gender: 'male' | 'female';
+  speaker2Gender: 'male' | 'female';
+  createdAt: Date;
+  updatedAt: Date;
+  lessons?: Lesson[];
+  courseEpisodes?: CourseEpisode[];
+}
+
+export interface CourseEpisode {
+  id: string;
+  courseId: string;
+  episodeId: string;
+  order: number;
+  episode?: Episode;
+}
+
+export interface Lesson {
+  id: string;
+  courseId: string;
+  order: number;
+  title: string;
+  scriptJson: LessonScriptUnit[];
+  approxDurationSeconds: number;
+  audioUrl?: string;
+  status: 'pending' | 'generating' | 'ready' | 'error';
+  createdAt: Date;
+  updatedAt: Date;
+  coreItems?: LessonCoreItem[];
+}
+
+export interface LessonCoreItem {
+  id: string;
+  lessonId: string;
+  textL2: string;
+  readingL2?: string;
+  translationL1: string;
+  complexityScore: number;
+  sourceEpisodeId?: string;
+  sourceSentenceId?: string;
+}
+
+export type LessonScriptUnit =
+  | { type: 'narration_L1'; text: string; voiceId: string }
+  | { type: 'L2'; text: string; reading?: string; voiceId: string; speed?: number }
+  | { type: 'pause'; seconds: number }
+  | { type: 'marker'; label: string };
+
+// API request/response types for courses
+
+export interface CreateCourseRequest {
+  title: string;
+  description?: string;
+  episodeIds: string[];
+  nativeLanguage: LanguageCode;
+  targetLanguage: LanguageCode;
+  maxLessonDurationMinutes?: number;
+  l1VoiceId?: string;
+  useDraftMode?: boolean;
+  jlptLevel?: string; // N5, N4, N3, N2, N1
+  speaker1Gender?: 'male' | 'female';
+  speaker2Gender?: 'male' | 'female';
+}
+
+export interface GenerateCourseRequest {
+  courseId: string;
+}
+
+export interface GenerateCourseResponse {
+  message: string;
+  jobId: string;
+  courseId: string;
+}
+
+export interface CourseStatusResponse {
+  status: 'draft' | 'generating' | 'ready' | 'error';
+  progress?: number;
+  currentStage?: string;
+  lessons: Array<{
+    id: string;
+    order: number;
+    status: string;
+  }>;
+}
