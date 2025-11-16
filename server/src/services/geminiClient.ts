@@ -7,11 +7,32 @@ export interface GeminiMessage {
   parts: string;
 }
 
+// Rate limiting: Gemini 2.5 Flash has higher rate limits than 2.0
+// Track last request time to enforce gaps between requests
+let lastRequestTime = 0;
+const MIN_REQUEST_INTERVAL_MS = 6500; // 6.5 seconds to be safe
+
+async function waitForRateLimit() {
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+
+  if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
+    const waitTime = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
+    console.log(`Rate limiting: waiting ${waitTime}ms before next Gemini call`);
+    await new Promise(resolve => setTimeout(resolve, waitTime));
+  }
+
+  lastRequestTime = Date.now();
+}
+
 export async function generateWithGemini(
   prompt: string,
   systemInstruction?: string,
-  model: string = 'gemini-2.0-flash-exp'
+  model: string = 'gemini-2.5-flash'
 ): Promise<string> {
+  // Wait for rate limit before making request
+  await waitForRateLimit();
+
   try {
     const generativeModel = genAI.getGenerativeModel({
       model,
@@ -30,7 +51,7 @@ export async function generateWithGemini(
 export async function generateWithGeminiChat(
   messages: GeminiMessage[],
   systemInstruction?: string,
-  model: string = 'gemini-2.0-flash-exp'
+  model: string = 'gemini-2.5-flash'
 ): Promise<string> {
   try {
     const generativeModel = genAI.getGenerativeModel({

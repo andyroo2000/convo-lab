@@ -29,6 +29,9 @@ export async function generateConversationalLessonScript(
   const units: LessonScriptUnit[] = [];
   let totalSeconds = 0;
 
+  // Track introduced vocabulary across entire lesson to avoid teaching duplicates
+  const introducedVocab = new Set<string>();
+
   // Generate scenario introduction using AI
   const jlptInfo = context.jlptLevel
     ? ` This lesson is designed for students at JLPT ${context.jlptLevel} level.`
@@ -85,12 +88,12 @@ Write only the scenario setup, no additional formatting:`;
 
     if (isUserResponse) {
       // This is YOUR response - teach how to say it
-      const responseUnits = await generateResponseTeachingUnits(exchange, context);
+      const responseUnits = await generateResponseTeachingUnits(exchange, context, introducedVocab);
       units.push(...responseUnits);
       totalSeconds += estimateUnitsDuration(responseUnits);
     } else {
       // This is the OTHER PERSON speaking - just play it
-      const questionUnits = generateQuestionUnits(exchange, context);
+      const questionUnits = generateQuestionUnits(exchange, context, introducedVocab);
       units.push(...questionUnits);
       totalSeconds += estimateUnitsDuration(questionUnits);
     }
@@ -122,7 +125,8 @@ Write only the scenario setup, no additional formatting:`;
  */
 function generateQuestionUnits(
   exchange: DialogueExchange,
-  context: ConversationalScriptContext
+  context: ConversationalScriptContext,
+  introducedVocab: Set<string>
 ): LessonScriptUnit[] {
   const units: LessonScriptUnit[] = [];
 
@@ -152,9 +156,15 @@ function generateQuestionUnits(
     { type: 'pause', seconds: 1.0 }
   );
 
-  // If we have vocabulary items, teach them
+  // If we have vocabulary items, teach them (after filtering)
   if (exchange.vocabularyItems && exchange.vocabularyItems.length > 0) {
-    for (const vocabItem of exchange.vocabularyItems) {
+    const vocabToTeach = filterVocabularyItems(
+      exchange.vocabularyItems,
+      introducedVocab,
+      context.jlptLevel
+    );
+
+    for (const vocabItem of vocabToTeach) {
       units.push(
         {
           type: 'narration_L1',
@@ -162,6 +172,7 @@ function generateQuestionUnits(
           voiceId: context.l1VoiceId,
         },
         { type: 'pause', seconds: 0.5 },
+        // First repetition
         {
           type: 'L2',
           text: vocabItem.textL2,
@@ -169,8 +180,20 @@ function generateQuestionUnits(
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
         },
-        { type: 'pause', seconds: 1.0 }
+        { type: 'pause', seconds: 1.0 },
+        // Second repetition
+        {
+          type: 'L2',
+          text: vocabItem.textL2,
+          reading: vocabItem.readingL2,
+          voiceId: exchange.speakerVoiceId,
+          speed: 1.0,
+        },
+        { type: 'pause', seconds: 1.5 }
       );
+
+      // Mark this vocabulary as introduced
+      introducedVocab.add(vocabItem.textL2);
     }
 
     // After vocabulary breakdown, present full phrase: slow → pause → normal
@@ -285,7 +308,8 @@ Return ONLY a JSON array (no markdown, no explanation):
  */
 async function generateResponseTeachingUnits(
   exchange: DialogueExchange,
-  context: ConversationalScriptContext
+  context: ConversationalScriptContext,
+  introducedVocab: Set<string>
 ): Promise<LessonScriptUnit[]> {
   const units: LessonScriptUnit[] = [];
 
@@ -299,10 +323,16 @@ async function generateResponseTeachingUnits(
     { type: 'pause', seconds: 1.0 }
   );
 
-  // If we have vocabulary items, teach them piece by piece
+  // If we have vocabulary items, teach them piece by piece (after filtering)
   if (exchange.vocabularyItems && exchange.vocabularyItems.length > 0) {
+    const vocabToTeach = filterVocabularyItems(
+      exchange.vocabularyItems,
+      introducedVocab,
+      context.jlptLevel
+    );
+
     // STEP 1: Teach each vocabulary item individually
-    for (const vocabItem of exchange.vocabularyItems) {
+    for (const vocabItem of vocabToTeach) {
       units.push(
         // Introduce the word/phrase
         {
@@ -311,7 +341,16 @@ async function generateResponseTeachingUnits(
           voiceId: context.l1VoiceId,
         },
         { type: 'pause', seconds: 0.5 },
-        // Play once at normal speed
+        // First repetition
+        {
+          type: 'L2',
+          text: vocabItem.textL2,
+          reading: vocabItem.readingL2,
+          voiceId: exchange.speakerVoiceId,
+          speed: 1.0,
+        },
+        { type: 'pause', seconds: 1.0 },
+        // Second repetition
         {
           type: 'L2',
           text: vocabItem.textL2,
@@ -321,6 +360,9 @@ async function generateResponseTeachingUnits(
         },
         { type: 'pause', seconds: 1.5 }
       );
+
+      // Mark this vocabulary as introduced
+      introducedVocab.add(vocabItem.textL2);
     }
 
     // STEP 2: Progressive phrase building (NEW!)
@@ -409,6 +451,39 @@ async function generateResponseTeachingUnits(
   }
 
   return units;
+}
+
+/**
+ * Filter vocabulary items to exclude already-known words
+ * - Skip words already introduced earlier in the lesson
+ * - Skip words below the learner's JLPT level
+ */
+function filterVocabularyItems(
+  vocabularyItems: VocabularyItem[],
+  introducedVocab: Set<string>,
+  learnerJlptLevel?: string
+): VocabularyItem[] {
+  const jlptLevelOrder = ['N5', 'N4', 'N3', 'N2', 'N1'];
+  const learnerLevelIndex = learnerJlptLevel ? jlptLevelOrder.indexOf(learnerJlptLevel) : -1;
+
+  return vocabularyItems.filter((item) => {
+    // Skip if already introduced in this lesson
+    if (introducedVocab.has(item.textL2)) {
+      return false;
+    }
+
+    // Skip if below learner's JLPT level (only for Japanese)
+    if (learnerJlptLevel && item.jlptLevel) {
+      const wordLevelIndex = jlptLevelOrder.indexOf(item.jlptLevel);
+      // If word level is lower index than learner level, it's easier → skip it
+      // E.g., learner is N3 (index 2), word is N5 (index 0) → skip
+      if (wordLevelIndex !== -1 && wordLevelIndex < learnerLevelIndex) {
+        return false;
+      }
+    }
+
+    return true;
+  });
 }
 
 /**
