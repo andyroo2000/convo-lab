@@ -134,6 +134,8 @@ model Course {
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
+  speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
+  speaker2VoiceId          String?  // Specific TTS voice ID for speaker 2 (overrides gender default)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 

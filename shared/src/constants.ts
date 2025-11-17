@@ -58,30 +58,30 @@ export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
     voices: [
-      // Journey voices (highest quality, most natural)
-      { id: 'en-US-Journey-D', gender: 'male', description: 'Male voice (highest quality, warm)' },
-      { id: 'en-US-Journey-F', gender: 'female', description: 'Female voice (highest quality, friendly)' },
-      // Studio voices (very high quality)
-      { id: 'en-US-Studio-M', gender: 'male', description: 'Male voice (studio quality, clear)' },
-      { id: 'en-US-Studio-O', gender: 'male', description: 'Male voice (studio quality, deep)' },
-      // WaveNet voices (high quality)
-      { id: 'en-US-Wavenet-A', gender: 'male', description: 'Male voice (high quality, professional)' },
-      { id: 'en-US-Wavenet-B', gender: 'male', description: 'Male voice (high quality, authoritative)' },
-      { id: 'en-US-Wavenet-D', gender: 'male', description: 'Male voice (high quality, casual)' },
-      { id: 'en-US-Wavenet-I', gender: 'male', description: 'Male voice (high quality, formal)' },
-      // Neural2 voices (standard quality)
-      { id: 'en-US-Neural2-A', gender: 'male', description: 'Male voice (clear, professional)' },
-      { id: 'en-US-Neural2-D', gender: 'male', description: 'Male voice (authoritative)' },
-      { id: 'en-US-Neural2-I', gender: 'male', description: 'Male voice (casual)' },
-      { id: 'en-US-Neural2-J', gender: 'male', description: 'Male voice (formal)' },
+      // Male narrator voices
+      { id: 'en-US-Journey-D', gender: 'male', description: 'Andrew - Warm and natural', edgeName: 'AndrewNeural' },
+      { id: 'en-US-Studio-M', gender: 'male', description: 'Brian - Clear and professional', edgeName: 'BrianNeural' },
+      { id: 'en-US-Studio-O', gender: 'male', description: 'Eric - Deep and authoritative', edgeName: 'EricNeural' },
+      { id: 'en-US-Wavenet-B', gender: 'male', description: 'Guy - Confident and engaging', edgeName: 'GuyNeural' },
+      // Female narrator voices
+      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable', edgeName: 'JennyNeural' },
+      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm', edgeName: 'AriaNeural' },
+      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere', edgeName: 'SaraNeural' },
+      { id: 'en-US-Wavenet-F', gender: 'female', description: 'Michelle - Authentic and warm', edgeName: 'MichelleNeural' },
     ],
   },
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Female voice' },
-      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Male voice' },
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Male voice (deeper)' },
+      // Female voices (adult, for dialogue)
+      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', edgeName: 'NanamiNeural' },
+      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear', edgeName: 'ShioriNeural' },
+      { id: 'ja-JP-Studio-B', gender: 'female', description: 'Mayu - Animated and bright', edgeName: 'MayuNeural' },
+
+      // Male voices (adult, for dialogue)
+      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational', edgeName: 'MasaruMultilingualNeural' },
+      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Naoki - Clear and natural', edgeName: 'NaokiNeural' },
+      { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Daichi - Steady and reliable', edgeName: 'DaichiNeural' },
     ],
   },
 } as const;

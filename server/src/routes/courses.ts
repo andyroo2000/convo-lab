@@ -95,6 +95,8 @@ router.post('/', async (req: AuthRequest, res, next) => {
       jlptLevel,
       speaker1Gender = 'male',
       speaker2Gender = 'female',
+      speaker1VoiceId,
+      speaker2VoiceId,
     } = req.body;
 
     if (!title || !episodeIds || episodeIds.length === 0) {
@@ -171,6 +173,8 @@ Write only the description, no formatting or quotes.`;
         jlptLevel: jlptLevel || null,
         speaker1Gender,
         speaker2Gender,
+        speaker1VoiceId: speaker1VoiceId || null,
+        speaker2VoiceId: speaker2VoiceId || null,
       },
     });
 

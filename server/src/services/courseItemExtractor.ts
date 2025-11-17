@@ -705,7 +705,9 @@ export async function extractDialogueExchangesFromSourceText(
   jlptLevel?: string,
   speakerVoices?: { speakerName: string; voiceId: string }[],
   speaker1Gender: 'male' | 'female' = 'male',
-  speaker2Gender: 'male' | 'female' = 'female'
+  speaker2Gender: 'male' | 'female' = 'female',
+  speaker1VoiceId?: string,
+  speaker2VoiceId?: string
 ): Promise<DialogueExchange[]> {
   console.log(`Extracting dialogue from source text for episode: ${episodeTitle}`);
   console.log(`Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`);
@@ -816,8 +818,8 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Define multiple voices per gender for each language (to support same-gender dialogues)
     const voicesByGender: Record<string, { male: string[]; female: string[] }> = {
       'ja': {
-        male: ['ja-JP-Neural2-D', 'ja-JP-Wavenet-D'], // Removed Neural2-C (sounds like a child)
-        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-B']
+        male: ['ja-JP-Neural2-D', 'ja-JP-Wavenet-C', 'ja-JP-Wavenet-B'], // Masaru, Naoki, Daichi (excluded Keita - child)
+        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-D', 'ja-JP-Studio-B'] // Nanami, Shiori, Mayu (excluded Aoi - child)
       },
       'zh': {
         male: ['zh-CN-YunxiNeural', 'zh-CN-YunyangNeural'],
@@ -840,11 +842,11 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Get voices for target language with fallback to English
     const languageVoices = voicesByGender[targetLanguage] || voicesByGender['en'];
 
-    // Always use female for speaker 1 (the friend) and male for speaker 2 (the listener)
-    // This provides clear voice differentiation and avoids the child-sounding male voice
+    // Use provided voice IDs if available, otherwise use defaults
+    // Speaker 1 (friend) defaults to first female voice, Speaker 2 (listener) defaults to first male voice
     const availableVoices = [
-      languageVoices['female'][0], // Speaker 1 (friend) is always female
-      languageVoices['male'][0],   // Speaker 2 (listener) is always male
+      speaker1VoiceId || languageVoices['female'][0], // Speaker 1 (friend)
+      speaker2VoiceId || languageVoices['male'][0],   // Speaker 2 (listener)
     ];
 
     // Track unique speakers and assign voices

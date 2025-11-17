@@ -90,7 +90,9 @@ async function processCourseGeneration(job: any) {
         course.jlptLevel || undefined,
         speakerVoices,
         course.speaker1Gender as 'male' | 'female',
-        course.speaker2Gender as 'male' | 'female'
+        course.speaker2Gender as 'male' | 'female',
+        course.speaker1VoiceId || undefined,
+        course.speaker2VoiceId || undefined
       );
 
       console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from source text`);

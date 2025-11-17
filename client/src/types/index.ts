@@ -229,6 +229,8 @@ export interface CreateCourseRequest {
   jlptLevel?: string; // N5, N4, N3, N2, N1
   speaker1Gender?: 'male' | 'female';
   speaker2Gender?: 'male' | 'female';
+  speaker1VoiceId?: string; // Specific voice ID for Speaker 1
+  speaker2VoiceId?: string; // Specific voice ID for Speaker 2
 }
 
 export interface GenerateCourseRequest {

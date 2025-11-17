@@ -21,6 +21,8 @@ export default function CourseCreator({
   const [selectedVoice, setSelectedVoice] = useState('');
   const [useDraftMode, setUseDraftMode] = useState(true);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [speaker1VoiceId, setSpeaker1VoiceId] = useState('');
+  const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,9 +30,18 @@ export default function CourseCreator({
   useEffect(() => {
     if (isOpen && episode) {
       setTitle(`${episode.title} - Audio Course`);
+
       // Select default narrator voice for the native language
       const defaultVoice = TTS_VOICES[episode.nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
       setSelectedVoice(defaultVoice);
+
+      // Select default dialogue voices for the target language (female for speaker 1, male for speaker 2)
+      const targetVoices = TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+      const femaleVoice = targetVoices.find(v => v.gender === 'female')?.id || targetVoices[0]?.id || '';
+      const maleVoice = targetVoices.find(v => v.gender === 'male')?.id || targetVoices[0]?.id || '';
+      setSpeaker1VoiceId(femaleVoice);
+      setSpeaker2VoiceId(maleVoice);
+
       setError(null);
     }
   }, [isOpen, episode]);
@@ -90,6 +101,8 @@ export default function CourseCreator({
           jlptLevel,
           speaker1Gender: 'female', // Hardcoded: Speaker 1 is always female
           speaker2Gender: 'male',   // Hardcoded: Speaker 2 is always male
+          speaker1VoiceId,
+          speaker2VoiceId,
         } as CreateCourseRequest),
       });
 
@@ -190,8 +203,118 @@ export default function CourseCreator({
                 </option>
               ))}
             </select>
+            {/* Voice Sample Player */}
+            {selectedVoice && (() => {
+              const selectedNarratorVoice = availableVoices.find(v => v.id === selectedVoice);
+              if (selectedNarratorVoice) {
+                const voiceName = selectedNarratorVoice.description.split(' - ')[0].toLowerCase();
+                return (
+                  <audio
+                    key={selectedVoice}
+                    controls
+                    className="w-full mt-2 h-8"
+                    style={{ maxHeight: '32px' }}
+                  >
+                    <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                );
+              }
+              return null;
+            })()}
             <p className="text-xs text-gray-500 mt-1">
               This voice will narrate instructions in {episode.nativeLanguage.toUpperCase()}
+            </p>
+          </div>
+
+          {/* Dialogue Voice Selection */}
+          <div className="border-t pt-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+              Dialogue Voices ({episode.targetLanguage.toUpperCase()})
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Speaker 1 Voice */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Speaker 1 (Friend)
+                </label>
+                <select
+                  value={speaker1VoiceId}
+                  onChange={(e) => setSpeaker1VoiceId(e.target.value)}
+                  disabled={isCreating}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
+                >
+                  {(TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
+                    .map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      </option>
+                    ))}
+                </select>
+                {/* Voice Sample Player */}
+                {speaker1VoiceId && (() => {
+                  const selectedVoice = (TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
+                    .find(v => v.id === speaker1VoiceId);
+                  if (selectedVoice) {
+                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
+                    return (
+                      <audio
+                        key={speaker1VoiceId}
+                        controls
+                        className="w-full mt-2 h-8"
+                        style={{ maxHeight: '32px' }}
+                      >
+                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+
+              {/* Speaker 2 Voice */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Speaker 2 (Listener)
+                </label>
+                <select
+                  value={speaker2VoiceId}
+                  onChange={(e) => setSpeaker2VoiceId(e.target.value)}
+                  disabled={isCreating}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
+                >
+                  {(TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
+                    .map((voice) => (
+                      <option key={voice.id} value={voice.id}>
+                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      </option>
+                    ))}
+                </select>
+                {/* Voice Sample Player */}
+                {speaker2VoiceId && (() => {
+                  const selectedVoice = (TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
+                    .find(v => v.id === speaker2VoiceId);
+                  if (selectedVoice) {
+                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
+                    return (
+                      <audio
+                        key={speaker2VoiceId}
+                        controls
+                        className="w-full mt-2 h-8"
+                        style={{ maxHeight: '32px' }}
+                      >
+                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Choose any voice for each speaker - (M) = Male, (F) = Female
             </p>
           </div>
 
