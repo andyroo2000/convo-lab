@@ -73,8 +73,10 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
   }> = [];
 
   let currentTime = 0;
+  const PAUSE_BETWEEN_TURNS_MS = 1000; // 1 second pause between turns
 
-  for (const sentence of dialogue.sentences) {
+  for (let i = 0; i < dialogue.sentences.length; i++) {
+    const sentence = dialogue.sentences[i];
     const speaker = sentence.speaker;
 
     // Prepare text (with SSML if needed)
@@ -116,6 +118,11 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
         endTime: Math.floor(sentenceTimings[sentenceTimings.length - 1].endTime),
       },
     });
+
+    // Add pause duration to currentTime (except after the last sentence)
+    if (i < dialogue.sentences.length - 1) {
+      currentTime += PAUSE_BETWEEN_TURNS_MS;
+    }
   }
 
   // Concatenate all audio files
@@ -200,9 +207,39 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       })
     );
 
-    // Create concat list file
+    // Generate 1 second of silence
+    const silenceFile = path.join(tempDir, 'silence.mp3');
+    console.log('Generating 1 second silence file for pauses between dialogue turns...');
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg()
+        .input('/dev/zero')
+        .inputOptions(['-f s16le', '-ar 44100', '-ac 2', '-t 1'])
+        .outputOptions(['-c:a libmp3lame', '-b:a 128k'])
+        .output(silenceFile)
+        .on('end', () => {
+          console.log('Silence file generated successfully');
+          resolve();
+        })
+        .on('error', (err) => {
+          console.error('Error generating silence file:', err);
+          reject(err);
+        })
+        .run();
+    });
+
+    // Create concat list file with silence between segments
     const listFile = path.join(tempDir, 'list.txt');
-    const listContent = tempFiles.map(f => `file '${f}'`).join('\n');
+    const listItems: string[] = [];
+    tempFiles.forEach((file, index) => {
+      listItems.push(`file '${file}'`);
+      // Add silence after each segment except the last one
+      if (index < tempFiles.length - 1) {
+        listItems.push(`file '${silenceFile}'`);
+      }
+    });
+    const listContent = listItems.join('\n');
+    console.log(`Creating concat list with ${tempFiles.length} audio segments and ${tempFiles.length - 1} silence gaps`);
+    console.log('Concat list content:', listContent);
     await fs.writeFile(listFile, listContent);
 
     // Concatenate with ffmpeg
@@ -212,7 +249,12 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       ffmpeg()
         .input(listFile)
         .inputOptions(['-f concat', '-safe 0'])
-        .outputOptions(['-c copy'])
+        .outputOptions([
+          '-c:a libmp3lame',
+          '-b:a 128k',
+          '-ar 44100',
+          '-ac 2'
+        ])
         .output(outputFile)
         .on('end', () => resolve())
         .on('error', (err) => reject(err))

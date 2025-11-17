@@ -94,10 +94,11 @@ export async function generateSilence(durationSeconds: number, useDraftMode: boo
 
     try {
       // Generate silent MP3 using ffmpeg
-      // -f lavfi: use libavfilter virtual input device
-      // -i anullsrc: generate silent audio
+      // -f s16le: PCM signed 16-bit little-endian
+      // -ar 44100: sample rate
+      // -ac 2: stereo
       // -t: duration in seconds
-      const command = `ffmpeg -f lavfi -i anullsrc=r=44100:cl=stereo -t ${durationSeconds} -q:a 9 -acodec libmp3lame ${outputFile}`;
+      const command = `ffmpeg -f s16le -ar 44100 -ac 2 -i /dev/zero -t ${durationSeconds} -q:a 9 -acodec libmp3lame ${outputFile}`;
 
       await execAsync(command, { timeout: 10000 });
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import SpeakerConfig from './SpeakerConfig';
+import { TTS_VOICES } from '../../../../shared/src/constants';
 
 interface SpeakerFormData {
   name: string;
@@ -24,17 +25,23 @@ export default function DialogueGenerator() {
   const [nativeLanguage] = useState<LanguageCode>('en');
   const [dialogueLength, setDialogueLength] = useState(6);
   const [audioSpeed, setAudioSpeed] = useState<AudioSpeed>('medium');
+
+  // Get default voices from TTS_VOICES for the target language
+  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const defaultVoice1 = targetVoices.find(v => v.gender === 'female')?.id || targetVoices[0]?.id || '';
+  const defaultVoice2 = targetVoices.find(v => v.gender === 'male')?.id || targetVoices[1]?.id || '';
+
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>([
     {
       name: 'Speaker 1',
-      voiceId: 'ja-JP-Neural2-B',
+      voiceId: defaultVoice1,
       proficiency: 'intermediate',
       tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[0],
     },
     {
       name: 'Speaker 2',
-      voiceId: 'ja-JP-Neural2-C',
+      voiceId: defaultVoice2,
       proficiency: 'native',
       tone: 'polite',
       color: DEFAULT_SPEAKER_COLORS[1],
@@ -74,11 +81,13 @@ export default function DialogueGenerator() {
 
   const addSpeaker = () => {
     const newIndex = speakers.length;
+    // Alternate between female and male voices
+    const defaultVoice = newIndex % 2 === 0 ? defaultVoice1 : defaultVoice2;
     setSpeakers([
       ...speakers,
       {
         name: `Speaker ${newIndex + 1}`,
-        voiceId: newIndex % 2 === 0 ? 'ja-JP-Neural2-B' : 'ja-JP-Neural2-C',
+        voiceId: defaultVoice,
         proficiency: 'intermediate',
         tone: 'casual',
         color: DEFAULT_SPEAKER_COLORS[newIndex % DEFAULT_SPEAKER_COLORS.length],
@@ -311,6 +320,7 @@ export default function DialogueGenerator() {
             <SpeakerConfig
               key={index}
               {...speaker}
+              targetLanguage={targetLanguage}
               onUpdate={(field, value) => updateSpeaker(index, field, value)}
               onRemove={() => removeSpeaker(index)}
               canRemove={speakers.length > 2}

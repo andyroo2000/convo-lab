@@ -106,19 +106,45 @@ async function processCourseGeneration(job: any) {
       console.log(`Planning conversational lesson: ${lessonTitle}`);
       await job.updateProgress(30);
 
-      // STEP 2: Create lesson record
-      const lesson = await prisma.lesson.create({
-        data: {
+      // STEP 2: Check for existing lesson with same order and create if doesn't exist
+      let lesson = await prisma.lesson.findFirst({
+        where: {
           courseId: course.id,
           order: 1,
-          title: lessonTitle,
-          scriptJson: [], // Will be updated after script generation
-          approxDurationSeconds: estimatedDuration,
-          status: 'generating',
         },
       });
 
-      console.log(`Created lesson record: ${lesson.id}`);
+      if (lesson) {
+        console.log(`Lesson already exists: ${lesson.id}, skipping creation`);
+        // If lesson already exists and is ready, we're done
+        if (lesson.status === 'ready') {
+          console.log(`Lesson is already ready, nothing to do`);
+          await prisma.course.update({
+            where: { id: course.id },
+            data: { status: 'ready' },
+          });
+          return {
+            courseId,
+            lessonCount: 1,
+            vocabularyItemCount: 0,
+            exchangeCount: dialogueExchanges.length,
+          };
+        }
+      } else {
+        // Create new lesson
+        lesson = await prisma.lesson.create({
+          data: {
+            courseId: course.id,
+            order: 1,
+            title: lessonTitle,
+            scriptJson: [], // Will be updated after script generation
+            approxDurationSeconds: estimatedDuration,
+            status: 'generating',
+          },
+        });
+        console.log(`Created lesson record: ${lesson.id}`);
+      }
+
       await job.updateProgress(35);
 
       // Save vocabulary items from dialogue exchanges
@@ -174,15 +200,13 @@ async function processCourseGeneration(job: any) {
       });
 
       // STEP 4: Assemble audio
-      console.log('Assembling lesson audio...');
-      console.log(`Using ${course.useDraftMode ? 'DRAFT MODE (Edge TTS)' : 'PRODUCTION MODE (Google Cloud TTS)'}`);
+      console.log('Assembling lesson audio with Edge TTS...');
 
       const assembledAudio = await assembleLessonAudio({
         lessonId: lesson.id,
         scriptUnits: generatedScript.units,
         targetLanguage: course.targetLanguage,
         nativeLanguage: course.nativeLanguage,
-        useDraftMode: course.useDraftMode,
         onProgress: (current, total) => {
           // Map audio assembly progress from 60% to 85%
           const audioProgress = 60 + Math.floor((current / total) * 25);

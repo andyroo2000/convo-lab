@@ -22,7 +22,6 @@ export interface AssembleAudioOptions {
   scriptUnits: LessonScriptUnit[];
   targetLanguage: string;
   nativeLanguage: string;
-  useDraftMode?: boolean;
   onProgress?: (current: number, total: number) => void;
 }
 
@@ -38,7 +37,7 @@ export interface AssembledAudio {
 export async function assembleLessonAudio(
   options: AssembleAudioOptions
 ): Promise<AssembledAudio> {
-  const { lessonId, scriptUnits, targetLanguage, nativeLanguage, useDraftMode = false, onProgress } = options;
+  const { lessonId, scriptUnits, targetLanguage, nativeLanguage, onProgress } = options;
 
   console.log(`Assembling audio for lesson ${lessonId} with ${scriptUnits.length} units`);
 
@@ -63,7 +62,7 @@ export async function assembleLessonAudio(
 
       switch (unit.type) {
         case 'narration_L1':
-          // Generate L1 narration TTS
+          // Generate L1 narration TTS using Edge TTS
           buffer = await synthesizeSpeech({
             text: unit.text,
             voiceId: unit.voiceId,
@@ -71,12 +70,12 @@ export async function assembleLessonAudio(
             speed: 1.0,
             pitch: unit.pitch || 0,
             useSSML: false,
-            useDraftMode,
+            useDraftMode: true,
           });
           break;
 
         case 'L2':
-          // Generate L2 TTS (use reading if available for better pronunciation)
+          // Generate L2 TTS using Edge TTS (use reading if available for better pronunciation)
           const textToSpeak = unit.reading || unit.text;
           buffer = await synthesizeSpeech({
             text: textToSpeak,
@@ -85,13 +84,13 @@ export async function assembleLessonAudio(
             speed: unit.speed || 1.0,
             pitch: unit.pitch || 0,
             useSSML: false,
-            useDraftMode,
+            useDraftMode: true,
           });
           break;
 
         case 'pause':
-          // Generate silence
-          buffer = await generateSilence(unit.seconds, useDraftMode);
+          // Generate silence using Edge TTS
+          buffer = await generateSilence(unit.seconds, true);
           break;
 
         case 'marker':

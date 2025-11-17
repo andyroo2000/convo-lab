@@ -130,7 +130,6 @@ model Course {
   targetLanguage           String   // L2 (e.g., 'ja')
   maxLessonDurationMinutes Int      @default(30)
   l1VoiceId                String   // English narrator voice
-  useDraftMode             Boolean  @default(false) // Use Edge TTS instead of Google Cloud TTS
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
