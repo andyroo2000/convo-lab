@@ -1,4 +1,5 @@
-import { ProficiencyLevel, ToneStyle } from '../../types';
+import { ProficiencyLevel, ToneStyle, LanguageCode } from '../../types';
+import { TTS_VOICES } from '../../../../shared/src/constants';
 
 interface SpeakerConfigProps {
   name: string;
@@ -6,18 +7,11 @@ interface SpeakerConfigProps {
   proficiency: ProficiencyLevel;
   tone: ToneStyle;
   color: string;
+  targetLanguage: LanguageCode;
   onUpdate: (field: string, value: string) => void;
   onRemove: () => void;
   canRemove: boolean;
 }
-
-const VOICE_OPTIONS = {
-  ja: [
-    { id: 'ja-JP-Neural2-B', name: 'Japanese Female (Neural2-B)' },
-    { id: 'ja-JP-Neural2-C', name: 'Japanese Male (Neural2-C)' },
-    { id: 'ja-JP-Neural2-D', name: 'Japanese Male (Neural2-D)' },
-  ],
-};
 
 const PROFICIENCY_OPTIONS: { value: ProficiencyLevel; label: string; description: string }[] = [
   { value: 'beginner', label: 'Beginner', description: 'Simple grammar, basic vocabulary' },
@@ -40,10 +34,13 @@ export default function SpeakerConfig({
   proficiency,
   tone,
   color,
+  targetLanguage,
   onUpdate,
   onRemove,
   canRemove,
 }: SpeakerConfigProps) {
+  // Get available voices for the target language
+  const availableVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
   return (
     <div className="card relative">
       {/* Color indicator */}
@@ -90,12 +87,31 @@ export default function SpeakerConfig({
               onChange={(e) => onUpdate('voiceId', e.target.value)}
               className="input"
             >
-              {VOICE_OPTIONS.ja.map((voice) => (
+              {availableVoices.map((voice) => (
                 <option key={voice.id} value={voice.id}>
-                  {voice.name}
+                  ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
                 </option>
               ))}
             </select>
+            {/* Voice Sample Player */}
+            {voiceId && (() => {
+              const selectedVoice = availableVoices.find(v => v.id === voiceId);
+              if (selectedVoice) {
+                const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
+                return (
+                  <audio
+                    key={voiceId}
+                    controls
+                    className="w-full mt-2 h-8"
+                    style={{ maxHeight: '32px' }}
+                  >
+                    <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* Proficiency Level */}

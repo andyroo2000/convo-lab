@@ -2,24 +2,22 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { Episode, Sentence, Speaker, AudioSpeed, CourseStatusResponse } from '../types';
+import { Episode, Sentence, AudioSpeed } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
-import CourseCreator from '../components/courses/CourseCreator';
 import Toast from '../components/common/Toast';
+import ConfirmModal from '../components/common/ConfirmModal';
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
-  const navigate = useNavigate();
   const { getEpisode, generateAudio, pollJobStatus, loading } = useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const [episode, setEpisode] = useState<Episode | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
-  const [showCourseCreator, setShowCourseCreator] = useState(false);
-  const [generatingCourseId, setGeneratingCourseId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
 
@@ -108,8 +106,21 @@ export default function PlaybackPage() {
     }
   };
 
+  const handleGenerateAudioClick = () => {
+    // Show confirmation modal if audio already exists
+    if (episode?.audioUrl) {
+      setShowRegenerateConfirm(true);
+    } else {
+      // Generate directly if no audio exists
+      handleGenerateAudio();
+    }
+  };
+
   const handleGenerateAudio = async () => {
     if (!episode || !episode.dialogue) return;
+
+    // Close confirmation modal if it was open
+    setShowRegenerateConfirm(false);
 
     setIsGeneratingAudio(true);
     try {
@@ -130,46 +141,6 @@ export default function PlaybackPage() {
     }
   };
 
-  const handleCourseCreated = (courseId: string) => {
-    setGeneratingCourseId(courseId);
-    setToastMessage('Course generation started! This may take a few minutes...');
-    setToastType('info');
-  };
-
-  // Poll for course status while generating
-  useEffect(() => {
-    if (!generatingCourseId) return;
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/courses/${generatingCourseId}/status`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to check course status');
-        }
-
-        const statusData: CourseStatusResponse = await response.json();
-
-        if (statusData.status === 'ready') {
-          clearInterval(pollInterval);
-          setGeneratingCourseId(null);
-          setToastMessage('Course generated successfully! Check the Library to view it.');
-          setToastType('success');
-        } else if (statusData.status === 'error') {
-          clearInterval(pollInterval);
-          setGeneratingCourseId(null);
-          setToastMessage('Course generation failed. Please try again.');
-          setToastType('error');
-        }
-      } catch (err) {
-        console.error('Error polling course status:', err);
-      }
-    }, 3000); // Poll every 3 seconds
-
-    return () => clearInterval(pollInterval);
-  }, [generatingCourseId]);
 
   if (loading) {
     return (
@@ -232,25 +203,11 @@ export default function PlaybackPage() {
             <button
               type="button"
               className="btn-primary text-sm"
-              onClick={handleGenerateAudio}
-              disabled={isGeneratingAudio || (!hasSpeedChanged && !!episode.audioUrl)}
+              onClick={handleGenerateAudioClick}
+              disabled={isGeneratingAudio}
             >
-              {isGeneratingAudio ? 'Generating...' : 'Generate Audio'}
+              {isGeneratingAudio ? 'Generating...' : hasSpeedChanged ? 'Regenerate Audio' : episode.audioUrl ? 'Regenerate Audio' : 'Generate Audio'}
             </button>
-
-            {/* Create Audio Course Button */}
-            {dialogue && (
-              <button
-                type="button"
-                className={`btn-outline text-sm bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 border-0 ${
-                  generatingCourseId ? 'animate-pulse' : ''
-                }`}
-                onClick={() => setShowCourseCreator(true)}
-                disabled={!!generatingCourseId}
-              >
-                {generatingCourseId ? 'Generating Course...' : 'Create Audio Course'}
-              </button>
-            )}
           </div>
         </div>
 
@@ -365,22 +322,24 @@ export default function PlaybackPage() {
         })}
       </div>
 
-      {/* Course Creator Modal */}
-      {episode && (
-        <CourseCreator
-          isOpen={showCourseCreator}
-          episode={episode}
-          onClose={() => setShowCourseCreator(false)}
-          onCourseCreated={handleCourseCreated}
-        />
-      )}
-
       {/* Toast Notification */}
       <Toast
         message={toastMessage || ''}
         type={toastType}
         isVisible={!!toastMessage}
         onClose={() => setToastMessage(null)}
+      />
+
+      {/* Regenerate Audio Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showRegenerateConfirm}
+        title="Regenerate Audio"
+        message="This will regenerate the audio and overwrite the existing audio file. Do you want to continue?"
+        confirmLabel="Regenerate"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleGenerateAudio}
+        onCancel={() => setShowRegenerateConfirm(false)}
       />
     </div>
   );

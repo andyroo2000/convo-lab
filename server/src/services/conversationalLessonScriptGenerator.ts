@@ -150,7 +150,7 @@ function generateQuestionUnits(
     // Translation so learner understands what was asked
     {
       type: 'narration_L1',
-      text: `That means: "${exchange.translationL1}"`,
+      text: normalizeNarratorText(`That means: "${exchange.translationL1}"`),
       voiceId: context.l1VoiceId,
     },
     { type: 'pause', seconds: 1.0 }
@@ -168,7 +168,7 @@ function generateQuestionUnits(
       units.push(
         {
           type: 'narration_L1',
-          text: `"${vocabItem.translationL1}" is:`,
+          text: normalizeNarratorText(`"${vocabItem.translationL1}" is:`),
           voiceId: context.l1VoiceId,
         },
         { type: 'pause', seconds: 0.5 },
@@ -317,7 +317,7 @@ async function generateResponseTeachingUnits(
   units.push(
     {
       type: 'narration_L1',
-      text: `You respond: "${exchange.translationL1}"`,
+      text: normalizeNarratorText(`You respond: "${exchange.translationL1}"`),
       voiceId: context.l1VoiceId,
     },
     { type: 'pause', seconds: 1.0 }
@@ -337,7 +337,7 @@ async function generateResponseTeachingUnits(
         // Introduce the word/phrase
         {
           type: 'narration_L1',
-          text: `Here's how you say "${vocabItem.translationL1}".`,
+          text: normalizeNarratorText(`Here's how you say "${vocabItem.translationL1}".`),
           voiceId: context.l1VoiceId,
         },
         { type: 'pause', seconds: 0.5 },
@@ -382,7 +382,7 @@ async function generateResponseTeachingUnits(
       units.push(
         {
           type: 'narration_L1',
-          text: `Now say: "${chunk.translation}".`,
+          text: normalizeNarratorText(`Now say: "${chunk.translation}".`),
           voiceId: context.l1VoiceId,
         },
         { type: 'pause', seconds: 2.5 }, // Pause for learner to try
@@ -401,7 +401,7 @@ async function generateResponseTeachingUnits(
     units.push(
       {
         type: 'narration_L1',
-        text: `Now the full phrase: "${exchange.translationL1}".`,
+        text: normalizeNarratorText(`Now the full phrase: "${exchange.translationL1}".`),
         voiceId: context.l1VoiceId,
       },
       { type: 'pause', seconds: 0.5 },
@@ -487,6 +487,30 @@ function filterVocabularyItems(
 
     return true;
   });
+}
+
+/**
+ * Normalize narrator text to sound more natural when spoken by TTS
+ * - Replaces "/" with " or " to avoid TTS saying "slash"
+ * - Adds commas around " or " to create natural pauses
+ * - Adds comma after quoted phrases ending with " is:" for better rhythm
+ */
+function normalizeNarratorText(text: string): string {
+  let normalized = text
+    // Replace "/" with " or "
+    .replace(/\//g, ' or ');
+
+  // Add commas around " or " when it appears in quoted text for natural pauses
+  // Example: "In or at" becomes "In, or at,"
+  normalized = normalized.replace(/"([^"]+)\s+or\s+([^"]+)"/g, (match, before, after) => {
+    return `"${before.trim()}, or ${after.trim()},"`;
+  });
+
+  // Add comma before " is:" at the end of phrases for natural pause
+  // Example: "In, or at," is: (creates rhythm: "In, or at, <pause> is:")
+  normalized = normalized.replace(/,"\s+is:/g, '," is:');
+
+  return normalized;
 }
 
 /**

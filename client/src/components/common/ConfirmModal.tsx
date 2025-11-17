@@ -10,6 +10,7 @@ interface ConfirmModalProps {
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
+  variant?: 'danger' | 'warning';
 }
 
 export default function ConfirmModal({
@@ -21,6 +22,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   isLoading = false,
+  variant = 'danger',
 }: ConfirmModalProps) {
   // Handle ESC key to close modal
   useEffect(() => {
@@ -82,9 +84,13 @@ export default function ConfirmModal({
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              variant === 'danger'
+                ? 'bg-red-600 hover:bg-red-700'
+                : 'bg-amber-600 hover:bg-amber-700'
+            }`}
           >
-            {isLoading ? 'Deleting...' : confirmLabel}
+            {isLoading ? 'Processing...' : confirmLabel}
           </button>
         </div>
       </div>

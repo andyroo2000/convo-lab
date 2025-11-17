@@ -19,7 +19,6 @@ export default function CourseCreator({
   const [title, setTitle] = useState('');
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
-  const [useDraftMode, setUseDraftMode] = useState(true);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [speaker1VoiceId, setSpeaker1VoiceId] = useState('');
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
@@ -97,7 +96,6 @@ export default function CourseCreator({
           targetLanguage: episode.targetLanguage,
           maxLessonDurationMinutes: maxDuration,
           l1VoiceId: selectedVoice,
-          useDraftMode,
           jlptLevel,
           speaker1Gender: 'female', // Hardcoded: Speaker 1 is always female
           speaker2Gender: 'male',   // Hardcoded: Speaker 2 is always male
@@ -359,27 +357,6 @@ export default function CourseCreator({
             <p className="text-xs text-gray-500 mt-1">
               Vocabulary and grammar will be tailored to students at this level
             </p>
-          </div>
-
-          {/* Draft Mode Toggle */}
-          <div className="flex items-start space-x-3 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <input
-              type="checkbox"
-              id="draftMode"
-              checked={useDraftMode}
-              onChange={(e) => setUseDraftMode(e.target.checked)}
-              disabled={isCreating}
-              className="mt-1 w-4 h-4 text-navy border-gray-300 rounded focus:ring-navy disabled:opacity-50"
-            />
-            <label htmlFor="draftMode" className="flex-1 cursor-pointer">
-              <div className="text-sm font-medium text-gray-900">
-                Draft Mode (Free Preview)
-              </div>
-              <p className="text-xs text-gray-600 mt-1">
-                Uses free Edge TTS for faster, cost-free generation. Perfect for testing and previewing courses.
-                Disable for production-quality Google Cloud TTS voices.
-              </p>
-            </label>
           </div>
 
           {/* Error Message */}

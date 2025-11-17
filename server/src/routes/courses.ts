@@ -87,11 +87,11 @@ router.post('/', async (req: AuthRequest, res, next) => {
       title,
       description,
       episodeIds,
+      sourceText,
       nativeLanguage,
       targetLanguage,
       maxLessonDurationMinutes = 30,
       l1VoiceId,
-      useDraftMode = false,
       jlptLevel,
       speaker1Gender = 'male',
       speaker2Gender = 'female',
@@ -99,36 +99,50 @@ router.post('/', async (req: AuthRequest, res, next) => {
       speaker2VoiceId,
     } = req.body;
 
-    if (!title || !episodeIds || episodeIds.length === 0) {
-      throw new AppError('Missing required fields: title, episodeIds', 400);
+    // Must provide either episodeIds or sourceText
+    if (!title || (!episodeIds && !sourceText)) {
+      throw new AppError('Missing required fields: title, and either episodeIds or sourceText', 400);
     }
 
     if (!nativeLanguage || !targetLanguage) {
       throw new AppError('Missing required fields: nativeLanguage, targetLanguage', 400);
     }
 
-    // Verify all episodes exist and belong to user
-    const episodes = await prisma.episode.findMany({
-      where: {
-        id: { in: episodeIds },
-        userId: req.userId,
-      },
-      include: {
-        dialogue: true,
-      },
-    });
+    // Get or create episode(s)
+    let finalEpisodeIds: string[];
+    let episodes: any[];
 
-    if (episodes.length !== episodeIds.length) {
-      throw new AppError('One or more episodes not found', 404);
-    }
+    if (sourceText) {
+      // Create a new episode from sourceText
+      const episode = await prisma.episode.create({
+        data: {
+          userId: req.userId!,
+          title,
+          sourceText,
+          targetLanguage,
+          nativeLanguage,
+          status: 'draft',
+        },
+      });
+      finalEpisodeIds = [episode.id];
+      episodes = [episode];
+    } else {
+      // Verify all episodes exist and belong to user
+      episodes = await prisma.episode.findMany({
+        where: {
+          id: { in: episodeIds },
+          userId: req.userId,
+        },
+        include: {
+          dialogue: true,
+        },
+      });
 
-    // Ensure all episodes have dialogues
-    const missingDialogue = episodes.find(ep => !ep.dialogue);
-    if (missingDialogue) {
-      throw new AppError(
-        `Episode "${missingDialogue.title}" has no dialogue. Generate dialogue first.`,
-        400
-      );
+      if (episodes.length !== episodeIds.length) {
+        throw new AppError('One or more episodes not found', 404);
+      }
+
+      finalEpisodeIds = episodeIds;
     }
 
     // Use default narrator voice if not provided
@@ -169,7 +183,6 @@ Write only the description, no formatting or quotes.`;
         targetLanguage,
         maxLessonDurationMinutes,
         l1VoiceId: narratorVoice,
-        useDraftMode,
         jlptLevel: jlptLevel || null,
         speaker1Gender,
         speaker2Gender,
@@ -180,7 +193,7 @@ Write only the description, no formatting or quotes.`;
 
     // Link episodes to course
     await Promise.all(
-      episodeIds.map((episodeId: string, index: number) =>
+      finalEpisodeIds.map((episodeId: string, index: number) =>
         prisma.courseEpisode.create({
           data: {
             courseId: course.id,
