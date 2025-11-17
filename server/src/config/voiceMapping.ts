@@ -4,19 +4,43 @@
  */
 
 export const GOOGLE_TO_EDGE_VOICE_MAPPING: Record<string, string> = {
-  // English voices (L1 - Narrator)
-  'en-US-Journey-D': 'en-US-AndrewNeural', // Male, confident, warm (closest to Journey)
-  'en-US-Neural2-D': 'en-US-AndrewNeural',
-  'en-US-Neural2-A': 'en-US-JennyNeural', // Female alternative
+  // English voices (L1 - Narrator) - Male
+  'en-US-Journey-D': 'en-US-AndrewNeural',    // Male, warm and natural
+  'en-US-Studio-M': 'en-US-BrianNeural',      // Male, clear and professional
+  'en-US-Studio-O': 'en-US-EricNeural',       // Male, deep and authoritative
+  'en-US-Wavenet-A': 'en-US-AndrewNeural',    // Male, professional
+  'en-US-Wavenet-B': 'en-US-GuyNeural',       // Male, confident
+  'en-US-Wavenet-D': 'en-US-BrianNeural',     // Male, clear
+  'en-US-Wavenet-I': 'en-US-EricNeural',      // Male, formal
+  'en-US-Neural2-A': 'en-US-AndrewNeural',    // Male, warm
+  'en-US-Neural2-D': 'en-US-GuyNeural',       // Male, confident
+  'en-US-Neural2-I': 'en-US-BrianNeural',     // Male, clear
+  'en-US-Neural2-J': 'en-US-EricNeural',      // Male, authoritative
+
+  // English voices (L1 - Narrator) - Female
+  'en-US-Journey-F': 'en-US-JennyNeural',     // Female, pleasant
+  'en-US-Wavenet-C': 'en-US-JennyNeural',     // Female, pleasant
+  'en-US-Wavenet-E': 'en-US-AriaNeural',      // Female, confident
+  'en-US-Wavenet-F': 'en-US-MichelleNeural',  // Female, warm
+  'en-US-Wavenet-G': 'en-US-SaraNeural',      // Female, calm
+  'en-US-Neural2-C': 'en-US-JennyNeural',     // Female, pleasant
+  'en-US-Neural2-E': 'en-US-AriaNeural',      // Female, confident
+  'en-US-Neural2-F': 'en-US-JennyNeural',     // Female, pleasant
+  'en-US-Neural2-G': 'en-US-SaraNeural',      // Female, calm
+  'en-US-Neural2-H': 'en-US-AriaNeural',      // Female, confident
 
   // Japanese voices (L2 - Dialogue speakers)
+  // Female voices (adult)
   'ja-JP-Neural2-B': 'ja-JP-NanamiNeural',  // Female, bright, cheerful
+  'ja-JP-Wavenet-A': 'ja-JP-NanamiNeural',  // Female, fallback
+  'ja-JP-Wavenet-D': 'ja-JP-ShioriNeural',  // Female, calm
+  'ja-JP-Studio-B': 'ja-JP-MayuNeural',     // Female, animated
+
+  // Male voices (adult)
   'ja-JP-Neural2-C': 'ja-JP-DaichiNeural',  // Male (changed from KeitaNeural - sounded like child)
-  'ja-JP-Neural2-D': 'ja-JP-DaichiNeural',  // Male (changed from AoiNeural which was female)
-  'ja-JP-Wavenet-A': 'ja-JP-NanamiNeural',  // Fallback for older Wavenet voices
-  'ja-JP-Wavenet-B': 'ja-JP-DaichiNeural',  // Male (changed from KeitaNeural - sounded like child)
-  'ja-JP-Wavenet-C': 'ja-JP-DaichiNeural',  // Male
-  'ja-JP-Wavenet-D': 'ja-JP-ShioriNeural',  // Female
+  'ja-JP-Neural2-D': 'ja-JP-MasaruMultilingualNeural',  // Male, warm
+  'ja-JP-Wavenet-B': 'ja-JP-DaichiNeural',  // Male, fallback
+  'ja-JP-Wavenet-C': 'ja-JP-NaokiNeural',   // Male, clear
 };
 
 /**
