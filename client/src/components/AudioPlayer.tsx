@@ -1,11 +1,16 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+export type RepeatMode = 'off' | 'one' | 'all';
+
 interface AudioPlayerProps {
   src: string;
   audioRef: (element: HTMLAudioElement | null) => void;
+  repeatMode?: RepeatMode;
+  onRepeatModeChange?: (mode: RepeatMode) => void;
+  onEnded?: () => void;
 }
 
-export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
+export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepeatModeChange, onEnded }: AudioPlayerProps) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -30,6 +35,9 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
+      if (onEnded) {
+        onEnded();
+      }
     };
 
     element.addEventListener('loadedmetadata', updateDuration);
@@ -43,7 +51,7 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
       element.removeEventListener('pause', handlePause);
       element.removeEventListener('ended', handleEnded);
     };
-  }, [src]); // Re-run when src changes
+  }, [src, onEnded]); // Re-run when src or onEnded changes
 
   // Smooth progress updates using requestAnimationFrame - runs continuously
   useEffect(() => {
@@ -106,6 +114,14 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const toggleRepeatMode = () => {
+    if (!onRepeatModeChange) return;
+    const modes: RepeatMode[] = ['off', 'one', 'all'];
+    const currentIndex = modes.indexOf(repeatMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    onRepeatModeChange(modes[nextIndex]);
+  };
+
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
@@ -161,6 +177,34 @@ export default function AudioPlayer({ src, audioRef }: AudioPlayerProps) {
       <span className="text-sm text-gray-500 font-medium tabular-nums flex-shrink-0 w-12">
         {formatTime(duration)}
       </span>
+
+      {/* Repeat Button */}
+      {onRepeatModeChange && (
+        <button
+          onClick={toggleRepeatMode}
+          className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
+            repeatMode !== 'off'
+              ? 'bg-indigo text-white hover:bg-indigo-600'
+              : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+          }`}
+          aria-label={`Repeat mode: ${repeatMode}`}
+        >
+          {repeatMode === 'one' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <text x="12" y="16" fontSize="8" fill="currentColor" textAnchor="middle" fontWeight="bold">1</text>
+            </svg>
+          ) : repeatMode === 'all' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          )}
+        </button>
+      )}
     </div>
   );
 }

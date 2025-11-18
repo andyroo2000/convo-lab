@@ -10,8 +10,10 @@ import dialogueRoutes from './routes/dialogue.js';
 import audioRoutes from './routes/audio.js';
 import imageRoutes from './routes/images.js';
 import courseRoutes from './routes/courses.js';
+import narrowListeningRoutes from './routes/narrowListening.js';
 import { audioWorker } from './jobs/audioQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
+import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 
 dotenv.config();
 
@@ -42,6 +44,7 @@ app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/narrow-listening', narrowListeningRoutes);
 
 // Error handling
 app.use(errorHandler);

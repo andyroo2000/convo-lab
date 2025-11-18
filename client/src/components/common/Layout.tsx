@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Library, Mic, Play } from 'lucide-react';
+import { LogOut, Library, Mic } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -42,6 +42,7 @@ export default function Layout() {
                 </Link>
               </div>
             </div>
+
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">{user.name}</span>
               <button

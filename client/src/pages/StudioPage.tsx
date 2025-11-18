@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { MessageSquare, Headphones } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 import CourseGenerator from '../components/courses/CourseGenerator';
 
 type ContentType = 'dialogue' | 'course' | null;
 
 export default function StudioPage() {
+  const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<ContentType>(null);
 
   if (selectedType === 'dialogue') {
@@ -59,7 +61,7 @@ export default function StudioPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {/* Dialogue Content Type */}
         <button
           onClick={() => setSelectedType('dialogue')}
@@ -107,6 +109,32 @@ export default function StudioPage() {
                 <li>✓ Anticipation prompts with pauses</li>
                 <li>✓ Spaced repetition for retention</li>
                 <li>✓ Graduated difficulty progression</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        {/* Narrow Listening Content Type */}
+        <button
+          onClick={() => navigate('/narrow-listening/create')}
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-purple-600"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+              <Sparkles className="w-8 h-8 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-purple-600 transition-colors">
+                Narrow Listening
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Generate story variations with controlled grammar changes. Perfect for noticing language patterns.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ 5 variations of the same story</li>
+                <li>✓ Controlled grammar and politeness changes</li>
+                <li>✓ Slow audio (0.7x) for shadowing</li>
+                <li>✓ JLPT level targeting</li>
               </ul>
             </div>
           </div>
