@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Headphones, Sparkles } from 'lucide-react';
+import { MessageSquare, Headphones, Sparkles, Brain } from 'lucide-react';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 import CourseGenerator from '../components/courses/CourseGenerator';
 
@@ -135,6 +135,32 @@ export default function StudioPage() {
                 <li>✓ Controlled grammar and politeness changes</li>
                 <li>✓ Slow audio (0.7x) for shadowing</li>
                 <li>✓ JLPT level targeting</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        {/* Processing Instruction Mode */}
+        <button
+          onClick={() => navigate('/pi')}
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo-600"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+              <Brain className="w-8 h-8 text-indigo-600" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-indigo-600 transition-colors">
+                Processing Instruction
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Train your brain to process particles correctly through meaning-based comprehension tasks.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ は vs が particle distinction</li>
+                <li>✓ Meaning-focused questions (not grammar rules)</li>
+                <li>✓ Audio-based comprehension</li>
+                <li>✓ Immediate feedback with explanations</li>
               </ul>
             </div>
           </div>

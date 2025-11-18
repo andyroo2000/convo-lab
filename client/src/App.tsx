@@ -11,6 +11,8 @@ import LoginPage from './pages/LoginPage';
 import NarrowListeningLibraryPage from './pages/NarrowListeningLibraryPage';
 import NarrowListeningCreatorPage from './pages/NarrowListeningCreatorPage';
 import NarrowListeningPlaybackPage from './pages/NarrowListeningPlaybackPage';
+import PISetupPage from './pages/PISetupPage';
+import PISessionPage from './pages/PISessionPage';
 
 function App() {
   return (
@@ -30,6 +32,8 @@ function App() {
             <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
             <Route path="narrow-listening/create" element={<NarrowListeningCreatorPage />} />
             <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
+            <Route path="pi" element={<PISetupPage />} />
+            <Route path="pi/session" element={<PISessionPage />} />
           </Route>
         </Routes>
         </AudioPlayerProvider>
