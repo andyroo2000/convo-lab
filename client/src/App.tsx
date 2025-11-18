@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import StudioPage from './pages/StudioPage';
 import PlaybackPage from './pages/PlaybackPage';
@@ -7,14 +8,18 @@ import PracticePage from './pages/PracticePage';
 import LibraryPage from './pages/LibraryPage';
 import CoursePage from './pages/CoursePage';
 import LoginPage from './pages/LoginPage';
+import NarrowListeningLibraryPage from './pages/NarrowListeningLibraryPage';
+import NarrowListeningCreatorPage from './pages/NarrowListeningCreatorPage';
+import NarrowListeningPlaybackPage from './pages/NarrowListeningPlaybackPage';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/" element={<Layout />}>
+        <AudioPlayerProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/library" replace />} />
             <Route path="library" element={<LibraryPage />} />
             <Route path="studio" element={<StudioPage />} />
@@ -22,8 +27,12 @@ function App() {
             <Route path="playback/:episodeId" element={<PlaybackPage />} />
             <Route path="practice/:episodeId" element={<PracticePage />} />
             <Route path="courses/:courseId" element={<CoursePage />} />
+            <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
+            <Route path="narrow-listening/create" element={<NarrowListeningCreatorPage />} />
+            <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
           </Route>
         </Routes>
+        </AudioPlayerProvider>
       </AuthProvider>
     </BrowserRouter>
   );

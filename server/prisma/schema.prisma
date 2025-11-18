@@ -18,8 +18,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  episodes  Episode[]
-  courses   Course[]
+  episodes             Episode[]
+  courses              Course[]
+  narrowListeningPacks NarrowListeningPack[]
 
   @@index([email])
 }
@@ -194,4 +195,65 @@ model LessonCoreItem {
   lesson            Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
+}
+
+// Narrow Listening Models
+
+model NarrowListeningPack {
+  id            String   @id @default(uuid())
+  userId        String
+  title         String
+  topic         String   @db.Text
+  jlptLevel     String   // N5, N4, N3, N2, N1
+  grammarFocus  String?  @db.Text
+  status        String   @default("draft") // draft, generating, ready, error
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions      StoryVersion[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model StoryVersion {
+  id             String   @id @default(uuid())
+  packId         String
+  variationType  String   // PAST_CASUAL, PRESENT_POLITE, FUTURE_POLITE, PARTICLE_FOCUS, etc.
+  title          String   // Brief description (e.g., "Past, casual")
+  voiceId        String   // Edge TTS voice ID for this version
+  order          Int
+  audioUrl_0_7   String?  // Slow audio (0.7x speed)
+  audioUrl_1_0   String?  // Normal audio (1.0x speed)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pack           NarrowListeningPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  segments       StorySegment[]
+
+  @@index([packId])
+  @@index([order])
+}
+
+model StorySegment {
+  id                  String   @id @default(uuid())
+  versionId           String
+  order               Int
+  japaneseText        String   @db.Text
+  englishTranslation  String   @db.Text
+  reading             String?  @db.Text // Furigana/kana reading
+  audioUrl_0_7        String?  // Slow segment audio
+  audioUrl_1_0        String?  // Normal segment audio
+  startTime_0_7       Int?     // milliseconds for 0.7x combined audio
+  endTime_0_7         Int?     // milliseconds for 0.7x combined audio
+  startTime_1_0       Int?     // milliseconds for 1.0x combined audio
+  endTime_1_0         Int?     // milliseconds for 1.0x combined audio
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  version             StoryVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@index([order])
 }

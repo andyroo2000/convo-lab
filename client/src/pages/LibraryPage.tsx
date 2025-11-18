@@ -1,28 +1,41 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, Trash2, BookOpen, MessageSquare, Headphones } from 'lucide-react';
+import { Clock, Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-type FilterType = 'all' | 'dialogues' | 'courses';
+interface NarrowListeningPack {
+  id: string;
+  title: string;
+  topic: string;
+  jlptLevel: string;
+  status: string;
+  createdAt: string;
+  versions: Array<{ id: string; title: string }>;
+}
+
+type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening';
 
 export default function LibraryPage() {
   const { deleteEpisode } = useEpisodes();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [narrowListeningPacks, setNarrowListeningPacks] = useState<NarrowListeningPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     loadEpisodes();
     loadCourses();
+    loadNarrowListeningPacks();
   }, []);
 
   const loadEpisodes = async () => {
@@ -64,6 +77,24 @@ export default function LibraryPage() {
     }
   };
 
+  const loadNarrowListeningPacks = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/narrow-listening`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch narrow listening packs');
+      }
+
+      const data = await response.json();
+      setNarrowListeningPacks(data);
+    } catch (err) {
+      console.error('Error loading narrow listening packs:', err);
+      // Don't set error - they're optional
+    }
+  };
+
   const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -87,10 +118,42 @@ export default function LibraryPage() {
     }
   };
 
+  const handleDeletePackClick = (pack: NarrowListeningPack, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setPackToDelete(pack);
+  };
+
+  const handleConfirmDeletePack = async () => {
+    if (!packToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/narrow-listening/${packToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete pack');
+      }
+
+      // Refresh packs list
+      await loadNarrowListeningPacks();
+      setPackToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete pack:', err);
+      alert('Failed to delete pack. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleCancelDelete = () => {
     if (!isDeleting) {
       setEpisodeToDelete(null);
       setCourseToDelete(null);
+      setPackToDelete(null);
     }
   };
 
@@ -126,13 +189,15 @@ export default function LibraryPage() {
   };
 
   // Filter content based on selected filter
-  const filteredEpisodes = filter === 'courses' ? [] : episodes;
-  const filteredCourses = filter === 'dialogues' ? [] : courses;
+  const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening') ? [] : episodes;
+  const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening') ? [] : courses;
+  const filteredPacks = (filter === 'dialogues' || filter === 'courses') ? [] : narrowListeningPacks;
 
   // Combine and sort by date
   const allItems = [
     ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
-    ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) }))
+    ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
+    ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   if (loading) {
@@ -200,6 +265,17 @@ export default function LibraryPage() {
             <Headphones className="w-4 h-4" />
             Courses
           </button>
+          <button
+            onClick={() => setFilter('narrowListening')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+              filter === 'narrowListening'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            Narrow Listening
+          </button>
         </div>
       </div>
 
@@ -208,7 +284,8 @@ export default function LibraryPage() {
           <p className="text-gray-500 text-center py-12">
             {filter === 'dialogues' && 'No dialogues yet. Create your first dialogue to get started!'}
             {filter === 'courses' && 'No courses yet. Create your first audio course to get started!'}
-            {filter === 'all' && 'No content yet. Create a dialogue or audio course to get started!'}
+            {filter === 'narrowListening' && 'No narrow listening packs yet. Create your first pack to get started!'}
+            {filter === 'all' && 'No content yet. Create a dialogue, audio course, or narrow listening pack to get started!'}
           </p>
         </div>
       ) : (
@@ -277,7 +354,7 @@ export default function LibraryPage() {
                   </div>
                 </Link>
               );
-            } else {
+            } else if (item.type === 'course') {
               const course = item.data as Course;
 
               return (
@@ -344,7 +421,65 @@ export default function LibraryPage() {
                   </div>
                 </Link>
               );
+            } else if (item.type === 'narrowListening') {
+              const pack = item.data as NarrowListeningPack;
+
+              return (
+                <Link
+                  key={pack.id}
+                  to={`/narrow-listening/${pack.id}`}
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50"
+                >
+                  {/* Delete Button - appears on hover */}
+                  <button
+                    onClick={(e) => handleDeletePackClick(pack, e)}
+                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
+                    title="Delete pack"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="space-y-3">
+                    {/* Title with Icon */}
+                    <div className="flex items-start gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
+                      <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors flex-1">
+                        {pack.title}
+                      </h3>
+                    </div>
+
+                    {/* Topic Preview */}
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {pack.topic}
+                    </p>
+
+                    {/* JLPT Level and Variations */}
+                    <div className="flex gap-2 text-sm flex-wrap">
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
+                        {pack.jlptLevel}
+                      </span>
+                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium">
+                        {pack.versions?.length || 0} variations
+                      </span>
+                      {pack.status === 'generating' && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                          Generating...
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(pack.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
             }
+            return null;
           })}
         </div>
       )}
@@ -369,6 +504,18 @@ export default function LibraryPage() {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeleteCourse}
+        onCancel={handleCancelDelete}
+        isLoading={isDeleting}
+      />
+
+      {/* Delete Narrow Listening Pack Confirmation Modal */}
+      <ConfirmModal
+        isOpen={packToDelete !== null}
+        title="Delete Narrow Listening Pack"
+        message={`Are you sure you want to delete "${packToDelete?.title}"? This action cannot be undone and will delete all story versions and audio files.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmDeletePack}
         onCancel={handleCancelDelete}
         isLoading={isDeleting}
       />
