@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import authRoutes from './routes/auth.js';
@@ -11,9 +13,13 @@ import audioRoutes from './routes/audio.js';
 import imageRoutes from './routes/images.js';
 import courseRoutes from './routes/courses.js';
 import narrowListeningRoutes from './routes/narrowListening.js';
+import piRoutes from './routes/pi.js';
 import { audioWorker } from './jobs/audioQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
@@ -32,6 +38,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(requestLogger);
 
+// Serve static files from public directory (for audio files)
+app.use(express.static(path.join(__dirname, '../public')));
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -45,6 +54,7 @@ app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/narrow-listening', narrowListeningRoutes);
+app.use('/api/pi', piRoutes);
 
 // Error handling
 app.use(errorHandler);
