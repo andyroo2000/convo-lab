@@ -191,6 +191,11 @@ REQUIREMENTS:
   • XはAですが、AしたのがYです
   • Xは〜だけど、〜したのがYです
   • XはYです vs YがXです
+- **CRITICAL**: RANDOMIZE the order of correct answers across items
+  • Approximately half should have the correct answer as choice "a"
+  • Approximately half should have the correct answer as choice "b"
+  • DO NOT make all correct answers the first choice
+  • DO NOT create a predictable pattern
 
 QUALITY CONTROL - REJECT ANY ITEM THAT:
 1. Asks "Who did X?" when only ONE person is in the sentence or context
@@ -215,6 +220,11 @@ BEFORE GENERATING: For each item, verify:
 ✓ BOTH answer choices are equally plausible based on the sentence structure
 ✓ The particle is doing meaningful semantic work in the sentence
 ✓ If you removed the context sentence entirely, you could still answer the question using only the main sentence
+
+AFTER GENERATING ALL ITEMS: Verify answer distribution:
+✓ Count how many items have "a" as correct answer vs "b" as correct answer
+✓ If all or most correct answers are in the same position, SHUFFLE them to achieve ~50/50 distribution
+✓ This prevents learners from gaming the system by always choosing the first or second option
 
 Generate exactly ${itemCount} items now.`;
 }
