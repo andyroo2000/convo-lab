@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Clock, Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
@@ -35,6 +35,7 @@ type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPa
 
 export default function LibraryPage() {
   const { deleteEpisode } = useEpisodes();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [narrowListeningPacks, setNarrowListeningPacks] = useState<NarrowListeningPack[]>([]);
@@ -46,7 +47,21 @@ export default function LibraryPage() {
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [filter, setFilter] = useState<FilterType>('all');
+
+  // Get filter from URL or default to 'all'
+  const filterParam = searchParams.get('filter');
+  const validFilters: FilterType[] = ['all', 'dialogues', 'courses', 'narrowListening', 'chunkPacks'];
+  const filter: FilterType = validFilters.includes(filterParam as FilterType)
+    ? (filterParam as FilterType)
+    : 'all';
+
+  const handleFilterChange = (newFilter: FilterType) => {
+    if (newFilter === 'all') {
+      setSearchParams({});
+    } else {
+      setSearchParams({ filter: newFilter });
+    }
+  };
 
   useEffect(() => {
     loadEpisodes();
@@ -303,7 +318,7 @@ export default function LibraryPage() {
         {/* Filter Tabs */}
         <div className="flex gap-2">
           <button
-            onClick={() => setFilter('all')}
+            onClick={() => handleFilterChange('all')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
               filter === 'all'
                 ? 'bg-indigo text-white'
@@ -313,7 +328,7 @@ export default function LibraryPage() {
             All
           </button>
           <button
-            onClick={() => setFilter('dialogues')}
+            onClick={() => handleFilterChange('dialogues')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'dialogues'
                 ? 'bg-indigo text-white'
@@ -324,7 +339,7 @@ export default function LibraryPage() {
             Dialogues
           </button>
           <button
-            onClick={() => setFilter('courses')}
+            onClick={() => handleFilterChange('courses')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'courses'
                 ? 'bg-purple-600 text-white'
@@ -335,7 +350,7 @@ export default function LibraryPage() {
             Courses
           </button>
           <button
-            onClick={() => setFilter('narrowListening')}
+            onClick={() => handleFilterChange('narrowListening')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'narrowListening'
                 ? 'bg-purple-600 text-white'
@@ -346,7 +361,7 @@ export default function LibraryPage() {
             Narrow Listening
           </button>
           <button
-            onClick={() => setFilter('chunkPacks')}
+            onClick={() => handleFilterChange('chunkPacks')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'chunkPacks'
                 ? 'bg-emerald-600 text-white'
