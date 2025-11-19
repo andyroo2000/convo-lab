@@ -161,7 +161,7 @@ export default function ChunkPackSetupPage() {
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-8">
             <h2 className="font-semibold text-emerald-900 mb-2">What is this?</h2>
             <p className="text-sm text-emerald-800 leading-relaxed">
-              Chunk Packs teach <strong>5-8 high-frequency Japanese chunks</strong> through examples, stories, and exercises.
+              Lexical Chunk Packs teach <strong>5-8 high-frequency Japanese chunks</strong> through examples, stories, and exercises.
               You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words.
               Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary.
             </p>
@@ -233,7 +233,7 @@ export default function ChunkPackSetupPage() {
           {isGenerating && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Generating chunk pack...</span>
+                <span className="text-sm font-medium text-gray-700">Generating lexical chunk pack...</span>
                 <span className="text-sm text-gray-500">{progress}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -258,12 +258,12 @@ export default function ChunkPackSetupPage() {
               {isGenerating ? (
                 <>
                   <Loader className="w-5 h-5 animate-spin" />
-                  Generating Chunk Pack...
+                  Generating Lexical Chunk Pack...
                 </>
               ) : (
                 <>
                   <BookOpen className="w-5 h-5" />
-                  Generate Chunk Pack
+                  Generate Lexical Chunk Pack
                 </>
               )}
             </button>

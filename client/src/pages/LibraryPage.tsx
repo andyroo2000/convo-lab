@@ -48,21 +48,21 @@ export default function LibraryPage() {
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Map between URL params (snake_case) and internal filter types (camelCase)
+  // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
     'all': 'all',
     'dialogues': 'dialogues',
     'courses': 'courses',
-    'narrow_listening': 'narrowListening',
-    'chunk_packs': 'chunkPacks',
+    'narrow-listening': 'narrowListening',
+    'lexical-chunk-packs': 'chunkPacks',
   };
 
   const filterTypeToParam: Record<FilterType, string> = {
     'all': 'all',
     'dialogues': 'dialogues',
     'courses': 'courses',
-    'narrowListening': 'narrow_listening',
-    'chunkPacks': 'chunk_packs',
+    'narrowListening': 'narrow-listening',
+    'chunkPacks': 'lexical-chunk-packs',
   };
 
   // Get filter from URL or default to 'all'
@@ -70,7 +70,8 @@ export default function LibraryPage() {
   const filter: FilterType = filterParamToType[filterParam || ''] || 'all';
 
   const handleFilterChange = (newFilter: FilterType) => {
-    if (newFilter === 'all') {
+    // If clicking the same filter, deselect it (go back to 'all')
+    if (filter === newFilter) {
       setSearchParams({});
     } else {
       setSearchParams({ filter: filterTypeToParam[newFilter] });
@@ -332,21 +333,11 @@ export default function LibraryPage() {
         {/* Filter Tabs */}
         <div className="flex gap-2">
           <button
-            onClick={() => handleFilterChange('all')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors ${
-              filter === 'all'
-                ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          <button
             onClick={() => handleFilterChange('dialogues')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'dialogues'
                 ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
             }`}
           >
             <MessageSquare className="w-4 h-4" />
@@ -356,19 +347,19 @@ export default function LibraryPage() {
             onClick={() => handleFilterChange('courses')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'courses'
-                ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-orange-500 text-white'
+                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
             }`}
           >
             <Headphones className="w-4 h-4" />
-            Courses
+            Audio Courses
           </button>
           <button
             onClick={() => handleFilterChange('narrowListening')}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'narrowListening'
                 ? 'bg-purple-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
             }`}
           >
             <Sparkles className="w-4 h-4" />
@@ -379,11 +370,11 @@ export default function LibraryPage() {
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'chunkPacks'
                 ? 'bg-emerald-600 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
             }`}
           >
             <BookOpen className="w-4 h-4" />
-            Chunk Packs
+            Lexical Chunk Packs
           </button>
         </div>
       </div>
@@ -392,10 +383,10 @@ export default function LibraryPage() {
         <div className="card">
           <p className="text-gray-500 text-center py-12">
             {filter === 'dialogues' && 'No dialogues yet. Create your first dialogue to get started!'}
-            {filter === 'courses' && 'No courses yet. Create your first audio course to get started!'}
+            {filter === 'courses' && 'No audio courses yet. Create your first audio course to get started!'}
             {filter === 'narrowListening' && 'No narrow listening packs yet. Create your first pack to get started!'}
-            {filter === 'chunkPacks' && 'No chunk packs yet. Create your first chunk pack to get started!'}
-            {filter === 'all' && 'No content yet. Create a dialogue, audio course, narrow listening pack, or chunk pack to get started!'}
+            {filter === 'chunkPacks' && 'No lexical chunk packs yet. Create your first lexical chunk pack to get started!'}
+            {filter === 'all' && 'No content yet. Create a dialogue, audio course, narrow listening pack, or lexical chunk pack to get started!'}
           </p>
         </div>
       ) : (
@@ -412,7 +403,7 @@ export default function LibraryPage() {
                 <Link
                   key={episode.id}
                   to={`/playback/${episode.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-indigo"
                 >
                   {/* Delete Button - appears on hover */}
                   <button
@@ -471,7 +462,7 @@ export default function LibraryPage() {
                 <Link
                   key={course.id}
                   to={`/courses/${course.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-indigo-50 to-purple-50"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-orange-500"
                 >
                   {/* Delete Button - appears on hover */}
                   <button
@@ -485,8 +476,8 @@ export default function LibraryPage() {
                   <div className="space-y-3">
                     {/* Title with Icon */}
                     <div className="flex items-start gap-2">
-                      <Headphones className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
-                      <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors flex-1">
+                      <Headphones className="w-5 h-5 text-orange-500 flex-shrink-0 mt-1" />
+                      <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors flex-1">
                         {course.title}
                       </h3>
                     </div>
@@ -538,7 +529,7 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/narrow-listening/${pack.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-600"
                 >
                   {/* Delete Button - appears on hover */}
                   <button
@@ -595,13 +586,13 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/chunk-packs/${pack.id}/examples`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50 border-l-4 border-emerald-600"
                 >
                   {/* Delete Button - appears on hover */}
                   <button
                     onClick={(e) => handleDeleteChunkPackClick(pack, e)}
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
-                    title="Delete chunk pack"
+                    title="Delete lexical chunk pack"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -701,7 +692,7 @@ export default function LibraryPage() {
       {/* Delete Chunk Pack Confirmation Modal */}
       <ConfirmModal
         isOpen={chunkPackToDelete !== null}
-        title="Delete Chunk Pack"
+        title="Delete Lexical Chunk Pack"
         message={`Are you sure you want to delete "${chunkPackToDelete?.title}"? This action cannot be undone and will delete all chunks, examples, stories, exercises, and audio files.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
