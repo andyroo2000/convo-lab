@@ -45,7 +45,11 @@ export default function Layout() {
             </div>
 
             <div className="flex items-center">
-              <UserMenu userName={user.name} onLogout={handleLogout} />
+              <UserMenu
+                userName={user.displayName || user.name}
+                avatarColor={user.avatarColor}
+                onLogout={handleLogout}
+              />
             </div>
           </div>
         </div>

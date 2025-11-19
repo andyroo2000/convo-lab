@@ -11,12 +11,14 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  email       String   @unique
+  password    String
+  name        String
+  displayName String?
+  avatarColor String?  @default("indigo")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   episodes             Episode[]
   courses              Course[]

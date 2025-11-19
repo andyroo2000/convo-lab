@@ -17,6 +17,7 @@ import ChunkPackSetupPage from './pages/ChunkPackSetupPage';
 import ChunkPackExamplesPage from './pages/ChunkPackExamplesPage';
 import ChunkPackStoryPage from './pages/ChunkPackStoryPage';
 import ChunkPackExercisesPage from './pages/ChunkPackExercisesPage';
+import SettingsPage from './pages/SettingsPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="playback/:episodeId" element={<PlaybackPage />} />
             <Route path="practice/:episodeId" element={<PracticePage />} />
             <Route path="courses/:courseId" element={<CoursePage />} />
+            <Route path="settings" element={<SettingsPage />} />
             <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
             <Route path="narrow-listening/create" element={<NarrowListeningCreatorPage />} />
             <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />

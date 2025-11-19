@@ -36,6 +36,8 @@ router.post('/signup', async (req, res, next) => {
         id: true,
         email: true,
         name: true,
+        displayName: true,
+        avatarColor: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -98,6 +100,8 @@ router.post('/login', async (req, res, next) => {
       id: user.id,
       email: user.email,
       name: user.name,
+      displayName: user.displayName,
+      avatarColor: user.avatarColor,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     });
@@ -121,6 +125,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         id: true,
         email: true,
         name: true,
+        displayName: true,
+        avatarColor: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -131,6 +137,63 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update user profile
+router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const { displayName, avatarColor } = req.body;
+
+    // Validate avatarColor if provided
+    const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
+    if (avatarColor && !validColors.includes(avatarColor)) {
+      throw new AppError('Invalid avatar color', 400);
+    }
+
+    // Build update data object (only include provided fields)
+    const updateData: any = {};
+    if (displayName !== undefined) updateData.displayName = displayName;
+    if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
+
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError('No fields to update', 400);
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        displayName: true,
+        avatarColor: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete user account
+router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    // Delete user (cascade will handle related data)
+    await prisma.user.delete({
+      where: { id: req.userId },
+    });
+
+    // Clear auth cookie
+    res.clearCookie('token');
+
+    res.json({ message: 'Account deleted successfully' });
   } catch (error) {
     next(error);
   }
