@@ -48,18 +48,32 @@ export default function LibraryPage() {
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Map between URL params (snake_case) and internal filter types (camelCase)
+  const filterParamToType: Record<string, FilterType> = {
+    'all': 'all',
+    'dialogues': 'dialogues',
+    'courses': 'courses',
+    'narrow_listening': 'narrowListening',
+    'chunk_packs': 'chunkPacks',
+  };
+
+  const filterTypeToParam: Record<FilterType, string> = {
+    'all': 'all',
+    'dialogues': 'dialogues',
+    'courses': 'courses',
+    'narrowListening': 'narrow_listening',
+    'chunkPacks': 'chunk_packs',
+  };
+
   // Get filter from URL or default to 'all'
   const filterParam = searchParams.get('filter');
-  const validFilters: FilterType[] = ['all', 'dialogues', 'courses', 'narrowListening', 'chunkPacks'];
-  const filter: FilterType = validFilters.includes(filterParam as FilterType)
-    ? (filterParam as FilterType)
-    : 'all';
+  const filter: FilterType = filterParamToType[filterParam || ''] || 'all';
 
   const handleFilterChange = (newFilter: FilterType) => {
     if (newFilter === 'all') {
       setSearchParams({});
     } else {
-      setSearchParams({ filter: newFilter });
+      setSearchParams({ filter: filterTypeToParam[newFilter] });
     }
   };
 
