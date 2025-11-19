@@ -13,6 +13,10 @@ import NarrowListeningCreatorPage from './pages/NarrowListeningCreatorPage';
 import NarrowListeningPlaybackPage from './pages/NarrowListeningPlaybackPage';
 import PISetupPage from './pages/PISetupPage';
 import PISessionPage from './pages/PISessionPage';
+import ChunkPackSetupPage from './pages/ChunkPackSetupPage';
+import ChunkPackExamplesPage from './pages/ChunkPackExamplesPage';
+import ChunkPackStoryPage from './pages/ChunkPackStoryPage';
+import ChunkPackExercisesPage from './pages/ChunkPackExercisesPage';
 
 function App() {
   return (
@@ -34,6 +38,10 @@ function App() {
             <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
             <Route path="pi" element={<PISetupPage />} />
             <Route path="pi/session" element={<PISessionPage />} />
+            <Route path="chunk-packs/setup" element={<ChunkPackSetupPage />} />
+            <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
+            <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
+            <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
           </Route>
         </Routes>
         </AudioPlayerProvider>

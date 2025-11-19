@@ -336,6 +336,20 @@ export default function CoursePage() {
                       </div>
                     </div>
                   )}
+
+                  {/* Original Prompt */}
+                  {course.courseEpisodes && course.courseEpisodes.length > 0 && course.courseEpisodes[0].episode?.sourceText && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-navy mb-3">
+                        Original Prompt
+                      </h3>
+                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                          {course.courseEpisodes[0].episode.sourceText}
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : selectedLesson.status === 'generating' ? (
                 <div className="text-center py-12">

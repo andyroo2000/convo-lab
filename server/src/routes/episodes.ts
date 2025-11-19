@@ -60,7 +60,13 @@ async function enrichDialogueWithFurigana(episode: any) {
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     const episodes = await prisma.episode.findMany({
-      where: { userId: req.userId },
+      where: {
+        userId: req.userId,
+        // Only return episodes that have dialogues (exclude course-only episodes)
+        dialogue: {
+          isNot: null
+        }
+      },
       include: {
         dialogue: {
           include: {

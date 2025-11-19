@@ -561,8 +561,9 @@ export async function extractDialogueExchanges(
   console.log(`Split ${sentences.length} sentences into ${splitSentences.length} shorter exchanges`);
 
   // Estimate how many exchanges we need for target duration
-  // Each exchange takes ~90-120 seconds (with vocab breakdown)
-  const estimatedSecondsPerExchange = 100;
+  // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
+  // This includes: introduction, vocabulary breakdown, anticipation prompts, and review cycles
+  const estimatedSecondsPerExchange = 35;
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.floor(targetSeconds / estimatedSecondsPerExchange);
 
@@ -713,8 +714,9 @@ export async function extractDialogueExchangesFromSourceText(
   console.log(`Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`);
 
   // Estimate how many exchanges we need for target duration
-  // Each exchange takes ~90-120 seconds (with vocab breakdown)
-  const estimatedSecondsPerExchange = 100;
+  // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
+  // This includes: introduction, vocabulary breakdown, anticipation prompts, and review cycles
+  const estimatedSecondsPerExchange = 35;
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.max(6, Math.floor(targetSeconds / estimatedSecondsPerExchange));
 

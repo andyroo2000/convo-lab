@@ -102,6 +102,11 @@ export default function PISetupPage() {
 
       const session = await response.json();
 
+      // Validate session data
+      if (!session || !session.items || session.items.length === 0) {
+        throw new Error('Invalid session data received from server');
+      }
+
       // Navigate to session page with the session data
       navigate('/pi/session', { state: { session } });
     } catch (err: any) {

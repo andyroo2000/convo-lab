@@ -119,7 +119,7 @@ export async function generateNarrowListeningAudio(
     console.log(`  Final audio duration: ${(totalDuration / 1000).toFixed(2)}s`);
 
     // Upload to GCS
-    const speedLabel = speed === 0.7 ? '0.7x' : '1.0x';
+    const speedLabel = speed === 0.7 ? '0.7x' : speed === 0.85 ? '0.85x' : '1.0x';
     const audioUrl = await uploadFileToGCS({
       filePath: finalAudioPath,
       filename: `pack-${packId}-v${versionIndex}-${speedLabel}.mp3`,

@@ -14,9 +14,11 @@ import imageRoutes from './routes/images.js';
 import courseRoutes from './routes/courses.js';
 import narrowListeningRoutes from './routes/narrowListening.js';
 import piRoutes from './routes/pi.js';
+import chunkPackRoutes from './routes/chunkPacks.js';
 import { audioWorker } from './jobs/audioQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
+import { chunkPackWorker } from './jobs/chunkPackQueue.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +57,7 @@ app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/narrow-listening', narrowListeningRoutes);
 app.use('/api/pi', piRoutes);
+app.use('/api/chunk-packs', chunkPackRoutes);
 
 // Error handling
 app.use(errorHandler);

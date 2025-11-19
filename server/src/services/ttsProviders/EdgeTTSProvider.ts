@@ -27,8 +27,10 @@ export class EdgeTTSProvider implements TTSProvider {
       ssml = false,
     } = options;
 
-    // Map Google voice ID to Edge voice ID
-    const edgeVoiceId = getEdgeVoiceId(voiceId, languageCode);
+    // Map Google voice ID to Edge voice ID (or pass through if already Edge format)
+    // Edge voice IDs contain "Neural" suffix, Google voice IDs contain "Wavenet", "Neural2", "Studio", etc.
+    const isEdgeVoiceId = voiceId.includes('Neural') && !voiceId.includes('Neural2');
+    const edgeVoiceId = isEdgeVoiceId ? voiceId : getEdgeVoiceId(voiceId, languageCode);
 
     // Convert speed to Edge TTS rate format
     // speed 1.0 -> +0%, 0.75 -> -25%, 1.25 -> +25%
