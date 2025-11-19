@@ -9,6 +9,8 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
+  updateUser: (data: { displayName?: string; avatarColor?: string }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,8 +83,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(userData);
   };
 
+  const updateUser = async (data: { displayName?: string; avatarColor?: string }) => {
+    const response = await fetch(`${API_URL}/api/auth/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Update failed');
+    }
+
+    const userData = await response.json();
+    setUser(userData);
+  };
+
+  const deleteAccount = async () => {
+    const response = await fetch(`${API_URL}/api/auth/me`, {
+      method: 'DELETE',
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Delete failed');
+    }
+
+    setUser(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, signup }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, signup, updateUser, deleteAccount }}>
       {children}
     </AuthContext.Provider>
   );

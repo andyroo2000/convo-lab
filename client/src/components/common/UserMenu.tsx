@@ -1,14 +1,30 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
 
 interface UserMenuProps {
   userName: string;
+  avatarColor?: string;
   onLogout: () => void;
 }
 
-export default function UserMenu({ userName, onLogout }: UserMenuProps) {
+const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
+  indigo: { bg: 'bg-indigo-100', text: 'text-indigo-600' },
+  teal: { bg: 'bg-teal-100', text: 'text-teal-600' },
+  purple: { bg: 'bg-purple-100', text: 'text-purple-600' },
+  pink: { bg: 'bg-pink-100', text: 'text-pink-600' },
+  emerald: { bg: 'bg-emerald-100', text: 'text-emerald-600' },
+  amber: { bg: 'bg-amber-100', text: 'text-amber-600' },
+  rose: { bg: 'bg-rose-100', text: 'text-rose-600' },
+  cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600' },
+};
+
+export default function UserMenu({ userName, avatarColor = 'indigo', onLogout }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  const colorScheme = AVATAR_COLOR_MAP[avatarColor] || AVATAR_COLOR_MAP.indigo;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -42,8 +58,8 @@ export default function UserMenu({ userName, onLogout }: UserMenuProps) {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-navy transition-colors rounded-lg hover:bg-gray-50"
       >
-        <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-          <User className="w-4 h-4 text-indigo-600" />
+        <div className={`w-8 h-8 ${colorScheme.bg} rounded-full flex items-center justify-center`}>
+          <User className={`w-4 h-4 ${colorScheme.text}`} />
         </div>
         <span>{userName}</span>
         <ChevronDown
@@ -60,17 +76,16 @@ export default function UserMenu({ userName, onLogout }: UserMenuProps) {
           style={{ top: '100%' }}
         >
           <div className="py-1">
-            {/* Settings - Placeholder for future */}
+            {/* Settings */}
             <button
               onClick={() => {
                 setIsOpen(false);
-                // TODO: Navigate to settings page when implemented
+                navigate('/settings');
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-              disabled
             >
-              <Settings className="w-4 h-4 text-gray-500" />
-              <span className="text-gray-400">Settings (Coming Soon)</span>
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
             </button>
 
             {/* Divider */}
