@@ -2,7 +2,7 @@
   "name": "languageflow-studio",
   "version": "0.1.0",
   "private": true,
-  "description": "LanguageFlow Studio - A creative language learning and dialogue generation tool",
+  "description": "ConvoLab - A creative language learning and dialogue generation tool",
   "workspaces": [
     "client",
     "server",

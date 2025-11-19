@@ -111,9 +111,9 @@ export default function CourseGenerator() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-semibold text-navy mb-2">Course Created!</h2>
+          <h2 className="text-2xl font-semibold text-navy mb-2">Audio Course Created!</h2>
           <p className="text-gray-600 mb-6">
-            Your course is now generating. You can track its progress on the Courses page.
+            Your audio course is now generating. You can track its progress on the Audio Courses page.
           </p>
         </div>
       </div>
@@ -127,12 +127,12 @@ export default function CourseGenerator() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Course Details */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Course Details</h2>
+        <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Details</h2>
 
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-navy mb-2">
-              Course Title *
+              Audio Course Title *
             </label>
             <input
               type="text"
@@ -320,7 +320,7 @@ export default function CourseGenerator() {
 
       {/* Course Settings */}
       <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Course Settings</h2>
+        <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Settings</h2>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -385,7 +385,7 @@ export default function CourseGenerator() {
             disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
             className="btn-primary ml-6 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isCreating ? 'Creating...' : 'Create Course'}
+            {isCreating ? 'Creating...' : 'Create Audio Course'}
           </button>
         </div>
 

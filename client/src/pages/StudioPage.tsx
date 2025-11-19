@@ -1,56 +1,8 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
-import DialogueGenerator from '../components/dialogue/DialogueGenerator';
-import CourseGenerator from '../components/courses/CourseGenerator';
-
-type ContentType = 'dialogue' | 'course' | null;
 
 export default function StudioPage() {
   const navigate = useNavigate();
-  const [selectedType, setSelectedType] = useState<ContentType>(null);
-
-  if (selectedType === 'dialogue') {
-    return (
-      <div>
-        <div className="mb-8">
-          <button
-            onClick={() => setSelectedType(null)}
-            className="text-sm text-gray-600 hover:text-navy mb-4 flex items-center gap-2"
-          >
-            ← Back to content types
-          </button>
-          <h1 className="text-3xl font-bold text-navy mb-2">Create Dialogue</h1>
-          <p className="text-gray-600">
-            Transform your stories and experiences into natural language learning dialogues
-          </p>
-        </div>
-
-        <DialogueGenerator />
-      </div>
-    );
-  }
-
-  if (selectedType === 'course') {
-    return (
-      <div>
-        <div className="mb-8">
-          <button
-            onClick={() => setSelectedType(null)}
-            className="text-sm text-gray-600 hover:text-navy mb-4 flex items-center gap-2"
-          >
-            ← Back to content types
-          </button>
-          <h1 className="text-3xl font-bold text-navy mb-2">Create Audio Course</h1>
-          <p className="text-gray-600">
-            Create Pimsleur-style interactive audio lessons with spaced repetition and anticipation drills
-          </p>
-        </div>
-
-        <CourseGenerator />
-      </div>
-    );
-  }
 
   return (
     <div>
@@ -64,7 +16,7 @@ export default function StudioPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
         {/* Dialogue Content Type */}
         <button
-          onClick={() => setSelectedType('dialogue')}
+          onClick={() => navigate('/studio/create/dialogue')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo"
         >
           <div className="flex items-start gap-4">
@@ -90,15 +42,15 @@ export default function StudioPage() {
 
         {/* Course Content Type */}
         <button
-          onClick={() => setSelectedType('course')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-purple-600"
+          onClick={() => navigate('/studio/create/audio-course')}
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-orange-500"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-              <Headphones className="w-8 h-8 text-purple-600" />
+            <div className="p-3 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
+              <Headphones className="w-8 h-8 text-orange-500" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-purple-600 transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-orange-500 transition-colors">
                 Audio Course
               </h2>
               <p className="text-sm text-gray-600 mb-4">
@@ -116,7 +68,7 @@ export default function StudioPage() {
 
         {/* Narrow Listening Content Type */}
         <button
-          onClick={() => navigate('/narrow-listening/create')}
+          onClick={() => navigate('/studio/create/narrow-listening')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-purple-600"
         >
           <div className="flex items-start gap-4">
@@ -142,7 +94,7 @@ export default function StudioPage() {
 
         {/* Processing Instruction Mode */}
         <button
-          onClick={() => navigate('/pi')}
+          onClick={() => navigate('/studio/create/processing-instruction')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo-600"
         >
           <div className="flex items-start gap-4">
@@ -168,7 +120,7 @@ export default function StudioPage() {
 
         {/* Lexical Chunk Packs */}
         <button
-          onClick={() => navigate('/chunk-packs/setup')}
+          onClick={() => navigate('/studio/create/lexical-chunk-pack')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-emerald-600"
         >
           <div className="flex items-start gap-4">

@@ -3,6 +3,8 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import StudioPage from './pages/StudioPage';
+import DialogueCreatorPage from './pages/DialogueCreatorPage';
+import CourseCreatorPage from './pages/CourseCreatorPage';
 import PlaybackPage from './pages/PlaybackPage';
 import PracticePage from './pages/PracticePage';
 import LibraryPage from './pages/LibraryPage';
@@ -29,18 +31,24 @@ function App() {
             <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/library" replace />} />
             <Route path="library" element={<LibraryPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+
+            {/* Studio - Content Creation Hub */}
             <Route path="studio" element={<StudioPage />} />
             <Route path="studio/:episodeId" element={<StudioPage />} />
+            <Route path="studio/create/dialogue" element={<DialogueCreatorPage />} />
+            <Route path="studio/create/audio-course" element={<CourseCreatorPage />} />
+            <Route path="studio/create/narrow-listening" element={<NarrowListeningCreatorPage />} />
+            <Route path="studio/create/processing-instruction" element={<PISetupPage />} />
+            <Route path="studio/create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
+
+            {/* Playback & Practice */}
             <Route path="playback/:episodeId" element={<PlaybackPage />} />
             <Route path="practice/:episodeId" element={<PracticePage />} />
             <Route path="courses/:courseId" element={<CoursePage />} />
-            <Route path="settings" element={<SettingsPage />} />
             <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
-            <Route path="narrow-listening/create" element={<NarrowListeningCreatorPage />} />
             <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
-            <Route path="pi" element={<PISetupPage />} />
             <Route path="pi/session" element={<PISessionPage />} />
-            <Route path="chunk-packs/setup" element={<ChunkPackSetupPage />} />
             <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
             <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
             <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />

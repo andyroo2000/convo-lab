@@ -169,7 +169,7 @@ export default function CourseCreator({
           {/* Title Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Course Title
+              Audio Course Title
             </label>
             <input
               type="text"
@@ -399,7 +399,7 @@ export default function CourseCreator({
                 Creating...
               </>
             ) : (
-              'Create & Generate Course'
+              'Create & Generate Audio Course'
             )}
           </button>
         </div>

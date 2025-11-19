@@ -24,7 +24,7 @@ export default function Layout() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <Link to="/library" className="flex items-center px-4 text-navy font-bold text-xl">
-                LanguageFlow Studio
+                ConvoLab
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
                 <Link

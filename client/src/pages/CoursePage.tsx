@@ -162,7 +162,7 @@ export default function CoursePage() {
     return (
       <div className="max-w-6xl mx-auto">
         <div className="card text-center py-12">
-          <p className="text-gray-600">Course not found</p>
+          <p className="text-gray-600">Audio course not found</p>
         </div>
       </div>
     );
