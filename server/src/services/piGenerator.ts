@@ -122,9 +122,9 @@ export async function generatePISession(
       jlptLevel,
       grammarPoint,
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error generating PI session:', error);
-    throw new Error('Failed to generate PI session');
+    throw new Error(`Failed to generate PI session: ${error.message}`);
   }
 }
 

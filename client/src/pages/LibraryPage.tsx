@@ -17,18 +17,34 @@ interface NarrowListeningPack {
   versions: Array<{ id: string; title: string }>;
 }
 
-type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening';
+interface ChunkPack {
+  id: string;
+  title: string;
+  theme: string;
+  jlptLevel: string;
+  status: string;
+  createdAt: string;
+  _count: {
+    examples: number;
+    stories: number;
+    exercises: number;
+  };
+}
+
+type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
 
 export default function LibraryPage() {
   const { deleteEpisode } = useEpisodes();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [narrowListeningPacks, setNarrowListeningPacks] = useState<NarrowListeningPack[]>([]);
+  const [chunkPacks, setChunkPacks] = useState<ChunkPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
+  const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
 
@@ -36,6 +52,7 @@ export default function LibraryPage() {
     loadEpisodes();
     loadCourses();
     loadNarrowListeningPacks();
+    loadChunkPacks();
   }, []);
 
   const loadEpisodes = async () => {
@@ -95,6 +112,24 @@ export default function LibraryPage() {
     }
   };
 
+  const loadChunkPacks = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/chunk-packs`, {
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch chunk packs');
+      }
+
+      const data = await response.json();
+      setChunkPacks(data);
+    } catch (err) {
+      console.error('Error loading chunk packs:', err);
+      // Don't set error - they're optional
+    }
+  };
+
   const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -149,11 +184,43 @@ export default function LibraryPage() {
     }
   };
 
+  const handleDeleteChunkPackClick = (pack: ChunkPack, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setChunkPackToDelete(pack);
+  };
+
+  const handleConfirmDeleteChunkPack = async () => {
+    if (!chunkPackToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${API_URL}/api/chunk-packs/${chunkPackToDelete.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete chunk pack');
+      }
+
+      // Refresh chunk packs list
+      await loadChunkPacks();
+      setChunkPackToDelete(null);
+    } catch (err) {
+      console.error('Failed to delete chunk pack:', err);
+      alert('Failed to delete chunk pack. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleCancelDelete = () => {
     if (!isDeleting) {
       setEpisodeToDelete(null);
       setCourseToDelete(null);
       setPackToDelete(null);
+      setChunkPackToDelete(null);
     }
   };
 
@@ -189,15 +256,17 @@ export default function LibraryPage() {
   };
 
   // Filter content based on selected filter
-  const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening') ? [] : episodes;
-  const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening') ? [] : courses;
-  const filteredPacks = (filter === 'dialogues' || filter === 'courses') ? [] : narrowListeningPacks;
+  const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
+  const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
+  const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
+  const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
 
   // Combine and sort by date
   const allItems = [
     ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
     ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
-    ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) }))
+    ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
+    ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
   ].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   if (loading) {
@@ -276,6 +345,17 @@ export default function LibraryPage() {
             <Sparkles className="w-4 h-4" />
             Narrow Listening
           </button>
+          <button
+            onClick={() => setFilter('chunkPacks')}
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+              filter === 'chunkPacks'
+                ? 'bg-emerald-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Chunk Packs
+          </button>
         </div>
       </div>
 
@@ -285,7 +365,8 @@ export default function LibraryPage() {
             {filter === 'dialogues' && 'No dialogues yet. Create your first dialogue to get started!'}
             {filter === 'courses' && 'No courses yet. Create your first audio course to get started!'}
             {filter === 'narrowListening' && 'No narrow listening packs yet. Create your first pack to get started!'}
-            {filter === 'all' && 'No content yet. Create a dialogue, audio course, or narrow listening pack to get started!'}
+            {filter === 'chunkPacks' && 'No chunk packs yet. Create your first chunk pack to get started!'}
+            {filter === 'all' && 'No content yet. Create a dialogue, audio course, narrow listening pack, or chunk pack to get started!'}
           </p>
         </div>
       ) : (
@@ -478,6 +559,74 @@ export default function LibraryPage() {
                   </div>
                 </Link>
               );
+            } else if (item.type === 'chunkPack') {
+              const pack = item.data as ChunkPack;
+
+              return (
+                <Link
+                  key={pack.id}
+                  to={`/chunk-packs/${pack.id}/examples`}
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50"
+                >
+                  {/* Delete Button - appears on hover */}
+                  <button
+                    onClick={(e) => handleDeleteChunkPackClick(pack, e)}
+                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
+                    title="Delete chunk pack"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="space-y-3">
+                    {/* Title with Icon */}
+                    <div className="flex items-start gap-2">
+                      <BookOpen className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />
+                      <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors flex-1">
+                        {pack.title}
+                      </h3>
+                    </div>
+
+                    {/* Theme */}
+                    <p className="text-sm text-gray-600 capitalize">
+                      {pack.theme.replace(/_/g, ' ')}
+                    </p>
+
+                    {/* JLPT Level and Stats */}
+                    <div className="flex gap-2 text-sm flex-wrap">
+                      <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded font-medium">
+                        {pack.jlptLevel}
+                      </span>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
+                        {pack._count.examples} examples
+                      </span>
+                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium">
+                        {pack._count.stories} {pack._count.stories === 1 ? 'story' : 'stories'}
+                      </span>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
+                        {pack._count.exercises} exercises
+                      </span>
+                      {pack.status === 'error' && (
+                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
+                          error
+                        </span>
+                      )}
+                      {pack.status === 'generating' && (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                          Generating...
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
+                      <div className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {new Date(pack.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
             }
             return null;
           })}
@@ -516,6 +665,18 @@ export default function LibraryPage() {
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeletePack}
+        onCancel={handleCancelDelete}
+        isLoading={isDeleting}
+      />
+
+      {/* Delete Chunk Pack Confirmation Modal */}
+      <ConfirmModal
+        isOpen={chunkPackToDelete !== null}
+        title="Delete Chunk Pack"
+        message={`Are you sure you want to delete "${chunkPackToDelete?.title}"? This action cannot be undone and will delete all chunks, examples, stories, exercises, and audio files.`}
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleConfirmDeleteChunkPack}
         onCancel={handleCancelDelete}
         isLoading={isDeleting}
       />

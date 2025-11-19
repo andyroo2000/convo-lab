@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Headphones, Sparkles, Brain } from 'lucide-react';
+import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 import CourseGenerator from '../components/courses/CourseGenerator';
 
@@ -161,6 +161,32 @@ export default function StudioPage() {
                 <li>✓ Meaning-focused questions (not grammar rules)</li>
                 <li>✓ Audio-based comprehension</li>
                 <li>✓ Immediate feedback with explanations</li>
+              </ul>
+            </div>
+          </div>
+        </button>
+
+        {/* Lexical Chunk Packs */}
+        <button
+          onClick={() => navigate('/chunk-packs/setup')}
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-emerald-600"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+              <BookOpen className="w-8 h-8 text-emerald-600" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-emerald-600 transition-colors">
+                Lexical Chunk Packs
+              </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Learn high-value Japanese chunks through examples, stories, and exercises.
+              </p>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ 5-8 chunks per pack</li>
+                <li>✓ Real-world usage examples with audio</li>
+                <li>✓ Story that reuses all chunks</li>
+                <li>✓ Practice exercises</li>
               </ul>
             </div>
           </div>

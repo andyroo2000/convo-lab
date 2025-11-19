@@ -142,9 +142,16 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Generate 1.0x speed audio for a pack (on-demand)
-router.post('/:id/generate-normal-speed', async (req: AuthRequest, res, next) => {
+// Generate audio at specific speed for a pack (on-demand)
+router.post('/:id/generate-speed', async (req: AuthRequest, res, next) => {
   try {
+    const { speed } = req.body;
+
+    // Validate speed
+    if (!speed || (speed !== 0.7 && speed !== 0.85 && speed !== 1.0)) {
+      throw new AppError('Invalid speed. Must be 0.7, 0.85, or 1.0', 400);
+    }
+
     const pack = await prisma.narrowListeningPack.findFirst({
       where: {
         id: req.params.id,
@@ -165,25 +172,29 @@ router.post('/:id/generate-normal-speed', async (req: AuthRequest, res, next) =>
       throw new AppError('Narrow listening pack not found', 404);
     }
 
-    // Check if 1.0x audio already exists for all versions
-    const allVersionsHaveNormalSpeed = pack.versions.every(v => v.audioUrl_1_0);
+    // Check if audio already exists for all versions at this speed
+    const audioUrlField = speed === 0.7 ? 'audioUrl_0_7' : speed === 0.85 ? 'audioUrl_0_85' : 'audioUrl_1_0';
+    const allVersionsHaveSpeed = pack.versions.every(v => v[audioUrlField]);
+    const speedLabel = speed === 0.7 ? '0.7x' : speed === 0.85 ? '0.85x' : '1.0x';
 
-    if (allVersionsHaveNormalSpeed) {
+    if (allVersionsHaveSpeed) {
       return res.json({
-        message: 'Normal speed audio already exists',
+        message: `${speedLabel} speed audio already exists`,
         pack,
       });
     }
 
-    // Queue a job to generate 1.0x audio
-    const job = await narrowListeningQueue.add('generate-normal-speed', {
+    // Queue a job to generate audio at specified speed
+    const job = await narrowListeningQueue.add('generate-speed', {
       packId: pack.id,
+      speed,
     });
 
     res.json({
-      message: 'Normal speed audio generation started',
+      message: `${speedLabel} speed audio generation started`,
       jobId: job.id,
       packId: pack.id,
+      speed: speedLabel,
     });
   } catch (error) {
     next(error);

@@ -12,8 +12,10 @@ interface StorySegment {
   japaneseText: string;
   englishTranslation: string;
   reading: string | null;
-  startTime_0_7: number;
-  endTime_0_7: number;
+  startTime_0_7: number | null;
+  endTime_0_7: number | null;
+  startTime_0_85: number | null;
+  endTime_0_85: number | null;
   startTime_1_0: number | null;
   endTime_1_0: number | null;
 }
@@ -25,6 +27,7 @@ interface StoryVersion {
   voiceId: string;
   order: number;
   audioUrl_0_7: string | null;
+  audioUrl_0_85: string | null;
   audioUrl_1_0: string | null;
   segments: StorySegment[];
 }
@@ -39,7 +42,7 @@ interface NarrowListeningPack {
   versions: StoryVersion[];
 }
 
-type Speed = '0.7x' | '1.0x';
+type Speed = '0.7x' | '0.85x' | '1.0x';
 
 export default function NarrowListeningPlaybackPage() {
   const { id } = useParams<{ id: string }>();
@@ -50,16 +53,21 @@ export default function NarrowListeningPlaybackPage() {
 
   const [pack, setPack] = useState<NarrowListeningPack | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
-  const [selectedSpeed, setSelectedSpeed] = useState<Speed>('0.7x');
+  const [selectedSpeed, setSelectedSpeed] = useState<Speed>('0.85x');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [generatingNormalSpeed, setGeneratingNormalSpeed] = useState(false);
+  const [generatingSpeed, setGeneratingSpeed] = useState(false);
+  const [generationJobId, setGenerationJobId] = useState<string | null>(null);
+  const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('all');
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate selected version and audio URL
   const selectedVersion = pack?.versions.find(v => v.id === selectedVersionId);
   const currentAudioUrl = selectedVersion
-    ? selectedSpeed === '0.7x' ? selectedVersion.audioUrl_0_7 : selectedVersion.audioUrl_1_0
+    ? selectedSpeed === '0.7x' ? selectedVersion.audioUrl_0_7
+      : selectedSpeed === '0.85x' ? selectedVersion.audioUrl_0_85
+      : selectedVersion.audioUrl_1_0
     : null;
 
   useEffect(() => {
@@ -136,8 +144,12 @@ export default function NarrowListeningPlaybackPage() {
     if (!selectedVersion || !isPlaying) return;
 
     const currentSegment = selectedVersion.segments.find(segment => {
-      const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7 : segment.startTime_1_0;
-      const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7 : segment.endTime_1_0;
+      const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7
+        : selectedSpeed === '0.85x' ? segment.startTime_0_85
+        : segment.startTime_1_0;
+      const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7
+        : selectedSpeed === '0.85x' ? segment.endTime_0_85
+        : segment.endTime_1_0;
 
       return startTime !== null &&
         endTime !== null &&
@@ -182,43 +194,101 @@ export default function NarrowListeningPlaybackPage() {
   const handleSpeedChange = async (newSpeed: Speed) => {
     setSelectedSpeed(newSpeed);
 
-    // If switching to 1.0x and audio doesn't exist, trigger generation
-    if (newSpeed === '1.0x' && pack) {
-      const allVersionsHave1x = pack.versions.every(v => v.audioUrl_1_0);
-      if (!allVersionsHave1x) {
-        setGeneratingNormalSpeed(true);
+    // Check if we need to generate audio for any speed that's missing
+    if (pack) {
+      const audioUrlField = newSpeed === '0.7x' ? 'audioUrl_0_7'
+        : newSpeed === '0.85x' ? 'audioUrl_0_85'
+        : 'audioUrl_1_0';
+      const speedValue = newSpeed === '0.7x' ? 0.7
+        : newSpeed === '0.85x' ? 0.85
+        : 1.0;
+      const allVersionsHaveSpeed = pack.versions.every(v => v[audioUrlField]);
+
+      if (!allVersionsHaveSpeed) {
+        setGeneratingSpeed(true);
+        setGenerationProgress(0);
         try {
-          const response = await fetch(`${API_URL}/api/narrow-listening/${pack.id}/generate-normal-speed`, {
+          const response = await fetch(`${API_URL}/api/narrow-listening/${pack.id}/generate-speed`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
+            body: JSON.stringify({ speed: speedValue }),
           });
 
           if (!response.ok) {
-            throw new Error('Failed to start normal speed generation');
+            throw new Error(`Failed to start ${newSpeed} speed generation`);
           }
 
-          // Poll for completion (simplified - just reload pack periodically)
-          const checkInterval = setInterval(async () => {
-            await loadPack();
-            // Check if all versions have 1.0x audio now
-            const updatedPack = await fetch(`${API_URL}/api/narrow-listening/${pack.id}`, {
-              credentials: 'include',
-            }).then(r => r.json());
+          const data = await response.json();
+          const jobId = data.jobId;
+          setGenerationJobId(jobId);
 
-            const allReady = updatedPack.versions.every((v: StoryVersion) => v.audioUrl_1_0);
-            if (allReady) {
-              clearInterval(checkInterval);
-              setGeneratingNormalSpeed(false);
-              setPack(updatedPack);
+          // Clear any existing interval
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+          }
+
+          // Poll job status instead of reloading pack
+          pollIntervalRef.current = setInterval(async () => {
+            try {
+              const jobResponse = await fetch(`${API_URL}/api/narrow-listening/job/${jobId}`, {
+                credentials: 'include',
+              });
+
+              if (!jobResponse.ok) {
+                throw new Error('Failed to fetch job status');
+              }
+
+              const jobData = await jobResponse.json();
+
+              // Update progress
+              if (typeof jobData.progress === 'number') {
+                setGenerationProgress(jobData.progress);
+              }
+
+              // Check if job is complete
+              if (jobData.state === 'completed') {
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
+                setGeneratingSpeed(false);
+                setGenerationJobId(null);
+                setGenerationProgress(100);
+                // Reload pack once at the end
+                await loadPack();
+              } else if (jobData.state === 'failed') {
+                if (pollIntervalRef.current) {
+                  clearInterval(pollIntervalRef.current);
+                  pollIntervalRef.current = null;
+                }
+                setGeneratingSpeed(false);
+                setGenerationJobId(null);
+                setGenerationProgress(0);
+                console.error('Job failed:', jobData.result);
+              }
+            } catch (err) {
+              console.error('Failed to check job status:', err);
             }
-          }, 3000);
+          }, 1000); // Poll every second for smooth progress updates
         } catch (err) {
-          console.error('Failed to generate normal speed audio:', err);
-          setGeneratingNormalSpeed(false);
+          console.error(`Failed to generate ${newSpeed} speed audio:`, err);
+          setGeneratingSpeed(false);
+          setGenerationJobId(null);
+          setGenerationProgress(0);
         }
       }
     }
   };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleVersionSelect = (versionId: string) => {
     setSelectedVersionId(versionId);
@@ -309,24 +379,37 @@ export default function NarrowListeningPlaybackPage() {
             <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => handleSpeedChange('0.7x')}
-                className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                disabled={generatingSpeed}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
                   selectedSpeed === '0.7x'
                     ? 'bg-white text-purple-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
+                    : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
                 }`}
               >
+                {generatingSpeed && selectedSpeed === '0.7x' && <Loader className="w-3 h-3 animate-spin" />}
                 Slow (0.7x)
               </button>
               <button
+                onClick={() => handleSpeedChange('0.85x')}
+                disabled={generatingSpeed}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                  selectedSpeed === '0.85x'
+                    ? 'bg-white text-purple-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
+                }`}
+              >
+                Medium (0.85x)
+              </button>
+              <button
                 onClick={() => handleSpeedChange('1.0x')}
-                disabled={generatingNormalSpeed}
-                className={`px-4 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+                disabled={generatingSpeed}
+                className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
                   selectedSpeed === '1.0x'
                     ? 'bg-white text-purple-600 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
                 }`}
               >
-                {generatingNormalSpeed && <Loader className="w-3 h-3 animate-spin" />}
+                {generatingSpeed && selectedSpeed === '1.0x' && <Loader className="w-3 h-3 animate-spin" />}
                 Normal (1.0x)
               </button>
             </div>
@@ -334,8 +417,38 @@ export default function NarrowListeningPlaybackPage() {
         </div>
       </div>
 
+      {/* Generation Progress Banner */}
+      {generatingSpeed && (
+        <div className="sticky top-20 z-10 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 shadow-md">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="flex items-center gap-4">
+              <Loader className="w-5 h-5 text-purple-600 animate-spin flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-purple-900">
+                    Generating {selectedSpeed} speed audio...
+                  </p>
+                  <span className="text-sm font-semibold text-purple-700">
+                    {generationProgress}%
+                  </span>
+                </div>
+                <div className="w-full bg-purple-200 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    style={{ width: `${generationProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-purple-700 mt-1">
+                  Please wait while we generate audio for all variations. This may take a minute or two.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Audio Player - Sticky */}
-      {currentAudioUrl && (
+      {currentAudioUrl && !generatingSpeed && (
         <div className="sticky top-20 z-10 bg-pale-sky border-b border-gray-200 shadow-md">
           <div className="max-w-5xl mx-auto px-6 py-3">
             <AudioPlayer
@@ -389,8 +502,12 @@ export default function NarrowListeningPlaybackPage() {
                   <h4 className="text-sm font-semibold text-gray-900">Story Text</h4>
                   {selectedVersion.segments.map((segment, idx) => {
                     // Calculate if this segment is currently speaking
-                    const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7 : segment.startTime_1_0;
-                    const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7 : segment.endTime_1_0;
+                    const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7
+                      : selectedSpeed === '0.85x' ? segment.startTime_0_85
+                      : segment.startTime_1_0;
+                    const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7
+                      : selectedSpeed === '0.85x' ? segment.endTime_0_85
+                      : segment.endTime_1_0;
 
                     const isCurrentlySpeaking = startTime !== null &&
                       endTime !== null &&

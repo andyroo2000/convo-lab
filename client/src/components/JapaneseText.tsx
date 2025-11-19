@@ -12,18 +12,13 @@ interface JapaneseTextProps {
  * Output: "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
  */
 function renderRuby(text: string): string {
-  // Pattern matches: Kanji[Kana] with optional hiragana after kanji
-  const rubyPattern = /([\u4E00-\u9FAF]+)(?:[\u3040-\u309F\u30A0-\u30FF]*)\[([^\]]+)\]/g;
+  // Pattern matches Japanese characters (hiragana, katakana, kanji, wave dash, prolonged sound mark)
+  // followed by bracket notation containing the reading
+  // Example: "買[か]い物[もの]" -> "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
+  const rubyPattern = /([\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF〜ー]+)\[([^\]]+)\]/g;
 
-  return text.replace(rubyPattern, (match, kanji, reading) => {
-    // Extract just the kanji part for the ruby base
-    const kanjiMatch = match.match(/^([\u4E00-\u9FAF]+)/);
-    const hiraganaAfter = match.match(/[\u3040-\u309F\u30A0-\u30FF]+(?=\[)/);
-
-    const kanjiOnly = kanjiMatch ? kanjiMatch[1] : kanji;
-    const hiraganaSuffix = hiraganaAfter ? hiraganaAfter[0] : '';
-
-    return `<ruby>${kanjiOnly}<rt>${reading}</rt></ruby>${hiraganaSuffix}`;
+  return text.replace(rubyPattern, (match, base, reading) => {
+    return `<ruby>${base}<rt>${reading}</rt></ruby>`;
   });
 }
 

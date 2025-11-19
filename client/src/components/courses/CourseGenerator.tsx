@@ -90,9 +90,9 @@ export default function CourseGenerator() {
 
       setStep('complete');
 
-      // Navigate to courses page after a short delay
+      // Navigate to library page after a short delay
       setTimeout(() => {
-        navigate('/courses');
+        navigate('/library');
       }, 2000);
 
     } catch (err) {

@@ -21,6 +21,7 @@ model User {
   episodes             Episode[]
   courses              Course[]
   narrowListeningPacks NarrowListeningPack[]
+  chunkPacks           ChunkPack[]
 
   @@index([email])
 }
@@ -225,6 +226,7 @@ model StoryVersion {
   voiceId        String   // Edge TTS voice ID for this version
   order          Int
   audioUrl_0_7   String?  // Slow audio (0.7x speed)
+  audioUrl_0_85  String?  // Medium audio (0.85x speed)
   audioUrl_1_0   String?  // Normal audio (1.0x speed)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -244,9 +246,12 @@ model StorySegment {
   englishTranslation  String   @db.Text
   reading             String?  @db.Text // Furigana/kana reading
   audioUrl_0_7        String?  // Slow segment audio
+  audioUrl_0_85       String?  // Medium segment audio
   audioUrl_1_0        String?  // Normal segment audio
   startTime_0_7       Int?     // milliseconds for 0.7x combined audio
   endTime_0_7         Int?     // milliseconds for 0.7x combined audio
+  startTime_0_85      Int?     // milliseconds for 0.85x combined audio
+  endTime_0_85        Int?     // milliseconds for 0.85x combined audio
   startTime_1_0       Int?     // milliseconds for 1.0x combined audio
   endTime_1_0         Int?     // milliseconds for 1.0x combined audio
   createdAt           DateTime @default(now())
@@ -255,5 +260,117 @@ model StorySegment {
   version             StoryVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
 
   @@index([versionId])
+  @@index([order])
+}
+
+// Lexical Chunk Pack Models
+
+model ChunkPack {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  theme     String   // e.g., "daily_routine", "travel", "business"
+  jlptLevel String   // N5, N4, N3
+  status    String   @default("draft") // draft, generating, ready, error
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chunks    Chunk[]
+  examples  ChunkExample[]
+  stories   ChunkStory[]
+  exercises ChunkExercise[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([jlptLevel])
+}
+
+model Chunk {
+  id            String  @id @default(uuid())
+  packId        String
+  order         Int
+  form          String  // The chunk in Japanese (e.g., 「〜ておきます」)
+  translation   String  // Natural English gloss
+  literalGloss  String? // Optional literal meaning
+  register      String  // "polite", "casual", "neutral"
+  function      String  // Short usage description
+  notes         String  @db.Text // 1-2 notes on nuance
+
+  pack          ChunkPack      @relation(fields: [packId], references: [id], onDelete: Cascade)
+  examples      ChunkExample[]
+
+  @@index([packId])
+  @@index([order])
+}
+
+model ChunkExample {
+  id           String  @id @default(uuid())
+  packId       String
+  chunkId      String
+  order        Int
+  sentence     String  @db.Text // Japanese sentence using the chunk
+  english      String  @db.Text // Translation
+  contextNote  String? // Optional context (e.g., "friend to friend")
+  audioUrl     String? // Deprecated: use audioUrl_0_85 instead
+  audioUrl_0_7 String? // Audio at 0.7x speed
+  audioUrl_0_85 String? // Audio at 0.85x speed
+  audioUrl_1_0 String? // Audio at 1.0x speed
+
+  pack        ChunkPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  chunk       Chunk     @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
+  @@index([chunkId])
+  @@index([order])
+}
+
+model ChunkStory {
+  id        String   @id @default(uuid())
+  packId    String
+  title     String
+  type      String   // "narrative" or "dialogue"
+  storyText String   @db.Text // Full Japanese text
+  english   String   @db.Text // Full translation
+  audioUrl  String?  // Full story audio
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pack      ChunkPack           @relation(fields: [packId], references: [id], onDelete: Cascade)
+  segments  ChunkStorySegment[]
+
+  @@index([packId])
+}
+
+model ChunkStorySegment {
+  id                 String  @id @default(uuid())
+  storyId            String
+  order              Int
+  japaneseText       String  @db.Text
+  englishTranslation String  @db.Text
+  audioUrl           String?
+  startTime          Int?    // milliseconds
+  endTime            Int?    // milliseconds
+
+  story              ChunkStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  @@index([storyId])
+  @@index([order])
+}
+
+model ChunkExercise {
+  id            String   @id @default(uuid())
+  packId        String
+  order         Int
+  exerciseType  String   // "chunk_to_meaning" | "meaning_to_chunk" | "gap_fill_mc"
+  prompt        String   @db.Text // What user sees
+  options       Json     // Array of option strings (2-3 options)
+  correctOption String   // The correct answer
+  explanation   String   @db.Text // Usage-based explanation
+  audioUrl      String?  // For gap-fill exercises with audio
+
+  pack          ChunkPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+
+  @@index([packId])
   @@index([order])
 }
