@@ -2,6 +2,7 @@ import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Library, Mic } from 'lucide-react';
 import UserMenu from './UserMenu';
+import Logo from './Logo';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -23,8 +24,9 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
-              <Link to="/library" className="flex items-center px-4 text-navy font-bold text-xl">
+              <Link to="/library" className="flex items-center gap-2 px-4 text-navy font-bold text-xl">
                 ConvoLab
+                <Logo size="small" />
               </Link>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-4">
                 <Link
