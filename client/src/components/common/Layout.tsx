@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { LogOut, Library, Mic } from 'lucide-react';
+import { Library, Mic } from 'lucide-react';
+import UserMenu from './UserMenu';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -43,15 +44,8 @@ export default function Layout() {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">{user.name}</span>
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 hover:text-navy transition-colors"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Logout
-              </button>
+            <div className="flex items-center">
+              <UserMenu userName={user.name} onLogout={handleLogout} />
             </div>
           </div>
         </div>
