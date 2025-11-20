@@ -73,19 +73,6 @@ export default function NotFoundPage() {
             </button>
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-sm text-gray-500 mt-8">
-          If you think this is a bug, please{' '}
-          <a
-            href="https://github.com/anthropics/claude-code/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-indigo hover:text-purple-600 font-medium transition-colors"
-          >
-            report it on GitHub
-          </a>
-        </p>
       </div>
     </div>
   );
