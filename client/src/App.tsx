@@ -22,6 +22,7 @@ import ChunkPackStoryPage from './pages/ChunkPackStoryPage';
 import ChunkPackExercisesPage from './pages/ChunkPackExercisesPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminPage from './pages/AdminPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -60,6 +61,9 @@ function App() {
               <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
               <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
             </Route>
+
+            {/* 404 Catch-all Route */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </AudioPlayerProvider>
       </AuthProvider>
