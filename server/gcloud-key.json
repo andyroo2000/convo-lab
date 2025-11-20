@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "convolab-mvp",
+  "private_key_id": "73dbed33f16a3719f4322232d7f78b1639e9fe6f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC60sHaM565Nu4W\nj0EKyqoJIlFjw4gj4C7sBbDo6Uk08gZyf7ZOealG/7VSaJXkL/CSyAF58q076NHD\nYC/ZMz8JtT3ennT5HOBWYqE7sn09FMb5PQ5711Nze4WFhWYdt37eD0I1lJr6QTR4\ngYSxMr/gL/S3gVfT1GNEj9rn6gjxLm5WbqnExuu8hJ7ziHqfTQbJX6DaL21OuH+1\ncwInBvkXU8dC7+hDbdloxk6WZzimyXjJoASDyM6NCpVy8R8GEpVVdsVZTi9fQ6Qq\nqaJgmT87IEjABfPMeygkbThWJsV15GWh4BN5xaAJQzbjXnWj0SUKYho9oN7AbiSc\nzV0E97MfAgMBAAECggEALiOl55dPEGwOAflQNXOW6dmVYz+jrESOIhFHv0X6I/7P\n89AxvJDUayn05Iza0/e5AO8vWihCe2TFBW0IdCpxW5rs1EGrHujwSLVkH4O15XNv\nrpdTL+eefwtXDwJClX0/cmUvU19HpR2ccVR/amnftGTzmaxyfejauVCT3inRGosS\ngz6akf6r/Nn3nvbBzheLdJEWBgEEEgUu6xl1V94XmF4GmoARtfy2L1gVqRYEj7L2\ne7sNd5rgbBFJu8vcGZH7VbhdhbUK4YZg7/lDBbo7OC+EoogymP3AuDoM9QT0AY5H\nsCUcFMscZTKaNaVnNoQ4G/dEdZXrY9zuM0mPjkHJiQKBgQDcsDAYG7nYie0rTL0a\nxX+fHJBCLVmr+32A1+3YXP9Ybvl9PZyeQNc6U3y3tC3E5SnqKi4MsyIqM62+tyrC\nY6ceNRhcArRPlP+mDskTu5e+5g2wRgPxpPuZ/mf1hy+NLouQcofCH1YqNmM9l7LB\nO+edEJJtOoxy7fs5vwmvFBuHSQKBgQDYt2VMhjoY6DTsKtt2rTOsrmQboouvSyjz\nJAZUo6DH0frqVG3x1uVqyNt1SVaNbF0Fh3d0CUz4HWP9tlUbyZKSzWZGwxIKI1c5\n6fTt2FGjFzXGTfIECJI7Ou0E4qCPZYM/xDbaqK9jWFPlNFz2wAEGVv8wrgspMq4a\nLaJbNwJfJwKBgDQR4hceG5hq2qm3vnqdlMIO9D6ZAqpgeTk4OWcuchUEghs5uUVh\nmSaq4idZ/N6TD3OvphPbBDme3eS8xPr+lkS7VFcJUE/ioPsmS+06+s/Q6fPoYS/X\ntIGeFBtLXT3beJSJYVy9FhB5qqqyqzuKjdhyO4pIITFQ01DJsVg8z035AoGBANQC\nxpUQk3GeaXfJjZ4SX4VFriXi5Oh+jPcgfRj8YuRZJjFsm4qGAzZufVPGhWghZPdt\nyYy5NJVem12vrJ9cmYoIa1A6skE8xa6glL7Ca0sz/6Wax3Lut7A+O3YWB6GBW99c\nI5XShJKZ7KlEitXSjK4ZGdoTylNpgy2VC0pVDHrtAoGAJ/DtHANw3PEw5SeyMqdi\niu4rcZ9C7CJRN9uBDxoQK9ThGhBwVzqtvVjksgmQbchkQirXX7MD8f1NgBRfmoAA\nr0PCY4dQcZQvozk2M0gBYlcXvEEfcZmjt7sA2942nldS/mD3grLcjHlB1I88Cqwa\nB/cmK/ro9OqSSzlvibmPDmA=\n-----END PRIVATE KEY-----\n",
+  "client_email": "convo-lab@convolab-mvp.iam.gserviceaccount.com",
+  "client_id": "109542956760104803245",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/convo-lab%40convolab-mvp.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
