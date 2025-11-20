@@ -74,7 +74,7 @@ export default function DialogueGenerator() {
         setStep('input');
         alert('Dialogue generation failed. Please try again.');
       }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
 
     return () => clearInterval(pollInterval);
   }, [jobId, step, generatedEpisodeId, pollJobStatus, navigate]);
