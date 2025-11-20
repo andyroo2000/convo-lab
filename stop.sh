@@ -61,6 +61,17 @@ fi
 
 echo ""
 
+# Stop pinyin service
+if [ -f logs/pinyin.pid ]; then
+    PINYIN_PID=$(cat logs/pinyin.pid)
+    kill_pid $PINYIN_PID "Pinyin service"
+    rm -f logs/pinyin.pid
+else
+    echo -e "${BLUE}ℹ️  No pinyin service PID file found${NC}"
+fi
+
+echo ""
+
 # Clean up any remaining processes on the ports
 echo "🧹 Cleaning up any lingering processes..."
 echo ""
@@ -83,6 +94,7 @@ kill_port() {
 kill_port 3001  # Server port
 kill_port 5173  # Vite dev server (client)
 kill_port 3000  # Alternative client port
+kill_port 8001  # Pinyin service port
 
 echo ""
 echo "🐳 Stopping Docker services (PostgreSQL & Redis)..."
@@ -99,7 +111,7 @@ fi
 
 echo ""
 echo "================================"
-echo -e "${GREEN}✅ LanguageFlow Studio stopped${NC}"
+echo -e "${GREEN}✅ ConvoLab stopped${NC}"
 echo ""
 echo -e "${BLUE}💡 To start again, run: ./start.sh${NC}"
 echo ""

@@ -11,15 +11,18 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  password    String
-  name        String
-  displayName String?
-  avatarColor String?  @default("indigo")
-  role        String   @default("user") // "user", "moderator", "admin"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  email                  String   @unique
+  password               String
+  name                   String
+  displayName            String?
+  avatarColor            String?  @default("indigo")
+  role                   String   @default("user") // "user", "moderator", "admin"
+  preferredStudyLanguage String   @default("ja") // 'ja' or 'zh'
+  preferredNativeLanguage String  @default("en")
+  pinyinDisplayMode      String   @default("toneMarks") // 'toneMarks' or 'toneNumbers'
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   episodes             Episode[]
   courses              Course[]
@@ -146,10 +149,11 @@ model Course {
   description              String?  @db.Text
   status                   String   @default("draft") // draft, generating, ready, error
   nativeLanguage           String   // L1 (e.g., 'en')
-  targetLanguage           String   // L2 (e.g., 'ja')
+  targetLanguage           String   // L2 (e.g., 'ja', 'zh')
   maxLessonDurationMinutes Int      @default(30)
   l1VoiceId                String   // English narrator voice
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
+  hskLevel                 String?  // Target HSK level: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (null = no specific level)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)

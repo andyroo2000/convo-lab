@@ -84,10 +84,25 @@ export const TTS_VOICES = {
       { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Daichi - Steady and reliable', edgeName: 'DaichiNeural' },
     ],
   },
+  zh: {
+    languageCode: 'zh-CN',
+    voices: [
+      // Female voices (adult, for dialogue)
+      { id: 'zh-CN-XiaoxiaoNeural', gender: 'female', description: 'Xiaoxiao - Warm and friendly', edgeName: 'XiaoxiaoNeural' },
+      { id: 'zh-CN-XiaoyiNeural', gender: 'female', description: 'Xiaoyi - Clear and gentle', edgeName: 'XiaoyiNeural' },
+      { id: 'zh-CN-XiaoxuanNeural', gender: 'female', description: 'Xiaoxuan - Bright and lively', edgeName: 'XiaoxuanNeural' },
+
+      // Male voices (adult, for dialogue)
+      { id: 'zh-CN-YunxiNeural', gender: 'male', description: 'Yunxi - Natural and conversational', edgeName: 'YunxiNeural' },
+      { id: 'zh-CN-YunyangNeural', gender: 'male', description: 'Yunyang - Professional and clear', edgeName: 'YunyangNeural' },
+      { id: 'zh-CN-YunjianNeural', gender: 'male', description: 'Yunjian - Calm and steady', edgeName: 'YunjianNeural' },
+    ],
+  },
 } as const;
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
   en: 'en-US-Journey-D', // Male, highest quality, warm and natural (best for instruction)
   ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
+  zh: 'zh-CN-XiaoxiaoNeural', // Female, natural and friendly
 } as const;

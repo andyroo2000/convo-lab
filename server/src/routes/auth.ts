@@ -63,6 +63,9 @@ router.post('/signup', async (req, res, next) => {
           displayName: true,
           avatarColor: true,
           role: true,
+          preferredStudyLanguage: true,
+          preferredNativeLanguage: true,
+          pinyinDisplayMode: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -149,6 +152,9 @@ router.post('/login', async (req, res, next) => {
       displayName: updatedUser.displayName,
       avatarColor: updatedUser.avatarColor,
       role: updatedUser.role,
+      preferredStudyLanguage: updatedUser.preferredStudyLanguage,
+      preferredNativeLanguage: updatedUser.preferredNativeLanguage,
+      pinyinDisplayMode: updatedUser.pinyinDisplayMode,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     });
@@ -175,6 +181,9 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         displayName: true,
         avatarColor: true,
         role: true,
+        preferredStudyLanguage: true,
+        preferredNativeLanguage: true,
+        pinyinDisplayMode: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -193,7 +202,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const { displayName, avatarColor } = req.body;
+    const { displayName, avatarColor, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode } = req.body;
 
     // Validate avatarColor if provided
     const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
@@ -201,10 +210,28 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError('Invalid avatar color', 400);
     }
 
+    // Validate language codes if provided
+    const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'he', 'en'];
+    if (preferredStudyLanguage && !validLanguages.includes(preferredStudyLanguage)) {
+      throw new AppError('Invalid study language', 400);
+    }
+    if (preferredNativeLanguage && !validLanguages.includes(preferredNativeLanguage)) {
+      throw new AppError('Invalid native language', 400);
+    }
+
+    // Validate pinyin display mode if provided
+    const validPinyinModes = ['toneMarks', 'toneNumbers'];
+    if (pinyinDisplayMode && !validPinyinModes.includes(pinyinDisplayMode)) {
+      throw new AppError('Invalid pinyin display mode', 400);
+    }
+
     // Build update data object (only include provided fields)
     const updateData: any = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
+    if (preferredStudyLanguage !== undefined) updateData.preferredStudyLanguage = preferredStudyLanguage;
+    if (preferredNativeLanguage !== undefined) updateData.preferredNativeLanguage = preferredNativeLanguage;
+    if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;
 
     if (Object.keys(updateData).length === 0) {
       throw new AppError('No fields to update', 400);
@@ -219,6 +246,10 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
         name: true,
         displayName: true,
         avatarColor: true,
+        role: true,
+        preferredStudyLanguage: true,
+        preferredNativeLanguage: true,
+        pinyinDisplayMode: true,
         createdAt: true,
         updatedAt: true,
       },

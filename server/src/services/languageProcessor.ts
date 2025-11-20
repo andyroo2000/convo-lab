@@ -1,5 +1,6 @@
-// Furigana service endpoint
+// Language service endpoints
 const FURIGANA_SERVICE_URL = process.env.FURIGANA_SERVICE_URL || 'http://localhost:8000';
+const PINYIN_SERVICE_URL = process.env.PINYIN_SERVICE_URL || 'http://localhost:8001';
 
 export interface JapaneseMetadata {
   kanji: string;
@@ -9,7 +10,8 @@ export interface JapaneseMetadata {
 
 export interface ChineseMetadata {
   characters: string;
-  pinyin: string;
+  pinyinToneMarks: string;  // nǐ hǎo
+  pinyinToneNumbers: string; // ni3 hao3
 }
 
 export interface LanguageMetadata {
@@ -54,16 +56,39 @@ export async function processJapanese(text: string): Promise<JapaneseMetadata> {
 }
 
 /**
- * Process Chinese text to extract characters and pinyin
- * Note: This is a placeholder. For production, use a library like pinyin-pro
+ * Process Chinese text to extract characters and pinyin (both tone mark and tone number formats)
+ * Uses Python microservice for pinyin generation
  */
 export async function processChinese(text: string): Promise<ChineseMetadata> {
-  // TODO: Implement proper pinyin conversion
-  // For now, return placeholder
-  return {
-    characters: text,
-    pinyin: '', // Would use a pinyin library here
-  };
+  try {
+    const response = await fetch(`${PINYIN_SERVICE_URL}/pinyin`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pinyin service error: ${response.statusText}`);
+    }
+
+    const data = await response.json() as ChineseMetadata;
+
+    return {
+      characters: data.characters,
+      pinyinToneMarks: data.pinyinToneMarks,
+      pinyinToneNumbers: data.pinyinToneNumbers,
+    };
+  } catch (error) {
+    console.error('Chinese processing error:', error);
+    // Return fallback
+    return {
+      characters: text,
+      pinyinToneMarks: '',
+      pinyinToneNumbers: '',
+    };
+  }
 }
 
 /**

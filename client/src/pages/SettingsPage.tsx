@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Settings, Trash2, ArrowLeft, Lock } from 'lucide-react';
+import { User, Settings, Trash2, ArrowLeft, Lock, Languages } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
+import { LanguageCode } from '../types';
 
 const AVATAR_COLORS = [
   { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -21,6 +22,9 @@ export default function SettingsPage() {
 
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('indigo');
+  const [preferredStudyLanguage, setPreferredStudyLanguage] = useState<LanguageCode>('ja');
+  const [preferredNativeLanguage, setPreferredNativeLanguage] = useState<LanguageCode>('en');
+  const [pinyinDisplayMode, setPinyinDisplayMode] = useState<'toneMarks' | 'toneNumbers'>('toneMarks');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -40,6 +44,9 @@ export default function SettingsPage() {
     if (user) {
       setDisplayName(user.displayName || user.name);
       setSelectedColor(user.avatarColor || 'indigo');
+      setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
+      setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
+      setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
     }
   }, [user]);
 
@@ -47,7 +54,14 @@ export default function SettingsPage() {
     if (!user) return false;
     const currentDisplayName = user.displayName || user.name;
     const currentColor = user.avatarColor || 'indigo';
-    return displayName !== currentDisplayName || selectedColor !== currentColor;
+    const currentStudyLang = user.preferredStudyLanguage || 'ja';
+    const currentNativeLang = user.preferredNativeLanguage || 'en';
+    const currentPinyinMode = user.pinyinDisplayMode || 'toneMarks';
+    return displayName !== currentDisplayName ||
+           selectedColor !== currentColor ||
+           preferredStudyLanguage !== currentStudyLang ||
+           preferredNativeLanguage !== currentNativeLang ||
+           pinyinDisplayMode !== currentPinyinMode;
   };
 
   const handleSave = async () => {
@@ -64,6 +78,9 @@ export default function SettingsPage() {
       await updateUser({
         displayName: displayName.trim() || undefined,
         avatarColor: selectedColor,
+        preferredStudyLanguage,
+        preferredNativeLanguage,
+        pinyinDisplayMode,
       });
       setSuccess('Settings saved successfully!');
       setTimeout(() => setSuccess(null), 3000);
@@ -78,6 +95,9 @@ export default function SettingsPage() {
     if (user) {
       setDisplayName(user.displayName || user.name);
       setSelectedColor(user.avatarColor || 'indigo');
+      setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
+      setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
+      setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
       setError(null);
       setSuccess(null);
     }
@@ -240,6 +260,93 @@ export default function SettingsPage() {
             Cancel
           </button>
         </div>
+      </div>
+
+      {/* Language Preferences Card */}
+      <div className="card bg-white shadow-lg mb-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Languages className="w-5 h-5 text-gray-700" />
+          <h2 className="text-xl font-bold text-navy">Language Preferences</h2>
+        </div>
+
+        {/* Study Language */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Study Language
+          </label>
+          <select
+            value={preferredStudyLanguage}
+            onChange={(e) => setPreferredStudyLanguage(e.target.value as LanguageCode)}
+            className="input"
+          >
+            <option value="ja">Japanese (日本語)</option>
+            <option value="zh">Mandarin Chinese (中文)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Your primary target language for learning
+          </p>
+        </div>
+
+        {/* Native Language */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Native Language
+          </label>
+          <select
+            value={preferredNativeLanguage}
+            onChange={(e) => setPreferredNativeLanguage(e.target.value as LanguageCode)}
+            className="input"
+          >
+            <option value="en">English</option>
+            <option value="es">Spanish (Español)</option>
+            <option value="fr">French (Français)</option>
+            <option value="zh">Chinese (中文)</option>
+            <option value="ja">Japanese (日本語)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            Your first language, used for translations
+          </p>
+        </div>
+
+        {/* Pinyin Display Mode (only shown when study language is Chinese) */}
+        {preferredStudyLanguage === 'zh' && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Pinyin Display Format
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pinyinMode"
+                  value="toneMarks"
+                  checked={pinyinDisplayMode === 'toneMarks'}
+                  onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
+                  className="w-4 h-4 text-indigo-600"
+                />
+                <span className="text-sm text-gray-700">Tone marks (nǐ hǎo)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="pinyinMode"
+                  value="toneNumbers"
+                  checked={pinyinDisplayMode === 'toneNumbers'}
+                  onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
+                  className="w-4 h-4 text-indigo-600"
+                />
+                <span className="text-sm text-gray-700">Tone numbers (ni3 hao3)</span>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Choose how pinyin is displayed above Chinese characters
+            </p>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500 border-t pt-4">
+          These preferences will be used as defaults when creating new content
+        </p>
       </div>
 
       {/* Change Password Card */}

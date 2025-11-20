@@ -15,6 +15,9 @@ export interface User {
   displayName?: string;
   avatarColor?: string;
   role: 'user' | 'moderator' | 'admin';
+  preferredStudyLanguage?: LanguageCode;
+  preferredNativeLanguage?: LanguageCode;
+  pinyinDisplayMode?: 'toneMarks' | 'toneNumbers';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,7 +97,8 @@ export interface JapaneseMetadata {
 
 export interface ChineseMetadata {
   characters: string;
-  pinyin: string;
+  pinyinToneMarks: string;  // nǐ hǎo
+  pinyinToneNumbers: string; // ni3 hao3
 }
 
 export interface Image {
@@ -171,6 +175,7 @@ export interface Course {
   l1VoiceId: string;
   useDraftMode: boolean;
   jlptLevel?: string; // N5, N4, N3, N2, N1
+  hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender: 'male' | 'female';
   speaker2Gender: 'male' | 'female';
   createdAt: Date;
@@ -230,6 +235,7 @@ export interface CreateCourseRequest {
   l1VoiceId?: string;
   useDraftMode?: boolean;
   jlptLevel?: string; // N5, N4, N3, N2, N1
+  hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender?: 'male' | 'female';
   speaker2Gender?: 'male' | 'female';
   speaker1VoiceId?: string; // Specific voice ID for Speaker 1
