@@ -9,11 +9,12 @@ export default function CourseGenerator() {
   const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
-  const [nativeLanguage] = useState<LanguageCode>('en');
-  const [targetLanguage] = useState<LanguageCode>('ja');
+  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>('en');
+  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [speaker1VoiceId, setSpeaker1VoiceId] = useState('');
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -21,7 +22,15 @@ export default function CourseGenerator() {
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
 
-  // Initialize default voices
+  // Initialize from user preferences
+  useEffect(() => {
+    if (user) {
+      setTargetLanguage(user.preferredStudyLanguage || 'ja');
+      setNativeLanguage(user.preferredNativeLanguage || 'en');
+    }
+  }, [user]);
+
+  // Initialize default voices when languages change
   useEffect(() => {
     // Select default narrator voice for the native language
     const defaultVoice = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
@@ -62,7 +71,8 @@ export default function CourseGenerator() {
           targetLanguage,
           maxLessonDurationMinutes: maxDuration,
           l1VoiceId: selectedVoice,
-          jlptLevel,
+          jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
+          hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
           speaker1Gender: 'female',
           speaker2Gender: 'male',
           speaker1VoiceId,
@@ -165,14 +175,16 @@ export default function CourseGenerator() {
               <label className="block text-sm font-medium text-navy mb-2">
                 Target Language
               </label>
-              <input
-                type="text"
-                value="Japanese (日本語)"
-                disabled
-                className="input bg-gray-50 cursor-not-allowed"
-              />
+              <select
+                value={targetLanguage}
+                onChange={(e) => setTargetLanguage(e.target.value as LanguageCode)}
+                className="input"
+              >
+                <option value="ja">Japanese (日本語)</option>
+                <option value="zh">Mandarin Chinese (中文)</option>
+              </select>
               <p className="text-xs text-gray-500 mt-1">
-                More languages coming soon!
+                The language you want to learn
               </p>
             </div>
 
@@ -180,12 +192,20 @@ export default function CourseGenerator() {
               <label className="block text-sm font-medium text-navy mb-2">
                 Native Language
               </label>
-              <input
-                type="text"
-                value="English"
-                disabled
-                className="input bg-gray-50 cursor-not-allowed"
-              />
+              <select
+                value={nativeLanguage}
+                onChange={(e) => setNativeLanguage(e.target.value as LanguageCode)}
+                className="input"
+              >
+                <option value="en">English</option>
+                <option value="es">Spanish (Español)</option>
+                <option value="fr">French (Français)</option>
+                <option value="zh">Chinese (中文)</option>
+                <option value="ja">Japanese (日本語)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Your first language for narration
+              </p>
             </div>
           </div>
         </div>
@@ -346,25 +366,50 @@ export default function CourseGenerator() {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-navy mb-2">
-              Target JLPT Level
-            </label>
-            <select
-              value={jlptLevel}
-              onChange={(e) => setJlptLevel(e.target.value)}
-              className="input"
-            >
-              <option value="N5">N5 (Beginner)</option>
-              <option value="N4">N4 (Upper Beginner)</option>
-              <option value="N3">N3 (Intermediate)</option>
-              <option value="N2">N2 (Upper Intermediate)</option>
-              <option value="N1">N1 (Advanced)</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Vocabulary and grammar will be tailored to this level
-            </p>
-          </div>
+          {targetLanguage === 'ja' && (
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Target JLPT Level
+              </label>
+              <select
+                value={jlptLevel}
+                onChange={(e) => setJlptLevel(e.target.value)}
+                className="input"
+              >
+                <option value="N5">N5 (Beginner)</option>
+                <option value="N4">N4 (Upper Beginner)</option>
+                <option value="N3">N3 (Intermediate)</option>
+                <option value="N2">N2 (Upper Intermediate)</option>
+                <option value="N1">N1 (Advanced)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Vocabulary and grammar will be tailored to this level
+              </p>
+            </div>
+          )}
+
+          {targetLanguage === 'zh' && (
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Target HSK Level
+              </label>
+              <select
+                value={hskLevel}
+                onChange={(e) => setHskLevel(e.target.value)}
+                className="input"
+              >
+                <option value="HSK1">HSK 1 (Beginner)</option>
+                <option value="HSK2">HSK 2 (Upper Beginner)</option>
+                <option value="HSK3">HSK 3 (Intermediate)</option>
+                <option value="HSK4">HSK 4 (Upper Intermediate)</option>
+                <option value="HSK5">HSK 5 (Advanced)</option>
+                <option value="HSK6">HSK 6 (Mastery)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Vocabulary and grammar will be tailored to this level
+              </p>
+            </div>
+          )}
         </div>
       </div>
 

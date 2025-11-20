@@ -83,7 +83,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(userData);
   };
 
-  const updateUser = async (data: { displayName?: string; avatarColor?: string }) => {
+  const updateUser = async (data: {
+    displayName?: string;
+    avatarColor?: string;
+    preferredStudyLanguage?: string;
+    preferredNativeLanguage?: string;
+    pinyinDisplayMode?: string;
+  }) => {
     const response = await fetch(`${API_URL}/api/auth/me`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

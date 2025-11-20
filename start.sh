@@ -56,11 +56,13 @@ echo ""
 kill_port 3001  # Server port
 kill_port 5173  # Vite dev server (client)
 kill_port 3000  # Alternative client port
+kill_port 8001  # Pinyin service port
 
 # Kill any lingering tsx/vite processes
 kill_by_name "tsx watch"
 kill_by_name "vite"
 kill_by_name "node.*languageflow"
+kill_by_name "python3.*main.py"  # Pinyin service
 
 echo ""
 echo "🐳 Starting Docker services (PostgreSQL & Redis)..."
@@ -135,6 +137,28 @@ mkdir -p logs
 echo "🚀 Starting services..."
 echo ""
 
+# Start Pinyin service
+echo -e "${BLUE}🀄 Starting Pinyin service on port 8001...${NC}"
+if [ -d "pinyin-service" ] && command_exists python3; then
+    cd pinyin-service
+    python3 main.py > ../logs/pinyin.log 2>&1 &
+    PINYIN_PID=$!
+    cd ..
+    echo -e "${GREEN}✅ Pinyin service starting (PID: $PINYIN_PID)${NC}"
+    sleep 2
+
+    # Check if pinyin service is running
+    if lsof -ti:8001 >/dev/null 2>&1; then
+        echo -e "${GREEN}✅ Pinyin service is running on http://localhost:8001${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Pinyin service failed to start. Chinese language support may not work.${NC}"
+        echo -e "${YELLOW}   Check logs/pinyin.log for details${NC}"
+    fi
+else
+    echo -e "${YELLOW}⚠️  Pinyin service not found or Python 3 not installed. Skipping...${NC}"
+fi
+echo ""
+
 # Start server
 echo -e "${BLUE}🔧 Starting server on port 3001...${NC}"
 cd server
@@ -181,9 +205,12 @@ echo ""
 # Create PID file for easy cleanup later
 echo "$SERVER_PID" > logs/server.pid
 echo "$CLIENT_PID" > logs/client.pid
+if [ -n "$PINYIN_PID" ]; then
+    echo "$PINYIN_PID" > logs/pinyin.pid
+fi
 
 echo "================================"
-echo -e "${GREEN}✅ LanguageFlow Studio is ready!${NC}"
+echo -e "${GREEN}✅ ConvoLab is ready!${NC}"
 echo ""
 echo -e "${GREEN}🌐 Open your browser to:${NC}"
 echo -e "   ${GREEN}http://localhost:5173${NC}"
@@ -191,14 +218,24 @@ echo ""
 echo -e "${BLUE}📍 Additional URLs:${NC}"
 echo "   Server:  http://localhost:3001"
 echo "   API:     http://localhost:3001/api"
+if [ -n "$PINYIN_PID" ]; then
+    echo "   Pinyin:  http://localhost:8001"
+fi
 echo ""
 echo -e "${BLUE}📝 Logs:${NC}"
 echo "   Server:  logs/server.log"
 echo "   Client:  logs/client.log"
+if [ -n "$PINYIN_PID" ]; then
+    echo "   Pinyin:  logs/pinyin.log"
+fi
 echo ""
 echo -e "${BLUE}🛑 To stop:${NC}"
 echo "   Run: ./stop.sh"
-echo "   Or:  kill $SERVER_PID $CLIENT_PID"
+if [ -n "$PINYIN_PID" ]; then
+    echo "   Or:  kill $SERVER_PID $CLIENT_PID $PINYIN_PID"
+else
+    echo "   Or:  kill $SERVER_PID $CLIENT_PID"
+fi
 echo ""
 echo -e "${YELLOW}⌨️  Press Ctrl+C to view logs (services will keep running in background)${NC}"
 echo ""
