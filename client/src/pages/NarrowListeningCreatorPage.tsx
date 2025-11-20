@@ -80,7 +80,7 @@ export default function NarrowListeningCreatorPage() {
             clearInterval(pollInterval);
             console.log('Generation complete!', status.result);
             // Navigate to playback page
-            navigate(`/narrow-listening/${packId}`);
+            navigate(`/app/narrow-listening/${packId}`);
           } else if (status.state === 'failed') {
             clearInterval(pollInterval);
             throw new Error('Generation failed. Please try again.');
