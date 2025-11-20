@@ -7,9 +7,10 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  signup: (email: string, password: string, name: string) => Promise<void>;
+  signup: (email: string, password: string, name: string, inviteCode: string) => Promise<void>;
   updateUser: (data: { displayName?: string; avatarColor?: string }) => Promise<void>;
   deleteAccount: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -65,17 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const signup = async (email: string, password: string, name: string) => {
+  const signup = async (email: string, password: string, name: string, inviteCode: string) => {
     const response = await fetch(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, inviteCode }),
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || 'Signup failed');
+      throw new Error(error.error?.message || error.message || 'Signup failed');
     }
 
     const userData = await response.json();
@@ -113,8 +114,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
+  const changePassword = async (currentPassword: string, newPassword: string) => {
+    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || error.message || 'Password change failed');
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, signup, updateUser, deleteAccount }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, signup, updateUser, deleteAccount, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

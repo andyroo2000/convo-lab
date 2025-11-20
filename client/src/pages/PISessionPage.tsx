@@ -74,7 +74,7 @@ export default function PISessionPage() {
   useEffect(() => {
     // Redirect if no session data
     if (!session) {
-      navigate('/pi');
+      navigate('/app/pi');
     }
   }, [session, navigate]);
 
@@ -141,7 +141,7 @@ export default function PISessionPage() {
   };
 
   const handleRestart = () => {
-    navigate('/pi');
+    navigate('/app/pi');
   };
 
   // Session complete view
@@ -193,7 +193,7 @@ export default function PISessionPage() {
               New Session
             </button>
             <button
-              onClick={() => navigate('/studio')}
+              onClick={() => navigate('/app/studio')}
               className="flex-1 btn-primary"
             >
               Back to Studio

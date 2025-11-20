@@ -15,13 +15,15 @@ export default function Layout() {
   };
 
   if (!user) {
-    navigate('/login');
+    // Redirect to login with return URL
+    const returnUrl = encodeURIComponent(location.pathname);
+    navigate(`/login?returnUrl=${returnUrl}`);
     return null;
   }
 
-  // Determine active navigation
-  const isLibraryActive = location.pathname === '/library' || location.pathname.startsWith('/playback') || location.pathname.startsWith('/practice') || location.pathname.startsWith('/courses') || location.pathname.startsWith('/narrow-listening') || location.pathname.startsWith('/chunk-packs') || location.pathname.startsWith('/pi/session');
-  const isStudioActive = location.pathname.startsWith('/studio') || location.pathname.startsWith('/pi');
+  // Determine active navigation (updated for /app prefix)
+  const isLibraryActive = location.pathname === '/app/library' || location.pathname.startsWith('/app/playback') || location.pathname.startsWith('/app/practice') || location.pathname.startsWith('/app/courses') || location.pathname.startsWith('/app/narrow-listening') || location.pathname.startsWith('/app/chunk-packs') || location.pathname.startsWith('/app/pi/session');
+  const isStudioActive = location.pathname.startsWith('/app/studio') || location.pathname.startsWith('/app/pi');
 
   return (
     <div className="min-h-screen bg-soft-sand">
@@ -29,13 +31,13 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16">
             <div className="flex">
-              <Link to="/library" className="flex items-center gap-2 px-4 text-navy font-bold text-xl">
+              <Link to="/app/library" className="flex items-center gap-2 px-4 text-navy font-bold text-xl">
                 ConvoLab
                 <Logo size="small" />
               </Link>
               <div className="hidden sm:ml-6 sm:flex h-16 items-center">
                 <Link
-                  to="/library"
+                  to="/app/library"
                   className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
                     isLibraryActive
                       ? 'text-indigo'
@@ -49,7 +51,7 @@ export default function Layout() {
                   )}
                 </Link>
                 <Link
-                  to="/studio"
+                  to="/app/studio"
                   className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
                     isStudioActive
                       ? 'text-indigo'
@@ -69,6 +71,7 @@ export default function Layout() {
               <UserMenu
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}
+                role={user.role}
                 onLogout={handleLogout}
               />
             </div>

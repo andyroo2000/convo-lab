@@ -9,7 +9,7 @@ export default function DialogueCreatorPage() {
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
         <button
-          onClick={() => navigate('/studio')}
+          onClick={() => navigate('/app/studio')}
           className="flex items-center gap-2 text-navy hover:text-indigo transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

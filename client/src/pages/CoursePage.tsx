@@ -176,7 +176,7 @@ export default function CoursePage() {
       {/* Header */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate('/library')}
+          onClick={() => navigate('/app/library')}
           className="btn-outline p-2"
         >
           <ArrowLeft className="w-5 h-5" />

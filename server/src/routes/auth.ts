@@ -4,16 +4,34 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { isAdminEmail } from '../middleware/roleAuth.js';
 
 const router = Router();
 
 // Sign up
 router.post('/signup', async (req, res, next) => {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, inviteCode } = req.body;
 
     if (!email || !password || !name) {
       throw new AppError('Email, password, and name are required', 400);
+    }
+
+    if (!inviteCode) {
+      throw new AppError('Invite code required. ConvoLab is currently invite-only.', 400);
+    }
+
+    // Validate invite code
+    const invite = await prisma.inviteCode.findUnique({
+      where: { code: inviteCode },
+    });
+
+    if (!invite) {
+      throw new AppError('Invalid invite code.', 400);
+    }
+
+    if (invite.usedBy) {
+      throw new AppError('This invite code has already been used.', 400);
     }
 
     // Check if user exists
@@ -25,22 +43,41 @@ router.post('/signup', async (req, res, next) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        displayName: true,
-        avatarColor: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+    // Check if user should be admin
+    const role = isAdminEmail(email) ? 'admin' : 'user';
+
+    // Create user and mark invite code as used in a transaction
+    const user = await prisma.$transaction(async (tx) => {
+      // Create user
+      const newUser = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          role,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          displayName: true,
+          avatarColor: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Mark invite code as used
+      await tx.inviteCode.update({
+        where: { code: inviteCode },
+        data: {
+          usedBy: newUser.id,
+          usedAt: new Date(),
+        },
+      });
+
+      return newUser;
     });
 
     // Create JWT
@@ -83,8 +120,17 @@ router.post('/login', async (req, res, next) => {
       throw new AppError('Invalid credentials', 401);
     }
 
+    // Check if user should be promoted to admin
+    let updatedUser = user;
+    if (isAdminEmail(email) && user.role !== 'admin') {
+      updatedUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { role: 'admin' },
+      });
+    }
+
     // Create JWT
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+    const token = jwt.sign({ userId: updatedUser.id }, process.env.JWT_SECRET!, {
       expiresIn: '7d',
     });
 
@@ -97,13 +143,14 @@ router.post('/login', async (req, res, next) => {
     });
 
     res.json({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      displayName: user.displayName,
-      avatarColor: user.avatarColor,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      id: updatedUser.id,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      displayName: updatedUser.displayName,
+      avatarColor: updatedUser.avatarColor,
+      role: updatedUser.role,
+      createdAt: updatedUser.createdAt,
+      updatedAt: updatedUser.updatedAt,
     });
   } catch (error) {
     next(error);
@@ -127,6 +174,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         name: true,
         displayName: true,
         avatarColor: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -177,6 +225,49 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     });
 
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Change password
+router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      throw new AppError('Current password and new password are required', 400);
+    }
+
+    if (newPassword.length < 8) {
+      throw new AppError('New password must be at least 8 characters', 400);
+    }
+
+    // Get user with password
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Verify current password
+    const validPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!validPassword) {
+      throw new AppError('Current password is incorrect', 401);
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { password: hashedPassword },
+    });
+
+    res.json({ message: 'Password changed successfully' });
   } catch (error) {
     next(error);
   }

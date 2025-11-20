@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Settings, Trash2, ArrowLeft } from 'lucide-react';
+import { User, Settings, Trash2, ArrowLeft, Lock } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 
 const AVATAR_COLORS = [
@@ -16,7 +16,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function SettingsPage() {
-  const { user, updateUser, deleteAccount } = useAuth();
+  const { user, updateUser, deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
 
   const [displayName, setDisplayName] = useState('');
@@ -26,6 +26,14 @@ export default function SettingsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
   // Initialize form with user data
   useEffect(() => {
@@ -87,6 +95,42 @@ export default function SettingsPage() {
     }
   };
 
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      await changePassword(currentPassword, newPassword);
+      setPasswordSuccess('Password changed successfully!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(null), 3000);
+    } catch (err: any) {
+      setPasswordError(err.message || 'Failed to change password');
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -96,7 +140,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate('/studio')}
+          onClick={() => navigate('/app/studio')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -194,6 +238,82 @@ export default function SettingsPage() {
             className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Cancel
+          </button>
+        </div>
+      </div>
+
+      {/* Change Password Card */}
+      <div className="card bg-white shadow-lg mb-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Lock className="w-5 h-5 text-gray-700" />
+          <h2 className="text-xl font-bold text-navy">Change Password</h2>
+        </div>
+
+        {/* Password Success/Error Messages */}
+        {passwordSuccess && (
+          <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+            <p className="text-sm text-green-700">{passwordSuccess}</p>
+          </div>
+        )}
+        {passwordError && (
+          <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-sm text-red-700">{passwordError}</p>
+          </div>
+        )}
+
+        {/* Current Password */}
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Current Password
+          </label>
+          <input
+            type="password"
+            className="input"
+            placeholder="Enter your current password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoComplete="current-password"
+          />
+        </div>
+
+        {/* New Password */}
+        <div className="mb-4">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            New Password
+          </label>
+          <input
+            type="password"
+            className="input"
+            placeholder="Enter your new password (min 8 characters)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {/* Confirm New Password */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Confirm New Password
+          </label>
+          <input
+            type="password"
+            className="input"
+            placeholder="Confirm your new password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            autoComplete="new-password"
+          />
+        </div>
+
+        {/* Change Password Button */}
+        <div className="pt-4 border-t">
+          <button
+            onClick={handleChangePassword}
+            disabled={isChangingPassword}
+            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isChangingPassword ? 'Changing Password...' : 'Change Password'}
           </button>
         </div>
       </div>

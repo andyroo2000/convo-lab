@@ -137,7 +137,7 @@ export default function ChunkPackSetupPage() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <button
-          onClick={() => navigate('/studio')}
+          onClick={() => navigate('/app/studio')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />

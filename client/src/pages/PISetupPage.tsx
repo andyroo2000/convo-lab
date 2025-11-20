@@ -108,7 +108,7 @@ export default function PISetupPage() {
       }
 
       // Navigate to session page with the session data
-      navigate('/pi/session', { state: { session } });
+      navigate('/app/pi/session', { state: { session } });
     } catch (err: any) {
       console.error('Error generating PI session:', err);
       setError(err.message || 'Failed to generate session. Please try again.');
@@ -123,7 +123,7 @@ export default function PISetupPage() {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <button
-          onClick={() => navigate('/studio')}
+          onClick={() => navigate('/app/studio')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />

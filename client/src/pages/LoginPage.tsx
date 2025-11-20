@@ -1,18 +1,21 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
+import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const { login, signup } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +26,12 @@ export default function LoginPage() {
       if (isLogin) {
         await login(email, password);
       } else {
-        await signup(email, password, name);
+        await signup(email, password, name, inviteCode);
       }
-      navigate('/library');
+
+      // Redirect to returnUrl if present, otherwise go to /app/library
+      const returnUrl = searchParams.get('returnUrl') || '/app/library';
+      navigate(returnUrl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -36,6 +42,16 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-soft-sand flex items-center justify-center px-4">
       <div className="max-w-md w-full">
+        <div className="mb-6">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 text-gray-600 hover:text-navy transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+        </div>
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <Logo size="large" />
@@ -70,19 +86,39 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-navy mb-1">
-                  Name
-                </label>
-                <input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input"
-                  required={!isLogin}
-                />
-              </div>
+              <>
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-navy mb-1">
+                    Name
+                  </label>
+                  <input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input"
+                    required={!isLogin}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="inviteCode" className="block text-sm font-medium text-navy mb-1">
+                    Invite Code
+                  </label>
+                  <input
+                    id="inviteCode"
+                    type="text"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    className="input"
+                    placeholder="Enter your invite code"
+                    required={!isLogin}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    ConvoLab is currently invite-only
+                  </p>
+                </div>
+              </>
             )}
 
             <div>

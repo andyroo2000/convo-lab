@@ -15,6 +15,7 @@ import courseRoutes from './routes/courses.js';
 import narrowListeningRoutes from './routes/narrowListening.js';
 import piRoutes from './routes/pi.js';
 import chunkPackRoutes from './routes/chunkPacks.js';
+import adminRoutes from './routes/admin.js';
 import { audioWorker } from './jobs/audioQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
@@ -61,6 +62,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/narrow-listening', narrowListeningRoutes);
 app.use('/api/pi', piRoutes);
 app.use('/api/chunk-packs', chunkPackRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve client static files in production
 if (process.env.NODE_ENV === 'production') {

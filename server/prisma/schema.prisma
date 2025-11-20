@@ -17,6 +17,7 @@ model User {
   name        String
   displayName String?
   avatarColor String?  @default("indigo")
+  role        String   @default("user") // "user", "moderator", "admin"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -24,8 +25,22 @@ model User {
   courses              Course[]
   narrowListeningPacks NarrowListeningPack[]
   chunkPacks           ChunkPack[]
+  inviteCode           InviteCode?
 
   @@index([email])
+  @@index([role])
+}
+
+model InviteCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  usedBy    String?   @unique // User ID who used it
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User? @relation(fields: [usedBy], references: [id])
+
+  @@index([code])
 }
 
 model Episode {

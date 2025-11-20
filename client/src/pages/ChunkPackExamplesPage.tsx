@@ -195,7 +195,7 @@ export default function ChunkPackExamplesPage() {
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-3">
             <button
-              onClick={() => navigate('/library')}
+              onClick={() => navigate('/app/library')}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
               <ArrowLeft className="w-4 h-4" />

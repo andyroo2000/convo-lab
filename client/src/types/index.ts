@@ -14,6 +14,7 @@ export interface User {
   name: string;
   displayName?: string;
   avatarColor?: string;
+  role: 'user' | 'moderator' | 'admin';
   createdAt: Date;
   updatedAt: Date;
 }
