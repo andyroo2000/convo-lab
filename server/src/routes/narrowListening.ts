@@ -138,6 +138,8 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
       state,
       progress,
       result: returnvalue,
+      failedReason: job.failedReason,
+      stacktrace: job.stacktrace,
     });
   } catch (error) {
     next(error);

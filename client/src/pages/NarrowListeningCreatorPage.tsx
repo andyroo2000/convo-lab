@@ -83,7 +83,9 @@ export default function NarrowListeningCreatorPage() {
             navigate(`/app/narrow-listening/${packId}`);
           } else if (status.state === 'failed') {
             clearInterval(pollInterval);
-            throw new Error('Generation failed. Please try again.');
+            const errorMsg = status.failedReason || 'Generation failed. Please try again.';
+            console.error('Job failed:', errorMsg, status.stacktrace);
+            throw new Error(errorMsg);
           }
         } catch (err) {
           clearInterval(pollInterval);
