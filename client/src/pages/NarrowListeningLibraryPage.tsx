@@ -127,7 +127,7 @@ export default function NarrowListeningLibraryPage() {
               </div>
             </div>
             <button
-              onClick={() => navigate('/narrow-listening/create')}
+              onClick={() => navigate('/app/narrow-listening/create')}
               className="btn-primary flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -165,7 +165,7 @@ export default function NarrowListeningLibraryPage() {
               Create your first narrow listening pack to start practicing with story variations
             </p>
             <button
-              onClick={() => navigate('/narrow-listening/create')}
+              onClick={() => navigate('/app/narrow-listening/create')}
               className="btn-primary inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />

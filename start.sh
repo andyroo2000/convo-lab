@@ -16,6 +16,11 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
 # Function to kill processes on a port
 kill_port() {
     local port=$1
@@ -100,11 +105,6 @@ fi
 echo -e "${GREEN}✅ Project structure verified${NC}"
 echo ""
 
-# Function to check if command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
 # Check for required commands
 if ! command_exists node; then
     echo -e "${RED}❌ Error: Node.js is not installed${NC}"
@@ -185,8 +185,10 @@ echo "$CLIENT_PID" > logs/client.pid
 echo "================================"
 echo -e "${GREEN}✅ LanguageFlow Studio is ready!${NC}"
 echo ""
-echo -e "${BLUE}📍 URLs:${NC}"
-echo "   Client:  http://localhost:5173"
+echo -e "${GREEN}🌐 Open your browser to:${NC}"
+echo -e "   ${GREEN}http://localhost:5173${NC}"
+echo ""
+echo -e "${BLUE}📍 Additional URLs:${NC}"
 echo "   Server:  http://localhost:3001"
 echo "   API:     http://localhost:3001/api"
 echo ""

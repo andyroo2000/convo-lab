@@ -106,7 +106,7 @@ export default function NarrowListeningCreatorPage() {
       <div className="bg-white border-b">
         <div className="max-w-3xl mx-auto px-6 py-4">
           <button
-            onClick={() => navigate('/studio')}
+            onClick={() => navigate('/app/studio')}
             disabled={isGenerating}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50"
           >
@@ -238,7 +238,7 @@ export default function NarrowListeningCreatorPage() {
           {/* Actions */}
           <div className="flex gap-3 mt-8 pt-6 border-t">
             <button
-              onClick={() => navigate('/studio')}
+              onClick={() => navigate('/app/studio')}
               disabled={isGenerating}
               className="btn-outline flex-1"
             >

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
+import LandingPage from './pages/LandingPage';
 import StudioPage from './pages/StudioPage';
 import DialogueCreatorPage from './pages/DialogueCreatorPage';
 import CourseCreatorPage from './pages/CourseCreatorPage';
@@ -20,6 +21,7 @@ import ChunkPackExamplesPage from './pages/ChunkPackExamplesPage';
 import ChunkPackStoryPage from './pages/ChunkPackStoryPage';
 import ChunkPackExercisesPage from './pages/ChunkPackExercisesPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminPage from './pages/AdminPage';
 
 function App() {
   return (
@@ -27,33 +29,38 @@ function App() {
       <AuthProvider>
         <AudioPlayerProvider>
           <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={<Layout />}>
-            <Route index element={<Navigate to="/library" replace />} />
-            <Route path="library" element={<LibraryPage />} />
-            <Route path="settings" element={<SettingsPage />} />
 
-            {/* Studio - Content Creation Hub */}
-            <Route path="studio" element={<StudioPage />} />
-            <Route path="studio/:episodeId" element={<StudioPage />} />
-            <Route path="studio/create/dialogue" element={<DialogueCreatorPage />} />
-            <Route path="studio/create/audio-course" element={<CourseCreatorPage />} />
-            <Route path="studio/create/narrow-listening" element={<NarrowListeningCreatorPage />} />
-            <Route path="studio/create/processing-instruction" element={<PISetupPage />} />
-            <Route path="studio/create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
+            {/* App Routes (Protected) */}
+            <Route path="/app" element={<Layout />}>
+              <Route index element={<Navigate to="/app/library" replace />} />
+              <Route path="library" element={<LibraryPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="admin" element={<AdminPage />} />
 
-            {/* Playback & Practice */}
-            <Route path="playback/:episodeId" element={<PlaybackPage />} />
-            <Route path="practice/:episodeId" element={<PracticePage />} />
-            <Route path="courses/:courseId" element={<CoursePage />} />
-            <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
-            <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
-            <Route path="pi/session" element={<PISessionPage />} />
-            <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
-            <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-            <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
-          </Route>
-        </Routes>
+              {/* Studio - Content Creation Hub */}
+              <Route path="studio" element={<StudioPage />} />
+              <Route path="studio/:episodeId" element={<StudioPage />} />
+              <Route path="studio/create/dialogue" element={<DialogueCreatorPage />} />
+              <Route path="studio/create/audio-course" element={<CourseCreatorPage />} />
+              <Route path="studio/create/narrow-listening" element={<NarrowListeningCreatorPage />} />
+              <Route path="studio/create/processing-instruction" element={<PISetupPage />} />
+              <Route path="studio/create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
+
+              {/* Playback & Practice */}
+              <Route path="playback/:episodeId" element={<PlaybackPage />} />
+              <Route path="practice/:episodeId" element={<PracticePage />} />
+              <Route path="courses/:courseId" element={<CoursePage />} />
+              <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
+              <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
+              <Route path="pi/session" element={<PISessionPage />} />
+              <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
+              <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
+              <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
+            </Route>
+          </Routes>
         </AudioPlayerProvider>
       </AuthProvider>
     </BrowserRouter>

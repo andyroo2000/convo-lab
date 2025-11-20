@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { User, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
 
 interface UserMenuProps {
   userName: string;
   avatarColor?: string;
+  role: 'user' | 'moderator' | 'admin';
   onLogout: () => void;
 }
 
@@ -19,7 +20,7 @@ const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600' },
 };
 
-export default function UserMenu({ userName, avatarColor = 'indigo', onLogout }: UserMenuProps) {
+export default function UserMenu({ userName, avatarColor = 'indigo', role, onLogout }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -76,11 +77,25 @@ export default function UserMenu({ userName, avatarColor = 'indigo', onLogout }:
           style={{ top: '100%' }}
         >
           <div className="py-1">
+            {/* Admin (only for admins) */}
+            {role === 'admin' && (
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  navigate('/app/admin');
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
+              </button>
+            )}
+
             {/* Settings */}
             <button
               onClick={() => {
                 setIsOpen(false);
-                navigate('/settings');
+                navigate('/app/settings');
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >

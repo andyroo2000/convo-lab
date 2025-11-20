@@ -337,7 +337,7 @@ export default function NarrowListeningPlaybackPage() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <p className="text-red-700">{error || 'Pack not found'}</p>
           <button
-            onClick={() => navigate('/narrow-listening')}
+            onClick={() => navigate('/app/narrow-listening')}
             className="btn-outline mt-4"
           >
             Back to Library
@@ -353,7 +353,7 @@ export default function NarrowListeningPlaybackPage() {
       <div className="bg-white border-b">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <button
-            onClick={() => navigate('/narrow-listening')}
+            onClick={() => navigate('/app/narrow-listening')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />

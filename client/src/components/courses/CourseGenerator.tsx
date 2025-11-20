@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
 import { TTS_VOICES } from '../../../../shared/src/constants';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
   const [nativeLanguage] = useState<LanguageCode>('en');
@@ -92,7 +94,7 @@ export default function CourseGenerator() {
 
       // Navigate to library page after a short delay
       setTimeout(() => {
-        navigate('/library');
+        navigate('/app/library');
       }, 2000);
 
     } catch (err) {
@@ -322,25 +324,27 @@ export default function CourseGenerator() {
       <div className="card">
         <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Settings</h2>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-navy mb-2">
-              Max Lesson Duration
-            </label>
-            <select
-              value={maxDuration}
-              onChange={(e) => setMaxDuration(parseInt(e.target.value))}
-              className="input"
-            >
-              <option value={10}>10 minutes</option>
-              <option value={15}>15 minutes</option>
-              <option value={20}>20 minutes</option>
-              <option value={30}>30 minutes</option>
-            </select>
-            <p className="text-xs text-gray-500 mt-1">
-              Lessons longer than this will be split into multiple parts
-            </p>
-          </div>
+        <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-4' : ''}>
+          {user?.role === 'admin' && (
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Max Lesson Duration
+              </label>
+              <select
+                value={maxDuration}
+                onChange={(e) => setMaxDuration(parseInt(e.target.value))}
+                className="input"
+              >
+                <option value={10}>10 minutes</option>
+                <option value={15}>15 minutes</option>
+                <option value={20}>20 minutes</option>
+                <option value={30}>30 minutes</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Lessons longer than this will be split into multiple parts
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-navy mb-2">
@@ -370,14 +374,14 @@ export default function CourseGenerator() {
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-navy mb-2">Ready to Generate?</h3>
             <p className="text-sm text-gray-600 mb-4">
-              The AI will create a Pimsleur-style interactive audio course with spaced repetition,
-              anticipation drills, and graduated difficulty.
+              The AI will create audio-only lessons with guided narration, anticipation practice,
+              and spaced repetition—perfect for hands-free learning.
             </p>
             <ul className="text-sm text-gray-600 space-y-1 mb-4">
-              <li>✓ Guided narration in your native language</li>
-              <li>✓ Anticipation prompts with pauses</li>
-              <li>✓ Spaced repetition for retention</li>
-              <li>✓ JLPT {jlptLevel} level content</li>
+              <li>✓ ~30 minute lessons, audio-only format</li>
+              <li>✓ Guided L1 narration with L2 prompts</li>
+              <li>✓ Anticipation pauses for recall practice</li>
+              <li>✓ JLPT {jlptLevel} level vocabulary & grammar</li>
             </ul>
           </div>
           <button

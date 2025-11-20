@@ -96,10 +96,10 @@ export default function ChunkPackExercisesPage() {
           </div>
 
           <div className="flex gap-3">
-            <button onClick={() => navigate('/library')} className="flex-1 btn-outline">
+            <button onClick={() => navigate('/app/library')} className="flex-1 btn-outline">
               Back to Library
             </button>
-            <button onClick={() => navigate('/studio')} className="flex-1 btn-primary">
+            <button onClick={() => navigate('/app/studio')} className="flex-1 btn-primary">
               Back to Studio
             </button>
           </div>
