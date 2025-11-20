@@ -22,13 +22,16 @@ export const createRedisConnection = () => new Redis({
  * Note: connection should be provided by each worker individually
  */
 export const defaultWorkerSettings: Partial<WorkerOptions> = {
-  // Use longer polling intervals to reduce Redis requests
   autorun: true,
-  // Limit concurrent jobs to reduce active polling
   concurrency: 1,
-  // Add explicit polling interval to reduce idle Redis usage
+
+  // Reduce polling frequency for idle workers - THE KEY SETTINGS TO REDUCE REDIS USAGE
+  lockDuration: 30000,  // 30 seconds - how long a job is locked during processing
+  drainDelay: 5000,     // 5 seconds - delay before checking for new jobs when queue is empty
+
+  // Rate limiter for job processing (doesn't affect idle polling)
   limiter: {
-    max: 10, // Process max 10 jobs
-    duration: 1000, // per second
+    max: 10,           // Process max 10 jobs
+    duration: 1000,    // per second
   },
 };
