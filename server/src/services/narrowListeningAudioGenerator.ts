@@ -63,47 +63,75 @@ export async function generateNarrowListeningAudio(
   try {
     const audioSegmentFiles: string[] = [];
     const segmentTimings: Array<{ startTime: number; endTime: number; duration: number }> = [];
-    let currentTime = 0; // Track cumulative time in milliseconds
 
-    // Generate audio for each segment
-    for (let i = 0; i < segments.length; i++) {
-      const segment = segments[i];
-      console.log(`  Segment ${i + 1}/${segments.length}: "${segment.text.substring(0, 30)}..."`);
+    // OPTIMIZATION: Generate all TTS audio in parallel batches
+    const BATCH_SIZE = 10; // Process 10 segments at a time to avoid overwhelming API
+    const segmentResults: Array<{ index: number; path: string; duration: number }> = [];
 
-      // Generate TTS for this segment
-      const buffer = await synthesizeSpeech({
-        text: segment.text,
-        voiceId: voiceId,
-        languageCode: 'ja-JP',
-        speed: speed,
-        pitch: 0,
-        useSSML: false,
-        useDraftMode: false, // Use Google Cloud TTS (Edge TTS has auth issues)
+    console.log(`  Generating TTS audio for ${segments.length} segments in parallel batches...`);
+
+    for (let batchStart = 0; batchStart < segments.length; batchStart += BATCH_SIZE) {
+      const batch = segments.slice(batchStart, Math.min(batchStart + BATCH_SIZE, segments.length));
+      const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
+      const totalBatches = Math.ceil(segments.length / BATCH_SIZE);
+
+      console.log(`  Processing batch ${batchNum}/${totalBatches} (${batch.length} segments)...`);
+
+      // Generate TTS for all segments in this batch in parallel
+      const batchPromises = batch.map(async (segment, idx) => {
+        const actualIndex = batchStart + idx;
+
+        // Generate TTS for this segment
+        const buffer = await synthesizeSpeech({
+          text: segment.text,
+          voiceId: voiceId,
+          languageCode: 'ja-JP',
+          speed: speed,
+          pitch: 0,
+          useSSML: false,
+          useDraftMode: false, // Use Google Cloud TTS (Edge TTS has auth issues)
+        });
+
+        // Write to temp file
+        const segmentPath = path.join(tempDir, `segment-${actualIndex}.mp3`);
+        await fs.writeFile(segmentPath, buffer);
+
+        // Get duration
+        const duration = await getAudioDurationFromFile(segmentPath);
+
+        return { index: actualIndex, path: segmentPath, duration };
       });
 
-      // Write segment audio to temp file
-      const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
-      await fs.writeFile(segmentPath, buffer);
-      audioSegmentFiles.push(segmentPath);
+      // Wait for all segments in this batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      segmentResults.push(...batchResults);
+    }
 
-      // Get duration of this segment
-      const segmentDuration = await getAudioDurationFromFile(segmentPath);
+    console.log(`  Generated ${segmentResults.length} segment audio files`);
+
+    // Generate silence files (reuse same 800ms silence for all gaps)
+    const silenceBuffer = await generateSilence(0.8, false);
+    const reusableSilencePath = path.join(tempDir, 'silence-reusable.mp3');
+    await fs.writeFile(reusableSilencePath, silenceBuffer);
+    const silenceDuration = await getAudioDurationFromFile(reusableSilencePath);
+
+    // Build final file list with timings in correct order
+    let currentTime = 0;
+    for (let i = 0; i < segmentResults.length; i++) {
+      const result = segmentResults[i];
+
+      // Add segment audio
+      audioSegmentFiles.push(result.path);
 
       // Record timing
       const startTime = currentTime;
-      const endTime = currentTime + segmentDuration;
-      segmentTimings.push({ startTime, endTime, duration: segmentDuration });
+      const endTime = currentTime + result.duration;
+      segmentTimings.push({ startTime, endTime, duration: result.duration });
       currentTime = endTime;
 
-      // Add silence between segments (800ms)
-      if (i < segments.length - 1) {
-        const silenceBuffer = await generateSilence(0.8, false); // Use Google Cloud TTS
-        const silencePath = path.join(tempDir, `silence-${i}.mp3`);
-        await fs.writeFile(silencePath, silenceBuffer);
-        audioSegmentFiles.push(silencePath);
-
-        // Add silence duration to current time
-        const silenceDuration = await getAudioDurationFromFile(silencePath);
+      // Add silence between segments (except after last segment)
+      if (i < segmentResults.length - 1) {
+        audioSegmentFiles.push(reusableSilencePath);
         currentTime += silenceDuration;
       }
     }
