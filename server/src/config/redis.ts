@@ -26,7 +26,7 @@ export const defaultWorkerSettings: Partial<WorkerOptions> = {
   concurrency: 1,
 
   // Reduce polling frequency for idle workers - THE KEY SETTINGS TO REDUCE REDIS USAGE
-  lockDuration: 30000,  // 30 seconds - how long a job is locked during processing
+  lockDuration: 300000, // 5 minutes - how long a job is locked during processing (must be longer than longest job)
   drainDelay: 5000,     // 5 seconds - delay before checking for new jobs when queue is empty
 
   // Rate limiter for job processing (doesn't affect idle polling)
