@@ -19,9 +19,9 @@ export const createRedisConnection = () => new Redis({
 /**
  * Shared worker settings optimized for minimal Redis usage
  * These settings dramatically reduce polling frequency to conserve requests
+ * Note: connection should be provided by each worker individually
  */
 export const defaultWorkerSettings: Partial<WorkerOptions> = {
-  connection: createRedisConnection(),
   // Use longer polling intervals to reduce Redis requests
   autorun: true,
   // Limit concurrent jobs to reduce active polling
