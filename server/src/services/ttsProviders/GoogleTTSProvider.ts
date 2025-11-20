@@ -15,11 +15,6 @@ export class GoogleTTSProvider implements TTSProvider {
   constructor() {
     this.client = new TextToSpeechClient({
       apiEndpoint: 'us-central1-texttospeech.googleapis.com',
-      // Enable gRPC keep-alive for connection reuse
-      grpc: {
-        'grpc.keepalive_time_ms': 10000,
-        'grpc.keepalive_timeout_ms': 5000,
-      },
     });
   }
 
