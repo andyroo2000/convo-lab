@@ -38,7 +38,8 @@ export async function uploadToGCS(options: UploadOptions): Promise<string> {
     return `https://storage.googleapis.com/${bucketName}/${filepath}`;
   } catch (error) {
     console.error('GCS upload error:', error);
-    throw new Error('Failed to upload file to Google Cloud Storage');
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload file to Google Cloud Storage: ${errorMsg}`);
   }
 }
 
@@ -83,7 +84,8 @@ export async function uploadFileToGCS(options: UploadFileOptions): Promise<strin
     return `https://storage.googleapis.com/${bucketName}/${filepath}`;
   } catch (error) {
     console.error('GCS streaming upload error:', error);
-    throw new Error('Failed to upload file to Google Cloud Storage');
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload file to Google Cloud Storage: ${errorMsg}`);
   }
 }
 
