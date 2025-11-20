@@ -1,6 +1,6 @@
-import { generateWithGemini } from './geminiClient';
-import { LessonPlan, LessonSection, DrillEvent } from './lessonPlanner';
-import { CoreItem } from './courseItemExtractor';
+import { generateWithGemini } from './geminiClient.js';
+import { LessonPlan, LessonSection, DrillEvent } from './lessonPlanner.js';
+import { CoreItem } from './courseItemExtractor.js';
 
 // Script unit types for the audio timeline
 export type LessonScriptUnit =

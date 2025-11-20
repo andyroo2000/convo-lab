@@ -3,7 +3,9 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { createReadStream } from 'fs';
 
-const storage = new Storage();
+const storage = new Storage({
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+});
 const bucketName = process.env.GCS_BUCKET_NAME!;
 
 export interface UploadOptions {

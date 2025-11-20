@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, Plus, Trash2, Clock, Loader } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '../config';
 
 interface NarrowListeningPack {
   id: string;

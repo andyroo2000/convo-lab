@@ -35,7 +35,7 @@ export async function processJapanese(text: string): Promise<JapaneseMetadata> {
       throw new Error(`Furigana service error: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as JapaneseMetadata;
 
     return {
       kanji: data.kanji,

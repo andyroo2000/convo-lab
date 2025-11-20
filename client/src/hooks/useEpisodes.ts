@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '../config';
 
 export function useEpisodes() {
   const [loading, setLoading] = useState(false);

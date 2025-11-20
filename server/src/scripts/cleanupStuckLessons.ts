@@ -102,7 +102,7 @@ async function cleanupStuckLessons() {
             const state = await job.getState();
             console.log(`     Job ${job.id}: ${state}`);
 
-            if (state === 'failed' || state === 'stuck') {
+            if (state === 'failed' || (state as string) === 'stuck') {
               console.log(`     ❌ Removing failed/stuck job ${job.id}`);
               await job.remove();
             }

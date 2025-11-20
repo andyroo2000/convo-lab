@@ -20,6 +20,9 @@ import { courseWorker } from './jobs/courseQueue.js';
 import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 import { chunkPackWorker } from './jobs/chunkPackQueue.js';
 
+// Initialize workers (reference them so they're not tree-shaken)
+console.log('Workers initialized:', { audioWorker, courseWorker, narrowListeningWorker, chunkPackWorker });
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -31,7 +34,7 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? process.env.CLIENT_URL
+    ? process.env.CLIENT_URL || true  // Allow same-origin in production if CLIENT_URL not set
     : 'http://localhost:5173',
   credentials: true,
 }));
@@ -58,6 +61,18 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/narrow-listening', narrowListeningRoutes);
 app.use('/api/pi', piRoutes);
 app.use('/api/chunk-packs', chunkPackRoutes);
+
+// Serve client static files in production
+if (process.env.NODE_ENV === 'production') {
+  // In production, client files are at /app/public/client
+  const clientPath = path.join('/app/public/client');
+  app.use(express.static(clientPath));
+
+  // Handle client-side routing - return index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
+  });
+}
 
 // Error handling
 app.use(errorHandler);

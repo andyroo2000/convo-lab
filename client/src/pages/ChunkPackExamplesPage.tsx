@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '../config';
 
 interface ChunkExample {
   id: string;

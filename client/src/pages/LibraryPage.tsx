@@ -5,7 +5,7 @@ import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
 import ConfirmModal from '../components/common/ConfirmModal';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '../config';
 
 interface NarrowListeningPack {
   id: string;
@@ -302,7 +302,6 @@ export default function LibraryPage() {
   if (loading) {
     return (
       <div>
-        <h1 className="text-3xl font-bold text-navy mb-8">Your Library</h1>
         <div className="card text-center py-12">
           <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-600">Loading...</p>
@@ -314,7 +313,6 @@ export default function LibraryPage() {
   if (error) {
     return (
       <div>
-        <h1 className="text-3xl font-bold text-navy mb-8">Your Library</h1>
         <div className="card text-center py-12">
           <p className="text-red-600 mb-4">Error: {error}</p>
           <button onClick={loadEpisodes} className="btn-outline">
