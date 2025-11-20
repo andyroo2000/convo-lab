@@ -1,17 +1,8 @@
 import { Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
 import { generateDialogueImages } from '../services/imageGenerator.js';
+import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  enableOfflineQueue: true, // Changed: allow queuing commands when offline
-  // Enable TLS for Upstash
-  tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
-});
+const connection = createRedisConnection();
 
 export const imageQueue = new Queue('image-generation', { connection });
 
@@ -39,11 +30,7 @@ export const imageWorker = new Worker(
   },
   {
     connection,
-    settings: {
-      // Reduce polling to conserve Redis requests
-      stalledInterval: 60000, // Check for stalled jobs every 60s (default: 30s)
-      maxStalledCount: 2,
-    },
+    ...defaultWorkerSettings,
   }
 );
 

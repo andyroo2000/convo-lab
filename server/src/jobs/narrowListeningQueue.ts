@@ -1,20 +1,11 @@
 import { Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
 import { prisma } from '../db/client.js';
 import { generateNarrowListeningPack } from '../services/narrowListeningGenerator.js';
 import { generateNarrowListeningAudio } from '../services/narrowListeningAudioGenerator.js';
 import { TTS_VOICES } from '../../../shared/src/constants.js';
+import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  enableOfflineQueue: true, // Changed: allow queuing commands when offline
-  // Enable TLS for Upstash
-  tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
-});
+const connection = createRedisConnection();
 
 export const narrowListeningQueue = new Queue('narrow-listening-generation', { connection });
 
@@ -282,12 +273,7 @@ export const narrowListeningWorker = new Worker(
   },
   {
     connection,
-    concurrency: 1, // Process one pack at a time to avoid overwhelming TTS/LLM
-    settings: {
-      // Reduce polling to conserve Redis requests
-      stalledInterval: 60000, // Check for stalled jobs every 60s (default: 30s)
-      maxStalledCount: 2,
-    },
+    ...defaultWorkerSettings,
   }
 );
 
