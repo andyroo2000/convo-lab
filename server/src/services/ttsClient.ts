@@ -40,7 +40,9 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
     return audioBuffer;
   } catch (error) {
     console.error('TTS error:', error);
-    throw new Error('Failed to synthesize speech');
+    // Preserve the original error message for better debugging
+    const errorMsg = error instanceof Error ? error.message : 'Unknown TTS error';
+    throw new Error(`Failed to synthesize speech: ${errorMsg}`);
   }
 }
 
