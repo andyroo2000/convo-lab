@@ -15,7 +15,7 @@ const connection = new Redis({
   password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
-  enableOfflineQueue: false,
+  enableOfflineQueue: true, // Changed: allow queuing commands when offline
   // Enable TLS for Upstash
   tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
 });
@@ -231,6 +231,11 @@ async function processChunkPackGeneration(job: any) {
 export const chunkPackWorker = new Worker('chunk-pack-generation', processChunkPackGeneration, {
   connection,
   concurrency: 1, // Process one at a time to avoid resource contention
+  settings: {
+    // Reduce polling to conserve Redis requests
+    stalledInterval: 60000, // Check for stalled jobs every 60s (default: 30s)
+    maxStalledCount: 2,
+  },
 });
 
 chunkPackWorker.on('completed', (job) => {

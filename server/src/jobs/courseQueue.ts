@@ -13,7 +13,7 @@ const connection = new Redis({
   password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null,
   enableReadyCheck: false,
-  enableOfflineQueue: false,
+  enableOfflineQueue: true, // Changed: allow queuing commands when offline
   // Enable TLS for Upstash
   tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
 });
@@ -269,6 +269,11 @@ export const courseWorker = new Worker(
   {
     connection,
     concurrency: 1, // Process one course at a time to avoid rate limits
+    settings: {
+      // Reduce polling to conserve Redis requests
+      stalledInterval: 60000, // Check for stalled jobs every 60s (default: 30s)
+      maxStalledCount: 2,
+    },
   }
 );
 
