@@ -21,16 +21,14 @@ export const createRedisConnection = () => new Redis({
  * These settings dramatically reduce polling frequency to conserve requests
  */
 export const defaultWorkerSettings: Partial<WorkerOptions> = {
-  settings: {
-    // Drastically reduce stalled job checking to minimize Redis requests
-    stalledInterval: 300000, // Check for stalled jobs every 5 minutes (default: 30s)
-    maxStalledCount: 1,
-    // Reduce lock renewal frequency
-    lockDuration: 60000, // 1 minute (default: 30s)
-    lockRenewTime: 30000, // Renew at 30s (default: 15s)
-  },
+  connection: createRedisConnection(),
   // Use longer polling intervals to reduce Redis requests
   autorun: true,
   // Limit concurrent jobs to reduce active polling
   concurrency: 1,
+  // Add explicit polling interval to reduce idle Redis usage
+  limiter: {
+    max: 10, // Process max 10 jobs
+    duration: 1000, // per second
+  },
 };

@@ -91,7 +91,7 @@ export default function NarrowListeningCreatorPage() {
           setError(err instanceof Error ? err.message : 'Failed to check status');
           setIsGenerating(false);
         }
-      }, 2000); // Poll every 2 seconds
+      }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
 
     } catch (err) {
       console.error('Generation error:', err);

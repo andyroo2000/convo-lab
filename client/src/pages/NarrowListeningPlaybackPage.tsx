@@ -270,7 +270,7 @@ export default function NarrowListeningPlaybackPage() {
             } catch (err) {
               console.error('Failed to check job status:', err);
             }
-          }, 1000); // Poll every second for smooth progress updates
+          }, 5000); // Poll every 5 seconds (reduced from 1s to minimize Redis usage)
         } catch (err) {
           console.error(`Failed to generate ${newSpeed} speed audio:`, err);
           setGeneratingSpeed(false);
