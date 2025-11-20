@@ -177,7 +177,7 @@ export default function NarrowListeningLibraryPage() {
             {packs.map((pack) => (
               <Link
                 key={pack.id}
-                to={`/narrow-listening/${pack.id}`}
+                to={`/app/narrow-listening/${pack.id}`}
                 className="bg-white border rounded-lg p-6 hover:shadow-md transition-shadow relative group"
               >
                 {/* Delete Button */}
