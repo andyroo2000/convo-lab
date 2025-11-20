@@ -1,22 +1,13 @@
 import { Queue, Worker } from 'bullmq';
-import { Redis } from 'ioredis';
 import { prisma } from '../db/client.js';
 import { extractCoreItems, extractDialogueExchanges, extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
 import { planCourse } from '../services/lessonPlanner.js';
 import { generateLessonScript } from '../services/lessonScriptGenerator.js';
 import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
 import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
+import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
-const connection = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null,
-  enableReadyCheck: false,
-  enableOfflineQueue: true, // Changed: allow queuing commands when offline
-  // Enable TLS for Upstash
-  tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
-});
+const connection = createRedisConnection();
 
 export const courseQueue = new Queue('course-generation', { connection });
 
@@ -268,12 +259,7 @@ export const courseWorker = new Worker(
   processCourseGeneration,
   {
     connection,
-    concurrency: 1, // Process one course at a time to avoid rate limits
-    settings: {
-      // Reduce polling to conserve Redis requests
-      stalledInterval: 60000, // Check for stalled jobs every 60s (default: 30s)
-      maxStalledCount: 2,
-    },
+    ...defaultWorkerSettings,
   }
 );
 
