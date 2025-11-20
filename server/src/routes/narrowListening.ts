@@ -100,6 +100,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
     });
 
     // Queue generation job
+    console.log(`Adding narrow listening job to queue for pack ${pack.id}`);
     const job = await narrowListeningQueue.add('generate-narrow-listening', {
       packId: pack.id,
       topic,
@@ -107,6 +108,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
       versionCount,
       grammarFocus: grammarFocus || '',
     });
+    console.log(`Job ${job.id} added to queue successfully`);
 
     res.json({
       message: 'Narrow listening pack generation started',

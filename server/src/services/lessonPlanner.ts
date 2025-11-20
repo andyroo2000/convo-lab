@@ -1,4 +1,4 @@
-import { CoreItem } from './courseItemExtractor';
+import { CoreItem } from './courseItemExtractor.js';
 
 export interface DrillEvent {
   id: string;

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Volume2, CheckCircle, XCircle, ArrowRight, RotateCcw } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+import { API_URL } from '../config';
 
 interface PIChoice {
   id: string;

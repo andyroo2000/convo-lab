@@ -58,6 +58,24 @@ kill_by_name "vite"
 kill_by_name "node.*languageflow"
 
 echo ""
+echo "🐳 Starting Docker services (PostgreSQL & Redis)..."
+echo ""
+
+# Start PostgreSQL and Redis in the background
+if command_exists docker-compose || command_exists docker; then
+    if command_exists docker-compose; then
+        docker-compose up -d postgres redis
+    else
+        docker compose up -d postgres redis
+    fi
+    echo -e "${GREEN}✅ PostgreSQL and Redis started${NC}"
+    sleep 3  # Wait for services to be ready
+else
+    echo -e "${RED}❌ Error: Docker is not installed${NC}"
+    exit 1
+fi
+
+echo ""
 echo "🔍 Checking dependencies..."
 echo ""
 

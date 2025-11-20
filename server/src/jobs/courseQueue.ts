@@ -12,6 +12,10 @@ const connection = new Redis({
   port: parseInt(process.env.REDIS_PORT || '6379'),
   password: process.env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null,
+  enableReadyCheck: false,
+  enableOfflineQueue: false,
+  // Enable TLS for Upstash
+  tls: process.env.REDIS_HOST?.includes('upstash.io') ? {} : undefined,
 });
 
 export const courseQueue = new Queue('course-generation', { connection });

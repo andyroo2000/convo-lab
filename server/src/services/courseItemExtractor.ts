@@ -1,5 +1,5 @@
 import { Episode, Sentence } from '@prisma/client';
-import { generateWithGemini } from './geminiClient';
+import { generateWithGemini } from './geminiClient.js';
 
 export interface CoreItem {
   id: string;

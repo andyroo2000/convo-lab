@@ -1,6 +1,6 @@
-import { generateWithGemini } from './geminiClient';
-import { DialogueExchange, VocabularyItem } from './courseItemExtractor';
-import { LessonScriptUnit } from './lessonScriptGenerator';
+import { generateWithGemini } from './geminiClient.js';
+import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
+import { LessonScriptUnit } from './lessonScriptGenerator.js';
 
 interface ConversationalScriptContext {
   episodeTitle: string;

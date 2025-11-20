@@ -85,6 +85,19 @@ kill_port 5173  # Vite dev server (client)
 kill_port 3000  # Alternative client port
 
 echo ""
+echo "🐳 Stopping Docker services (PostgreSQL & Redis)..."
+echo ""
+
+# Stop docker-compose services
+if command -v docker-compose >/dev/null 2>&1; then
+    docker-compose stop postgres redis
+    echo -e "${GREEN}✅ Docker services stopped${NC}"
+elif command -v docker >/dev/null 2>&1; then
+    docker compose stop postgres redis
+    echo -e "${GREEN}✅ Docker services stopped${NC}"
+fi
+
+echo ""
 echo "================================"
 echo -e "${GREEN}✅ LanguageFlow Studio stopped${NC}"
 echo ""
