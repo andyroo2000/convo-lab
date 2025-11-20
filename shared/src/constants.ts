@@ -76,7 +76,7 @@ export const TTS_VOICES = {
       // Female voices (adult, for dialogue)
       { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', edgeName: 'NanamiNeural' },
       { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear', edgeName: 'ShioriNeural' },
-      { id: 'ja-JP-Studio-B', gender: 'female', description: 'Mayu - Animated and bright', edgeName: 'MayuNeural' },
+      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright', edgeName: 'MayuNeural' },
 
       // Male voices (adult, for dialogue)
       { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational', edgeName: 'MasaruMultilingualNeural' },
