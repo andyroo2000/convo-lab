@@ -64,7 +64,8 @@ export class GoogleTTSProvider implements TTSProvider {
       return Buffer.from(response.audioContent as Uint8Array);
     } catch (error) {
       console.error('Google Cloud TTS error:', error);
-      throw new Error('Failed to synthesize speech with Google Cloud TTS');
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to synthesize speech with Google Cloud TTS: ${errorMsg}`);
     }
   }
 
