@@ -279,29 +279,24 @@ export default function PlaybackPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Episode Header */}
       <div className="card">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
-            <p className="text-gray-600 text-sm">
-              Created {new Date(episode.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
+        <h1 className="text-3xl font-bold text-navy mb-4">{episode.title}</h1>
 
         {/* Speakers Legend */}
-        <div className="flex gap-4 flex-wrap">
+        <div className="flex gap-6 flex-wrap">
           {speakers.map((speaker) => (
             <div key={speaker.id} className="flex items-center gap-2">
               <div
-                className="w-4 h-4 rounded-full"
+                className="w-4 h-4 rounded-full flex-shrink-0"
                 style={{ backgroundColor: speaker.color }}
               />
-              <span className="text-sm font-medium text-navy">
-                <JapaneseText text={speaker.name} />
-              </span>
-              <span className="text-xs text-gray-500">
-                ({speaker.proficiency}, {speaker.tone})
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-navy">
+                  <JapaneseText text={speaker.name} />
+                </span>
+                <span className="text-xs text-gray-500">
+                  ({speaker.proficiency}, {speaker.tone})
+                </span>
+              </div>
             </div>
           ))}
         </div>
