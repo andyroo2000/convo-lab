@@ -347,7 +347,6 @@ export default function PlaybackPage() {
 
           {/* Speed Toggle Buttons */}
           <div className="mt-3 flex items-center justify-center gap-2">
-            <span className="text-xs text-gray-500 mr-2">Speed:</span>
             <div className="inline-flex items-center gap-1 bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setSelectedSpeed('slow')}
