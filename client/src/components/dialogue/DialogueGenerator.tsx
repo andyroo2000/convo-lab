@@ -35,7 +35,6 @@ export default function DialogueGenerator() {
   const { user } = useAuth();
   const { createEpisode, generateDialogue, generateAllSpeedsAudio, getEpisode, pollJobStatus, loading, error } = useEpisodes();
 
-  const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
   const [nativeLanguage] = useState<LanguageCode>('en');
@@ -142,7 +141,7 @@ export default function DialogueGenerator() {
   }, [jobId, step, generatedEpisodeId, pollJobStatus, getEpisode, generateAllSpeedsAudio, navigate]);
 
   const handleGenerate = async () => {
-    if (!title.trim() || !sourceText.trim()) {
+    if (!sourceText.trim()) {
       alert('Please fill in all required fields');
       return;
     }
@@ -158,9 +157,9 @@ export default function DialogueGenerator() {
       // Get the appropriate proficiency level based on target language
       const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel : hskLevel;
 
-      // Step 1: Create episode
+      // Step 1: Create episode with placeholder title
       const episode = await createEpisode({
-        title,
+        title: 'Generating dialogue...',
         sourceText,
         targetLanguage,
         nativeLanguage,
@@ -246,19 +245,6 @@ export default function DialogueGenerator() {
         <h2 className="text-xl font-semibold text-navy mb-4">Episode Details</h2>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-navy mb-2">
-              Episode Title *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="input"
-              placeholder="e.g., Coffee Shop Conversation"
-            />
-          </div>
-
           <div>
             <label className="block text-sm font-medium text-navy mb-2">
               Your Story or Experience *
@@ -377,7 +363,7 @@ export default function DialogueGenerator() {
           </div>
           <button
             onClick={handleGenerate}
-            disabled={loading || !title.trim() || !sourceText.trim()}
+            disabled={loading || !sourceText.trim()}
             className="btn-primary ml-6 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Generating...' : 'Generate Dialogue'}

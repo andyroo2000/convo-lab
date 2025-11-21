@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
+import SpeedSelector from '../components/common/SpeedSelector';
 
 import { API_URL } from '../config';
 
@@ -208,38 +209,12 @@ export default function ChunkPackExamplesPage() {
           {/* Speed Control */}
           <div className="flex items-center justify-center gap-2">
             <span className="text-sm text-gray-600">Speed:</span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setPlaybackSpeed(0.7)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  playbackSpeed === 0.7
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                0.7x
-              </button>
-              <button
-                onClick={() => setPlaybackSpeed(0.85)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  playbackSpeed === 0.85
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                0.85x
-              </button>
-              <button
-                onClick={() => setPlaybackSpeed(1.0)}
-                className={`px-3 py-1 text-sm font-medium rounded-lg transition-colors ${
-                  playbackSpeed === 1.0
-                    ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                1.0x
-              </button>
-            </div>
+            <SpeedSelector
+              selectedSpeed={playbackSpeed}
+              onSpeedChange={(speed) => setPlaybackSpeed(speed as PlaybackSpeed)}
+              showLabels={false}
+              variant="emerald"
+            />
           </div>
         </div>
       </div>
