@@ -8,6 +8,7 @@ import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import { TTS_VOICES } from '../../../shared/src/constants';
 import { API_URL } from '../config';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface SpeakerAvatar {
   id: string;
@@ -74,6 +75,7 @@ export default function PlaybackPage() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
+  const [showReadings, setShowReadings] = useState(false); // Hide furigana/pinyin by default
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [avatarUrls, setAvatarUrls] = useState<Map<string, string>>(new Map());
@@ -395,60 +397,78 @@ export default function PlaybackPage() {
         <div className="max-w-6xl mx-auto px-6 py-4">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-navy mb-1">{episode.title}</h1>
-              <p className="text-sm text-gray-600 mb-4">
-                {speakers[0]?.proficiency}, {speakers[0]?.tone}
-              </p>
+              <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
 
-              {/* Speakers Legend */}
-              <div className="flex gap-6 flex-wrap">
-                {speakers.map((speaker) => (
-                  <div key={speaker.id} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: speaker.color }}
-                    />
-                    <span className="text-sm font-medium text-navy">
-                      <JapaneseText text={speaker.name} />
-                    </span>
-                  </div>
-                ))}
+              {/* Segmented Pill: Proficiency Level + Tone */}
+              <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
+                {/* Left segment - Proficiency Level */}
+                <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
+                  {speakers[0]?.proficiency}
+                </div>
+
+                {/* Right segment - Tone (with chevron left edge) */}
+                <div
+                  className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
+                  style={{
+                    clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
+                    marginLeft: '-8px'
+                  }}
+                >
+                  <span className="ml-2">{speakers[0]?.tone}</span>
+                </div>
               </div>
             </div>
 
-            {/* Speed Selector */}
+            {/* Reading Toggle and Speed Selector */}
             {!isGeneratingAudio && currentAudioUrl && (
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1 ml-6">
+              <div className="flex items-center gap-3 ml-6">
+                {/* Furigana/Pinyin Toggle */}
                 <button
-                  onClick={() => setSelectedSpeed('slow')}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                    selectedSpeed === 'slow'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-200'
+                  onClick={() => setShowReadings(!showReadings)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    showReadings
+                      ? 'bg-purple-100 text-purple-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
+                  title={showReadings ? 'Hide readings' : 'Show readings'}
                 >
-                  Slow (0.7x)
+                  {showReadings ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  <span>{episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}</span>
                 </button>
-                <button
-                  onClick={() => setSelectedSpeed('medium')}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                    selectedSpeed === 'medium'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Medium (0.85x)
-                </button>
-                <button
-                  onClick={() => setSelectedSpeed('normal')}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                    selectedSpeed === 'normal'
-                      ? 'bg-purple-600 text-white shadow-sm'
-                      : 'text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Normal (1.0x)
-                </button>
+
+                {/* Speed Selector */}
+                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setSelectedSpeed('slow')}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      selectedSpeed === 'slow'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Slow (0.7x)
+                  </button>
+                  <button
+                    onClick={() => setSelectedSpeed('medium')}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      selectedSpeed === 'medium'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Medium (0.85x)
+                  </button>
+                  <button
+                    onClick={() => setSelectedSpeed('normal')}
+                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                      selectedSpeed === 'normal'
+                        ? 'bg-purple-600 text-white shadow-sm'
+                        : 'text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Normal (1.0x)
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -540,27 +560,27 @@ export default function PlaybackPage() {
                 isCurrentlySpeaking ? 'shadow-lg' : ''
               }`}
               style={{
-                backgroundColor: hexToRgba(speaker.color, isCurrentlySpeaking ? 0.18 : 0.08),
-                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speaker.color}`,
-                borderRight: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
-                borderTop: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
-                borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color}` : undefined,
+                backgroundColor: hexToRgba(speaker.color || '#6B7280', isCurrentlySpeaking ? 0.18 : 0.08),
+                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speaker.color || '#6B7280'}`,
+                borderRight: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
+                borderTop: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
+                borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
               }}
               onClick={() => seekToSentence(sentence)}
             >
-              <div className="flex gap-4">
+              <div className="flex gap-8">
                 {/* Speaker Avatar */}
-                <div className="flex-shrink-0">
-                  <div
-                    className="w-24 h-24 rounded-full overflow-hidden border-solid"
-                    style={{ borderColor: speaker.color, borderWidth: '3px' }}
-                  >
+                <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-black/[0.15] pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6">
+                  <div className="w-24 h-24 rounded-full overflow-hidden shadow-md">
                     <img
                       src={getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
                       alt={speaker.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
+                  <span className="text-sm font-medium text-navy text-center">
+                    <JapaneseText text={speaker.name} />
+                  </span>
                 </div>
 
                 {/* Japanese Text and Translation - Side by Side */}
@@ -571,6 +591,7 @@ export default function PlaybackPage() {
                       <JapaneseText
                         text={sentence.text}
                         metadata={sentence.metadata}
+                        showFurigana={showReadings}
                       />
                     </p>
                   </div>
@@ -579,7 +600,7 @@ export default function PlaybackPage() {
                   <div
                     className="flex-1 pl-6"
                     style={{
-                      borderLeft: `1px solid ${hexToRgba(speaker.color, 0.3)}`
+                      borderLeft: `1px solid ${hexToRgba(speaker.color || '#6B7280', 0.3)}`
                     }}
                   >
                     <p className="text-gray-600 italic">
