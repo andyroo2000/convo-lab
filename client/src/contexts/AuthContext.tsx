@@ -8,7 +8,15 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   signup: (email: string, password: string, name: string, inviteCode: string) => Promise<void>;
-  updateUser: (data: { displayName?: string; avatarColor?: string }) => Promise<void>;
+  updateUser: (data: {
+    displayName?: string;
+    avatarColor?: string;
+    avatarUrl?: string | null;
+    preferredStudyLanguage?: string;
+    preferredNativeLanguage?: string;
+    pinyinDisplayMode?: string;
+    proficiencyLevel?: string;
+  }) => Promise<void>;
   deleteAccount: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
@@ -86,9 +94,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateUser = async (data: {
     displayName?: string;
     avatarColor?: string;
+    avatarUrl?: string | null;
     preferredStudyLanguage?: string;
     preferredNativeLanguage?: string;
     pinyinDisplayMode?: string;
+    proficiencyLevel?: string;
   }) => {
     const response = await fetch(`${API_URL}/api/auth/me`, {
       method: 'PATCH',

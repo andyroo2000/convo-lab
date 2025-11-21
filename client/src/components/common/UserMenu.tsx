@@ -5,6 +5,7 @@ import { User, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
 interface UserMenuProps {
   userName: string;
   avatarColor?: string;
+  avatarUrl?: string;
   role: 'user' | 'moderator' | 'admin';
   onLogout: () => void;
 }
@@ -20,12 +21,13 @@ const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600' },
 };
 
-export default function UserMenu({ userName, avatarColor = 'indigo', role, onLogout }: UserMenuProps) {
+export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, role, onLogout }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   const colorScheme = AVATAR_COLOR_MAP[avatarColor] || AVATAR_COLOR_MAP.indigo;
+  const userInitial = userName.charAt(0).toUpperCase();
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,9 +61,21 @@ export default function UserMenu({ userName, avatarColor = 'indigo', role, onLog
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-navy transition-colors rounded-lg hover:bg-gray-50"
       >
-        <div className={`w-8 h-8 ${colorScheme.bg} rounded-full flex items-center justify-center`}>
-          <User className={`w-4 h-4 ${colorScheme.text}`} />
-        </div>
+        {avatarUrl ? (
+          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200">
+            <img
+              src={avatarUrl}
+              alt={userName}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className={`w-8 h-8 ${colorScheme.bg} rounded-full flex items-center justify-center`}>
+            <span className={`text-sm font-medium ${colorScheme.text}`}>
+              {userInitial}
+            </span>
+          </div>
+        )}
         <span>{userName}</span>
         <ChevronDown
           className={`w-4 h-4 text-gray-500 transition-transform ${

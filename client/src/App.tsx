@@ -39,7 +39,9 @@ function App() {
               <Route index element={<Navigate to="/app/library" replace />} />
               <Route path="library" element={<LibraryPage />} />
               <Route path="settings" element={<SettingsPage />} />
+              <Route path="settings/:tab" element={<SettingsPage />} />
               <Route path="admin" element={<AdminPage />} />
+              <Route path="admin/:tab" element={<AdminPage />} />
 
               {/* Studio - Content Creation Hub */}
               <Route path="studio" element={<StudioPage />} />

@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Settings, Trash2, ArrowLeft, Lock, Languages } from 'lucide-react';
+import { User, Settings, Trash2, ArrowLeft, Lock, Languages, Camera } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
+import AvatarCropperModal from '../components/admin/AvatarCropperModal';
+import Toast from '../components/common/Toast';
 import { LanguageCode } from '../types';
+
+type Tab = 'profile' | 'language' | 'security' | 'danger';
 
 const AVATAR_COLORS = [
   { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -19,6 +23,8 @@ const AVATAR_COLORS = [
 export default function SettingsPage() {
   const { user, updateUser, deleteAccount, changePassword } = useAuth();
   const navigate = useNavigate();
+  const { tab } = useParams<{ tab?: string }>();
+  const activeTab: Tab = (tab as Tab) || 'profile';
 
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('indigo');
@@ -40,6 +46,38 @@ export default function SettingsPage() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  // Avatar cropper state
+  const [cropperOpen, setCropperOpen] = useState(false);
+  const [cropperImageUrl, setCropperImageUrl] = useState('');
+
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToastMessage(message);
+    setToastType(type);
+    setToastVisible(true);
+  };
+
+  // Auto-save proficiency level when it changes
+  const handleProficiencyLevelChange = async (level: string) => {
+    const isJLPT = level.startsWith('N');
+    if (isJLPT) {
+      setJlptLevel(level);
+    } else {
+      setHskLevel(level);
+    }
+
+    try {
+      await updateUser({ proficiencyLevel: level });
+      showToast('Proficiency level saved', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to save proficiency level', 'error');
+    }
+  };
 
   // Initialize form with user data
   useEffect(() => {
@@ -72,15 +110,12 @@ export default function SettingsPage() {
     const currentStudyLang = user.preferredStudyLanguage || 'ja';
     const currentNativeLang = user.preferredNativeLanguage || 'en';
     const currentPinyinMode = user.pinyinDisplayMode || 'toneMarks';
-    const currentProficiency = user.proficiencyLevel || '';
-    const newProficiency = preferredStudyLanguage === 'ja' ? jlptLevel : hskLevel;
 
     return displayName !== currentDisplayName ||
            selectedColor !== currentColor ||
            preferredStudyLanguage !== currentStudyLang ||
            preferredNativeLanguage !== currentNativeLang ||
-           pinyinDisplayMode !== currentPinyinMode ||
-           newProficiency !== currentProficiency;
+           pinyinDisplayMode !== currentPinyinMode;
   };
 
   const handleSave = async () => {
@@ -94,16 +129,12 @@ export default function SettingsPage() {
     setSuccess(null);
 
     try {
-      // Get the appropriate proficiency level based on study language
-      const proficiencyLevel = preferredStudyLanguage === 'ja' ? jlptLevel : hskLevel;
-
       await updateUser({
         displayName: displayName.trim() || undefined,
         avatarColor: selectedColor,
         preferredStudyLanguage,
         preferredNativeLanguage,
         pinyinDisplayMode,
-        proficiencyLevel,
       });
       setSuccess('Settings saved successfully!');
       setTimeout(() => setSuccess(null), 3000);
@@ -185,6 +216,56 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAvatarUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: Event) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string;
+          setCropperImageUrl(dataUrl);
+          setCropperOpen(true);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
+  const handleSaveAvatarCrop = async (blob: Blob, cropArea: any) => {
+    try {
+      if (!user) return;
+
+      const formData = new FormData();
+      formData.append('image', blob, 'avatar.jpg');
+      formData.append('cropArea', JSON.stringify(cropArea));
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/admin/avatars/user/${user.id}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+
+      const data = await response.json();
+
+      // Update user context with new avatar URL
+      await updateUser({ avatarUrl: data.avatarUrl });
+
+      setSuccess('Avatar updated successfully!');
+      setTimeout(() => setSuccess(null), 3000);
+    } catch (error) {
+      console.error('Failed to upload avatar:', error);
+      setError('Failed to upload avatar. Please try again.');
+    }
+  };
+
   if (!user) {
     return null;
   }
@@ -198,7 +279,7 @@ export default function SettingsPage() {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Studio
+          Back to the lab
         </button>
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
@@ -209,6 +290,62 @@ export default function SettingsPage() {
             <p className="text-gray-600 mt-1">Manage your account preferences</p>
           </div>
         </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="flex gap-2 mb-6 border-b border-gray-200">
+        <button
+          onClick={() => navigate('/app/settings/profile')}
+          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+            activeTab === 'profile'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Profile
+          </div>
+        </button>
+        <button
+          onClick={() => navigate('/app/settings/language')}
+          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+            activeTab === 'language'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Languages className="w-4 h-4" />
+            Language
+          </div>
+        </button>
+        <button
+          onClick={() => navigate('/app/settings/security')}
+          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+            activeTab === 'security'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Security
+          </div>
+        </button>
+        <button
+          onClick={() => navigate('/app/settings/danger')}
+          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+            activeTab === 'danger'
+              ? 'border-red-600 text-red-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900 hover:text-red-600'
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4" />
+            Danger Zone
+          </div>
+        </button>
       </div>
 
       {/* Success/Error Messages */}
@@ -224,80 +361,107 @@ export default function SettingsPage() {
       )}
 
       {/* Profile Settings Card */}
-      <div className="card bg-white shadow-lg mb-6">
-        <h2 className="text-xl font-bold text-navy mb-6">Profile Settings</h2>
+      {activeTab === 'profile' && (
+        <div className="card bg-white shadow-lg mb-6">
+          <h2 className="text-xl font-bold text-navy mb-6">Profile Settings</h2>
 
-        {/* Display Name Section */}
-        <div className="mb-8">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Display Name
-          </label>
-          <input
-            type="text"
-            className="input"
-            placeholder="Enter your display name"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            maxLength={50}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            This is the name that will be displayed throughout the app
-          </p>
-        </div>
+          {/* Avatar */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Avatar
+            </label>
+            <div className="flex items-center gap-4">
+              {/* Current Avatar Preview */}
+              {user?.avatarUrl ? (
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                  <img
+                    src={user.avatarUrl}
+                    alt="Your avatar"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className={`w-20 h-20 ${AVATAR_COLORS.find(c => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}>
+                  <span className={`text-2xl font-medium ${AVATAR_COLORS.find(c => c.value === selectedColor)?.text || 'text-indigo-600'}`}>
+                    {displayName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+              )}
 
-        {/* Avatar Color Section */}
-        <div className="mb-8">
-          <label className="block text-sm font-semibold text-gray-900 mb-3">
-            Avatar Color
-          </label>
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-            {AVATAR_COLORS.map((color) => {
-              const isSelected = selectedColor === color.value;
-              return (
+              {/* Upload Button */}
+              <button
+                type="button"
+                onClick={handleAvatarUpload}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+              >
+                <Camera className="w-4 h-4" />
+                {user?.avatarUrl ? 'Change Avatar' : 'Upload Avatar'}
+              </button>
+
+              {user?.avatarUrl && (
                 <button
-                  key={color.value}
-                  onClick={() => setSelectedColor(color.value)}
-                  className={`relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all ${
-                    isSelected
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  title={color.name}
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await updateUser({ avatarUrl: null });
+                      setSuccess('Avatar removed successfully!');
+                      setTimeout(() => setSuccess(null), 3000);
+                    } catch (error) {
+                      setError('Failed to remove avatar');
+                    }
+                  }}
+                  className="text-sm text-red-600 hover:text-red-700"
                 >
-                  <div className={`w-10 h-10 ${color.bg} rounded-full flex items-center justify-center`}>
-                    <User className={`w-5 h-5 ${color.text}`} />
-                  </div>
-                  <span className="text-xs text-gray-600">{color.name}</span>
-                  {isSelected && (
-                    <div className="absolute top-1 right-1 w-3 h-3 bg-indigo-600 rounded-full" />
-                  )}
+                  Remove
                 </button>
-              );
-            })}
+              )}
+            </div>
+            <p className="mt-2 text-sm text-gray-500">
+              Upload a custom profile picture or use your initial as your avatar
+            </p>
+          </div>
+
+          {/* Display Name Section */}
+          <div className="mb-8">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Display Name
+            </label>
+            <input
+              type="text"
+              className="input"
+              placeholder="Enter your display name"
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              maxLength={50}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              This is the name that will be displayed throughout the app
+            </p>
+          </div>
+
+          {/* Save/Cancel Buttons */}
+          <div className="flex gap-3 pt-4 border-t">
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges() || isSaving}
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={!hasChanges() || isSaving}
+              className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
           </div>
         </div>
-
-        {/* Save/Cancel Buttons */}
-        <div className="flex gap-3 pt-4 border-t">
-          <button
-            onClick={handleSave}
-            disabled={!hasChanges() || isSaving}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={!hasChanges() || isSaving}
-            className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+      )}
 
       {/* Language Preferences Card */}
-      <div className="card bg-white shadow-lg mb-6">
+      {activeTab === 'language' && (
+        <div className="card bg-white shadow-lg mb-6">
         <div className="flex items-center gap-2 mb-6">
           <Languages className="w-5 h-5 text-gray-700" />
           <h2 className="text-xl font-bold text-navy">Language Preferences</h2>
@@ -350,7 +514,7 @@ export default function SettingsPage() {
             </label>
             <select
               value={jlptLevel}
-              onChange={(e) => setJlptLevel(e.target.value)}
+              onChange={(e) => handleProficiencyLevelChange(e.target.value)}
               className="input"
             >
               <option value="N5">N5 (Beginner)</option>
@@ -372,7 +536,7 @@ export default function SettingsPage() {
             </label>
             <select
               value={hskLevel}
-              onChange={(e) => setHskLevel(e.target.value)}
+              onChange={(e) => handleProficiencyLevelChange(e.target.value)}
               className="input"
             >
               <option value="HSK1">HSK 1 (Beginner)</option>
@@ -425,12 +589,14 @@ export default function SettingsPage() {
         )}
 
         <p className="text-xs text-gray-500 border-t pt-4">
-          These preferences will be used as defaults when creating new content
+          Your proficiency level will be saved automatically when you change it
         </p>
-      </div>
+        </div>
+      )}
 
       {/* Change Password Card */}
-      <div className="card bg-white shadow-lg mb-6">
+      {activeTab === 'security' && (
+        <div className="card bg-white shadow-lg mb-6">
         <div className="flex items-center gap-2 mb-6">
           <Lock className="w-5 h-5 text-gray-700" />
           <h2 className="text-xl font-bold text-navy">Change Password</h2>
@@ -503,10 +669,12 @@ export default function SettingsPage() {
             {isChangingPassword ? 'Changing Password...' : 'Change Password'}
           </button>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Danger Zone Card */}
-      <div className="card bg-white shadow-lg border-2 border-red-200">
+      {activeTab === 'danger' && (
+        <div className="card bg-white shadow-lg border-2 border-red-200">
         <h2 className="text-xl font-bold text-red-700 mb-4">Danger Zone</h2>
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
@@ -532,7 +700,8 @@ export default function SettingsPage() {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal
@@ -545,6 +714,23 @@ export default function SettingsPage() {
         onCancel={() => setShowDeleteModal(false)}
         isLoading={isDeleting}
         variant="danger"
+      />
+
+      {/* Avatar Cropper Modal */}
+      <AvatarCropperModal
+        isOpen={cropperOpen}
+        onClose={() => setCropperOpen(false)}
+        imageUrl={cropperImageUrl}
+        onSave={handleSaveAvatarCrop}
+        title="Crop Profile Picture"
+      />
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        type={toastType}
+        isVisible={toastVisible}
+        onClose={() => setToastVisible(false)}
       />
     </div>
   );

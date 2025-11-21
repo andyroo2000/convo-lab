@@ -77,6 +77,7 @@ export default function Layout() {
               <UserMenu
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}
+                avatarUrl={user.avatarUrl}
                 role={user.role}
                 onLogout={handleLogout}
               />
