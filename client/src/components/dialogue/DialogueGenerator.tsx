@@ -4,7 +4,7 @@ import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../typ
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useAuth } from '../../contexts/AuthContext';
 import SpeakerConfig from './SpeakerConfig';
-import { TTS_VOICES } from '../../../../shared/src/constants';
+import { TTS_VOICES, SUPPORTED_LANGUAGES } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
 
 interface SpeakerFormData {
@@ -41,14 +41,16 @@ export default function DialogueGenerator() {
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
   const [nativeLanguage] = useState<LanguageCode>('en');
   const [dialogueLength, setDialogueLength] = useState(8);
-  const [proficiency, setProficiency] = useState<ProficiencyLevel>('intermediate');
+  const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [tone, setTone] = useState<ToneStyle>('casual');
 
   // Initialize from user preferences
   useEffect(() => {
     if (user) {
       setTargetLanguage(user.preferredStudyLanguage || 'ja');
-      setProficiency(user.proficiencyLevel || 'intermediate');
+      // Initialize language-specific proficiency levels from user settings if available
+      // For now, defaults to N5/HSK1 since we don't have user JLPT/HSK preferences yet
     }
   }, [user]);
 
@@ -60,14 +62,14 @@ export default function DialogueGenerator() {
     {
       name: getRandomName(targetLanguage, 'female'),
       voiceId: getRandomVoice('female', targetLanguage),
-      proficiency: user?.proficiencyLevel || 'intermediate',
+      proficiency: 'intermediate',
       tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[0],
     },
     {
       name: getRandomName(targetLanguage, 'male'),
       voiceId: getRandomVoice('male', targetLanguage),
-      proficiency: user?.proficiencyLevel || 'intermediate',
+      proficiency: 'intermediate',
       tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[1],
     },
@@ -79,19 +81,19 @@ export default function DialogueGenerator() {
       {
         name: getRandomName(targetLanguage, 'female'),
         voiceId: getRandomVoice('female', targetLanguage),
-        proficiency,
+        proficiency: 'intermediate',
         tone,
         color: DEFAULT_SPEAKER_COLORS[0],
       },
       {
         name: getRandomName(targetLanguage, 'male'),
         voiceId: getRandomVoice('male', targetLanguage),
-        proficiency,
+        proficiency: 'intermediate',
         tone,
         color: DEFAULT_SPEAKER_COLORS[1],
       },
     ]);
-  }, [targetLanguage]);
+  }, [targetLanguage, tone]);
 
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
@@ -124,15 +126,6 @@ export default function DialogueGenerator() {
     return () => clearInterval(pollInterval);
   }, [jobId, step, generatedEpisodeId, pollJobStatus, navigate]);
 
-  // Update all speakers when proficiency or tone changes
-  useEffect(() => {
-    setSpeakers(prev => prev.map(speaker => ({
-      ...speaker,
-      proficiency,
-      tone,
-    })));
-  }, [proficiency, tone]);
-
   const handleGenerate = async () => {
     if (!title.trim() || !sourceText.trim()) {
       alert('Please fill in all required fields');
@@ -147,6 +140,9 @@ export default function DialogueGenerator() {
     try {
       setStep('generating');
 
+      // Get the appropriate proficiency level based on target language
+      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel : hskLevel;
+
       // Step 1: Create episode
       const episode = await createEpisode({
         title,
@@ -156,7 +152,7 @@ export default function DialogueGenerator() {
         speakers: speakers.map(s => ({
           name: s.name,
           voiceId: s.voiceId,
-          proficiency: s.proficiency,
+          proficiency: proficiencyLevel,
           tone: s.tone,
           color: s.color,
         })),
@@ -172,7 +168,7 @@ export default function DialogueGenerator() {
           id: '', // Will be assigned by backend
           name: s.name,
           voiceId: s.voiceId,
-          proficiency: s.proficiency,
+          proficiency: proficiencyLevel,
           tone: s.tone,
           color: s.color,
         })),
@@ -270,7 +266,7 @@ export default function DialogueGenerator() {
               </label>
               <input
                 type="text"
-                value={targetLanguage === 'ja' ? 'Japanese (日本語)' : 'Chinese (中文)'}
+                value={`${SUPPORTED_LANGUAGES[targetLanguage].name} (${SUPPORTED_LANGUAGES[targetLanguage].nativeName})`}
                 disabled
                 className="input bg-gray-50 cursor-not-allowed"
               />
@@ -292,21 +288,44 @@ export default function DialogueGenerator() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-navy mb-2">
-                Proficiency Level
-              </label>
-              <select
-                value={proficiency}
-                onChange={(e) => setProficiency(e.target.value as ProficiencyLevel)}
-                className="input"
-              >
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-                <option value="native">Native</option>
-              </select>
-            </div>
+            {targetLanguage === 'ja' && (
+              <div>
+                <label className="block text-sm font-medium text-navy mb-2">
+                  Target JLPT Level
+                </label>
+                <select
+                  value={jlptLevel}
+                  onChange={(e) => setJlptLevel(e.target.value)}
+                  className="input"
+                >
+                  <option value="N5">N5 (Beginner)</option>
+                  <option value="N4">N4 (Upper Beginner)</option>
+                  <option value="N3">N3 (Intermediate)</option>
+                  <option value="N2">N2 (Upper Intermediate)</option>
+                  <option value="N1">N1 (Advanced)</option>
+                </select>
+              </div>
+            )}
+
+            {targetLanguage === 'zh' && (
+              <div>
+                <label className="block text-sm font-medium text-navy mb-2">
+                  Target HSK Level
+                </label>
+                <select
+                  value={hskLevel}
+                  onChange={(e) => setHskLevel(e.target.value)}
+                  className="input"
+                >
+                  <option value="HSK1">HSK 1 (Beginner)</option>
+                  <option value="HSK2">HSK 2 (Upper Beginner)</option>
+                  <option value="HSK3">HSK 3 (Intermediate)</option>
+                  <option value="HSK4">HSK 4 (Upper Intermediate)</option>
+                  <option value="HSK5">HSK 5 (Advanced)</option>
+                  <option value="HSK6">HSK 6 (Mastery)</option>
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-navy mb-2">
@@ -351,14 +370,13 @@ export default function DialogueGenerator() {
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-navy mb-2">Ready to Generate?</h3>
             <p className="text-sm text-gray-600 mb-4">
-              The AI will create a natural {targetLanguage === 'ja' ? 'Japanese' : 'multi-language'} conversation
-              with {speakers.length} speakers, including variations and translations.
+              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : hskLevel} level {tone} language.
             </p>
             <ul className="text-sm text-gray-600 space-y-1 mb-4">
               <li>✓ {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
               <li>✓ 3 variations per sentence</li>
               <li>✓ English translations</li>
-              <li>✓ Proficiency-matched language</li>
+              <li>✓ Level-matched language complexity</li>
             </ul>
           </div>
           <button
