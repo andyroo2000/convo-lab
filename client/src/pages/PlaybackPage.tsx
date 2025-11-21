@@ -279,7 +279,10 @@ export default function PlaybackPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Episode Header */}
       <div className="card">
-        <h1 className="text-3xl font-bold text-navy mb-4">{episode.title}</h1>
+        <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
+        <p className="text-sm text-gray-600 mb-4">
+          {speakers[0]?.proficiency}, {speakers[0]?.tone}
+        </p>
 
         {/* Speakers Legend */}
         <div className="flex gap-6 flex-wrap">
@@ -289,14 +292,9 @@ export default function PlaybackPage() {
                 className="w-4 h-4 rounded-full flex-shrink-0"
                 style={{ backgroundColor: speaker.color }}
               />
-              <div className="flex flex-col">
-                <span className="text-sm font-medium text-navy">
-                  <JapaneseText text={speaker.name} />
-                </span>
-                <span className="text-xs text-gray-500">
-                  ({speaker.proficiency}, {speaker.tone})
-                </span>
-              </div>
+              <span className="text-sm font-medium text-navy">
+                <JapaneseText text={speaker.name} />
+              </span>
             </div>
           ))}
         </div>
