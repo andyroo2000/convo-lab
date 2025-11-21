@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Settings, Trash2, ArrowLeft, Lock, Languages } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
-import { LanguageCode } from '../types';
+import { LanguageCode, ProficiencyLevel } from '../types';
 
 const AVATAR_COLORS = [
   { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -25,6 +25,7 @@ export default function SettingsPage() {
   const [preferredStudyLanguage, setPreferredStudyLanguage] = useState<LanguageCode>('ja');
   const [preferredNativeLanguage, setPreferredNativeLanguage] = useState<LanguageCode>('en');
   const [pinyinDisplayMode, setPinyinDisplayMode] = useState<'toneMarks' | 'toneNumbers'>('toneMarks');
+  const [proficiencyLevel, setProficiencyLevel] = useState<ProficiencyLevel>('beginner');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -47,6 +48,7 @@ export default function SettingsPage() {
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
       setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
+      setProficiencyLevel(user.proficiencyLevel || 'beginner');
     }
   }, [user]);
 
@@ -57,11 +59,13 @@ export default function SettingsPage() {
     const currentStudyLang = user.preferredStudyLanguage || 'ja';
     const currentNativeLang = user.preferredNativeLanguage || 'en';
     const currentPinyinMode = user.pinyinDisplayMode || 'toneMarks';
+    const currentProficiency = user.proficiencyLevel || 'beginner';
     return displayName !== currentDisplayName ||
            selectedColor !== currentColor ||
            preferredStudyLanguage !== currentStudyLang ||
            preferredNativeLanguage !== currentNativeLang ||
-           pinyinDisplayMode !== currentPinyinMode;
+           pinyinDisplayMode !== currentPinyinMode ||
+           proficiencyLevel !== currentProficiency;
   };
 
   const handleSave = async () => {
@@ -81,6 +85,7 @@ export default function SettingsPage() {
         preferredStudyLanguage,
         preferredNativeLanguage,
         pinyinDisplayMode,
+        proficiencyLevel,
       });
       setSuccess('Settings saved successfully!');
       setTimeout(() => setSuccess(null), 3000);
@@ -98,6 +103,7 @@ export default function SettingsPage() {
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
       setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
+      setProficiencyLevel(user.proficiencyLevel || 'beginner');
       setError(null);
       setSuccess(null);
     }
@@ -305,6 +311,26 @@ export default function SettingsPage() {
           </select>
           <p className="text-xs text-gray-500 mt-1">
             Your first language, used for translations
+          </p>
+        </div>
+
+        {/* Proficiency Level */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-900 mb-2">
+            Current Proficiency Level
+          </label>
+          <select
+            value={proficiencyLevel}
+            onChange={(e) => setProficiencyLevel(e.target.value as ProficiencyLevel)}
+            className="input"
+          >
+            <option value="beginner">Beginner - Just starting out</option>
+            <option value="intermediate">Intermediate - Can have basic conversations</option>
+            <option value="advanced">Advanced - Fluent in most situations</option>
+            <option value="native">Native / Near-Native - Completely fluent</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            This helps us generate content at the right difficulty level
           </p>
         </div>
 
