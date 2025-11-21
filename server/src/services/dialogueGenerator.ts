@@ -246,6 +246,6 @@ function getLanguageName(code: string): string {
 }
 
 function getDefaultSpeakerColor(index: number): string {
-  const colors = ['#5E6AD8', '#4EA6B1', '#FF6A6A', '#A6F2C2'];
+  const colors = ['#3B82F6', '#F97316']; // Blue and Orange
   return colors[index % colors.length];
 }

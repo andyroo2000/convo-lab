@@ -4,6 +4,7 @@ interface JapaneseTextProps {
   text: string;
   metadata?: LanguageMetadata;
   className?: string;
+  showFurigana?: boolean;
 }
 
 /**
@@ -22,10 +23,14 @@ function renderRuby(text: string): string {
   });
 }
 
-export default function JapaneseText({ text, metadata, className = '' }: JapaneseTextProps) {
-  // Use furigana from metadata if available, otherwise use plain text
-  const displayText = metadata?.japanese?.furigana || text;
-  const htmlContent = renderRuby(displayText);
+export default function JapaneseText({ text, metadata, className = '', showFurigana = true }: JapaneseTextProps) {
+  // If showFurigana is false, use plain kanji text without readings
+  // Otherwise use furigana from metadata if available
+  const displayText = showFurigana
+    ? (metadata?.japanese?.furigana || text)
+    : (metadata?.japanese?.kanji || text);
+
+  const htmlContent = showFurigana ? renderRuby(displayText) : displayText;
 
   return (
     <span

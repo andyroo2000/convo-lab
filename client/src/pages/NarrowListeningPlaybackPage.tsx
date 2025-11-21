@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, Zap } from 'lucide-react';
+import { ArrowLeft, Loader, Zap, Eye, EyeOff } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
+import JapaneseText from '../components/JapaneseText';
 
 import { API_URL } from '../config';
 
@@ -54,6 +55,7 @@ export default function NarrowListeningPlaybackPage() {
   const [pack, setPack] = useState<NarrowListeningPack | null>(null);
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [selectedSpeed, setSelectedSpeed] = useState<Speed>('0.85x');
+  const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatingSpeed, setGeneratingSpeed] = useState(false);
@@ -375,43 +377,60 @@ export default function NarrowListeningPlaybackPage() {
               )}
             </div>
 
-            {/* Speed Selector */}
-            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+            {/* Reading Toggle and Speed Selector */}
+            <div className="flex items-center gap-3">
+              {/* Furigana Toggle */}
               <button
-                onClick={() => handleSpeedChange('0.7x')}
-                disabled={generatingSpeed}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                  selectedSpeed === '0.7x'
-                    ? 'bg-white text-purple-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
+                onClick={() => setShowReadings(!showReadings)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  showReadings
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
+                title={showReadings ? 'Hide furigana' : 'Show furigana'}
               >
-                {generatingSpeed && selectedSpeed === '0.7x' && <Loader className="w-3 h-3 animate-spin" />}
-                Slow (0.7x)
+                {showReadings ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                <span>Furigana</span>
               </button>
-              <button
-                onClick={() => handleSpeedChange('0.85x')}
-                disabled={generatingSpeed}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                  selectedSpeed === '0.85x'
-                    ? 'bg-white text-purple-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
-                }`}
-              >
-                Medium (0.85x)
-              </button>
-              <button
-                onClick={() => handleSpeedChange('1.0x')}
-                disabled={generatingSpeed}
-                className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                  selectedSpeed === '1.0x'
-                    ? 'bg-white text-purple-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
-                }`}
-              >
-                {generatingSpeed && selectedSpeed === '1.0x' && <Loader className="w-3 h-3 animate-spin" />}
-                Normal (1.0x)
-              </button>
+
+              {/* Speed Selector */}
+              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => handleSpeedChange('0.7x')}
+                  disabled={generatingSpeed}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+                    selectedSpeed === '0.7x'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
+                  }`}
+                >
+                  {generatingSpeed && selectedSpeed === '0.7x' && <Loader className="w-3 h-3 animate-spin" />}
+                  Slow (0.7x)
+                </button>
+                <button
+                  onClick={() => handleSpeedChange('0.85x')}
+                  disabled={generatingSpeed}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    selectedSpeed === '0.85x'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
+                  }`}
+                >
+                  Medium (0.85x)
+                </button>
+                <button
+                  onClick={() => handleSpeedChange('1.0x')}
+                  disabled={generatingSpeed}
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
+                    selectedSpeed === '1.0x'
+                      ? 'bg-white text-purple-600 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
+                  }`}
+                >
+                  {generatingSpeed && selectedSpeed === '1.0x' && <Loader className="w-3 h-3 animate-spin" />}
+                  Normal (1.0x)
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -529,7 +548,11 @@ export default function NarrowListeningPlaybackPage() {
                         }}
                       >
                         <p className="text-lg text-gray-900 mb-2 leading-relaxed">
-                          {segment.japaneseText}
+                          <JapaneseText
+                            text={segment.japaneseText}
+                            metadata={segment.reading ? { japanese: { kanji: segment.japaneseText, kana: '', furigana: segment.reading } } : undefined}
+                            showFurigana={showReadings}
+                          />
                         </p>
                         <p className="text-sm text-gray-600 italic">
                           {segment.englishTranslation}
