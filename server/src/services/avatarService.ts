@@ -80,60 +80,129 @@ export async function uploadUserAvatar(
 }
 
 /**
+ * Parse speaker avatar filename to extract metadata
+ * Example: "ja-female-casual.jpg" => { language: 'ja', gender: 'female', tone: 'casual' }
+ */
+function parseAvatarFilename(filename: string): { language: string; gender: string; tone: string } {
+  const nameWithoutExt = filename.replace(/\.(jpg|jpeg|png|webp)$/i, '');
+  const [language, gender, tone] = nameWithoutExt.split('-');
+  return { language, gender, tone };
+}
+
+/**
  * Upload and crop a speaker avatar (dialogue character)
- * Saves to local public/avatars/ directory
+ * Saves both cropped and original to GCS and creates/updates database record
  */
 export async function uploadSpeakerAvatar(
   filename: string,
   imageBuffer: Buffer,
   cropArea: CropArea
-): Promise<void> {
+): Promise<{ croppedUrl: string; originalUrl: string }> {
   // Crop and resize the image
   const croppedBuffer = await cropAndResizeImage(imageBuffer, cropArea);
 
-  // Save original to backup directory
-  const originalDir = path.join(__dirname, '../../public/avatars/original');
-  await fs.mkdir(originalDir, { recursive: true });
+  // Upload cropped version to GCS
+  const croppedUrl = await uploadToGCS({
+    buffer: croppedBuffer,
+    filename,
+    contentType: 'image/jpeg',
+    folder: 'avatars/speakers',
+  });
 
-  const timestamp = Date.now();
-  const originalPath = path.join(originalDir, `${path.parse(filename).name}-${timestamp}${path.extname(filename)}`);
-  await fs.writeFile(originalPath, imageBuffer);
+  // Upload original to GCS
+  const originalFilename = `original-${filename}`;
+  const originalUrl = await uploadToGCS({
+    buffer: imageBuffer,
+    filename: originalFilename,
+    contentType: 'image/jpeg',
+    folder: 'avatars/speakers',
+  });
 
-  // Save cropped avatar
-  const avatarPath = path.join(__dirname, '../../public/avatars', filename);
-  await fs.mkdir(path.dirname(avatarPath), { recursive: true });
-  await fs.writeFile(avatarPath, croppedBuffer);
+  // Parse filename to extract metadata
+  const { language, gender, tone } = parseAvatarFilename(filename);
+
+  // Create or update database record
+  await prisma.speakerAvatar.upsert({
+    where: { filename },
+    create: {
+      filename,
+      croppedUrl,
+      originalUrl,
+      language,
+      gender,
+      tone,
+    },
+    update: {
+      croppedUrl,
+      originalUrl,
+    },
+  });
+
+  return { croppedUrl, originalUrl };
 }
 
 /**
- * Re-crop an existing speaker avatar from the downloads directory
+ * Re-crop an existing speaker avatar from GCS
  */
 export async function recropSpeakerAvatar(
   filename: string,
   cropArea: CropArea
-): Promise<void> {
-  // Read the original image from downloads directory
-  const downloadsDir = path.join(__dirname, '../../public/avatars/downloads');
-  const originalPath = path.join(downloadsDir, filename);
+): Promise<{ croppedUrl: string; originalUrl: string }> {
+  // Get the original image URL from database
+  const avatar = await prisma.speakerAvatar.findUnique({
+    where: { filename },
+  });
 
-  try {
-    const imageBuffer = await fs.readFile(originalPath);
-    await uploadSpeakerAvatar(filename, imageBuffer, cropArea);
-  } catch (error) {
-    throw new Error(`Original image not found in downloads: ${filename}`);
+  if (!avatar) {
+    throw new Error(`Speaker avatar not found in database: ${filename}`);
   }
+
+  // Fetch the original image from GCS
+  const response = await fetch(avatar.originalUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch original image from GCS: ${filename}`);
+  }
+
+  const imageBuffer = Buffer.from(await response.arrayBuffer());
+
+  // Re-upload with new crop
+  return await uploadSpeakerAvatar(filename, imageBuffer, cropArea);
 }
 
 /**
- * Get the original speaker avatar from downloads directory
+ * Get the original speaker avatar URL from database
  */
-export async function getOriginalSpeakerAvatar(filename: string): Promise<Buffer> {
-  const downloadsDir = path.join(__dirname, '../../public/avatars/downloads');
-  const originalPath = path.join(downloadsDir, filename);
+export async function getSpeakerAvatarOriginalUrl(filename: string): Promise<string> {
+  const avatar = await prisma.speakerAvatar.findUnique({
+    where: { filename },
+    select: { originalUrl: true },
+  });
 
-  try {
-    return await fs.readFile(originalPath);
-  } catch (error) {
-    throw new Error(`Original image not found in downloads: ${filename}`);
+  if (!avatar) {
+    throw new Error(`Speaker avatar not found in database: ${filename}`);
   }
+
+  return avatar.originalUrl;
+}
+
+/**
+ * Get all speaker avatars from database
+ */
+export async function getAllSpeakerAvatars() {
+  return await prisma.speakerAvatar.findMany({
+    orderBy: [
+      { language: 'asc' },
+      { gender: 'asc' },
+      { tone: 'asc' },
+    ],
+  });
+}
+
+/**
+ * Get a speaker avatar by filename
+ */
+export async function getSpeakerAvatar(filename: string) {
+  return await prisma.speakerAvatar.findUnique({
+    where: { filename },
+  });
 }

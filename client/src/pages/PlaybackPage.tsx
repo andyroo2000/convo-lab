@@ -7,9 +7,53 @@ import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import { TTS_VOICES } from '../../../shared/src/constants';
+import { API_URL } from '../config';
+
+interface SpeakerAvatar {
+  id: string;
+  filename: string;
+  croppedUrl: string;
+  originalUrl: string;
+  language: string;
+  gender: string;
+  tone: string;
+}
+
+// Cache for speaker avatars to avoid repeated API calls
+let avatarCache: SpeakerAvatar[] | null = null;
+let avatarCachePromise: Promise<SpeakerAvatar[]> | null = null;
+
+// Helper function to fetch all speaker avatars from API
+async function fetchSpeakerAvatars(): Promise<SpeakerAvatar[]> {
+  if (avatarCache) {
+    return avatarCache;
+  }
+
+  if (avatarCachePromise) {
+    return avatarCachePromise;
+  }
+
+  avatarCachePromise = fetch(`${API_URL}/api/admin/avatars/speakers`, {
+    credentials: 'include',
+  })
+    .then(async (response) => {
+      if (!response.ok) throw new Error('Failed to fetch speaker avatars');
+      const data = await response.json();
+      avatarCache = data;
+      avatarCachePromise = null;
+      return data;
+    })
+    .catch((error) => {
+      console.error('Failed to fetch speaker avatars:', error);
+      avatarCachePromise = null;
+      return [];
+    });
+
+  return avatarCachePromise;
+}
 
 // Helper function to get avatar URL based on speaker voice and tone
-function getSpeakerAvatarUrl(speaker: Speaker, targetLanguage: string): string {
+function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): string {
   // Determine gender from voiceId by looking it up in TTS_VOICES
   const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
   const voiceInfo = languageVoices.find(v => v.id === speaker.voiceId);
@@ -19,7 +63,7 @@ function getSpeakerAvatarUrl(speaker: Speaker, targetLanguage: string): string {
   const tone = speaker.tone.toLowerCase();
 
   // Construct avatar filename: {language}-{gender}-{tone}.jpg
-  return `/avatars/${targetLanguage}-${gender}-${tone}.jpg`;
+  return `${targetLanguage}-${gender}-${tone}.jpg`;
 }
 
 export default function PlaybackPage() {
@@ -32,9 +76,29 @@ export default function PlaybackPage() {
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
+  const [avatarUrls, setAvatarUrls] = useState<Map<string, string>>(new Map());
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper function to get speaker avatar URL from GCS
+  const getSpeakerAvatarUrl = (speaker: Speaker, targetLanguage: string): string => {
+    const filename = getSpeakerAvatarFilename(speaker, targetLanguage);
+    const url = avatarUrls.get(filename);
+
+    // Return GCS URL if available, otherwise return a placeholder
+    return url || '/placeholder-avatar.jpg';
+  };
+
+  // Fetch speaker avatars on mount
+  useEffect(() => {
+    fetchSpeakerAvatars().then((avatars) => {
+      const urlMap = new Map<string, string>();
+      avatars.forEach((avatar) => {
+        urlMap.set(avatar.filename, avatar.croppedUrl);
+      });
+      setAvatarUrls(urlMap);
+    });
+  }, []);
 
   useEffect(() => {
     if (episodeId) {

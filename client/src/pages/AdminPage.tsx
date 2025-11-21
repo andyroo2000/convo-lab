@@ -51,6 +51,18 @@ interface Stats {
   };
 }
 
+interface SpeakerAvatar {
+  id: string;
+  filename: string;
+  croppedUrl: string;
+  originalUrl: string;
+  language: string;
+  gender: string;
+  tone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -59,6 +71,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<UserData[]>([]);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -105,8 +118,8 @@ export default function AdminPage() {
     return `${language} ${gender} - ${tone}`;
   };
 
-  // Speaker avatars
-  const SPEAKER_AVATARS = [
+  // Speaker avatar filenames for initial upload (when no avatars in DB)
+  const DEFAULT_SPEAKER_AVATARS = [
     'ja-female-casual.jpg', 'ja-female-polite.jpg', 'ja-female-formal.jpg',
     'ja-male-casual.jpg', 'ja-male-polite.jpg', 'ja-male-formal.jpg',
     'zh-female-casual.jpg', 'zh-female-polite.jpg', 'zh-female-formal.jpg',
@@ -130,6 +143,7 @@ export default function AdminPage() {
       fetchStats();
     } else if (activeTab === 'avatars') {
       fetchUsers();
+      fetchSpeakerAvatars();
     }
   }, [activeTab]);
 
@@ -179,6 +193,21 @@ export default function AdminPage() {
       setStats(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch stats');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchSpeakerAvatars = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/admin/avatars/speakers`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch speaker avatars');
+      const data = await response.json();
+      setSpeakerAvatars(data);
+    } catch (err) {
+      console.error('Failed to fetch speaker avatars:', err);
     } finally {
       setIsLoading(false);
     }
@@ -255,13 +284,24 @@ export default function AdminPage() {
 
   // Avatar handler functions
   const handleRecropSpeaker = async (filename: string) => {
-    const originalUrl = `${API_URL}/api/admin/avatars/speaker/${filename}/original`;
-    setCropperImageUrl(originalUrl);
-    setCropperTitle(`Re-crop ${filename}`);
-    setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
-      await handleSaveSpeakerRecrop(filename, cropArea);
-    });
-    setCropperOpen(true);
+    try {
+      // Fetch the original image URL from the API
+      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/original`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch original avatar URL');
+      const data = await response.json();
+
+      setCropperImageUrl(data.originalUrl);
+      setCropperTitle(`Re-crop ${filename}`);
+      setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
+        await handleSaveSpeakerRecrop(filename, cropArea);
+      });
+      setCropperOpen(true);
+    } catch (error) {
+      console.error('Failed to open cropper:', error);
+      showToast('Failed to load original image', 'error');
+    }
   };
 
   const handleSaveSpeakerRecrop = async (filename: string, cropArea: any) => {
@@ -280,8 +320,8 @@ export default function AdminPage() {
       showToast('Speaker avatar re-cropped successfully', 'success');
       setCropperOpen(false);
 
-      // Reload the page to show the updated avatar
-      window.location.reload();
+      // Refresh speaker avatars to show the updated avatar
+      await fetchSpeakerAvatars();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
     }
@@ -323,8 +363,8 @@ export default function AdminPage() {
       showToast('Speaker avatar updated successfully', 'success');
       setCropperOpen(false);
 
-      // Reload the page to show the updated avatar
-      window.location.reload();
+      // Refresh speaker avatars to show the updated avatar
+      await fetchSpeakerAvatars();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
     }
@@ -691,37 +731,44 @@ export default function AdminPage() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {SPEAKER_AVATARS.map((filename) => (
-                <div key={filename} className="bg-white rounded-lg shadow p-4">
-                  <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
-                    <img
-                      src={`${API_URL}/avatars/${filename}`}
-                      alt={filename}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
-                      }}
-                    />
+              {speakerAvatars.length > 0 ? (
+                speakerAvatars.map((avatar) => (
+                  <div key={avatar.filename} className="bg-white rounded-lg shadow p-4">
+                    <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                      <img
+                        src={avatar.croppedUrl}
+                        alt={avatar.filename}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                        }}
+                      />
+                    </div>
+                    <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={avatar.filename}>
+                      {formatAvatarTitle(avatar.filename)}
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <button
+                        onClick={() => handleRecropSpeaker(avatar.filename)}
+                        className="btn-secondary text-sm py-1"
+                      >
+                        Re-crop
+                      </button>
+                      <button
+                        onClick={() => handleUploadNewSpeaker(avatar.filename)}
+                        className="btn-primary text-sm py-1"
+                      >
+                        Upload New
+                      </button>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
-                    {formatAvatarTitle(filename)}
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    <button
-                      onClick={() => handleRecropSpeaker(filename)}
-                      className="btn-secondary text-sm py-1"
-                    >
-                      Re-crop
-                    </button>
-                    <button
-                      onClick={() => handleUploadNewSpeaker(filename)}
-                      className="btn-primary text-sm py-1"
-                    >
-                      Upload New
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12 text-gray-500">
+                  <p className="mb-4">No speaker avatars found. Upload the first ones to get started!</p>
+                  <p className="text-sm">Expected avatars: {DEFAULT_SPEAKER_AVATARS.join(', ')}</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

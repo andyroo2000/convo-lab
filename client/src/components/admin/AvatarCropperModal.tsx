@@ -76,24 +76,31 @@ export default function AvatarCropperModal({
   const [isSaving, setIsSaving] = useState(false);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
-  // Fetch image with credentials and create blob URL
+  // Fetch image and create blob URL
   useEffect(() => {
     if (!isOpen || !imageUrl) return;
 
     const fetchImage = async () => {
       try {
+        console.log('Fetching image from:', imageUrl);
+        // Only send credentials for same-origin requests (not for GCS URLs)
+        const isGCSUrl = imageUrl.includes('storage.googleapis.com');
+        console.log('Is GCS URL:', isGCSUrl);
         const response = await fetch(imageUrl, {
-          credentials: 'include',
+          credentials: isGCSUrl ? 'omit' : 'include',
         });
+        console.log('Response status:', response.status);
         if (!response.ok) {
-          throw new Error('Failed to fetch image');
+          throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
         }
         const blob = await response.blob();
+        console.log('Blob created, size:', blob.size);
         const url = URL.createObjectURL(blob);
+        console.log('Blob URL created:', url);
         setBlobUrl(url);
       } catch (error) {
         console.error('Failed to load image:', error);
-        alert('Failed to load image. Please try again.');
+        alert(`Failed to load image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
     };
 
