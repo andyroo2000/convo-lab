@@ -416,3 +416,20 @@ model ChunkExercise {
   @@index([packId])
   @@index([order])
 }
+
+// Speaker Avatar Models - Store avatars in GCS
+
+model SpeakerAvatar {
+  id          String   @id @default(uuid())
+  filename    String   @unique // e.g., "ja-female-casual.jpg"
+  croppedUrl  String   // GCS public URL for cropped avatar
+  originalUrl String   // GCS public URL for original/uncropped version
+  language    String   // Language code: 'ja', 'zh', etc.
+  gender      String   // 'male' or 'female'
+  tone        String   // 'casual', 'polite', 'formal'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([filename])
+  @@index([language, gender, tone])
+}

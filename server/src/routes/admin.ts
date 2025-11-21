@@ -9,7 +9,8 @@ import {
   uploadUserAvatar,
   uploadSpeakerAvatar,
   recropSpeakerAvatar,
-  getOriginalSpeakerAvatar,
+  getSpeakerAvatarOriginalUrl,
+  getAllSpeakerAvatars,
 } from '../services/avatarService.js';
 
 const router = Router();
@@ -259,7 +260,7 @@ router.delete('/invite-codes/:id', async (req: AuthRequest, res, next) => {
 // Avatar Management Routes
 // ============================================
 
-// Get original speaker avatar for re-cropping
+// Get original speaker avatar URL for re-cropping
 router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, next) => {
   try {
     const { filename } = req.params;
@@ -269,11 +270,8 @@ router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, 
       throw new AppError('Invalid avatar filename format', 400);
     }
 
-    const imageBuffer = await getOriginalSpeakerAvatar(filename);
-    const contentType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
-
-    res.set('Content-Type', contentType);
-    res.send(imageBuffer);
+    const originalUrl = await getSpeakerAvatarOriginalUrl(filename);
+    res.json({ originalUrl });
   } catch (error) {
     next(error);
   }
@@ -300,9 +298,14 @@ router.post('/avatars/speaker/:filename/upload', upload.single('image'), async (
       throw new AppError('Invalid crop area', 400);
     }
 
-    await uploadSpeakerAvatar(filename, req.file.buffer, cropArea);
+    const { croppedUrl, originalUrl } = await uploadSpeakerAvatar(filename, req.file.buffer, cropArea);
 
-    res.json({ message: 'Speaker avatar uploaded successfully', filename });
+    res.json({
+      message: 'Speaker avatar uploaded successfully',
+      filename,
+      croppedUrl,
+      originalUrl,
+    });
   } catch (error) {
     next(error);
   }
@@ -325,9 +328,24 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
       throw new AppError('Invalid crop area', 400);
     }
 
-    await recropSpeakerAvatar(filename, cropArea);
+    const { croppedUrl, originalUrl } = await recropSpeakerAvatar(filename, cropArea);
 
-    res.json({ message: 'Speaker avatar re-cropped successfully', filename });
+    res.json({
+      message: 'Speaker avatar re-cropped successfully',
+      filename,
+      croppedUrl,
+      originalUrl,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get all speaker avatars
+router.get('/avatars/speakers', async (req: AuthRequest, res, next) => {
+  try {
+    const avatars = await getAllSpeakerAvatars();
+    res.json(avatars);
   } catch (error) {
     next(error);
   }
