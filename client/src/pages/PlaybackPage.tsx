@@ -279,7 +279,7 @@ export default function PlaybackPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Episode Header */}
       <div className="card">
-        <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
+        <h1 className="text-3xl font-bold text-navy mb-1">{episode.title}</h1>
         <p className="text-sm text-gray-600 mb-4">
           {speakers[0]?.proficiency}, {speakers[0]?.tone}
         </p>
