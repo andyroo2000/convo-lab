@@ -4,6 +4,7 @@ import { ArrowLeft, Loader, Zap, Eye, EyeOff } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import JapaneseText from '../components/JapaneseText';
+import SpeedSelector from '../components/common/SpeedSelector';
 
 import { API_URL } from '../config';
 
@@ -56,6 +57,7 @@ export default function NarrowListeningPlaybackPage() {
   const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null);
   const [selectedSpeed, setSelectedSpeed] = useState<Speed>('0.85x');
   const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
+  const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatingSpeed, setGeneratingSpeed] = useState(false);
@@ -162,10 +164,11 @@ export default function NarrowListeningPlaybackPage() {
     if (currentSegment) {
       const element = segmentRefs.current.get(currentSegment.id);
       if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
+        // Scroll with offset to account for sticky header (nav + episode header + audio player)
+        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (20px) = ~264px
+        const yOffset = -264;
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
   }, [currentTime, selectedVersion, isPlaying, selectedSpeed]);
@@ -351,94 +354,93 @@ export default function NarrowListeningPlaybackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate('/app/narrow-listening')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Library
-          </button>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{pack.title}</h1>
-              <div className="flex items-center gap-3 mt-2 text-sm text-gray-600">
-                <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
-                  {pack.jlptLevel}
-                </span>
-                <span>{pack.versions.length} variations</span>
+      {/* Sticky Header Container (Header + Audio Player/Progress) */}
+      <div className="sticky top-16 z-10 bg-white shadow-lg">
+        {/* Episode Header */}
+        <div className="border-b border-gray-200">
+          <div className="max-w-5xl mx-auto px-6 py-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-navy mb-2">{pack.title}</h1>
+
+                {/* Segmented Pill: JLPT Level + Variations */}
+                <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
+                  {/* Left segment - JLPT Level */}
+                  <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
+                    {pack.jlptLevel}
+                  </div>
+
+                  {/* Right segment - Variations (with chevron left edge) */}
+                  <div
+                    className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
+                    style={{
+                      clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
+                      marginLeft: '-8px'
+                    }}
+                  >
+                    <span className="ml-2">{pack.versions.length} variations</span>
+                  </div>
+                </div>
+
+                {pack.grammarFocus && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    <strong>Focus:</strong> {pack.grammarFocus}
+                  </p>
+                )}
               </div>
-              {pack.grammarFocus && (
-                <p className="text-sm text-gray-600 mt-2">
-                  <strong>Focus:</strong> {pack.grammarFocus}
-                </p>
+
+              {/* Controls: Toggles and Speed Selector */}
+              {!generatingSpeed && currentAudioUrl && (
+                <div className="flex flex-col items-end gap-2 ml-6">
+                  {/* Row 1: Furigana & English Toggles */}
+                  <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+                    {/* Furigana Toggle */}
+                    <button
+                      onClick={() => setShowReadings(!showReadings)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                        showReadings
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={showReadings ? 'Hide furigana' : 'Show furigana'}
+                    >
+                      {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span>Furigana</span>
+                    </button>
+
+                    {/* English Translation Toggle */}
+                    <button
+                      onClick={() => setShowTranslations(!showTranslations)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                        showTranslations
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={showTranslations ? 'Hide English' : 'Show English'}
+                    >
+                      {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span>English</span>
+                    </button>
+                  </div>
+
+                  {/* Row 2: Speed Selector */}
+                  <SpeedSelector
+                    selectedSpeed={selectedSpeed}
+                    onSpeedChange={(speed) => handleSpeedChange(speed as Speed)}
+                    disabled={generatingSpeed}
+                    loading={generatingSpeed}
+                    loadingSpeed={selectedSpeed}
+                    showLabels={true}
+                  />
+                </div>
               )}
-            </div>
-
-            {/* Reading Toggle and Speed Selector */}
-            <div className="flex items-center gap-3">
-              {/* Furigana Toggle */}
-              <button
-                onClick={() => setShowReadings(!showReadings)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  showReadings
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-                title={showReadings ? 'Hide furigana' : 'Show furigana'}
-              >
-                {showReadings ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                <span>Furigana</span>
-              </button>
-
-              {/* Speed Selector */}
-              <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => handleSpeedChange('0.7x')}
-                  disabled={generatingSpeed}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                    selectedSpeed === '0.7x'
-                      ? 'bg-white text-purple-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
-                  }`}
-                >
-                  {generatingSpeed && selectedSpeed === '0.7x' && <Loader className="w-3 h-3 animate-spin" />}
-                  Slow (0.7x)
-                </button>
-                <button
-                  onClick={() => handleSpeedChange('0.85x')}
-                  disabled={generatingSpeed}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                    selectedSpeed === '0.85x'
-                      ? 'bg-white text-purple-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
-                  }`}
-                >
-                  Medium (0.85x)
-                </button>
-                <button
-                  onClick={() => handleSpeedChange('1.0x')}
-                  disabled={generatingSpeed}
-                  className={`px-3 py-2 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-                    selectedSpeed === '1.0x'
-                      ? 'bg-white text-purple-600 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900 disabled:opacity-50'
-                  }`}
-                >
-                  {generatingSpeed && selectedSpeed === '1.0x' && <Loader className="w-3 h-3 animate-spin" />}
-                  Normal (1.0x)
-                </button>
-              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Generation Progress Banner */}
-      {generatingSpeed && (
-        <div className="sticky top-20 z-10 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 shadow-md">
+        {/* Progress Banner (shown during generation) */}
+        {generatingSpeed && (
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200">
           <div className="max-w-5xl mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
               <Loader className="w-5 h-5 text-purple-600 animate-spin flex-shrink-0" />
@@ -464,51 +466,54 @@ export default function NarrowListeningPlaybackPage() {
             </div>
           </div>
         </div>
-      )}
+        )}
 
-      {/* Audio Player - Sticky */}
-      {currentAudioUrl && !generatingSpeed && (
-        <div className="sticky top-20 z-10 bg-pale-sky border-b border-gray-200 shadow-md">
-          <div className="max-w-5xl mx-auto px-6 py-3">
-            <AudioPlayer
-              src={currentAudioUrl}
-              audioRef={audioRef}
-              key={`${selectedVersionId}-${selectedSpeed}`}
-              repeatMode={repeatMode}
-              onRepeatModeChange={setRepeatMode}
-              onEnded={handleAudioEnded}
-            />
+        {/* Audio Player (shown when not generating) */}
+        {currentAudioUrl && !generatingSpeed && (
+          <div className="bg-pale-sky border-b border-gray-200">
+            <div className="max-w-5xl mx-auto px-6 py-3">
+              <AudioPlayer
+                src={currentAudioUrl}
+                audioRef={audioRef}
+                key={`${selectedVersionId}-${selectedSpeed}`}
+                repeatMode={repeatMode}
+                onRepeatModeChange={setRepeatMode}
+                onEnded={handleAudioEnded}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Main Content */}
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Version List */}
+          {/* Version List - Sticky */}
           <div className="lg:col-span-1">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">Story Variations</h3>
-            <div className="space-y-2">
-              {pack.versions.map((version) => (
-                <button
-                  key={version.id}
-                  onClick={() => handleVersionSelect(version.id)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
-                    selectedVersionId === version.id
-                      ? 'border-purple-500 bg-purple-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{version.title}</p>
+            <div className="sticky top-[280px]">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Story Variations</h3>
+              <div className="space-y-2">
+                {pack.versions.map((version) => (
+                  <button
+                    key={version.id}
+                    onClick={() => handleVersionSelect(version.id)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
+                      selectedVersionId === version.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{version.title}</p>
+                      </div>
+                      {selectedVersionId === version.id && isPlaying && (
+                        <Zap className="w-4 h-4 text-purple-600" />
+                      )}
                     </div>
-                    {selectedVersionId === version.id && isPlaying && (
-                      <Zap className="w-4 h-4 text-purple-600" />
-                    )}
-                  </div>
-                </button>
-              ))}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -547,16 +552,18 @@ export default function NarrowListeningPlaybackPage() {
                           boxShadow: isCurrentlySpeaking ? '0 2px 8px rgba(147, 51, 234, 0.15)' : 'none',
                         }}
                       >
-                        <p className="text-lg text-gray-900 mb-2 leading-relaxed">
+                        <p className={`text-lg text-gray-900 leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>
                           <JapaneseText
                             text={segment.japaneseText}
                             metadata={segment.reading ? { japanese: { kanji: segment.japaneseText, kana: '', furigana: segment.reading } } : undefined}
                             showFurigana={showReadings}
                           />
                         </p>
-                        <p className="text-sm text-gray-600 italic">
-                          {segment.englishTranslation}
-                        </p>
+                        {showTranslations && (
+                          <p className="text-sm text-gray-600 italic">
+                            {segment.englishTranslation}
+                          </p>
+                        )}
                       </div>
                     );
                   })}

@@ -72,10 +72,13 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
       episode.nativeLanguage
     );
 
-    // Update episode status
+    // Update episode status and title with LLM-generated title
     await prisma.episode.update({
       where: { id: episodeId },
-      data: { status: 'ready' },
+      data: {
+        status: 'ready',
+        title: dialogueData.title || episode.title, // Use LLM-generated title, fallback to existing
+      },
     });
 
     return dialogue;
@@ -145,6 +148,7 @@ For EACH line of dialogue, provide ${variationCount} alternative ways to say the
 
 Return your response as JSON in this exact format:
 {
+  "title": "A concise, descriptive English title for this dialogue using Romanized speaker names (e.g., 'Takeshi and Yuki Discuss Weekend Plans')",
   "sentences": [
     {
       "speaker": "SpeakerName",
@@ -158,6 +162,8 @@ Return your response as JSON in this exact format:
 IMPORTANT: Use EXACTLY these speaker names in your response: ${speakerNames.join(', ')}
 
 Requirements:
+- Generate a brief, descriptive title in English that captures the essence of the dialogue
+- The title should include the Romanized speaker names (e.g., use "Takeshi" for "たけし")
 - Generate EXACTLY ${dialogueLength} dialogue lines (back and forth turns)
 - Each line should be conversational and natural
 - Progress the conversation naturally through the experience

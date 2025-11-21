@@ -6,6 +6,7 @@ import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
+import SpeedSelector from '../components/common/SpeedSelector';
 import { TTS_VOICES } from '../../../shared/src/constants';
 import { API_URL } from '../config';
 import { Eye, EyeOff } from 'lucide-react';
@@ -76,6 +77,7 @@ export default function PlaybackPage() {
   const [generationProgress, setGenerationProgress] = useState(0);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
   const [showReadings, setShowReadings] = useState(false); // Hide furigana/pinyin by default
+  const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const [avatarUrls, setAvatarUrls] = useState<Map<string, string>>(new Map());
@@ -255,10 +257,11 @@ export default function PlaybackPage() {
     if (currentSentence) {
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
+        // Scroll with offset to account for sticky header (nav + episode header + audio player)
+        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (20px) = ~264px
+        const yOffset = -264;
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
       }
     }
   }, [currentTime, episode, selectedSpeed]);
@@ -392,92 +395,84 @@ export default function PlaybackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Episode Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
+      {/* Sticky Header Container (Header + Audio Player/Progress) */}
+      <div className="sticky top-16 z-10 bg-white shadow-lg">
+        {/* Episode Header */}
+        <div className="border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6 py-4">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
 
-              {/* Segmented Pill: Proficiency Level + Tone */}
-              <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
-                {/* Left segment - Proficiency Level */}
-                <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
-                  {speakers[0]?.proficiency}
-                </div>
+                {/* Segmented Pill: Proficiency Level + Tone */}
+                <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
+                  {/* Left segment - Proficiency Level */}
+                  <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
+                    {speakers[0]?.proficiency}
+                  </div>
 
-                {/* Right segment - Tone (with chevron left edge) */}
-                <div
-                  className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
-                  style={{
-                    clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
-                    marginLeft: '-8px'
-                  }}
-                >
-                  <span className="ml-2">{speakers[0]?.tone}</span>
+                  {/* Right segment - Tone (with chevron left edge) */}
+                  <div
+                    className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
+                    style={{
+                      clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
+                      marginLeft: '-8px'
+                    }}
+                  >
+                    <span className="ml-2">{speakers[0]?.tone}</span>
+                  </div>
                 </div>
               </div>
+
+              {/* Controls: Toggles and Speed Selector */}
+              {!isGeneratingAudio && currentAudioUrl && (
+                <div className="flex flex-col items-end gap-2 ml-6">
+                  {/* Row 1: Furigana & English Toggles */}
+                  <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+                    {/* Furigana/Pinyin Toggle */}
+                    <button
+                      onClick={() => setShowReadings(!showReadings)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                        showReadings
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={showReadings ? 'Hide readings' : 'Show readings'}
+                    >
+                      {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span>{episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}</span>
+                    </button>
+
+                    {/* English Translation Toggle */}
+                    <button
+                      onClick={() => setShowTranslations(!showTranslations)}
+                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+                        showTranslations
+                          ? 'bg-purple-600 text-white shadow-sm'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title={showTranslations ? 'Hide English' : 'Show English'}
+                    >
+                      {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      <span>English</span>
+                    </button>
+                  </div>
+
+                  {/* Row 2: Speed Selector */}
+                  <SpeedSelector
+                    selectedSpeed={selectedSpeed}
+                    onSpeedChange={(speed) => setSelectedSpeed(speed as AudioSpeed)}
+                    showLabels={true}
+                  />
+                </div>
+              )}
             </div>
-
-            {/* Reading Toggle and Speed Selector */}
-            {!isGeneratingAudio && currentAudioUrl && (
-              <div className="flex items-center gap-3 ml-6">
-                {/* Furigana/Pinyin Toggle */}
-                <button
-                  onClick={() => setShowReadings(!showReadings)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    showReadings
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  title={showReadings ? 'Hide readings' : 'Show readings'}
-                >
-                  {showReadings ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                  <span>{episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}</span>
-                </button>
-
-                {/* Speed Selector */}
-                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setSelectedSpeed('slow')}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      selectedSpeed === 'slow'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Slow (0.7x)
-                  </button>
-                  <button
-                    onClick={() => setSelectedSpeed('medium')}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      selectedSpeed === 'medium'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Medium (0.85x)
-                  </button>
-                  <button
-                    onClick={() => setSelectedSpeed('normal')}
-                    className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
-                      selectedSpeed === 'normal'
-                        ? 'bg-purple-600 text-white shadow-sm'
-                        : 'text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Normal (1.0x)
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
-      </div>
 
-      {/* Progress Banner (shown during generation) */}
-      {isGeneratingAudio && (
-        <div className="sticky top-16 z-10 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200 shadow-md">
+        {/* Progress Banner (shown during generation) */}
+        {isGeneratingAudio && (
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200">
           <div className="flex items-center gap-4 p-4">
             <div className="flex-shrink-0">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
@@ -500,20 +495,21 @@ export default function PlaybackPage() {
             </div>
           </div>
         </div>
-      )}
+        )}
 
-      {/* Audio Player - Sticky (shown when not generating) */}
-      {!isGeneratingAudio && currentAudioUrl && (
-        <div className="sticky top-16 z-10 bg-pale-sky border-b border-gray-200 shadow-md">
-          <div className="max-w-6xl mx-auto px-6 py-3">
-            <AudioPlayer
-              src={currentAudioUrl}
-              audioRef={audioRef}
-              key={currentAudioUrl}
-            />
+        {/* Audio Player (shown when not generating) */}
+        {!isGeneratingAudio && currentAudioUrl && (
+          <div className="bg-pale-sky border-b border-gray-200">
+            <div className="max-w-6xl mx-auto px-6 py-3">
+              <AudioPlayer
+                src={currentAudioUrl}
+                audioRef={audioRef}
+                key={currentAudioUrl}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Dialogue */}
       <div className="max-w-6xl mx-auto px-6 py-8">
@@ -583,10 +579,10 @@ export default function PlaybackPage() {
                   </span>
                 </div>
 
-                {/* Japanese Text and Translation - Side by Side */}
+                {/* Japanese Text and Translation - Side by Side or Full Width */}
                 <div className="flex gap-0 flex-1">
-                  {/* Japanese Text - Left Column */}
-                  <div className="flex-1 pr-6">
+                  {/* Japanese Text - Flexible Column */}
+                  <div className={showTranslations ? "flex-1 pr-6" : "w-full"}>
                     <p className="text-lg text-navy leading-relaxed">
                       <JapaneseText
                         text={sentence.text}
@@ -596,17 +592,19 @@ export default function PlaybackPage() {
                     </p>
                   </div>
 
-                  {/* Translation - Right Column */}
-                  <div
-                    className="flex-1 pl-6"
-                    style={{
-                      borderLeft: `1px solid ${hexToRgba(speaker.color || '#6B7280', 0.3)}`
-                    }}
-                  >
-                    <p className="text-gray-600 italic">
-                      {sentence.translation}
-                    </p>
-                  </div>
+                  {/* Translation - Right Column (conditionally rendered) */}
+                  {showTranslations && (
+                    <div
+                      className="flex-1 pl-6"
+                      style={{
+                        borderLeft: `1px solid ${hexToRgba(speaker.color || '#6B7280', 0.3)}`
+                      }}
+                    >
+                      <p className="text-gray-600 italic">
+                        {sentence.translation}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
