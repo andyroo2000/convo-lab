@@ -3,6 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Library, Mic } from 'lucide-react';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
+import OnboardingModal from '../onboarding/OnboardingModal';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -19,6 +20,11 @@ export default function Layout() {
     const returnUrl = encodeURIComponent(location.pathname);
     navigate(`/login?returnUrl=${returnUrl}`);
     return null;
+  }
+
+  // Show onboarding modal if user hasn't completed it
+  if (!user.onboardingCompleted) {
+    return <OnboardingModal />;
   }
 
   // Determine active navigation (updated for /app prefix)
