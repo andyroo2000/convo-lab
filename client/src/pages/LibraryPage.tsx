@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Clock, Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
+import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -494,8 +494,13 @@ export default function LibraryPage() {
                       <span>Dialogue</span>
                     </div>
 
+                    {/* Source Text Preview */}
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {episode.sourceText}
+                    </p>
+
                     {/* Language Info and Levels */}
-                    <div className="flex gap-2 text-sm flex-wrap">
+                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
                       {proficiencyLevels.length > 0 ? (
                         <SegmentedPill
                           leftText={episode.targetLanguage.toUpperCase()}
@@ -513,18 +518,6 @@ export default function LibraryPage() {
                           Generating...
                         </Pill>
                       )}
-                    </div>
-
-                    {/* Source Text Preview */}
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {episode.sourceText}
-                    </p>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-2 pt-2 border-t">
-                      <Pill color="indigo" intensity="light" variant="small">
-                        {new Date(episode.createdAt).toLocaleDateString()}
-                      </Pill>
                     </div>
                   </div>
                 </Link>
@@ -567,7 +560,7 @@ export default function LibraryPage() {
                     )}
 
                     {/* Language Info and JLPT Level */}
-                    <div className="flex gap-2 text-sm flex-wrap">
+                    <div className="flex items-center gap-2 text-sm flex-wrap pt-2 border-t">
                       {course.jlptLevel ? (
                         <SegmentedPill
                           leftText={`${course.targetLanguage.toUpperCase()} → ${course.nativeLanguage.toUpperCase()}`}
@@ -585,15 +578,8 @@ export default function LibraryPage() {
                           Generating...
                         </Pill>
                       )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs pt-2 border-t">
-                      <Pill color="indigo" intensity="light" variant="small">
-                        {new Date(course.createdAt).toLocaleDateString()}
-                      </Pill>
                       {course.lessons && (
-                        <div className="flex items-center gap-1 text-gray-500">
+                        <div className="flex items-center gap-1 text-xs text-gray-500">
                           <BookOpen className="w-3 h-3" />
                           {course.lessons.length} {course.lessons.length === 1 ? 'lesson' : 'lessons'}
                         </div>
@@ -638,7 +624,7 @@ export default function LibraryPage() {
                     </p>
 
                     {/* JLPT Level and Variations */}
-                    <div className="flex gap-2 text-sm flex-wrap">
+                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
                       <SegmentedPill
                         leftText={pack.jlptLevel}
                         rightText={`${pack.versions?.length || 0} variations`}
@@ -650,13 +636,6 @@ export default function LibraryPage() {
                           Generating...
                         </Pill>
                       )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-2 pt-2 border-t">
-                      <Pill color="indigo" intensity="light" variant="small">
-                        {new Date(pack.createdAt).toLocaleDateString()}
-                      </Pill>
                     </div>
                   </div>
                 </Link>
@@ -697,7 +676,7 @@ export default function LibraryPage() {
                     </p>
 
                     {/* JLPT Level and Stats */}
-                    <div className="flex gap-2 text-sm flex-wrap">
+                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
                       <SegmentedPill
                         leftText={pack.jlptLevel}
                         rightText={`${pack._count.examples} examples`}
@@ -720,13 +699,6 @@ export default function LibraryPage() {
                           Generating...
                         </Pill>
                       )}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-2 pt-2 border-t">
-                      <Pill color="indigo" intensity="light" variant="small">
-                        {new Date(pack.createdAt).toLocaleDateString()}
-                      </Pill>
                     </div>
                   </div>
                 </Link>
