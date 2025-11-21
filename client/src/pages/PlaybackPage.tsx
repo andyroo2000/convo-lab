@@ -297,7 +297,7 @@ export default function PlaybackPage() {
                 style={{ backgroundColor: speaker.color }}
               />
               <span className="text-sm font-medium text-navy">
-                {speaker.name}
+                <JapaneseText text={speaker.name} />
               </span>
               <span className="text-xs text-gray-500">
                 ({speaker.proficiency}, {speaker.tone})
@@ -438,8 +438,8 @@ export default function PlaybackPage() {
               <div className="space-y-3">
                 {/* Header */}
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-navy">
-                    {speaker.name}
+                  <span className="text-lg font-bold text-navy">
+                    <JapaneseText text={speaker.name} />:
                   </span>
                 </div>
 
