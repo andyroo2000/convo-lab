@@ -16,7 +16,7 @@ export type Intensity = 'light' | 'solid';
 
 interface PillProps {
   children: ReactNode;
-  colorScheme?: ColorScheme;
+  color?: ColorScheme;
   intensity?: Intensity;
   variant?: 'default' | 'rounded-full' | 'small';
   animated?: boolean;
@@ -72,7 +72,7 @@ const COLOR_SCHEMES: Record<ColorScheme, Record<Intensity, { bg: string; text: s
 
 export default function Pill({
   children,
-  colorScheme = 'gray',
+  color = 'gray',
   intensity = 'light',
   variant = 'default',
   animated = false,
@@ -82,7 +82,7 @@ export default function Pill({
   iconPosition = 'left',
   className = '',
 }: PillProps) {
-  const colors = COLOR_SCHEMES[colorScheme][intensity];
+  const colors = COLOR_SCHEMES[color][intensity];
 
   // Base styles
   const baseStyles = 'inline-flex items-center font-medium';
