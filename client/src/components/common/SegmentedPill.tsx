@@ -1,13 +1,10 @@
 import { ColorScheme } from './Pill';
 
-interface SegmentProps {
-  text: string;
-  colorScheme?: ColorScheme;
-}
-
 interface SegmentedPillProps {
-  leftSegment: SegmentProps;
-  rightSegment: SegmentProps;
+  leftText: string;
+  rightText: string;
+  leftColor?: ColorScheme;
+  rightColor?: ColorScheme;
   uppercase?: boolean;
   capitalize?: boolean;
   className?: string;
@@ -27,14 +24,16 @@ const SEGMENT_COLORS: Record<ColorScheme, string> = {
 };
 
 export default function SegmentedPill({
-  leftSegment,
-  rightSegment,
+  leftText,
+  rightText,
+  leftColor = 'indigo',
+  rightColor = 'purple',
   uppercase = false,
   capitalize = false,
   className = '',
 }: SegmentedPillProps) {
-  const leftColors = SEGMENT_COLORS[leftSegment.colorScheme || 'indigo'];
-  const rightColors = SEGMENT_COLORS[rightSegment.colorScheme || 'purple'];
+  const leftColors = SEGMENT_COLORS[leftColor];
+  const rightColors = SEGMENT_COLORS[rightColor];
 
   const leftTextTransform = uppercase ? 'uppercase tracking-wide' : capitalize ? 'capitalize' : '';
   const rightTextTransform = capitalize ? 'capitalize' : uppercase ? 'uppercase tracking-wide' : '';
@@ -43,7 +42,7 @@ export default function SegmentedPill({
     <div className={`inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm ${className}`}>
       {/* Left segment */}
       <div className={`pl-4 pr-5 py-1.5 ${leftColors} ${leftTextTransform}`}>
-        {leftSegment.text}
+        {leftText}
       </div>
 
       {/* Right segment with chevron */}
@@ -54,7 +53,7 @@ export default function SegmentedPill({
           marginLeft: '-8px'
         }}
       >
-        <span className="ml-2">{rightSegment.text}</span>
+        <span className="ml-2">{rightText}</span>
       </div>
     </div>
   );
