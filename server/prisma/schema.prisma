@@ -11,18 +11,20 @@ datasource db {
 }
 
 model User {
-  id                     String   @id @default(uuid())
-  email                  String   @unique
-  password               String
-  name                   String
-  displayName            String?
-  avatarColor            String?  @default("indigo")
-  role                   String   @default("user") // "user", "moderator", "admin"
-  preferredStudyLanguage String   @default("ja") // 'ja' or 'zh'
-  preferredNativeLanguage String  @default("en")
-  pinyinDisplayMode      String   @default("toneMarks") // 'toneMarks' or 'toneNumbers'
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  id                      String   @id @default(uuid())
+  email                   String   @unique
+  password                String
+  name                    String
+  displayName             String?
+  avatarColor             String?  @default("indigo")
+  role                    String   @default("user") // "user", "moderator", "admin"
+  preferredStudyLanguage  String   @default("ja") // 'ja' or 'zh'
+  preferredNativeLanguage String   @default("en")
+  pinyinDisplayMode       String   @default("toneMarks") // 'toneMarks' or 'toneNumbers'
+  proficiencyLevel        String   @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
+  onboardingCompleted     Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
   episodes             Episode[]
   courses              Course[]
@@ -54,8 +56,16 @@ model Episode {
   targetLanguage String   // Language code: 'ja', 'zh', etc.
   nativeLanguage String   // User's native language
   status         String   @default("draft") // draft, generating, ready, error
+
+  // Legacy single-speed audio (for backward compatibility)
   audioUrl       String?
-  audioSpeed     String?  @default("medium") // very-slow, slow, medium, normal
+  audioSpeed     String?  @default("medium") // Legacy: very-slow, slow, medium, normal
+
+  // Multi-speed audio URLs
+  audioUrl_0_7   String?  // Slow (0.7x)
+  audioUrl_0_85  String?  // Medium (0.85x)
+  audioUrl_1_0   String?  // Normal (1.0x)
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -108,9 +118,19 @@ model Sentence {
   // Structure: { japanese?: { kanji, kana, furigana }, chinese?: { characters, pinyin }, ... }
   metadata    Json
 
+  // Legacy single-speed timing (for backward compatibility)
   audioUrl    String?
   startTime   Int?     // milliseconds
   endTime     Int?     // milliseconds
+
+  // Multi-speed timings
+  startTime_0_7  Int?  // milliseconds at 0.7x speed
+  endTime_0_7    Int?  // milliseconds at 0.7x speed
+  startTime_0_85 Int?  // milliseconds at 0.85x speed
+  endTime_0_85   Int?  // milliseconds at 0.85x speed
+  startTime_1_0  Int?  // milliseconds at 1.0x speed
+  endTime_1_0    Int?  // milliseconds at 1.0x speed
+
   variations  Json?    // Array of alternative phrasings
   selected    Boolean  @default(false)
 

@@ -66,6 +66,8 @@ router.post('/signup', async (req, res, next) => {
           preferredStudyLanguage: true,
           preferredNativeLanguage: true,
           pinyinDisplayMode: true,
+          proficiencyLevel: true,
+          onboardingCompleted: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -155,6 +157,8 @@ router.post('/login', async (req, res, next) => {
       preferredStudyLanguage: updatedUser.preferredStudyLanguage,
       preferredNativeLanguage: updatedUser.preferredNativeLanguage,
       pinyinDisplayMode: updatedUser.pinyinDisplayMode,
+      proficiencyLevel: updatedUser.proficiencyLevel,
+      onboardingCompleted: updatedUser.onboardingCompleted,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     });
@@ -184,6 +188,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
         pinyinDisplayMode: true,
+        proficiencyLevel: true,
+        onboardingCompleted: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -202,7 +208,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const { displayName, avatarColor, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode } = req.body;
+    const { displayName, avatarColor, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode, proficiencyLevel, onboardingCompleted } = req.body;
 
     // Validate avatarColor if provided
     const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
@@ -225,6 +231,12 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError('Invalid pinyin display mode', 400);
     }
 
+    // Validate proficiency level if provided
+    const validProficiencyLevels = ['beginner', 'intermediate', 'advanced', 'native'];
+    if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
+      throw new AppError('Invalid proficiency level', 400);
+    }
+
     // Build update data object (only include provided fields)
     const updateData: any = {};
     if (displayName !== undefined) updateData.displayName = displayName;
@@ -232,6 +244,8 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     if (preferredStudyLanguage !== undefined) updateData.preferredStudyLanguage = preferredStudyLanguage;
     if (preferredNativeLanguage !== undefined) updateData.preferredNativeLanguage = preferredNativeLanguage;
     if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;
+    if (proficiencyLevel !== undefined) updateData.proficiencyLevel = proficiencyLevel;
+    if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
 
     if (Object.keys(updateData).length === 0) {
       throw new AppError('No fields to update', 400);
@@ -250,6 +264,8 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
         pinyinDisplayMode: true,
+        proficiencyLevel: true,
+        onboardingCompleted: true,
         createdAt: true,
         updatedAt: true,
       },

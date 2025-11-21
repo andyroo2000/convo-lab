@@ -6,7 +6,7 @@ export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'nativ
 
 export type ToneStyle = 'casual' | 'polite' | 'formal';
 
-export type AudioSpeed = 'very-slow' | 'slow' | 'medium' | 'normal';
+export type AudioSpeed = 'slow' | 'medium' | 'normal';
 
 export interface User {
   id: string;
@@ -18,6 +18,8 @@ export interface User {
   preferredStudyLanguage?: LanguageCode;
   preferredNativeLanguage?: LanguageCode;
   pinyinDisplayMode?: 'toneMarks' | 'toneNumbers';
+  proficiencyLevel?: ProficiencyLevel;
+  onboardingCompleted?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -34,8 +36,13 @@ export interface Episode {
   updatedAt: Date;
   dialogue?: Dialogue;
   images?: Image[];
+  // Legacy single-speed audio
   audioUrl?: string;
   audioSpeed?: AudioSpeed;
+  // Multi-speed audio URLs
+  audioUrl_0_7?: string;
+  audioUrl_0_85?: string;
+  audioUrl_1_0?: string;
 }
 
 export interface Dialogue {
@@ -70,10 +77,18 @@ export interface Sentence {
   metadata: LanguageMetadata;
   variationsMetadata?: LanguageMetadata[];
 
-  // Audio timing
+  // Legacy single-speed timing
   audioUrl?: string;
   startTime?: number; // milliseconds
   endTime?: number;   // milliseconds
+
+  // Multi-speed timings
+  startTime_0_7?: number;
+  endTime_0_7?: number;
+  startTime_0_85?: number;
+  endTime_0_85?: number;
+  startTime_1_0?: number;
+  endTime_1_0?: number;
 
   // Generation
   variations?: string[];
