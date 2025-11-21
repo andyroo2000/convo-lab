@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { Clock, Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
 import ConfirmModal from '../components/common/ConfirmModal';
+import EmptyStateCard from '../components/EmptyStateCard';
 
 import { API_URL } from '../config';
 
@@ -376,15 +377,84 @@ export default function LibraryPage() {
       </div>
 
       {allItems.length === 0 ? (
-        <div className="card">
-          <p className="text-gray-500 text-center py-12">
-            {filter === 'dialogues' && 'No dialogues yet. Create your first dialogue to get started!'}
-            {filter === 'courses' && 'No audio courses yet. Create your first audio course to get started!'}
-            {filter === 'narrowListening' && 'No narrow listening packs yet. Create your first pack to get started!'}
-            {filter === 'chunkPacks' && 'No lexical chunk packs yet. Create your first lexical chunk pack to get started!'}
-            {filter === 'all' && 'No content yet. Create a dialogue, audio course, narrow listening pack, or lexical chunk pack to get started!'}
-          </p>
-        </div>
+        <>
+          {filter === 'dialogues' && (
+            <EmptyStateCard
+              icon={MessageSquare}
+              title="Create Your First Dialogue"
+              description="Generate comprehensible input dialogues at your level with natural conversations and audio"
+              buttonText="Get Started"
+              route="/app/studio/create/dialogue"
+              colorTheme={{
+                bg: 'bg-indigo-50',
+                text: 'text-indigo-600',
+                border: 'border-indigo-200',
+                button: 'bg-indigo-600 hover:bg-indigo-700',
+              }}
+            />
+          )}
+          {filter === 'courses' && (
+            <EmptyStateCard
+              icon={Headphones}
+              title="Create Your First Audio Course"
+              description="Build guided audio courses with structured lessons and pronunciation practice"
+              buttonText="Get Started"
+              route="/app/studio/create/audio-course"
+              colorTheme={{
+                bg: 'bg-orange-50',
+                text: 'text-orange-600',
+                border: 'border-orange-200',
+                button: 'bg-orange-600 hover:bg-orange-700',
+              }}
+            />
+          )}
+          {filter === 'narrowListening' && (
+            <EmptyStateCard
+              icon={Sparkles}
+              title="Create Your First Narrow Listening Pack"
+              description="Practice with story variations at your level for focused listening comprehension"
+              buttonText="Get Started"
+              route="/app/studio/create/narrow-listening"
+              colorTheme={{
+                bg: 'bg-purple-50',
+                text: 'text-purple-600',
+                border: 'border-purple-200',
+                button: 'bg-purple-600 hover:bg-purple-700',
+              }}
+            />
+          )}
+          {filter === 'chunkPacks' && (
+            <EmptyStateCard
+              icon={BookOpen}
+              title="Create Your First Lexical Chunk Pack"
+              description="Master high-frequency expressions with examples, stories, and interactive exercises"
+              buttonText="Get Started"
+              route="/app/studio/create/lexical-chunk-pack"
+              colorTheme={{
+                bg: 'bg-emerald-50',
+                text: 'text-emerald-600',
+                border: 'border-emerald-200',
+                button: 'bg-emerald-600 hover:bg-emerald-700',
+              }}
+            />
+          )}
+          {filter === 'all' && (
+            <div className="card">
+              <div className="text-center py-12 space-y-4">
+                <p className="text-gray-500">
+                  No content yet. Get started by creating your first learning material!
+                </p>
+                <button
+                  onClick={() => window.location.href = '/app/studio'}
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  Browse All Options
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {allItems.map((item) => {
@@ -398,7 +468,7 @@ export default function LibraryPage() {
               return (
                 <Link
                   key={episode.id}
-                  to={`/playback/${episode.id}`}
+                  to={`/app/playback/${episode.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-indigo"
                 >
                   {/* Delete Button - appears on hover */}
@@ -457,7 +527,7 @@ export default function LibraryPage() {
               return (
                 <Link
                   key={course.id}
-                  to={`/courses/${course.id}`}
+                  to={`/app/courses/${course.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-orange-500"
                 >
                   {/* Delete Button - appears on hover */}
@@ -524,7 +594,7 @@ export default function LibraryPage() {
               return (
                 <Link
                   key={pack.id}
-                  to={`/narrow-listening/${pack.id}`}
+                  to={`/app/narrow-listening/${pack.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-600"
                 >
                   {/* Delete Button - appears on hover */}
@@ -581,7 +651,7 @@ export default function LibraryPage() {
               return (
                 <Link
                   key={pack.id}
-                  to={`/chunk-packs/${pack.id}/examples`}
+                  to={`/app/chunk-packs/${pack.id}/examples`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50 border-l-4 border-emerald-600"
                 >
                   {/* Delete Button - appears on hover */}
