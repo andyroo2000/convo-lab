@@ -4,6 +4,7 @@ import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../typ
 import { useEpisodes } from '../../hooks/useEpisodes';
 import SpeakerConfig from './SpeakerConfig';
 import { TTS_VOICES } from '../../../../shared/src/constants';
+import { getRandomName } from '../../../../shared/src/nameConstants';
 
 interface SpeakerFormData {
   name: string;
@@ -15,6 +16,20 @@ interface SpeakerFormData {
 
 const DEFAULT_SPEAKER_COLORS = ['#5E6AD8', '#4EA6B1', '#FF6A6A', '#A6F2C2'];
 
+/**
+ * Get a random voice ID for the specified gender and language
+ */
+function getRandomVoice(gender: 'male' | 'female', language: LanguageCode): string {
+  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
+  const genderVoices = languageVoices.filter(v => v.gender === gender);
+
+  if (genderVoices.length === 0) {
+    return languageVoices[0]?.id || '';
+  }
+
+  return genderVoices[Math.floor(Math.random() * genderVoices.length)].id;
+}
+
 export default function DialogueGenerator() {
   const navigate = useNavigate();
   const { createEpisode, generateDialogue, pollJobStatus, loading, error } = useEpisodes();
@@ -23,25 +38,22 @@ export default function DialogueGenerator() {
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage] = useState<LanguageCode>('ja'); // Fixed for now
   const [nativeLanguage] = useState<LanguageCode>('en');
-  const [dialogueLength, setDialogueLength] = useState(6);
-  const [audioSpeed, setAudioSpeed] = useState<AudioSpeed>('medium');
+  const [dialogueLength, setDialogueLength] = useState(8);
 
   // Get default voices from TTS_VOICES for the target language
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  const defaultVoice1 = targetVoices.find(v => v.gender === 'female')?.id || targetVoices[0]?.id || '';
-  const defaultVoice2 = targetVoices.find(v => v.gender === 'male')?.id || targetVoices[1]?.id || '';
 
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>([
     {
-      name: 'Speaker 1',
-      voiceId: defaultVoice1,
+      name: getRandomName(targetLanguage, 'female'),
+      voiceId: getRandomVoice('female', targetLanguage),
       proficiency: 'intermediate',
       tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[0],
     },
     {
-      name: 'Speaker 2',
-      voiceId: defaultVoice2,
+      name: getRandomName(targetLanguage, 'male'),
+      voiceId: getRandomVoice('male', targetLanguage),
       proficiency: 'native',
       tone: 'polite',
       color: DEFAULT_SPEAKER_COLORS[1],
@@ -66,7 +78,7 @@ export default function DialogueGenerator() {
         // Navigate to playback page
         setTimeout(() => {
           if (generatedEpisodeId) {
-            navigate(`/playback/${generatedEpisodeId}`);
+            navigate(`/app/playback/${generatedEpisodeId}`);
           }
         }, 2000);
       } else if (status === 'failed') {
@@ -81,13 +93,13 @@ export default function DialogueGenerator() {
 
   const addSpeaker = () => {
     const newIndex = speakers.length;
-    // Alternate between female and male voices
-    const defaultVoice = newIndex % 2 === 0 ? defaultVoice1 : defaultVoice2;
+    // Alternate between female and male
+    const gender = newIndex % 2 === 0 ? 'female' : 'male';
     setSpeakers([
       ...speakers,
       {
-        name: `Speaker ${newIndex + 1}`,
-        voiceId: defaultVoice,
+        name: getRandomName(targetLanguage, gender),
+        voiceId: getRandomVoice(gender, targetLanguage),
         proficiency: 'intermediate',
         tone: 'casual',
         color: DEFAULT_SPEAKER_COLORS[newIndex % DEFAULT_SPEAKER_COLORS.length],
@@ -132,7 +144,7 @@ export default function DialogueGenerator() {
           tone: s.tone,
           color: s.color,
         })),
-        audioSpeed,
+        audioSpeed: 'medium',
       });
 
       setGeneratedEpisodeId(episode.id);
@@ -246,57 +258,22 @@ export default function DialogueGenerator() {
                 disabled
                 className="input bg-gray-50 cursor-not-allowed"
               />
-              <p className="text-xs text-gray-500 mt-1">
-                More languages coming soon!
-              </p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-navy mb-2">
-                Native Language
-              </label>
-              <input
-                type="text"
-                value="English"
-                disabled
-                className="input bg-gray-50 cursor-not-allowed"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-navy mb-2">
-                Dialogue Length
-              </label>
-              <input
-                type="number"
-                min="2"
-                max="50"
-                value={dialogueLength}
-                onChange={(e) => setDialogueLength(Math.max(2, Math.min(50, parseInt(e.target.value) || 6)))}
-                className="input"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                2-50 turns (default: 6)
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-navy mb-2">
-                Audio Speed
+                Conversation Length
               </label>
               <select
-                value={audioSpeed}
-                onChange={(e) => setAudioSpeed(e.target.value as AudioSpeed)}
+                value={dialogueLength}
+                onChange={(e) => setDialogueLength(parseInt(e.target.value))}
                 className="input"
               >
-                <option value="very-slow">Very Slow</option>
-                <option value="slow">Slow</option>
-                <option value="medium">Medium</option>
-                <option value="normal">Normal</option>
+                <option value="8">8 turns</option>
+                <option value="15">15 turns</option>
+                <option value="30">30 turns</option>
+                <option value="50">50 turns</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Default speed for audio
-              </p>
             </div>
           </div>
         </div>

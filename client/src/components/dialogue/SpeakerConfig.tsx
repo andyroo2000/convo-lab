@@ -1,5 +1,6 @@
 import { ProficiencyLevel, ToneStyle, LanguageCode } from '../../types';
 import { TTS_VOICES } from '../../../../shared/src/constants';
+import JapaneseText from '../JapaneseText';
 
 interface SpeakerConfigProps {
   name: string;
@@ -55,13 +56,9 @@ export default function SpeakerConfig({
             <label className="block text-sm font-medium text-navy mb-2">
               Speaker Name
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => onUpdate('name', e.target.value)}
-              className="input"
-              placeholder="e.g., Customer, Teacher, Friend"
-            />
+            <div className="px-4 py-2 bg-gray-50 border border-warm-gray rounded-lg text-navy text-lg">
+              <JapaneseText text={name} />
+            </div>
           </div>
           {canRemove && (
             <button
