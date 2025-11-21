@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Settings, Trash2, ArrowLeft, Lock, Languages } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
-import { LanguageCode, ProficiencyLevel } from '../types';
+import { LanguageCode } from '../types';
 
 const AVATAR_COLORS = [
   { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -25,7 +25,8 @@ export default function SettingsPage() {
   const [preferredStudyLanguage, setPreferredStudyLanguage] = useState<LanguageCode>('ja');
   const [preferredNativeLanguage, setPreferredNativeLanguage] = useState<LanguageCode>('en');
   const [pinyinDisplayMode, setPinyinDisplayMode] = useState<'toneMarks' | 'toneNumbers'>('toneMarks');
-  const [proficiencyLevel, setProficiencyLevel] = useState<ProficiencyLevel>('beginner');
+  const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,7 +49,19 @@ export default function SettingsPage() {
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
       setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
-      setProficiencyLevel(user.proficiencyLevel || 'beginner');
+
+      // Initialize language-specific proficiency level
+      const storedLevel = user.proficiencyLevel;
+      if (storedLevel) {
+        // If it's a JLPT level (N1-N5), set jlptLevel
+        if (storedLevel.startsWith('N')) {
+          setJlptLevel(storedLevel);
+        }
+        // If it's an HSK level (HSK1-HSK6), set hskLevel
+        else if (storedLevel.startsWith('HSK')) {
+          setHskLevel(storedLevel);
+        }
+      }
     }
   }, [user]);
 
@@ -59,13 +72,15 @@ export default function SettingsPage() {
     const currentStudyLang = user.preferredStudyLanguage || 'ja';
     const currentNativeLang = user.preferredNativeLanguage || 'en';
     const currentPinyinMode = user.pinyinDisplayMode || 'toneMarks';
-    const currentProficiency = user.proficiencyLevel || 'beginner';
+    const currentProficiency = user.proficiencyLevel || '';
+    const newProficiency = preferredStudyLanguage === 'ja' ? jlptLevel : hskLevel;
+
     return displayName !== currentDisplayName ||
            selectedColor !== currentColor ||
            preferredStudyLanguage !== currentStudyLang ||
            preferredNativeLanguage !== currentNativeLang ||
            pinyinDisplayMode !== currentPinyinMode ||
-           proficiencyLevel !== currentProficiency;
+           newProficiency !== currentProficiency;
   };
 
   const handleSave = async () => {
@@ -79,6 +94,9 @@ export default function SettingsPage() {
     setSuccess(null);
 
     try {
+      // Get the appropriate proficiency level based on study language
+      const proficiencyLevel = preferredStudyLanguage === 'ja' ? jlptLevel : hskLevel;
+
       await updateUser({
         displayName: displayName.trim() || undefined,
         avatarColor: selectedColor,
@@ -103,7 +121,17 @@ export default function SettingsPage() {
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
       setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
-      setProficiencyLevel(user.proficiencyLevel || 'beginner');
+
+      // Reset language-specific proficiency level
+      const storedLevel = user.proficiencyLevel;
+      if (storedLevel) {
+        if (storedLevel.startsWith('N')) {
+          setJlptLevel(storedLevel);
+        } else if (storedLevel.startsWith('HSK')) {
+          setHskLevel(storedLevel);
+        }
+      }
+
       setError(null);
       setSuccess(null);
     }
@@ -315,24 +343,50 @@ export default function SettingsPage() {
         </div>
 
         {/* Proficiency Level */}
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
-            Current Proficiency Level
-          </label>
-          <select
-            value={proficiencyLevel}
-            onChange={(e) => setProficiencyLevel(e.target.value as ProficiencyLevel)}
-            className="input"
-          >
-            <option value="beginner">Beginner - Just starting out</option>
-            <option value="intermediate">Intermediate - Can have basic conversations</option>
-            <option value="advanced">Advanced - Fluent in most situations</option>
-            <option value="native">Native / Near-Native - Completely fluent</option>
-          </select>
-          <p className="text-xs text-gray-500 mt-1">
-            This helps us generate content at the right difficulty level
-          </p>
-        </div>
+        {preferredStudyLanguage === 'ja' && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Current JLPT Level
+            </label>
+            <select
+              value={jlptLevel}
+              onChange={(e) => setJlptLevel(e.target.value)}
+              className="input"
+            >
+              <option value="N5">N5 (Beginner)</option>
+              <option value="N4">N4 (Upper Beginner)</option>
+              <option value="N3">N3 (Intermediate)</option>
+              <option value="N2">N2 (Upper Intermediate)</option>
+              <option value="N1">N1 (Advanced)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              This helps us generate content at the right difficulty level
+            </p>
+          </div>
+        )}
+
+        {preferredStudyLanguage === 'zh' && (
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-gray-900 mb-2">
+              Current HSK Level
+            </label>
+            <select
+              value={hskLevel}
+              onChange={(e) => setHskLevel(e.target.value)}
+              className="input"
+            >
+              <option value="HSK1">HSK 1 (Beginner)</option>
+              <option value="HSK2">HSK 2 (Upper Beginner)</option>
+              <option value="HSK3">HSK 3 (Intermediate)</option>
+              <option value="HSK4">HSK 4 (Upper Intermediate)</option>
+              <option value="HSK5">HSK 5 (Advanced)</option>
+              <option value="HSK6">HSK 6 (Mastery)</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              This helps us generate content at the right difficulty level
+            </p>
+          </div>
+        )}
 
         {/* Pinyin Display Mode (only shown when study language is Chinese) */}
         {preferredStudyLanguage === 'zh' && (

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { LanguageCode, ProficiencyLevel } from '../../types';
+import { LanguageCode } from '../../types';
 
 export default function OnboardingModal() {
   const { user, updateUser } = useAuth();
   const [step, setStep] = useState<1 | 2>(1);
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(user?.preferredStudyLanguage || 'ja');
-  const [proficiencyLevel, setProficiencyLevel] = useState<ProficiencyLevel>(user?.proficiencyLevel || 'beginner');
+  const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = async () => {
@@ -14,6 +15,9 @@ export default function OnboardingModal() {
 
     setIsSubmitting(true);
     try {
+      // Store the language-specific level in the generic proficiencyLevel field
+      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel : hskLevel;
+
       await updateUser({
         preferredStudyLanguage: targetLanguage,
         proficiencyLevel,
@@ -103,70 +107,174 @@ export default function OnboardingModal() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What's your current level?
+                What's your current {targetLanguage === 'ja' ? 'JLPT' : 'HSK'} level?
               </h2>
               <p className="text-gray-600">
                 This helps us create content at the right difficulty
               </p>
             </div>
 
-            <div className="space-y-3">
-              <button
-                onClick={() => setProficiencyLevel('beginner')}
-                className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
-                  proficiencyLevel === 'beginner'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
-                }`}
-              >
-                <h3 className="font-semibold text-navy mb-1">Beginner</h3>
-                <p className="text-sm text-gray-600">
-                  Just starting out or know basic phrases
-                </p>
-              </button>
+            {targetLanguage === 'ja' && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setJlptLevel('N5')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    jlptLevel === 'N5'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">N5 (Beginner)</h3>
+                  <p className="text-sm text-gray-600">
+                    Basic grammar and around 800 vocabulary words
+                  </p>
+                </button>
 
-              <button
-                onClick={() => setProficiencyLevel('intermediate')}
-                className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
-                  proficiencyLevel === 'intermediate'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
-                }`}
-              >
-                <h3 className="font-semibold text-navy mb-1">Intermediate</h3>
-                <p className="text-sm text-gray-600">
-                  Can have basic conversations and understand common phrases
-                </p>
-              </button>
+                <button
+                  onClick={() => setJlptLevel('N4')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    jlptLevel === 'N4'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">N4 (Upper Beginner)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand everyday conversations at slower speeds
+                  </p>
+                </button>
 
-              <button
-                onClick={() => setProficiencyLevel('advanced')}
-                className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
-                  proficiencyLevel === 'advanced'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
-                }`}
-              >
-                <h3 className="font-semibold text-navy mb-1">Advanced</h3>
-                <p className="text-sm text-gray-600">
-                  Fluent in most situations, looking to refine skills
-                </p>
-              </button>
+                <button
+                  onClick={() => setJlptLevel('N3')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    jlptLevel === 'N3'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">N3 (Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand most everyday conversations
+                  </p>
+                </button>
 
-              <button
-                onClick={() => setProficiencyLevel('native')}
-                className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
-                  proficiencyLevel === 'native'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
-                }`}
-              >
-                <h3 className="font-semibold text-navy mb-1">Native / Near-Native</h3>
-                <p className="text-sm text-gray-600">
-                  Native speaker or completely fluent
-                </p>
-              </button>
-            </div>
+                <button
+                  onClick={() => setJlptLevel('N2')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    jlptLevel === 'N2'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">N2 (Upper Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand a wide range of topics at natural speed
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setJlptLevel('N1')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    jlptLevel === 'N1'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">N1 (Advanced)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand complex topics and nuanced expressions
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {targetLanguage === 'zh' && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setHskLevel('HSK1')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK1'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 1 (Beginner)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand and use very simple phrases
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setHskLevel('HSK2')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK2'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 2 (Upper Beginner)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can communicate in simple routine tasks
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setHskLevel('HSK3')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK3'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 3 (Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can handle most everyday situations
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setHskLevel('HSK4')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK4'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 4 (Upper Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can discuss a wide range of topics fluently
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setHskLevel('HSK5')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK5'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 5 (Advanced)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can read newspapers and understand TV programs
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setHskLevel('HSK6')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    hskLevel === 'HSK6'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">HSK 6 (Mastery)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can easily comprehend and express yourself in Chinese
+                  </p>
+                </button>
+              </div>
+            )}
 
             <div className="flex justify-between mt-8">
               <button
