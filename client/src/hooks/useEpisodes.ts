@@ -107,6 +107,39 @@ export function useEpisodes() {
     }
   };
 
+  const generateAllSpeedsAudio = async (
+    episodeId: string,
+    dialogueId: string
+  ): Promise<string> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/audio/generate-all-speeds`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ episodeId, dialogueId }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate multi-speed audio');
+      }
+
+      const data = await response.json();
+      return data.jobId;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setError(message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getEpisode = async (episodeId: string): Promise<Episode> => {
     setLoading(true);
     setError(null);
@@ -201,6 +234,7 @@ export function useEpisodes() {
     createEpisode,
     generateDialogue,
     generateAudio,
+    generateAllSpeedsAudio,
     getEpisode,
     deleteEpisode,
     pollJobStatus,

@@ -19,10 +19,11 @@ try {
 
 // Audio speed presets mapping
 const SPEED_PRESETS: Record<string, number> = {
+  'slow': 0.7,
+  'medium': 0.85,
+  'normal': 1.0,
+  // Legacy support
   'very-slow': 0.65,
-  'slow': 0.85,
-  'medium': 1.0,
-  'normal': 1.15,
 };
 
 interface GenerateAudioRequest {
@@ -30,6 +31,14 @@ interface GenerateAudioRequest {
   dialogueId: string;
   speed?: 'very-slow' | 'slow' | 'medium' | 'normal';
   pauseMode?: boolean;
+}
+
+interface SpeedConfig {
+  key: 'slow' | 'medium' | 'normal';
+  value: number;
+  audioUrlField: 'audioUrl_0_7' | 'audioUrl_0_85' | 'audioUrl_1_0';
+  startTimeField: 'startTime_0_7' | 'startTime_0_85' | 'startTime_1_0';
+  endTimeField: 'endTime_0_7' | 'endTime_0_85' | 'endTime_1_0';
 }
 
 export async function generateEpisodeAudio(request: GenerateAudioRequest) {
@@ -273,4 +282,138 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       // Ignore cleanup errors
     }
   }
+}
+
+/**
+ * Generate audio at all three speeds (0.7x, 0.85x, 1.0x) for a dialogue
+ * @param episodeId - Episode ID
+ * @param dialogueId - Dialogue ID
+ * @param onProgress - Callback for progress updates (0-100)
+ */
+export async function generateAllSpeedsAudio(
+  episodeId: string,
+  dialogueId: string,
+  onProgress?: (progress: number) => void
+) {
+  const speedConfigs: SpeedConfig[] = [
+    { key: 'slow', value: 0.7, audioUrlField: 'audioUrl_0_7', startTimeField: 'startTime_0_7', endTimeField: 'endTime_0_7' },
+    { key: 'medium', value: 0.85, audioUrlField: 'audioUrl_0_85', startTimeField: 'startTime_0_85', endTimeField: 'endTime_0_85' },
+    { key: 'normal', value: 1.0, audioUrlField: 'audioUrl_1_0', startTimeField: 'startTime_1_0', endTimeField: 'endTime_1_0' },
+  ];
+
+  const results: Array<{ speed: string; audioUrl: string; duration: number }> = [];
+
+  for (let i = 0; i < speedConfigs.length; i++) {
+    const config = speedConfigs[i];
+    console.log(`Generating ${config.key} (${config.value}x) audio...`);
+
+    // Get dialogue with sentences and speakers
+    const dialogue = await prisma.dialogue.findUnique({
+      where: { id: dialogueId },
+      include: {
+        sentences: {
+          orderBy: { order: 'asc' },
+          include: {
+            speaker: true,
+          },
+        },
+        speakers: true,
+      },
+    });
+
+    if (!dialogue) {
+      throw new Error('Dialogue not found');
+    }
+
+    const episode = await prisma.episode.findUnique({
+      where: { id: episodeId },
+    });
+
+    if (!episode) {
+      throw new Error('Episode not found');
+    }
+
+    // Generate audio for each sentence
+    const audioFiles: Array<{ buffer: Buffer; duration: number }> = [];
+    const sentenceTimings: Array<{
+      sentenceId: string;
+      startTime: number;
+      endTime: number;
+    }> = [];
+
+    let currentTime = 0;
+    const PAUSE_BETWEEN_TURNS_MS = 1000;
+
+    for (let j = 0; j < dialogue.sentences.length; j++) {
+      const sentence = dialogue.sentences[j];
+      const speaker = sentence.speaker;
+
+      // Generate audio with specific speed
+      const audioBuffer = await synthesizeSpeech({
+        text: sentence.text,
+        voiceId: speaker.voiceId,
+        languageCode: episode.targetLanguage === 'ja' ? 'ja-JP' : episode.targetLanguage,
+        speed: config.value,
+        useSSML: false,
+      });
+
+      const duration = await getAudioDuration(audioBuffer);
+      audioFiles.push({ buffer: audioBuffer, duration });
+
+      sentenceTimings.push({
+        sentenceId: sentence.id,
+        startTime: currentTime,
+        endTime: currentTime + duration,
+      });
+
+      currentTime += duration;
+
+      // Update sentence with timing for this speed
+      await prisma.sentence.update({
+        where: { id: sentence.id },
+        data: {
+          [config.startTimeField]: Math.floor(sentenceTimings[sentenceTimings.length - 1].startTime),
+          [config.endTimeField]: Math.floor(sentenceTimings[sentenceTimings.length - 1].endTime),
+        },
+      });
+
+      if (j < dialogue.sentences.length - 1) {
+        currentTime += PAUSE_BETWEEN_TURNS_MS;
+      }
+    }
+
+    // Concatenate all audio files
+    const finalAudioBuffer = await concatenateAudio(audioFiles.map(f => f.buffer));
+
+    // Upload to GCS
+    const audioUrl = await uploadAudio(
+      finalAudioBuffer,
+      episodeId,
+      config.key
+    );
+
+    // Update episode with this speed's audio URL
+    await prisma.episode.update({
+      where: { id: episodeId },
+      data: {
+        [config.audioUrlField]: audioUrl,
+      },
+    });
+
+    results.push({
+      speed: config.key,
+      audioUrl,
+      duration: currentTime,
+    });
+
+    // Report progress
+    const progress = Math.round(((i + 1) / speedConfigs.length) * 100);
+    if (onProgress) {
+      onProgress(progress);
+    }
+
+    console.log(`✅ Generated ${config.key} (${config.value}x) audio: ${audioUrl}`);
+  }
+
+  return results;
 }

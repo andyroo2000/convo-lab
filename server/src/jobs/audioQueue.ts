@@ -1,5 +1,5 @@
 import { Queue, Worker } from 'bullmq';
-import { generateEpisodeAudio } from '../services/audioGenerator.js';
+import { generateEpisodeAudio, generateAllSpeedsAudio } from '../services/audioGenerator.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
 const connection = createRedisConnection();
@@ -9,24 +9,45 @@ export const audioQueue = new Queue('audio-generation', { connection });
 export const audioWorker = new Worker(
   'audio-generation',
   async (job) => {
-    const { userId, episodeId, dialogueId, speed, pauseMode } = job.data;
+    // Handle different job types
+    if (job.name === 'generate-all-speeds') {
+      const { episodeId, dialogueId } = job.data;
 
-    try {
-      await job.updateProgress(10);
+      try {
+        const result = await generateAllSpeedsAudio(
+          episodeId,
+          dialogueId,
+          (progress) => {
+            job.updateProgress(progress);
+          }
+        );
 
-      const result = await generateEpisodeAudio({
-        episodeId,
-        dialogueId,
-        speed,
-        pauseMode,
-      });
+        return result;
+      } catch (error) {
+        console.error('Multi-speed audio generation failed:', error);
+        throw error;
+      }
+    } else {
+      // Legacy single-speed generation
+      const { userId, episodeId, dialogueId, speed, pauseMode } = job.data;
 
-      await job.updateProgress(100);
+      try {
+        await job.updateProgress(10);
 
-      return result;
-    } catch (error) {
-      console.error('Audio generation failed:', error);
-      throw error;
+        const result = await generateEpisodeAudio({
+          episodeId,
+          dialogueId,
+          speed,
+          pauseMode,
+        });
+
+        await job.updateProgress(100);
+
+        return result;
+      } catch (error) {
+        console.error('Audio generation failed:', error);
+        throw error;
+      }
     }
   },
   {

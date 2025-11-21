@@ -270,14 +270,14 @@ export default function PISessionPage() {
                 </div>
                 <audio
                   ref={audioRefA}
-                  src={currentItem.audioUrlA ? `${API_URL}${currentItem.audioUrlA}` : ''}
+                  src={currentItem.audioUrlA || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio A:', e)}
                   onLoadedData={() => console.log('Audio A loaded:', currentItem.audioUrlA)}
                 />
                 <audio
                   ref={audioRefB}
-                  src={currentItem.audioUrlB ? `${API_URL}${currentItem.audioUrlB}` : ''}
+                  src={currentItem.audioUrlB || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio B:', e)}
                   onLoadedData={() => console.log('Audio B loaded:', currentItem.audioUrlB)}
@@ -298,7 +298,7 @@ export default function PISessionPage() {
                 </span>
                 <audio
                   ref={audioRef}
-                  src={currentItem.audioUrl ? `${API_URL}${currentItem.audioUrl}` : ''}
+                  src={currentItem.audioUrl || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio:', e, currentItem.audioUrl)}
                   onLoadedData={() => console.log('Audio loaded:', currentItem.audioUrl)}

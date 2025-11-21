@@ -97,9 +97,26 @@ export default function ChunkPackStoryPage() {
         });
 
         setSpeakers(speakerMap);
+      } else {
+        // No stories yet - set empty story object to stop spinner
+        setStory({
+          id: '',
+          title: '',
+          storyText: '',
+          english: '',
+          segments: [],
+        });
       }
     } catch (err) {
       console.error('Failed to load story:', err);
+      // Set empty story to stop spinner on error
+      setStory({
+        id: '',
+        title: '',
+        storyText: '',
+        english: '',
+        segments: [],
+      });
     }
   };
 
@@ -140,13 +157,45 @@ export default function ChunkPackStoryPage() {
     );
   }
 
+  // Show message if no story exists yet
+  if (story.segments.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
+        <div className="bg-white border-b shadow-sm">
+          <div className="max-w-4xl mx-auto px-6 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={() => navigate(`/app/chunk-packs/${packId}/examples`)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </button>
+              <h1 className="text-lg font-semibold text-navy">Step 2: Story</h1>
+              <div className="w-20" />
+            </div>
+          </div>
+        </div>
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="bg-white rounded-lg p-12 text-center shadow-sm">
+            <p className="text-gray-600 mb-4">Story generation is not yet implemented for this pack.</p>
+            <p className="text-sm text-gray-500">You can proceed to the exercises step.</p>
+            <button
+              onClick={() => navigate(`/app/chunk-packs/${packId}/exercises`)}
+              className="mt-6 btn-primary"
+            >
+              Continue to Exercises
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between mb-4">
-            <button onClick={() => navigate(`/chunk-packs/${packId}/examples`)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+            <button onClick={() => navigate(`/app/chunk-packs/${packId}/examples`)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
@@ -266,7 +315,7 @@ export default function ChunkPackStoryPage() {
         {/* Next Button */}
         <div className="card bg-white shadow-xl">
           <button
-            onClick={() => navigate(`/chunk-packs/${packId}/exercises`)}
+            onClick={() => navigate(`/app/chunk-packs/${packId}/exercises`)}
             className="w-full btn-primary flex items-center justify-center gap-2"
           >
             Next: Exercises

@@ -113,7 +113,7 @@ export default function ChunkPackSetupPage() {
 
         if (jobData.state === 'completed') {
           // Navigate to the pack examples
-          navigate(`/chunk-packs/${jobData.result.packId}/examples`);
+          navigate(`/app/chunk-packs/${jobData.result.packId}/examples`);
         } else if (jobData.state === 'failed') {
           throw new Error('Chunk pack generation failed');
         } else {

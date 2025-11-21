@@ -34,6 +34,30 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
   }
 });
 
+// Generate audio at all speeds (0.7x, 0.85x, 1.0x)
+router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
+  try {
+    const { episodeId, dialogueId } = req.body;
+
+    if (!episodeId || !dialogueId) {
+      throw new AppError('Missing required fields', 400);
+    }
+
+    // Add job to queue
+    const job = await audioQueue.add('generate-all-speeds', {
+      episodeId,
+      dialogueId,
+    });
+
+    res.json({
+      jobId: job.id,
+      message: 'Multi-speed audio generation started',
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get job status
 router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
   try {

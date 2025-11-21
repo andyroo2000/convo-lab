@@ -74,11 +74,18 @@ while IFS='=' read -r key value; do
   fi
 done < .env.production
 
-echo -e "${GREEN}Building and deploying to Cloud Run...${NC}"
+echo -e "${GREEN}Building Docker image with Cloud Build (no cache)...${NC}"
 
-# Deploy to Cloud Run
+# Build image with Cloud Build (no cache to force fresh build)
+IMAGE_NAME="gcr.io/$GOOGLE_CLOUD_PROJECT/$SERVICE_NAME"
+TIMESTAMP=$(date +%s)
+gcloud builds submit --config=cloudbuild.yaml --substitutions=_CACHE_BUST=$TIMESTAMP,_IMAGE_NAME=$IMAGE_NAME
+
+echo -e "${GREEN}Deploying to Cloud Run...${NC}"
+
+# Deploy to Cloud Run using the built image
 gcloud run deploy $SERVICE_NAME \
-  --source . \
+  --image $IMAGE_NAME \
   --platform managed \
   --region $REGION \
   --allow-unauthenticated \
