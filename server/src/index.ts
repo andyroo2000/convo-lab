@@ -17,12 +17,14 @@ import piRoutes from './routes/pi.js';
 import chunkPackRoutes from './routes/chunkPacks.js';
 import adminRoutes from './routes/admin.js';
 import { audioWorker } from './jobs/audioQueue.js';
+import { dialogueWorker } from './jobs/dialogueQueue.js';
+import { imageWorker } from './jobs/imageQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 import { chunkPackWorker } from './jobs/chunkPackQueue.js';
 
 // Initialize workers (reference them so they're not tree-shaken)
-console.log('Workers initialized:', { audioWorker, courseWorker, narrowListeningWorker, chunkPackWorker });
+console.log('Workers initialized:', { audioWorker, dialogueWorker, imageWorker, courseWorker, narrowListeningWorker, chunkPackWorker });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
