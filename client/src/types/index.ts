@@ -14,6 +14,7 @@ export interface User {
   name: string;
   displayName?: string;
   avatarColor?: string;
+  avatarUrl?: string;
   role: 'user' | 'moderator' | 'admin';
   preferredStudyLanguage?: LanguageCode;
   preferredNativeLanguage?: LanguageCode;

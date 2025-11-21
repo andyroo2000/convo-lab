@@ -4,8 +4,31 @@ import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
 import crypto from 'crypto';
+import multer from 'multer';
+import {
+  uploadUserAvatar,
+  uploadSpeakerAvatar,
+  recropSpeakerAvatar,
+  getOriginalSpeakerAvatar,
+} from '../services/avatarService.js';
 
 const router = Router();
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB max
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only images
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
 
 // All admin routes require authentication and admin role
 router.use(requireAuth, requireAdmin);
@@ -75,6 +98,7 @@ router.get('/users', async (req: AuthRequest, res, next) => {
           name: true,
           displayName: true,
           avatarColor: true,
+          avatarUrl: true,
           role: true,
           createdAt: true,
           updatedAt: true,
@@ -226,6 +250,118 @@ router.delete('/invite-codes/:id', async (req: AuthRequest, res, next) => {
     });
 
     res.json({ message: 'Invite code deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// Avatar Management Routes
+// ============================================
+
+// Get original speaker avatar for re-cropping
+router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, next) => {
+  try {
+    const { filename } = req.params;
+
+    // Validate filename format (language-gender-tone.jpg)
+    if (!/^(ja|zh)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    const imageBuffer = await getOriginalSpeakerAvatar(filename);
+    const contentType = filename.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+    res.set('Content-Type', contentType);
+    res.send(imageBuffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload new speaker avatar
+router.post('/avatars/speaker/:filename/upload', upload.single('image'), async (req: AuthRequest, res, next) => {
+  try {
+    const { filename } = req.params;
+
+    // Validate filename format
+    if (!/^(ja|zh)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    if (!req.file) {
+      throw new AppError('No image file provided', 400);
+    }
+
+    // Parse crop area from request body
+    const cropArea = JSON.parse(req.body.cropArea);
+    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
+        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
+      throw new AppError('Invalid crop area', 400);
+    }
+
+    await uploadSpeakerAvatar(filename, req.file.buffer, cropArea);
+
+    res.json({ message: 'Speaker avatar uploaded successfully', filename });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Re-crop existing speaker avatar
+router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, next) => {
+  try {
+    const { filename } = req.params;
+
+    // Validate filename format
+    if (!/^(ja|zh)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+      throw new AppError('Invalid avatar filename format', 400);
+    }
+
+    // Parse crop area from request body
+    const { cropArea } = req.body;
+    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
+        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
+      throw new AppError('Invalid crop area', 400);
+    }
+
+    await recropSpeakerAvatar(filename, cropArea);
+
+    res.json({ message: 'Speaker avatar re-cropped successfully', filename });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Upload user avatar
+router.post('/avatars/user/:userId/upload', upload.single('image'), async (req: AuthRequest, res, next) => {
+  try {
+    const { userId } = req.params;
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (!req.file) {
+      throw new AppError('No image file provided', 400);
+    }
+
+    // Parse crop area from request body
+    const cropArea = JSON.parse(req.body.cropArea);
+    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
+        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
+      throw new AppError('Invalid crop area', 400);
+    }
+
+    const avatarUrl = await uploadUserAvatar(userId, req.file.buffer, cropArea);
+
+    res.json({ message: 'User avatar uploaded successfully', avatarUrl });
   } catch (error) {
     next(error);
   }

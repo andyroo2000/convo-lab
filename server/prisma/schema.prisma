@@ -17,6 +17,7 @@ model User {
   name                    String
   displayName             String?
   avatarColor             String?  @default("indigo")
+  avatarUrl               String?  // Custom profile avatar URL
   role                    String   @default("user") // "user", "moderator", "admin"
   preferredStudyLanguage  String   @default("ja") // 'ja' or 'zh'
   preferredNativeLanguage String   @default("en")

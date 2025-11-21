@@ -53,11 +53,11 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center mb-4">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <h1 className="text-4xl font-bold text-navy">ConvoLab</h1>
             <Logo size="large" />
           </div>
-          <h1 className="text-4xl font-bold text-navy mb-2">ConvoLab</h1>
-          <p className="text-gray-600">A creative approach to language learning</p>
+          <p className="text-gray-600">Your personal AI language lab</p>
         </div>
 
         <div className="card">

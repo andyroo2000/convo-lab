@@ -208,7 +208,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const { displayName, avatarColor, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode, proficiencyLevel, onboardingCompleted } = req.body;
+    const { displayName, avatarColor, avatarUrl, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode, proficiencyLevel, onboardingCompleted } = req.body;
 
     // Validate avatarColor if provided
     const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
@@ -232,7 +232,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Validate proficiency level if provided
-    const validProficiencyLevels = ['beginner', 'intermediate', 'advanced', 'native'];
+    const validProficiencyLevels = ['N5', 'N4', 'N3', 'N2', 'N1', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
     if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
       throw new AppError('Invalid proficiency level', 400);
     }
@@ -241,6 +241,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     const updateData: any = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
     if (preferredStudyLanguage !== undefined) updateData.preferredStudyLanguage = preferredStudyLanguage;
     if (preferredNativeLanguage !== undefined) updateData.preferredNativeLanguage = preferredNativeLanguage;
     if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;

@@ -2,10 +2,25 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { Episode, Sentence, AudioSpeed } from '../types';
+import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
+import { TTS_VOICES } from '../../../shared/src/constants';
+
+// Helper function to get avatar URL based on speaker voice and tone
+function getSpeakerAvatarUrl(speaker: Speaker, targetLanguage: string): string {
+  // Determine gender from voiceId by looking it up in TTS_VOICES
+  const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const voiceInfo = languageVoices.find(v => v.id === speaker.voiceId);
+  const gender = voiceInfo?.gender || 'male'; // Fallback to male if not found
+
+  // Map tone to our avatar naming convention
+  const tone = speaker.tone.toLowerCase();
+
+  // Construct avatar filename: {language}-{gender}-{tone}.jpg
+  return `/avatars/${targetLanguage}-${gender}-${tone}.jpg`;
+}
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
@@ -326,7 +341,7 @@ export default function PlaybackPage() {
                 {speakers.map((speaker) => (
                   <div key={speaker.id} className="flex items-center gap-2">
                     <div
-                      className="w-4 h-4 rounded-full flex-shrink-0"
+                      className="w-3 h-3 rounded-full flex-shrink-0"
                       style={{ backgroundColor: speaker.color }}
                     />
                     <span className="text-sm font-medium text-navy">
@@ -469,28 +484,44 @@ export default function PlaybackPage() {
               }}
               onClick={() => seekToSentence(sentence)}
             >
-              {/* Japanese Text and Translation - Side by Side */}
-              <div className="flex gap-0">
-                {/* Japanese Text - Left Column */}
-                <div className="flex-1 pr-6">
-                  <p className="text-lg text-navy leading-relaxed">
-                    <JapaneseText
-                      text={sentence.text}
-                      metadata={sentence.metadata}
+              <div className="flex gap-4">
+                {/* Speaker Avatar */}
+                <div className="flex-shrink-0">
+                  <div
+                    className="w-24 h-24 rounded-full overflow-hidden border-solid"
+                    style={{ borderColor: speaker.color, borderWidth: '3px' }}
+                  >
+                    <img
+                      src={getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
+                      alt={speaker.name}
+                      className="w-full h-full object-cover"
                     />
-                  </p>
+                  </div>
                 </div>
 
-                {/* Translation - Right Column */}
-                <div
-                  className="flex-1 pl-6"
-                  style={{
-                    borderLeft: `1px solid ${hexToRgba(speaker.color, 0.3)}`
-                  }}
-                >
-                  <p className="text-gray-600 italic">
-                    {sentence.translation}
-                  </p>
+                {/* Japanese Text and Translation - Side by Side */}
+                <div className="flex gap-0 flex-1">
+                  {/* Japanese Text - Left Column */}
+                  <div className="flex-1 pr-6">
+                    <p className="text-lg text-navy leading-relaxed">
+                      <JapaneseText
+                        text={sentence.text}
+                        metadata={sentence.metadata}
+                      />
+                    </p>
+                  </div>
+
+                  {/* Translation - Right Column */}
+                  <div
+                    className="flex-1 pl-6"
+                    style={{
+                      borderLeft: `1px solid ${hexToRgba(speaker.color, 0.3)}`
+                    }}
+                  >
+                    <p className="text-gray-600 italic">
+                      {sentence.translation}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
