@@ -5,6 +5,8 @@ import { Episode, Course } from '../types';
 import { useEpisodes } from '../hooks/useEpisodes';
 import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyStateCard from '../components/EmptyStateCard';
+import Pill from '../components/common/Pill';
+import SegmentedPill from '../components/common/SegmentedPill';
 
 import { API_URL } from '../config';
 
@@ -481,28 +483,35 @@ export default function LibraryPage() {
                   </button>
 
                   <div className="space-y-3">
-                    {/* Title with Icon */}
-                    <div className="flex items-start gap-2">
-                      <MessageSquare className="w-5 h-5 text-indigo flex-shrink-0 mt-1" />
-                      <h3 className="text-xl font-bold text-navy group-hover:text-indigo transition-colors flex-1">
-                        {episode.title}
-                      </h3>
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-navy group-hover:text-indigo transition-colors">
+                      {episode.title}
+                    </h3>
+
+                    {/* Card Type with Icon */}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span>Dialogue</span>
                     </div>
 
                     {/* Language Info and Levels */}
                     <div className="flex gap-2 text-sm flex-wrap">
-                      <span className="px-2 py-1 bg-pale-sky text-navy rounded font-medium">
-                        {episode.targetLanguage.toUpperCase()}
-                      </span>
-                      {proficiencyLevels.length > 0 && (
-                        <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium capitalize">
-                          {proficiencyLevels.join(', ')}
-                        </span>
+                      {proficiencyLevels.length > 0 ? (
+                        <SegmentedPill
+                          leftText={episode.targetLanguage.toUpperCase()}
+                          rightText={proficiencyLevels.join(', ')}
+                          leftColor="pale-sky"
+                          rightColor="indigo"
+                        />
+                      ) : (
+                        <Pill color="pale-sky">
+                          {episode.targetLanguage.toUpperCase()}
+                        </Pill>
                       )}
                       {episode.status === 'generating' && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                        <Pill color="yellow" className="animate-pulse">
                           Generating...
-                        </span>
+                        </Pill>
                       )}
                     </div>
 
@@ -512,11 +521,10 @@ export default function LibraryPage() {
                     </p>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Pill color="indigo" intensity="light" variant="small">
                         {new Date(episode.createdAt).toLocaleDateString()}
-                      </div>
+                      </Pill>
                     </div>
                   </div>
                 </Link>
@@ -540,12 +548,15 @@ export default function LibraryPage() {
                   </button>
 
                   <div className="space-y-3">
-                    {/* Title with Icon */}
-                    <div className="flex items-start gap-2">
-                      <Headphones className="w-5 h-5 text-orange-500 flex-shrink-0 mt-1" />
-                      <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors flex-1">
-                        {course.title}
-                      </h3>
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors">
+                      {course.title}
+                    </h3>
+
+                    {/* Card Type with Icon */}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Headphones className="w-3.5 h-3.5" />
+                      <span>Audio Course</span>
                     </div>
 
                     {/* Description */}
@@ -557,29 +568,32 @@ export default function LibraryPage() {
 
                     {/* Language Info and JLPT Level */}
                     <div className="flex gap-2 text-sm flex-wrap">
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
-                        {course.targetLanguage.toUpperCase()} → {course.nativeLanguage.toUpperCase()}
-                      </span>
-                      {course.jlptLevel && (
-                        <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium">
-                          {course.jlptLevel}
-                        </span>
+                      {course.jlptLevel ? (
+                        <SegmentedPill
+                          leftText={`${course.targetLanguage.toUpperCase()} → ${course.nativeLanguage.toUpperCase()}`}
+                          rightText={course.jlptLevel}
+                          leftColor="purple"
+                          rightColor="indigo"
+                        />
+                      ) : (
+                        <Pill color="purple">
+                          {course.targetLanguage.toUpperCase()} → {course.nativeLanguage.toUpperCase()}
+                        </Pill>
                       )}
                       {course.status === 'generating' && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                        <Pill color="yellow" className="animate-pulse">
                           Generating...
-                        </span>
+                        </Pill>
                       )}
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="flex items-center gap-4 text-xs pt-2 border-t">
+                      <Pill color="indigo" intensity="light" variant="small">
                         {new Date(course.createdAt).toLocaleDateString()}
-                      </div>
+                      </Pill>
                       {course.lessons && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 text-gray-500">
                           <BookOpen className="w-3 h-3" />
                           {course.lessons.length} {course.lessons.length === 1 ? 'lesson' : 'lessons'}
                         </div>
@@ -607,12 +621,15 @@ export default function LibraryPage() {
                   </button>
 
                   <div className="space-y-3">
-                    {/* Title with Icon */}
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="w-5 h-5 text-purple-600 flex-shrink-0 mt-1" />
-                      <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors flex-1">
-                        {pack.title}
-                      </h3>
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors">
+                      {pack.title}
+                    </h3>
+
+                    {/* Card Type with Icon */}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Narrow Listening</span>
                     </div>
 
                     {/* Topic Preview */}
@@ -622,25 +639,24 @@ export default function LibraryPage() {
 
                     {/* JLPT Level and Variations */}
                     <div className="flex gap-2 text-sm flex-wrap">
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
-                        {pack.jlptLevel}
-                      </span>
-                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium">
-                        {pack.versions?.length || 0} variations
-                      </span>
+                      <SegmentedPill
+                        leftText={pack.jlptLevel}
+                        rightText={`${pack.versions?.length || 0} variations`}
+                        leftColor="purple"
+                        rightColor="indigo"
+                      />
                       {pack.status === 'generating' && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                        <Pill color="yellow" className="animate-pulse">
                           Generating...
-                        </span>
+                        </Pill>
                       )}
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Pill color="indigo" intensity="light" variant="small">
                         {new Date(pack.createdAt).toLocaleDateString()}
-                      </div>
+                      </Pill>
                     </div>
                   </div>
                 </Link>
@@ -664,12 +680,15 @@ export default function LibraryPage() {
                   </button>
 
                   <div className="space-y-3">
-                    {/* Title with Icon */}
-                    <div className="flex items-start gap-2">
-                      <BookOpen className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-1" />
-                      <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors flex-1">
-                        {pack.title}
-                      </h3>
+                    {/* Title */}
+                    <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors">
+                      {pack.title}
+                    </h3>
+
+                    {/* Card Type with Icon */}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      <span>Lexical Chunk Pack</span>
                     </div>
 
                     {/* Theme */}
@@ -679,36 +698,35 @@ export default function LibraryPage() {
 
                     {/* JLPT Level and Stats */}
                     <div className="flex gap-2 text-sm flex-wrap">
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-800 rounded font-medium">
-                        {pack.jlptLevel}
-                      </span>
-                      <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
-                        {pack._count.examples} examples
-                      </span>
-                      <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded font-medium">
+                      <SegmentedPill
+                        leftText={pack.jlptLevel}
+                        rightText={`${pack._count.examples} examples`}
+                        leftColor="emerald"
+                        rightColor="blue"
+                      />
+                      <Pill color="indigo">
                         {pack._count.stories} {pack._count.stories === 1 ? 'story' : 'stories'}
-                      </span>
-                      <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
+                      </Pill>
+                      <Pill color="purple">
                         {pack._count.exercises} exercises
-                      </span>
+                      </Pill>
                       {pack.status === 'error' && (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 rounded font-medium">
+                        <Pill color="red">
                           error
-                        </span>
+                        </Pill>
                       )}
                       {pack.status === 'generating' && (
-                        <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded font-medium animate-pulse">
+                        <Pill color="yellow" className="animate-pulse">
                           Generating...
-                        </span>
+                        </Pill>
                       )}
                     </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Pill color="indigo" intensity="light" variant="small">
                         {new Date(pack.createdAt).toLocaleDateString()}
-                      </div>
+                      </Pill>
                     </div>
                   </div>
                 </Link>
