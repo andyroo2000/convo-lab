@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
+import { useAuth } from '../../contexts/AuthContext';
 import SpeakerConfig from './SpeakerConfig';
 import { TTS_VOICES } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
@@ -32,33 +33,65 @@ function getRandomVoice(gender: 'male' | 'female', language: LanguageCode): stri
 
 export default function DialogueGenerator() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { createEpisode, generateDialogue, pollJobStatus, loading, error } = useEpisodes();
 
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
-  const [targetLanguage] = useState<LanguageCode>('ja'); // Fixed for now
+  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
   const [nativeLanguage] = useState<LanguageCode>('en');
   const [dialogueLength, setDialogueLength] = useState(8);
+  const [proficiency, setProficiency] = useState<ProficiencyLevel>('intermediate');
+  const [tone, setTone] = useState<ToneStyle>('casual');
+
+  // Initialize from user preferences
+  useEffect(() => {
+    if (user) {
+      setTargetLanguage(user.preferredStudyLanguage || 'ja');
+      setProficiency(user.proficiencyLevel || 'intermediate');
+    }
+  }, [user]);
 
   // Get default voices from TTS_VOICES for the target language
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
-  const [speakers, setSpeakers] = useState<SpeakerFormData[]>([
+  // Initialize speakers based on target language
+  const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => [
     {
       name: getRandomName(targetLanguage, 'female'),
       voiceId: getRandomVoice('female', targetLanguage),
-      proficiency: 'intermediate',
+      proficiency: user?.proficiencyLevel || 'intermediate',
       tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[0],
     },
     {
       name: getRandomName(targetLanguage, 'male'),
       voiceId: getRandomVoice('male', targetLanguage),
-      proficiency: 'native',
-      tone: 'polite',
+      proficiency: user?.proficiencyLevel || 'intermediate',
+      tone: 'casual',
       color: DEFAULT_SPEAKER_COLORS[1],
     },
   ]);
+
+  // Re-initialize speakers when target language changes
+  useEffect(() => {
+    setSpeakers([
+      {
+        name: getRandomName(targetLanguage, 'female'),
+        voiceId: getRandomVoice('female', targetLanguage),
+        proficiency,
+        tone,
+        color: DEFAULT_SPEAKER_COLORS[0],
+      },
+      {
+        name: getRandomName(targetLanguage, 'male'),
+        voiceId: getRandomVoice('male', targetLanguage),
+        proficiency,
+        tone,
+        color: DEFAULT_SPEAKER_COLORS[1],
+      },
+    ]);
+  }, [targetLanguage]);
 
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
@@ -91,31 +124,14 @@ export default function DialogueGenerator() {
     return () => clearInterval(pollInterval);
   }, [jobId, step, generatedEpisodeId, pollJobStatus, navigate]);
 
-  const addSpeaker = () => {
-    const newIndex = speakers.length;
-    // Alternate between female and male
-    const gender = newIndex % 2 === 0 ? 'female' : 'male';
-    setSpeakers([
-      ...speakers,
-      {
-        name: getRandomName(targetLanguage, gender),
-        voiceId: getRandomVoice(gender, targetLanguage),
-        proficiency: 'intermediate',
-        tone: 'casual',
-        color: DEFAULT_SPEAKER_COLORS[newIndex % DEFAULT_SPEAKER_COLORS.length],
-      },
-    ]);
-  };
-
-  const removeSpeaker = (index: number) => {
-    setSpeakers(speakers.filter((_, i) => i !== index));
-  };
-
-  const updateSpeaker = (index: number, field: string, value: string) => {
-    const updated = [...speakers];
-    updated[index] = { ...updated[index], [field]: value };
-    setSpeakers(updated);
-  };
+  // Update all speakers when proficiency or tone changes
+  useEffect(() => {
+    setSpeakers(prev => prev.map(speaker => ({
+      ...speaker,
+      proficiency,
+      tone,
+    })));
+  }, [proficiency, tone]);
 
   const handleGenerate = async () => {
     if (!title.trim() || !sourceText.trim()) {
@@ -254,7 +270,7 @@ export default function DialogueGenerator() {
               </label>
               <input
                 type="text"
-                value="Japanese (日本語)"
+                value={targetLanguage === 'ja' ? 'Japanese (日本語)' : 'Chinese (中文)'}
                 disabled
                 className="input bg-gray-50 cursor-not-allowed"
               />
@@ -275,39 +291,57 @@ export default function DialogueGenerator() {
                 <option value="50">50 turns</option>
               </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Proficiency Level
+              </label>
+              <select
+                value={proficiency}
+                onChange={(e) => setProficiency(e.target.value as ProficiencyLevel)}
+                className="input"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="native">Native</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-navy mb-2">
+                Tone
+              </label>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value as ToneStyle)}
+                className="input"
+              >
+                <option value="casual">Casual</option>
+                <option value="polite">Polite</option>
+                <option value="formal">Formal</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Speakers */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-navy">Speakers</h2>
-          <button
-            onClick={addSpeaker}
-            className="btn-outline text-sm"
-            disabled={speakers.length >= 4}
-          >
-            + Add Speaker
-          </button>
-        </div>
+        <h2 className="text-xl font-semibold text-navy mb-4">Speakers</h2>
 
         <div className="space-y-4">
           {speakers.map((speaker, index) => (
             <SpeakerConfig
               key={index}
-              {...speaker}
+              name={speaker.name}
               targetLanguage={targetLanguage}
-              onUpdate={(field, value) => updateSpeaker(index, field, value)}
-              onRemove={() => removeSpeaker(index)}
-              canRemove={speakers.length > 2}
             />
           ))}
         </div>
 
         <p className="text-xs text-gray-500 mt-4">
-          Configure each speaker's voice, proficiency level, and speaking style. The AI will adjust
-          the dialogue complexity and tone to match these settings.
+          Speakers are assigned random names and voices. Proficiency and tone are controlled above.
         </p>
       </div>
 
