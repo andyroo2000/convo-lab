@@ -33,7 +33,7 @@ function getRandomVoice(gender: 'male' | 'female', language: LanguageCode): stri
 export default function DialogueGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { createEpisode, generateDialogue, pollJobStatus, loading, error } = useEpisodes();
+  const { createEpisode, generateDialogue, generateAllSpeedsAudio, getEpisode, pollJobStatus, loading, error } = useEpisodes();
 
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
@@ -107,6 +107,22 @@ export default function DialogueGenerator() {
 
       if (status === 'completed') {
         clearInterval(pollInterval);
+
+        // Automatically trigger audio generation after dialogue completes
+        if (generatedEpisodeId) {
+          try {
+            // Get the episode to find the dialogue ID
+            const episode = await getEpisode(generatedEpisodeId);
+
+            if (episode.dialogue?.id) {
+              // Trigger multi-speed audio generation
+              await generateAllSpeedsAudio(generatedEpisodeId, episode.dialogue.id);
+            }
+          } catch (error) {
+            console.error('Failed to trigger audio generation:', error);
+          }
+        }
+
         setStep('complete');
 
         // Navigate to playback page
@@ -123,7 +139,7 @@ export default function DialogueGenerator() {
     }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
 
     return () => clearInterval(pollInterval);
-  }, [jobId, step, generatedEpisodeId, pollJobStatus, navigate]);
+  }, [jobId, step, generatedEpisodeId, pollJobStatus, getEpisode, generateAllSpeedsAudio, navigate]);
 
   const handleGenerate = async () => {
     if (!title.trim() || !sourceText.trim()) {
