@@ -90,12 +90,23 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
   }
 }
 
+/**
+ * Remove furigana/pinyin notation from text
+ * Example: "田中[たなか]さくら" → "田中さくら"
+ */
+function stripPhoneticNotation(text: string): string {
+  return text.replace(/\[[^\]]+\]/g, '');
+}
+
 function buildSystemInstruction(
   targetLanguage: string,
   nativeLanguage: string,
   speakers: Speaker[]
 ): string {
   const languageName = getLanguageName(targetLanguage);
+
+  // Strip furigana/pinyin from speaker names for cleaner prompts
+  const speakerNames = speakers.map(s => stripPhoneticNotation(s.name));
 
   return `You are a dialogue generation expert for language learning. Your task is to create natural, engaging conversations in ${languageName} based on user stories.
 
@@ -112,7 +123,7 @@ Guidelines:
 6. For each sentence, generate multiple variations (different ways to express the same idea)
 7. Keep cultural context in mind
 
-Speakers: ${speakers.map(s => `${s.name} (${s.proficiency}, ${s.tone})`).join(', ')}`;
+Speakers: ${speakers.map((s, i) => `${speakerNames[i]} (${s.proficiency}, ${s.tone})`).join(', ')}`;
 }
 
 function buildDialoguePrompt(
@@ -121,11 +132,14 @@ function buildDialoguePrompt(
   variationCount: number,
   dialogueLength: number
 ): string {
+  // Strip furigana/pinyin from speaker names for cleaner prompts
+  const speakerNames = speakers.map(s => stripPhoneticNotation(s.name));
+
   return `Based on this story/experience, create a natural dialogue:
 
 "${sourceText}"
 
-Create a conversation between ${speakers.map(s => s.name).join(' and ')} discussing this experience.
+Create a conversation between ${speakerNames.join(' and ')} discussing this experience.
 
 For EACH line of dialogue, provide ${variationCount} alternative ways to say the same thing (variations in word choice, grammar, formality, etc.).
 
@@ -141,12 +155,15 @@ Return your response as JSON in this exact format:
   ]
 }
 
+IMPORTANT: Use EXACTLY these speaker names in your response: ${speakerNames.join(', ')}
+
 Requirements:
 - Generate EXACTLY ${dialogueLength} dialogue lines (back and forth turns)
 - Each line should be conversational and natural
 - Progress the conversation naturally through the experience
 - Include reactions, questions, and natural flow
-- Ensure variations are genuinely different (not just particle changes)`;
+- Ensure variations are genuinely different (not just particle changes)
+- Use ONLY the exact speaker names provided above`;
 }
 
 async function createDialogueInDB(
@@ -179,17 +196,19 @@ async function createDialogueInDB(
     )
   );
 
-  // Map speaker names to IDs
+  // Map speaker names to IDs (using stripped names for matching)
   const speakerMap = new Map(
-    speakerRecords.map(s => [s.name, s.id])
+    speakerRecords.map(s => [stripPhoneticNotation(s.name), s.id])
   );
 
   // Create sentences
   const sentences = await Promise.all(
     dialogueData.sentences.map(async (sent: any, index: number) => {
-      const speakerId = speakerMap.get(sent.speaker);
+      // Strip phonetic notation from the speaker name for matching
+      const normalizedSpeakerName = stripPhoneticNotation(sent.speaker);
+      const speakerId = speakerMap.get(normalizedSpeakerName);
       if (!speakerId) {
-        throw new Error(`Unknown speaker: ${sent.speaker}`);
+        throw new Error(`Unknown speaker: ${sent.speaker} (normalized: ${normalizedSpeakerName}). Available speakers: ${Array.from(speakerMap.keys()).join(', ')}`);
       }
 
       return prisma.sentence.create({
