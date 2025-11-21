@@ -7,17 +7,10 @@ import {
   GRAMMAR_POINTS,
   isGrammarPointValidForLevel
 } from '../services/piGenerator.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs/promises';
+import { synthesizeSpeech } from '../services/ttsClient.js';
+import { uploadToGCS } from '../services/storageClient.js';
 
-const execAsync = promisify(exec);
 const router = express.Router();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /**
  * POST /api/pi/generate-session
@@ -110,33 +103,37 @@ router.post('/generate-session', requireAuth, async (req, res) => {
  * Generate audio for Japanese text using Edge TTS
  */
 async function generateAudio(japaneseText: string): Promise<string> {
-  // Select a Japanese voice
-  const voice = 'ja-JP-NanamiNeural'; // Female voice, clear pronunciation
-
   // Create unique filename
   const timestamp = Date.now();
   const randomSuffix = Math.random().toString(36).substring(7);
   const filename = `pi_${timestamp}_${randomSuffix}.mp3`;
 
-  // Determine paths
-  const publicDir = path.join(__dirname, '../../public');
-  const audioDir = path.join(publicDir, 'audio', 'pi');
-  const filepath = path.join(audioDir, filename);
-
-  // Ensure directory exists
-  await fs.mkdir(audioDir, { recursive: true });
-
-  // Generate audio with edge-tts
-  const command = `edge-tts --voice "${voice}" --text "${japaneseText.replace(/"/g, '\\"')}" --write-media "${filepath}"`;
-
   try {
-    await execAsync(command);
-    console.log(`Generated audio: ${filename}`);
+    // Generate audio using TTS client (Google Cloud TTS)
+    const audioBuffer = await synthesizeSpeech({
+      text: japaneseText,
+      voiceId: 'ja-JP-Neural2-B', // Female voice, clear pronunciation
+      languageCode: 'ja-JP',
+      speed: 1.0,
+      pitch: 0,
+      useSSML: false,
+      useDraftMode: false, // Use Google Cloud TTS
+    });
 
-    // Return the URL path
-    return `/audio/pi/${filename}`;
+    console.log(`Generated audio buffer for: ${japaneseText.substring(0, 30)}...`);
+
+    // Upload to Google Cloud Storage
+    const audioUrl = await uploadToGCS({
+      buffer: audioBuffer,
+      filename: filename,
+      contentType: 'audio/mpeg',
+      folder: 'pi-audio',
+    });
+
+    console.log(`Uploaded audio to GCS: ${audioUrl}`);
+    return audioUrl;
   } catch (error) {
-    console.error('Error generating audio with edge-tts:', error);
+    console.error('Error generating audio:', error);
     throw new Error('Failed to generate audio');
   }
 }

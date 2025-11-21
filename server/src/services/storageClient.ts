@@ -92,7 +92,7 @@ export async function uploadFileToGCS(options: UploadFileOptions): Promise<strin
 export async function uploadAudio(
   audioBuffer: Buffer,
   episodeId: string,
-  type: 'normal' | 'slow' | 'pause' = 'normal'
+  type: 'normal' | 'slow' | 'medium' | 'pause' = 'normal'
 ): Promise<string> {
   return uploadToGCS({
     buffer: audioBuffer,

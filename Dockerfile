@@ -33,7 +33,9 @@ RUN npm install
 COPY client/ ./
 # Set API URL to empty string so it uses relative URLs (same origin)
 ENV VITE_API_URL=""
-RUN npm run build
+# Cache busting: this ARG changes with each build to force rebuild
+ARG CACHE_BUST=unknown
+RUN echo "Build timestamp: $CACHE_BUST" && npm run build
 
 # Build server
 FROM base AS server-builder

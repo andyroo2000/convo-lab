@@ -2,6 +2,10 @@
 const FURIGANA_SERVICE_URL = process.env.FURIGANA_SERVICE_URL || 'http://localhost:8000';
 const PINYIN_SERVICE_URL = process.env.PINYIN_SERVICE_URL || 'http://localhost:8001';
 
+// Track if we've already warned about missing services
+let furiganaServiceWarned = false;
+let pinyinServiceWarned = false;
+
 export interface JapaneseMetadata {
   kanji: string;
   kana: string;
@@ -45,8 +49,12 @@ export async function processJapanese(text: string): Promise<JapaneseMetadata> {
       furigana: data.furigana,
     };
   } catch (error) {
-    console.error('Japanese processing error:', error);
-    // Return fallback
+    // Only log warning once to avoid spam
+    if (!furiganaServiceWarned) {
+      console.warn('Furigana service unavailable, using fallback (text without furigana)');
+      furiganaServiceWarned = true;
+    }
+    // Return fallback - content will work but without furigana annotations
     return {
       kanji: text,
       kana: text,
@@ -81,8 +89,12 @@ export async function processChinese(text: string): Promise<ChineseMetadata> {
       pinyinToneNumbers: data.pinyinToneNumbers,
     };
   } catch (error) {
-    console.error('Chinese processing error:', error);
-    // Return fallback
+    // Only log warning once to avoid spam
+    if (!pinyinServiceWarned) {
+      console.warn('Pinyin service unavailable, using fallback (text without pinyin)');
+      pinyinServiceWarned = true;
+    }
+    // Return fallback - content will work but without pinyin annotations
     return {
       characters: text,
       pinyinToneMarks: '',

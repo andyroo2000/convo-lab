@@ -1,76 +1,24 @@
-# Google Cloud Build configuration for CI/CD
+# Google Cloud Build configuration for ConvoLab
+# Builds monolithic container with client + server
 
 steps:
-  # Build server image
+  # Build combined image with cache busting
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
+      - '--build-arg'
+      - 'CACHE_BUST=${_CACHE_BUST}'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/languageflow-server:$COMMIT_SHA'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/languageflow-server:latest'
-      - './server'
-
-  # Build client image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'build'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/languageflow-client:$COMMIT_SHA'
-      - '-t'
-      - 'gcr.io/$PROJECT_ID/languageflow-client:latest'
-      - './client'
-
-  # Push server image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/languageflow-server:$COMMIT_SHA'
-
-  # Push client image
-  - name: 'gcr.io/cloud-builders/docker'
-    args:
-      - 'push'
-      - 'gcr.io/$PROJECT_ID/languageflow-client:$COMMIT_SHA'
-
-  # Deploy server to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'languageflow-server'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/languageflow-server:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
-      - '--set-env-vars'
-      - 'NODE_ENV=production'
-
-  # Deploy client to Cloud Run
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: gcloud
-    args:
-      - 'run'
-      - 'deploy'
-      - 'languageflow-client'
-      - '--image'
-      - 'gcr.io/$PROJECT_ID/languageflow-client:$COMMIT_SHA'
-      - '--region'
-      - 'us-central1'
-      - '--platform'
-      - 'managed'
-      - '--allow-unauthenticated'
+      - '${_IMAGE_NAME}'
+      - '.'
 
 images:
-  - 'gcr.io/$PROJECT_ID/languageflow-server:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/languageflow-server:latest'
-  - 'gcr.io/$PROJECT_ID/languageflow-client:$COMMIT_SHA'
-  - 'gcr.io/$PROJECT_ID/languageflow-client:latest'
+  - '${_IMAGE_NAME}'
+
+substitutions:
+  _CACHE_BUST: 'default'
+  _IMAGE_NAME: 'gcr.io/${PROJECT_ID}/convolab'
 
 options:
-  machineType: 'N1_HIGHCPU_8'
-  timeout: '1800s'
+  machineType: 'E2_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY

@@ -319,7 +319,7 @@ export default function ChunkPackExamplesPage() {
         {/* Navigation */}
         <div className="card bg-white shadow-xl">
           <button
-            onClick={() => navigate(`/chunk-packs/${packId}/story`)}
+            onClick={() => navigate(`/app/chunk-packs/${packId}/story`)}
             className="w-full btn-primary flex items-center justify-center gap-2"
           >
             Next: Story

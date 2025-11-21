@@ -106,3 +106,12 @@ export const DEFAULT_NARRATOR_VOICES = {
   ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
   zh: 'zh-CN-XiaoxiaoNeural', // Female, natural and friendly
 } as const;
+
+// Audio speed configurations for dialogue playback
+export const AUDIO_SPEEDS = {
+  slow: { value: 0.7, label: 'Slow', key: '0_7' as const },
+  medium: { value: 0.85, label: 'Medium', key: '0_85' as const },
+  normal: { value: 1.0, label: 'Normal', key: '1_0' as const },
+} as const;
+
+export type AudioSpeedKey = 'slow' | 'medium' | 'normal';
