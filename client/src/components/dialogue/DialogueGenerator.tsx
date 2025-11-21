@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useAuth } from '../../contexts/AuthContext';
-import SpeakerConfig from './SpeakerConfig';
 import { TTS_VOICES, SUPPORTED_LANGUAGES } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
 
@@ -343,25 +342,6 @@ export default function DialogueGenerator() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Speakers */}
-      <div>
-        <h2 className="text-xl font-semibold text-navy mb-4">Speakers</h2>
-
-        <div className="space-y-4">
-          {speakers.map((speaker, index) => (
-            <SpeakerConfig
-              key={index}
-              name={speaker.name}
-              targetLanguage={targetLanguage}
-            />
-          ))}
-        </div>
-
-        <p className="text-xs text-gray-500 mt-4">
-          Speakers are assigned random names and voices. Proficiency and tone are controlled above.
-        </p>
       </div>
 
       {/* Generate Button */}
