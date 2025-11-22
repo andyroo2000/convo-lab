@@ -258,8 +258,8 @@ export default function PlaybackPage() {
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
         // Scroll with offset to account for sticky header (nav + episode header + audio player)
-        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (20px) = ~264px
-        const yOffset = -264;
+        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (80px) = ~324px
+        const yOffset = -324;
         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
