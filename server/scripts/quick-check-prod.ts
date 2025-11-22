@@ -3,7 +3,11 @@
  * Run this with production DATABASE_URL to see metadata status
  */
 
-import { prisma } from '../src/db/client.js';
+// In production, import from dist; in dev, import from src
+const isProd = process.env.NODE_ENV === 'production';
+const basePath = isProd ? '../dist/server/src' : '../src';
+
+const { prisma } = await import(`${basePath}/db/client.js`);
 
 async function quickCheck() {
   console.log('🔍 Quick production check...\n');
