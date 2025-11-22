@@ -191,7 +191,6 @@ export interface Course {
   targetLanguage: LanguageCode;
   maxLessonDurationMinutes: number;
   l1VoiceId: string;
-  useDraftMode: boolean;
   jlptLevel?: string; // N5, N4, N3, N2, N1
   hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender: 'male' | 'female';
@@ -251,7 +250,6 @@ export interface CreateCourseRequest {
   targetLanguage: LanguageCode;
   maxLessonDurationMinutes?: number;
   l1VoiceId?: string;
-  useDraftMode?: boolean;
   jlptLevel?: string; // N5, N4, N3, N2, N1
   hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender?: 'male' | 'female';

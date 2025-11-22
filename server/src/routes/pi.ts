@@ -117,7 +117,6 @@ async function generateAudio(japaneseText: string): Promise<string> {
       speed: 1.0,
       pitch: 0,
       useSSML: false,
-      useDraftMode: false, // Use Google Cloud TTS
     });
 
     console.log(`Generated audio buffer for: ${japaneseText.substring(0, 30)}...`);

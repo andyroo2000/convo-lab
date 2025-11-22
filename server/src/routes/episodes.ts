@@ -2,67 +2,59 @@ import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { processLanguageText } from '../services/languageProcessor.js';
 
 const router = Router();
 
 // All episode routes require authentication
 router.use(requireAuth);
 
-// Helper function to add furigana metadata to dialogue sentences on-the-fly
-async function enrichDialogueWithFurigana(episode: any) {
-  console.log('enrichDialogueWithFurigana called for episode:', episode.id);
-
-  if (!episode.dialogue?.sentences) {
-    console.log('No dialogue or sentences found');
-    return episode;
-  }
-
-  const targetLanguage = episode.targetLanguage;
-  console.log('Target language:', targetLanguage);
-  console.log('Number of sentences:', episode.dialogue.sentences.length);
-
-  // Generate furigana for all sentences and their variations
-  const enrichedSentences = await Promise.all(
-    episode.dialogue.sentences.map(async (sentence: any) => {
-      // Process main text
-      const metadata = await processLanguageText(sentence.text, targetLanguage);
-      console.log('Sentence:', sentence.text, '-> metadata:', metadata);
-
-      // Process variations if they exist
-      let variationsMetadata = [];
-      if (sentence.variations && sentence.variations.length > 0) {
-        variationsMetadata = await Promise.all(
-          sentence.variations.map((variation: string) =>
-            processLanguageText(variation, targetLanguage)
-          )
-        );
-      }
-
-      return {
-        ...sentence,
-        metadata,
-        variationsMetadata,
-      };
-    })
-  );
-
-  return {
-    ...episode,
-    dialogue: {
-      ...episode.dialogue,
-      sentences: enrichedSentences,
-    },
-  };
-}
-
 // Get all episodes for current user
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
+    const isLibraryMode = req.query.library === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+    // Library mode: Return minimal data for card display
+    if (isLibraryMode) {
+      const episodes = await prisma.episode.findMany({
+        where: {
+          userId: req.userId,
+          dialogue: {
+            isNot: null
+          }
+        },
+        select: {
+          id: true,
+          title: true,
+          sourceText: true,
+          targetLanguage: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          dialogue: {
+            select: {
+              speakers: {
+                select: {
+                  proficiency: true,
+                }
+              }
+            }
+          }
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+
+      res.json(episodes);
+      return;
+    }
+
+    // Full mode: Return complete data (metadata already stored in DB)
     const episodes = await prisma.episode.findMany({
       where: {
         userId: req.userId,
-        // Only return episodes that have dialogues (exclude course-only episodes)
         dialogue: {
           isNot: null
         }
@@ -77,14 +69,11 @@ router.get('/', async (req: AuthRequest, res, next) => {
         images: true,
       },
       orderBy: { updatedAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
 
-    // Add furigana metadata to all episodes with dialogues
-    const enrichedEpisodes = await Promise.all(
-      episodes.map(episode => enrichDialogueWithFurigana(episode))
-    );
-
-    res.json(enrichedEpisodes);
+    res.json(episodes);
   } catch (error) {
     next(error);
   }
@@ -117,12 +106,10 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
       throw new AppError('Episode not found', 404);
     }
 
-    // Add furigana metadata on-the-fly
-    const enrichedEpisode = await enrichDialogueWithFurigana(episode);
-
-    // Disable caching since furigana is generated dynamically
-    res.set('Cache-Control', 'no-store');
-    res.json(enrichedEpisode);
+    // Metadata (furigana/pinyin) is already stored in the database
+    // Enable caching to improve performance
+    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.json(episode);
   } catch (error) {
     next(error);
   }
