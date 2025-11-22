@@ -15,7 +15,8 @@
     "lint": "eslint . --ext .ts",
     "type-check": "tsc --noEmit",
     "generate:avatars": "tsx scripts/generate-speaker-avatars.ts",
-    "crop:avatars": "tsx scripts/crop-avatars.ts"
+    "crop:avatars": "tsx scripts/crop-avatars.ts",
+    "backfill:metadata": "tsx scripts/backfill-sentence-metadata.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.13.0",
