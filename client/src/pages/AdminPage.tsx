@@ -82,7 +82,6 @@ export default function AdminPage() {
   const [cropperImageUrl, setCropperImageUrl] = useState('');
   const [cropperTitle, setCropperTitle] = useState('');
   const [cropperSaveHandler, setCropperSaveHandler] = useState<((blob: Blob, cropArea: any) => Promise<void>) | null>(null);
-  const [originalFile, setOriginalFile] = useState<File | null>(null); // Store original file for upload
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -335,12 +334,12 @@ export default function AdminPage() {
     input.onchange = (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
-        setOriginalFile(file); // Store original file for later use
         const url = URL.createObjectURL(file);
         setCropperImageUrl(url);
         setCropperTitle(`Upload New ${filename}`);
+        // Capture the file in the closure directly instead of relying on state
         setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
-          await handleSaveSpeakerCrop(filename, blob, cropArea);
+          await handleSaveSpeakerCrop(filename, file, cropArea);
         });
         setCropperOpen(true);
       }
@@ -348,13 +347,10 @@ export default function AdminPage() {
     input.click();
   };
 
-  const handleSaveSpeakerCrop = async (filename: string, blob: Blob, cropArea: any) => {
+  const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: any) => {
     try {
-      // Use the original file instead of the cropped blob to avoid double-cropping
-      const fileToUpload = originalFile || blob;
-
       const formData = new FormData();
-      formData.append('image', fileToUpload, filename);
+      formData.append('image', originalFile, filename);
       formData.append('cropArea', JSON.stringify(cropArea));
 
       const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/upload`, {
@@ -367,7 +363,6 @@ export default function AdminPage() {
 
       showToast('Speaker avatar updated successfully', 'success');
       setCropperOpen(false);
-      setOriginalFile(null); // Clear the stored file after successful upload
 
       // Refresh speaker avatars to show the updated avatar
       await fetchSpeakerAvatars();
@@ -870,10 +865,11 @@ export default function AdminPage() {
                                   const url = URL.createObjectURL(file);
                                   setCropperImageUrl(url);
                                   setCropperTitle(`Upload Avatar for ${u.displayName || u.name}`);
+                                  // Capture the file in the closure directly
                                   setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
                                     try {
                                       const formData = new FormData();
-                                      formData.append('image', blob, `avatar.jpg`);
+                                      formData.append('image', file, `avatar.jpg`);
                                       formData.append('cropArea', JSON.stringify(cropArea));
 
                                       const response = await fetch(`${API_URL}/api/admin/avatars/user/${u.id}/upload`, {
