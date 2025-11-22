@@ -61,6 +61,7 @@ export interface Speaker {
   voiceId: string;
   proficiency: ProficiencyLevel;
   tone: ToneStyle;
+  gender?: string; // male or female (for avatar matching)
   color?: string; // For UI differentiation
   avatarUrl?: string; // URL to speaker avatar image
 }

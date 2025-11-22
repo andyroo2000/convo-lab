@@ -1,5 +1,5 @@
 import { prisma } from '../src/db/client.js';
-import { getAvatarUrlFromVoice } from '../src/services/avatarService.js';
+import { getAvatarUrlFromVoice, parseVoiceIdForGender } from '../src/services/avatarService.js';
 
 /**
  * Backfill avatarUrl for existing speakers
@@ -10,12 +10,8 @@ import { getAvatarUrlFromVoice } from '../src/services/avatarService.js';
 async function backfillSpeakerAvatars() {
   console.log('Starting speaker avatar backfill...\n');
 
-  // Get all speakers without avatarUrl
-  const speakers = await prisma.speaker.findMany({
-    where: {
-      avatarUrl: null,
-    },
-  });
+  // Get all speakers (to update both gender and avatarUrl)
+  const speakers = await prisma.speaker.findMany();
 
   console.log(`Found ${speakers.length} speakers without avatars\n`);
 
@@ -24,21 +20,24 @@ async function backfillSpeakerAvatars() {
 
   for (const speaker of speakers) {
     try {
+      // Extract gender from voiceId
+      const gender = parseVoiceIdForGender(speaker.voiceId);
+
       // Get the avatar URL based on voiceId and tone
       const avatarUrl = await getAvatarUrlFromVoice(speaker.voiceId, speaker.tone);
 
       if (avatarUrl) {
-        // Update the speaker with the avatar URL
+        // Update the speaker with both gender and avatar URL
         await prisma.speaker.update({
           where: { id: speaker.id },
-          data: { avatarUrl },
+          data: { gender, avatarUrl },
         });
 
-        console.log(`✅ Updated speaker "${speaker.name}" (${speaker.voiceId}, ${speaker.tone})`);
+        console.log(`✅ Updated speaker "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})`);
         console.log(`   Avatar: ${avatarUrl.substring(0, 80)}...\n`);
         successCount++;
       } else {
-        console.log(`⚠️  No matching avatar found for "${speaker.name}" (${speaker.voiceId}, ${speaker.tone})\n`);
+        console.log(`⚠️  No matching avatar found for "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})\n`);
         failureCount++;
       }
     } catch (error) {
