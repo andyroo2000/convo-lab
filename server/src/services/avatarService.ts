@@ -206,3 +206,53 @@ export async function getSpeakerAvatar(filename: string) {
     where: { filename },
   });
 }
+
+/**
+ * Extract language and gender from Google Cloud TTS voiceId
+ * Examples:
+ * - ja-JP-Wavenet-A -> { language: 'ja', gender: 'female' }
+ * - zh-CN-Neural2-C -> { language: 'zh', gender: 'female' }
+ */
+function parseVoiceId(voiceId: string): { language: string; gender: string } {
+  // Extract language code (first 2 chars before hyphen)
+  const language = voiceId.split('-')[0].toLowerCase();
+
+  // Extract voice variant letter (last character)
+  const variantMatch = voiceId.match(/-([A-Z])$/);
+  const variant = variantMatch ? variantMatch[1] : 'A';
+
+  // Google Cloud TTS convention: A-D are typically female, E+ are male
+  const gender = variant.charCodeAt(0) <= 'D'.charCodeAt(0) ? 'female' : 'male';
+
+  return { language, gender };
+}
+
+/**
+ * Find a speaker avatar URL by matching language, gender, and tone
+ */
+export async function findSpeakerAvatarUrl(
+  language: string,
+  gender: string,
+  tone: string
+): Promise<string | null> {
+  const avatar = await prisma.speakerAvatar.findFirst({
+    where: {
+      language: language.toLowerCase(),
+      gender: gender.toLowerCase(),
+      tone: tone.toLowerCase(),
+    },
+  });
+
+  return avatar?.croppedUrl || null;
+}
+
+/**
+ * Get avatar URL for a speaker based on their voiceId and tone
+ */
+export async function getAvatarUrlFromVoice(
+  voiceId: string,
+  tone: string
+): Promise<string | null> {
+  const { language, gender } = parseVoiceId(voiceId);
+  return findSpeakerAvatarUrl(language, gender, tone);
+}

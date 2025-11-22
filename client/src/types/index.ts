@@ -62,6 +62,7 @@ export interface Speaker {
   proficiency: ProficiencyLevel;
   tone: ToneStyle;
   color?: string; // For UI differentiation
+  avatarUrl?: string; // URL to speaker avatar image
 }
 
 export interface Sentence {

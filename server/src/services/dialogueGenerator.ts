@@ -1,5 +1,6 @@
 import { generateWithGemini } from './geminiClient.js';
 import { prisma } from '../db/client.js';
+import { getAvatarUrlFromVoice } from './avatarService.js';
 
 interface Speaker {
   name: string;
@@ -186,10 +187,13 @@ async function createDialogueInDB(
     },
   });
 
-  // Create speakers
+  // Create speakers with avatar URLs
   const speakerRecords = await Promise.all(
-    speakers.map((speaker, index) =>
-      prisma.speaker.create({
+    speakers.map(async (speaker, index) => {
+      // Find matching avatar based on voiceId and tone
+      const avatarUrl = await getAvatarUrlFromVoice(speaker.voiceId, speaker.tone);
+
+      return prisma.speaker.create({
         data: {
           dialogueId: dialogue.id,
           name: speaker.name,
@@ -197,9 +201,10 @@ async function createDialogueInDB(
           proficiency: speaker.proficiency,
           tone: speaker.tone,
           color: speaker.color || getDefaultSpeakerColor(index),
+          avatarUrl,
         },
-      })
-    )
+      });
+    })
   );
 
   // Map speaker names to IDs (using stripped names for matching)
