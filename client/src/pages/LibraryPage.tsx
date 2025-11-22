@@ -482,25 +482,27 @@ export default function LibraryPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="space-y-3">
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-navy group-hover:text-indigo transition-colors">
-                      {episode.title}
-                    </h3>
+                  <div className="flex flex-col h-full">
+                    <div className="space-y-3 flex-1">
+                      {/* Title */}
+                      <h3 className="text-xl font-bold text-navy group-hover:text-indigo transition-colors">
+                        {episode.title}
+                      </h3>
 
-                    {/* Card Type with Icon */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <MessageSquare className="w-3.5 h-3.5" />
-                      <span>Dialogue</span>
+                      {/* Card Type with Icon */}
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <MessageSquare className="w-3.5 h-3.5" />
+                        <span>Dialogue</span>
+                      </div>
+
+                      {/* Source Text Preview */}
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {episode.sourceText}
+                      </p>
                     </div>
 
-                    {/* Source Text Preview */}
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {episode.sourceText}
-                    </p>
-
-                    {/* Language Info and Levels */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
+                    {/* Language Info and Levels - Always at bottom */}
+                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
                       {proficiencyLevels.length > 0 ? (
                         <SegmentedPill
                           leftText={episode.targetLanguage.toUpperCase()}
@@ -540,27 +542,29 @@ export default function LibraryPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="space-y-3">
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors">
-                      {course.title}
-                    </h3>
+                  <div className="flex flex-col h-full">
+                    <div className="space-y-3 flex-1">
+                      {/* Title */}
+                      <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors">
+                        {course.title}
+                      </h3>
 
-                    {/* Card Type with Icon */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <Headphones className="w-3.5 h-3.5" />
-                      <span>Audio Course</span>
+                      {/* Card Type with Icon */}
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Headphones className="w-3.5 h-3.5" />
+                        <span>Audio Course</span>
+                      </div>
+
+                      {/* Description */}
+                      {course.description && (
+                        <p className="text-sm text-gray-600 line-clamp-2">
+                          {course.description}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Description */}
-                    {course.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {course.description}
-                      </p>
-                    )}
-
-                    {/* Language Info and JLPT Level */}
-                    <div className="flex items-center gap-2 text-sm flex-wrap pt-2 border-t">
+                    {/* Language Info and JLPT Level - Always at bottom */}
+                    <div className="flex items-center gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
                       {course.jlptLevel ? (
                         <SegmentedPill
                           leftText={`${course.targetLanguage.toUpperCase()} → ${course.nativeLanguage.toUpperCase()}`}
@@ -606,25 +610,27 @@ export default function LibraryPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="space-y-3">
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors">
-                      {pack.title}
-                    </h3>
+                  <div className="flex flex-col h-full">
+                    <div className="space-y-3 flex-1">
+                      {/* Title */}
+                      <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors">
+                        {pack.title}
+                      </h3>
 
-                    {/* Card Type with Icon */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>Narrow Listening</span>
+                      {/* Card Type with Icon */}
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Narrow Listening</span>
+                      </div>
+
+                      {/* Topic Preview */}
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {pack.topic}
+                      </p>
                     </div>
 
-                    {/* Topic Preview */}
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {pack.topic}
-                    </p>
-
                     {/* JLPT Level and Variations */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
+                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
                       <SegmentedPill
                         leftText={pack.jlptLevel}
                         rightText={`${pack.versions?.length || 0} variations`}
@@ -658,25 +664,27 @@ export default function LibraryPage() {
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="space-y-3">
-                    {/* Title */}
-                    <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors">
-                      {pack.title}
-                    </h3>
+                  <div className="flex flex-col h-full">
+                    <div className="space-y-3 flex-1">
+                      {/* Title */}
+                      <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors">
+                        {pack.title}
+                      </h3>
 
-                    {/* Card Type with Icon */}
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>Lexical Chunk Pack</span>
+                      {/* Card Type with Icon */}
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>Lexical Chunk Pack</span>
+                      </div>
+
+                      {/* Theme */}
+                      <p className="text-sm text-gray-600 capitalize">
+                        {pack.theme.replace(/_/g, ' ')}
+                      </p>
                     </div>
 
-                    {/* Theme */}
-                    <p className="text-sm text-gray-600 capitalize">
-                      {pack.theme.replace(/_/g, ' ')}
-                    </p>
-
                     {/* JLPT Level and Stats */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-2 border-t">
+                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
                       <SegmentedPill
                         leftText={pack.jlptLevel}
                         rightText={`${pack._count.examples} examples`}
