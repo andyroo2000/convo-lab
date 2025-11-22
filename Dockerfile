@@ -78,6 +78,9 @@ COPY server/gcloud-key.json ./gcloud-key.json
 # Copy built server and shared modules
 COPY --from=server-builder /app/server/dist ./dist
 
+# Copy server scripts for migrations
+COPY server/scripts ./scripts
+
 # Copy built client files to be served by Express
 COPY --from=client-builder /app/client/dist ./public/client
 
