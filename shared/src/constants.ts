@@ -59,50 +59,51 @@ export const TTS_VOICES = {
     languageCode: 'en-US',
     voices: [
       // Male narrator voices
-      { id: 'en-US-Journey-D', gender: 'male', description: 'Andrew - Warm and natural', edgeName: 'AndrewNeural' },
-      { id: 'en-US-Studio-M', gender: 'male', description: 'Brian - Clear and professional', edgeName: 'BrianNeural' },
-      { id: 'en-US-Studio-O', gender: 'male', description: 'Eric - Deep and authoritative', edgeName: 'EricNeural' },
-      { id: 'en-US-Wavenet-B', gender: 'male', description: 'Guy - Confident and engaging', edgeName: 'GuyNeural' },
+      { id: 'en-US-Journey-D', gender: 'male', description: 'Andrew - Warm and natural' },
+      { id: 'en-US-Studio-M', gender: 'male', description: 'Brian - Clear and professional' },
+      { id: 'en-US-Studio-O', gender: 'male', description: 'Eric - Deep and authoritative' },
+      { id: 'en-US-Neural2-J', gender: 'male', description: 'Guy - Deep and authoritative' },
+      { id: 'en-US-Wavenet-B', gender: 'male', description: 'David - Confident and engaging' },
       // Female narrator voices
-      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable', edgeName: 'JennyNeural' },
-      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm', edgeName: 'AriaNeural' },
-      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere', edgeName: 'SaraNeural' },
-      { id: 'en-US-Wavenet-F', gender: 'female', description: 'Michelle - Authentic and warm', edgeName: 'MichelleNeural' },
+      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable' },
+      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm' },
+      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere' },
+      { id: 'en-US-Wavenet-F', gender: 'female', description: 'Michelle - Authentic and warm' },
     ],
   },
   ja: {
     languageCode: 'ja-JP',
     voices: [
       // Female voices (adult, for dialogue)
-      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', edgeName: 'NanamiNeural' },
-      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear', edgeName: 'ShioriNeural' },
-      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright', edgeName: 'MayuNeural' },
+      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful' },
+      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear' },
+      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright' },
 
       // Male voices (adult, for dialogue)
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational', edgeName: 'MasaruMultilingualNeural' },
-      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Naoki - Clear and natural', edgeName: 'NaokiNeural' },
-      { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Daichi - Steady and reliable', edgeName: 'DaichiNeural' },
+      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational' },
+      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Naoki - Clear and natural' },
+      { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Daichi - Steady and reliable' },
     ],
   },
   zh: {
     languageCode: 'cmn-CN',
     voices: [
       // Female voices (adult, for dialogue) - Google Cloud TTS
-      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Wavenet A - Warm and friendly', edgeName: 'XiaoxiaoNeural' },
-      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Wavenet D - Clear and gentle', edgeName: 'XiaoyiNeural' },
-      { id: 'cmn-TW-Wavenet-A', gender: 'female', description: 'Taiwan A - Bright and lively', edgeName: 'XiaoxuanNeural' },
+      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Wavenet A - Warm and friendly' },
+      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Wavenet D - Clear and gentle' },
+      { id: 'cmn-TW-Wavenet-A', gender: 'female', description: 'Taiwan A - Bright and lively' },
 
       // Male voices (adult, for dialogue) - Google Cloud TTS
-      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wavenet B - Natural and conversational', edgeName: 'YunxiNeural' },
-      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Wavenet C - Professional and clear', edgeName: 'YunyangNeural' },
-      { id: 'cmn-TW-Wavenet-B', gender: 'male', description: 'Taiwan B - Calm and steady', edgeName: 'YunjianNeural' },
+      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wavenet B - Natural and conversational' },
+      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Wavenet C - Professional and clear' },
+      { id: 'cmn-TW-Wavenet-B', gender: 'male', description: 'Taiwan B - Calm and steady' },
     ],
   },
 } as const;
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
-  en: 'en-US-Journey-D', // Male, highest quality, warm and natural (best for instruction)
+  en: 'en-US-Neural2-J', // Guy - Deep and authoritative (best for instruction)
   ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
   zh: 'cmn-CN-Wavenet-A', // Female, natural and friendly (Google Cloud TTS)
 } as const;

@@ -1,7 +1,21 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
-import { Episode, CreateCourseRequest } from '../../types';
-import { TTS_VOICES } from '../../../../shared/src/constants';
+import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
+import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from '../../../../shared/src/constants';
+
+/**
+ * Get a random voice ID for the specified language, excluding the narrator voice
+ */
+function getRandomVoice(language: LanguageCode, narratorVoiceId: string): string {
+  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
+  const availableVoices = languageVoices.filter(v => v.id !== narratorVoiceId);
+
+  if (availableVoices.length === 0) {
+    return languageVoices[0]?.id || '';
+  }
+
+  return availableVoices[Math.floor(Math.random() * availableVoices.length)].id;
+}
 
 interface CourseCreatorProps {
   isOpen: boolean;
@@ -31,15 +45,15 @@ export default function CourseCreator({
       setTitle(`${episode.title} - Audio Course`);
 
       // Select default narrator voice for the native language
-      const defaultVoice = TTS_VOICES[episode.nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
-      setSelectedVoice(defaultVoice);
+      const narratorVoice = DEFAULT_NARRATOR_VOICES[episode.nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES] ||
+                            TTS_VOICES[episode.nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
+      setSelectedVoice(narratorVoice);
 
-      // Select default dialogue voices for the target language (female for speaker 1, male for speaker 2)
-      const targetVoices = TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-      const femaleVoice = targetVoices.find(v => v.gender === 'female')?.id || targetVoices[0]?.id || '';
-      const maleVoice = targetVoices.find(v => v.gender === 'male')?.id || targetVoices[0]?.id || '';
-      setSpeaker1VoiceId(femaleVoice);
-      setSpeaker2VoiceId(maleVoice);
+      // Select random dialogue voices for the target language (excluding the narrator voice)
+      const speaker1Voice = getRandomVoice(episode.targetLanguage as LanguageCode, narratorVoice);
+      const speaker2Voice = getRandomVoice(episode.targetLanguage as LanguageCode, narratorVoice);
+      setSpeaker1VoiceId(speaker1Voice);
+      setSpeaker2VoiceId(speaker2Voice);
 
       setError(null);
     }
@@ -201,25 +215,6 @@ export default function CourseCreator({
                 </option>
               ))}
             </select>
-            {/* Voice Sample Player */}
-            {selectedVoice && (() => {
-              const selectedNarratorVoice = availableVoices.find(v => v.id === selectedVoice);
-              if (selectedNarratorVoice) {
-                const voiceName = selectedNarratorVoice.description.split(' - ')[0].toLowerCase();
-                return (
-                  <audio
-                    key={selectedVoice}
-                    controls
-                    className="w-full mt-2 h-8"
-                    style={{ maxHeight: '32px' }}
-                  >
-                    <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                );
-              }
-              return null;
-            })()}
             <p className="text-xs text-gray-500 mt-1">
               This voice will narrate instructions in {episode.nativeLanguage.toUpperCase()}
             </p>
@@ -249,26 +244,6 @@ export default function CourseCreator({
                       </option>
                     ))}
                 </select>
-                {/* Voice Sample Player */}
-                {speaker1VoiceId && (() => {
-                  const selectedVoice = (TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
-                    .find(v => v.id === speaker1VoiceId);
-                  if (selectedVoice) {
-                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
-                    return (
-                      <audio
-                        key={speaker1VoiceId}
-                        controls
-                        className="w-full mt-2 h-8"
-                        style={{ maxHeight: '32px' }}
-                      >
-                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    );
-                  }
-                  return null;
-                })()}
               </div>
 
               {/* Speaker 2 Voice */}
@@ -289,26 +264,6 @@ export default function CourseCreator({
                       </option>
                     ))}
                 </select>
-                {/* Voice Sample Player */}
-                {speaker2VoiceId && (() => {
-                  const selectedVoice = (TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
-                    .find(v => v.id === speaker2VoiceId);
-                  if (selectedVoice) {
-                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
-                    return (
-                      <audio
-                        key={speaker2VoiceId}
-                        controls
-                        className="w-full mt-2 h-8"
-                        style={{ maxHeight: '32px' }}
-                      >
-                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    );
-                  }
-                  return null;
-                })()}
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
