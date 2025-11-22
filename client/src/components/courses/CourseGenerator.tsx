@@ -1,8 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
-import { TTS_VOICES } from '../../../../shared/src/constants';
+import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from '../../../../shared/src/constants';
 import { useAuth } from '../../contexts/AuthContext';
+
+/**
+ * Get a random voice ID for the specified language, excluding the narrator voice
+ */
+function getRandomVoice(language: LanguageCode, narratorVoiceId: string): string {
+  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
+  const availableVoices = languageVoices.filter(v => v.id !== narratorVoiceId);
+
+  if (availableVoices.length === 0) {
+    return languageVoices[0]?.id || '';
+  }
+
+  return availableVoices[Math.floor(Math.random() * availableVoices.length)].id;
+}
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
@@ -33,15 +47,15 @@ export default function CourseGenerator() {
   // Initialize default voices when languages change
   useEffect(() => {
     // Select default narrator voice for the native language
-    const defaultVoice = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
-    setSelectedVoice(defaultVoice);
+    const narratorVoice = DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES] ||
+                          TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
+    setSelectedVoice(narratorVoice);
 
-    // Select default dialogue voices for the target language
-    const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-    const femaleVoice = targetVoices.find(v => v.gender === 'female')?.id || targetVoices[0]?.id || '';
-    const maleVoice = targetVoices.find(v => v.gender === 'male')?.id || targetVoices[0]?.id || '';
-    setSpeaker1VoiceId(femaleVoice);
-    setSpeaker2VoiceId(maleVoice);
+    // Select random dialogue voices for the target language (excluding the narrator voice)
+    const speaker1Voice = getRandomVoice(targetLanguage, narratorVoice);
+    const speaker2Voice = getRandomVoice(targetLanguage, narratorVoice);
+    setSpeaker1VoiceId(speaker1Voice);
+    setSpeaker2VoiceId(speaker2Voice);
   }, [nativeLanguage, targetLanguage]);
 
   const handleCreate = async () => {
@@ -232,24 +246,6 @@ export default function CourseGenerator() {
                 </option>
               ))}
             </select>
-            {selectedVoice && (() => {
-              const selectedNarratorVoice = nativeVoices.find(v => v.id === selectedVoice);
-              if (selectedNarratorVoice) {
-                const voiceName = selectedNarratorVoice.description.split(' - ')[0].toLowerCase();
-                return (
-                  <audio
-                    key={selectedVoice}
-                    controls
-                    className="w-full mt-2 h-8"
-                    style={{ maxHeight: '32px' }}
-                  >
-                    <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                    Your browser does not support the audio element.
-                  </audio>
-                );
-              }
-              return null;
-            })()}
             <p className="text-xs text-gray-500 mt-1">
               This voice will narrate instructions in {nativeLanguage.toUpperCase()}
             </p>
@@ -277,24 +273,6 @@ export default function CourseGenerator() {
                     </option>
                   ))}
                 </select>
-                {speaker1VoiceId && (() => {
-                  const selectedVoice = targetVoices.find(v => v.id === speaker1VoiceId);
-                  if (selectedVoice) {
-                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
-                    return (
-                      <audio
-                        key={speaker1VoiceId}
-                        controls
-                        className="w-full mt-2 h-8"
-                        style={{ maxHeight: '32px' }}
-                      >
-                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    );
-                  }
-                  return null;
-                })()}
               </div>
 
               {/* Speaker 2 */}
@@ -313,24 +291,6 @@ export default function CourseGenerator() {
                     </option>
                   ))}
                 </select>
-                {speaker2VoiceId && (() => {
-                  const selectedVoice = targetVoices.find(v => v.id === speaker2VoiceId);
-                  if (selectedVoice) {
-                    const voiceName = selectedVoice.description.split(' - ')[0].toLowerCase();
-                    return (
-                      <audio
-                        key={speaker2VoiceId}
-                        controls
-                        className="w-full mt-2 h-8"
-                        style={{ maxHeight: '32px' }}
-                      >
-                        <source src={`/voice-samples/${voiceName}.mp3`} type="audio/mpeg" />
-                        Your browser does not support the audio element.
-                      </audio>
-                    );
-                  }
-                  return null;
-                })()}
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">

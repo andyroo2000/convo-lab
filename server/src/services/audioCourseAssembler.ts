@@ -62,7 +62,7 @@ export async function assembleLessonAudio(
 
       switch (unit.type) {
         case 'narration_L1':
-          // Generate L1 narration TTS using Edge TTS
+          // Generate L1 narration TTS
           buffer = await synthesizeSpeech({
             text: unit.text,
             voiceId: unit.voiceId,
@@ -70,12 +70,11 @@ export async function assembleLessonAudio(
             speed: 1.0,
             pitch: unit.pitch || 0,
             useSSML: false,
-            useDraftMode: true,
           });
           break;
 
         case 'L2':
-          // Generate L2 TTS using Edge TTS (use reading if available for better pronunciation)
+          // Generate L2 TTS (use reading if available for better pronunciation)
           const textToSpeak = unit.reading || unit.text;
           buffer = await synthesizeSpeech({
             text: textToSpeak,
@@ -84,13 +83,12 @@ export async function assembleLessonAudio(
             speed: unit.speed || 1.0,
             pitch: unit.pitch || 0,
             useSSML: false,
-            useDraftMode: true,
           });
           break;
 
         case 'pause':
-          // Generate silence using Edge TTS
-          buffer = await generateSilence(unit.seconds, true);
+          // Generate silence
+          buffer = await generateSilence(unit.seconds);
           break;
 
         case 'marker':

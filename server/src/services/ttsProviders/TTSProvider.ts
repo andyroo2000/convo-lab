@@ -27,18 +27,11 @@ export interface TTSProvider {
 }
 
 /**
- * Factory function to get the appropriate TTS provider
- * @param useDraftMode Whether to use draft mode (Edge TTS) or production (Google Cloud TTS)
- * @returns TTSProvider instance
+ * Factory function to get the TTS provider
+ * @returns GoogleTTSProvider instance
  */
-export async function getTTSProvider(useDraftMode: boolean = false): Promise<TTSProvider> {
-  if (useDraftMode) {
-    // Lazy load Edge TTS provider to avoid loading Python dependencies unless needed
-    const { EdgeTTSProvider } = await import('./EdgeTTSProvider.js');
-    return new EdgeTTSProvider();
-  } else {
-    // Lazy load Google TTS provider
-    const { GoogleTTSProvider } = await import('./GoogleTTSProvider.js');
-    return new GoogleTTSProvider();
-  }
+export async function getTTSProvider(): Promise<TTSProvider> {
+  // Lazy load Google TTS provider
+  const { GoogleTTSProvider } = await import('./GoogleTTSProvider.js');
+  return new GoogleTTSProvider();
 }

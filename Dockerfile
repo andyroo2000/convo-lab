@@ -3,7 +3,6 @@
 
 FROM node:20-alpine AS base
 RUN apk add --no-cache ffmpeg openssl python3 py3-pip make g++
-RUN pip3 install --break-system-packages edge-tts
 
 # Build shared package first
 FROM base AS shared-builder
