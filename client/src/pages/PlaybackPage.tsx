@@ -596,7 +596,7 @@ export default function PlaybackPage() {
             >
               <div className="flex gap-8">
                 {/* Speaker Avatar */}
-                <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-black/[0.15] pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6">
+                <div className="w-40 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-black/[0.15] pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6">
                   <div className="w-24 h-24 rounded-full overflow-hidden shadow-md bg-gray-200">
                     <img
                       src={speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
