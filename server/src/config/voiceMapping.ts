@@ -34,7 +34,6 @@ export const GOOGLE_TO_EDGE_VOICE_MAPPING: Record<string, string> = {
   'ja-JP-Neural2-B': 'ja-JP-NanamiNeural',  // Female, bright, cheerful
   'ja-JP-Wavenet-A': 'ja-JP-NanamiNeural',  // Female, fallback (Mayu)
   'ja-JP-Wavenet-D': 'ja-JP-ShioriNeural',  // Female, calm (Shiori)
-  'ja-JP-Neural2-B': 'ja-JP-NanamiNeural',  // Female, bright (Nanami)
 
   // Male voices (adult)
   'ja-JP-Neural2-C': 'ja-JP-DaichiNeural',  // Male (changed from KeitaNeural - sounded like child)
