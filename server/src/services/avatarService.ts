@@ -214,9 +214,9 @@ export async function getSpeakerAvatar(filename: string) {
 const VOICE_GENDER_MAP: Record<string, string> = {
   // Japanese Wavenet voices
   'ja-JP-Wavenet-A': 'female', // Ichiro (female)
-  'ja-JP-Wavenet-B': 'male',   // Daichi (male) - FIXED
+  'ja-JP-Wavenet-B': 'female', // Daichi (female) - FIXED: B is female, not male
   'ja-JP-Wavenet-C': 'male',   // Kento (male)
-  'ja-JP-Wavenet-D': 'female', // Shiori (female) - FIXED
+  'ja-JP-Wavenet-D': 'male',   // Shiori (male) - FIXED: D is male, not female
   // Japanese Neural2 voices
   'ja-JP-Neural2-B': 'female', // Female voice
   'ja-JP-Neural2-C': 'male',   // Male voice

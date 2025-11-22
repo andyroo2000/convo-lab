@@ -43,6 +43,24 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
       throw new AppError('Missing required fields', 400);
     }
 
+    // Check for existing active or waiting jobs to prevent duplicates
+    const existingJobs = await audioQueue.getJobs(['active', 'waiting']);
+    const duplicateJob = existingJobs.find(
+      (job) =>
+        job.name === 'generate-all-speeds' &&
+        job.data.episodeId === episodeId &&
+        job.data.dialogueId === dialogueId
+    );
+
+    if (duplicateJob) {
+      console.log(`Duplicate job detected for episode ${episodeId}, returning existing job ${duplicateJob.id}`);
+      return res.json({
+        jobId: duplicateJob.id,
+        message: 'Audio generation already in progress',
+        existing: true,
+      });
+    }
+
     // Add job to queue
     const job = await audioQueue.add('generate-all-speeds', {
       episodeId,
