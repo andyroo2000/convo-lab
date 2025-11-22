@@ -821,11 +821,11 @@ Return ONLY a JSON object (no markdown, no explanation):
     const voicesByGender: Record<string, { male: string[]; female: string[] }> = {
       'ja': {
         male: ['ja-JP-Neural2-D', 'ja-JP-Wavenet-C', 'ja-JP-Wavenet-B'], // Masaru, Naoki, Daichi (excluded Keita - child)
-        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-D', 'ja-JP-Studio-B'] // Nanami, Shiori, Mayu (excluded Aoi - child)
+        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-D', 'ja-JP-Wavenet-A'] // Nanami, Shiori, Mayu (excluded Aoi - child)
       },
       'zh': {
-        male: ['zh-CN-YunxiNeural', 'zh-CN-YunyangNeural'],
-        female: ['zh-CN-XiaoxiaoNeural', 'zh-CN-XiaoyiNeural']
+        male: ['cmn-CN-Wavenet-B', 'cmn-CN-Wavenet-C', 'cmn-TW-Wavenet-B'],
+        female: ['cmn-CN-Wavenet-A', 'cmn-CN-Wavenet-D', 'cmn-TW-Wavenet-A']
       },
       'es': {
         male: ['es-ES-AlvaroNeural', 'es-ES-PabloNeural'],
