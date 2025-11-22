@@ -17,7 +17,8 @@
     "generate:avatars": "tsx scripts/generate-speaker-avatars.ts",
     "crop:avatars": "tsx scripts/crop-avatars.ts",
     "backfill:metadata": "tsx scripts/backfill-sentence-metadata.ts",
-    "check:metadata": "tsx scripts/check-metadata-status.ts"
+    "check:metadata": "tsx scripts/check-metadata-status.ts",
+    "check:prod": "tsx scripts/quick-check-prod.ts"
   },
   "dependencies": {
     "@google-cloud/storage": "^7.13.0",
