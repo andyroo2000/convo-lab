@@ -17,7 +17,7 @@ images:
 
 substitutions:
   _CACHE_BUST: 'default'
-  _IMAGE_NAME: 'gcr.io/${PROJECT_ID}/convolab'
+  _IMAGE_NAME: 'gcr.io/convolab-mvp/convolab'
 
 options:
   machineType: 'E2_HIGHCPU_8'
