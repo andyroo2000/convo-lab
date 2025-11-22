@@ -213,23 +213,23 @@ export async function getSpeakerAvatar(filename: string) {
  */
 const VOICE_GENDER_MAP: Record<string, string> = {
   // Japanese Wavenet voices
-  'ja-JP-Wavenet-A': 'female',
-  'ja-JP-Wavenet-B': 'female',
-  'ja-JP-Wavenet-C': 'male',
-  'ja-JP-Wavenet-D': 'male',
+  'ja-JP-Wavenet-A': 'female', // Ichiro (female)
+  'ja-JP-Wavenet-B': 'male',   // Daichi (male) - FIXED
+  'ja-JP-Wavenet-C': 'male',   // Kento (male)
+  'ja-JP-Wavenet-D': 'female', // Shiori (female) - FIXED
   // Japanese Neural2 voices
-  'ja-JP-Neural2-B': 'female',
-  'ja-JP-Neural2-C': 'male',
-  'ja-JP-Neural2-D': 'male',
-  // Chinese (Mandarin) voices
+  'ja-JP-Neural2-B': 'female', // Female voice
+  'ja-JP-Neural2-C': 'male',   // Male voice
+  'ja-JP-Neural2-D': 'male',   // Male voice
+  // Chinese Mandarin voices (mainland)
   'cmn-CN-Wavenet-A': 'female',
   'cmn-CN-Wavenet-B': 'male',
   'cmn-CN-Wavenet-C': 'male',
   'cmn-CN-Wavenet-D': 'female',
+  // Chinese Mandarin voices (Taiwan)
   'cmn-TW-Wavenet-A': 'female',
   'cmn-TW-Wavenet-B': 'male',
   'cmn-TW-Wavenet-C': 'male',
-  // Add more as needed
 };
 
 /**

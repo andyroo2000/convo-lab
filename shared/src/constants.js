@@ -79,16 +79,16 @@ export const TTS_VOICES = {
         ],
     },
     zh: {
-        languageCode: 'zh-CN',
+        languageCode: 'cmn-CN',
         voices: [
-            // Female voices (adult, for dialogue)
-            { id: 'zh-CN-XiaoxiaoNeural', gender: 'female', description: 'Xiaoxiao - Warm and friendly', edgeName: 'XiaoxiaoNeural' },
-            { id: 'zh-CN-XiaoyiNeural', gender: 'female', description: 'Xiaoyi - Clear and gentle', edgeName: 'XiaoyiNeural' },
-            { id: 'zh-CN-XiaoxuanNeural', gender: 'female', description: 'Xiaoxuan - Bright and lively', edgeName: 'XiaoxuanNeural' },
-            // Male voices (adult, for dialogue)
-            { id: 'zh-CN-YunxiNeural', gender: 'male', description: 'Yunxi - Natural and conversational', edgeName: 'YunxiNeural' },
-            { id: 'zh-CN-YunyangNeural', gender: 'male', description: 'Yunyang - Professional and clear', edgeName: 'YunyangNeural' },
-            { id: 'zh-CN-YunjianNeural', gender: 'male', description: 'Yunjian - Calm and steady', edgeName: 'YunjianNeural' },
+            // Female voices (adult, for dialogue) - Google Cloud TTS
+            { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Wavenet A - Warm and friendly', edgeName: 'XiaoxiaoNeural' },
+            { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Wavenet D - Clear and gentle', edgeName: 'XiaoyiNeural' },
+            { id: 'cmn-TW-Wavenet-A', gender: 'female', description: 'Taiwan A - Bright and lively', edgeName: 'XiaoxuanNeural' },
+            // Male voices (adult, for dialogue) - Google Cloud TTS
+            { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wavenet B - Natural and conversational', edgeName: 'YunxiNeural' },
+            { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Wavenet C - Professional and clear', edgeName: 'YunyangNeural' },
+            { id: 'cmn-TW-Wavenet-B', gender: 'male', description: 'Taiwan B - Calm and steady', edgeName: 'YunjianNeural' },
         ],
     },
 };
@@ -96,7 +96,7 @@ export const TTS_VOICES = {
 export const DEFAULT_NARRATOR_VOICES = {
     en: 'en-US-Journey-D', // Male, highest quality, warm and natural (best for instruction)
     ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
-    zh: 'zh-CN-XiaoxiaoNeural', // Female, natural and friendly
+    zh: 'cmn-CN-Wavenet-A', // Female, natural and friendly (Google Cloud TTS)
 };
 // Audio speed configurations for dialogue playback
 export const AUDIO_SPEEDS = {
@@ -104,4 +104,3 @@ export const AUDIO_SPEEDS = {
     medium: { value: 0.85, label: 'Medium', key: '0_85' },
     normal: { value: 1.0, label: 'Normal', key: '1_0' },
 };
-//# sourceMappingURL=constants.js.map
