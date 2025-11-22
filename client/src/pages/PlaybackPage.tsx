@@ -313,10 +313,30 @@ export default function PlaybackPage() {
     try {
       const jobId = await generateAllSpeedsAudio(episode.id, episode.dialogue.id);
 
+      // Clear any existing polling interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
+      const startTime = Date.now();
+      const MAX_POLL_DURATION = 5 * 60 * 1000; // 5 minutes timeout
+
       // Poll for progress
       const pollInterval = setInterval(async () => {
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/audio/job/${jobId}`, {
+          // Check for timeout
+          if (Date.now() - startTime > MAX_POLL_DURATION) {
+            clearInterval(pollInterval);
+            pollingIntervalRef.current = null;
+            setIsGeneratingAudio(false);
+            setGenerationProgress(0);
+            setToastMessage('Audio generation timed out. Please try again.');
+            setToastType('error');
+            return;
+          }
+
+          const response = await fetch(`${API_URL}/api/audio/job/${jobId}`, {
             credentials: 'include',
           });
 
@@ -335,16 +355,25 @@ export default function PlaybackPage() {
               await loadEpisode();
               setIsGeneratingAudio(false);
               setGenerationProgress(0);
+              setToastMessage('Audio generated successfully!');
+              setToastType('success');
             } else if (data.state === 'failed') {
               clearInterval(pollInterval);
               pollingIntervalRef.current = null;
               setIsGeneratingAudio(false);
               setGenerationProgress(0);
-              alert('Failed to generate audio. Please try again.');
+              setToastMessage('Failed to generate audio. Please try again.');
+              setToastType('error');
             }
           }
         } catch (err) {
           console.error('Error polling job:', err);
+          clearInterval(pollInterval);
+          pollingIntervalRef.current = null;
+          setIsGeneratingAudio(false);
+          setGenerationProgress(0);
+          setToastMessage('Failed to check generation status. Please refresh the page.');
+          setToastType('error');
         }
       }, 1000);
 
@@ -353,7 +382,8 @@ export default function PlaybackPage() {
       console.error('Failed to start audio generation:', err);
       setIsGeneratingAudio(false);
       setGenerationProgress(0);
-      alert('Failed to start audio generation. Please try again.');
+      setToastMessage('Failed to start audio generation. Please try again.');
+      setToastType('error');
     }
   };
 
