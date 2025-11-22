@@ -100,6 +100,7 @@ model Speaker {
   proficiency String // beginner, intermediate, advanced, native
   tone       String  // casual, polite, formal
   color      String? // For UI differentiation
+  avatarUrl  String? // URL to speaker avatar image
 
   dialogue  Dialogue   @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
   sentences Sentence[]
