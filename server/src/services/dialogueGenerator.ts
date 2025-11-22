@@ -149,7 +149,7 @@ For EACH line of dialogue, provide ${variationCount} alternative ways to say the
 
 Return your response as JSON in this exact format:
 {
-  "title": "A concise, descriptive English title for this dialogue using Romanized speaker names (e.g., 'Takeshi and Yuki Discuss Weekend Plans')",
+  "title": "A short, topic-focused English title (e.g., 'Weekend Plans', 'Favorite Places', 'Summer Vacation')",
   "sentences": [
     {
       "speaker": "SpeakerName",
@@ -163,8 +163,8 @@ Return your response as JSON in this exact format:
 IMPORTANT: Use EXACTLY these speaker names in your response: ${speakerNames.join(', ')}
 
 Requirements:
-- Generate a brief, descriptive title in English that captures the essence of the dialogue
-- The title should include the Romanized speaker names (e.g., use "Takeshi" for "たけし")
+- Generate a succinct, topic-focused title in English (2-4 words max, no speaker names)
+- The title should capture the main topic or theme of the conversation
 - Generate EXACTLY ${dialogueLength} dialogue lines (back and forth turns)
 - Each line should be conversational and natural
 - Progress the conversation naturally through the experience
