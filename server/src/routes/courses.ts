@@ -14,6 +14,40 @@ router.use(requireAuth);
 // Get all courses for current user
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
+    const isLibraryMode = req.query.library === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+    // Library mode: Return minimal data for card display
+    if (isLibraryMode) {
+      const courses = await prisma.course.findMany({
+        where: { userId: req.userId },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          targetLanguage: true,
+          nativeLanguage: true,
+          status: true,
+          jlptLevel: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              lessons: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+
+      res.json(courses);
+      return;
+    }
+
+    // Full mode: Return complete data with lessons and episodes
     const courses = await prisma.course.findMany({
       where: { userId: req.userId },
       include: {
@@ -38,6 +72,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
         },
       },
       orderBy: { updatedAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
 
     res.json(courses);

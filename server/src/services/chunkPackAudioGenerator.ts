@@ -6,6 +6,7 @@ import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
 import { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../types/chunkPack.js';
+import { TTS_VOICES } from '../../../shared/src/constants.js';
 
 // Configure ffmpeg/ffprobe paths
 try {
@@ -17,18 +18,11 @@ try {
   console.warn('Could not find ffmpeg/ffprobe in PATH');
 }
 
-// Default Japanese voice for chunk packs
-const DEFAULT_VOICE = 'ja-JP-NanamiNeural';
+// Get Japanese voices from shared constants (Google Cloud TTS)
+const JAPANESE_VOICES = TTS_VOICES.ja.voices.map(v => v.id);
 
-// Available Japanese voices for variety
-const JAPANESE_VOICES = [
-  'ja-JP-NanamiNeural',  // Female, bright
-  'ja-JP-DaichiNeural',  // Male, adult
-  'ja-JP-ShioriNeural',  // Female, calm
-  'ja-JP-NaokiNeural',   // Male, clear
-  'ja-JP-MayuNeural',    // Female, animated
-  'ja-JP-MasaruMultilingualNeural', // Male, warm
-];
+// Default Japanese voice for chunk packs
+const DEFAULT_VOICE = JAPANESE_VOICES[0]; // First voice from available voices
 
 /**
  * Remove furigana readings and decorative brackets from Japanese text for TTS
@@ -85,7 +79,6 @@ export async function generateExampleAudio(
           speed,
           pitch: 0,
           useSSML: false,
-          useDraftMode: true, // Use Edge TTS
         });
 
         // Upload to GCS
@@ -142,7 +135,7 @@ export async function generateStoryAudio(
 
     // Detect speakers and assign voices
     const speakerVoices = new Map<string, string>();
-    const availableVoices = ['ja-JP-NanamiNeural', 'ja-JP-DaichiNeural']; // Female and Male
+    const availableVoices = JAPANESE_VOICES; // Use all available Japanese voices
     let voiceIndex = 0;
 
     // Parse all speakers first
@@ -166,7 +159,7 @@ export async function generateStoryAudio(
 
       // Parse speaker and text
       let textToSpeak = segment.japaneseText;
-      let voiceId = DEFAULT_VOICE;
+      let voiceId: string = DEFAULT_VOICE;
 
       const speakerMatch = segment.japaneseText.match(/^([^：:]+)[：:]\s*(.+)$/);
       if (speakerMatch) {
@@ -185,7 +178,6 @@ export async function generateStoryAudio(
         speed: 0.85, // Slower for learners
         pitch: 0,
         useSSML: false,
-        useDraftMode: true,
       });
 
       // Write to temp file
@@ -213,7 +205,7 @@ export async function generateStoryAudio(
 
       // Add silence between segments (600ms - slightly shorter than NL)
       if (i < segments.length - 1) {
-        const silenceBuffer = await generateSilence(0.6, true);
+        const silenceBuffer = await generateSilence(0.6);
         const silencePath = path.join(tempDir, `silence-${i}.mp3`);
         await fs.writeFile(silencePath, silenceBuffer);
         audioSegmentFiles.push(silencePath);
@@ -285,7 +277,6 @@ export async function generateExerciseAudio(
         speed: 0.85, // Slower for learners
         pitch: 0,
         useSSML: false,
-        useDraftMode: true,
       });
 
       const filename = `exercise-${i}.mp3`;

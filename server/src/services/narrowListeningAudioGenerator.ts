@@ -89,7 +89,6 @@ export async function generateNarrowListeningAudio(
           speed: speed,
           pitch: 0,
           useSSML: false,
-          useDraftMode: false, // Use Google Cloud TTS (Edge TTS has auth issues)
         });
 
         // Write to temp file
@@ -110,7 +109,7 @@ export async function generateNarrowListeningAudio(
     console.log(`  Generated ${segmentResults.length} segment audio files`);
 
     // Generate silence files (reuse same 800ms silence for all gaps)
-    const silenceBuffer = await generateSilence(0.8, false);
+    const silenceBuffer = await generateSilence(0.8);
     const reusableSilencePath = path.join(tempDir, 'silence-reusable.mp3');
     await fs.writeFile(reusableSilencePath, silenceBuffer);
     const silenceDuration = await getAudioDurationFromFile(reusableSilencePath);

@@ -10,6 +10,13 @@ import SegmentedPill from '../components/common/SegmentedPill';
 
 import { API_URL } from '../config';
 
+// Library-specific Course type with _count instead of full relations
+type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {
+  _count?: {
+    lessons: number;
+  };
+};
+
 interface NarrowListeningPack {
   id: string;
   title: string;
@@ -17,7 +24,9 @@ interface NarrowListeningPack {
   jlptLevel: string;
   status: string;
   createdAt: string;
-  versions: Array<{ id: string; title: string }>;
+  _count: {
+    versions: number;
+  };
 }
 
 interface ChunkPack {
@@ -40,13 +49,13 @@ export default function LibraryPage() {
   const { deleteEpisode } = useEpisodes();
   const [searchParams, setSearchParams] = useSearchParams();
   const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<LibraryCourse[]>([]);
   const [narrowListeningPacks, setNarrowListeningPacks] = useState<NarrowListeningPack[]>([]);
   const [chunkPacks, setChunkPacks] = useState<ChunkPack[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
-  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -92,7 +101,7 @@ export default function LibraryPage() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/api/episodes`, {
+      const response = await fetch(`${API_URL}/api/episodes?library=true`, {
         credentials: 'include',
       });
 
@@ -111,7 +120,7 @@ export default function LibraryPage() {
 
   const loadCourses = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/courses`, {
+      const response = await fetch(`${API_URL}/api/courses?library=true`, {
         credentials: 'include',
       });
 
@@ -129,7 +138,7 @@ export default function LibraryPage() {
 
   const loadNarrowListeningPacks = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/narrow-listening`, {
+      const response = await fetch(`${API_URL}/api/narrow-listening?library=true`, {
         credentials: 'include',
       });
 
@@ -147,7 +156,7 @@ export default function LibraryPage() {
 
   const loadChunkPacks = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/chunk-packs`, {
+      const response = await fetch(`${API_URL}/api/chunk-packs?library=true`, {
         credentials: 'include',
       });
 
@@ -525,7 +534,7 @@ export default function LibraryPage() {
                 </Link>
               );
             } else if (item.type === 'course') {
-              const course = item.data as Course;
+              const course = item.data as LibraryCourse;
 
               return (
                 <Link
@@ -582,10 +591,10 @@ export default function LibraryPage() {
                           Generating...
                         </Pill>
                       )}
-                      {course.lessons && (
+                      {course._count?.lessons != null && (
                         <div className="flex items-center gap-1 text-xs text-gray-500">
                           <BookOpen className="w-3 h-3" />
-                          {course.lessons.length} {course.lessons.length === 1 ? 'lesson' : 'lessons'}
+                          {course._count.lessons} {course._count.lessons === 1 ? 'lesson' : 'lessons'}
                         </div>
                       )}
                     </div>
@@ -633,7 +642,7 @@ export default function LibraryPage() {
                     <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
                       <SegmentedPill
                         leftText={pack.jlptLevel}
-                        rightText={`${pack.versions?.length || 0} variations`}
+                        rightText={`${pack._count.versions} variations`}
                         leftColor="purple"
                         rightColor="indigo"
                       />

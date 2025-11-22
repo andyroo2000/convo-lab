@@ -1,6 +1,7 @@
 import { generateWithGemini } from './geminiClient.js';
 import { prisma } from '../db/client.js';
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
+import { processLanguageText } from './languageProcessor.js';
 
 interface Speaker {
   name: string;
@@ -216,7 +217,7 @@ async function createDialogueInDB(
     speakerRecords.map(s => [stripPhoneticNotation(s.name), s.id])
   );
 
-  // Create sentences
+  // Create sentences with precomputed metadata
   const sentences = await Promise.all(
     dialogueData.sentences.map(async (sent: any, index: number) => {
       // Strip phonetic notation from the speaker name for matching
@@ -226,6 +227,9 @@ async function createDialogueInDB(
         throw new Error(`Unknown speaker: ${sent.speaker} (normalized: ${normalizedSpeakerName}). Available speakers: ${Array.from(speakerMap.keys()).join(', ')}`);
       }
 
+      // Compute metadata (furigana/pinyin) once during generation
+      const metadata = await processLanguageText(sent.text, targetLanguage);
+
       return prisma.sentence.create({
         data: {
           dialogueId: dialogue.id,
@@ -233,7 +237,7 @@ async function createDialogueInDB(
           order: index,
           text: sent.text,
           translation: sent.translation,
-          metadata: {}, // Empty metadata - furigana generated on-the-fly
+          metadata: metadata as any, // Store precomputed metadata (cast for Prisma JSON type)
           variations: sent.variations || [],
           selected: false,
         },

@@ -12,6 +12,38 @@ router.use(requireAuth);
 // Get all packs for current user
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
+    const isLibraryMode = req.query.library === 'true';
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+
+    // Library mode: Return minimal data for card display
+    if (isLibraryMode) {
+      const packs = await prisma.narrowListeningPack.findMany({
+        where: { userId: req.userId },
+        select: {
+          id: true,
+          title: true,
+          topic: true,
+          jlptLevel: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: {
+              versions: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: limit,
+        skip: offset,
+      });
+
+      res.json(packs);
+      return;
+    }
+
+    // Full mode: Return complete data with versions and segments
     const packs = await prisma.narrowListeningPack.findMany({
       where: { userId: req.userId },
       include: {
@@ -25,6 +57,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
         },
       },
       orderBy: { updatedAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
 
     res.json(packs);
