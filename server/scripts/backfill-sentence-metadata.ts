@@ -8,8 +8,12 @@
  *   npm run backfill:metadata
  */
 
-import { prisma } from '../src/db/client.js';
-import { processLanguageText } from '../src/services/languageProcessor.js';
+// In production, import from dist; in dev, import from src
+const isProd = process.env.NODE_ENV === 'production';
+const basePath = isProd ? '../dist/server/src' : '../src';
+
+const { prisma } = await import(`${basePath}/db/client.js`);
+const { processLanguageText } = await import(`${basePath}/services/languageProcessor.js`);
 
 interface SentenceWithEpisode {
   id: string;
