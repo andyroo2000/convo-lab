@@ -731,44 +731,64 @@ export default function AdminPage() {
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {speakerAvatars.length > 0 ? (
-                speakerAvatars.map((avatar) => (
-                  <div key={avatar.filename} className="bg-white rounded-lg shadow p-4">
-                    <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
-                      <img
-                        src={avatar.croppedUrl}
-                        alt={avatar.filename}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
-                        }}
-                      />
+              {DEFAULT_SPEAKER_AVATARS.map((filename) => {
+                const avatar = speakerAvatars.find(a => a.filename === filename);
+
+                if (avatar) {
+                  // Avatar exists - show it with manage buttons
+                  return (
+                    <div key={filename} className="bg-white rounded-lg shadow p-4">
+                      <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                        <img
+                          src={avatar.croppedUrl}
+                          alt={filename}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                      </div>
+                      <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
+                        {formatAvatarTitle(filename)}
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => handleRecropSpeaker(filename)}
+                          className="btn-secondary text-sm py-1"
+                        >
+                          Re-crop
+                        </button>
+                        <button
+                          onClick={() => handleUploadNewSpeaker(filename)}
+                          className="btn-primary text-sm py-1"
+                        >
+                          Upload New
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={avatar.filename}>
-                      {formatAvatarTitle(avatar.filename)}
-                    </p>
-                    <div className="flex flex-col gap-2">
+                  );
+                } else {
+                  // Avatar missing - show upload placeholder
+                  return (
+                    <div key={filename} className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300">
+                      <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
+                        {formatAvatarTitle(filename)}
+                      </p>
                       <button
-                        onClick={() => handleRecropSpeaker(avatar.filename)}
-                        className="btn-secondary text-sm py-1"
+                        onClick={() => handleUploadNewSpeaker(filename)}
+                        className="btn-primary text-sm py-1 w-full"
                       >
-                        Re-crop
-                      </button>
-                      <button
-                        onClick={() => handleUploadNewSpeaker(avatar.filename)}
-                        className="btn-primary text-sm py-1"
-                      >
-                        Upload New
+                        Upload
                       </button>
                     </div>
-                  </div>
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12 text-gray-500">
-                  <p className="mb-4">No speaker avatars found. Upload the first ones to get started!</p>
-                  <p className="text-sm">Expected avatars: {DEFAULT_SPEAKER_AVATARS.join(', ')}</p>
-                </div>
-              )}
+                  );
+                }
+              })}
             </div>
           </div>
 
