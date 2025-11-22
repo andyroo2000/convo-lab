@@ -208,23 +208,52 @@ export async function getSpeakerAvatar(filename: string) {
 }
 
 /**
+ * Google Cloud TTS voice gender mapping
+ * Based on: https://cloud.google.com/text-to-speech/docs/voices
+ */
+const VOICE_GENDER_MAP: Record<string, string> = {
+  // Japanese Wavenet voices
+  'ja-JP-Wavenet-A': 'female',
+  'ja-JP-Wavenet-B': 'female',
+  'ja-JP-Wavenet-C': 'male',
+  'ja-JP-Wavenet-D': 'male',
+  // Japanese Neural2 voices
+  'ja-JP-Neural2-B': 'female',
+  'ja-JP-Neural2-C': 'male',
+  'ja-JP-Neural2-D': 'male',
+  // Chinese (Mandarin) voices
+  'cmn-CN-Wavenet-A': 'female',
+  'cmn-CN-Wavenet-B': 'male',
+  'cmn-CN-Wavenet-C': 'male',
+  'cmn-CN-Wavenet-D': 'female',
+  'cmn-TW-Wavenet-A': 'female',
+  'cmn-TW-Wavenet-B': 'male',
+  'cmn-TW-Wavenet-C': 'male',
+  // Add more as needed
+};
+
+/**
  * Extract language and gender from Google Cloud TTS voiceId
  * Examples:
  * - ja-JP-Wavenet-A -> { language: 'ja', gender: 'female' }
- * - zh-CN-Neural2-C -> { language: 'zh', gender: 'female' }
+ * - ja-JP-Wavenet-C -> { language: 'ja', gender: 'male' }
  */
 function parseVoiceId(voiceId: string): { language: string; gender: string } {
-  // Extract language code (first 2 chars before hyphen)
-  const language = voiceId.split('-')[0].toLowerCase();
+  // Extract language code (first 2-3 chars before hyphen)
+  const parts = voiceId.split('-');
+  const language = parts[0].toLowerCase();
 
-  // Extract voice variant letter (last character)
-  const variantMatch = voiceId.match(/-([A-Z])$/);
-  const variant = variantMatch ? variantMatch[1] : 'A';
-
-  // Google Cloud TTS convention: A-D are typically female, E+ are male
-  const gender = variant.charCodeAt(0) <= 'D'.charCodeAt(0) ? 'female' : 'male';
+  // Look up gender in our mapping
+  const gender = VOICE_GENDER_MAP[voiceId] || 'female'; // Default to female if not found
 
   return { language, gender };
+}
+
+/**
+ * Get gender from voiceId for external use
+ */
+export function parseVoiceIdForGender(voiceId: string): string {
+  return parseVoiceId(voiceId).gender;
 }
 
 /**

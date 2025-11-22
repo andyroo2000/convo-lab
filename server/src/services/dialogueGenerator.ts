@@ -1,6 +1,6 @@
 import { generateWithGemini } from './geminiClient.js';
 import { prisma } from '../db/client.js';
-import { getAvatarUrlFromVoice } from './avatarService.js';
+import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
 
 interface Speaker {
   name: string;
@@ -190,6 +190,9 @@ async function createDialogueInDB(
   // Create speakers with avatar URLs
   const speakerRecords = await Promise.all(
     speakers.map(async (speaker, index) => {
+      // Extract gender from voiceId
+      const gender = parseVoiceIdForGender(speaker.voiceId);
+
       // Find matching avatar based on voiceId and tone
       const avatarUrl = await getAvatarUrlFromVoice(speaker.voiceId, speaker.tone);
 
@@ -200,6 +203,7 @@ async function createDialogueInDB(
           voiceId: speaker.voiceId,
           proficiency: speaker.proficiency,
           tone: speaker.tone,
+          gender,
           color: speaker.color || getDefaultSpeakerColor(index),
           avatarUrl,
         },

@@ -99,6 +99,7 @@ model Speaker {
   voiceId    String  // Google Cloud TTS voice ID
   proficiency String // beginner, intermediate, advanced, native
   tone       String  // casual, polite, formal
+  gender     String? // male or female (for avatar matching)
   color      String? // For UI differentiation
   avatarUrl  String? // URL to speaker avatar image
 
