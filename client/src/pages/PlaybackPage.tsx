@@ -110,18 +110,25 @@ export default function PlaybackPage() {
     }
   }, [episodeId]);
 
+  // Track which episode we've already triggered generation for to prevent duplicates
+  const lastProcessedEpisodeRef = useRef<string | null>(null);
+
   // Auto-generate missing audio speeds
   useEffect(() => {
     if (!episode || !episode.dialogue) return;
+
+    // Already processed this episode
+    if (lastProcessedEpisodeRef.current === episode.id) return;
 
     // Check if all three speeds are available
     const hasAllSpeeds = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0;
 
     if (!hasAllSpeeds && !isGeneratingAudio) {
       console.log('Missing audio speeds, generating all speeds...');
+      lastProcessedEpisodeRef.current = episode.id;
       handleGenerateAllSpeeds();
     }
-  }, [episode]);
+  }, [episode, isGeneratingAudio]);
 
   // Keyboard controls: Space bar to play/pause, Arrow keys to navigate turns
   useEffect(() => {
