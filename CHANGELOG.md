@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial changelog setup with /commit slash command
+- Comprehensive data-testid attributes across all components for Playwright E2E testing (commit: da7b820)
 
 ### Changed
 - Added workflow documentation to use /commit slash command (commit: 5a527c6)
