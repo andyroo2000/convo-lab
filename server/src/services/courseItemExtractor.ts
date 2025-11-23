@@ -1,5 +1,7 @@
 import { Episode, Sentence } from '@prisma/client';
 import { generateWithGemini } from './geminiClient.js';
+import { getVoicesByGender } from '../../../shared/src/voiceSelection.js';
+import { LanguageCode } from '../../../shared/src/types.js';
 
 export interface CoreItem {
   id: string;
@@ -817,32 +819,8 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Build dialogue exchanges
     const exchanges: DialogueExchange[] = [];
 
-    // Define multiple voices per gender for each language (to support same-gender dialogues)
-    const voicesByGender: Record<string, { male: string[]; female: string[] }> = {
-      'ja': {
-        male: ['ja-JP-Neural2-D', 'ja-JP-Wavenet-C', 'ja-JP-Wavenet-B'], // Masaru, Naoki, Daichi (excluded Keita - child)
-        female: ['ja-JP-Neural2-B', 'ja-JP-Wavenet-D', 'ja-JP-Wavenet-A'] // Nanami, Shiori, Mayu (excluded Aoi - child)
-      },
-      'zh': {
-        male: ['cmn-CN-Wavenet-B', 'cmn-CN-Wavenet-C', 'cmn-TW-Wavenet-B'],
-        female: ['cmn-CN-Wavenet-A', 'cmn-CN-Wavenet-D', 'cmn-TW-Wavenet-A']
-      },
-      'es': {
-        male: ['es-ES-AlvaroNeural', 'es-ES-PabloNeural'],
-        female: ['es-ES-ElviraNeural', 'es-ES-AbrilNeural']
-      },
-      'fr': {
-        male: ['fr-FR-HenriNeural', 'fr-FR-AlainNeural'],
-        female: ['fr-FR-DeniseNeural', 'fr-FR-BrigitteNeural']
-      },
-      'en': {
-        male: ['en-US-Journey-D', 'en-US-Neural2-D'],
-        female: ['en-US-Journey-F', 'en-US-Neural2-F']
-      },
-    };
-
-    // Get voices for target language with fallback to English
-    const languageVoices = voicesByGender[targetLanguage] || voicesByGender['en'];
+    // Get voices from TTS_VOICES constant (centralized voice management)
+    const languageVoices = getVoicesByGender(targetLanguage as LanguageCode);
 
     // Use provided voice IDs if available, otherwise use defaults
     // Speaker 1 (friend) defaults to first female voice, Speaker 2 (listener) defaults to first male voice

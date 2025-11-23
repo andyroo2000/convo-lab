@@ -161,16 +161,16 @@ export default function PlaybackPage() {
 
         // Helper function to get effective start time for current speed
         const getEffectiveStartTime = (sentence: any) => {
-          const startTime = selectedSpeed === 'slow' ? sentence.startTime_0_7
-            : selectedSpeed === 'medium' ? sentence.startTime_0_85
+          const startTime = speedKey === 'slow' ? sentence.startTime_0_7
+            : speedKey === 'medium' ? sentence.startTime_0_85
             : sentence.startTime_1_0;
           return startTime !== undefined ? startTime : sentence.startTime;
         };
 
         // Helper function to get effective end time for current speed
         const getEffectiveEndTime = (sentence: any) => {
-          const endTime = selectedSpeed === 'slow' ? sentence.endTime_0_7
-            : selectedSpeed === 'medium' ? sentence.endTime_0_85
+          const endTime = speedKey === 'slow' ? sentence.endTime_0_7
+            : speedKey === 'medium' ? sentence.endTime_0_85
             : sentence.endTime_1_0;
           return endTime !== undefined ? endTime : sentence.endTime;
         };
@@ -243,11 +243,11 @@ export default function PlaybackPage() {
     const currentSentence = episode.dialogue.sentences.find(
       (sentence) => {
         // Get timing for current speed
-        const startTime = selectedSpeed === 'slow' ? sentence.startTime_0_7
-          : selectedSpeed === 'medium' ? sentence.startTime_0_85
+        const startTime = speedKey === 'slow' ? sentence.startTime_0_7
+          : speedKey === 'medium' ? sentence.startTime_0_85
           : sentence.startTime_1_0;
-        const endTime = selectedSpeed === 'slow' ? sentence.endTime_0_7
-          : selectedSpeed === 'medium' ? sentence.endTime_0_85
+        const endTime = speedKey === 'slow' ? sentence.endTime_0_7
+          : speedKey === 'medium' ? sentence.endTime_0_85
           : sentence.endTime_1_0;
 
         // Fallback to legacy timing
@@ -294,8 +294,8 @@ export default function PlaybackPage() {
 
   const seekToSentence = (sentence: Sentence) => {
     // Get timing for current speed
-    const startTime = selectedSpeed === 'slow' ? sentence.startTime_0_7
-      : selectedSpeed === 'medium' ? sentence.startTime_0_85
+    const startTime = speedKey === 'slow' ? sentence.startTime_0_7
+      : speedKey === 'medium' ? sentence.startTime_0_85
       : sentence.startTime_1_0;
 
     // Fallback to legacy timing if multi-speed timing not available
@@ -424,9 +424,17 @@ export default function PlaybackPage() {
   const speakerMap = new Map(speakers.map(s => [s.id, s]));
 
   // Get current audio URL based on selected speed
+  // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
+  const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
+    if (speed === '0.7x' || speed === 'slow' || speed === 0.7) return 'slow';
+    if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return 'medium';
+    return 'normal'; // '1.0x', 'normal', 1.0
+  };
+
+  const speedKey = normalizeSpeedKey(selectedSpeed);
   const currentAudioUrl = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
-    ? (selectedSpeed === 'slow' ? episode.audioUrl_0_7
-      : selectedSpeed === 'medium' ? episode.audioUrl_0_85
+    ? (speedKey === 'slow' ? episode.audioUrl_0_7
+      : speedKey === 'medium' ? episode.audioUrl_0_85
       : episode.audioUrl_1_0)
     : episode.audioUrl; // Fallback to legacy for old episodes
 
@@ -556,11 +564,11 @@ export default function PlaybackPage() {
           if (!speaker) return null;
 
           // Get timing for current speed
-          const startTime = selectedSpeed === 'slow' ? sentence.startTime_0_7
-            : selectedSpeed === 'medium' ? sentence.startTime_0_85
+          const startTime = speedKey === 'slow' ? sentence.startTime_0_7
+            : speedKey === 'medium' ? sentence.startTime_0_85
             : sentence.startTime_1_0;
-          const endTime = selectedSpeed === 'slow' ? sentence.endTime_0_7
-            : selectedSpeed === 'medium' ? sentence.endTime_0_85
+          const endTime = speedKey === 'slow' ? sentence.endTime_0_7
+            : speedKey === 'medium' ? sentence.endTime_0_85
             : sentence.endTime_1_0;
 
           // Fallback to legacy timing if multi-speed timing not available
