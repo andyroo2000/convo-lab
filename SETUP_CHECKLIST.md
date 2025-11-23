@@ -77,7 +77,7 @@ brew install --cask docker
 
 ```bash
 # Make sure you're in the project root
-cd /Users/andrewlandry/source/experiments/convo-lab
+cd /Users/andrewlandry/source/convo-lab
 
 # Start all services (first time will download images)
 docker-compose up
@@ -96,7 +96,7 @@ Leave this terminal running. Open a new terminal for next steps.
 In a **new terminal**:
 
 ```bash
-cd /Users/andrewlandry/source/experiments/convo-lab
+cd /Users/andrewlandry/source/convo-lab
 
 # Run Prisma migrations
 docker-compose exec server npx prisma migrate dev --name init

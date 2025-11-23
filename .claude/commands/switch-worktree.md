@@ -44,7 +44,7 @@ Interactively switch to a different git worktree using fzf.
 ```
 📁 Select a worktree:
 
-1. main                       → /Users/andrewlandry/source/experiments/convo-lab
+1. main                       → /Users/andrewlandry/source/convo-lab
 2. add-user-profile-feature   → ../convo-lab-worktrees/add-user-profile-feature
 3. fix-login-bug              → ../convo-lab-worktrees/fix-login-bug
 

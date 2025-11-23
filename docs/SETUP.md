@@ -17,7 +17,7 @@
 ### 1. Clone and Install
 
 ```bash
-cd /Users/andrewlandry/source/experiments/convo-lab
+cd /Users/andrewlandry/source/convo-lab
 npm install
 ```
 
