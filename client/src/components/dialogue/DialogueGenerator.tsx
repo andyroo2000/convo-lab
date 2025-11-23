@@ -224,6 +224,7 @@ export default function DialogueGenerator() {
               onChange={(e) => setSourceText(e.target.value)}
               className="textarea h-32"
               placeholder="Describe an experience, conversation, or situation you want to learn about in Japanese. The AI will create a natural dialogue based on your description."
+              data-testid="dialogue-input-source-text"
             />
             <p className="text-xs text-gray-500 mt-1">
               Be specific about the context, setting, and what happened. This helps create more authentic dialogue.
@@ -251,6 +252,7 @@ export default function DialogueGenerator() {
                 value={dialogueLength}
                 onChange={(e) => setDialogueLength(parseInt(e.target.value))}
                 className="input"
+                data-testid="dialogue-select-length"
               >
                 <option value="8">8 turns</option>
                 <option value="15">15 turns</option>
@@ -268,6 +270,7 @@ export default function DialogueGenerator() {
                   value={jlptLevel}
                   onChange={(e) => setJlptLevel(e.target.value)}
                   className="input"
+                  data-testid="dialogue-select-jlpt-level"
                 >
                   <option value="N5">N5 (Beginner)</option>
                   <option value="N4">N4 (Upper Beginner)</option>
@@ -287,6 +290,7 @@ export default function DialogueGenerator() {
                   value={hskLevel}
                   onChange={(e) => setHskLevel(e.target.value)}
                   className="input"
+                  data-testid="dialogue-select-hsk-level"
                 >
                   <option value="HSK1">HSK 1 (Beginner)</option>
                   <option value="HSK2">HSK 2 (Upper Beginner)</option>
@@ -306,6 +310,7 @@ export default function DialogueGenerator() {
                 value={tone}
                 onChange={(e) => setTone(e.target.value as ToneStyle)}
                 className="input"
+                data-testid="dialogue-select-tone"
               >
                 <option value="casual">Casual</option>
                 <option value="polite">Polite</option>
@@ -335,6 +340,7 @@ export default function DialogueGenerator() {
             onClick={handleGenerate}
             disabled={loading || !sourceText.trim()}
             className="btn-primary ml-6 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="dialogue-button-generate"
           >
             {loading ? 'Generating...' : 'Generate Dialogue'}
           </button>

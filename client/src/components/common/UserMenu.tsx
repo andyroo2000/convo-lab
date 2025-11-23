@@ -60,6 +60,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-navy transition-colors rounded-lg hover:bg-gray-50"
+        data-testid="user-menu-button"
       >
         {avatarUrl ? (
           <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200">
@@ -99,6 +100,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
                   navigate('/app/admin');
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                data-testid="user-menu-item-admin"
               >
                 <Shield className="w-4 h-4" />
                 <span>Admin</span>
@@ -112,6 +114,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
                 navigate('/app/settings');
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              data-testid="user-menu-item-settings"
             >
               <Settings className="w-4 h-4" />
               <span>Settings</span>
@@ -127,6 +130,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
                 onLogout();
               }}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors"
+              data-testid="user-menu-item-logout"
             >
               <LogOut className="w-4 h-4" />
               <span>Logout</span>

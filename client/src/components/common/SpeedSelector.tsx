@@ -70,6 +70,7 @@ export default function SpeedSelector({
             className={`px-4 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
               isSelected ? activeClasses : inactiveClasses
             } ${disabled ? 'disabled:opacity-50' : ''}`}
+            data-testid={`playback-speed-${option.label.toLowerCase()}`}
           >
             {isLoading && <Loader className="w-3 h-3 animate-spin" />}
             {buttonLabel}

@@ -46,6 +46,7 @@ export default function LoginPage() {
           <Link
             to="/"
             className="inline-flex items-center gap-2 text-gray-600 hover:text-navy transition-colors"
+            data-testid="auth-link-back-home"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -69,6 +70,7 @@ export default function LoginPage() {
                   ? 'border-indigo text-indigo'
                   : 'border-transparent text-gray-500 hover:text-navy'
               }`}
+              data-testid="auth-tab-login"
             >
               Login
             </button>
@@ -79,6 +81,7 @@ export default function LoginPage() {
                   ? 'border-indigo text-indigo'
                   : 'border-transparent text-gray-500 hover:text-navy'
               }`}
+              data-testid="auth-tab-signup"
             >
               Sign Up
             </button>
@@ -98,6 +101,7 @@ export default function LoginPage() {
                     onChange={(e) => setName(e.target.value)}
                     className="input"
                     required={!isLogin}
+                    data-testid="auth-input-name"
                   />
                 </div>
 
@@ -113,6 +117,7 @@ export default function LoginPage() {
                     className="input"
                     placeholder="Enter your invite code"
                     required={!isLogin}
+                    data-testid="auth-input-invite-code"
                   />
                   <p className="text-xs text-gray-500 mt-1">
                     ConvoLab is currently invite-only
@@ -132,6 +137,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
                 required
+                data-testid="auth-input-email"
               />
             </div>
 
@@ -146,6 +152,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
                 required
+                data-testid="auth-input-password"
               />
             </div>
 
