@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useAuth } from '../../contexts/AuthContext';
-import { TTS_VOICES, SUPPORTED_LANGUAGES } from '../../../../shared/src/constants';
+import { SUPPORTED_LANGUAGES } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
+import { getDialogueSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
 interface SpeakerFormData {
   name: string;
@@ -15,20 +16,6 @@ interface SpeakerFormData {
 }
 
 const DEFAULT_SPEAKER_COLORS = ['#5E6AD8', '#4EA6B1', '#FF6A6A', '#A6F2C2'];
-
-/**
- * Get a random voice ID for the specified gender and language
- */
-function getRandomVoice(gender: 'male' | 'female', language: LanguageCode): string {
-  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
-  const genderVoices = languageVoices.filter(v => v.gender === gender);
-
-  if (genderVoices.length === 0) {
-    return languageVoices[0]?.id || '';
-  }
-
-  return genderVoices[Math.floor(Math.random() * genderVoices.length)].id;
-}
 
 export default function DialogueGenerator() {
   const navigate = useNavigate();
@@ -52,45 +39,28 @@ export default function DialogueGenerator() {
     }
   }, [user]);
 
-  // Get default voices from TTS_VOICES for the target language
-  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-
-  // Initialize speakers based on target language
-  const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => [
-    {
-      name: getRandomName(targetLanguage, 'female'),
-      voiceId: getRandomVoice('female', targetLanguage),
-      proficiency: 'intermediate',
-      tone: 'casual',
-      color: DEFAULT_SPEAKER_COLORS[0],
-    },
-    {
-      name: getRandomName(targetLanguage, 'male'),
-      voiceId: getRandomVoice('male', targetLanguage),
-      proficiency: 'intermediate',
-      tone: 'casual',
-      color: DEFAULT_SPEAKER_COLORS[1],
-    },
-  ]);
+  // Initialize speakers based on target language with unique voices
+  const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => {
+    const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
+    return speakerVoices.map((speaker, index) => ({
+      name: getRandomName(targetLanguage, speaker.gender),
+      voiceId: speaker.voiceId,
+      proficiency: 'intermediate' as ProficiencyLevel,
+      tone: 'casual' as ToneStyle,
+      color: DEFAULT_SPEAKER_COLORS[index],
+    }));
+  });
 
   // Re-initialize speakers when target language changes
   useEffect(() => {
-    setSpeakers([
-      {
-        name: getRandomName(targetLanguage, 'female'),
-        voiceId: getRandomVoice('female', targetLanguage),
-        proficiency: 'intermediate',
-        tone,
-        color: DEFAULT_SPEAKER_COLORS[0],
-      },
-      {
-        name: getRandomName(targetLanguage, 'male'),
-        voiceId: getRandomVoice('male', targetLanguage),
-        proficiency: 'intermediate',
-        tone,
-        color: DEFAULT_SPEAKER_COLORS[1],
-      },
-    ]);
+    const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
+    setSpeakers(speakerVoices.map((speaker, index) => ({
+      name: getRandomName(targetLanguage, speaker.gender),
+      voiceId: speaker.voiceId,
+      proficiency: 'intermediate' as ProficiencyLevel,
+      tone,
+      color: DEFAULT_SPEAKER_COLORS[index],
+    })));
   }, [targetLanguage, tone]);
 
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');

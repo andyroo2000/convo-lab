@@ -1,22 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
-import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from '../../../../shared/src/constants';
 import { useAuth } from '../../contexts/AuthContext';
-
-/**
- * Get a random voice ID for the specified language, excluding the narrator voice
- */
-function getRandomVoice(language: LanguageCode, narratorVoiceId: string): string {
-  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
-  const availableVoices = languageVoices.filter(v => v.id !== narratorVoiceId);
-
-  if (availableVoices.length === 0) {
-    return languageVoices[0]?.id || '';
-  }
-
-  return availableVoices[Math.floor(Math.random() * availableVoices.length)].id;
-}
+import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
@@ -46,16 +32,15 @@ export default function CourseGenerator() {
 
   // Initialize default voices when languages change
   useEffect(() => {
-    // Select default narrator voice for the native language
-    const narratorVoice = DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES] ||
-                          TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
-    setSelectedVoice(narratorVoice);
+    const { narratorVoice, speakerVoices } = getCourseSpeakerVoices(
+      targetLanguage,
+      nativeLanguage,
+      2
+    );
 
-    // Select random dialogue voices for the target language (excluding the narrator voice)
-    const speaker1Voice = getRandomVoice(targetLanguage, narratorVoice);
-    const speaker2Voice = getRandomVoice(targetLanguage, narratorVoice);
-    setSpeaker1VoiceId(speaker1Voice);
-    setSpeaker2VoiceId(speaker2Voice);
+    setSelectedVoice(narratorVoice);
+    setSpeaker1VoiceId(speakerVoices[0] || '');
+    setSpeaker2VoiceId(speakerVoices[1] || '');
   }, [nativeLanguage, targetLanguage]);
 
   const handleCreate = async () => {

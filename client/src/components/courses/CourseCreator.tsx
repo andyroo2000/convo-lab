@@ -1,21 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
-import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from '../../../../shared/src/constants';
-
-/**
- * Get a random voice ID for the specified language, excluding the narrator voice
- */
-function getRandomVoice(language: LanguageCode, narratorVoiceId: string): string {
-  const languageVoices = TTS_VOICES[language as keyof typeof TTS_VOICES]?.voices || [];
-  const availableVoices = languageVoices.filter(v => v.id !== narratorVoiceId);
-
-  if (availableVoices.length === 0) {
-    return languageVoices[0]?.id || '';
-  }
-
-  return availableVoices[Math.floor(Math.random() * availableVoices.length)].id;
-}
+import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
 interface CourseCreatorProps {
   isOpen: boolean;
@@ -44,16 +30,15 @@ export default function CourseCreator({
     if (isOpen && episode) {
       setTitle(`${episode.title} - Audio Course`);
 
-      // Select default narrator voice for the native language
-      const narratorVoice = DEFAULT_NARRATOR_VOICES[episode.nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES] ||
-                            TTS_VOICES[episode.nativeLanguage as keyof typeof TTS_VOICES]?.voices[0]?.id || '';
-      setSelectedVoice(narratorVoice);
+      const { narratorVoice, speakerVoices } = getCourseSpeakerVoices(
+        episode.targetLanguage as LanguageCode,
+        episode.nativeLanguage as LanguageCode,
+        2
+      );
 
-      // Select random dialogue voices for the target language (excluding the narrator voice)
-      const speaker1Voice = getRandomVoice(episode.targetLanguage as LanguageCode, narratorVoice);
-      const speaker2Voice = getRandomVoice(episode.targetLanguage as LanguageCode, narratorVoice);
-      setSpeaker1VoiceId(speaker1Voice);
-      setSpeaker2VoiceId(speaker2Voice);
+      setSelectedVoice(narratorVoice);
+      setSpeaker1VoiceId(speakerVoices[0] || '');
+      setSpeaker2VoiceId(speakerVoices[1] || '');
 
       setError(null);
     }
