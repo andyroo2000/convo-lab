@@ -1,6 +1,6 @@
-# Getting Started with LanguageFlow Studio
+# Getting Started with ConvoLab
 
-This guide will help you get LanguageFlow Studio running locally in the fastest way possible.
+This guide will help you get ConvoLab running locally in the fastest way possible.
 
 ## Quick Start (Docker Compose - Recommended)
 
@@ -285,4 +285,4 @@ lsof -ti:5173 | xargs kill
 - Review error logs in terminal
 - Verify all environment variables are set
 
-Enjoy learning languages with LanguageFlow Studio!
+Enjoy learning languages with ConvoLab!
