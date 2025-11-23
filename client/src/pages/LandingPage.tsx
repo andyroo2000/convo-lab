@@ -21,6 +21,7 @@ export default function LandingPage() {
               <button
                 onClick={() => navigate('/app/library')}
                 className="btn-primary"
+                data-testid="landing-header-button-go-to-app"
               >
                 Go to App
               </button>
@@ -29,12 +30,14 @@ export default function LandingPage() {
                 <button
                   onClick={() => navigate('/login')}
                   className="btn-outline"
+                  data-testid="landing-header-button-signin"
                 >
                   Sign In
                 </button>
                 <button
                   onClick={() => navigate('/login')}
                   className="btn-primary"
+                  data-testid="landing-header-button-get-started"
                 >
                   Get Started
                 </button>
@@ -67,6 +70,7 @@ export default function LandingPage() {
               <button
                 onClick={() => navigate('/app/library')}
                 className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold text-lg hover:shadow-lg transition-all transform hover:scale-105"
+                data-testid="landing-hero-button-go-to-app"
               >
                 Go to App
               </button>
@@ -74,6 +78,7 @@ export default function LandingPage() {
               <button
                 onClick={() => navigate('/login')}
                 className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold text-lg hover:shadow-lg transition-all transform hover:scale-105"
+                data-testid="landing-hero-button-start"
               >
                 Start Learning Free
               </button>
@@ -142,6 +147,7 @@ export default function LandingPage() {
           <button
             onClick={() => navigate(user ? '/app/library' : '/login')}
             className="px-8 py-4 bg-white text-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all transform hover:scale-105 shadow-lg"
+            data-testid={user ? 'landing-cta-button-go-to-app' : 'landing-cta-button-start'}
           >
             {user ? 'Go to App' : 'Get Started Free'}
           </button>

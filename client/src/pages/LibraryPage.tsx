@@ -347,6 +347,7 @@ export default function LibraryPage() {
                 ? 'bg-indigo text-white'
                 : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
             }`}
+            data-testid="library-filter-dialogues"
           >
             <MessageSquare className="w-4 h-4" />
             Dialogues
@@ -358,6 +359,7 @@ export default function LibraryPage() {
                 ? 'bg-orange-500 text-white'
                 : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
             }`}
+            data-testid="library-filter-courses"
           >
             <Headphones className="w-4 h-4" />
             Audio Courses
@@ -369,6 +371,7 @@ export default function LibraryPage() {
                 ? 'bg-purple-600 text-white'
                 : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
             }`}
+            data-testid="library-filter-narrow-listening"
           >
             <Sparkles className="w-4 h-4" />
             Narrow Listening
@@ -380,6 +383,7 @@ export default function LibraryPage() {
                 ? 'bg-emerald-600 text-white'
                 : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
             }`}
+            data-testid="library-filter-chunk-packs"
           >
             <BookOpen className="w-4 h-4" />
             Lexical Chunk Packs
@@ -458,6 +462,7 @@ export default function LibraryPage() {
                 <button
                   onClick={() => window.location.href = '/app/studio'}
                   className="btn-primary inline-flex items-center gap-2"
+                  data-testid="library-button-browse-all"
                 >
                   Browse All Options
                   <span>→</span>
@@ -481,12 +486,14 @@ export default function LibraryPage() {
                   key={episode.id}
                   to={`/app/playback/${episode.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-indigo"
+                  data-testid={`library-episode-card-${episode.id}`}
                 >
                   {/* Delete Button - appears on hover */}
                   <button
                     onClick={(e) => handleDeleteClick(episode, e)}
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
                     title="Delete episode"
+                    data-testid={`library-delete-episode-${episode.id}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -541,12 +548,14 @@ export default function LibraryPage() {
                   key={course.id}
                   to={`/app/courses/${course.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-orange-500"
+                  data-testid={`library-course-card-${course.id}`}
                 >
                   {/* Delete Button - appears on hover */}
                   <button
                     onClick={(e) => handleDeleteCourseClick(course, e)}
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
                     title="Delete course"
+                    data-testid={`library-delete-course-${course.id}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -609,12 +618,14 @@ export default function LibraryPage() {
                   key={pack.id}
                   to={`/app/narrow-listening/${pack.id}`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-600"
+                  data-testid={`library-pack-card-${pack.id}`}
                 >
                   {/* Delete Button - appears on hover */}
                   <button
                     onClick={(e) => handleDeletePackClick(pack, e)}
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
                     title="Delete pack"
+                    data-testid={`library-delete-pack-${pack.id}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -663,12 +674,14 @@ export default function LibraryPage() {
                   key={pack.id}
                   to={`/app/chunk-packs/${pack.id}/examples`}
                   className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50 border-l-4 border-emerald-600"
+                  data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
                   {/* Delete Button - appears on hover */}
                   <button
                     onClick={(e) => handleDeleteChunkPackClick(pack, e)}
                     className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
                     title="Delete lexical chunk pack"
+                    data-testid={`library-delete-chunk-pack-${pack.id}`}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

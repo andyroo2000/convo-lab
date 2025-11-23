@@ -62,6 +62,7 @@ export default function ConfirmModal({
             onClick={onCancel}
             disabled={isLoading}
             className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            data-testid="modal-button-close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,6 +79,7 @@ export default function ConfirmModal({
             onClick={onCancel}
             disabled={isLoading}
             className="btn-outline flex-1"
+            data-testid="modal-button-cancel"
           >
             {cancelLabel}
           </button>
@@ -89,6 +91,7 @@ export default function ConfirmModal({
                 ? 'bg-red-600 hover:bg-red-700'
                 : 'bg-amber-600 hover:bg-amber-700'
             }`}
+            data-testid="modal-button-confirm"
           >
             {isLoading ? 'Processing...' : confirmLabel}
           </button>

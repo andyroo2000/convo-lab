@@ -18,6 +18,7 @@ export default function StudioPage() {
         <button
           onClick={() => navigate('/app/studio/create/dialogue')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo"
+          data-testid="studio-card-dialogues"
         >
           <div className="flex items-start gap-4">
             <div className="p-3 bg-indigo/10 rounded-lg group-hover:bg-indigo/20 transition-colors">
@@ -44,6 +45,7 @@ export default function StudioPage() {
         <button
           onClick={() => navigate('/app/studio/create/audio-course')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-orange-500"
+          data-testid="studio-card-audio-course"
         >
           <div className="flex items-start gap-4">
             <div className="p-3 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
@@ -70,6 +72,7 @@ export default function StudioPage() {
         <button
           onClick={() => navigate('/app/studio/create/narrow-listening')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-purple-600"
+          data-testid="studio-card-narrow-listening"
         >
           <div className="flex items-start gap-4">
             <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
@@ -96,6 +99,7 @@ export default function StudioPage() {
         <button
           onClick={() => navigate('/app/studio/create/processing-instruction')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo-600"
+          data-testid="studio-card-processing-instruction"
         >
           <div className="flex items-start gap-4">
             <div className="p-3 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
@@ -122,6 +126,7 @@ export default function StudioPage() {
         <button
           onClick={() => navigate('/app/studio/create/lexical-chunk-pack')}
           className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-emerald-600"
+          data-testid="studio-card-lexical-chunks"
         >
           <div className="flex items-start gap-4">
             <div className="p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">

@@ -301,6 +301,7 @@ export default function SettingsPage() {
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
+          data-testid="settings-tab-profile"
         >
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
@@ -314,6 +315,7 @@ export default function SettingsPage() {
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
+          data-testid="settings-tab-language"
         >
           <div className="flex items-center gap-2">
             <Languages className="w-4 h-4" />
@@ -327,6 +329,7 @@ export default function SettingsPage() {
               ? 'border-indigo-600 text-indigo-600'
               : 'border-transparent text-gray-600 hover:text-gray-900'
           }`}
+          data-testid="settings-tab-security"
         >
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4" />
@@ -340,6 +343,7 @@ export default function SettingsPage() {
               ? 'border-red-600 text-red-600'
               : 'border-transparent text-gray-600 hover:text-gray-900 hover:text-red-600'
           }`}
+          data-testid="settings-tab-danger"
         >
           <div className="flex items-center gap-2">
             <Trash2 className="w-4 h-4" />
@@ -393,6 +397,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={handleAvatarUpload}
                 className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+                data-testid="settings-button-upload-avatar"
               >
                 <Camera className="w-4 h-4" />
                 {user?.avatarUrl ? 'Change Avatar' : 'Upload Avatar'}
@@ -411,6 +416,7 @@ export default function SettingsPage() {
                     }
                   }}
                   className="text-sm text-red-600 hover:text-red-700"
+                  data-testid="settings-button-remove-avatar"
                 >
                   Remove
                 </button>
@@ -433,6 +439,7 @@ export default function SettingsPage() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               maxLength={50}
+              data-testid="settings-input-display-name"
             />
             <p className="text-xs text-gray-500 mt-1">
               This is the name that will be displayed throughout the app
@@ -445,6 +452,7 @@ export default function SettingsPage() {
               onClick={handleSave}
               disabled={!hasChanges() || isSaving}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="settings-button-save"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
@@ -452,6 +460,7 @@ export default function SettingsPage() {
               onClick={handleCancel}
               disabled={!hasChanges() || isSaving}
               className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="settings-button-cancel"
             >
               Cancel
             </button>
@@ -476,6 +485,7 @@ export default function SettingsPage() {
             value={preferredStudyLanguage}
             onChange={(e) => setPreferredStudyLanguage(e.target.value as LanguageCode)}
             className="input"
+            data-testid="settings-select-study-language"
           >
             <option value="ja">Japanese (日本語)</option>
             <option value="zh">Mandarin Chinese (中文)</option>
@@ -494,6 +504,7 @@ export default function SettingsPage() {
             value={preferredNativeLanguage}
             onChange={(e) => setPreferredNativeLanguage(e.target.value as LanguageCode)}
             className="input"
+            data-testid="settings-select-native-language"
           >
             <option value="en">English</option>
             <option value="es">Spanish (Español)</option>
@@ -516,6 +527,7 @@ export default function SettingsPage() {
               value={jlptLevel}
               onChange={(e) => handleProficiencyLevelChange(e.target.value)}
               className="input"
+              data-testid="settings-select-jlpt-level"
             >
               <option value="N5">N5 (Beginner)</option>
               <option value="N4">N4 (Upper Beginner)</option>
@@ -538,6 +550,7 @@ export default function SettingsPage() {
               value={hskLevel}
               onChange={(e) => handleProficiencyLevelChange(e.target.value)}
               className="input"
+              data-testid="settings-select-hsk-level"
             >
               <option value="HSK1">HSK 1 (Beginner)</option>
               <option value="HSK2">HSK 2 (Upper Beginner)</option>
@@ -567,6 +580,7 @@ export default function SettingsPage() {
                   checked={pinyinDisplayMode === 'toneMarks'}
                   onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
                   className="w-4 h-4 text-indigo-600"
+                  data-testid="settings-radio-pinyin-tone-marks"
                 />
                 <span className="text-sm text-gray-700">Tone marks (nǐ hǎo)</span>
               </label>
@@ -578,6 +592,7 @@ export default function SettingsPage() {
                   checked={pinyinDisplayMode === 'toneNumbers'}
                   onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
                   className="w-4 h-4 text-indigo-600"
+                  data-testid="settings-radio-pinyin-tone-numbers"
                 />
                 <span className="text-sm text-gray-700">Tone numbers (ni3 hao3)</span>
               </label>
@@ -626,6 +641,7 @@ export default function SettingsPage() {
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             autoComplete="current-password"
+            data-testid="settings-input-current-password"
           />
         </div>
 
@@ -641,6 +657,7 @@ export default function SettingsPage() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"
+            data-testid="settings-input-new-password"
           />
         </div>
 
@@ -656,6 +673,7 @@ export default function SettingsPage() {
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
+            data-testid="settings-input-confirm-password"
           />
         </div>
 
@@ -665,6 +683,7 @@ export default function SettingsPage() {
             onClick={handleChangePassword}
             disabled={isChangingPassword}
             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="settings-button-change-password"
           >
             {isChangingPassword ? 'Changing Password...' : 'Change Password'}
           </button>
@@ -694,6 +713,7 @@ export default function SettingsPage() {
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
+                data-testid="settings-button-delete-account"
               >
                 Delete My Account
               </button>
