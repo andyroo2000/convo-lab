@@ -483,6 +483,7 @@ export default function PlaybackPage() {
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showReadings ? 'Hide readings' : 'Show readings'}
+                      data-testid="playback-toggle-readings"
                     >
                       {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       <span>{episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}</span>
@@ -497,6 +498,7 @@ export default function PlaybackPage() {
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showTranslations ? 'Hide English' : 'Show English'}
+                      data-testid="playback-toggle-translations"
                     >
                       {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
                       <span>English</span>
@@ -608,6 +610,7 @@ export default function PlaybackPage() {
                 borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
               }}
               onClick={() => seekToSentence(sentence)}
+              data-testid={`playback-sentence-${sentence.id}`}
             >
               <div className="flex gap-8">
                 {/* Speaker Avatar */}

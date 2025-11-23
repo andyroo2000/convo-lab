@@ -136,6 +136,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
         onClick={togglePlayPause}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
         aria-label={isPlaying ? 'Pause' : 'Play'}
+        data-testid="audio-button-play-pause"
       >
         {isPlaying ? (
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -162,6 +163,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        data-testid="audio-progress-bar"
       >
         {/* Progress Fill */}
         <div
@@ -188,6 +190,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
               : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
           }`}
           aria-label={`Repeat mode: ${repeatMode}`}
+          data-testid="audio-button-repeat"
         >
           {repeatMode === 'one' ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

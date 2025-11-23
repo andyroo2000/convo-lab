@@ -11,6 +11,7 @@ export default function DialogueCreatorPage() {
         <button
           onClick={() => navigate('/app/studio')}
           className="flex items-center gap-2 text-navy hover:text-indigo transition-colors"
+          data-testid="dialogue-button-back"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Studio
