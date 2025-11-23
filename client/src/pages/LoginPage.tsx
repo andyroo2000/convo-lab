@@ -159,6 +159,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="auth-submit-button"
             >
               {loading ? 'Loading...' : isLogin ? 'Login' : 'Sign Up'}
             </button>
