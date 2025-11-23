@@ -1,4 +1,4 @@
-# LanguageFlow Studio - Setup Guide
+# ConvoLab - Setup Guide
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@
 ### 1. Clone and Install
 
 ```bash
-cd /Users/andrewlandry/source/experiments/languageflow-studio
+cd /Users/andrewlandry/source/experiments/convo-lab
 npm install
 ```
 

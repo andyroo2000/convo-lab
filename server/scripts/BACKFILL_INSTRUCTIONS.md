@@ -25,13 +25,13 @@ npm run backfill:metadata
 
 1. **Connect to Cloud Run instance:**
    ```bash
-   gcloud run services proxy languageflow-studio --port=8080
+   gcloud run services proxy convo-lab --port=8080
    ```
 
 2. **In another terminal, exec into the container:**
    ```bash
    # Find the running container
-   CONTAINER_ID=$(docker ps | grep languageflow-studio | awk '{print $1}')
+   CONTAINER_ID=$(docker ps | grep convo-lab | awk '{print $1}')
 
    # Exec into it
    docker exec -it $CONTAINER_ID sh
@@ -82,7 +82,7 @@ npm run backfill:metadata
 1. **Set production DATABASE_URL in your local .env:**
    ```bash
    # Get the production DATABASE_URL from Cloud Run
-   gcloud run services describe languageflow-studio --format='value(spec.template.spec.containers[0].env[?name=="DATABASE_URL"].value)'
+   gcloud run services describe convo-lab --format='value(spec.template.spec.containers[0].env[?name=="DATABASE_URL"].value)'
    ```
 
 2. **Make sure language services are accessible:**

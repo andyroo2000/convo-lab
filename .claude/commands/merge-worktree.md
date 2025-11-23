@@ -80,7 +80,7 @@ Changes:
  3 files changed, 73 insertions(+)
 
 ✓ Merged 'add-user-profile-feature' into 'main'
-✓ Removed worktree: ../languageflow-studio-worktrees/add-user-profile-feature
+✓ Removed worktree: ../convo-lab-worktrees/add-user-profile-feature
 ✓ Deleted branch: add-user-profile-feature
 
 Merge successful! (commit: k10l11m)

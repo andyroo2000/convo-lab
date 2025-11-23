@@ -21,13 +21,13 @@ Create a new git worktree with a new branch for working on an issue or feature.
    - Example: "Fix Login Bug" → "fix-login-bug"
 
 3. **Create Worktree Directory Structure**:
-   - Determine the worktree path: `../languageflow-studio-worktrees/[sanitized-branch-name]`
-   - Create the parent directory if it doesn't exist: `mkdir -p ../languageflow-studio-worktrees`
+   - Determine the worktree path: `../convo-lab-worktrees/[sanitized-branch-name]`
+   - Create the parent directory if it doesn't exist: `mkdir -p ../convo-lab-worktrees`
 
 4. **Create Branch and Worktree**:
    - Create a new worktree with a new branch based on the current branch:
      ```bash
-     git worktree add -b [sanitized-branch-name] ../languageflow-studio-worktrees/[sanitized-branch-name]
+     git worktree add -b [sanitized-branch-name] ../convo-lab-worktrees/[sanitized-branch-name]
      ```
    - If the branch already exists, show an error and ask if they want to use a different name
 
@@ -35,17 +35,17 @@ Create a new git worktree with a new branch for working on an issue or feature.
    - Confirm the worktree was created
    - Show the path to the new worktree
    - Show the branch name
-   - Suggest: `cd ../languageflow-studio-worktrees/[branch-name]` to enter the worktree
+   - Suggest: `cd ../convo-lab-worktrees/[branch-name]` to enter the worktree
 
 ## Example
 
 ```bash
 $ /new-worktree "Add User Profile Feature"
 ✓ Created new branch: add-user-profile-feature (from main)
-✓ Created worktree at: ../languageflow-studio-worktrees/add-user-profile-feature
+✓ Created worktree at: ../convo-lab-worktrees/add-user-profile-feature
 
 To start working:
-  cd ../languageflow-studio-worktrees/add-user-profile-feature
+  cd ../convo-lab-worktrees/add-user-profile-feature
 ```
 
 ## Error Handling
