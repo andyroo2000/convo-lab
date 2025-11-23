@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive data-testid attributes across all components for Playwright E2E testing (commit: da7b820)
 - /pr slash command for automated pull request creation with generated descriptions (commit: ee40f3b)
 - Worktree management commands: /new-worktree, /list-worktrees, /switch-worktree, /delete-worktree, /merge-worktree (commit: 1fa2428)
+- /prune-worktrees command for automatic bulk cleanup of merged worktrees (commit: c10c0e4)
 
 ### Changed
 - Renamed repository from languageflow-studio to convo-lab across all files and documentation (commit: 995eec4)
