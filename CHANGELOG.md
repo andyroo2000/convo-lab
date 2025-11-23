@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - /pr slash command for automated pull request creation with generated descriptions (commit: ee40f3b)
 - Worktree management commands: /new-worktree, /list-worktrees, /switch-worktree, /delete-worktree, /merge-worktree (commit: 1fa2428)
 - /prune-worktrees command for automatic bulk cleanup of merged worktrees (commit: c10c0e4)
+- Comprehensive development workflow guide (DEVELOPMENT.md) covering git workflows, worktree management, and best practices (commit: 8a4296d)
 
 ### Changed
 - Renamed repository from languageflow-studio to convo-lab across all files and documentation (commit: 995eec4)
