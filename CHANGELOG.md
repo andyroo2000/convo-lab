@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial changelog setup with /commit slash command
+- /pr slash command for automated pull request creation with generated descriptions (commit: 27b5006)
 
 ### Changed
 - Added workflow documentation to use /commit slash command (commit: 5a527c6)
