@@ -33,10 +33,10 @@ Display all git worktrees with their branches and paths.
 ```
 Git Worktrees:
 
-🏠 main                          /Users/andrewlandry/source/experiments/convo-lab
-★  add-user-profile-feature     /Users/andrewlandry/source/experiments/convo-lab-worktrees/add-user-profile-feature
-   fix-login-bug                /Users/andrewlandry/source/experiments/convo-lab-worktrees/fix-login-bug
-   update-api-endpoints          /Users/andrewlandry/source/experiments/convo-lab-worktrees/update-api-endpoints
+🏠 main                          /Users/andrewlandry/source/convo-lab
+★  add-user-profile-feature     /Users/andrewlandry/source/convo-lab-worktrees/add-user-profile-feature
+   fix-login-bug                /Users/andrewlandry/source/convo-lab-worktrees/fix-login-bug
+   update-api-endpoints          /Users/andrewlandry/source/convo-lab-worktrees/update-api-endpoints
 ```
 
 ## Alternative Simple Format

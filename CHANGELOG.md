@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive development workflow guide (DEVELOPMENT.md) covering git workflows, worktree management, and best practices (commit: 8a4296d)
 
 ### Changed
+- Restructured project directory from ~/source/experiments/ to ~/source/ (commit: 9cc2692)
 - Renamed repository from languageflow-studio to convo-lab across all files and documentation (commit: 995eec4)
 - Added workflow documentation to use /commit slash command (commit: 5a527c6)
 
