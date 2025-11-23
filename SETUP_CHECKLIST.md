@@ -1,6 +1,6 @@
 # Docker Setup Checklist
 
-Follow these steps to get LanguageFlow Studio running with Docker Compose.
+Follow these steps to get ConvoLab running with Docker Compose.
 
 ## ☐ Step 1: Get Google Cloud Credentials
 
@@ -77,7 +77,7 @@ brew install --cask docker
 
 ```bash
 # Make sure you're in the project root
-cd /Users/andrewlandry/source/experiments/languageflow-studio
+cd /Users/andrewlandry/source/experiments/convo-lab
 
 # Start all services (first time will download images)
 docker-compose up
@@ -96,7 +96,7 @@ Leave this terminal running. Open a new terminal for next steps.
 In a **new terminal**:
 
 ```bash
-cd /Users/andrewlandry/source/experiments/languageflow-studio
+cd /Users/andrewlandry/source/experiments/convo-lab
 
 # Run Prisma migrations
 docker-compose exec server npx prisma migrate dev --name init

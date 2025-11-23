@@ -1,4 +1,4 @@
-# LanguageFlow Studio
+# ConvoLab
 
 A modern, adult-friendly language-learning and dialogue-generation tool designed as a creative studio rather than a gamified app.
 
@@ -38,7 +38,7 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 ## Project Structure
 
 ```
-languageflow-studio/
+convo-lab/
 ├── client/          # React frontend
 ├── server/          # Node.js backend
 ├── shared/          # Shared types and utilities

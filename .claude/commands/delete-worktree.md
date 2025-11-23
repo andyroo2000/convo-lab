@@ -66,7 +66,7 @@ If no branch name is provided, show an interactive selector (using fzf if availa
 
 ✓ Branch 'add-to-selectors-for-playwright' has been merged into main. Safe to delete.
 
-✓ Removed worktree: ../languageflow-studio-worktrees/add-to-selectors-for-playwright
+✓ Removed worktree: ../convo-lab-worktrees/add-to-selectors-for-playwright
 ✓ Deleted branch: add-to-selectors-for-playwright
 
 Remaining worktrees:
@@ -84,12 +84,12 @@ Remaining worktrees:
 ? Delete unmerged branch anyway? (y/N): y
 ? Force delete worktree with uncommitted changes? (y/N): y
 
-✓ Removed worktree: ../languageflow-studio-worktrees/fix-login-bug
+✓ Removed worktree: ../convo-lab-worktrees/fix-login-bug
 ✓ Deleted branch: fix-login-bug
 
 Remaining worktrees:
   main                       (main worktree)
-  add-user-profile-feature   ../languageflow-studio-worktrees/add-user-profile-feature
+  add-user-profile-feature   ../convo-lab-worktrees/add-user-profile-feature
 ```
 
 ## Error Handling

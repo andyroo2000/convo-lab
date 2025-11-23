@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Worktree management commands: /new-worktree, /list-worktrees, /switch-worktree, /delete-worktree, /merge-worktree (commit: 1fa2428)
 
 ### Changed
+- Renamed repository from languageflow-studio to convo-lab across all files and documentation (commit: 995eec4)
 - Added workflow documentation to use /commit slash command (commit: 5a527c6)
 
 ### Fixed
