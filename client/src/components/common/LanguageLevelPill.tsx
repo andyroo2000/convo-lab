@@ -10,8 +10,8 @@ export default function LanguageLevelPill({ language, level }: LanguageLevelPill
     <SegmentedPill
       leftText={language.toUpperCase()}
       rightText={level}
-      leftColor="pale-sky"
-      rightColor="indigo"
+      leftColor="periwinkle"
+      rightColor="strawberry"
     />
   );
 }

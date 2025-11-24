@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ViewToggleButtons component for shared furigana/pinyin and English translation toggles (commit: f1efc91)
 
 ### Changed
+- **[style]** Implemented bold, editorial design system with saturated colors throughout the app (commit: 8b2a6e7)
+  - Replaced all desaturated colors with bold, saturated alternatives for a more confident visual language
+  - Removed all gradients in favor of solid color blocks
+  - Navigation: Solid periwinkle background with white logo icons and streamlined user menu
+  - Headers: Solid coral backgrounds on playback pages
+  - Audio player: Bold yellow background
+  - Speed selector: Color-coded buttons (strawberry/yellow/keylime)
+  - Text: Dark brown (#4B1800) for warmth instead of navy/black
+  - Progress bars: Solid strawberry on yellow backgrounds
+  - Narrow Listening: Bold strawberry variation buttons with enhanced segment highlighting
+  - Removed violet color from palette, using 5 core bold colors
+  - Increased card background saturation for more color presence
 - Restructured project directory from ~/source/experiments/ to ~/source/ (commit: 9cc2692)
 - Renamed repository from languageflow-studio to convo-lab across all files and documentation (commit: 995eec4)
 - Added workflow documentation to use /commit slash command (commit: 5a527c6)

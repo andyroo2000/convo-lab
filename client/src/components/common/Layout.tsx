@@ -33,42 +33,36 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen bg-cream">
-      <nav className="sticky top-0 z-20 bg-periwinkle-light border-b border-periwinkle shadow-sm">
+      <nav className="sticky top-0 z-20 bg-periwinkle shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16">
             <div className="flex">
-              <Link to="/app/library" className="flex items-center gap-2 px-4 text-dark-brown font-bold text-xl">
+              <Link to="/app/library" className="flex items-center gap-2 px-4 text-white font-bold text-xl drop-shadow-md">
                 ConvoLab
                 <Logo size="small" />
               </Link>
-              <div className="hidden sm:ml-6 sm:flex h-16 items-center">
+              <div className="hidden sm:ml-6 sm:flex h-16 items-center gap-1">
                 <Link
                   to="/app/library"
-                  className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
+                  className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
                     isLibraryActive
-                      ? 'text-periwinkle-dark'
-                      : 'text-dark-brown hover:text-periwinkle-dark'
+                      ? 'bg-white text-strawberry shadow-md'
+                      : 'text-white hover:bg-white/20'
                   }`}
                 >
                   <Library className="w-4 h-4 mr-2 flex-shrink-0" />
                   Library
-                  {isLibraryActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-periwinkle-dark"></span>
-                  )}
                 </Link>
                 <Link
                   to="/app/studio"
-                  className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
+                  className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
                     isStudioActive
-                      ? 'text-periwinkle-dark'
-                      : 'text-dark-brown hover:text-periwinkle-dark'
+                      ? 'bg-white text-coral shadow-md'
+                      : 'text-white hover:bg-white/20'
                   }`}
                 >
                   <Mic className="w-4 h-4 mr-2 flex-shrink-0" />
                   Create
-                  {isStudioActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-periwinkle-dark"></span>
-                  )}
                 </Link>
               </div>
             </div>

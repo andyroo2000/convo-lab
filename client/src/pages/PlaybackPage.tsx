@@ -446,11 +446,11 @@ export default function PlaybackPage() {
       {/* Sticky Header Container (Header + Audio Player/Progress) */}
       <div className="sticky top-16 z-10 bg-white shadow-lg">
         {/* Episode Header */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 bg-coral">
           <div className="max-w-6xl mx-auto px-6 py-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-navy mb-2">{episode.title}</h1>
+                <h1 className="text-3xl font-bold text-dark-brown mb-2">{episode.title}</h1>
 
                 {/* Segmented Pill: Proficiency Level + Tone */}
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
@@ -498,7 +498,7 @@ export default function PlaybackPage() {
 
         {/* Progress Banner (shown during generation) */}
         {isGeneratingAudio && (
-          <div className="bg-gradient-to-r from-periwinkle-light to-coral-light border-b border-periwinkle">
+          <div className="bg-yellow border-b border-periwinkle">
           <div className="flex items-center gap-4 p-4">
             <div className="flex-shrink-0">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
@@ -508,9 +508,9 @@ export default function PlaybackPage() {
                 Generating audio at all speeds...
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-periwinkle/20 rounded-full h-2 overflow-hidden">
+                <div className="flex-1 bg-white/30 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-periwinkle to-coral h-2 transition-all duration-300 ease-out"
+                    className="bg-strawberry h-2 transition-all duration-300 ease-out"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
@@ -525,7 +525,7 @@ export default function PlaybackPage() {
 
         {/* Audio Player (shown when not generating) */}
         {!isGeneratingAudio && currentAudioUrl && (
-          <div className="bg-pale-sky border-b border-gray-200">
+          <div className="bg-yellow border-b border-gray-200">
             <div className="max-w-6xl mx-auto px-6 py-3">
               <AudioPlayer
                 src={currentAudioUrl}
@@ -586,7 +586,7 @@ export default function PlaybackPage() {
                 isCurrentlySpeaking ? 'shadow-lg' : ''
               }`}
               style={{
-                backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.18 : 0.08),
+                backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.25 : 0.15),
                 borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speakerColor}`,
                 borderRight: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
                 borderTop: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
@@ -597,8 +597,14 @@ export default function PlaybackPage() {
             >
               <div className="flex gap-8">
                 {/* Speaker Avatar */}
-                <div className="w-40 flex-shrink-0 flex flex-col items-center justify-center gap-2 bg-black/[0.15] pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6">
-                  <div className="w-24 h-24 rounded-full overflow-hidden shadow-md bg-gray-200">
+                <div
+                  className="w-40 flex-shrink-0 flex flex-col items-center justify-center gap-2 pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6"
+                  style={{
+                    backgroundColor: speakerColor,
+                    opacity: 0.9
+                  }}
+                >
+                  <div className="w-24 h-24 rounded-full overflow-hidden shadow-md bg-white">
                     <img
                       src={speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
                       alt={speaker.name}
@@ -609,7 +615,7 @@ export default function PlaybackPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm font-medium text-navy text-center">
+                  <span className="text-sm font-bold text-white text-center drop-shadow-md">
                     <JapaneseText text={speaker.name} />
                   </span>
                 </div>
@@ -618,7 +624,7 @@ export default function PlaybackPage() {
                 <div className="flex gap-0 flex-1">
                   {/* Japanese Text - Flexible Column */}
                   <div className={showTranslations ? "flex-1 pr-6" : "w-full"}>
-                    <p className="text-lg text-navy leading-relaxed">
+                    <p className="text-lg text-dark-brown leading-relaxed">
                       <JapaneseText
                         text={sentence.text}
                         metadata={sentence.metadata}

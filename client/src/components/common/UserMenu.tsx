@@ -59,11 +59,11 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
       {/* User Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 hover:text-navy transition-colors rounded-lg hover:bg-gray-50"
+        className="flex items-center gap-2 p-1 text-sm font-bold text-white hover:bg-white/20 transition-colors rounded-lg"
         data-testid="user-menu-button"
       >
         {avatarUrl ? (
-          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gray-200">
+          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
             <img
               src={avatarUrl}
               alt={userName}
@@ -71,18 +71,12 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
             />
           </div>
         ) : (
-          <div className={`w-8 h-8 ${colorScheme.bg} rounded-full flex items-center justify-center`}>
-            <span className={`text-sm font-medium ${colorScheme.text}`}>
+          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+            <span className="text-sm font-bold text-periwinkle">
               {userInitial}
             </span>
           </div>
         )}
-        <span>{userName}</span>
-        <ChevronDown
-          className={`w-4 h-4 text-gray-500 transition-transform ${
-            isOpen ? 'rotate-180' : ''
-          }`}
-        />
       </button>
 
       {/* Dropdown Menu */}
