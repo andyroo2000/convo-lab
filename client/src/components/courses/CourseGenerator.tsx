@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
+import { TTS_VOICES } from '../../../../shared/src/constants';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();

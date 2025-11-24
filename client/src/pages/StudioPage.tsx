@@ -125,15 +125,15 @@ export default function StudioPage() {
         {/* Lexical Chunk Packs */}
         <button
           onClick={() => navigate('/app/studio/create/lexical-chunk-pack')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-keylime"
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-yellow"
           data-testid="studio-card-lexical-chunks"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-keylime-light rounded-lg group-hover:bg-keylime/20 transition-colors">
-              <BookOpen className="w-8 h-8 text-keylime-dark" />
+            <div className="p-3 bg-yellow-light rounded-lg group-hover:bg-yellow/20 transition-colors">
+              <BookOpen className="w-8 h-8 text-yellow-dark" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-keylime-dark transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-yellow-dark transition-colors">
                 Lexical Chunk Packs
               </h2>
               <p className="text-sm text-gray-600 mb-4">

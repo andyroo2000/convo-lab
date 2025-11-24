@@ -1,6 +1,6 @@
 import { Episode, Sentence } from '@prisma/client';
 import { generateWithGemini } from './geminiClient.js';
-import { getVoicesByGender } from '../../../shared/src/voiceSelection.js';
+// import { getVoicesByGender } from '../../../shared/src/voiceSelection.ts';
 import { LanguageCode } from '../../../shared/src/types.js';
 
 export interface CoreItem {
@@ -820,13 +820,13 @@ Return ONLY a JSON object (no markdown, no explanation):
     const exchanges: DialogueExchange[] = [];
 
     // Get voices from TTS_VOICES constant (centralized voice management)
-    const languageVoices = getVoicesByGender(targetLanguage as LanguageCode);
+    // const languageVoices = getVoicesByGender(targetLanguage as LanguageCode);
 
     // Use provided voice IDs if available, otherwise use defaults
     // Speaker 1 (friend) defaults to first female voice, Speaker 2 (listener) defaults to first male voice
     const availableVoices = [
-      speaker1VoiceId || languageVoices['female'][0], // Speaker 1 (friend)
-      speaker2VoiceId || languageVoices['male'][0],   // Speaker 2 (listener)
+      speaker1VoiceId || 'ja-JP-NanamiNeural', // Speaker 1 (friend) - temp default
+      speaker2VoiceId || 'ja-JP-KeitaNeural',   // Speaker 2 (listener) - temp default
     ];
 
     // Track unique speakers and assign voices

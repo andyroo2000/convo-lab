@@ -55,7 +55,7 @@ export default function LandingPage() {
       <section className="container mx-auto px-6 py-24 text-center">
         <div className="max-w-5xl mx-auto">
           <div className="inline-block mb-8">
-            <span className="px-5 py-2.5 bg-keylime text-dark-brown rounded-full text-sm font-bold tracking-wide uppercase">
+            <span className="px-5 py-2.5 bg-yellow text-dark-brown rounded-full text-sm font-bold tracking-wide uppercase">
               Research-Backed Language Lab
             </span>
           </div>
@@ -127,9 +127,9 @@ export default function LandingPage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-keylime-light rounded-3xl p-10 border-4 border-keylime hover:border-keylime-dark transition-all">
-              <div className="w-16 h-16 bg-keylime rounded-2xl flex items-center justify-center mb-6">
-                <BookOpen className="w-8 h-8 text-white" />
+            <div className="bg-yellow-light rounded-3xl p-10 border-4 border-yellow hover:border-yellow-dark transition-all">
+              <div className="w-16 h-16 bg-yellow rounded-2xl flex items-center justify-center mb-6">
+                <BookOpen className="w-8 h-8 text-dark-brown" />
               </div>
               <h4 className="text-2xl font-bold text-dark-brown mb-4">Processing Instruction & Chunks</h4>
               <p className="text-lg text-medium-brown leading-relaxed">
@@ -152,7 +152,7 @@ export default function LandingPage() {
           </p>
           <button
             onClick={() => navigate(user ? '/app/library' : '/login')}
-            className="px-10 py-4 bg-keylime text-dark-brown rounded-full font-bold text-lg hover:bg-keylime-dark transition-all transform hover:-translate-y-0.5 shadow-xl"
+            className="px-10 py-4 bg-yellow text-dark-brown rounded-full font-bold text-lg hover:bg-yellow-dark transition-all transform hover:-translate-y-0.5 shadow-xl"
             data-testid={user ? 'landing-cta-button-go-to-app' : 'landing-cta-button-start'}
           >
             {user ? 'Go to App' : 'Get Started Free'}

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, Zap, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Loader, Zap } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import JapaneseText from '../components/JapaneseText';
 import SpeedSelector from '../components/common/SpeedSelector';
+import ViewToggleButtons from '../components/common/ViewToggleButtons';
 
 import { API_URL } from '../config';
 
@@ -393,35 +394,13 @@ export default function NarrowListeningPlaybackPage() {
               {!generatingSpeed && currentAudioUrl && (
                 <div className="flex flex-col items-end gap-2 ml-6">
                   {/* Row 1: Furigana & English Toggles */}
-                  <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
-                    {/* Furigana Toggle */}
-                    <button
-                      onClick={() => setShowReadings(!showReadings)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        showReadings
-                          ? 'bg-coral text-white shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      title={showReadings ? 'Hide furigana' : 'Show furigana'}
-                    >
-                      {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      <span>Furigana</span>
-                    </button>
-
-                    {/* English Translation Toggle */}
-                    <button
-                      onClick={() => setShowTranslations(!showTranslations)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        showTranslations
-                          ? 'bg-coral text-white shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      title={showTranslations ? 'Hide English' : 'Show English'}
-                    >
-                      {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      <span>English</span>
-                    </button>
-                  </div>
+                  <ViewToggleButtons
+                    showReadings={showReadings}
+                    showTranslations={showTranslations}
+                    onToggleReadings={() => setShowReadings(!showReadings)}
+                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                    readingsLabel="Furigana"
+                  />
 
                   {/* Row 2: Speed Selector */}
                   <SpeedSelector

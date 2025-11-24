@@ -46,15 +46,8 @@ export default function SpeedSelector({
   const normalizedSelected = normalizeSpeed(selectedSpeed);
   const normalizedLoading = loadingSpeed ? normalizeSpeed(loadingSpeed) : null;
 
-  // Determine active/inactive colors based on variant
-  const variantColors = {
-    keylime: 'bg-keylime text-white',
-    coral: 'bg-coral text-white',
-    strawberry: 'bg-strawberry text-white',
-    periwinkle: 'bg-periwinkle text-white',
-  };
-
-  const activeClasses = `${variantColors[variant]} shadow-sm`;
+  // Use grey for all variants
+  const activeClasses = 'bg-gray-500 text-white shadow-sm';
   const inactiveClasses = 'text-gray-700 hover:bg-gray-200';
 
   return (

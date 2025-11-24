@@ -36,6 +36,11 @@ export default {
           light: '#E8EDCC',
           dark: '#5A6C00',
         },
+        'yellow': {
+          DEFAULT: '#FFCC3F',  // Yellow from hurryupandhavefun.com
+          light: '#FFF4D6',
+          dark: '#E6B52E',
+        },
         'lilac': {
           DEFAULT: '#EBDBFF',
           light: '#F7F1FF',
