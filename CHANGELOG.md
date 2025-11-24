@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LanguageLevelPill component for consistent language/level display across all content types (commit: 88f812d)
 - targetLanguage field to NarrowListeningPack and ChunkPack models with database migration (commit: 88f812d)
 - ViewToggleButtons component for shared furigana/pinyin and English translation toggles (commit: f1efc91)
+- **[feat]** Icon sidebar with content type labels to Library page for better visual hierarchy and user clarity (commit: 233e7b4)
+  - 96px wide colored sidebars with large 8x8 icons and uppercase labels
+  - Clear content type identification for new users
+  - Editorial magazine-like aesthetic with bold color blocks
 
 ### Changed
 - **[style]** Implemented bold, editorial design system with saturated colors throughout the app (commit: 8b2a6e7)
