@@ -358,11 +358,11 @@ export default function NarrowListeningPlaybackPage() {
       {/* Sticky Header Container (Header + Audio Player/Progress) */}
       <div className="sticky top-16 z-10 bg-white shadow-lg">
         {/* Episode Header */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 bg-coral">
           <div className="max-w-5xl mx-auto px-6 py-4">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-navy mb-2">{pack.title}</h1>
+                <h1 className="text-3xl font-bold text-dark-brown mb-2">{pack.title}</h1>
 
                 {/* Segmented Pill: JLPT Level + Variations */}
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
@@ -419,22 +419,22 @@ export default function NarrowListeningPlaybackPage() {
 
         {/* Progress Banner (shown during generation) */}
         {generatingSpeed && (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200">
+          <div className="bg-yellow border-b border-periwinkle">
           <div className="max-w-5xl mx-auto px-6 py-4">
             <div className="flex items-center gap-4">
-              <Loader className="w-5 h-5 text-purple-600 animate-spin flex-shrink-0" />
+              <Loader className="w-5 h-5 text-dark-brown animate-spin flex-shrink-0" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-purple-900">
+                  <p className="text-sm font-medium text-dark-brown">
                     Generating {selectedSpeed} speed audio...
                   </p>
-                  <span className="text-sm font-semibold text-periwinkle-dark">
+                  <span className="text-sm font-semibold text-dark-brown">
                     {generationProgress}%
                   </span>
                 </div>
-                <div className="w-full bg-periwinkle/20 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-periwinkle to-strawberry h-2 rounded-full transition-all duration-300 ease-out"
+                    className="bg-strawberry h-2 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
@@ -449,7 +449,7 @@ export default function NarrowListeningPlaybackPage() {
 
         {/* Audio Player (shown when not generating) */}
         {currentAudioUrl && !generatingSpeed && (
-          <div className="bg-pale-sky border-b border-gray-200">
+          <div className="bg-yellow border-b border-gray-200">
             <div className="max-w-5xl mx-auto px-6 py-3">
               <AudioPlayer
                 src={currentAudioUrl}
@@ -478,16 +478,16 @@ export default function NarrowListeningPlaybackPage() {
                     onClick={() => handleVersionSelect(version.id)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                       selectedVersionId === version.id
-                        ? 'border-strawberry bg-strawberry-light'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-strawberry bg-strawberry text-white font-bold shadow-md'
+                        : 'border-gray-200 bg-white hover:border-strawberry hover:bg-strawberry-light'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{version.title}</p>
+                        <p className="text-sm font-medium">{version.title}</p>
                       </div>
                       {selectedVersionId === version.id && isPlaying && (
-                        <Zap className="w-4 h-4 text-purple-600" />
+                        <Zap className="w-4 h-4 text-white" />
                       )}
                     </div>
                   </button>
@@ -526,12 +526,15 @@ export default function NarrowListeningPlaybackPage() {
                         }}
                         className="pl-4 py-3 rounded-lg transition-all duration-200"
                         style={{
-                          backgroundColor: isCurrentlySpeaking ? 'rgba(252, 102, 167, 0.12)' : 'rgba(252, 102, 167, 0.04)',
+                          backgroundColor: isCurrentlySpeaking ? 'rgba(252, 102, 167, 0.35)' : 'rgba(252, 102, 167, 0.15)',
                           borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid #FC66A7`,
-                          boxShadow: isCurrentlySpeaking ? '0 2px 8px rgba(252, 102, 167, 0.15)' : 'none',
+                          borderRight: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
+                          borderTop: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
+                          borderBottom: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
+                          boxShadow: isCurrentlySpeaking ? '0 4px 12px rgba(252, 102, 167, 0.25)' : 'none',
                         }}
                       >
-                        <p className={`text-lg text-gray-900 leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>
+                        <p className={`text-lg text-dark-brown leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>
                           <JapaneseText
                             text={segment.japaneseText}
                             metadata={segment.reading ? { japanese: { kanji: segment.japaneseText, kana: '', furigana: segment.reading } } : undefined}

@@ -46,12 +46,18 @@ export default function SpeedSelector({
   const normalizedSelected = normalizeSpeed(selectedSpeed);
   const normalizedLoading = loadingSpeed ? normalizeSpeed(loadingSpeed) : null;
 
-  // Use grey for all variants
-  const activeClasses = 'bg-gray-500 text-white shadow-sm';
-  const inactiveClasses = 'text-gray-700 hover:bg-gray-200';
+  // Bold colors for each speed option
+  const getSpeedClasses = (option: SpeedOption, isSelected: boolean) => {
+    if (isSelected) {
+      if (option.value === '0.7x') return 'bg-strawberry text-white shadow-md';
+      if (option.value === '0.85x') return 'bg-yellow text-navy shadow-md';
+      return 'bg-keylime text-white shadow-md';
+    }
+    return 'text-navy hover:bg-white/50';
+  };
 
   return (
-    <div className={`flex items-center gap-2 bg-gray-100 rounded-lg p-1 ${className}`}>
+    <div className={`flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm ${className}`}>
       {SPEED_OPTIONS.map((option) => {
         const isSelected = normalizedSelected === option.value;
         const isLoading = loading && normalizedLoading === option.value;
@@ -64,8 +70,8 @@ export default function SpeedSelector({
             key={option.value}
             onClick={() => onSpeedChange(option.value as SpeedValue)}
             disabled={disabled}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors flex items-center gap-1 ${
-              isSelected ? activeClasses : inactiveClasses
+            className={`px-4 py-1.5 rounded text-sm font-bold transition-colors flex items-center gap-1 ${
+              getSpeedClasses(option, isSelected)
             } ${disabled ? 'disabled:opacity-50' : ''}`}
             data-testid={`playback-speed-${option.label.toLowerCase()}`}
           >

@@ -11,16 +11,19 @@ interface SegmentedPillProps {
 }
 
 const SEGMENT_COLORS: Record<ColorScheme, string> = {
-  'indigo': 'bg-indigo-600 text-white',
-  'purple': 'bg-purple-600 text-white',
-  'emerald': 'bg-emerald-600 text-white',
-  'blue': 'bg-blue-600 text-white',
-  'yellow': 'bg-yellow-600 text-white',
+  'periwinkle': 'bg-periwinkle text-white',
+  'coral': 'bg-coral text-white',
+  'strawberry': 'bg-strawberry text-white',
+  'keylime': 'bg-keylime text-white',
+  'mint': 'bg-mint-dark text-white',
+  'olive': 'bg-olive text-white',
+  'blue': 'bg-periwinkle text-white',
+  'yellow': 'bg-yellow text-navy',
   'red': 'bg-red-600 text-white',
   'green': 'bg-green-600 text-white',
   'gray': 'bg-gray-600 text-white',
-  'orange': 'bg-orange-600 text-white',
-  'pale-sky': 'bg-pale-sky text-navy',
+  'orange': 'bg-coral text-white',
+  'pale-sky': 'bg-periwinkle text-white',
 };
 
 export default function SegmentedPill({

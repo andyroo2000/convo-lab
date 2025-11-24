@@ -16,8 +16,8 @@ export default function Logo({ size = 'medium', className = '' }: LogoProps) {
 
   return (
     <div className={`flex items-center gap-1 ${className}`}>
-      <MessageCircle className={`${iconSize} text-indigo`} />
-      <FlaskConical className={`${iconSize} text-indigo`} />
+      <MessageCircle className={`${iconSize} text-white`} />
+      <FlaskConical className={`${iconSize} text-white`} />
     </div>
   );
 }

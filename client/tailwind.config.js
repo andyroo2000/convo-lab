@@ -56,11 +56,6 @@ export default {
           light: '#E8EDCC',
           dark: '#5A6C00',
         },
-        'violet': {
-          DEFAULT: '#A45AFE',
-          light: '#EBE0FF',
-          dark: '#7D3DC7',
-        },
 
         // Legacy colors for backward compatibility
         indigo: {

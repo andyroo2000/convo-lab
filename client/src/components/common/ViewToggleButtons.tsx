@@ -16,14 +16,14 @@ export default function ViewToggleButtons({
   readingsLabel = 'Furigana',
 }: ViewToggleButtonsProps) {
   return (
-    <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
+    <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm">
       {/* Readings Toggle (Furigana/Pinyin) */}
       <button
         onClick={onToggleReadings}
-        className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-bold transition-colors ${
           showReadings
-            ? 'bg-coral text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100'
+            ? 'bg-periwinkle text-white shadow-md'
+            : 'text-navy hover:bg-periwinkle-light'
         }`}
         title={showReadings ? `Hide ${readingsLabel.toLowerCase()}` : `Show ${readingsLabel.toLowerCase()}`}
         data-testid="playback-toggle-readings"
@@ -35,10 +35,10 @@ export default function ViewToggleButtons({
       {/* English Translation Toggle */}
       <button
         onClick={onToggleTranslations}
-        className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
+        className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-bold transition-colors ${
           showTranslations
-            ? 'bg-coral text-white shadow-sm'
-            : 'text-gray-600 hover:bg-gray-100'
+            ? 'bg-coral text-white shadow-md'
+            : 'text-navy hover:bg-coral-light'
         }`}
         title={showTranslations ? 'Hide English' : 'Show English'}
         data-testid="playback-toggle-translations"

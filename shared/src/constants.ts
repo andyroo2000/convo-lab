@@ -119,7 +119,8 @@ export type AudioSpeedKey = 'slow' | 'medium' | 'normal';
 
 // Speaker colors for dialogue visualization
 // Assigned at runtime based on speaker index to ensure consistent color scheme
-export const SPEAKER_COLORS = ['#6796EC', '#FC8155', '#FC66A7', '#D9CB51']; // periwinkle, coral, strawberry, keylime
+// Bold, saturated colors inspired by editorial design
+export const SPEAKER_COLORS = ['#FC66A7', '#FFCC3F', '#6796EC', '#FC8155', '#748C00']; // strawberry, yellow, periwinkle, coral, keylime
 
 /**
  * Get a color for a speaker based on their index
