@@ -7,7 +7,7 @@ import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
-import { TTS_VOICES } from '../../../shared/src/constants';
+import { TTS_VOICES, getSpeakerColor } from '../../../shared/src/constants';
 import { API_URL } from '../config';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -423,6 +423,9 @@ export default function PlaybackPage() {
   // Create speaker map for quick lookup
   const speakerMap = new Map(speakers.map(s => [s.id, s]));
 
+  // Create speaker index map for color assignment
+  const speakerIndexMap = new Map(speakers.map((s, index) => [s.id, index]));
+
   // Get current audio URL based on selected speed
   // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
   const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
@@ -452,13 +455,13 @@ export default function PlaybackPage() {
                 {/* Segmented Pill: Proficiency Level + Tone */}
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
-                  <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
+                  <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
                     {speakers[0]?.proficiency}
                   </div>
 
                   {/* Right segment - Tone (with chevron left edge) */}
                   <div
-                    className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
+                    className="pl-3 pr-4 py-1.5 bg-coral text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
                       marginLeft: '-8px'
@@ -479,7 +482,7 @@ export default function PlaybackPage() {
                       onClick={() => setShowReadings(!showReadings)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
                         showReadings
-                          ? 'bg-purple-600 text-white shadow-sm'
+                          ? 'bg-strawberry text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showReadings ? 'Hide readings' : 'Show readings'}
@@ -494,7 +497,7 @@ export default function PlaybackPage() {
                       onClick={() => setShowTranslations(!showTranslations)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
                         showTranslations
-                          ? 'bg-purple-600 text-white shadow-sm'
+                          ? 'bg-strawberry text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showTranslations ? 'Hide English' : 'Show English'}
@@ -519,23 +522,23 @@ export default function PlaybackPage() {
 
         {/* Progress Banner (shown during generation) */}
         {isGeneratingAudio && (
-          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-purple-200">
+          <div className="bg-gradient-to-r from-periwinkle-light to-coral-light border-b border-periwinkle">
           <div className="flex items-center gap-4 p-4">
             <div className="flex-shrink-0">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-purple-900 mb-1">
+              <p className="text-sm font-medium text-dark-brown mb-1">
                 Generating audio at all speeds...
               </p>
               <div className="flex items-center gap-3">
-                <div className="flex-1 bg-purple-200 rounded-full h-2 overflow-hidden">
+                <div className="flex-1 bg-periwinkle/20 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 transition-all duration-300 ease-out"
+                    className="bg-gradient-to-r from-periwinkle to-coral h-2 transition-all duration-300 ease-out"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
-                <span className="text-sm font-semibold text-purple-700 min-w-[3rem] text-right">
+                <span className="text-sm font-semibold text-periwinkle-dark min-w-[3rem] text-right">
                   {generationProgress}%
                 </span>
               </div>
@@ -564,6 +567,10 @@ export default function PlaybackPage() {
           {sentences.map((sentence, index) => {
           const speaker = speakerMap.get(sentence.speakerId);
           if (!speaker) return null;
+
+          // Get speaker color based on index (runtime assignment)
+          const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
+          const speakerColor = getSpeakerColor(speakerIndex);
 
           // Get timing for current speed
           const startTime = speedKey === 'slow' ? sentence.startTime_0_7
@@ -603,11 +610,11 @@ export default function PlaybackPage() {
                 isCurrentlySpeaking ? 'shadow-lg' : ''
               }`}
               style={{
-                backgroundColor: hexToRgba(speaker.color || '#6B7280', isCurrentlySpeaking ? 0.18 : 0.08),
-                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speaker.color || '#6B7280'}`,
-                borderRight: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
-                borderTop: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
-                borderBottom: isCurrentlySpeaking ? `3px solid ${speaker.color || '#6B7280'}` : undefined,
+                backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.18 : 0.08),
+                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speakerColor}`,
+                borderRight: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
+                borderTop: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
+                borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
               }}
               onClick={() => seekToSentence(sentence)}
               data-testid={`playback-sentence-${sentence.id}`}
@@ -649,7 +656,7 @@ export default function PlaybackPage() {
                     <div
                       className="flex-1 pl-6"
                       style={{
-                        borderLeft: `1px solid ${hexToRgba(speaker.color || '#6B7280', 0.3)}`
+                        borderLeft: `1px solid ${hexToRgba(speakerColor, 0.3)}`
                       }}
                     >
                       <p className="text-gray-600 italic">

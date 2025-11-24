@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useAuth } from '../../contexts/AuthContext';
-import { SUPPORTED_LANGUAGES } from '../../../../shared/src/constants';
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
 import { getDialogueSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
@@ -15,7 +15,9 @@ interface SpeakerFormData {
   color: string;
 }
 
-const DEFAULT_SPEAKER_COLORS = ['#5E6AD8', '#4EA6B1', '#FF6A6A', '#A6F2C2'];
+// Note: Speaker colors are now assigned at runtime based on index, not stored in the database
+// This constant is kept for backward compatibility with episode creation API
+const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 
 export default function DialogueGenerator() {
   const navigate = useNavigate();

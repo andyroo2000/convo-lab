@@ -17,15 +17,15 @@ export default function StudioPage() {
         {/* Dialogue Content Type */}
         <button
           onClick={() => navigate('/app/studio/create/dialogue')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-indigo"
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-periwinkle"
           data-testid="studio-card-dialogues"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-indigo/10 rounded-lg group-hover:bg-indigo/20 transition-colors">
-              <MessageSquare className="w-8 h-8 text-indigo" />
+            <div className="p-3 bg-periwinkle-light rounded-lg group-hover:bg-periwinkle/20 transition-colors">
+              <MessageSquare className="w-8 h-8 text-periwinkle" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-indigo transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-periwinkle transition-colors">
                 Comprehensible Input Dialogues
               </h2>
               <p className="text-sm text-gray-600 mb-4">
@@ -44,15 +44,15 @@ export default function StudioPage() {
         {/* Course Content Type */}
         <button
           onClick={() => navigate('/app/studio/create/audio-course')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-orange-500"
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-coral"
           data-testid="studio-card-audio-course"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-orange-50 rounded-lg group-hover:bg-orange-100 transition-colors">
-              <Headphones className="w-8 h-8 text-orange-500" />
+            <div className="p-3 bg-coral-light rounded-lg group-hover:bg-coral/20 transition-colors">
+              <Headphones className="w-8 h-8 text-coral" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-orange-500 transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-coral transition-colors">
                 Guided Audio Course
               </h2>
               <p className="text-sm text-gray-600 mb-4">
@@ -71,15 +71,15 @@ export default function StudioPage() {
         {/* Narrow Listening Content Type */}
         <button
           onClick={() => navigate('/app/studio/create/narrow-listening')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-purple-600"
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-strawberry"
           data-testid="studio-card-narrow-listening"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-              <Sparkles className="w-8 h-8 text-purple-600" />
+            <div className="p-3 bg-strawberry-light rounded-lg group-hover:bg-strawberry/20 transition-colors">
+              <Sparkles className="w-8 h-8 text-strawberry" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-purple-600 transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-strawberry transition-colors">
                 Narrow Listening Packs
               </h2>
               <p className="text-sm text-gray-600 mb-4">
@@ -125,15 +125,15 @@ export default function StudioPage() {
         {/* Lexical Chunk Packs */}
         <button
           onClick={() => navigate('/app/studio/create/lexical-chunk-pack')}
-          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-emerald-600"
+          className="card hover:shadow-xl transition-all duration-300 text-left group cursor-pointer border-2 border-transparent hover:border-keylime"
           data-testid="studio-card-lexical-chunks"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-              <BookOpen className="w-8 h-8 text-emerald-600" />
+            <div className="p-3 bg-keylime-light rounded-lg group-hover:bg-keylime/20 transition-colors">
+              <BookOpen className="w-8 h-8 text-keylime-dark" />
             </div>
             <div className="flex-1">
-              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-emerald-600 transition-colors">
+              <h2 className="text-xl font-semibold text-navy mb-2 group-hover:text-keylime-dark transition-colors">
                 Lexical Chunk Packs
               </h2>
               <p className="text-sm text-gray-600 mb-4">

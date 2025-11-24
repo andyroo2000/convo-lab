@@ -7,6 +7,7 @@ import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyStateCard from '../components/EmptyStateCard';
 import Pill from '../components/common/Pill';
 import SegmentedPill from '../components/common/SegmentedPill';
+import LanguageLevelPill from '../components/common/LanguageLevelPill';
 
 import { API_URL } from '../config';
 
@@ -21,6 +22,7 @@ interface NarrowListeningPack {
   id: string;
   title: string;
   topic: string;
+  targetLanguage: string;
   jlptLevel: string;
   status: string;
   createdAt: string;
@@ -33,6 +35,7 @@ interface ChunkPack {
   id: string;
   title: string;
   theme: string;
+  targetLanguage: string;
   jlptLevel: string;
   status: string;
   createdAt: string;
@@ -342,10 +345,10 @@ export default function LibraryPage() {
         <div className="flex gap-2">
           <button
             onClick={() => handleFilterChange('dialogues')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'dialogues'
-                ? 'bg-indigo text-white'
-                : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                ? 'bg-periwinkle text-white'
+                : 'bg-periwinkle-light text-periwinkle-dark hover:bg-periwinkle/20'
             }`}
             data-testid="library-filter-dialogues"
           >
@@ -354,10 +357,10 @@ export default function LibraryPage() {
           </button>
           <button
             onClick={() => handleFilterChange('courses')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'courses'
-                ? 'bg-orange-500 text-white'
-                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                ? 'bg-coral text-white'
+                : 'bg-coral-light text-coral-dark hover:bg-coral/20'
             }`}
             data-testid="library-filter-courses"
           >
@@ -366,10 +369,10 @@ export default function LibraryPage() {
           </button>
           <button
             onClick={() => handleFilterChange('narrowListening')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'narrowListening'
-                ? 'bg-purple-600 text-white'
-                : 'bg-purple-50 text-purple-600 hover:bg-purple-100'
+                ? 'bg-strawberry text-white'
+                : 'bg-strawberry-light text-strawberry-dark hover:bg-strawberry/20'
             }`}
             data-testid="library-filter-narrow-listening"
           >
@@ -378,10 +381,10 @@ export default function LibraryPage() {
           </button>
           <button
             onClick={() => handleFilterChange('chunkPacks')}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'chunkPacks'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                ? 'bg-keylime text-dark-brown'
+                : 'bg-keylime-light text-keylime-dark hover:bg-keylime/20'
             }`}
             data-testid="library-filter-chunk-packs"
           >
@@ -401,10 +404,10 @@ export default function LibraryPage() {
               buttonText="Get Started"
               route="/app/studio/create/dialogue"
               colorTheme={{
-                bg: 'bg-indigo-50',
-                text: 'text-indigo-600',
-                border: 'border-indigo-200',
-                button: 'bg-indigo-600 hover:bg-indigo-700',
+                bg: 'bg-periwinkle-light',
+                text: 'text-periwinkle-dark',
+                border: 'border-periwinkle',
+                button: 'bg-periwinkle hover:bg-periwinkle-dark',
               }}
             />
           )}
@@ -416,10 +419,10 @@ export default function LibraryPage() {
               buttonText="Get Started"
               route="/app/studio/create/audio-course"
               colorTheme={{
-                bg: 'bg-orange-50',
-                text: 'text-orange-600',
-                border: 'border-orange-200',
-                button: 'bg-orange-600 hover:bg-orange-700',
+                bg: 'bg-coral-light',
+                text: 'text-coral-dark',
+                border: 'border-coral',
+                button: 'bg-coral hover:bg-coral-dark',
               }}
             />
           )}
@@ -431,10 +434,10 @@ export default function LibraryPage() {
               buttonText="Get Started"
               route="/app/studio/create/narrow-listening"
               colorTheme={{
-                bg: 'bg-purple-50',
-                text: 'text-purple-600',
-                border: 'border-purple-200',
-                button: 'bg-purple-600 hover:bg-purple-700',
+                bg: 'bg-strawberry-light',
+                text: 'text-strawberry-dark',
+                border: 'border-strawberry',
+                button: 'bg-strawberry hover:bg-strawberry-dark',
               }}
             />
           )}
@@ -446,10 +449,10 @@ export default function LibraryPage() {
               buttonText="Get Started"
               route="/app/studio/create/lexical-chunk-pack"
               colorTheme={{
-                bg: 'bg-emerald-50',
-                text: 'text-emerald-600',
-                border: 'border-emerald-200',
-                button: 'bg-emerald-600 hover:bg-emerald-700',
+                bg: 'bg-keylime-light',
+                text: 'text-keylime-dark',
+                border: 'border-keylime',
+                button: 'bg-keylime hover:bg-keylime-dark',
               }}
             />
           )}
@@ -485,7 +488,7 @@ export default function LibraryPage() {
                 <Link
                   key={episode.id}
                   to={`/app/playback/${episode.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-indigo"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-periwinkle"
                   data-testid={`library-episode-card-${episode.id}`}
                 >
                   {/* Delete Button - appears on hover */}
@@ -501,7 +504,7 @@ export default function LibraryPage() {
                   <div className="flex flex-col h-full">
                     <div className="space-y-3 flex-1">
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-indigo transition-colors">
+                      <h3 className="text-xl font-bold text-navy group-hover:text-periwinkle transition-colors">
                         {episode.title}
                       </h3>
 
@@ -519,17 +522,11 @@ export default function LibraryPage() {
 
                     {/* Language Info and Levels - Always at bottom */}
                     <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      {proficiencyLevels.length > 0 ? (
-                        <SegmentedPill
-                          leftText={episode.targetLanguage.toUpperCase()}
-                          rightText={proficiencyLevels.join(', ')}
-                          leftColor="pale-sky"
-                          rightColor="indigo"
+                      {proficiencyLevels.length > 0 && (
+                        <LanguageLevelPill
+                          language={episode.targetLanguage}
+                          level={proficiencyLevels.join(', ')}
                         />
-                      ) : (
-                        <Pill color="pale-sky">
-                          {episode.targetLanguage.toUpperCase()}
-                        </Pill>
                       )}
                       {episode.status === 'generating' && (
                         <Pill color="yellow" className="animate-pulse">
@@ -547,7 +544,7 @@ export default function LibraryPage() {
                 <Link
                   key={course.id}
                   to={`/app/courses/${course.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-indigo-50 to-purple-50 border-l-4 border-orange-500"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-coral-light to-coral/10 border-l-4 border-coral"
                   data-testid={`library-course-card-${course.id}`}
                 >
                   {/* Delete Button - appears on hover */}
@@ -563,7 +560,7 @@ export default function LibraryPage() {
                   <div className="flex flex-col h-full">
                     <div className="space-y-3 flex-1">
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-orange-500 transition-colors">
+                      <h3 className="text-xl font-bold text-navy group-hover:text-coral transition-colors">
                         {course.title}
                       </h3>
 
@@ -583,17 +580,11 @@ export default function LibraryPage() {
 
                     {/* Language Info and JLPT Level - Always at bottom */}
                     <div className="flex items-center gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      {course.jlptLevel ? (
-                        <SegmentedPill
-                          leftText={`${course.targetLanguage.toUpperCase()} → ${course.nativeLanguage.toUpperCase()}`}
-                          rightText={course.jlptLevel}
-                          leftColor="purple"
-                          rightColor="indigo"
+                      {course.jlptLevel && (
+                        <LanguageLevelPill
+                          language={course.targetLanguage}
+                          level={course.jlptLevel}
                         />
-                      ) : (
-                        <Pill color="purple">
-                          {course.targetLanguage.toUpperCase()} → {course.nativeLanguage.toUpperCase()}
-                        </Pill>
                       )}
                       {course.status === 'generating' && (
                         <Pill color="yellow" className="animate-pulse">
@@ -617,7 +608,7 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/app/narrow-listening/${pack.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-purple-50 to-pink-50 border-l-4 border-purple-600"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-strawberry-light to-strawberry/10 border-l-4 border-strawberry"
                   data-testid={`library-pack-card-${pack.id}`}
                 >
                   {/* Delete Button - appears on hover */}
@@ -633,7 +624,7 @@ export default function LibraryPage() {
                   <div className="flex flex-col h-full">
                     <div className="space-y-3 flex-1">
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-purple-600 transition-colors">
+                      <h3 className="text-xl font-bold text-navy group-hover:text-strawberry transition-colors">
                         {pack.title}
                       </h3>
 
@@ -651,11 +642,9 @@ export default function LibraryPage() {
 
                     {/* JLPT Level and Variations */}
                     <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      <SegmentedPill
-                        leftText={pack.jlptLevel}
-                        rightText={`${pack._count.versions} variations`}
-                        leftColor="purple"
-                        rightColor="indigo"
+                      <LanguageLevelPill
+                        language={pack.targetLanguage}
+                        level={pack.jlptLevel}
                       />
                       {pack.status === 'generating' && (
                         <Pill color="yellow" className="animate-pulse">
@@ -673,7 +662,7 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/app/chunk-packs/${pack.id}/examples`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-emerald-50 to-teal-50 border-l-4 border-emerald-600"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-keylime-light to-keylime/10 border-l-4 border-keylime"
                   data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
                   {/* Delete Button - appears on hover */}
@@ -689,7 +678,7 @@ export default function LibraryPage() {
                   <div className="flex flex-col h-full">
                     <div className="space-y-3 flex-1">
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-emerald-600 transition-colors">
+                      <h3 className="text-xl font-bold text-navy group-hover:text-keylime-dark transition-colors">
                         {pack.title}
                       </h3>
 
@@ -707,18 +696,10 @@ export default function LibraryPage() {
 
                     {/* JLPT Level and Stats */}
                     <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      <SegmentedPill
-                        leftText={pack.jlptLevel}
-                        rightText={`${pack._count.examples} examples`}
-                        leftColor="emerald"
-                        rightColor="blue"
+                      <LanguageLevelPill
+                        language={pack.targetLanguage}
+                        level={pack.jlptLevel}
                       />
-                      <Pill color="indigo">
-                        {pack._count.stories} {pack._count.stories === 1 ? 'story' : 'stories'}
-                      </Pill>
-                      <Pill color="purple">
-                        {pack._count.exercises} exercises
-                      </Pill>
                       {pack.status === 'error' && (
                         <Pill color="red">
                           error

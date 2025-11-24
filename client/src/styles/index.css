@@ -4,7 +4,7 @@
 
 @layer base {
   body {
-    @apply bg-soft-sand text-navy;
+    @apply bg-cream text-dark-brown;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
       'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
       sans-serif;
@@ -13,19 +13,19 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-semibold;
+    @apply font-bold;
   }
 
   h1 {
-    @apply text-4xl;
+    @apply text-5xl leading-tight;
   }
 
   h2 {
-    @apply text-3xl;
+    @apply text-4xl leading-tight;
   }
 
   h3 {
-    @apply text-2xl;
+    @apply text-3xl leading-tight;
   }
 
   code {
@@ -41,18 +41,18 @@
   }
 
   .btn-primary {
-    @apply btn bg-indigo text-white hover:bg-indigo-600;
-    @apply focus:ring-indigo-500;
+    @apply btn bg-coral text-white hover:bg-coral-dark;
+    @apply focus:ring-coral;
   }
 
   .btn-secondary {
-    @apply btn bg-teal text-white hover:bg-teal-600;
-    @apply focus:ring-teal-500;
+    @apply btn bg-periwinkle text-white hover:bg-periwinkle-dark;
+    @apply focus:ring-periwinkle;
   }
 
   .btn-outline {
-    @apply btn border-2 border-indigo text-indigo hover:bg-indigo hover:text-white;
-    @apply focus:ring-indigo-500;
+    @apply btn border-2 border-coral text-coral hover:bg-coral hover:text-white;
+    @apply focus:ring-coral;
   }
 
   .card {

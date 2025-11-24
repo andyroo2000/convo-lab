@@ -15,7 +15,7 @@ interface SpeedSelectorProps {
   loading?: boolean;
   loadingSpeed?: SpeedValue;
   showLabels?: boolean; // If true, shows "Slow (0.7x)", otherwise just "0.7x"
-  variant?: 'purple' | 'emerald';
+  variant?: 'keylime' | 'coral' | 'strawberry' | 'periwinkle';
   className?: string;
 }
 
@@ -40,17 +40,21 @@ export default function SpeedSelector({
   loading = false,
   loadingSpeed,
   showLabels = true,
-  variant = 'purple',
+  variant = 'keylime',
   className = '',
 }: SpeedSelectorProps) {
   const normalizedSelected = normalizeSpeed(selectedSpeed);
   const normalizedLoading = loadingSpeed ? normalizeSpeed(loadingSpeed) : null;
 
   // Determine active/inactive colors based on variant
-  const activeClasses = variant === 'emerald'
-    ? 'bg-emerald-600 text-white'
-    : 'bg-purple-600 text-white shadow-sm';
+  const variantColors = {
+    keylime: 'bg-keylime text-white',
+    coral: 'bg-coral text-white',
+    strawberry: 'bg-strawberry text-white',
+    periwinkle: 'bg-periwinkle text-white',
+  };
 
+  const activeClasses = `${variantColors[variant]} shadow-sm`;
   const inactiveClasses = 'text-gray-700 hover:bg-gray-200';
 
   return (

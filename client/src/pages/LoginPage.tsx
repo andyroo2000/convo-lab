@@ -40,12 +40,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-soft-sand flex items-center justify-center px-4">
+    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="mb-6">
           <Link
             to="/"
-            className="inline-flex items-center gap-2 text-gray-600 hover:text-navy transition-colors"
+            className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
             data-testid="auth-link-back-home"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -55,10 +55,10 @@ export default function LoginPage() {
 
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
-            <h1 className="text-4xl font-bold text-navy">ConvoLab</h1>
+            <h1 className="text-4xl font-bold text-dark-brown">ConvoLab</h1>
             <Logo size="large" />
           </div>
-          <p className="text-gray-600">Your personal AI language lab</p>
+          <p className="text-medium-brown">Your personal AI language lab</p>
         </div>
 
         <div className="card">
@@ -67,8 +67,8 @@ export default function LoginPage() {
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isLogin
-                  ? 'border-indigo text-indigo'
-                  : 'border-transparent text-gray-500 hover:text-navy'
+                  ? 'border-periwinkle text-periwinkle'
+                  : 'border-transparent text-medium-brown hover:text-dark-brown'
               }`}
               data-testid="auth-tab-login"
             >
@@ -78,8 +78,8 @@ export default function LoginPage() {
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 !isLogin
-                  ? 'border-indigo text-indigo'
-                  : 'border-transparent text-gray-500 hover:text-navy'
+                  ? 'border-periwinkle text-periwinkle'
+                  : 'border-transparent text-medium-brown hover:text-dark-brown'
               }`}
               data-testid="auth-tab-signup"
             >
@@ -91,7 +91,7 @@ export default function LoginPage() {
             {!isLogin && (
               <>
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-navy mb-1">
+                  <label htmlFor="name" className="block text-sm font-medium text-dark-brown mb-1">
                     Name
                   </label>
                   <input
@@ -106,7 +106,7 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="inviteCode" className="block text-sm font-medium text-navy mb-1">
+                  <label htmlFor="inviteCode" className="block text-sm font-medium text-dark-brown mb-1">
                     Invite Code
                   </label>
                   <input
@@ -127,7 +127,7 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-navy mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-dark-brown mb-1">
                 Email
               </label>
               <input
@@ -142,7 +142,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-navy mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-dark-brown mb-1">
                 Password
               </label>
               <input

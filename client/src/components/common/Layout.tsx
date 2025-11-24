@@ -32,12 +32,12 @@ export default function Layout() {
   const isStudioActive = location.pathname.startsWith('/app/studio') || location.pathname.startsWith('/app/pi');
 
   return (
-    <div className="min-h-screen bg-soft-sand">
-      <nav className="sticky top-0 z-20 bg-white border-b border-warm-gray shadow-sm">
+    <div className="min-h-screen bg-cream">
+      <nav className="sticky top-0 z-20 bg-periwinkle-light border-b border-periwinkle shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16">
             <div className="flex">
-              <Link to="/app/library" className="flex items-center gap-2 px-4 text-navy font-bold text-xl">
+              <Link to="/app/library" className="flex items-center gap-2 px-4 text-dark-brown font-bold text-xl">
                 ConvoLab
                 <Logo size="small" />
               </Link>
@@ -46,28 +46,28 @@ export default function Layout() {
                   to="/app/library"
                   className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
                     isLibraryActive
-                      ? 'text-indigo'
-                      : 'text-navy hover:text-indigo'
+                      ? 'text-periwinkle-dark'
+                      : 'text-dark-brown hover:text-periwinkle-dark'
                   }`}
                 >
                   <Library className="w-4 h-4 mr-2 flex-shrink-0" />
                   Library
                   {isLibraryActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo"></span>
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-periwinkle-dark"></span>
                   )}
                 </Link>
                 <Link
                   to="/app/studio"
                   className={`relative inline-flex items-center justify-center w-24 h-full text-sm font-semibold transition-colors ${
                     isStudioActive
-                      ? 'text-indigo'
-                      : 'text-navy hover:text-indigo'
+                      ? 'text-periwinkle-dark'
+                      : 'text-dark-brown hover:text-periwinkle-dark'
                   }`}
                 >
                   <Mic className="w-4 h-4 mr-2 flex-shrink-0" />
                   Create
                   {isStudioActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo"></span>
+                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-periwinkle-dark"></span>
                   )}
                 </Link>
               </div>
