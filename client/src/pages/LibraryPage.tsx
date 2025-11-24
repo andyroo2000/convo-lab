@@ -383,8 +383,8 @@ export default function LibraryPage() {
             onClick={() => handleFilterChange('chunkPacks')}
             className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
               filter === 'chunkPacks'
-                ? 'bg-keylime text-dark-brown'
-                : 'bg-keylime-light text-keylime-dark hover:bg-keylime/20'
+                ? 'bg-yellow text-dark-brown'
+                : 'bg-yellow-light text-dark-brown hover:bg-yellow/20'
             }`}
             data-testid="library-filter-chunk-packs"
           >
@@ -449,10 +449,10 @@ export default function LibraryPage() {
               buttonText="Get Started"
               route="/app/studio/create/lexical-chunk-pack"
               colorTheme={{
-                bg: 'bg-keylime-light',
-                text: 'text-keylime-dark',
-                border: 'border-keylime',
-                button: 'bg-keylime hover:bg-keylime-dark',
+                bg: 'bg-yellow-light',
+                text: 'text-dark-brown',
+                border: 'border-yellow',
+                button: 'bg-yellow hover:bg-yellow-dark text-dark-brown',
               }}
             />
           )}
@@ -662,7 +662,7 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/app/chunk-packs/${pack.id}/examples`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-keylime-light to-keylime/10 border-l-4 border-keylime"
+                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-yellow-light to-yellow/10 border-l-4 border-yellow"
                   data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
                   {/* Delete Button - appears on hover */}
@@ -678,7 +678,7 @@ export default function LibraryPage() {
                   <div className="flex flex-col h-full">
                     <div className="space-y-3 flex-1">
                       {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-keylime-dark transition-colors">
+                      <h3 className="text-xl font-bold text-navy group-hover:text-yellow-dark transition-colors">
                         {pack.title}
                       </h3>
 

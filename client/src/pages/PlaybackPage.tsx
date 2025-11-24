@@ -7,9 +7,9 @@ import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
+import ViewToggleButtons from '../components/common/ViewToggleButtons';
 import { TTS_VOICES, getSpeakerColor } from '../../../shared/src/constants';
 import { API_URL } from '../config';
-import { Eye, EyeOff } from 'lucide-react';
 
 interface SpeakerAvatar {
   id: string;
@@ -461,7 +461,7 @@ export default function PlaybackPage() {
 
                   {/* Right segment - Tone (with chevron left edge) */}
                   <div
-                    className="pl-3 pr-4 py-1.5 bg-coral text-white capitalize relative"
+                    className="pl-3 pr-4 py-1.5 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
                       marginLeft: '-8px'
@@ -476,37 +476,13 @@ export default function PlaybackPage() {
               {!isGeneratingAudio && currentAudioUrl && (
                 <div className="flex flex-col items-end gap-2 ml-6">
                   {/* Row 1: Furigana & English Toggles */}
-                  <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-1">
-                    {/* Furigana/Pinyin Toggle */}
-                    <button
-                      onClick={() => setShowReadings(!showReadings)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        showReadings
-                          ? 'bg-strawberry text-white shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      title={showReadings ? 'Hide readings' : 'Show readings'}
-                      data-testid="playback-toggle-readings"
-                    >
-                      {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      <span>{episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}</span>
-                    </button>
-
-                    {/* English Translation Toggle */}
-                    <button
-                      onClick={() => setShowTranslations(!showTranslations)}
-                      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                        showTranslations
-                          ? 'bg-strawberry text-white shadow-sm'
-                          : 'text-gray-600 hover:bg-gray-100'
-                      }`}
-                      title={showTranslations ? 'Hide English' : 'Show English'}
-                      data-testid="playback-toggle-translations"
-                    >
-                      {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      <span>English</span>
-                    </button>
-                  </div>
+                  <ViewToggleButtons
+                    showReadings={showReadings}
+                    showTranslations={showTranslations}
+                    onToggleReadings={() => setShowReadings(!showReadings)}
+                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                    readingsLabel={episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
+                  />
 
                   {/* Row 2: Speed Selector */}
                   <SpeedSelector
