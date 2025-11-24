@@ -475,7 +475,7 @@ export default function LibraryPage() {
           )}
         </>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-1">
           {allItems.map((item) => {
             if (item.type === 'episode') {
               const episode = item.data as Episode;
@@ -488,51 +488,47 @@ export default function LibraryPage() {
                 <Link
                   key={episode.id}
                   to={`/app/playback/${episode.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative border-l-4 border-periwinkle"
+                  className="group relative flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 border-l-[12px] border-periwinkle hover:shadow-lg"
                   data-testid={`library-episode-card-${episode.id}`}
                 >
-                  {/* Delete Button - appears on hover */}
-                  <button
-                    onClick={(e) => handleDeleteClick(episode, e)}
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
-                    title="Delete episode"
-                    data-testid={`library-delete-episode-${episode.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex flex-col h-full">
-                    <div className="space-y-3 flex-1">
-                      {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-periwinkle transition-colors">
-                        {episode.title}
-                      </h3>
-
-                      {/* Card Type with Icon */}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>Dialogue</span>
+                  {/* Thick Color Bar */}
+                  <div className="flex-1 px-6 py-5">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Left: Title and metadata */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <MessageSquare className="w-5 h-5 text-periwinkle flex-shrink-0" />
+                          <h3 className="text-2xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors truncate">
+                            {episode.title}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-1 pl-8">
+                          {episode.sourceText}
+                        </p>
                       </div>
 
-                      {/* Source Text Preview */}
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {episode.sourceText}
-                      </p>
-                    </div>
-
-                    {/* Language Info and Levels - Always at bottom */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      {proficiencyLevels.length > 0 && (
-                        <LanguageLevelPill
-                          language={episode.targetLanguage}
-                          level={proficiencyLevels.join(', ')}
-                        />
-                      )}
-                      {episode.status === 'generating' && (
-                        <Pill color="yellow" className="animate-pulse">
-                          Generating...
-                        </Pill>
-                      )}
+                      {/* Right: Badges and actions */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {proficiencyLevels.length > 0 && (
+                          <LanguageLevelPill
+                            language={episode.targetLanguage}
+                            level={proficiencyLevels.join(', ')}
+                          />
+                        )}
+                        {episode.status === 'generating' && (
+                          <Pill color="yellow" className="animate-pulse">
+                            Generating...
+                          </Pill>
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteClick(episode, e)}
+                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete episode"
+                          data-testid={`library-delete-episode-${episode.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -544,59 +540,54 @@ export default function LibraryPage() {
                 <Link
                   key={course.id}
                   to={`/app/courses/${course.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-coral-light to-coral/10 border-l-4 border-coral"
+                  className="group relative flex items-center bg-white hover:bg-coral-light transition-all duration-200 border-l-[12px] border-coral hover:shadow-lg"
                   data-testid={`library-course-card-${course.id}`}
                 >
-                  {/* Delete Button - appears on hover */}
-                  <button
-                    onClick={(e) => handleDeleteCourseClick(course, e)}
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
-                    title="Delete course"
-                    data-testid={`library-delete-course-${course.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex flex-col h-full">
-                    <div className="space-y-3 flex-1">
-                      {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-coral transition-colors">
-                        {course.title}
-                      </h3>
-
-                      {/* Card Type with Icon */}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Headphones className="w-3.5 h-3.5" />
-                        <span>Audio Course</span>
+                  <div className="flex-1 px-6 py-5">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Left: Title and metadata */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Headphones className="w-5 h-5 text-coral flex-shrink-0" />
+                          <h3 className="text-2xl font-bold text-dark-brown group-hover:text-coral transition-colors truncate">
+                            {course.title}
+                          </h3>
+                        </div>
+                        {course.description && (
+                          <p className="text-sm text-gray-600 line-clamp-1 pl-8">
+                            {course.description}
+                          </p>
+                        )}
                       </div>
 
-                      {/* Description */}
-                      {course.description && (
-                        <p className="text-sm text-gray-600 line-clamp-2">
-                          {course.description}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Language Info and JLPT Level - Always at bottom */}
-                    <div className="flex items-center gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      {course.jlptLevel && (
-                        <LanguageLevelPill
-                          language={course.targetLanguage}
-                          level={course.jlptLevel}
-                        />
-                      )}
-                      {course.status === 'generating' && (
-                        <Pill color="yellow" className="animate-pulse">
-                          Generating...
-                        </Pill>
-                      )}
-                      {course._count?.lessons != null && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <BookOpen className="w-3 h-3" />
-                          {course._count.lessons} {course._count.lessons === 1 ? 'lesson' : 'lessons'}
-                        </div>
-                      )}
+                      {/* Right: Badges and actions */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        {course.jlptLevel && (
+                          <LanguageLevelPill
+                            language={course.targetLanguage}
+                            level={course.jlptLevel}
+                          />
+                        )}
+                        {course.status === 'generating' && (
+                          <Pill color="yellow" className="animate-pulse">
+                            Generating...
+                          </Pill>
+                        )}
+                        {course._count?.lessons != null && (
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <BookOpen className="w-3 h-3" />
+                            {course._count.lessons} {course._count.lessons === 1 ? 'lesson' : 'lessons'}
+                          </div>
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteCourseClick(course, e)}
+                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete course"
+                          data-testid={`library-delete-course-${course.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -608,49 +599,44 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/app/narrow-listening/${pack.id}`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-strawberry-light to-strawberry/10 border-l-4 border-strawberry"
+                  className="group relative flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 border-l-[12px] border-strawberry hover:shadow-lg"
                   data-testid={`library-pack-card-${pack.id}`}
                 >
-                  {/* Delete Button - appears on hover */}
-                  <button
-                    onClick={(e) => handleDeletePackClick(pack, e)}
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
-                    title="Delete pack"
-                    data-testid={`library-delete-pack-${pack.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex flex-col h-full">
-                    <div className="space-y-3 flex-1">
-                      {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-strawberry transition-colors">
-                        {pack.title}
-                      </h3>
-
-                      {/* Card Type with Icon */}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Sparkles className="w-3.5 h-3.5" />
-                        <span>Narrow Listening</span>
+                  <div className="flex-1 px-6 py-5">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Left: Title and metadata */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <Sparkles className="w-5 h-5 text-strawberry flex-shrink-0" />
+                          <h3 className="text-2xl font-bold text-dark-brown group-hover:text-strawberry transition-colors truncate">
+                            {pack.title}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-gray-600 line-clamp-1 pl-8">
+                          {pack.topic}
+                        </p>
                       </div>
 
-                      {/* Topic Preview */}
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {pack.topic}
-                      </p>
-                    </div>
-
-                    {/* JLPT Level and Variations */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      <LanguageLevelPill
-                        language={pack.targetLanguage}
-                        level={pack.jlptLevel}
-                      />
-                      {pack.status === 'generating' && (
-                        <Pill color="yellow" className="animate-pulse">
-                          Generating...
-                        </Pill>
-                      )}
+                      {/* Right: Badges and actions */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <LanguageLevelPill
+                          language={pack.targetLanguage}
+                          level={pack.jlptLevel}
+                        />
+                        {pack.status === 'generating' && (
+                          <Pill color="yellow" className="animate-pulse">
+                            Generating...
+                          </Pill>
+                        )}
+                        <button
+                          onClick={(e) => handleDeletePackClick(pack, e)}
+                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete pack"
+                          data-testid={`library-delete-pack-${pack.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Link>
@@ -662,54 +648,49 @@ export default function LibraryPage() {
                 <Link
                   key={pack.id}
                   to={`/app/chunk-packs/${pack.id}/examples`}
-                  className="card hover:shadow-lg transition-shadow cursor-pointer group relative bg-gradient-to-br from-yellow-light to-yellow/10 border-l-4 border-yellow"
+                  className="group relative flex items-center bg-white hover:bg-yellow-light transition-all duration-200 border-l-[12px] border-yellow hover:shadow-lg"
                   data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
-                  {/* Delete Button - appears on hover */}
-                  <button
-                    onClick={(e) => handleDeleteChunkPackClick(pack, e)}
-                    className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 z-10"
-                    title="Delete lexical chunk pack"
-                    data-testid={`library-delete-chunk-pack-${pack.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-
-                  <div className="flex flex-col h-full">
-                    <div className="space-y-3 flex-1">
-                      {/* Title */}
-                      <h3 className="text-xl font-bold text-navy group-hover:text-yellow-dark transition-colors">
-                        {pack.title}
-                      </h3>
-
-                      {/* Card Type with Icon */}
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        <span>Lexical Chunk Pack</span>
+                  <div className="flex-1 px-6 py-5">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Left: Title and metadata */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <BookOpen className="w-5 h-5 text-yellow-dark flex-shrink-0" />
+                          <h3 className="text-2xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors truncate">
+                            {pack.title}
+                          </h3>
+                        </div>
+                        <p className="text-sm text-gray-600 capitalize line-clamp-1 pl-8">
+                          {pack.theme.replace(/_/g, ' ')}
+                        </p>
                       </div>
 
-                      {/* Theme */}
-                      <p className="text-sm text-gray-600 capitalize">
-                        {pack.theme.replace(/_/g, ' ')}
-                      </p>
-                    </div>
-
-                    {/* JLPT Level and Stats */}
-                    <div className="flex gap-2 text-sm flex-wrap pt-3 mt-auto border-t">
-                      <LanguageLevelPill
-                        language={pack.targetLanguage}
-                        level={pack.jlptLevel}
-                      />
-                      {pack.status === 'error' && (
-                        <Pill color="red">
-                          error
-                        </Pill>
-                      )}
-                      {pack.status === 'generating' && (
-                        <Pill color="yellow" className="animate-pulse">
-                          Generating...
-                        </Pill>
-                      )}
+                      {/* Right: Badges and actions */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <LanguageLevelPill
+                          language={pack.targetLanguage}
+                          level={pack.jlptLevel}
+                        />
+                        {pack.status === 'error' && (
+                          <Pill color="red">
+                            error
+                          </Pill>
+                        )}
+                        {pack.status === 'generating' && (
+                          <Pill color="yellow" className="animate-pulse">
+                            Generating...
+                          </Pill>
+                        )}
+                        <button
+                          onClick={(e) => handleDeleteChunkPackClick(pack, e)}
+                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                          title="Delete lexical chunk pack"
+                          data-testid={`library-delete-chunk-pack-${pack.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Link>
