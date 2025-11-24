@@ -366,13 +366,13 @@ export default function NarrowListeningPlaybackPage() {
                 {/* Segmented Pill: JLPT Level + Variations */}
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - JLPT Level */}
-                  <div className="pl-4 pr-5 py-1.5 bg-indigo-600 text-white uppercase tracking-wide">
+                  <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
                     {pack.jlptLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
                   <div
-                    className="pl-3 pr-4 py-1.5 bg-purple-600 text-white capitalize relative"
+                    className="pl-3 pr-4 py-1.5 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
                       marginLeft: '-8px'
@@ -399,7 +399,7 @@ export default function NarrowListeningPlaybackPage() {
                       onClick={() => setShowReadings(!showReadings)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
                         showReadings
-                          ? 'bg-purple-600 text-white shadow-sm'
+                          ? 'bg-coral text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showReadings ? 'Hide furigana' : 'Show furigana'}
@@ -413,7 +413,7 @@ export default function NarrowListeningPlaybackPage() {
                       onClick={() => setShowTranslations(!showTranslations)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-medium transition-colors ${
                         showTranslations
-                          ? 'bg-purple-600 text-white shadow-sm'
+                          ? 'bg-coral text-white shadow-sm'
                           : 'text-gray-600 hover:bg-gray-100'
                       }`}
                       title={showTranslations ? 'Hide English' : 'Show English'}
@@ -449,17 +449,17 @@ export default function NarrowListeningPlaybackPage() {
                   <p className="text-sm font-medium text-purple-900">
                     Generating {selectedSpeed} speed audio...
                   </p>
-                  <span className="text-sm font-semibold text-purple-700">
+                  <span className="text-sm font-semibold text-periwinkle-dark">
                     {generationProgress}%
                   </span>
                 </div>
-                <div className="w-full bg-purple-200 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-periwinkle/20 rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-300 ease-out"
+                    className="bg-gradient-to-r from-periwinkle to-strawberry h-2 rounded-full transition-all duration-300 ease-out"
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
-                <p className="text-xs text-purple-700 mt-1">
+                <p className="text-xs text-periwinkle-dark mt-1">
                   Please wait while we generate audio for all variations. This may take a minute or two.
                 </p>
               </div>
@@ -499,7 +499,7 @@ export default function NarrowListeningPlaybackPage() {
                     onClick={() => handleVersionSelect(version.id)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
                       selectedVersionId === version.id
-                        ? 'border-purple-500 bg-purple-50'
+                        ? 'border-strawberry bg-strawberry-light'
                         : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
@@ -547,9 +547,9 @@ export default function NarrowListeningPlaybackPage() {
                         }}
                         className="pl-4 py-3 rounded-lg transition-all duration-200"
                         style={{
-                          backgroundColor: isCurrentlySpeaking ? 'rgba(147, 51, 234, 0.12)' : 'rgba(147, 51, 234, 0.04)',
-                          borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid rgb(147, 51, 234)`,
-                          boxShadow: isCurrentlySpeaking ? '0 2px 8px rgba(147, 51, 234, 0.15)' : 'none',
+                          backgroundColor: isCurrentlySpeaking ? 'rgba(252, 102, 167, 0.12)' : 'rgba(252, 102, 167, 0.04)',
+                          borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid #FC66A7`,
+                          boxShadow: isCurrentlySpeaking ? '0 2px 8px rgba(252, 102, 167, 0.15)' : 'none',
                         }}
                       >
                         <p className={`text-lg text-gray-900 leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>

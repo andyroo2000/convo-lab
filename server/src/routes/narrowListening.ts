@@ -24,6 +24,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
           id: true,
           title: true,
           topic: true,
+          targetLanguage: true,
           jlptLevel: true,
           status: true,
           createdAt: true,

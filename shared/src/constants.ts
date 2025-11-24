@@ -116,3 +116,16 @@ export const AUDIO_SPEEDS = {
 } as const;
 
 export type AudioSpeedKey = 'slow' | 'medium' | 'normal';
+
+// Speaker colors for dialogue visualization
+// Assigned at runtime based on speaker index to ensure consistent color scheme
+export const SPEAKER_COLORS = ['#6796EC', '#FC8155', '#FC66A7', '#D9CB51']; // periwinkle, coral, strawberry, keylime
+
+/**
+ * Get a color for a speaker based on their index
+ * @param index - The speaker's index (0-based)
+ * @returns A hex color code
+ */
+export function getSpeakerColor(index: number): string {
+  return SPEAKER_COLORS[index % SPEAKER_COLORS.length];
+}

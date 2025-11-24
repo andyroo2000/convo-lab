@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { getSpeakerColor } from '../../../shared/src/constants';
 
 import { API_URL } from '../config';
 
@@ -217,11 +218,11 @@ export default function ChunkPackStoryPage() {
           {/* Speakers Legend */}
           {speakers.size > 0 && (
             <div className="flex gap-4 flex-wrap">
-              {Array.from(speakers.values()).map((speaker) => (
+              {Array.from(speakers.values()).map((speaker, index) => (
                 <div key={speaker.name} className="flex items-center gap-2">
                   <div
                     className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: speaker.color }}
+                    style={{ backgroundColor: getSpeakerColor(index) }}
                   />
                   <span className="text-sm font-medium text-navy">
                     {speaker.name}

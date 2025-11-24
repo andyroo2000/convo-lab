@@ -7,39 +7,73 @@ export default {
   theme: {
     extend: {
       colors: {
-        // LanguageFlow Studio brand colors
+        // ConvoLab warm, playful color palette
+        // Base colors
+        'cream': '#FCF9F4',
+        'warm-cream': '#FAF6F0',
+        'dark-brown': '#4B1800',
+        'medium-brown': '#8B5A3C',
+        'light-brown': '#C19A7E',
+
+        // Playful accent colors
+        'strawberry': {
+          DEFAULT: '#FC66A7',
+          light: '#FFE5F1',
+          dark: '#D84A89',
+        },
+        'coral': {
+          DEFAULT: '#FC8155',
+          light: '#FFE8DF',
+          dark: '#E86234',
+        },
+        'periwinkle': {
+          DEFAULT: '#6796EC',
+          light: '#E5EEFB',
+          dark: '#4A73C4',
+        },
+        'keylime': {
+          DEFAULT: '#748C00',  // Dark green from hurryupandhavefun.com
+          light: '#E8EDCC',
+          dark: '#5A6C00',
+        },
+        'lilac': {
+          DEFAULT: '#EBDBFF',
+          light: '#F7F1FF',
+          dark: '#C4A8E8',
+        },
+        'mint': {
+          DEFAULT: '#E5F6E7',
+          light: '#F2FBF3',
+          dark: '#A8E6AD',
+        },
+        'olive': {
+          DEFAULT: '#748C00',
+          light: '#E8EDCC',
+          dark: '#5A6C00',
+        },
+        'violet': {
+          DEFAULT: '#A45AFE',
+          light: '#EBE0FF',
+          dark: '#7D3DC7',
+        },
+
+        // Legacy colors for backward compatibility
         indigo: {
-          DEFAULT: '#5E6AD8',
-          50: '#F0F1FD',
-          100: '#E1E4FB',
-          200: '#C3C9F7',
-          300: '#A5AEF3',
-          400: '#8793EF',
-          500: '#5E6AD8',
-          600: '#4B55AD',
-          700: '#384082',
-          800: '#252B56',
-          900: '#12162B',
+          DEFAULT: '#6796EC',
+          50: '#E5EEFB',
+          500: '#6796EC',
+          600: '#4A73C4',
+          700: '#3A5BA0',
         },
         teal: {
           DEFAULT: '#4EA6B1',
-          50: '#EFF9FA',
-          100: '#DFF3F5',
-          200: '#BFE7EB',
-          300: '#9FDBE1',
-          400: '#7FC1C7',
           500: '#4EA6B1',
           600: '#3E858E',
-          700: '#2F646B',
-          800: '#1F4347',
-          900: '#102124',
         },
-        navy: '#1E2433',
-        'warm-gray': '#DADCE3',
-        'soft-sand': '#F7F5EF',
-        'pale-sky': '#EEF3FB',
-        coral: '#FF6A6A',
-        mint: '#A6F2C2',
+        navy: '#4B1800',
+        'warm-gray': '#C19A7E',
+        'soft-sand': '#FCF9F4',
+        'pale-sky': '#E5EEFB',
       },
       animation: {
         'flow-wave': 'flow-wave 3s ease-in-out infinite',

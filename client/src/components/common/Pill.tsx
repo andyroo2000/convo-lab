@@ -1,9 +1,12 @@
 import { ReactNode } from 'react';
 
 export type ColorScheme =
-  | 'indigo'
-  | 'purple'
-  | 'emerald'
+  | 'periwinkle'
+  | 'coral'
+  | 'strawberry'
+  | 'keylime'
+  | 'mint'
+  | 'olive'
   | 'blue'
   | 'yellow'
   | 'red'
@@ -28,17 +31,29 @@ interface PillProps {
 }
 
 const COLOR_SCHEMES: Record<ColorScheme, Record<Intensity, { bg: string; text: string }>> = {
-  'indigo': {
-    light: { bg: 'bg-indigo-100', text: 'text-indigo-800' },
-    solid: { bg: 'bg-indigo-600', text: 'text-white' },
+  'periwinkle': {
+    light: { bg: 'bg-periwinkle-light', text: 'text-periwinkle-dark' },
+    solid: { bg: 'bg-periwinkle', text: 'text-white' },
   },
-  'purple': {
-    light: { bg: 'bg-purple-100', text: 'text-purple-800' },
-    solid: { bg: 'bg-purple-600', text: 'text-white' },
+  'coral': {
+    light: { bg: 'bg-coral-light', text: 'text-coral-dark' },
+    solid: { bg: 'bg-coral', text: 'text-white' },
   },
-  'emerald': {
-    light: { bg: 'bg-emerald-100', text: 'text-emerald-800' },
-    solid: { bg: 'bg-emerald-600', text: 'text-white' },
+  'strawberry': {
+    light: { bg: 'bg-strawberry-light', text: 'text-strawberry-dark' },
+    solid: { bg: 'bg-strawberry', text: 'text-white' },
+  },
+  'keylime': {
+    light: { bg: 'bg-keylime-light', text: 'text-keylime-dark' },
+    solid: { bg: 'bg-keylime', text: 'text-dark-brown' },
+  },
+  'mint': {
+    light: { bg: 'bg-mint', text: 'text-mint-dark' },
+    solid: { bg: 'bg-mint-dark', text: 'text-white' },
+  },
+  'olive': {
+    light: { bg: 'bg-olive-light', text: 'text-olive-dark' },
+    solid: { bg: 'bg-olive', text: 'text-white' },
   },
   'blue': {
     light: { bg: 'bg-blue-100', text: 'text-blue-800' },
@@ -65,8 +80,8 @@ const COLOR_SCHEMES: Record<ColorScheme, Record<Intensity, { bg: string; text: s
     solid: { bg: 'bg-orange-600', text: 'text-white' },
   },
   'pale-sky': {
-    light: { bg: 'bg-pale-sky', text: 'text-navy' },
-    solid: { bg: 'bg-pale-sky', text: 'text-navy' },
+    light: { bg: 'bg-pale-sky', text: 'text-dark-brown' },
+    solid: { bg: 'bg-pale-sky', text: 'text-dark-brown' },
   },
 };
 
