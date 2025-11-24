@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive development workflow guide (DEVELOPMENT.md) covering git workflows, worktree management, and best practices (commit: 8a4296d)
 - LanguageLevelPill component for consistent language/level display across all content types (commit: 88f812d)
 - targetLanguage field to NarrowListeningPack and ChunkPack models with database migration (commit: 88f812d)
+- ViewToggleButtons component for shared furigana/pinyin and English translation toggles (commit: f1efc91)
 
 ### Changed
 - Restructured project directory from ~/source/experiments/ to ~/source/ (commit: 9cc2692)
@@ -24,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated color palette to warm, playful theme inspired by hurryupandhavefun.com (commit: 88f812d)
 - Changed keylime color from light yellow-green to dark olive green (#748C00) (commit: 88f812d)
 - Unified library and studio card colors: periwinkle (dialogues), coral (audio courses), strawberry (narrow listening), keylime (chunk packs) (commit: 88f812d)
+- Replaced keylime color palette with yellow (#FFCC3F) across Landing, Library, and Studio pages (commit: f1efc91)
+- SpeedSelector now uses gray for all variants instead of variant-specific colors (commit: f1efc91)
+- Simplified voiceSelection utilities to basic course/dialogue voice getters (commit: f1efc91)
+- Updated tone indicator on PlaybackPage from coral to strawberry (commit: f1efc91)
 
 ### Fixed
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
