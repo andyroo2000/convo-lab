@@ -77,15 +77,15 @@ export default function CreatePage() {
         {/* Processing Instruction Mode */}
         <button
           onClick={() => navigate('/app/create/processing-instruction')}
-          className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
+          className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-processing-instruction"
         >
-          <div className="w-32 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center py-8">
+          <div className="w-32 flex-shrink-0 bg-keylime flex flex-col items-center justify-center py-8">
             <Brain className="w-12 h-12 text-white mb-2" />
             <span className="text-sm font-bold text-white uppercase tracking-wide text-center">Grammar</span>
           </div>
           <div className="flex-1 px-8 py-6">
-            <h2 className="text-3xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors mb-2">
+            <h2 className="text-3xl font-bold text-dark-brown group-hover:text-keylime-dark transition-colors mb-2">
               Processing Instruction Activities
             </h2>
             <p className="text-base text-gray-600">

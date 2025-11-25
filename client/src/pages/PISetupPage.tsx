@@ -120,16 +120,16 @@ export default function PISetupPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
+      <div className="mb-8 pb-6 border-b-4 border-keylime">
         <h1 className="text-5xl font-bold text-dark-brown mb-3">Processing Instruction Activities</h1>
         <p className="text-xl text-gray-600">Learn grammar through structured input and meaning-based questions</p>
       </div>
 
       {/* Main Card */}
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
+        <div className="bg-white border-l-8 border-keylime p-8 shadow-sm">
           {/* Description */}
-          <div className="bg-periwinkle-light border-l-4 border-periwinkle p-6 mb-8">
+          <div className="bg-keylime-light border-l-4 border-keylime p-6 mb-8">
             <h2 className="text-base font-bold text-dark-brown mb-3">What is Processing Instruction?</h2>
             <p className="text-base text-gray-700 leading-relaxed">
               Processing Instruction (PI) helps you understand Japanese grammar through <strong>meaning-based tasks</strong>.
@@ -152,8 +152,8 @@ export default function PISetupPage() {
                     onClick={() => setJlptLevel(level)}
                     className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
                       jlptLevel === level
-                        ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
+                        ? 'border-keylime bg-keylime text-white shadow-md'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-keylime hover:bg-keylime-light'
                     }`}
                   >
                     <div className="text-xl font-bold">{level}</div>
@@ -182,8 +182,8 @@ export default function PISetupPage() {
                       onClick={() => setGrammarPoint(gpId)}
                       className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
                         grammarPoint === gpId
-                          ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
+                          ? 'border-keylime bg-keylime text-white shadow-md'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-keylime hover:bg-keylime-light'
                       }`}
                     >
                       <div className="font-bold text-sm">{gp.name}</div>
@@ -232,7 +232,7 @@ export default function PISetupPage() {
             <button
               onClick={handleStartSession}
               disabled={isGenerating}
-              className="w-full bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full bg-keylime hover:bg-keylime-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {isGenerating ? (
                 <>
