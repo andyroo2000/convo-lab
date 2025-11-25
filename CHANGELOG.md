@@ -123,6 +123,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Full-width button for easier interaction on small screens
   - Reduced text sizes and padding for better mobile readability
   - Desktop layout unchanged with horizontal arrangement
+- **[fix]** Narrow Listening Creator button optimized for mobile viewport (commit: f2c93fe)
+  - Larger, more visible icons (5x5 on mobile, 6x6 on desktop)
+  - Responsive text sizing for better readability
+  - Adjusted padding for improved mobile touch targets
+  - Icons properly sized relative to button and text
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
