@@ -162,6 +162,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Reduced text sizes and padding throughout for mobile screens
   - Larger, more visible icons in Start button
   - Better touch targets and improved mobile usability
+- **[fix]** Lexical Chunk Pack setup page optimized for mobile viewport (commit: 47cd42d)
+  - JLPT level buttons in 2-column grid on mobile (vs 3-column on desktop)
+  - Theme buttons single column on mobile for better readability
+  - Reduced text sizes and padding throughout for mobile screens
+  - Larger, more visible icons in Generate button
+  - Better touch targets and improved mobile usability
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
