@@ -118,6 +118,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smaller icons and sidebars on mobile (6x6 vs 8x8)
   - Reduced text sizes and padding for better mobile readability
   - Prevents text overflow on small screens
+- **[fix]** Dialogue Creator generate section optimized for mobile viewport (commit: f697abd)
+  - "Ready to Generate?" section now stacks vertically on mobile
+  - Full-width button for easier interaction on small screens
+  - Reduced text sizes and padding for better mobile readability
+  - Desktop layout unchanged with horizontal arrangement
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
