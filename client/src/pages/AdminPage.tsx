@@ -383,11 +383,11 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex gap-4">
+      <div className="border-b border-gray-200 mb-6 overflow-x-auto">
+        <nav className="flex gap-2 sm:gap-4 min-w-max">
           <Link
             to="/app/admin/users"
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
               activeTab === 'users'
                 ? 'border-indigo text-indigo font-semibold'
                 : 'border-transparent text-gray-600 hover:text-navy'
@@ -398,7 +398,7 @@ export default function AdminPage() {
           </Link>
           <Link
             to="/app/admin/invite-codes"
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
               activeTab === 'invite-codes'
                 ? 'border-indigo text-indigo font-semibold'
                 : 'border-transparent text-gray-600 hover:text-navy'
@@ -409,7 +409,7 @@ export default function AdminPage() {
           </Link>
           <Link
             to="/app/admin/analytics"
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
               activeTab === 'analytics'
                 ? 'border-indigo text-indigo font-semibold'
                 : 'border-transparent text-gray-600 hover:text-navy'
@@ -420,7 +420,7 @@ export default function AdminPage() {
           </Link>
           <Link
             to="/app/admin/avatars"
-            className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
               activeTab === 'avatars'
                 ? 'border-indigo text-indigo font-semibold'
                 : 'border-transparent text-gray-600 hover:text-navy'
@@ -462,23 +462,23 @@ export default function AdminPage() {
           {isLoading ? (
             <div className="text-center py-12 text-gray-500">Loading users...</div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       User
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Role
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Content
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Joined
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
@@ -486,17 +486,17 @@ export default function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {users.map((u) => (
                     <tr key={u.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4">
                         <div>
-                          <div className="font-medium text-navy">
+                          <div className="font-medium text-navy whitespace-nowrap">
                             {u.displayName || u.name}
                           </div>
-                          <div className="text-sm text-gray-500">{u.email}</div>
+                          <div className="text-sm text-gray-500 whitespace-nowrap">{u.email}</div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
                             u.role === 'admin'
                               ? 'bg-purple-100 text-purple-800'
                               : u.role === 'moderator'
@@ -507,13 +507,13 @@ export default function AdminPage() {
                           {u.role}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {u._count.episodes + u._count.courses + u._count.narrowListeningPacks + u._count.chunkPacks} items
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {formatDate(u.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right">
                         {u.role !== 'admin' && u.id !== user.id && (
                           <button
                             onClick={() => handleDeleteUser(u.id, u.email)}
@@ -555,23 +555,23 @@ export default function AdminPage() {
           {isLoading ? (
             <div className="text-center py-12 text-gray-500">Loading invite codes...</div>
           ) : (
-            <div className="bg-white rounded-lg shadow overflow-hidden">
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Code
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Used By
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Actions
                     </th>
                   </tr>
@@ -579,8 +579,8 @@ export default function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {inviteCodes.map((code) => (
                     <tr key={code.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                      <td className="px-3 sm:px-6 py-4">
+                        <div className="flex items-center gap-2 whitespace-nowrap">
                           <code className="font-mono font-semibold text-navy">
                             {code.code}
                           </code>
@@ -597,9 +597,9 @@ export default function AdminPage() {
                           </button>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-3 sm:px-6 py-4">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
                             code.usedBy
                               ? 'bg-gray-100 text-gray-800'
                               : 'bg-green-100 text-green-800'
@@ -608,9 +608,9 @@ export default function AdminPage() {
                           {code.usedBy ? 'Used' : 'Available'}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
                         {code.user ? (
-                          <div>
+                          <div className="whitespace-nowrap">
                             <div className="font-medium">{code.user.name}</div>
                             <div className="text-xs text-gray-400">{code.user.email}</div>
                           </div>
@@ -618,10 +618,10 @@ export default function AdminPage() {
                           '-'
                         )}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
+                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {formatDate(code.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right">
                         {!code.usedBy && (
                           <button
                             onClick={() => handleDeleteInviteCode(code.id, code.code)}
@@ -749,19 +749,19 @@ export default function AdminPage() {
                           }}
                         />
                       </div>
-                      <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
+                      <p className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
                         {formatAvatarTitle(filename)}
                       </p>
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={() => handleRecropSpeaker(filename)}
-                          className="btn-secondary text-sm py-1"
+                          className="btn-secondary text-xs sm:text-sm py-1"
                         >
                           Re-crop
                         </button>
                         <button
                           onClick={() => handleUploadNewSpeaker(filename)}
-                          className="btn-primary text-sm py-1"
+                          className="btn-primary text-xs sm:text-sm py-1"
                         >
                           Upload New
                         </button>
@@ -777,12 +777,12 @@ export default function AdminPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                         </svg>
                       </div>
-                      <p className="text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
+                      <p className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
                         {formatAvatarTitle(filename)}
                       </p>
                       <button
                         onClick={() => handleUploadNewSpeaker(filename)}
-                        className="btn-primary text-sm py-1 w-full"
+                        className="btn-primary text-xs sm:text-sm py-1 w-full"
                       >
                         Upload
                       </button>
@@ -803,17 +803,17 @@ export default function AdminPage() {
             {isLoading ? (
               <div className="text-center py-12 text-gray-500">Loading users...</div>
             ) : (
-              <div className="bg-white rounded-lg shadow overflow-hidden">
+              <div className="bg-white rounded-lg shadow overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                         User
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                         Avatar
                       </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                      <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                         Actions
                       </th>
                     </tr>
@@ -821,15 +821,15 @@ export default function AdminPage() {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {users.map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-4">
                           <div>
-                            <div className="font-medium text-navy">
+                            <div className="font-medium text-navy whitespace-nowrap">
                               {u.displayName || u.name}
                             </div>
-                            <div className="text-sm text-gray-500">{u.email}</div>
+                            <div className="text-sm text-gray-500 whitespace-nowrap">{u.email}</div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-3 sm:px-6 py-4">
                           <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
                             {u.avatarUrl ? (
                               <img
@@ -853,7 +853,7 @@ export default function AdminPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 sm:px-6 py-4 text-right">
                           <button
                             onClick={() => {
                               const input = document.createElement('input');
@@ -894,7 +894,7 @@ export default function AdminPage() {
                               };
                               input.click();
                             }}
-                            className="btn-primary text-sm"
+                            className="btn-primary text-xs sm:text-sm whitespace-nowrap"
                           >
                             Upload Avatar
                           </button>
