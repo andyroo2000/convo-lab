@@ -183,6 +183,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
+- **[feat]** Right sidebar for language/level on mobile cards (commit: b271e53)
+  - Created LanguageLevelSidebar component with gradient background (periwinkle to strawberry)
+  - Displays as 48px flush right sidebar on mobile, matching left content type sidebar pattern
+  - Shows language code stacked above level (e.g., "JA" above "N4")
+  - Applied to all 4 card types: Episode, Audio Course, Narrow Listening, Chunk Pack
+  - Desktop maintains horizontal pill design in content area
 - **[fix]** LanguageLevelPill stacks vertically on mobile (commit: 05fa521)
   - SegmentedPill component now displays vertically on mobile (e.g., "JA" above "N4")
   - Saves significant horizontal space on content cards

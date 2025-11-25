@@ -6,6 +6,7 @@ import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '.
 import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyStateCard from '../components/EmptyStateCard';
 import LanguageLevelPill from '../components/common/LanguageLevelPill';
+import LanguageLevelSidebar from '../components/common/LanguageLevelSidebar';
 import Pill from '../components/common/Pill';
 
 type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
@@ -364,6 +365,7 @@ export default function LibraryPage() {
                       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         {proficiencyLevels.length > 0 && (
                           <LanguageLevelPill
+                            className="hidden sm:inline-flex"
                             language={episode.targetLanguage}
                             level={proficiencyLevels.join(', ')}
                           />
@@ -384,6 +386,15 @@ export default function LibraryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Language/Level Sidebar (mobile only) */}
+                  {proficiencyLevels.length > 0 && (
+                    <LanguageLevelSidebar
+                      className="sm:hidden"
+                      language={episode.targetLanguage.toUpperCase()}
+                      level={proficiencyLevels.join(', ')}
+                    />
+                  )}
                 </Link>
               );
             } else if (item.type === 'course') {
@@ -426,6 +437,7 @@ export default function LibraryPage() {
                         )}
                         {course.jlptLevel && (
                           <LanguageLevelPill
+                            className="hidden sm:inline-flex"
                             language={course.targetLanguage}
                             level={course.jlptLevel}
                           />
@@ -441,6 +453,15 @@ export default function LibraryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Language/Level Sidebar (mobile only) */}
+                  {course.jlptLevel && (
+                    <LanguageLevelSidebar
+                      className="sm:hidden"
+                      language={course.targetLanguage.toUpperCase()}
+                      level={course.jlptLevel}
+                    />
+                  )}
                 </Link>
               );
             } else if (item.type === 'narrowListening') {
@@ -475,6 +496,7 @@ export default function LibraryPage() {
                       {/* Right: Badges and actions */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         <LanguageLevelPill
+                          className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
                         />
@@ -494,6 +516,13 @@ export default function LibraryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Language/Level Sidebar (mobile only) */}
+                  <LanguageLevelSidebar
+                    className="sm:hidden"
+                    language={pack.targetLanguage.toUpperCase()}
+                    level={pack.jlptLevel}
+                  />
                 </Link>
               );
             } else if (item.type === 'chunkPack') {
@@ -528,6 +557,7 @@ export default function LibraryPage() {
                       {/* Right: Badges and actions */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         <LanguageLevelPill
+                          className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
                         />
@@ -552,6 +582,13 @@ export default function LibraryPage() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Language/Level Sidebar (mobile only) */}
+                  <LanguageLevelSidebar
+                    className="sm:hidden"
+                    language={pack.targetLanguage.toUpperCase()}
+                    level={pack.jlptLevel}
+                  />
                 </Link>
               );
             }
