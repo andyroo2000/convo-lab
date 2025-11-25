@@ -492,26 +492,26 @@ export default function LibraryPage() {
                   data-testid={`library-episode-card-${episode.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-2 py-4">
-                    <MessageSquare className="w-8 h-8 text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wide text-center">Dialogue</span>
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                    <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Dialogue</span>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-6 py-5">
-                    <div className="flex items-center justify-between gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
+                    <div className="flex items-center justify-between gap-3 sm:gap-6">
                       {/* Left: Title and metadata */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors truncate mb-2">
+                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors truncate mb-1 sm:mb-2">
                           {episode.title}
                         </h3>
-                        <p className="text-sm text-gray-600 line-clamp-1">
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
                           {episode.sourceText}
                         </p>
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         {proficiencyLevels.length > 0 && (
                           <LanguageLevelPill
                             language={episode.targetLanguage}
@@ -547,28 +547,28 @@ export default function LibraryPage() {
                   data-testid={`library-course-card-${course.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-2 py-4">
-                    <Headphones className="w-8 h-8 text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Audio<br/>Course</span>
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                    <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Audio<br/>Course</span>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-6 py-5">
-                    <div className="flex items-center justify-between gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
+                    <div className="flex items-center justify-between gap-3 sm:gap-6">
                       {/* Left: Title and metadata */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-dark-brown group-hover:text-coral transition-colors truncate mb-2">
+                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-coral transition-colors truncate mb-1 sm:mb-2">
                           {course.title}
                         </h3>
                         {course.description && (
-                          <p className="text-sm text-gray-600 line-clamp-1">
+                          <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
                             {course.description}
                           </p>
                         )}
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             Generating...
@@ -610,26 +610,26 @@ export default function LibraryPage() {
                   data-testid={`library-pack-card-${pack.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-2 py-4">
-                    <Sparkles className="w-8 h-8 text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Narrow<br/>Listening</span>
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                    <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Narrow<br/>Listening</span>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-6 py-5">
-                    <div className="flex items-center justify-between gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
+                    <div className="flex items-center justify-between gap-3 sm:gap-6">
                       {/* Left: Title and metadata */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-dark-brown group-hover:text-strawberry transition-colors truncate mb-2">
+                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-strawberry transition-colors truncate mb-1 sm:mb-2">
                           {pack.title}
                         </h3>
-                        <p className="text-sm text-gray-600 line-clamp-1">
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
                           {pack.topic}
                         </p>
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         <LanguageLevelPill
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
@@ -663,26 +663,26 @@ export default function LibraryPage() {
                   data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-2 py-4">
-                    <BookOpen className="w-8 h-8 text-dark-brown" />
-                    <span className="text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">Chunk<br/>Pack</span>
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                    <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
+                    <span className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">Chunk<br/>Pack</span>
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-6 py-5">
-                    <div className="flex items-center justify-between gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
+                    <div className="flex items-center justify-between gap-3 sm:gap-6">
                       {/* Left: Title and metadata */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-2xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors truncate mb-2">
+                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors truncate mb-1 sm:mb-2">
                           {pack.title}
                         </h3>
-                        <p className="text-sm text-gray-600 capitalize line-clamp-1">
+                        <p className="text-xs sm:text-sm text-gray-600 capitalize line-clamp-1">
                           {pack.theme.replace(/_/g, ' ')}
                         </p>
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         <LanguageLevelPill
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
