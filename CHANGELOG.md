@@ -156,6 +156,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Responsive text sizing for better readability
   - Adjusted padding for improved mobile touch targets
   - Icons properly sized relative to button and text
+- **[fix]** Processing Instruction setup page optimized for mobile viewport (commit: 94a1b0b)
+  - JLPT level buttons in 2x2 grid on mobile (vs 1x4 on desktop)
+  - Grammar point buttons single column on mobile for better readability
+  - Reduced text sizes and padding throughout for mobile screens
+  - Larger, more visible icons in Start button
+  - Better touch targets and improved mobile usability
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
