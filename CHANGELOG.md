@@ -183,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
-- **[style]** Increased horizontal padding on card type sidebars for mobile (commit: 63831d1)
+- **[style]** Increased horizontal padding on card type sidebars for mobile (commit: 6a14f17)
   - Increased padding from px-1 to px-2 on mobile for all card type sidebars
   - Applied to Dialogue, Audio Course, Narrow Listening, and Chunk Pack cards
   - Gives better breathing room for text on mobile while maintaining desktop layout
