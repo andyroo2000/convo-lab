@@ -183,6 +183,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
+- **[fix]** Additional mobile viewport refinements (commits: 9001a3a through 4113cb1)
+  - Removed back button from CoursePage
+  - Centered Library page filter tabs on mobile to prevent overflow
+  - Added "ConvoLab" text to logo visible only on desktop (hidden on mobile)
+  - Increased icon size in Narrow Listening generate button for better visibility
+  - Stacked dialogue creation selectors vertically on mobile (grid-cols-1 sm:grid-cols-2)
+  - Stacked audio course selectors and dialogue voices vertically on mobile
+  - Made audio course "Ready to Generate" section stack vertically with full-width button on mobile
+  - Stacked narrow listening selectors (JLPT level, grammar focus) vertically on mobile
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
