@@ -42,21 +42,17 @@ export default function SegmentedPill({
   const rightTextTransform = capitalize ? 'capitalize' : uppercase ? 'uppercase tracking-wide' : '';
 
   return (
-    <div className={`inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm ${className}`}>
+    <div className={`inline-flex flex-col sm:flex-row items-center text-sm font-medium overflow-hidden rounded-md shadow-sm ${className}`}>
       {/* Left segment */}
-      <div className={`pl-4 pr-5 py-1.5 ${leftColors} ${leftTextTransform}`}>
+      <div className={`px-4 py-1.5 ${leftColors} ${leftTextTransform}`}>
         {leftText}
       </div>
 
-      {/* Right segment with chevron */}
+      {/* Right segment - simple on mobile, chevron on desktop */}
       <div
-        className={`pl-3 pr-4 py-1.5 ${rightColors} ${rightTextTransform} relative`}
-        style={{
-          clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
-          marginLeft: '-8px'
-        }}
+        className={`px-4 py-1.5 ${rightColors} ${rightTextTransform} relative sm:[clip-path:polygon(8px_0%,100%_0%,100%_100%,8px_100%,0%_50%)] sm:-ml-2`}
       >
-        <span className="ml-2">{rightText}</span>
+        <span className="sm:ml-2">{rightText}</span>
       </div>
     </div>
   );
