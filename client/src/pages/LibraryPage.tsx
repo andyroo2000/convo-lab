@@ -343,7 +343,7 @@ export default function LibraryPage() {
                   data-testid={`library-episode-card-${episode.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Dialogue</span>
                   </div>
@@ -408,7 +408,7 @@ export default function LibraryPage() {
                   data-testid={`library-course-card-${course.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Audio<br/>Course</span>
                   </div>
@@ -475,7 +475,7 @@ export default function LibraryPage() {
                   data-testid={`library-pack-card-${pack.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Narrow<br/>Listening</span>
                   </div>
@@ -536,7 +536,7 @@ export default function LibraryPage() {
                   data-testid={`library-chunk-pack-card-${pack.id}`}
                 >
                   {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-1">
+                  <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
                     <span className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">Chunk<br/>Pack</span>
                   </div>
