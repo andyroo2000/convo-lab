@@ -117,14 +117,14 @@ export default function CourseGenerator() {
   if (step === 'complete') {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="card text-center py-12">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <div className="bg-white border-l-8 border-coral p-12 shadow-sm text-center">
+          <div className="w-20 h-20 bg-coral rounded-full flex items-center justify-center mx-auto mb-8">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-semibold text-navy mb-2">Audio Course Created!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">Audio Course Created!</h2>
+          <p className="text-xl text-gray-600 mb-6">
             Your audio course is now generating. You can track its progress on the Audio Courses page.
           </p>
         </div>
@@ -138,64 +138,64 @@ export default function CourseGenerator() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Course Details */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Details</h2>
+      <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">Course Details</h2>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-navy mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Audio Course Title *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="input"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               placeholder="e.g., Japanese Restaurant Conversations"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-navy mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Your Story or Experience *
             </label>
             <textarea
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="textarea h-32"
-              placeholder="Describe an experience, conversation, or situation you want to learn about in Japanese. The AI will create an interactive audio course based on your description."
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base h-40"
+              placeholder="Describe an experience, conversation, or situation you want to learn about. The AI will create an interactive audio course based on your description."
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-2">
               Be specific about the context and setting. This helps create more authentic learning material.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Target Language
               </label>
               <select
                 value={targetLanguage}
                 onChange={(e) => setTargetLanguage(e.target.value as LanguageCode)}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value="ja">Japanese (日本語)</option>
                 <option value="zh">Mandarin Chinese (中文)</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 The language you want to learn
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Native Language
               </label>
               <select
                 value={nativeLanguage}
                 onChange={(e) => setNativeLanguage(e.target.value as LanguageCode)}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value="en">English</option>
                 <option value="es">Spanish (Español)</option>
@@ -203,7 +203,7 @@ export default function CourseGenerator() {
                 <option value="zh">Chinese (中文)</option>
                 <option value="ja">Japanese (日本語)</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 Your first language for narration
               </p>
             </div>
@@ -212,19 +212,19 @@ export default function CourseGenerator() {
       </div>
 
       {/* Voice Configuration */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Voice Configuration</h2>
+      <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">Voice Configuration</h2>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Narrator Voice */}
           <div>
-            <label className="block text-sm font-medium text-navy mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Narrator Voice ({nativeLanguage.toUpperCase()}) *
             </label>
             <select
               value={selectedVoice}
               onChange={(e) => setSelectedVoice(e.target.value)}
-              className="input"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
             >
               {nativeVoices.map((voice) => (
                 <option key={voice.id} value={voice.id}>
@@ -232,26 +232,26 @@ export default function CourseGenerator() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-2">
               This voice will narrate instructions in {nativeLanguage.toUpperCase()}
             </p>
           </div>
 
           {/* Dialogue Voices */}
-          <div className="border-t pt-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+          <div className="border-t-2 border-gray-200 pt-6">
+            <h3 className="text-base font-bold text-dark-brown mb-4">
               Dialogue Voices ({targetLanguage.toUpperCase()})
             </h3>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               {/* Speaker 1 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-bold text-dark-brown mb-2">
                   Speaker 1 (Friend)
                 </label>
                 <select
                   value={speaker1VoiceId}
                   onChange={(e) => setSpeaker1VoiceId(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
                 >
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
@@ -263,13 +263,13 @@ export default function CourseGenerator() {
 
               {/* Speaker 2 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-bold text-dark-brown mb-2">
                   Speaker 2 (Listener)
                 </label>
                 <select
                   value={speaker2VoiceId}
                   onChange={(e) => setSpeaker2VoiceId(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
                 >
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
@@ -279,7 +279,7 @@ export default function CourseGenerator() {
                 </select>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 mt-3">
               Choose any voice for each speaker - (M) = Male, (F) = Female
             </p>
           </div>
@@ -287,26 +287,26 @@ export default function CourseGenerator() {
       </div>
 
       {/* Course Settings */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Settings</h2>
+      <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">Course Settings</h2>
 
-        <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-4' : ''}>
+        <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-6' : ''}>
           {user?.role === 'admin' && (
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Max Lesson Duration
               </label>
               <select
                 value={maxDuration}
                 onChange={(e) => setMaxDuration(parseInt(e.target.value))}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value={10}>10 minutes</option>
                 <option value={15}>15 minutes</option>
                 <option value={20}>20 minutes</option>
                 <option value={30}>30 minutes</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 Lessons longer than this will be split into multiple parts
               </p>
             </div>
@@ -314,13 +314,13 @@ export default function CourseGenerator() {
 
           {targetLanguage === 'ja' && (
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Target JLPT Level
               </label>
               <select
                 value={jlptLevel}
                 onChange={(e) => setJlptLevel(e.target.value)}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value="N5">N5 (Beginner)</option>
                 <option value="N4">N4 (Upper Beginner)</option>
@@ -328,7 +328,7 @@ export default function CourseGenerator() {
                 <option value="N2">N2 (Upper Intermediate)</option>
                 <option value="N1">N1 (Advanced)</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 Vocabulary and grammar will be tailored to this level
               </p>
             </div>
@@ -336,13 +336,13 @@ export default function CourseGenerator() {
 
           {targetLanguage === 'zh' && (
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Target HSK Level
               </label>
               <select
                 value={hskLevel}
                 onChange={(e) => setHskLevel(e.target.value)}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value="HSK1">HSK 1 (Beginner)</option>
                 <option value="HSK2">HSK 2 (Upper Beginner)</option>
@@ -351,7 +351,7 @@ export default function CourseGenerator() {
                 <option value="HSK5">HSK 5 (Advanced)</option>
                 <option value="HSK6">HSK 6 (Mastery)</option>
               </select>
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 Vocabulary and grammar will be tailored to this level
               </p>
             </div>
@@ -360,32 +360,32 @@ export default function CourseGenerator() {
       </div>
 
       {/* Generate Button */}
-      <div className="card bg-purple-50 border-purple-600">
-        <div className="flex items-start justify-between">
+      <div className="bg-coral-light border-l-8 border-coral p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-8">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-navy mb-2">Ready to Generate?</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <h3 className="text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
+            <p className="text-base text-gray-700 mb-4">
               The AI will create audio-only lessons with guided narration, anticipation practice,
               and spaced repetition—perfect for hands-free learning.
             </p>
-            <ul className="text-sm text-gray-600 space-y-1 mb-4">
-              <li>✓ ~30 minute lessons, audio-only format</li>
-              <li>✓ Guided L1 narration with L2 prompts</li>
-              <li>✓ Anticipation pauses for recall practice</li>
-              <li>✓ JLPT {jlptLevel} level vocabulary & grammar</li>
+            <ul className="text-base text-gray-700 space-y-2">
+              <li className="font-medium">• ~30 minute lessons, audio-only format</li>
+              <li className="font-medium">• Guided L1 narration with L2 prompts</li>
+              <li className="font-medium">• Anticipation pauses for recall practice</li>
+              <li className="font-medium">• JLPT {jlptLevel} level vocabulary & grammar</li>
             </ul>
           </div>
           <button
             onClick={handleCreate}
             disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
-            className="btn-primary ml-6 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-coral hover:bg-coral-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {isCreating ? 'Creating...' : 'Create Audio Course'}
           </button>
         </div>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-base font-medium">
             {error}
           </div>
         )}

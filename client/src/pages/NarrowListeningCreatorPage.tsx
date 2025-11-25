@@ -104,18 +104,6 @@ export default function NarrowListeningCreatorPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-6">
-        <button
-          onClick={() => navigate('/app/create')}
-          disabled={isGenerating}
-          className="flex items-center gap-2 text-strawberry hover:text-strawberry-dark font-bold transition-colors disabled:opacity-50"
-        >
-          <ArrowLeft className="w-5 h-5" />
-          Back to Create
-        </button>
-      </div>
-
       <div className="mb-8 pb-6 border-b-4 border-strawberry">
         <h1 className="text-5xl font-bold text-dark-brown mb-3">Narrow Listening Packs</h1>
         <p className="text-xl text-gray-600">The same story told 5 different ways for focused listening practice</p>

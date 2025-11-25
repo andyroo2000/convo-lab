@@ -133,34 +133,19 @@ export default function ChunkPackSetupPage() {
   const availableThemes = getThemesForLevel(jlptLevel);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
-        <button
-          onClick={() => navigate('/app/create')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Create
-        </button>
+    <div className="max-w-6xl mx-auto">
+      <div className="mb-8 pb-6 border-b-4 border-yellow">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Lexical Chunk Packs</h1>
+        <p className="text-xl text-gray-600">Learn high-frequency phrases through examples and exercises</p>
+      </div>
 
-        {/* Main Card */}
-        <div className="card bg-white shadow-xl">
-          {/* Title Section */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-              <BookOpen className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-navy">Lexical Chunk Packs</h1>
-              <p className="text-gray-600 mt-1">Learn high-value Japanese chunks</p>
-            </div>
-          </div>
-
+      {/* Main Card */}
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-yellow p-8 shadow-sm">
           {/* Description */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 mb-8">
-            <h2 className="font-semibold text-emerald-900 mb-2">What is this?</h2>
-            <p className="text-sm text-emerald-800 leading-relaxed">
+          <div className="bg-yellow-light border-l-4 border-yellow p-6 mb-8">
+            <h2 className="text-base font-bold text-dark-brown mb-3">What are Lexical Chunk Packs?</h2>
+            <p className="text-base text-gray-700 leading-relaxed">
               Lexical Chunk Packs teach <strong>5-8 high-frequency Japanese chunks</strong> through examples, stories, and exercises.
               You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words.
               Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary.
@@ -168,10 +153,10 @@ export default function ChunkPackSetupPage() {
           </div>
 
           {/* Setup Options */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
+              <label className="block text-base font-bold text-dark-brown mb-4">
                 Select Your Level
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -180,14 +165,14 @@ export default function ChunkPackSetupPage() {
                     key={level}
                     onClick={() => setJlptLevel(level)}
                     disabled={isGenerating}
-                    className={`px-6 py-4 rounded-lg border-2 font-medium transition-all ${
+                    className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
                       jlptLevel === level
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-md'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        ? 'border-yellow bg-yellow text-dark-brown shadow-md'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
                     <div className="text-xl font-bold">{level}</div>
-                    <div className="text-xs mt-1">
+                    <div className="text-xs mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -199,7 +184,7 @@ export default function ChunkPackSetupPage() {
 
             {/* Theme Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
+              <label className="block text-base font-bold text-dark-brown mb-4">
                 Select Theme
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-2">
@@ -210,11 +195,11 @@ export default function ChunkPackSetupPage() {
                     disabled={isGenerating}
                     className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
                       theme === themeData.id
-                        ? 'border-teal-500 bg-teal-50 text-teal-700 shadow-md'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        ? 'border-yellow bg-yellow text-dark-brown shadow-md'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="font-semibold text-sm">{themeData.name}</div>
+                    <div className="font-bold text-sm">{themeData.name}</div>
                     <div className="text-xs mt-1 text-gray-600">{themeData.description}</div>
                   </button>
                 ))}
@@ -249,11 +234,11 @@ export default function ChunkPackSetupPage() {
           )}
 
           {/* Start Button */}
-          <div className="mt-8 pt-6 border-t">
+          <div className="mt-8">
             <button
               onClick={handleStartGeneration}
               disabled={isGenerating}
-              className="w-full btn-primary text-lg py-4 flex items-center justify-center gap-3 disabled:opacity-50"
+              className="w-full bg-yellow hover:bg-yellow-dark text-dark-brown font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {isGenerating ? (
                 <>
