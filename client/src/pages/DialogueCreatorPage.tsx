@@ -10,17 +10,17 @@ export default function DialogueCreatorPage() {
       <div className="mb-6">
         <button
           onClick={() => navigate('/app/create')}
-          className="flex items-center gap-2 text-navy hover:text-indigo transition-colors"
+          className="flex items-center gap-2 text-periwinkle hover:text-periwinkle-dark font-bold transition-colors"
           data-testid="dialogue-button-back"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Studio
+          <ArrowLeft className="w-5 h-5" />
+          Back to Create
         </button>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-navy mb-2">Create Interactive Dialogue</h1>
-        <p className="text-gray-600">Generate an interactive language learning dialogue with AI-powered voices</p>
+      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Comprehensible Input Dialogues</h1>
+        <p className="text-xl text-gray-600">Generate AI dialogues calibrated to your proficiency level</p>
       </div>
 
       <DialogueGenerator />
