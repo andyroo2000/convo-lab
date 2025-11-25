@@ -231,16 +231,16 @@ export default function NarrowListeningCreatorPage() {
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !topic.trim()}
-              className="flex-1 bg-strawberry hover:bg-strawberry-dark text-white font-bold text-lg px-10 py-4 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 bg-strawberry hover:bg-strawberry-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isGenerating ? (
                 <>
-                  <Loader className="w-4 h-4 animate-spin" />
+                  <Loader className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                   Generating...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
                   Generate Pack
                 </>
               )}
