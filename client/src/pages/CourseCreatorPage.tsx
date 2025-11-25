@@ -10,16 +10,16 @@ export default function CourseCreatorPage() {
       <div className="mb-6">
         <button
           onClick={() => navigate('/app/create')}
-          className="flex items-center gap-2 text-navy hover:text-indigo transition-colors"
+          className="flex items-center gap-2 text-coral hover:text-coral-dark font-bold transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Studio
+          <ArrowLeft className="w-5 h-5" />
+          Back to Create
         </button>
       </div>
 
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-navy mb-2">Create Guided Audio Course</h1>
-        <p className="text-gray-600">Design audio-only lessons with spaced repetition—perfect for hands-free learning</p>
+      <div className="mb-8 pb-6 border-b-4 border-coral">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Guided Audio Course</h1>
+        <p className="text-xl text-gray-600">Audio-only lessons perfect for your commute or morning walk</p>
       </div>
 
       <CourseGenerator />

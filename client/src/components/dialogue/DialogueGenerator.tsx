@@ -176,14 +176,14 @@ export default function DialogueGenerator() {
   if (step === 'generating') {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="card text-center py-12">
-          <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-6" />
-          <h2 className="text-2xl font-semibold text-navy mb-2">Generating Your Dialogue</h2>
-          <p className="text-gray-600">
+        <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
+          <div className="loading-spinner w-16 h-16 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-8" />
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">Generating Your Dialogue</h2>
+          <p className="text-xl text-gray-600">
             AI is creating a natural conversation based on your story...
           </p>
           {error && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <div className="mt-8 p-6 bg-red-50 border-l-4 border-red-500 text-red-700 text-lg font-medium">
               {error}
             </div>
           )}
@@ -195,14 +195,14 @@ export default function DialogueGenerator() {
   if (step === 'complete') {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="card text-center py-12">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
+          <div className="w-20 h-20 bg-periwinkle rounded-full flex items-center justify-center mx-auto mb-8">
+            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-semibold text-navy mb-2">Dialogue Generated!</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">Dialogue Generated!</h2>
+          <p className="text-xl text-gray-600 mb-6">
             Redirecting to playback page...
           </p>
         </div>
@@ -213,47 +213,47 @@ export default function DialogueGenerator() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Episode Details */}
-      <div className="card">
-        <h2 className="text-xl font-semibold text-navy mb-4">Episode Details</h2>
+      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">Your Story</h2>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-navy mb-2">
-              Your Story or Experience *
+            <label className="block text-base font-bold text-dark-brown mb-3">
+              What do you want to talk about? *
             </label>
             <textarea
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="textarea h-32"
-              placeholder="Describe an experience, conversation, or situation you want to learn about in Japanese. The AI will create a natural dialogue based on your description."
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-40"
+              placeholder="Describe an experience, conversation, or situation you want to learn about. The AI will create a natural dialogue based on your description."
               data-testid="dialogue-input-source-text"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-2">
               Be specific about the context, setting, and what happened. This helps create more authentic dialogue.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Target Language
               </label>
               <input
                 type="text"
                 value={`${SUPPORTED_LANGUAGES[targetLanguage].name} (${SUPPORTED_LANGUAGES[targetLanguage].nativeName})`}
                 disabled
-                className="input bg-gray-50 cursor-not-allowed"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed text-base"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Conversation Length
               </label>
               <select
                 value={dialogueLength}
                 onChange={(e) => setDialogueLength(parseInt(e.target.value))}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 data-testid="dialogue-select-length"
               >
                 <option value="8">8 turns</option>
@@ -265,13 +265,13 @@ export default function DialogueGenerator() {
 
             {targetLanguage === 'ja' && (
               <div>
-                <label className="block text-sm font-medium text-navy mb-2">
+                <label className="block text-base font-bold text-dark-brown mb-2">
                   Target JLPT Level
                 </label>
                 <select
                   value={jlptLevel}
                   onChange={(e) => setJlptLevel(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                   data-testid="dialogue-select-jlpt-level"
                 >
                   <option value="N5">N5 (Beginner)</option>
@@ -285,13 +285,13 @@ export default function DialogueGenerator() {
 
             {targetLanguage === 'zh' && (
               <div>
-                <label className="block text-sm font-medium text-navy mb-2">
+                <label className="block text-base font-bold text-dark-brown mb-2">
                   Target HSK Level
                 </label>
                 <select
                   value={hskLevel}
                   onChange={(e) => setHskLevel(e.target.value)}
-                  className="input"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                   data-testid="dialogue-select-hsk-level"
                 >
                   <option value="HSK1">HSK 1 (Beginner)</option>
@@ -305,13 +305,13 @@ export default function DialogueGenerator() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-navy mb-2">
+              <label className="block text-base font-bold text-dark-brown mb-2">
                 Tone
               </label>
               <select
                 value={tone}
                 onChange={(e) => setTone(e.target.value as ToneStyle)}
-                className="input"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 data-testid="dialogue-select-tone"
               >
                 <option value="casual">Casual</option>
@@ -324,24 +324,24 @@ export default function DialogueGenerator() {
       </div>
 
       {/* Generate Button */}
-      <div className="card bg-pale-sky border-indigo">
-        <div className="flex items-start justify-between">
+      <div className="bg-periwinkle-light border-l-8 border-periwinkle p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-8">
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-navy mb-2">Ready to Generate?</h3>
-            <p className="text-sm text-gray-600 mb-4">
+            <h3 className="text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
+            <p className="text-base text-gray-700 mb-4">
               The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : hskLevel} level {tone} language.
             </p>
-            <ul className="text-sm text-gray-600 space-y-1 mb-4">
-              <li>✓ {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
-              <li>✓ 3 variations per sentence</li>
-              <li>✓ English translations</li>
-              <li>✓ Level-matched language complexity</li>
+            <ul className="text-base text-gray-700 space-y-2">
+              <li className="font-medium">• {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
+              <li className="font-medium">• 3 variations per sentence</li>
+              <li className="font-medium">• English translations</li>
+              <li className="font-medium">• Level-matched language complexity</li>
             </ul>
           </div>
           <button
             onClick={handleGenerate}
             disabled={loading || !sourceText.trim()}
-            className="btn-primary ml-6 whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             data-testid="dialogue-button-generate"
           >
             {loading ? 'Generating...' : 'Generate Dialogue'}
@@ -349,7 +349,7 @@ export default function DialogueGenerator() {
         </div>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-base font-medium">
             {error}
           </div>
         )}

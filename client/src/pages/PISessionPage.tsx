@@ -196,7 +196,7 @@ export default function PISessionPage() {
               onClick={() => navigate('/app/create')}
               className="flex-1 btn-primary"
             >
-              Back to Studio
+              Back to Create
             </button>
           </div>
         </div>

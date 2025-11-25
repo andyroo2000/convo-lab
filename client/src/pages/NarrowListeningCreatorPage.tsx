@@ -103,153 +103,147 @@ export default function NarrowListeningCreatorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-3xl mx-auto px-6 py-4">
-          <button
-            onClick={() => navigate('/app/create')}
-            disabled={isGenerating}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 disabled:opacity-50"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Create
-          </button>
-        </div>
+      <div className="mb-6">
+        <button
+          onClick={() => navigate('/app/create')}
+          disabled={isGenerating}
+          className="flex items-center gap-2 text-strawberry hover:text-strawberry-dark font-bold transition-colors disabled:opacity-50"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Back to Create
+        </button>
+      </div>
+
+      <div className="mb-8 pb-6 border-b-4 border-strawberry">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Narrow Listening Packs</h1>
+        <p className="text-xl text-gray-600">The same story told 5 different ways for focused listening practice</p>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-lg shadow-sm border p-8">
-          {/* Title */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Sparkles className="w-6 h-6 text-purple-600" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Create Narrow Listening Pack</h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Generate a short story with multiple variations for targeted practice
-              </p>
-            </div>
-          </div>
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">Your Story</h2>
 
           {/* Form */}
-          <div className="space-y-6 mt-8">
+          <div className="space-y-6">
             {/* Topic */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Topic / Story Idea <span className="text-red-500">*</span>
+              <label className="block text-base font-bold text-dark-brown mb-3">
+                What's your story about? <span className="text-strawberry">*</span>
               </label>
               <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 disabled={isGenerating}
                 placeholder="Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 resize-none"
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-2">
                 Describe the scenario or topic for your story
               </p>
             </div>
 
             {/* JLPT Level */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Target JLPT Level <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={jlptLevel}
-                onChange={(e) => setJlptLevel(e.target.value)}
-                disabled={isGenerating}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
-              >
-                <option value="N5">N5 (Beginner)</option>
-                <option value="N4">N4 (Upper Beginner)</option>
-                <option value="N3">N3 (Intermediate)</option>
-                <option value="N2">N2 (Upper Intermediate)</option>
-                <option value="N1">N1 (Advanced)</option>
-              </select>
-              <p className="text-xs text-gray-500 mt-1">
-                Vocabulary and grammar will be tailored to this level
-              </p>
-            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div>
+                <label className="block text-base font-bold text-dark-brown mb-2">
+                  Target JLPT Level <span className="text-strawberry">*</span>
+                </label>
+                <select
+                  value={jlptLevel}
+                  onChange={(e) => setJlptLevel(e.target.value)}
+                  disabled={isGenerating}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
+                >
+                  <option value="N5">N5 (Beginner)</option>
+                  <option value="N4">N4 (Upper Beginner)</option>
+                  <option value="N3">N3 (Intermediate)</option>
+                  <option value="N2">N2 (Upper Intermediate)</option>
+                  <option value="N1">N1 (Advanced)</option>
+                </select>
+                <p className="text-sm text-gray-500 mt-2">
+                  Vocabulary and grammar will be tailored to this level
+                </p>
+              </div>
 
-            {/* Grammar Focus (Optional) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Grammar Focus (Optional)
-              </label>
-              <input
-                type="text"
-                value={grammarFocus}
-                onChange={(e) => setGrammarFocus(e.target.value)}
-                disabled={isGenerating}
-                placeholder="Example: past vs present tense, は vs が particles, casual vs polite"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Optionally specify what grammar points you want to focus on
-              </p>
+              {/* Grammar Focus (Optional) */}
+              <div>
+                <label className="block text-base font-bold text-dark-brown mb-2">
+                  Grammar Focus (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={grammarFocus}
+                  onChange={(e) => setGrammarFocus(e.target.value)}
+                  disabled={isGenerating}
+                  placeholder="e.g., past vs present tense"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  Optionally specify grammar points to focus on
+                </p>
+              </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className="p-6 bg-red-50 border-l-4 border-red-500">
+                <p className="text-base text-red-700 font-medium">{error}</p>
               </div>
             )}
 
             {/* Progress Bar */}
             {isGenerating && (
-              <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                <div className="flex items-center gap-3 mb-2">
-                  <Loader className="w-4 h-4 text-purple-600 animate-spin" />
-                  <p className="text-sm font-medium text-purple-900">{statusMessage}</p>
+              <div className="p-6 bg-strawberry-light border-l-4 border-strawberry">
+                <div className="flex items-center gap-3 mb-3">
+                  <Loader className="w-5 h-5 text-strawberry animate-spin" />
+                  <p className="text-base font-bold text-dark-brown">{statusMessage}</p>
                 </div>
-                <div className="w-full bg-purple-200 rounded-full h-2">
+                <div className="w-full bg-strawberry-light rounded-full h-3 border-2 border-strawberry">
                   <div
-                    className="bg-purple-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-strawberry h-full rounded-full transition-all duration-300"
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-xs text-purple-700 mt-2">{Math.round(progress)}% complete</p>
+                <p className="text-sm text-gray-700 mt-2 font-medium">{Math.round(progress)}% complete</p>
               </div>
             )}
 
             {/* Info Box */}
-            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>What is Narrow Listening?</strong>
+            <div className="p-6 bg-strawberry-light border-l-4 border-strawberry">
+              <p className="text-base text-dark-brown font-bold mb-3">
+                What is Narrow Listening?
               </p>
-              <p className="text-xs text-blue-700 mt-2">
+              <p className="text-base text-gray-700 mb-3">
                 Narrow listening is a technique where you listen to the same content with slight variations.
                 This helps you notice differences in grammar, vocabulary, and usage while maintaining context.
                 Your pack will include:
               </p>
-              <ul className="text-xs text-blue-700 mt-2 ml-4 list-disc space-y-1">
-                <li>5 versions of the same story with different grammar patterns</li>
-                <li>Slow audio (0.7x speed) for shadowing practice</li>
-                <li>Optional normal speed audio (1.0x) when you're ready</li>
-                <li>Japanese text with English translations</li>
+              <ul className="text-base text-gray-700 ml-4 space-y-2">
+                <li className="font-medium">• 5 versions of the same story with different grammar patterns</li>
+                <li className="font-medium">• Slow audio (0.7x speed) for shadowing practice</li>
+                <li className="font-medium">• Optional normal speed audio (1.0x) when you're ready</li>
+                <li className="font-medium">• Japanese text with English translations</li>
               </ul>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-8 pt-6 border-t">
+          <div className="flex gap-4 mt-8">
             <button
               onClick={() => navigate('/app/create')}
               disabled={isGenerating}
-              className="btn-outline flex-1"
+              className="px-8 py-4 border-2 border-gray-300 rounded-lg font-bold text-base text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !topic.trim()}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
+              className="flex-1 bg-strawberry hover:bg-strawberry-dark text-white font-bold text-lg px-10 py-4 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isGenerating ? (
                 <>

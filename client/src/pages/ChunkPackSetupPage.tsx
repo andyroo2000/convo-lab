@@ -141,7 +141,7 @@ export default function ChunkPackSetupPage() {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Studio
+          Back to Create
         </button>
 
         {/* Main Card */}

@@ -100,7 +100,7 @@ export default function ChunkPackExercisesPage() {
               Back to Library
             </button>
             <button onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
-              Back to Studio
+              Back to Create
             </button>
           </div>
         </div>
