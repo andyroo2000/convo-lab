@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, Sparkles } from 'lucide-react';
+import { Loader, Sparkles } from 'lucide-react';
+import { useInvalidateLibrary } from '../hooks/useLibraryData';
 
 export default function NarrowListeningCreatorPage() {
   const navigate = useNavigate();
+  const invalidateLibrary = useInvalidateLibrary();
 
   const [topic, setTopic] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
@@ -79,6 +81,8 @@ export default function NarrowListeningCreatorPage() {
           if (status.state === 'completed') {
             clearInterval(pollInterval);
             console.log('Generation complete!', status.result);
+            // Invalidate library cache so new pack shows up
+            invalidateLibrary();
             // Navigate to playback page
             navigate(`/app/narrow-listening/${packId}`);
           } else if (status.state === 'failed') {
