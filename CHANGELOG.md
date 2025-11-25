@@ -54,14 +54,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed /app/studio to /app/create across all navigation and page references
   - Updated Layout navigation to use "Create" terminology
   - Replaced StudioPage.tsx with new CreatePage.tsx
-- **[style]** Applied bold editorial design to all creator forms (commit: 50e81b7)
+- **[style]** Applied bold editorial design to all creator forms (commit: 50e81b7, da63e5e)
   - DialogueCreatorPage with periwinkle theme and 8px left border accents
-  - CourseCreatorPage with coral theme
+  - CourseCreatorPage with coral theme (CourseGenerator component)
   - NarrowListeningCreatorPage with strawberry theme and redesigned layout
+  - PISetupPage with periwinkle theme and bold selection buttons
+  - ChunkPackSetupPage with yellow theme and bold selections
   - Updated all form inputs with larger text (base), bolder labels, and brand color focus states
   - Increased heading sizes from 3xl to 5xl for consistency
   - Made generate buttons more prominent with larger padding (px-10 py-5) and bold text
   - Updated progress bars and info boxes to use brand colors instead of generic purple/blue
+  - Removed "Back to Create" navigation buttons from all creator pages for cleaner UI
+  - Selection buttons now use brand color backgrounds when active (periwinkle, coral, strawberry, yellow)
 
 ### Fixed
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)

@@ -119,34 +119,19 @@ export default function PISetupPage() {
   const availableGrammarPoints = getGrammarPointsForLevel(jlptLevel);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
-        <button
-          onClick={() => navigate('/app/create')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Create
-        </button>
+    <div className="max-w-6xl mx-auto">
+      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Processing Instruction Activities</h1>
+        <p className="text-xl text-gray-600">Learn grammar through structured input and meaning-based questions</p>
+      </div>
 
-        {/* Main Card */}
-        <div className="card bg-white shadow-xl">
-          {/* Title Section */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="p-4 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-              <Sparkles className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-navy">Processing Instruction</h1>
-              <p className="text-gray-600 mt-1">Grammar-focused comprehension training</p>
-            </div>
-          </div>
-
+      {/* Main Card */}
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
           {/* Description */}
-          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-8">
-            <h2 className="font-semibold text-indigo-900 mb-2">What is this?</h2>
-            <p className="text-sm text-indigo-800 leading-relaxed">
+          <div className="bg-periwinkle-light border-l-4 border-periwinkle p-6 mb-8">
+            <h2 className="text-base font-bold text-dark-brown mb-3">What is Processing Instruction?</h2>
+            <p className="text-base text-gray-700 leading-relaxed">
               Processing Instruction (PI) helps you understand Japanese grammar through <strong>meaning-based tasks</strong>.
               You'll hear Japanese sentences and answer questions about <em>what they mean</em> - not which grammar form was used.
               This trains your brain to process grammar correctly in real-time comprehension.
@@ -154,10 +139,10 @@ export default function PISetupPage() {
           </div>
 
           {/* Setup Options */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
+              <label className="block text-base font-bold text-dark-brown mb-4">
                 Select Your Level
               </label>
               <div className="grid grid-cols-4 gap-3">
@@ -165,14 +150,14 @@ export default function PISetupPage() {
                   <button
                     key={level}
                     onClick={() => setJlptLevel(level)}
-                    className={`px-6 py-4 rounded-lg border-2 font-medium transition-all ${
+                    className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
                       jlptLevel === level
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-md'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                        ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
                     }`}
                   >
                     <div className="text-xl font-bold">{level}</div>
-                    <div className="text-xs mt-1">
+                    <div className="text-xs mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -185,7 +170,7 @@ export default function PISetupPage() {
 
             {/* Grammar Point Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
+              <label className="block text-base font-bold text-dark-brown mb-4">
                 Select Grammar Point
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-2">
@@ -197,12 +182,12 @@ export default function PISetupPage() {
                       onClick={() => setGrammarPoint(gpId)}
                       className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
                         grammarPoint === gpId
-                          ? 'border-purple-500 bg-purple-50 text-purple-700 shadow-md'
-                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                          ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
                       }`}
                     >
-                      <div className="font-semibold text-sm">{gp.name}</div>
-                      <div className="text-xs mt-1 text-gray-600">{gp.description}</div>
+                      <div className="font-bold text-sm">{gp.name}</div>
+                      <div className={`text-xs mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
                     </button>
                   );
                 })}
@@ -211,7 +196,7 @@ export default function PISetupPage() {
 
             {/* Item Count Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-900 mb-3">
+              <label className="block text-base font-bold text-dark-brown mb-4">
                 Number of Items
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -243,11 +228,11 @@ export default function PISetupPage() {
           )}
 
           {/* Start Button */}
-          <div className="mt-8 pt-6 border-t">
+          <div className="mt-8">
             <button
               onClick={handleStartSession}
               disabled={isGenerating}
-              className="w-full btn-primary text-lg py-4 flex items-center justify-center gap-3 disabled:opacity-50"
+              className="w-full bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
             >
               {isGenerating ? (
                 <>
