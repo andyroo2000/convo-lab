@@ -238,9 +238,9 @@ export default function PISessionPage() {
 
             {/* Context Sentence (if provided) */}
             {currentItem.contextSentence && (
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600 mb-1">Context:</p>
-                <p className="text-base text-gray-800 font-japanese">{currentItem.contextSentence}</p>
+              <div className="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600 mb-2">Context:</p>
+                <p className="text-xl text-gray-800 font-japanese">{currentItem.contextSentence}</p>
               </div>
             )}
 
@@ -256,7 +256,7 @@ export default function PISessionPage() {
                     <Volume2 className="w-5 h-5" />
                     Sentence A
                   </button>
-                  <span className="text-2xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceA}</span>
+                  <span className="text-3xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceA}</span>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg">
                   <button
@@ -266,7 +266,7 @@ export default function PISessionPage() {
                     <Volume2 className="w-5 h-5" />
                     Sentence B
                   </button>
-                  <span className="text-2xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceB}</span>
+                  <span className="text-3xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceB}</span>
                 </div>
                 <audio
                   ref={audioRefA}
@@ -293,7 +293,7 @@ export default function PISessionPage() {
                   <Volume2 className="w-5 h-5" />
                   Play Audio
                 </button>
-                <span className="text-2xl text-gray-900 font-japanese">
+                <span className="text-3xl text-gray-900 font-japanese">
                   {currentItem.japaneseSentence}
                 </span>
                 <audio

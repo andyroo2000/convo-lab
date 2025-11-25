@@ -144,8 +144,8 @@ export default function ChunkPackSetupPage() {
         <div className="bg-white border-l-8 border-yellow p-8 shadow-sm">
           {/* Description */}
           <div className="bg-yellow-light border-l-4 border-yellow p-6 mb-8">
-            <h2 className="text-base font-bold text-dark-brown mb-3">What are Lexical Chunk Packs?</h2>
-            <p className="text-base text-gray-700 leading-relaxed">
+            <h2 className="text-xl font-bold text-dark-brown mb-3">What are Lexical Chunk Packs?</h2>
+            <p className="text-lg text-gray-700 leading-relaxed">
               Lexical Chunk Packs teach <strong>5-8 high-frequency Japanese chunks</strong> through examples, stories, and exercises.
               You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words.
               Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary.
@@ -156,7 +156,7 @@ export default function ChunkPackSetupPage() {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-4">
+              <label className="block text-lg font-bold text-dark-brown mb-4">
                 Select Your Level
               </label>
               <div className="grid grid-cols-3 gap-3">
@@ -172,7 +172,7 @@ export default function ChunkPackSetupPage() {
                     } disabled:opacity-50`}
                   >
                     <div className="text-xl font-bold">{level}</div>
-                    <div className="text-xs mt-1 font-medium">
+                    <div className="text-sm mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -184,7 +184,7 @@ export default function ChunkPackSetupPage() {
 
             {/* Theme Selection */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-4">
+              <label className="block text-lg font-bold text-dark-brown mb-4">
                 Select Theme
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-2">
@@ -199,8 +199,8 @@ export default function ChunkPackSetupPage() {
                         : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="font-bold text-sm">{themeData.name}</div>
-                    <div className="text-xs mt-1 text-gray-600">{themeData.description}</div>
+                    <div className="font-bold text-base">{themeData.name}</div>
+                    <div className="text-sm mt-1 text-gray-600">{themeData.description}</div>
                   </button>
                 ))}
               </div>
@@ -227,7 +227,7 @@ export default function ChunkPackSetupPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 mt-2">
                 This may take 30-60 seconds. We're generating content and audio...
               </p>
             </div>
