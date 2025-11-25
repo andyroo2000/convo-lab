@@ -80,22 +80,22 @@ export default function ChunkPackExercisesPage() {
     const accuracy = Math.round((correctCount / results.length) * 100);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center px-6">
+      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 flex items-center justify-center px-4 sm:px-6">
         <div className="card bg-white shadow-xl max-w-2xl w-full text-center">
-          <div className="mb-6">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle className="w-12 h-12 text-green-600" />
+          <div className="mb-4 sm:mb-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+              <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-600" />
             </div>
-            <h1 className="text-3xl font-bold text-navy mb-2">Exercises Complete!</h1>
-            <p className="text-gray-600">You've finished all {exercises.length} exercises</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-navy mb-1 sm:mb-2">Exercises Complete!</h1>
+            <p className="text-sm sm:text-base text-gray-600">You've finished all {exercises.length} exercises</p>
           </div>
 
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-8 mb-8">
-            <div className="text-6xl font-bold text-emerald-600 mb-2">{accuracy}%</div>
-            <div className="text-lg text-gray-700">{correctCount} correct out of {results.length}</div>
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-6 sm:p-8 mb-6 sm:mb-8">
+            <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-2">{accuracy}%</div>
+            <div className="text-base sm:text-lg text-gray-700">{correctCount} correct out of {results.length}</div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <button onClick={() => navigate('/app/library')} className="flex-1 btn-outline">
               Back to Library
             </button>
@@ -111,22 +111,22 @@ export default function ChunkPackExercisesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Exercise {currentIndex + 1} of {exercises.length}</span>
-            <span className="text-sm text-gray-500">Step 3: Practice</span>
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2">
+            <span className="text-xs sm:text-sm font-medium text-gray-700">Exercise {currentIndex + 1} of {exercises.length}</span>
+            <span className="text-xs sm:text-sm text-gray-500">Step 3: Practice</span>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
             <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="card bg-white shadow-xl">
-          <h2 className="text-2xl font-bold text-navy mb-6">{currentExercise.prompt}</h2>
+          <h2 className="text-lg sm:text-2xl font-bold text-navy mb-4 sm:mb-6">{currentExercise.prompt}</h2>
 
-          <div className="space-y-3 mb-6">
+          <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
             {currentExercise.options.map((option, idx) => {
               const isSelected = selectedOption === option;
               const isCorrect = option === currentExercise.correctOption;
@@ -138,7 +138,7 @@ export default function ChunkPackExercisesPage() {
                   key={idx}
                   onClick={() => handleOptionSelect(option)}
                   disabled={hasAnswered}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
                     showAsCorrect
                       ? 'border-green-500 bg-green-50'
                       : showAsWrong
@@ -147,9 +147,9 @@ export default function ChunkPackExercisesPage() {
                   } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xl">{option}</span>
-                    {showAsCorrect && <CheckCircle className="w-6 h-6 text-green-600" />}
-                    {showAsWrong && <XCircle className="w-6 h-6 text-red-600" />}
+                    <span className="text-base sm:text-xl">{option}</span>
+                    {showAsCorrect && <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />}
+                    {showAsWrong && <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />}
                   </div>
                 </button>
               );
@@ -157,9 +157,9 @@ export default function ChunkPackExercisesPage() {
           </div>
 
           {hasAnswered && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-blue-900 mb-2">Explanation:</h3>
-              <p className="text-sm text-blue-800">{currentExercise.explanation}</p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
+              <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1.5 sm:mb-2">Explanation:</h3>
+              <p className="text-xs sm:text-sm text-blue-800">{currentExercise.explanation}</p>
             </div>
           )}
 
@@ -168,7 +168,7 @@ export default function ChunkPackExercisesPage() {
               {currentIndex < exercises.length - 1 ? (
                 <>
                   Next Exercise
-                  <ArrowRight className="w-5 h-5" />
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                 </>
               ) : (
                 'View Results'
