@@ -418,17 +418,11 @@ export default function LibraryPage() {
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
+                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             Generating...
                           </Pill>
-                        )}
-                        {course.status !== 'generating' && course._count?.lessons != null && (
-                          <div className="flex items-center gap-1 text-xs text-gray-500">
-                            <BookOpen className="w-3 h-3" />
-                            {course._count.lessons} {course._count.lessons === 1 ? 'lesson' : 'lessons'}
-                          </div>
                         )}
                         {course.jlptLevel && (
                           <LanguageLevelPill
