@@ -183,6 +183,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
+- **[fix]** Library page card overflow on mobile viewport (commit: 08696e5)
+  - Fixed text overflow on all 4 content card types (Episode, Audio Course, Narrow Listening, Chunk Pack)
+  - Pills and badges now anchored to right side of cards with ml-auto
+  - Text properly truncates when approaching pill area using overflow-hidden
+  - Reduced gap between content and badges for better mobile spacing
 - **[fix]** Additional mobile viewport refinements (commits: 9001a3a through 4113cb1)
   - Removed back button from CoursePage
   - Centered Library page filter tabs on mobile to prevent overflow
