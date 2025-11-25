@@ -88,12 +88,6 @@ export default function CoursePage() {
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/app/library')}
-          className="btn-outline p-2"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
         <div className="flex-1">
           {/* Editable Title */}
           {editingTitle ? (
