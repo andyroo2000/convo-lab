@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
@@ -147,19 +147,22 @@ export default function LibraryPage() {
     }
   };
 
-  // Filter content based on selected filter
-  const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
-  const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
-  const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
-  const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
+  // Memoize filtered and sorted items to avoid expensive recalculations
+  const allItems = useMemo(() => {
+    // Filter content based on selected filter
+    const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
+    const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
+    const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
+    const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
 
-  // Combine and sort by date
-  const allItems = [
-    ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
-    ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
-    ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
-    ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Combine and sort by date
+    return [
+      ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
+      ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
+      ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
+      ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [filter, episodes, courses, narrowListeningPacks, chunkPacks]);
 
   if (isLoading) {
     return (
