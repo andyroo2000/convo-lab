@@ -238,7 +238,7 @@ export default function DialogueGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
                 Target Language
