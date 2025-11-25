@@ -20,6 +20,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added PageLoader fallback component during chunk loading
 - **[perf]** Server-side Cache-Control headers for avatar endpoint
   - 1-hour browser cache, 1-day CDN cache for speaker avatars
+- **[perf]** React Query integration for CoursePage with automatic polling
+  - Created `useCourse` hook with automatic status polling during generation
+  - Uses React Query's refetchInterval for cleaner polling implementation
+  - Course data cached and automatically refreshed when generation completes
+- **[perf]** Vite build optimization with manual chunk splitting
+  - Vendor libraries split into separate cached chunks (react, router, framer-motion, wavesurfer, etc.)
+  - Improves long-term browser caching for unchanged dependencies
+- **[perf]** Memoized expensive operations in LibraryPage
+  - Filter and sort operations now wrapped in useMemo
+  - Prevents recalculation on unrelated state changes
 
 ### Changed
 - Initial changelog setup with /commit slash command
