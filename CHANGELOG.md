@@ -183,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
-- **[fix]** LanguageLevelPill stacks vertically on mobile (commit: 93b1079)
+- **[fix]** LanguageLevelPill stacks vertically on mobile (commit: 05fa521)
   - SegmentedPill component now displays vertically on mobile (e.g., "JA" above "N4")
   - Saves significant horizontal space on content cards
   - Desktop layout maintains horizontal chevron effect
