@@ -142,22 +142,22 @@ export default function PISetupPage() {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-lg font-bold text-dark-brown mb-4">
+              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 Select Your Level
               </label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {(['N5', 'N4', 'N3', 'N2'] as JLPTLevel[]).map((level) => (
                   <button
                     key={level}
                     onClick={() => setJlptLevel(level)}
-                    className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
+                    className={`px-4 sm:px-6 py-3 sm:py-4 rounded-lg border-2 font-bold transition-all ${
                       jlptLevel === level
                         ? 'border-keylime bg-keylime text-white shadow-md'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-keylime hover:bg-keylime-light'
                     }`}
                   >
-                    <div className="text-xl font-bold">{level}</div>
-                    <div className="text-sm mt-1 font-medium">
+                    <div className="text-lg sm:text-xl font-bold">{level}</div>
+                    <div className="text-xs sm:text-sm mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -170,24 +170,24 @@ export default function PISetupPage() {
 
             {/* Grammar Point Selection */}
             <div>
-              <label className="block text-lg font-bold text-dark-brown mb-4">
+              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 Select Grammar Point
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2">
                 {availableGrammarPoints.map((gpId) => {
                   const gp = GRAMMAR_POINTS[gpId];
                   return (
                     <button
                       key={gpId}
                       onClick={() => setGrammarPoint(gpId)}
-                      className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
+                      className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all ${
                         grammarPoint === gpId
                           ? 'border-keylime bg-keylime text-white shadow-md'
                           : 'border-gray-200 bg-white text-gray-700 hover:border-keylime hover:bg-keylime-light'
                       }`}
                     >
-                      <div className="font-bold text-lg">{gp.name}</div>
-                      <div className={`text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
+                      <div className="font-bold text-base sm:text-lg">{gp.name}</div>
+                      <div className={`text-xs sm:text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
                     </button>
                   );
                 })}
@@ -232,16 +232,16 @@ export default function PISetupPage() {
             <button
               onClick={handleStartSession}
               disabled={isGenerating}
-              className="w-full bg-keylime hover:bg-keylime-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full bg-keylime hover:bg-keylime-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
             >
               {isGenerating ? (
                 <>
-                  <Loader className="w-5 h-5 animate-spin" />
+                  <Loader className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                   Generating Session...
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5" />
+                  <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
                   Start Practice Session
                 </>
               )}
