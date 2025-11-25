@@ -275,7 +275,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="mb-8">
         <button
-          onClick={() => navigate('/app/studio')}
+          onClick={() => navigate('/app/create')}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
