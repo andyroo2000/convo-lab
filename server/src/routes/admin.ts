@@ -345,6 +345,8 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
 router.get('/avatars/speakers', async (req: AuthRequest, res, next) => {
   try {
     const avatars = await getAllSpeakerAvatars();
+    // Avatars rarely change, cache for 1 hour on browser, 1 day on CDN
+    res.set('Cache-Control', 'public, max-age=3600, s-maxage=86400');
     res.json(avatars);
   } catch (error) {
     next(error);
