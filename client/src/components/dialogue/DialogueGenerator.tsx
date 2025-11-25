@@ -324,14 +324,14 @@ export default function DialogueGenerator() {
       </div>
 
       {/* Generate Button */}
-      <div className="bg-periwinkle-light border-l-8 border-periwinkle p-8 shadow-sm">
-        <div className="flex items-center justify-between gap-8">
+      <div className="bg-periwinkle-light border-l-8 border-periwinkle p-6 sm:p-8 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
-            <h3 className="text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
-            <p className="text-base text-gray-700 mb-4">
+            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
+            <p className="text-sm sm:text-base text-gray-700 mb-4">
               The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : hskLevel} level {tone} language.
             </p>
-            <ul className="text-base text-gray-700 space-y-2">
+            <ul className="text-sm sm:text-base text-gray-700 space-y-2">
               <li className="font-medium">• {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
               <li className="font-medium">• 3 variations per sentence</li>
               <li className="font-medium">• English translations</li>
@@ -341,7 +341,7 @@ export default function DialogueGenerator() {
           <button
             onClick={handleGenerate}
             disabled={loading || !sourceText.trim()}
-            className="bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            className="w-full sm:w-auto bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             data-testid="dialogue-button-generate"
           >
             {loading ? 'Generating...' : 'Generate Dialogue'}
