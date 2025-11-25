@@ -40,6 +40,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented color palette, typography, layout patterns, and component patterns
   - Included code examples and implementation guidelines
   - Design anti-patterns and future considerations
+- **[feat]** Mobile navigation and improved course generation display (commit: d3992e8)
+  - Added visible Library/Create navigation buttons for mobile devices
+  - Compact mobile nav with smaller text and optimized spacing
+  - "Generating..." pill positioned on left during course generation
+  - Language/level pill aligned to right (consistent with other cards)
+  - Hide "0 lessons" text when course is generating
 
 ### Changed
 - **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)

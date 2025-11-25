@@ -36,11 +36,12 @@ export default function Layout() {
       <nav className="sticky top-0 z-20 bg-periwinkle shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16">
-            <div className="flex">
-              <Link to="/app/library" className="flex items-center gap-2 px-4 text-white font-bold text-xl drop-shadow-md">
-                ConvoLab
+            <div className="flex items-center flex-1">
+              <Link to="/app/library" className="flex items-center gap-2 px-2 sm:px-4 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0">
+                <span className="hidden xs:inline">ConvoLab</span>
                 <Logo size="small" />
               </Link>
+              {/* Desktop Navigation */}
               <div className="hidden sm:ml-6 sm:flex h-16 items-center gap-1">
                 <Link
                   to="/app/library"
@@ -65,9 +66,34 @@ export default function Layout() {
                   Create
                 </Link>
               </div>
+              {/* Mobile Navigation */}
+              <div className="flex sm:hidden ml-2 gap-1 flex-1">
+                <Link
+                  to="/app/library"
+                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
+                    isLibraryActive
+                      ? 'bg-white text-strawberry shadow-md'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  <Library className="w-4 h-4 mr-1 flex-shrink-0" />
+                  Library
+                </Link>
+                <Link
+                  to="/app/create"
+                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
+                    isCreateActive
+                      ? 'bg-white text-coral shadow-md'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  <Mic className="w-4 h-4 mr-1 flex-shrink-0" />
+                  Create
+                </Link>
+              </div>
             </div>
 
-            <div className="flex items-center ml-auto">
+            <div className="flex items-center ml-2">
               <UserMenu
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}

@@ -569,22 +569,22 @@ export default function LibraryPage() {
 
                       {/* Right: Badges and actions */}
                       <div className="flex items-center gap-3 flex-shrink-0">
-                        {course.jlptLevel && (
-                          <LanguageLevelPill
-                            language={course.targetLanguage}
-                            level={course.jlptLevel}
-                          />
-                        )}
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             Generating...
                           </Pill>
                         )}
-                        {course._count?.lessons != null && (
+                        {course.status !== 'generating' && course._count?.lessons != null && (
                           <div className="flex items-center gap-1 text-xs text-gray-500">
                             <BookOpen className="w-3 h-3" />
                             {course._count.lessons} {course._count.lessons === 1 ? 'lesson' : 'lessons'}
                           </div>
+                        )}
+                        {course.jlptLevel && (
+                          <LanguageLevelPill
+                            language={course.targetLanguage}
+                            level={course.jlptLevel}
+                          />
                         )}
                         <button
                           onClick={(e) => handleDeleteCourseClick(course, e)}
