@@ -168,6 +168,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Reduced text sizes and padding throughout for mobile screens
   - Larger, more visible icons in Generate button
   - Better touch targets and improved mobile usability
+- **[fix]** Admin page tables and buttons optimized for mobile viewport (commit: b6023ab)
+  - All data tables now horizontally scrollable on mobile with overflow-x-auto
+  - Responsive table cell padding (px-3 on mobile, px-6 on desktop)
+  - Added whitespace-nowrap to prevent text wrapping in table cells
+  - Tab navigation horizontally scrollable for mobile viewing
+  - All button text made responsive (text-xs on mobile, text-sm on desktop)
+  - Tables affected: Users, Invite Codes, User Avatars
+  - Buttons affected: Speaker avatar Re-crop/Upload, User Avatar Upload
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
