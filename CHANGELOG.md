@@ -40,12 +40,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Documented color palette, typography, layout patterns, and component patterns
   - Included code examples and implementation guidelines
   - Design anti-patterns and future considerations
-- **[feat]** Mobile navigation and improved course generation display (commit: d3992e8)
+- **[feat]** Mobile navigation and improved course generation display (commit: fc675a9)
   - Added visible Library/Create navigation buttons for mobile devices
   - Compact mobile nav with smaller text and optimized spacing
   - "Generating..." pill positioned on left during course generation
   - Language/level pill aligned to right (consistent with other cards)
   - Hide "0 lessons" text when course is generating
+- **[feat]** Mobile-optimized layouts for Library, Create, and Settings pages (commit: 687d911)
+  - Responsive icon sidebars: 64px on mobile, 96px on desktop (Library); 80px on mobile, 128px on desktop (Create)
+  - Smaller text and icons on mobile screens
+  - Reduced padding throughout for better mobile space utilization
+  - Settings tabs show icon-only on very small screens, full text on larger screens
+  - Wrapping filter tabs and navigation for better mobile experience
+- **[feat]** Mobile-optimized Landing page for better mobile user experience (commit: 8eb97b7)
+  - Smaller logo and reduced header padding on mobile devices
+  - Hide "Sign In" button on mobile (show only "Get Started")
+  - Responsive hero text sizes (4xl on mobile, 6xl/7xl on desktop)
+  - Reduced section padding throughout for mobile viewports
+  - Smaller feature cards with compact icons and text on mobile
+  - Responsive CTA section with adjusted spacing
+  - Smaller footer text and padding on mobile
 
 ### Changed
 - **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)
