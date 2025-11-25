@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Inline feedback appears directly below modified field instead of corner toast
   - Study Language, Native Language, Pinyin Display Mode, and JLPT/HSK Level all auto-save
   - Removed Save/Cancel buttons from Language Preferences tab
+- **[docs]** Comprehensive design system documentation (commit: 6b2196a)
+  - Created DESIGN.md with complete design philosophy and principles
+  - Documented color palette, typography, layout patterns, and component patterns
+  - Included code examples and implementation guidelines
+  - Design anti-patterns and future considerations
 
 ### Changed
 - **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)
