@@ -139,7 +139,7 @@ export default function NarrowListeningCreatorPage() {
             </div>
 
             {/* JLPT Level */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
                   Target JLPT Level <span className="text-strawberry">*</span>
