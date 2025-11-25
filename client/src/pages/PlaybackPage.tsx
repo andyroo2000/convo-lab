@@ -447,21 +447,22 @@ export default function PlaybackPage() {
       <div className="sticky top-16 z-10 bg-white shadow-lg">
         {/* Episode Header */}
         <div className="border-b border-gray-200 bg-coral">
-          <div className="max-w-6xl mx-auto px-6 py-4">
-            <div className="flex items-start justify-between">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+            {/* Mobile layout: Stack everything vertically */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-dark-brown mb-2">{episode.title}</h1>
+                <h1 className="text-xl sm:text-3xl font-bold text-dark-brown mb-2">{episode.title}</h1>
 
                 {/* Segmented Pill: Proficiency Level + Tone */}
-                <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
+                <div className="inline-flex items-center text-xs sm:text-sm font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
-                  <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
+                  <div className="pl-3 sm:pl-4 pr-4 sm:pr-5 py-1 sm:py-1.5 bg-periwinkle text-white uppercase tracking-wide">
                     {speakers[0]?.proficiency}
                   </div>
 
                   {/* Right segment - Tone (with chevron left edge) */}
                   <div
-                    className="pl-3 pr-4 py-1.5 bg-strawberry text-white capitalize relative"
+                    className="pl-2 sm:pl-3 pr-3 sm:pr-4 py-1 sm:py-1.5 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
                       marginLeft: '-8px'
@@ -472,9 +473,9 @@ export default function PlaybackPage() {
                 </div>
               </div>
 
-              {/* Controls: Toggles and Speed Selector */}
+              {/* Controls: Toggles and Speed Selector - Stack on mobile, side-by-side on desktop */}
               {!isGeneratingAudio && currentAudioUrl && (
-                <div className="flex flex-col items-end gap-2 ml-6">
+                <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
                   {/* Row 1: Furigana & English Toggles */}
                   <ViewToggleButtons
                     showReadings={showReadings}
@@ -526,7 +527,7 @@ export default function PlaybackPage() {
         {/* Audio Player (shown when not generating) */}
         {!isGeneratingAudio && currentAudioUrl && (
           <div className="bg-yellow border-b border-gray-200">
-            <div className="max-w-6xl mx-auto px-6 py-3">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
               <AudioPlayer
                 src={currentAudioUrl}
                 audioRef={audioRef}
@@ -538,7 +539,7 @@ export default function PlaybackPage() {
       </div>
 
       {/* Dialogue */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="space-y-3">
           {sentences.map((sentence, index) => {
           const speaker = speakerMap.get(sentence.speakerId);
@@ -595,16 +596,16 @@ export default function PlaybackPage() {
               onClick={() => seekToSentence(sentence)}
               data-testid={`playback-sentence-${sentence.id}`}
             >
-              <div className="flex gap-8">
-                {/* Speaker Avatar */}
+              <div className="flex gap-3 sm:gap-8">
+                {/* Speaker Avatar - Smaller on mobile */}
                 <div
-                  className="w-40 flex-shrink-0 flex flex-col items-center justify-center gap-2 pl-4 pr-6 pt-6 pb-3 -my-6 -ml-6"
+                  className="w-20 sm:w-40 flex-shrink-0 flex flex-col items-center justify-center gap-1 sm:gap-2 pl-2 sm:pl-4 pr-3 sm:pr-6 pt-3 sm:pt-6 pb-2 sm:pb-3 -my-6 -ml-6"
                   style={{
                     backgroundColor: speakerColor,
                     opacity: 0.9
                   }}
                 >
-                  <div className="w-24 h-24 rounded-full overflow-hidden shadow-md bg-white">
+                  <div className="w-12 h-12 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-white">
                     <img
                       src={speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
                       alt={speaker.name}
@@ -615,16 +616,16 @@ export default function PlaybackPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm font-bold text-white text-center drop-shadow-md">
+                  <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
                     <JapaneseText text={speaker.name} />
                   </span>
                 </div>
 
-                {/* Japanese Text and Translation - Side by Side or Full Width */}
-                <div className="flex gap-0 flex-1">
+                {/* Japanese Text and Translation - Stack on mobile, side by side on desktop */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 flex-1">
                   {/* Japanese Text - Flexible Column */}
-                  <div className={showTranslations ? "flex-1 pr-6" : "w-full"}>
-                    <p className="text-lg text-dark-brown leading-relaxed">
+                  <div className={showTranslations ? "flex-1 sm:pr-6" : "w-full"}>
+                    <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
                       <JapaneseText
                         text={sentence.text}
                         metadata={sentence.metadata}
@@ -633,15 +634,15 @@ export default function PlaybackPage() {
                     </p>
                   </div>
 
-                  {/* Translation - Right Column (conditionally rendered) */}
+                  {/* Translation - Right Column on desktop, below on mobile (conditionally rendered) */}
                   {showTranslations && (
                     <div
-                      className="flex-1 pl-6"
+                      className="flex-1 pt-3 sm:pt-0 sm:pl-6 sm:border-l"
                       style={{
-                        borderLeft: `1px solid ${hexToRgba(speakerColor, 0.3)}`
+                        borderColor: `${hexToRgba(speakerColor, 0.3)}`
                       }}
                     >
-                      <p className="text-gray-600 italic">
+                      <p className="text-sm sm:text-base text-gray-600 italic">
                         {sentence.translation}
                       </p>
                     </div>
