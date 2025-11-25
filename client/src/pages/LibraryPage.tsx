@@ -348,10 +348,10 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
-                    <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-4">
                       {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors truncate mb-1 sm:mb-2">
                           {episode.title}
                         </h3>
@@ -361,7 +361,7 @@ export default function LibraryPage() {
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         {proficiencyLevels.length > 0 && (
                           <LanguageLevelPill
                             language={episode.targetLanguage}
@@ -403,10 +403,10 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
-                    <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-4">
                       {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-coral transition-colors truncate mb-1 sm:mb-2">
                           {course.title}
                         </h3>
@@ -418,7 +418,7 @@ export default function LibraryPage() {
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             Generating...
@@ -466,10 +466,10 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
-                    <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-4">
                       {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-strawberry transition-colors truncate mb-1 sm:mb-2">
                           {pack.title}
                         </h3>
@@ -479,7 +479,7 @@ export default function LibraryPage() {
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         <LanguageLevelPill
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
@@ -519,10 +519,10 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5">
-                    <div className="flex items-center justify-between gap-3 sm:gap-6">
+                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
+                    <div className="flex items-center gap-2 sm:gap-4">
                       {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 overflow-hidden">
                         <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors truncate mb-1 sm:mb-2">
                           {pack.title}
                         </h3>
@@ -532,7 +532,7 @@ export default function LibraryPage() {
                       </div>
 
                       {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         <LanguageLevelPill
                           language={pack.targetLanguage}
                           level={pack.jlptLevel}
