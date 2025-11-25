@@ -113,6 +113,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExamplesPage: Removed back button from first page, fixed sticky positioning and scroll calculations for mobile
   - PlaybackPage: Complete mobile redesign with vertical stacking, smaller avatars (48px vs 96px), and responsive text sizing
   - LibraryPage: Fixed filter button overflow with responsive sizing and whitespace-nowrap
+- **[fix]** Library page content cards optimized for mobile viewport (commit: aa59759)
+  - All four card types (Dialogue, Audio Course, Narrow Listening, Chunk Pack) now fully responsive
+  - Smaller icons and sidebars on mobile (6x6 vs 8x8)
+  - Reduced text sizes and padding for better mobile readability
+  - Prevents text overflow on small screens
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
