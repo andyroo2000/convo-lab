@@ -29,7 +29,7 @@ export default function Layout() {
 
   // Determine active navigation (updated for /app prefix)
   const isLibraryActive = location.pathname === '/app/library' || location.pathname.startsWith('/app/playback') || location.pathname.startsWith('/app/practice') || location.pathname.startsWith('/app/courses') || location.pathname.startsWith('/app/narrow-listening') || location.pathname.startsWith('/app/chunk-packs') || location.pathname.startsWith('/app/pi/session');
-  const isStudioActive = location.pathname.startsWith('/app/studio') || location.pathname.startsWith('/app/pi');
+  const isCreateActive = location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
 
   return (
     <div className="min-h-screen bg-cream">
@@ -54,9 +54,9 @@ export default function Layout() {
                   Library
                 </Link>
                 <Link
-                  to="/app/studio"
+                  to="/app/create"
                   className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
-                    isStudioActive
+                    isCreateActive
                       ? 'bg-white text-coral shadow-md'
                       : 'text-white hover:bg-white/20'
                   }`}

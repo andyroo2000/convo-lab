@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 96px wide colored sidebars with large 8x8 icons and uppercase labels
   - Clear content type identification for new users
   - Editorial magazine-like aesthetic with bold color blocks
+- **[feat]** CreatePage with bold editorial design to replace Studio page (commit: c3dd63a)
+  - Full-width action buttons with 128px colored sidebars
+  - Large 12x12 icons in white on saturated backgrounds
+  - Simplified content with title + one-line description per activity type
+  - Matches Library page aesthetic for consistent design language
 
 ### Changed
 - **[style]** Implemented bold, editorial design system with saturated colors throughout the app (commit: 8b2a6e7)
@@ -45,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SpeedSelector now uses gray for all variants instead of variant-specific colors (commit: f1efc91)
 - Simplified voiceSelection utilities to basic course/dialogue voice getters (commit: f1efc91)
 - Updated tone indicator on PlaybackPage from coral to strawberry (commit: f1efc91)
+- **[refactor]** Renamed all Studio routes to Create throughout application (commit: c3dd63a)
+  - Changed /app/studio to /app/create across all navigation and page references
+  - Updated Layout navigation to use "Create" terminology
+  - Replaced StudioPage.tsx with new CreatePage.tsx
 
 ### Fixed
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)

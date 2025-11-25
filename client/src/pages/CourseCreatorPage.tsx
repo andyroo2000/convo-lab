@@ -9,7 +9,7 @@ export default function CourseCreatorPage() {
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
         <button
-          onClick={() => navigate('/app/studio')}
+          onClick={() => navigate('/app/create')}
           className="flex items-center gap-2 text-navy hover:text-indigo transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />

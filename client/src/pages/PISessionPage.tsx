@@ -193,7 +193,7 @@ export default function PISessionPage() {
               New Session
             </button>
             <button
-              onClick={() => navigate('/app/studio')}
+              onClick={() => navigate('/app/create')}
               className="flex-1 btn-primary"
             >
               Back to Studio

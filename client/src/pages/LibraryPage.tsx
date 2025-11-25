@@ -402,7 +402,7 @@ export default function LibraryPage() {
               title="Create Your First Dialogue"
               description="Generate comprehensible input dialogues at your level with natural conversations and audio"
               buttonText="Get Started"
-              route="/app/studio/create/dialogue"
+              route="/app/create/dialogue"
               colorTheme={{
                 bg: 'bg-periwinkle-light',
                 text: 'text-periwinkle-dark',
@@ -417,7 +417,7 @@ export default function LibraryPage() {
               title="Create Your First Audio Course"
               description="Build guided audio courses with structured lessons and pronunciation practice"
               buttonText="Get Started"
-              route="/app/studio/create/audio-course"
+              route="/app/create/audio-course"
               colorTheme={{
                 bg: 'bg-coral-light',
                 text: 'text-coral-dark',
@@ -432,7 +432,7 @@ export default function LibraryPage() {
               title="Create Your First Narrow Listening Pack"
               description="Practice with story variations at your level for focused listening comprehension"
               buttonText="Get Started"
-              route="/app/studio/create/narrow-listening"
+              route="/app/create/narrow-listening"
               colorTheme={{
                 bg: 'bg-strawberry-light',
                 text: 'text-strawberry-dark',
@@ -447,7 +447,7 @@ export default function LibraryPage() {
               title="Create Your First Lexical Chunk Pack"
               description="Master high-frequency expressions with examples, stories, and interactive exercises"
               buttonText="Get Started"
-              route="/app/studio/create/lexical-chunk-pack"
+              route="/app/create/lexical-chunk-pack"
               colorTheme={{
                 bg: 'bg-yellow-light',
                 text: 'text-dark-brown',
@@ -463,7 +463,7 @@ export default function LibraryPage() {
                   No content yet. Get started by creating your first learning material!
                 </p>
                 <button
-                  onClick={() => window.location.href = '/app/studio'}
+                  onClick={() => window.location.href = '/app/create'}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"
                 >

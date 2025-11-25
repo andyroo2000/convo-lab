@@ -3,7 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import LandingPage from './pages/LandingPage';
-import StudioPage from './pages/StudioPage';
+import CreatePage from './pages/CreatePage';
 import DialogueCreatorPage from './pages/DialogueCreatorPage';
 import CourseCreatorPage from './pages/CourseCreatorPage';
 import PlaybackPage from './pages/PlaybackPage';
@@ -43,14 +43,13 @@ function App() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="admin/:tab" element={<AdminPage />} />
 
-              {/* Studio - Content Creation Hub */}
-              <Route path="studio" element={<StudioPage />} />
-              <Route path="studio/:episodeId" element={<StudioPage />} />
-              <Route path="studio/create/dialogue" element={<DialogueCreatorPage />} />
-              <Route path="studio/create/audio-course" element={<CourseCreatorPage />} />
-              <Route path="studio/create/narrow-listening" element={<NarrowListeningCreatorPage />} />
-              <Route path="studio/create/processing-instruction" element={<PISetupPage />} />
-              <Route path="studio/create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
+              {/* Create - Content Creation Hub */}
+              <Route path="create" element={<CreatePage />} />
+              <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+              <Route path="create/audio-course" element={<CourseCreatorPage />} />
+              <Route path="create/narrow-listening" element={<NarrowListeningCreatorPage />} />
+              <Route path="create/processing-instruction" element={<PISetupPage />} />
+              <Route path="create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
 
               {/* Playback & Practice */}
               <Route path="playback/:episodeId" element={<PlaybackPage />} />
