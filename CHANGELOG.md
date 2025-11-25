@@ -86,6 +86,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
+- **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
+  - Added overflow-y: scroll to html element to force scrollbar always visible
+  - Prevents layout shift caused by scrollbar appearing/disappearing on different page heights
 
 ## [2025-11-23]
 
