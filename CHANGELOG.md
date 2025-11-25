@@ -183,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
-- **[fix]** Audio Course card mobile layout improvements (commit: ee10b3a)
+- **[fix]** Audio Course card mobile layout improvements (commit: 0bec24b)
   - Removed lesson count display from Audio Course cards
   - Badges now stack vertically on mobile (flex-col sm:flex-row) for better space utilization
   - Gives more horizontal room for title text on small screens
