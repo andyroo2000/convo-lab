@@ -176,6 +176,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All button text made responsive (text-xs on mobile, text-sm on desktop)
   - Tables affected: Users, Invite Codes, User Avatars
   - Buttons affected: Speaker avatar Re-crop/Upload, User Avatar Upload
+- **[fix]** Chunk Pack Story and Exercises pages optimized for mobile viewport (commit: 3a08a73)
+  - ChunkPackStoryPage: Removed back button from empty state, responsive sticky positioning for audio player
+  - ChunkPackStoryPage: Made header, dialogue segments, and all text sizes responsive
+  - ChunkPackExercisesPage: Made completion screen responsive with vertical button stacking
+  - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
+  - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
+  - Smaller text sizes and icons on mobile with sm: breakpoints
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
