@@ -175,7 +175,7 @@ export default function CourseGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
                 Target Language
@@ -247,7 +247,7 @@ export default function CourseGenerator() {
             <h3 className="text-base font-bold text-dark-brown mb-4">
               Dialogue Voices ({targetLanguage.toUpperCase()})
             </h3>
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Speaker 1 */}
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
