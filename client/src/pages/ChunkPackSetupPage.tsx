@@ -159,23 +159,23 @@ export default function ChunkPackSetupPage() {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-lg font-bold text-dark-brown mb-4">
+              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 Select Your Level
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {(['N5', 'N4', 'N3'] as JLPTLevel[]).map((level) => (
                   <button
                     key={level}
                     onClick={() => setJlptLevel(level)}
                     disabled={isGenerating}
-                    className={`px-6 py-4 rounded-lg border-2 font-bold transition-all ${
+                    className={`px-4 sm:px-6 py-3 sm:py-4 rounded-lg border-2 font-bold transition-all ${
                       jlptLevel === level
                         ? 'border-yellow bg-yellow text-dark-brown shadow-md'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="text-xl font-bold">{level}</div>
-                    <div className="text-sm mt-1 font-medium">
+                    <div className="text-lg sm:text-xl font-bold">{level}</div>
+                    <div className="text-xs sm:text-sm mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -187,23 +187,23 @@ export default function ChunkPackSetupPage() {
 
             {/* Theme Selection */}
             <div>
-              <label className="block text-lg font-bold text-dark-brown mb-4">
+              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 Select Theme
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-80 overflow-y-auto p-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2">
                 {availableThemes.map((themeData) => (
                   <button
                     key={themeData.id}
                     onClick={() => setTheme(themeData.id)}
                     disabled={isGenerating}
-                    className={`px-4 py-3 rounded-lg border-2 text-left transition-all ${
+                    className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all ${
                       theme === themeData.id
                         ? 'border-yellow bg-yellow text-dark-brown shadow-md'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="font-bold text-base">{themeData.name}</div>
-                    <div className="text-sm mt-1 text-gray-600">{themeData.description}</div>
+                    <div className="font-bold text-sm sm:text-base">{themeData.name}</div>
+                    <div className="text-xs sm:text-sm mt-1 text-gray-600">{themeData.description}</div>
                   </button>
                 ))}
               </div>
@@ -241,16 +241,16 @@ export default function ChunkPackSetupPage() {
             <button
               onClick={handleStartGeneration}
               disabled={isGenerating}
-              className="w-full bg-yellow hover:bg-yellow-dark text-dark-brown font-bold text-lg px-10 py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="w-full bg-yellow hover:bg-yellow-dark text-dark-brown font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
             >
               {isGenerating ? (
                 <>
-                  <Loader className="w-5 h-5 animate-spin" />
+                  <Loader className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                   Generating Lexical Chunk Pack...
                 </>
               ) : (
                 <>
-                  <BookOpen className="w-5 h-5" />
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
                   Generate Lexical Chunk Pack
                 </>
               )}
