@@ -345,50 +345,50 @@ export default function LibraryPage() {
         <div className="flex flex-wrap gap-2 justify-end">
           <button
             onClick={() => handleFilterChange('dialogues')}
-            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               filter === 'dialogues'
                 ? 'bg-periwinkle text-white'
                 : 'bg-periwinkle-light text-periwinkle-dark hover:bg-periwinkle/20'
             }`}
             data-testid="library-filter-dialogues"
           >
-            <MessageSquare className="w-4 h-4" />
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Dialogues
           </button>
           <button
             onClick={() => handleFilterChange('courses')}
-            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               filter === 'courses'
                 ? 'bg-coral text-white'
                 : 'bg-coral-light text-coral-dark hover:bg-coral/20'
             }`}
             data-testid="library-filter-courses"
           >
-            <Headphones className="w-4 h-4" />
+            <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Audio Courses
           </button>
           <button
             onClick={() => handleFilterChange('narrowListening')}
-            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               filter === 'narrowListening'
                 ? 'bg-strawberry text-white'
                 : 'bg-strawberry-light text-strawberry-dark hover:bg-strawberry/20'
             }`}
             data-testid="library-filter-narrow-listening"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Narrow Listening
           </button>
           <button
             onClick={() => handleFilterChange('chunkPacks')}
-            className={`px-4 py-2 rounded-full font-medium text-sm transition-colors flex items-center gap-2 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
               filter === 'chunkPacks'
                 ? 'bg-yellow text-dark-brown'
                 : 'bg-yellow-light text-dark-brown hover:bg-yellow/20'
             }`}
             data-testid="library-filter-chunk-packs"
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             Lexical Chunk Packs
           </button>
         </div>

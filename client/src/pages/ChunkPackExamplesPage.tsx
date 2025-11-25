@@ -166,8 +166,10 @@ export default function ChunkPackExamplesPage() {
     const element = exampleRefs.current.get(selectedExampleId);
     if (element) {
       // Calculate the offset needed to position below the sticky headers
-      // Header (105px) + Audio Player (~80px) + Chunk Header (~65px) + padding (20px) = ~270px
-      const offset = 270;
+      // Mobile: Header (~80px) + Audio Player (~60px) + Chunk Header (~55px) + padding (20px) = ~215px
+      // Desktop: Header (105px) + Audio Player (~80px) + Chunk Header (~65px) + padding (20px) = ~270px
+      const isMobile = window.innerWidth < 640;
+      const offset = isMobile ? 215 : 270;
 
       const elementTop = element.getBoundingClientRect().top + window.pageYOffset;
       const scrollToPosition = elementTop - offset;
@@ -193,22 +195,14 @@ export default function ChunkPackExamplesPage() {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => navigate('/app/library')}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </button>
-            <h1 className="text-lg font-semibold text-navy">Step 1: Examples with Audio</h1>
-            <div className="w-20" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+          <div className="flex items-center justify-center mb-2 sm:mb-3 relative">
+            <h1 className="text-base sm:text-lg font-semibold text-navy">Step 1: Examples with Audio</h1>
           </div>
 
           {/* Speed Control */}
           <div className="flex items-center justify-center gap-2">
-            <span className="text-sm text-gray-600">Speed:</span>
+            <span className="text-xs sm:text-sm text-gray-600">Speed:</span>
             <SpeedSelector
               selectedSpeed={playbackSpeed}
               onSpeedChange={(speed) => setPlaybackSpeed(speed as PlaybackSpeed)}
@@ -221,8 +215,8 @@ export default function ChunkPackExamplesPage() {
 
       {/* Sticky Audio Player */}
       {currentAudioUrl && (
-        <div className="sticky top-[105px] z-10 bg-white border-b shadow-md">
-          <div className="max-w-4xl mx-auto px-6 py-3">
+        <div className="sticky top-[80px] sm:top-[105px] z-10 bg-white border-b shadow-md">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
             <AudioPlayer
               src={currentAudioUrl}
               audioRef={audioRef}
@@ -236,27 +230,27 @@ export default function ChunkPackExamplesPage() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="card bg-white shadow-xl mb-6">
-          <h2 className="text-2xl font-bold text-navy mb-6">{pack.title}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-navy mb-4 sm:mb-6">{pack.title}</h2>
 
           {/* Examples by Chunk */}
-          <div className="space-y-8">
+          <div className="space-y-6 sm:space-y-8">
             {pack.chunks.map((chunk, chunkIndex) => (
               <div key={chunk.id} className="relative">
                 {/* Sticky Chunk Header */}
                 <div
-                  className="sticky top-[170px] z-[5] bg-white border-l-4 border-emerald-500 pl-4 py-3 mb-4"
+                  className="sticky top-[140px] sm:top-[170px] z-[5] bg-white border-l-4 border-emerald-500 pl-3 sm:pl-4 py-2 sm:py-3 mb-3 sm:mb-4"
                   style={{
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
                   }}
                 >
-                  <h3 className="text-xl font-bold text-navy mb-1">{chunk.form}</h3>
-                  <p className="text-sm text-gray-600">{chunk.translation}</p>
+                  <h3 className="text-lg sm:text-xl font-bold text-navy mb-1">{chunk.form}</h3>
+                  <p className="text-xs sm:text-sm text-gray-600">{chunk.translation}</p>
                 </div>
 
                 {/* Examples */}
-                <div className="space-y-3 pl-4">
+                <div className="space-y-2 sm:space-y-3 pl-2 sm:pl-4">
                   {chunk.examples.map((example) => {
                     const isSelected = selectedExampleId === example.id;
 
@@ -268,7 +262,7 @@ export default function ChunkPackExamplesPage() {
                           else exampleRefs.current.delete(example.id);
                         }}
                         onClick={() => example.audioUrl && handleExampleClick(example.id)}
-                        className={`rounded-lg p-4 transition-all cursor-pointer ${
+                        className={`rounded-lg p-3 sm:p-4 transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-50 border-2 border-emerald-300'
                             : 'bg-gray-50 border-2 border-transparent hover:border-gray-200'
@@ -279,7 +273,7 @@ export default function ChunkPackExamplesPage() {
                         )}
 
                         <div>
-                          <p className="text-lg text-gray-900 mb-1">{example.sentence}</p>
+                          <p className="text-base sm:text-lg text-gray-900 mb-1">{example.sentence}</p>
                           <p className="text-sm text-gray-600">{example.english}</p>
                         </div>
                       </div>

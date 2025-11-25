@@ -109,6 +109,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed Processing Instruction from periwinkle to keylime to avoid conflict with Dialogues
 
 ### Fixed
+- **[fix]** Critical mobile viewport fixes for playback and content pages (commit: 25ae7f0)
+  - ChunkPackExamplesPage: Removed back button from first page, fixed sticky positioning and scroll calculations for mobile
+  - PlaybackPage: Complete mobile redesign with vertical stacking, smaller avatars (48px vs 96px), and responsive text sizing
+  - LibraryPage: Fixed filter button overflow with responsive sizing and whitespace-nowrap
 - SpeedSelector now shows white text when selected across all color variants (commit: 88f812d)
 - Added data-testid to login submit button to prevent test ambiguity (commit: 418a367)
 - **[fix]** Navigation shift when switching between Library and Create pages (commit: baa355c)
