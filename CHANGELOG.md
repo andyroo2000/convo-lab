@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[perf]** Memoized expensive operations in LibraryPage
   - Filter and sort operations now wrapped in useMemo
   - Prevents recalculation on unrelated state changes
+- **[perf]** Cache invalidation for content creation
+  - Added `useInvalidateLibrary` hook for cache management
+  - Library cache invalidated when creating: dialogues, courses, narrow listening packs, chunk packs
+  - Ensures new content appears immediately in library view
 
 ### Changed
 - Initial changelog setup with /commit slash command

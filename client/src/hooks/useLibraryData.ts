@@ -1,6 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { Episode, Course } from '../types';
 import { API_URL } from '../config';
+
+// Invalidate library cache - call this after creating new content
+export function invalidateLibraryCache(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+}
+
+// Hook version for components
+export function useInvalidateLibrary() {
+  const queryClient = useQueryClient();
+  return () => invalidateLibraryCache(queryClient);
+}
 
 // Library-specific types with _count instead of full relations
 export type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {

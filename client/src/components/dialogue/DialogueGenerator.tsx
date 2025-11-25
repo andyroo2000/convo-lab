@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LanguageCode, ProficiencyLevel, ToneStyle, AudioSpeed } from '../../types';
+import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
+import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useAuth } from '../../contexts/AuthContext';
 import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
@@ -23,6 +24,7 @@ export default function DialogueGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { createEpisode, generateDialogue, generateAllSpeedsAudio, getEpisode, pollJobStatus, loading, error } = useEpisodes();
+  const invalidateLibrary = useInvalidateLibrary();
 
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
@@ -95,6 +97,9 @@ export default function DialogueGenerator() {
         }
 
         setStep('complete');
+
+        // Invalidate library cache so new episode shows up
+        invalidateLibrary();
 
         // Navigate to playback page
         setTimeout(() => {
