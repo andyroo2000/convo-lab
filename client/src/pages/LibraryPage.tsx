@@ -190,9 +190,9 @@ export default function LibraryPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-end mb-6">
+      <div className="flex items-center justify-center sm:justify-end mb-6">
         {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
           <button
             onClick={() => handleFilterChange('dialogues')}
             className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
