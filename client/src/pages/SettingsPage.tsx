@@ -334,61 +334,61 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-3 mb-8">
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
         <button
           onClick={() => navigate('/app/settings/profile')}
-          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'profile'
               ? 'border-periwinkle bg-periwinkle text-white shadow-md'
               : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-profile"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <User className="w-4 h-4" />
-            Profile
+            <span className="hidden xs:inline">Profile</span>
           </div>
         </button>
         <button
           onClick={() => navigate('/app/settings/language')}
-          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'language'
               ? 'border-periwinkle bg-periwinkle text-white shadow-md'
               : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-language"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Languages className="w-4 h-4" />
-            Language
+            <span className="hidden xs:inline">Language</span>
           </div>
         </button>
         <button
           onClick={() => navigate('/app/settings/security')}
-          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'security'
               ? 'border-periwinkle bg-periwinkle text-white shadow-md'
               : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-security"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Lock className="w-4 h-4" />
-            Security
+            <span className="hidden xs:inline">Security</span>
           </div>
         </button>
         <button
           onClick={() => navigate('/app/settings/danger')}
-          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'danger'
               ? 'border-strawberry bg-strawberry text-white shadow-md'
               : 'border-gray-200 bg-white text-gray-700 hover:border-strawberry hover:bg-strawberry-light'
           }`}
           data-testid="settings-tab-danger"
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Trash2 className="w-4 h-4" />
-            Danger Zone
+            <span className="hidden xs:inline">Danger Zone</span>
           </div>
         </button>
       </div>
