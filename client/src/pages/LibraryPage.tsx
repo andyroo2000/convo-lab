@@ -1,67 +1,41 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
-import { useEpisodes } from '../hooks/useEpisodes';
+import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '../hooks/useLibraryData';
 import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyStateCard from '../components/EmptyStateCard';
-import Pill from '../components/common/Pill';
-import SegmentedPill from '../components/common/SegmentedPill';
 import LanguageLevelPill from '../components/common/LanguageLevelPill';
-
-import { API_URL } from '../config';
-
-// Library-specific Course type with _count instead of full relations
-type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {
-  _count?: {
-    lessons: number;
-  };
-};
-
-interface NarrowListeningPack {
-  id: string;
-  title: string;
-  topic: string;
-  targetLanguage: string;
-  jlptLevel: string;
-  status: string;
-  createdAt: string;
-  _count: {
-    versions: number;
-  };
-}
-
-interface ChunkPack {
-  id: string;
-  title: string;
-  theme: string;
-  targetLanguage: string;
-  jlptLevel: string;
-  status: string;
-  createdAt: string;
-  _count: {
-    examples: number;
-    stories: number;
-    exercises: number;
-  };
-}
+import Pill from '../components/common/Pill';
 
 type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
 
 export default function LibraryPage() {
-  const { deleteEpisode } = useEpisodes();
+  const {
+    episodes,
+    courses,
+    narrowListeningPacks,
+    chunkPacks,
+    isLoading,
+    error,
+    deleteEpisode,
+    deleteCourse,
+    deleteNarrowListeningPack,
+    deleteChunkPack,
+    isDeletingEpisode,
+    isDeletingCourse,
+    isDeletingNarrowListening,
+    isDeletingChunkPack,
+  } = useLibraryData();
+
   const [searchParams, setSearchParams] = useSearchParams();
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
-  const [courses, setCourses] = useState<LibraryCourse[]>([]);
-  const [narrowListeningPacks, setNarrowListeningPacks] = useState<NarrowListeningPack[]>([]);
-  const [chunkPacks, setChunkPacks] = useState<ChunkPack[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Combined deleting state for modal
+  const isDeleting = isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening || isDeletingChunkPack;
 
   // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
@@ -93,88 +67,6 @@ export default function LibraryPage() {
     }
   };
 
-  useEffect(() => {
-    loadEpisodes();
-    loadCourses();
-    loadNarrowListeningPacks();
-    loadChunkPacks();
-  }, []);
-
-  const loadEpisodes = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_URL}/api/episodes?library=true`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch episodes');
-      }
-
-      const data = await response.json();
-      setEpisodes(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCourses = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/courses?library=true`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
-
-      const data = await response.json();
-      setCourses(data);
-    } catch (err) {
-      console.error('Error loading courses:', err);
-      // Don't set error for courses - they're optional
-    }
-  };
-
-  const loadNarrowListeningPacks = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/narrow-listening?library=true`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch narrow listening packs');
-      }
-
-      const data = await response.json();
-      setNarrowListeningPacks(data);
-    } catch (err) {
-      console.error('Error loading narrow listening packs:', err);
-      // Don't set error - they're optional
-    }
-  };
-
-  const loadChunkPacks = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/chunk-packs?library=true`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch chunk packs');
-      }
-
-      const data = await response.json();
-      setChunkPacks(data);
-    } catch (err) {
-      console.error('Error loading chunk packs:', err);
-      // Don't set error - they're optional
-    }
-  };
-
   const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -184,17 +76,11 @@ export default function LibraryPage() {
   const handleConfirmDelete = async () => {
     if (!episodeToDelete) return;
 
-    setIsDeleting(true);
     try {
       await deleteEpisode(episodeToDelete.id);
-      // Refresh episodes list
-      await loadEpisodes();
       setEpisodeToDelete(null);
     } catch (err) {
       console.error('Failed to delete episode:', err);
-      // Error is already handled in the hook
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -207,25 +93,12 @@ export default function LibraryPage() {
   const handleConfirmDeletePack = async () => {
     if (!packToDelete) return;
 
-    setIsDeleting(true);
     try {
-      const response = await fetch(`${API_URL}/api/narrow-listening/${packToDelete.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete pack');
-      }
-
-      // Refresh packs list
-      await loadNarrowListeningPacks();
+      await deleteNarrowListeningPack(packToDelete.id);
       setPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete pack:', err);
       alert('Failed to delete pack. Please try again.');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -238,25 +111,12 @@ export default function LibraryPage() {
   const handleConfirmDeleteChunkPack = async () => {
     if (!chunkPackToDelete) return;
 
-    setIsDeleting(true);
     try {
-      const response = await fetch(`${API_URL}/api/chunk-packs/${chunkPackToDelete.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete chunk pack');
-      }
-
-      // Refresh chunk packs list
-      await loadChunkPacks();
+      await deleteChunkPack(chunkPackToDelete.id);
       setChunkPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete chunk pack:', err);
       alert('Failed to delete chunk pack. Please try again.');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
@@ -278,43 +138,33 @@ export default function LibraryPage() {
   const handleConfirmDeleteCourse = async () => {
     if (!courseToDelete) return;
 
-    setIsDeleting(true);
     try {
-      const response = await fetch(`${API_URL}/api/courses/${courseToDelete.id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete course');
-      }
-
-      // Refresh courses list
-      await loadCourses();
+      await deleteCourse(courseToDelete.id);
       setCourseToDelete(null);
     } catch (err) {
       console.error('Failed to delete course:', err);
       alert('Failed to delete course. Please try again.');
-    } finally {
-      setIsDeleting(false);
     }
   };
 
-  // Filter content based on selected filter
-  const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
-  const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
-  const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
-  const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
+  // Memoize filtered and sorted items to avoid expensive recalculations
+  const allItems = useMemo(() => {
+    // Filter content based on selected filter
+    const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
+    const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
+    const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
+    const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
 
-  // Combine and sort by date
-  const allItems = [
-    ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
-    ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
-    ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
-    ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
-  ].sort((a, b) => b.date.getTime() - a.date.getTime());
+    // Combine and sort by date
+    return [
+      ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
+      ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
+      ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
+      ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
+    ].sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [filter, episodes, courses, narrowListeningPacks, chunkPacks]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div>
         <div className="card text-center py-12">
@@ -330,7 +180,7 @@ export default function LibraryPage() {
       <div>
         <div className="card text-center py-12">
           <p className="text-red-600 mb-4">Error: {error}</p>
-          <button onClick={loadEpisodes} className="btn-outline">
+          <button onClick={() => window.location.reload()} className="btn-outline">
             Try Again
           </button>
         </div>
@@ -725,7 +575,7 @@ export default function LibraryPage() {
         cancelLabel="Cancel"
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
-        isLoading={isDeleting}
+        isLoading={isDeletingEpisode}
       />
 
       {/* Delete Course Confirmation Modal */}
@@ -737,7 +587,7 @@ export default function LibraryPage() {
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeleteCourse}
         onCancel={handleCancelDelete}
-        isLoading={isDeleting}
+        isLoading={isDeletingCourse}
       />
 
       {/* Delete Narrow Listening Pack Confirmation Modal */}
@@ -749,7 +599,7 @@ export default function LibraryPage() {
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeletePack}
         onCancel={handleCancelDelete}
-        isLoading={isDeleting}
+        isLoading={isDeletingNarrowListening}
       />
 
       {/* Delete Chunk Pack Confirmation Modal */}
@@ -761,7 +611,7 @@ export default function LibraryPage() {
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeleteChunkPack}
         onCancel={handleCancelDelete}
-        isLoading={isDeleting}
+        isLoading={isDeletingChunkPack}
       />
     </div>
   );

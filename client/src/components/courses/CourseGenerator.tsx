@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 import { TTS_VOICES } from '../../../../shared/src/constants';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const invalidateLibrary = useInvalidateLibrary();
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>('en');
@@ -101,6 +103,9 @@ export default function CourseGenerator() {
       }
 
       setStep('complete');
+
+      // Invalidate library cache so new course shows up
+      invalidateLibrary();
 
       // Navigate to library page after a short delay
       setTimeout(() => {

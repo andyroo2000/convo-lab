@@ -8,6 +8,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[perf]** React Query integration for LibraryPage with automatic caching and request deduplication
+  - Created `useLibraryData` hook with parallel queries for episodes, courses, narrow listening, and chunk packs
+  - 5-minute staleTime prevents redundant API calls on navigation
+  - Delete mutations with automatic cache invalidation
+- **[perf]** React Query integration for PlaybackPage avatar fetching
+  - Created `useSpeakerAvatars` hook with 30-minute cache for avatar data
+  - Replaces module-scoped cache that was lost on navigation
+- **[perf]** Route-level code splitting with React.lazy()
+  - All 18 page components now lazy-loaded for smaller initial bundle
+  - Added PageLoader fallback component during chunk loading
+- **[perf]** Server-side Cache-Control headers for avatar endpoint
+  - 1-hour browser cache, 1-day CDN cache for speaker avatars
+- **[perf]** React Query integration for CoursePage with automatic polling
+  - Created `useCourse` hook with automatic status polling during generation
+  - Uses React Query's refetchInterval for cleaner polling implementation
+  - Course data cached and automatically refreshed when generation completes
+- **[perf]** Vite build optimization with manual chunk splitting
+  - Vendor libraries split into separate cached chunks (react, router, framer-motion, wavesurfer, etc.)
+  - Improves long-term browser caching for unchanged dependencies
+- **[perf]** Memoized expensive operations in LibraryPage
+  - Filter and sort operations now wrapped in useMemo
+  - Prevents recalculation on unrelated state changes
+- **[perf]** Cache invalidation for content creation
+  - Added `useInvalidateLibrary` hook for cache management
+  - Library cache invalidated when creating: dialogues, courses, narrow listening packs, chunk packs
+  - Ensures new content appears immediately in library view
+
+### Changed
 - Initial changelog setup with /commit slash command
 - Comprehensive data-testid attributes across all components for Playwright E2E testing (commit: da7b820)
 - /pr slash command for automated pull request creation with generated descriptions (commit: ee40f3b)

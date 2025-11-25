@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Loader } from 'lucide-react';
-
+import { BookOpen, Loader } from 'lucide-react';
+import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { API_URL } from '../config';
 
 type JLPTLevel = 'N5' | 'N4' | 'N3';
@@ -58,6 +58,7 @@ function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
 
 export default function ChunkPackSetupPage() {
   const navigate = useNavigate();
+  const invalidateLibrary = useInvalidateLibrary();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
   const [theme, setTheme] = useState<ChunkPackTheme>('daily_routine');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -112,6 +113,8 @@ export default function ChunkPackSetupPage() {
         setProgress(jobData.progress || 0);
 
         if (jobData.state === 'completed') {
+          // Invalidate library cache so new pack shows up
+          invalidateLibrary();
           // Navigate to the pack examples
           navigate(`/app/chunk-packs/${jobData.result.packId}/examples`);
         } else if (jobData.state === 'failed') {

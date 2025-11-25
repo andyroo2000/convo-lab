@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Course, CourseStatusResponse } from '../types';
+import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { ArrowLeft, BookOpen, Clock } from 'lucide-react';
@@ -8,10 +8,8 @@ import { ArrowLeft, BookOpen, Clock } from 'lucide-react';
 export default function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
-  const [generationProgress, setGenerationProgress] = useState<number | null>(null);
   const { audioRef } = useAudioPlayer();
 
   // Inline editing state
@@ -20,95 +18,10 @@ export default function CoursePage() {
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
 
-  useEffect(() => {
-    if (courseId) {
-      loadCourse();
-    }
-  }, [courseId]);
-
-  const loadCourse = async () => {
-    try {
-      const response = await fetch(`/api/courses/${courseId}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load course');
-      }
-
-      const data = await response.json();
-      setCourse(data);
-    } catch (err) {
-      console.error('Error loading course:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Poll for course status while generating
-  useEffect(() => {
-    if (!course || course.status !== 'generating') {
-      setGenerationProgress(null);
-      return;
-    }
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`/api/courses/${courseId}/status`, {
-          credentials: 'include',
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to check course status');
-        }
-
-        const statusData: CourseStatusResponse = await response.json();
-
-        // Update progress
-        if (statusData.progress !== undefined) {
-          setGenerationProgress(statusData.progress);
-        }
-
-        // If done, reload course
-        if (statusData.status === 'ready' || statusData.status === 'error') {
-          clearInterval(pollInterval);
-          setGenerationProgress(null);
-          await loadCourse();
-        }
-      } catch (err) {
-        console.error('Error polling course status:', err);
-      }
-    }, 5000); // Poll every 5 seconds (reduced from 1s to minimize Redis usage)
-
-    return () => clearInterval(pollInterval);
-  }, [course, courseId]);
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const updateCourse = async (updates: { title?: string; description?: string }) => {
-    if (!courseId) return;
-
-    try {
-      const response = await fetch(`/api/courses/${courseId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(updates),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update course');
-      }
-
-      // Reload course to get updated data
-      await loadCourse();
-    } catch (err) {
-      console.error('Error updating course:', err);
-    }
   };
 
   const handleTitleEdit = () => {
@@ -147,7 +60,7 @@ export default function CoursePage() {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto">
         <div className="card text-center py-12">
