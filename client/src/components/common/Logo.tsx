@@ -13,13 +13,25 @@ export default function Logo({ size = 'medium', variant = 'light', className = '
     large: 'w-10 h-10',
   };
 
+  const textSizeMap = {
+    small: 'text-base',
+    medium: 'text-lg',
+    large: 'text-2xl',
+  };
+
   const iconSize = sizeMap[size];
+  const textSize = textSizeMap[size];
   const colorClass = variant === 'dark' ? 'text-dark-brown' : 'text-white';
 
   return (
-    <div className={`flex items-center gap-1 ${className}`}>
-      <MessageCircle className={`${iconSize} ${colorClass}`} />
-      <FlaskConical className={`${iconSize} ${colorClass}`} />
+    <div className={`flex items-center gap-2 ${className}`}>
+      <div className="flex items-center gap-1">
+        <MessageCircle className={`${iconSize} ${colorClass}`} />
+        <FlaskConical className={`${iconSize} ${colorClass}`} />
+      </div>
+      <span className={`hidden sm:inline font-bold ${textSize} ${colorClass}`}>
+        ConvoLab
+      </span>
     </div>
   );
 }
