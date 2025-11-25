@@ -183,7 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ChunkPackExercisesPage: Responsive exercise cards, options, and explanation boxes
   - Reduced padding throughout for mobile (px-4 on mobile, px-6 on desktop)
   - Smaller text sizes and icons on mobile with sm: breakpoints
-- **[fix]** Remove gradient and fix mobile pill visibility (commit: b53b8cb)
+- **[fix]** Remove gradient and fix mobile pill visibility (commit: f5cb7af)
   - Changed LanguageLevelSidebar to use solid strawberry background (removed gradient)
   - Added className prop to LanguageLevelPill to support visibility classes
   - Reverted SegmentedPill to horizontal-only layout (desktop only)
