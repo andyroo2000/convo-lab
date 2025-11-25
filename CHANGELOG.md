@@ -32,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maintains default white icons for rest of app
 
 ### Changed
+- **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)
+  - Description headings increased from base to xl
+  - Body text and section labels increased for better readability
+  - Japanese grammar point names increased from sm to lg
+  - Japanese sentences in PI session increased from 2xl to 3xl
+  - Improved visual hierarchy and accessibility throughout
 - **[style]** Implemented bold, editorial design system with saturated colors throughout the app (commit: 8b2a6e7)
   - Replaced all desaturated colors with bold, saturated alternatives for a more confident visual language
   - Removed all gradients in favor of solid color blocks

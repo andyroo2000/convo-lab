@@ -130,8 +130,8 @@ export default function PISetupPage() {
         <div className="bg-white border-l-8 border-keylime p-8 shadow-sm">
           {/* Description */}
           <div className="bg-keylime-light border-l-4 border-keylime p-6 mb-8">
-            <h2 className="text-base font-bold text-dark-brown mb-3">What is Processing Instruction?</h2>
-            <p className="text-base text-gray-700 leading-relaxed">
+            <h2 className="text-xl font-bold text-dark-brown mb-3">What is Processing Instruction?</h2>
+            <p className="text-lg text-gray-700 leading-relaxed">
               Processing Instruction (PI) helps you understand Japanese grammar through <strong>meaning-based tasks</strong>.
               You'll hear Japanese sentences and answer questions about <em>what they mean</em> - not which grammar form was used.
               This trains your brain to process grammar correctly in real-time comprehension.
@@ -142,7 +142,7 @@ export default function PISetupPage() {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-4">
+              <label className="block text-lg font-bold text-dark-brown mb-4">
                 Select Your Level
               </label>
               <div className="grid grid-cols-4 gap-3">
@@ -157,7 +157,7 @@ export default function PISetupPage() {
                     }`}
                   >
                     <div className="text-xl font-bold">{level}</div>
-                    <div className="text-xs mt-1 font-medium">
+                    <div className="text-sm mt-1 font-medium">
                       {level === 'N5' && 'Beginner'}
                       {level === 'N4' && 'Elementary'}
                       {level === 'N3' && 'Intermediate'}
@@ -170,7 +170,7 @@ export default function PISetupPage() {
 
             {/* Grammar Point Selection */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-4">
+              <label className="block text-lg font-bold text-dark-brown mb-4">
                 Select Grammar Point
               </label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-h-64 overflow-y-auto p-2">
@@ -186,8 +186,8 @@ export default function PISetupPage() {
                           : 'border-gray-200 bg-white text-gray-700 hover:border-keylime hover:bg-keylime-light'
                       }`}
                     >
-                      <div className="font-bold text-sm">{gp.name}</div>
-                      <div className={`text-xs mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
+                      <div className="font-bold text-lg">{gp.name}</div>
+                      <div className={`text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
                     </button>
                   );
                 })}
@@ -196,7 +196,7 @@ export default function PISetupPage() {
 
             {/* Item Count Selection */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-4">
+              <label className="block text-lg font-bold text-dark-brown mb-4">
                 Number of Items
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -211,7 +211,7 @@ export default function PISetupPage() {
                     }`}
                   >
                     <div className="text-2xl font-bold">{count}</div>
-                    <div className="text-xs mt-1">
+                    <div className="text-sm mt-1">
                       {count === 10 ? '~5-7 minutes' : '~8-10 minutes'}
                     </div>
                   </button>
