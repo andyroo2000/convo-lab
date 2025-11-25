@@ -15,7 +15,7 @@ export default function LandingPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold text-dark-brown">ConvoLab</h1>
-              <Logo size="medium" />
+              <Logo size="medium" variant="dark" />
             </div>
             <div className="flex items-center gap-3">
               {user ? (
@@ -165,7 +165,7 @@ export default function LandingPage() {
         <div className="text-center">
           <div className="flex items-center justify-center gap-2 mb-4">
             <span className="text-xl font-bold text-dark-brown">ConvoLab</span>
-            <Logo size="small" />
+            <Logo size="small" variant="dark" />
           </div>
           <p className="text-medium-brown">
             Your personal AI language lab

@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Large 12x12 icons in white on saturated backgrounds
   - Simplified content with title + one-line description per activity type
   - Matches Library page aesthetic for consistent design language
+- **[feat]** Dark logo variant for landing page visibility (commit: 1be2feb)
+  - Added variant prop ('light' | 'dark') to Logo component
+  - Dark variant uses dark-brown color for icons on light backgrounds
+  - Maintains default white icons for rest of app
 
 ### Changed
 - **[style]** Implemented bold, editorial design system with saturated colors throughout the app (commit: 8b2a6e7)
