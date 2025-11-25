@@ -47,6 +47,12 @@ export default function SettingsPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
+  // Language preferences save states
+  const [proficiencySaveMessage, setProficiencySaveMessage] = useState<string | null>(null);
+  const [studyLanguageSaveMessage, setStudyLanguageSaveMessage] = useState<string | null>(null);
+  const [nativeLanguageSaveMessage, setNativeLanguageSaveMessage] = useState<string | null>(null);
+  const [pinyinSaveMessage, setPinyinSaveMessage] = useState<string | null>(null);
+
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
@@ -62,6 +68,36 @@ export default function SettingsPage() {
     setToastVisible(true);
   };
 
+  // Auto-save study language when it changes
+  const handleStudyLanguageChange = async (lang: LanguageCode) => {
+    setPreferredStudyLanguage(lang);
+    setStudyLanguageSaveMessage(null);
+
+    try {
+      await updateUser({ preferredStudyLanguage: lang });
+      setStudyLanguageSaveMessage('Saved!');
+      setTimeout(() => setStudyLanguageSaveMessage(null), 2000);
+    } catch (err: any) {
+      setStudyLanguageSaveMessage('Failed to save');
+      setTimeout(() => setStudyLanguageSaveMessage(null), 3000);
+    }
+  };
+
+  // Auto-save native language when it changes
+  const handleNativeLanguageChange = async (lang: LanguageCode) => {
+    setPreferredNativeLanguage(lang);
+    setNativeLanguageSaveMessage(null);
+
+    try {
+      await updateUser({ preferredNativeLanguage: lang });
+      setNativeLanguageSaveMessage('Saved!');
+      setTimeout(() => setNativeLanguageSaveMessage(null), 2000);
+    } catch (err: any) {
+      setNativeLanguageSaveMessage('Failed to save');
+      setTimeout(() => setNativeLanguageSaveMessage(null), 3000);
+    }
+  };
+
   // Auto-save proficiency level when it changes
   const handleProficiencyLevelChange = async (level: string) => {
     const isJLPT = level.startsWith('N');
@@ -71,11 +107,30 @@ export default function SettingsPage() {
       setHskLevel(level);
     }
 
+    setProficiencySaveMessage(null);
+
     try {
       await updateUser({ proficiencyLevel: level });
-      showToast('Proficiency level saved', 'success');
+      setProficiencySaveMessage('Saved!');
+      setTimeout(() => setProficiencySaveMessage(null), 2000);
     } catch (err: any) {
-      showToast(err.message || 'Failed to save proficiency level', 'error');
+      setProficiencySaveMessage('Failed to save');
+      setTimeout(() => setProficiencySaveMessage(null), 3000);
+    }
+  };
+
+  // Auto-save pinyin display mode when it changes
+  const handlePinyinModeChange = async (mode: 'toneMarks' | 'toneNumbers') => {
+    setPinyinDisplayMode(mode);
+    setPinyinSaveMessage(null);
+
+    try {
+      await updateUser({ pinyinDisplayMode: mode });
+      setPinyinSaveMessage('Saved!');
+      setTimeout(() => setPinyinSaveMessage(null), 2000);
+    } catch (err: any) {
+      setPinyinSaveMessage('Failed to save');
+      setTimeout(() => setPinyinSaveMessage(null), 3000);
     }
   };
 
@@ -271,35 +326,21 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <button
-          onClick={() => navigate('/app/create')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to the lab
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-            <Settings className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-navy">Settings</h1>
-            <p className="text-gray-600 mt-1">Manage your account preferences</p>
-          </div>
-        </div>
+      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">Settings</h1>
+        <p className="text-xl text-gray-600">Manage your account preferences</p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      <div className="flex gap-3 mb-8">
         <button
           onClick={() => navigate('/app/settings/profile')}
-          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
             activeTab === 'profile'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-profile"
         >
@@ -310,10 +351,10 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => navigate('/app/settings/language')}
-          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
             activeTab === 'language'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-language"
         >
@@ -324,10 +365,10 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => navigate('/app/settings/security')}
-          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
             activeTab === 'security'
-              ? 'border-indigo-600 text-indigo-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
           }`}
           data-testid="settings-tab-security"
         >
@@ -338,10 +379,10 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => navigate('/app/settings/danger')}
-          className={`px-4 py-3 font-medium transition-colors border-b-2 ${
+          className={`px-6 py-3 rounded-lg border-2 font-bold transition-all ${
             activeTab === 'danger'
-              ? 'border-red-600 text-red-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900 hover:text-red-600'
+              ? 'border-strawberry bg-strawberry text-white shadow-md'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-strawberry hover:bg-strawberry-light'
           }`}
           data-testid="settings-tab-danger"
         >
@@ -366,8 +407,9 @@ export default function SettingsPage() {
 
       {/* Profile Settings Card */}
       {activeTab === 'profile' && (
-        <div className="card bg-white shadow-lg mb-6">
-          <h2 className="text-xl font-bold text-navy mb-6">Profile Settings</h2>
+        <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">Profile Settings</h2>
 
           {/* Avatar */}
           <div className="mb-6">
@@ -429,19 +471,19 @@ export default function SettingsPage() {
 
           {/* Display Name Section */}
           <div className="mb-8">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Display Name
             </label>
             <input
               type="text"
-              className="input"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               placeholder="Enter your display name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               maxLength={50}
               data-testid="settings-input-display-name"
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-sm text-gray-500 mt-2">
               This is the name that will be displayed throughout the app
             </p>
           </div>
@@ -451,7 +493,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={!hasChanges() || isSaving}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="settings-button-save"
             >
               {isSaving ? 'Saving...' : 'Save Changes'}
@@ -459,51 +501,57 @@ export default function SettingsPage() {
             <button
               onClick={handleCancel}
               disabled={!hasChanges() || isSaving}
-              className="btn-outline disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-8 py-3 border-2 border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
               data-testid="settings-button-cancel"
             >
               Cancel
             </button>
           </div>
         </div>
+        </div>
       )}
 
       {/* Language Preferences Card */}
       {activeTab === 'language' && (
-        <div className="card bg-white shadow-lg mb-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Languages className="w-5 h-5 text-gray-700" />
-          <h2 className="text-xl font-bold text-navy">Language Preferences</h2>
-        </div>
+        <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">Language Preferences</h2>
 
         {/* Study Language */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
+          <label className="block text-base font-bold text-dark-brown mb-3">
             Study Language
           </label>
           <select
             value={preferredStudyLanguage}
-            onChange={(e) => setPreferredStudyLanguage(e.target.value as LanguageCode)}
-            className="input"
+            onChange={(e) => handleStudyLanguageChange(e.target.value as LanguageCode)}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-study-language"
           >
             <option value="ja">Japanese (日本語)</option>
             <option value="zh">Mandarin Chinese (中文)</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Your primary target language for learning
-          </p>
+          {studyLanguageSaveMessage && (
+            <p className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              {studyLanguageSaveMessage}
+            </p>
+          )}
+          {!studyLanguageSaveMessage && (
+            <p className="text-sm text-gray-500 mt-2">
+              Your primary target language for learning
+            </p>
+          )}
         </div>
 
         {/* Native Language */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
+          <label className="block text-base font-bold text-dark-brown mb-3">
             Native Language
           </label>
           <select
             value={preferredNativeLanguage}
-            onChange={(e) => setPreferredNativeLanguage(e.target.value as LanguageCode)}
-            className="input"
+            onChange={(e) => handleNativeLanguageChange(e.target.value as LanguageCode)}
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-native-language"
           >
             <option value="en">English</option>
@@ -512,21 +560,28 @@ export default function SettingsPage() {
             <option value="zh">Chinese (中文)</option>
             <option value="ja">Japanese (日本語)</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">
-            Your first language, used for translations
-          </p>
+          {nativeLanguageSaveMessage && (
+            <p className={`text-sm font-medium mt-2 ${nativeLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              {nativeLanguageSaveMessage}
+            </p>
+          )}
+          {!nativeLanguageSaveMessage && (
+            <p className="text-sm text-gray-500 mt-2">
+              Your first language, used for translations
+            </p>
+          )}
         </div>
 
         {/* Proficiency Level */}
         {preferredStudyLanguage === 'ja' && (
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Current JLPT Level
             </label>
             <select
               value={jlptLevel}
               onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-              className="input"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-jlpt-level"
             >
               <option value="N5">N5 (Beginner)</option>
@@ -535,21 +590,28 @@ export default function SettingsPage() {
               <option value="N2">N2 (Upper Intermediate)</option>
               <option value="N1">N1 (Advanced)</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              This helps us generate content at the right difficulty level
-            </p>
+            {proficiencySaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {proficiencySaveMessage}
+              </p>
+            )}
+            {!proficiencySaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                This helps us generate content at the right difficulty level
+              </p>
+            )}
           </div>
         )}
 
         {preferredStudyLanguage === 'zh' && (
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Current HSK Level
             </label>
             <select
               value={hskLevel}
               onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-              className="input"
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-hsk-level"
             >
               <option value="HSK1">HSK 1 (Beginner)</option>
@@ -559,16 +621,23 @@ export default function SettingsPage() {
               <option value="HSK5">HSK 5 (Advanced)</option>
               <option value="HSK6">HSK 6 (Mastery)</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              This helps us generate content at the right difficulty level
-            </p>
+            {proficiencySaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {proficiencySaveMessage}
+              </p>
+            )}
+            {!proficiencySaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                This helps us generate content at the right difficulty level
+              </p>
+            )}
           </div>
         )}
 
         {/* Pinyin Display Mode (only shown when study language is Chinese) */}
         {preferredStudyLanguage === 'zh' && (
           <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-900 mb-2">
+            <label className="block text-base font-bold text-dark-brown mb-3">
               Pinyin Display Format
             </label>
             <div className="flex gap-4">
@@ -578,11 +647,11 @@ export default function SettingsPage() {
                   name="pinyinMode"
                   value="toneMarks"
                   checked={pinyinDisplayMode === 'toneMarks'}
-                  onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
-                  className="w-4 h-4 text-indigo-600"
+                  onChange={(e) => handlePinyinModeChange(e.target.value as 'toneMarks' | 'toneNumbers')}
+                  className="w-4 h-4 text-periwinkle"
                   data-testid="settings-radio-pinyin-tone-marks"
                 />
-                <span className="text-sm text-gray-700">Tone marks (nǐ hǎo)</span>
+                <span className="text-base text-gray-700">Tone marks (nǐ hǎo)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -590,32 +659,34 @@ export default function SettingsPage() {
                   name="pinyinMode"
                   value="toneNumbers"
                   checked={pinyinDisplayMode === 'toneNumbers'}
-                  onChange={(e) => setPinyinDisplayMode(e.target.value as 'toneMarks' | 'toneNumbers')}
-                  className="w-4 h-4 text-indigo-600"
+                  onChange={(e) => handlePinyinModeChange(e.target.value as 'toneMarks' | 'toneNumbers')}
+                  className="w-4 h-4 text-periwinkle"
                   data-testid="settings-radio-pinyin-tone-numbers"
                 />
-                <span className="text-sm text-gray-700">Tone numbers (ni3 hao3)</span>
+                <span className="text-base text-gray-700">Tone numbers (ni3 hao3)</span>
               </label>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              Choose how pinyin is displayed above Chinese characters
-            </p>
+            {pinyinSaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${pinyinSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {pinyinSaveMessage}
+              </p>
+            )}
+            {!pinyinSaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                Choose how pinyin is displayed above Chinese characters
+              </p>
+            )}
           </div>
         )}
-
-        <p className="text-xs text-gray-500 border-t pt-4">
-          Your proficiency level will be saved automatically when you change it
-        </p>
+        </div>
         </div>
       )}
 
       {/* Change Password Card */}
       {activeTab === 'security' && (
-        <div className="card bg-white shadow-lg mb-6">
-        <div className="flex items-center gap-2 mb-6">
-          <Lock className="w-5 h-5 text-gray-700" />
-          <h2 className="text-xl font-bold text-navy">Change Password</h2>
-        </div>
+        <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">Change Password</h2>
 
         {/* Password Success/Error Messages */}
         {passwordSuccess && (
@@ -631,12 +702,12 @@ export default function SettingsPage() {
 
         {/* Current Password */}
         <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
+          <label className="block text-base font-bold text-dark-brown mb-3">
             Current Password
           </label>
           <input
             type="password"
-            className="input"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             placeholder="Enter your current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -647,12 +718,12 @@ export default function SettingsPage() {
 
         {/* New Password */}
         <div className="mb-4">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
+          <label className="block text-base font-bold text-dark-brown mb-3">
             New Password
           </label>
           <input
             type="password"
-            className="input"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             placeholder="Enter your new password (min 8 characters)"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -663,12 +734,12 @@ export default function SettingsPage() {
 
         {/* Confirm New Password */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-900 mb-2">
+          <label className="block text-base font-bold text-dark-brown mb-3">
             Confirm New Password
           </label>
           <input
             type="password"
-            className="input"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             placeholder="Confirm your new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -682,41 +753,44 @@ export default function SettingsPage() {
           <button
             onClick={handleChangePassword}
             disabled={isChangingPassword}
-            className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="settings-button-change-password"
           >
             {isChangingPassword ? 'Changing Password...' : 'Change Password'}
           </button>
         </div>
         </div>
+        </div>
       )}
 
       {/* Danger Zone Card */}
       {activeTab === 'danger' && (
-        <div className="card bg-white shadow-lg border-2 border-red-200">
-        <h2 className="text-xl font-bold text-red-700 mb-4">Danger Zone</h2>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <Trash2 className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-red-900 mb-1">Delete Account</h3>
-              <p className="text-sm text-red-700 mb-3">
-                Once you delete your account, there is no going back. This will permanently delete:
-              </p>
-              <ul className="text-sm text-red-700 list-disc list-inside space-y-1 mb-4">
-                <li>All your dialogues and episodes</li>
-                <li>All your audio courses</li>
-                <li>All your narrow listening packs</li>
-                <li>All your chunk packs</li>
-                <li>Your account information and settings</li>
-              </ul>
-              <button
-                onClick={() => setShowDeleteModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm"
-                data-testid="settings-button-delete-account"
-              >
-                Delete My Account
-              </button>
+        <div className="max-w-4xl mx-auto">
+        <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-strawberry mb-6">Danger Zone</h2>
+          <div className="bg-strawberry-light border-l-4 border-strawberry p-6">
+            <div className="flex items-start gap-3">
+              <Trash2 className="w-5 h-5 text-strawberry flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h3 className="font-bold text-lg text-dark-brown mb-2">Delete Account</h3>
+                <p className="text-base text-gray-700 mb-3">
+                  Once you delete your account, there is no going back. This will permanently delete:
+                </p>
+                <ul className="text-base text-gray-700 list-disc list-inside space-y-1 mb-4">
+                  <li>All your dialogues and episodes</li>
+                  <li>All your audio courses</li>
+                  <li>All your narrow listening packs</li>
+                  <li>All your chunk packs</li>
+                  <li>Your account information and settings</li>
+                </ul>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="px-6 py-3 bg-strawberry text-white rounded-lg hover:bg-strawberry-dark transition-colors font-bold"
+                  data-testid="settings-button-delete-account"
+                >
+                  Delete My Account
+                </button>
+              </div>
             </div>
           </div>
         </div>

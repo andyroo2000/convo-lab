@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added variant prop ('light' | 'dark') to Logo component
   - Dark variant uses dark-brown color for icons on light backgrounds
   - Maintains default white icons for rest of app
+- **[feat]** Auto-save with inline feedback for all Language Preferences (commit: 9c504ec)
+  - All fields now auto-save immediately on change with contextual "Saved!" messages
+  - Inline feedback appears directly below modified field instead of corner toast
+  - Study Language, Native Language, Pinyin Display Mode, and JLPT/HSK Level all auto-save
+  - Removed Save/Cancel buttons from Language Preferences tab
 
 ### Changed
 - **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)
