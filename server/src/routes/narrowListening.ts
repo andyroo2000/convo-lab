@@ -30,6 +30,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
           topic: true,
           targetLanguage: true,
           jlptLevel: true,
+          hskLevel: true,
           status: true,
           createdAt: true,
           updatedAt: true,
@@ -110,19 +111,46 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const {
       topic,
+      targetLanguage = 'ja',
       jlptLevel,
+      hskLevel,
       versionCount = 4,
       grammarFocus,
     } = req.body;
 
-    // Validate inputs
-    if (!topic || !jlptLevel) {
-      throw new AppError('Topic and JLPT level are required', 400);
+    // Validate topic
+    if (!topic) {
+      throw new AppError('Topic is required', 400);
     }
 
-    const validJlptLevels = ['N5', 'N4', 'N3', 'N2', 'N1'];
-    if (!validJlptLevels.includes(jlptLevel)) {
-      throw new AppError('Invalid JLPT level. Must be N5, N4, N3, N2, or N1', 400);
+    // Validate target language
+    const validLanguages = ['ja', 'zh'];
+    if (!validLanguages.includes(targetLanguage)) {
+      throw new AppError('Invalid target language. Must be ja (Japanese) or zh (Chinese)', 400);
+    }
+
+    // Validate proficiency level based on language
+    let proficiencyLevel: string;
+    if (targetLanguage === 'ja') {
+      if (!jlptLevel) {
+        throw new AppError('JLPT level is required for Japanese', 400);
+      }
+      const validJlptLevels = ['N5', 'N4', 'N3', 'N2', 'N1'];
+      if (!validJlptLevels.includes(jlptLevel)) {
+        throw new AppError('Invalid JLPT level. Must be N5, N4, N3, N2, or N1', 400);
+      }
+      proficiencyLevel = jlptLevel;
+    } else if (targetLanguage === 'zh') {
+      if (!hskLevel) {
+        throw new AppError('HSK level is required for Chinese', 400);
+      }
+      const validHskLevels = ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
+      if (!validHskLevels.includes(hskLevel)) {
+        throw new AppError('Invalid HSK level. Must be HSK1, HSK2, HSK3, HSK4, HSK5, or HSK6', 400);
+      }
+      proficiencyLevel = hskLevel;
+    } else {
+      throw new AppError('Invalid target language', 400);
     }
 
     if (versionCount < 3 || versionCount > 5) {
@@ -135,7 +163,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
         userId: req.userId!,
         title: 'Generating...', // Will be updated by the job
         topic,
-        jlptLevel,
+        targetLanguage,
+        jlptLevel: targetLanguage === 'ja' ? jlptLevel : null,
+        hskLevel: targetLanguage === 'zh' ? hskLevel : null,
         grammarFocus: grammarFocus || null,
         status: 'generating',
       },
@@ -146,7 +176,8 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     const job = await narrowListeningQueue.add('generate-narrow-listening', {
       packId: pack.id,
       topic,
-      jlptLevel,
+      targetLanguage,
+      proficiencyLevel,
       versionCount,
       grammarFocus: grammarFocus || '',
     });

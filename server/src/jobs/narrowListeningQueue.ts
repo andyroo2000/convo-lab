@@ -2,7 +2,7 @@ import { Queue, Worker } from 'bullmq';
 import { prisma } from '../db/client.js';
 import { generateNarrowListeningPack } from '../services/narrowListeningGenerator.js';
 import { generateNarrowListeningAudio } from '../services/narrowListeningAudioGenerator.js';
-import { processJapaneseBatch } from '../services/languageProcessor.js';
+import { processJapaneseBatch, processChineseBatch } from '../services/languageProcessor.js';
 import { TTS_VOICES } from '../../../shared/src/constants.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
@@ -14,7 +14,7 @@ export const narrowListeningQueue = new Queue('narrow-listening-generation', { c
  * Process narrow listening pack generation job
  */
 async function processNarrowListeningGeneration(job: any) {
-  const { packId, topic, jlptLevel, versionCount, grammarFocus } = job.data;
+  const { packId, topic, targetLanguage, proficiencyLevel, versionCount, grammarFocus } = job.data;
 
   try {
     console.log(`Starting narrow listening pack generation for pack ${packId}`);
@@ -28,10 +28,11 @@ async function processNarrowListeningGeneration(job: any) {
     await job.updateProgress(5);
 
     // STEP 1: Generate story content using Gemini
-    console.log(`Generating story content with Gemini...`);
+    console.log(`Generating story content with Gemini for ${targetLanguage}...`);
     const storyPack = await generateNarrowListeningPack(
       topic,
-      jlptLevel,
+      targetLanguage,
+      proficiencyLevel,
       versionCount,
       grammarFocus
     );
@@ -47,7 +48,7 @@ async function processNarrowListeningGeneration(job: any) {
     await job.updateProgress(20);
 
     // STEP 2: Create StoryVersion and StorySegment records
-    const japaneseVoices = TTS_VOICES.ja.voices;
+    const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || TTS_VOICES.ja.voices;
     const progressPerVersion = 70 / storyPack.versions.length; // 70% total for all versions (20% to 90%)
 
     for (let i = 0; i < storyPack.versions.length; i++) {
@@ -56,22 +57,32 @@ async function processNarrowListeningGeneration(job: any) {
 
       console.log(`Processing version ${i + 1}/${storyPack.versions.length}: ${version.title}`);
 
-      // Select a random Japanese voice for this version
-      const randomVoice = japaneseVoices[Math.floor(Math.random() * japaneseVoices.length)];
+      // Select a random voice for this version based on target language
+      const randomVoice = languageVoices[Math.floor(Math.random() * languageVoices.length)];
       const voiceId = randomVoice.id;
 
       console.log(`Selected voice: ${randomVoice.description} (${voiceId})`);
 
       // Process all segments through language processor in a single batch call
-      const segmentTexts = version.segments.map(seg => seg.japaneseText);
-      console.log(`[NL] Batching furigana for ${segmentTexts.length} segments`);
-      const furiganaResults = await processJapaneseBatch(segmentTexts);
-      console.log(`[NL] Furigana batch complete (1 call instead of ${segmentTexts.length})`);
+      const segmentTexts = version.segments.map(seg => seg.targetText);
+      let readings: string[] = [];
+
+      if (targetLanguage === 'ja') {
+        console.log(`[NL] Batching furigana for ${segmentTexts.length} segments`);
+        const furiganaResults = await processJapaneseBatch(segmentTexts);
+        readings = furiganaResults.map(r => r.furigana);
+        console.log(`[NL] Furigana batch complete (1 call instead of ${segmentTexts.length})`);
+      } else if (targetLanguage === 'zh') {
+        console.log(`[NL] Batching pinyin for ${segmentTexts.length} segments`);
+        const pinyinResults = await processChineseBatch(segmentTexts);
+        readings = pinyinResults.map(r => r.pinyinToneMarks);
+        console.log(`[NL] Pinyin batch complete (1 call instead of ${segmentTexts.length})`);
+      }
 
       const segmentData = version.segments.map((seg, idx) => ({
-        text: seg.japaneseText,
+        text: seg.targetText,
         translation: seg.englishTranslation,
-        reading: furiganaResults[idx].furigana, // Add furigana in bracket notation
+        reading: readings[idx] || '',
       }));
 
       await job.updateProgress(baseProgress + (progressPerVersion * 0.2));
@@ -111,7 +122,7 @@ async function processNarrowListeningGeneration(job: any) {
         data: audioResult.segments.map((seg: any, segIdx: number) => ({
           versionId: storyVersion.id,
           order: segIdx,
-          japaneseText: seg.text,
+          targetText: seg.text,
           englishTranslation: seg.translation,
           reading: seg.reading || null,
           audioUrl_0_7: null,
@@ -215,7 +226,7 @@ async function processOnDemandSpeedGeneration(job: any) {
 
       // Use existing segment data from database
       const segmentData = version.segments.map(seg => ({
-        text: seg.japaneseText,
+        text: seg.targetText,
         translation: seg.englishTranslation,
       }));
 

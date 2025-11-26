@@ -249,8 +249,9 @@ model NarrowListeningPack {
   userId         String
   title          String
   topic          String   @db.Text
-  targetLanguage String   @default("ja") // ISO 639-1 code (ja, es, fr, etc.)
-  jlptLevel      String   // N5, N4, N3, N2, N1
+  targetLanguage String   @default("ja") // ISO 639-1 code (ja, zh)
+  jlptLevel      String?  // N5, N4, N3, N2, N1 (for Japanese)
+  hskLevel       String?  // HSK1-HSK6 (for Chinese)
   grammarFocus   String?  @db.Text
   status         String   @default("draft") // draft, generating, ready, error
   createdAt      DateTime @default(now())
@@ -287,9 +288,9 @@ model StorySegment {
   id                  String   @id @default(uuid())
   versionId           String
   order               Int
-  japaneseText        String   @db.Text
+  targetText          String   @db.Text // Target language text (Japanese/Chinese)
   englishTranslation  String   @db.Text
-  reading             String?  @db.Text // Furigana/kana reading
+  reading             String?  @db.Text // Furigana (Japanese) or Pinyin (Chinese)
   audioUrl_0_7        String?  // Slow segment audio
   audioUrl_0_85       String?  // Medium segment audio
   audioUrl_1_0        String?  // Normal segment audio

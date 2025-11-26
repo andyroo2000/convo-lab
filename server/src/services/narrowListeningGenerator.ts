@@ -1,7 +1,8 @@
 import { generateWithGemini } from './geminiClient.js';
+import { SUPPORTED_LANGUAGES } from '../../../shared/src/constants.js';
 
 export interface StorySegment {
-  japaneseText: string;
+  targetText: string;
   englishTranslation: string;
 }
 
@@ -17,65 +18,148 @@ export interface StoryPack {
 }
 
 /**
- * System instruction for Gemini to generate narrow listening packs
+ * Get language name from code
  */
-const SYSTEM_INSTRUCTION = `You are a Japanese language content generator for a Narrow Listening feature.
+function getLanguageName(code: string): string {
+  const lang = SUPPORTED_LANGUAGES[code as keyof typeof SUPPORTED_LANGUAGES];
+  return lang?.name || code;
+}
+
+/**
+ * Get proficiency level description based on language
+ */
+function getProficiencyDescription(targetLanguage: string, level: string): string {
+  if (targetLanguage === 'ja') {
+    switch (level) {
+      case 'N5':
+      case 'N4':
+        return 'beginner level - simple grammar and vocabulary';
+      case 'N3':
+        return 'intermediate level - more complex grammar and natural expressions';
+      case 'N2':
+      case 'N1':
+        return 'advanced level - sophisticated grammar and nuanced expressions';
+      default:
+        return 'intermediate level';
+    }
+  } else if (targetLanguage === 'zh') {
+    switch (level) {
+      case 'HSK1':
+      case 'HSK2':
+        return 'beginner level - simple grammar and basic vocabulary (150-300 words)';
+      case 'HSK3':
+      case 'HSK4':
+        return 'intermediate level - more complex sentence structures (600-1200 words)';
+      case 'HSK5':
+      case 'HSK6':
+        return 'advanced level - sophisticated expressions and formal vocabulary (2500+ words)';
+      default:
+        return 'intermediate level';
+    }
+  }
+  return 'intermediate level';
+}
+
+/**
+ * Get variation types based on language
+ */
+function getVariationTypes(targetLanguage: string): string {
+  if (targetLanguage === 'ja') {
+    return `Example variation types for Japanese:
+- PAST_CASUAL: Past tense with casual forms (た、だ)
+- PRESENT_POLITE: Present tense with polite forms (ます、です)
+- FUTURE_POLITE: Future/intention forms (つもり、予定)
+- PARTICLE_FOCUS: Emphasize は vs が、に vs で contrasts
+- FORMALITY_CONTRAST: Mix of casual and formal speech`;
+  } else if (targetLanguage === 'zh') {
+    return `Example variation types for Chinese:
+- ASPECT_MARKERS: Variations using 了/过/着 aspect markers
+- MEASURE_WORDS: Different classifier/measure word usage
+- FORMAL_REGISTER: 您 vs 你, formal vs casual vocabulary
+- BA_CONSTRUCTION: 把 sentence patterns vs standard SVO
+- DIRECTIONAL_COMPLEMENTS: Using 来/去 and directional verb complements`;
+  }
+  return '';
+}
+
+/**
+ * Get language-specific constraints
+ */
+function getLanguageConstraints(targetLanguage: string): string {
+  if (targetLanguage === 'ja') {
+    return '- Do NOT use furigana or romaji. Use standard Japanese orthography and natural punctuation.';
+  } else if (targetLanguage === 'zh') {
+    return '- Use simplified Chinese characters. Do NOT include pinyin. Use natural Chinese punctuation (。！？).';
+  }
+  return '';
+}
+
+/**
+ * Generate system instruction for the target language
+ */
+function getSystemInstruction(targetLanguage: string): string {
+  const languageName = getLanguageName(targetLanguage);
+
+  return `You are a ${languageName} language content generator for a Narrow Listening feature.
 
 Goal:
-- Given a topic and JLPT level, create one short, coherent story and 3–5 versions (variations) of that story.
-- Each version keeps the same core content (who, where, what happens) but changes grammar and/or politeness.
+- Given a topic and proficiency level, create one short, coherent story and 3–5 versions (variations) of that story.
+- Each version keeps the same core content (who, where, what happens) but changes grammar and/or style.
 - Output STRICT JSON matching the provided schema, with NO extra commentary or markdown formatting.
 
 Constraints:
-- Match the requested JLPT level:
-  - N5/N4: simple grammar and vocabulary.
-  - N3+: more complex grammar and natural expressions.
+- Match the requested proficiency level for vocabulary and grammar complexity.
 - Each story version should be 4–8 sentences.
 - Keep names and main events consistent across versions.
-- Make each version pedagogically distinct (e.g., tense, politeness, particle focus).
-- Do NOT use furigana or romaji. Use standard Japanese orthography and natural punctuation.
-- Provide a natural English translation for each version.
+- Make each version pedagogically distinct (e.g., grammar patterns, formality, word choice).
+${getLanguageConstraints(targetLanguage)}
+- Provide a natural English translation for each segment.
 - The JSON MUST be valid and parseable.
 - Do NOT wrap the JSON in markdown code blocks or any other formatting.`;
+}
 
 /**
  * Generate narrow listening pack using Gemini
  */
 export async function generateNarrowListeningPack(
   topic: string,
-  jlptLevel: string,
+  targetLanguage: string,
+  proficiencyLevel: string,
   versionCount: number,
   grammarFocus: string = ''
 ): Promise<StoryPack> {
-  const prompt = `Create a Narrow Listening pack for Japanese learners.
+  const languageName = getLanguageName(targetLanguage);
+  const proficiencyDesc = getProficiencyDescription(targetLanguage, proficiencyLevel);
+  const variationTypes = getVariationTypes(targetLanguage);
+
+  const prompt = `Create a Narrow Listening pack for ${languageName} learners.
 
 Topic prompt:
 ${topic}
 
-Target JLPT level:
-${jlptLevel}
+Target proficiency: ${proficiencyLevel} (${proficiencyDesc})
 
 Number of versions:
 ${versionCount}
 
-${grammarFocus ? `Optional grammar focus:\n${grammarFocus}\n` : ''}
+${grammarFocus ? `Optional grammar/style focus:\n${grammarFocus}\n` : ''}
 
 For each version:
 - Use the same characters and general scenario.
-- Change grammar/tense/politeness/particle usage according to a variation type.
+- Change grammar/style/formality according to a variation type.
 - Keep vocabulary mostly the same to maximize repetition.
 
 Use this JSON schema exactly:
 
 {
-  "title": "string - overall story pack title",
+  "title": "string - overall story pack title (in English)",
   "versions": [
     {
-      "variationType": "string - one of: PAST_CASUAL, PRESENT_POLITE, FUTURE_POLITE, PARTICLE_FOCUS, FORMALITY_CONTRAST, etc.",
-      "title": "string - brief description in English, e.g. 'Past, casual'",
+      "variationType": "string - describes the grammar/style variation",
+      "title": "string - brief description in English, e.g. 'Past tense, casual'",
       "segments": [
         {
-          "japaneseText": "string - one sentence in Japanese ending with 。！or ？",
+          "targetText": "string - one sentence in ${languageName}",
           "englishTranslation": "string - English translation of ONLY this sentence"
         }
       ]
@@ -87,21 +171,17 @@ Requirements:
 - Output MUST be valid JSON only, with no markdown formatting, no code blocks, no extra text.
 - No extra keys or comments.
 - Number of versions MUST equal ${versionCount}.
-- Choose variationTypes that make sense given the grammar focus and JLPT level.
+- Choose variationTypes that make sense given the grammar focus and proficiency level.
 - Each story should be 4-8 sentences.
 
-Example variation types:
-- PAST_CASUAL: Past tense with casual forms (た、だ)
-- PRESENT_POLITE: Present tense with polite forms (ます、です)
-- FUTURE_POLITE: Future/intention forms (つもり、予定、will)
-- PARTICLE_FOCUS: Emphasize は vs が、に vs で contrasts
-- FORMALITY_CONTRAST: Mix of casual and formal speech
+${variationTypes}
 
 Output only the JSON now:`;
 
   try {
-    console.log('Calling Gemini to generate narrow listening pack...');
-    const response = await generateWithGemini(prompt, SYSTEM_INSTRUCTION, 'gemini-2.5-flash');
+    console.log(`Calling Gemini to generate ${languageName} narrow listening pack...`);
+    const systemInstruction = getSystemInstruction(targetLanguage);
+    const response = await generateWithGemini(prompt, systemInstruction, 'gemini-2.5-flash');
 
     console.log('Gemini response received, parsing JSON...');
 
@@ -133,7 +213,7 @@ Output only the JSON now:`;
 
       // Validate each segment
       for (const segment of version.segments) {
-        if (!segment.japaneseText || !segment.englishTranslation) {
+        if (!segment.targetText || !segment.englishTranslation) {
           throw new Error('Invalid segment structure from Gemini');
         }
       }

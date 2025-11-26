@@ -11,7 +11,9 @@ export default function NarrowListeningCreatorPage() {
   const isDemo = useIsDemo();
 
   const [topic, setTopic] = useState('');
+  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh'>('ja');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
+  const [hskLevel, setHskLevel] = useState<string>('HSK3');
   const [grammarFocus, setGrammarFocus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +48,9 @@ export default function NarrowListeningCreatorPage() {
         credentials: 'include',
         body: JSON.stringify({
           topic: topic.trim(),
-          jlptLevel,
+          targetLanguage,
+          jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
+          hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
           versionCount,
           grammarFocus: grammarFocus.trim() || undefined,
         }),
@@ -130,6 +134,39 @@ export default function NarrowListeningCreatorPage() {
 
           {/* Form */}
           <div className="space-y-6">
+            {/* Language Selection */}
+            <div>
+              <label className="block text-base font-bold text-dark-brown mb-3">
+                Target Language <span className="text-strawberry">*</span>
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTargetLanguage('ja')}
+                  disabled={isGenerating}
+                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
+                    targetLanguage === 'ja'
+                      ? 'bg-strawberry text-white border-2 border-strawberry'
+                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
+                  } disabled:opacity-50`}
+                >
+                  Japanese
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetLanguage('zh')}
+                  disabled={isGenerating}
+                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
+                    targetLanguage === 'zh'
+                      ? 'bg-strawberry text-white border-2 border-strawberry'
+                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
+                  } disabled:opacity-50`}
+                >
+                  Chinese
+                </button>
+              </div>
+            </div>
+
             {/* Topic */}
             <div>
               <label className="block text-base font-bold text-dark-brown mb-3">
@@ -139,7 +176,10 @@ export default function NarrowListeningCreatorPage() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 disabled={isGenerating}
-                placeholder="Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
+                placeholder={targetLanguage === 'ja'
+                  ? "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
+                  : "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea"
+                }
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
               />
@@ -148,24 +188,40 @@ export default function NarrowListeningCreatorPage() {
               </p>
             </div>
 
-            {/* JLPT Level */}
+            {/* Proficiency Level */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target JLPT Level <span className="text-strawberry">*</span>
+                  Target {targetLanguage === 'ja' ? 'JLPT' : 'HSK'} Level <span className="text-strawberry">*</span>
                 </label>
-                <select
-                  value={jlptLevel}
-                  onChange={(e) => setJlptLevel(e.target.value)}
-                  disabled={isGenerating}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
-                >
-                  <option value="N5">N5 (Beginner)</option>
-                  <option value="N4">N4 (Upper Beginner)</option>
-                  <option value="N3">N3 (Intermediate)</option>
-                  <option value="N2">N2 (Upper Intermediate)</option>
-                  <option value="N1">N1 (Advanced)</option>
-                </select>
+                {targetLanguage === 'ja' ? (
+                  <select
+                    value={jlptLevel}
+                    onChange={(e) => setJlptLevel(e.target.value)}
+                    disabled={isGenerating}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
+                  >
+                    <option value="N5">N5 (Beginner)</option>
+                    <option value="N4">N4 (Upper Beginner)</option>
+                    <option value="N3">N3 (Intermediate)</option>
+                    <option value="N2">N2 (Upper Intermediate)</option>
+                    <option value="N1">N1 (Advanced)</option>
+                  </select>
+                ) : (
+                  <select
+                    value={hskLevel}
+                    onChange={(e) => setHskLevel(e.target.value)}
+                    disabled={isGenerating}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
+                  >
+                    <option value="HSK1">HSK1 (Beginner)</option>
+                    <option value="HSK2">HSK2 (Elementary)</option>
+                    <option value="HSK3">HSK3 (Intermediate)</option>
+                    <option value="HSK4">HSK4 (Upper Intermediate)</option>
+                    <option value="HSK5">HSK5 (Advanced)</option>
+                    <option value="HSK6">HSK6 (Proficient)</option>
+                  </select>
+                )}
                 <p className="text-sm text-gray-500 mt-2">
                   Vocabulary and grammar will be tailored to this level
                 </p>
@@ -228,7 +284,7 @@ export default function NarrowListeningCreatorPage() {
                 <li className="font-medium">• 5 versions of the same story with different grammar patterns</li>
                 <li className="font-medium">• Slow audio (0.7x speed) for shadowing practice</li>
                 <li className="font-medium">• Optional normal speed audio (1.0x) when you're ready</li>
-                <li className="font-medium">• Japanese text with English translations</li>
+                <li className="font-medium">• {targetLanguage === 'ja' ? 'Japanese text with furigana' : 'Chinese text with pinyin'} and English translations</li>
               </ul>
             </div>
           </div>
