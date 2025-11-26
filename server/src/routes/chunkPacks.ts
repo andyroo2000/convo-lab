@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { chunkPackQueue } from '../jobs/chunkPackQueue.js';
@@ -12,7 +13,7 @@ router.use(requireAuth);
 
 /**
  * GET /api/chunk-packs
- * Get all chunk packs for current user
+ * Get all chunk packs for current user (demo users see admin's content)
  */
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
@@ -20,10 +21,13 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
       const packs = await prisma.chunkPack.findMany({
-        where: { userId: req.userId },
+        where: { userId: queryUserId },
         select: {
           id: true,
           title: true,
@@ -52,7 +56,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     // Full mode: Return complete data with chunks
     const packs = await prisma.chunkPack.findMany({
-      where: { userId: req.userId },
+      where: { userId: queryUserId },
       include: {
         chunks: {
           orderBy: { order: 'asc' },
@@ -78,14 +82,17 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
 /**
  * GET /api/chunk-packs/:id
- * Get single chunk pack with full details
+ * Get single chunk pack with full details (demo users can view admin's packs)
  */
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     const pack = await prisma.chunkPack.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: queryUserId,
       },
       include: {
         chunks: {
@@ -124,9 +131,9 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 
 /**
  * POST /api/chunk-packs/generate
- * Create and generate new chunk pack
+ * Create and generate new chunk pack (blocked for demo users)
  */
-router.post('/generate', async (req: AuthRequest, res, next) => {
+router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { jlptLevel, theme } = req.body;
 
@@ -199,9 +206,9 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
 
 /**
  * POST /api/chunk-packs/:id/create-nl-session
- * Create a Narrow Listening session from a chunk pack story
+ * Create a Narrow Listening session from a chunk pack story (blocked for demo users)
  */
-router.post('/:id/create-nl-session', async (req: AuthRequest, res, next) => {
+router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const pack = await prisma.chunkPack.findFirst({
       where: {
@@ -273,9 +280,9 @@ router.post('/:id/create-nl-session', async (req: AuthRequest, res, next) => {
 
 /**
  * DELETE /api/chunk-packs/:id
- * Delete a chunk pack
+ * Delete a chunk pack (blocked for demo users)
  */
-router.delete('/:id', async (req: AuthRequest, res, next) => {
+router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const pack = await prisma.chunkPack.findFirst({
       where: {

@@ -208,6 +208,15 @@ export async function getSpeakerAvatar(filename: string) {
 }
 
 /**
+ * Language code normalization mapping
+ * Maps TTS language codes to avatar filename language codes (ISO 639-1)
+ */
+const LANGUAGE_CODE_MAP: Record<string, string> = {
+  'cmn': 'zh', // Mandarin Chinese -> zh
+  // Add other mappings as needed
+};
+
+/**
  * Google Cloud TTS voice gender mapping
  * Based on: https://cloud.google.com/text-to-speech/docs/voices
  */
@@ -241,7 +250,10 @@ const VOICE_GENDER_MAP: Record<string, string> = {
 function parseVoiceId(voiceId: string): { language: string; gender: string } {
   // Extract language code (first 2-3 chars before hyphen)
   const parts = voiceId.split('-');
-  const language = parts[0].toLowerCase();
+  let language = parts[0].toLowerCase();
+
+  // Normalize language code for avatar filename matching (e.g., 'cmn' -> 'zh')
+  language = LANGUAGE_CODE_MAP[language] || language;
 
   // Look up gender in our mapping
   const gender = VOICE_GENDER_MAP[voiceId] || 'female'; // Default to female if not found

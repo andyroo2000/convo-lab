@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
@@ -9,17 +10,20 @@ const router = Router();
 // All narrow listening routes require authentication
 router.use(requireAuth);
 
-// Get all packs for current user
+// Get all packs for current user (demo users see admin's content)
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     const isLibraryMode = req.query.library === 'true';
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
       const packs = await prisma.narrowListeningPack.findMany({
-        where: { userId: req.userId },
+        where: { userId: queryUserId },
         select: {
           id: true,
           title: true,
@@ -46,7 +50,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     // Full mode: Return complete data with versions and segments
     const packs = await prisma.narrowListeningPack.findMany({
-      where: { userId: req.userId },
+      where: { userId: queryUserId },
       include: {
         versions: {
           orderBy: { order: 'asc' },
@@ -68,13 +72,16 @@ router.get('/', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get single pack with full details
+// Get single pack with full details (demo users can view admin's packs)
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     const pack = await prisma.narrowListeningPack.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: queryUserId,
       },
       include: {
         versions: {
@@ -98,8 +105,8 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Create and generate new narrow listening pack
-router.post('/generate', async (req: AuthRequest, res, next) => {
+// Create and generate new narrow listening pack (blocked for demo users)
+router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const {
       topic,
@@ -181,8 +188,8 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Generate audio at specific speed for a pack (on-demand)
-router.post('/:id/generate-speed', async (req: AuthRequest, res, next) => {
+// Generate audio at specific speed for a pack (on-demand) (blocked for demo users)
+router.post('/:id/generate-speed', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { speed } = req.body;
 
@@ -240,8 +247,8 @@ router.post('/:id/generate-speed', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete pack
-router.delete('/:id', async (req: AuthRequest, res, next) => {
+// Delete pack (blocked for demo users)
+router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const result = await prisma.narrowListeningPack.deleteMany({
       where: {

@@ -6,7 +6,7 @@ interface UserMenuProps {
   userName: string;
   avatarColor?: string;
   avatarUrl?: string;
-  role: 'user' | 'moderator' | 'admin';
+  role: 'user' | 'moderator' | 'admin' | 'demo';
   onLogout: () => void;
 }
 

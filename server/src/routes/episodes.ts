@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -8,18 +9,21 @@ const router = Router();
 // All episode routes require authentication
 router.use(requireAuth);
 
-// Get all episodes for current user
+// Get all episodes for current user (demo users see admin's content)
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     const isLibraryMode = req.query.library === 'true';
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
       const episodes = await prisma.episode.findMany({
         where: {
-          userId: req.userId,
+          userId: queryUserId,
           dialogue: {
             isNot: null
           }
@@ -54,7 +58,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
     // Full mode: Return complete data (metadata already stored in DB)
     const episodes = await prisma.episode.findMany({
       where: {
-        userId: req.userId,
+        userId: queryUserId,
         dialogue: {
           isNot: null
         }
@@ -79,13 +83,16 @@ router.get('/', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get single episode
+// Get single episode (demo users can view admin's episodes)
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     const episode = await prisma.episode.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: queryUserId,
       },
       include: {
         dialogue: {
@@ -115,8 +122,8 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Create new episode
-router.post('/', async (req: AuthRequest, res, next) => {
+// Create new episode (blocked for demo users)
+router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { title, sourceText, targetLanguage, nativeLanguage, audioSpeed = 'medium' } = req.body;
 
@@ -169,8 +176,8 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete episode
-router.delete('/:id', async (req: AuthRequest, res, next) => {
+// Delete episode (blocked for demo users)
+router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const deleted = await prisma.episode.deleteMany({
       where: {

@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
+import { useIsDemo } from '../../hooks/useDemo';
 import { useAuth } from '../../contexts/AuthContext';
 import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants';
 import { getRandomName } from '../../../../shared/src/nameConstants';
 import { getDialogueSpeakerVoices } from '../../../../shared/src/voiceSelection';
+import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 interface SpeakerFormData {
   name: string;
@@ -23,8 +25,10 @@ const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 export default function DialogueGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isDemo = useIsDemo();
   const { createEpisode, generateDialogue, generateAllSpeedsAudio, getEpisode, pollJobStatus, loading, error } = useEpisodes();
   const invalidateLibrary = useInvalidateLibrary();
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
@@ -118,6 +122,12 @@ export default function DialogueGenerator() {
   }, [jobId, step, generatedEpisodeId, pollJobStatus, getEpisode, generateAllSpeedsAudio, navigate]);
 
   const handleGenerate = async () => {
+    // Block demo users from generating content
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     if (!sourceText.trim()) {
       alert('Please fill in all required fields');
       return;
@@ -359,6 +369,12 @@ export default function DialogueGenerator() {
           </div>
         )}
       </div>
+
+      {/* Demo Restriction Modal */}
+      <DemoRestrictionModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useIsDemo } from '../../hooks/useDemo';
 import { Library, Mic } from 'lucide-react';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
@@ -7,6 +8,7 @@ import OnboardingModal from '../onboarding/OnboardingModal';
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,6 +43,11 @@ export default function Layout() {
                 <span className="hidden xs:inline">ConvoLab</span>
                 <Logo size="small" />
               </Link>
+              {isDemo && (
+                <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                  Demo Mode
+                </span>
+              )}
               {/* Desktop Navigation */}
               <div className="hidden sm:ml-6 sm:flex h-16 items-center gap-1">
                 <Link
@@ -94,6 +101,11 @@ export default function Layout() {
             </div>
 
             <div className="flex items-center ml-2">
+              {isDemo && (
+                <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full">
+                  Demo
+                </span>
+              )}
               <UserMenu
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}

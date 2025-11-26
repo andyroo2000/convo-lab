@@ -1,5 +1,6 @@
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
+import { blockDemoUser } from '../middleware/demoAuth.js';
 import {
   generatePISession,
   JLPTLevel,
@@ -14,9 +15,9 @@ const router = express.Router();
 
 /**
  * POST /api/pi/generate-session
- * Generate a new PI practice session
+ * Generate a new PI practice session (blocked for demo users)
  */
-router.post('/generate-session', requireAuth, async (req, res) => {
+router.post('/generate-session', requireAuth, blockDemoUser, async (req, res) => {
   try {
     const { jlptLevel, itemCount, grammarPoint } = req.body;
 
