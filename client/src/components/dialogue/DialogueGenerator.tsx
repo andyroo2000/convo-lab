@@ -47,7 +47,7 @@ export default function DialogueGenerator() {
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => {
     const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
     return speakerVoices.map((speaker, index) => ({
-      name: getRandomName(targetLanguage, speaker.gender),
+      name: getRandomName(targetLanguage, speaker.gender as 'male' | 'female'),
       voiceId: speaker.voiceId,
       proficiency: 'intermediate' as ProficiencyLevel,
       tone: 'casual' as ToneStyle,
@@ -59,7 +59,7 @@ export default function DialogueGenerator() {
   useEffect(() => {
     const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
     setSpeakers(speakerVoices.map((speaker, index) => ({
-      name: getRandomName(targetLanguage, speaker.gender),
+      name: getRandomName(targetLanguage, speaker.gender as 'male' | 'female'),
       voiceId: speaker.voiceId,
       proficiency: 'intermediate' as ProficiencyLevel,
       tone,

@@ -5,6 +5,13 @@ export interface CourseSpeakerVoices {
   speakerVoices: string[];
 }
 
+export interface DialogueSpeakerVoice {
+  id: string;
+  voiceId: string;
+  gender: string;
+  description: string;
+}
+
 export function getCourseSpeakerVoices(
   targetLanguage: string,
   nativeLanguage: string,
@@ -27,8 +34,13 @@ export function getCourseSpeakerVoices(
 export function getDialogueSpeakerVoices(
   targetLanguage: string,
   numSpeakers: number = 2
-): string[] {
+): DialogueSpeakerVoice[] {
   // Get speaker voices for dialogue (target language only)
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  return targetVoices.slice(0, numSpeakers).map(v => v.id);
+  return targetVoices.slice(0, numSpeakers).map(v => ({
+    id: v.id,
+    voiceId: v.id,
+    gender: v.gender,
+    description: v.description,
+  }));
 }
