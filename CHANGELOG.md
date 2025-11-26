@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Language-specific colors for pills and sidebars (commit: 9fbf2d6)
+  - Japanese uses periwinkle (JA), Chinese uses keylime (ZH)
+  - Applied to both LanguageLevelPill and LanguageLevelSidebar components
+  - Provides better visual distinction between languages
 - **[feat]** Demo user mode for app exploration (commit: 778d3d9)
   - New 'demo' role allows users to browse admin content without creating anything
   - Demo users see all admin's dialogues, courses, narrow listening, and chunk packs
