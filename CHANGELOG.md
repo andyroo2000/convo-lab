@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- **[fix]** Voice assignment type mismatch in DialogueGenerator (commit: 51a54fa)
+  - `getDialogueSpeakerVoices()` now returns full voice objects with id, voiceId, gender, and description
+  - Previously returned only string IDs causing undefined voiceId and fallback "Speaker M" names
+  - Fixes TTS voice assignment for newly created dialogues
+
 ### Added
 - **[perf]** React Query integration for LibraryPage with automatic caching and request deduplication
   - Created `useLibraryData` hook with parallel queries for episodes, courses, narrow listening, and chunk packs
