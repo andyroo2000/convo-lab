@@ -8,7 +8,9 @@ interface NarrowListeningPack {
   id: string;
   title: string;
   topic: string;
-  jlptLevel: string;
+  targetLanguage: string;
+  jlptLevel: string | null;
+  hskLevel: string | null;
   status: string;
   createdAt: string;
   versions: Array<{
@@ -204,8 +206,15 @@ export default function NarrowListeningLibraryPage() {
 
                 {/* Meta */}
                 <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded font-medium">
-                    {pack.jlptLevel}
+                  <span className={`px-2 py-1 rounded font-medium ${
+                    pack.targetLanguage === 'zh'
+                      ? 'bg-red-100 text-red-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {pack.targetLanguage === 'zh' ? 'Chinese' : 'Japanese'}
+                  </span>
+                  <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
+                    {pack.jlptLevel || pack.hskLevel}
                   </span>
                   <span>{pack.versions?.length || 0} variations</span>
                 </div>

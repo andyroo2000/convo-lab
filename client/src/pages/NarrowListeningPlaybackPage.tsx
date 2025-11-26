@@ -4,6 +4,7 @@ import { ArrowLeft, Loader, Zap } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import JapaneseText from '../components/JapaneseText';
+import ChineseText from '../components/ChineseText';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
 
@@ -12,7 +13,7 @@ import { API_URL } from '../config';
 interface StorySegment {
   id: string;
   order: number;
-  japaneseText: string;
+  targetText: string;
   englishTranslation: string;
   reading: string | null;
   startTime_0_7: number | null;
@@ -39,7 +40,9 @@ interface NarrowListeningPack {
   id: string;
   title: string;
   topic: string;
-  jlptLevel: string;
+  targetLanguage: string;
+  jlptLevel: string | null;
+  hskLevel: string | null;
   grammarFocus: string | null;
   status: string;
   versions: StoryVersion[];
@@ -364,11 +367,11 @@ export default function NarrowListeningPlaybackPage() {
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-dark-brown mb-2">{pack.title}</h1>
 
-                {/* Segmented Pill: JLPT Level + Variations */}
+                {/* Segmented Pill: Level + Variations */}
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
-                  {/* Left segment - JLPT Level */}
+                  {/* Left segment - Proficiency Level */}
                   <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
-                    {pack.jlptLevel}
+                    {pack.jlptLevel || pack.hskLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
@@ -399,7 +402,7 @@ export default function NarrowListeningPlaybackPage() {
                     showTranslations={showTranslations}
                     onToggleReadings={() => setShowReadings(!showReadings)}
                     onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                    readingsLabel="Furigana"
+                    readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
                   />
 
                   {/* Row 2: Speed Selector */}
@@ -535,11 +538,19 @@ export default function NarrowListeningPlaybackPage() {
                         }}
                       >
                         <p className={`text-lg text-dark-brown leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>
-                          <JapaneseText
-                            text={segment.japaneseText}
-                            metadata={segment.reading ? { japanese: { kanji: segment.japaneseText, kana: '', furigana: segment.reading } } : undefined}
-                            showFurigana={showReadings}
-                          />
+                          {pack.targetLanguage === 'zh' ? (
+                            <ChineseText
+                              text={segment.targetText}
+                              pinyin={segment.reading || undefined}
+                              showPinyin={showReadings}
+                            />
+                          ) : (
+                            <JapaneseText
+                              text={segment.targetText}
+                              metadata={segment.reading ? { japanese: { kanji: segment.targetText, kana: '', furigana: segment.reading } } : undefined}
+                              showFurigana={showReadings}
+                            />
+                          )}
                         </p>
                         {showTranslations && (
                           <p className="text-sm text-gray-600 italic">
