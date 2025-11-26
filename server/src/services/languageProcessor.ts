@@ -129,6 +129,109 @@ export async function processLanguageText(
 }
 
 /**
+ * Process multiple Japanese texts in a single batch request
+ * Uses the /furigana/batch endpoint for efficiency
+ */
+export async function processJapaneseBatch(texts: string[]): Promise<JapaneseMetadata[]> {
+  if (texts.length === 0) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(`${FURIGANA_SERVICE_URL}/furigana/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ texts }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Furigana batch service error: ${response.statusText}`);
+    }
+
+    const data = await response.json() as JapaneseMetadata[];
+    return data;
+  } catch (error) {
+    if (!furiganaServiceWarned) {
+      console.warn('Furigana batch service unavailable, using fallback');
+      furiganaServiceWarned = true;
+    }
+    // Return fallback for all texts
+    return texts.map(text => ({
+      kanji: text,
+      kana: text,
+      furigana: text,
+    }));
+  }
+}
+
+/**
+ * Process multiple Chinese texts in a single batch request
+ * Uses the /pinyin/batch endpoint for efficiency
+ */
+export async function processChineseBatch(texts: string[]): Promise<ChineseMetadata[]> {
+  if (texts.length === 0) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(`${PINYIN_SERVICE_URL}/pinyin/batch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ texts }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pinyin batch service error: ${response.statusText}`);
+    }
+
+    const data = await response.json() as ChineseMetadata[];
+    return data;
+  } catch (error) {
+    if (!pinyinServiceWarned) {
+      console.warn('Pinyin batch service unavailable, using fallback');
+      pinyinServiceWarned = true;
+    }
+    // Return fallback for all texts
+    return texts.map(text => ({
+      characters: text,
+      pinyinToneMarks: '',
+      pinyinToneNumbers: '',
+    }));
+  }
+}
+
+/**
+ * Process multiple texts in a single batch request
+ * Routes to appropriate language handler based on language code
+ */
+export async function processLanguageTextBatch(
+  texts: string[],
+  languageCode: string
+): Promise<LanguageMetadata[]> {
+  if (texts.length === 0) {
+    return [];
+  }
+
+  switch (languageCode) {
+    case 'ja': {
+      const japaneseResults = await processJapaneseBatch(texts);
+      return japaneseResults.map(japanese => ({ japanese }));
+    }
+    case 'zh': {
+      const chineseResults = await processChineseBatch(texts);
+      return chineseResults.map(chinese => ({ chinese }));
+    }
+    default:
+      // For languages without special processing, return empty metadata
+      return texts.map(() => ({}));
+  }
+}
+
+/**
  * Convert bracket-style furigana to HTML ruby tags
  * Example: 漢[かん]字[じ] -> <ruby>漢<rt>かん</rt></ruby><ruby>字<rt>じ</rt></ruby>
  */

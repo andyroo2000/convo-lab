@@ -13,7 +13,7 @@ const isProd = process.env.NODE_ENV === 'production';
 const basePath = isProd ? '../dist/server/src' : '../src';
 
 const { prisma } = await import(`${basePath}/db/client.js`);
-const { processLanguageText } = await import(`${basePath}/services/languageProcessor.js`);
+const { processLanguageTextBatch } = await import(`${basePath}/services/languageProcessor.js`);
 
 interface SentenceWithEpisode {
   id: string;
@@ -58,8 +58,8 @@ async function backfillMetadata() {
 
     console.log(`📊 Found ${sentences.length} sentences to process\n`);
 
-    // Process in batches to avoid overwhelming the language processor
-    const BATCH_SIZE = 10;
+    // Process in batches, using batch language processing
+    const BATCH_SIZE = 50; // Increased since we're batching API calls
     let processed = 0;
     let updated = 0;
     let errors = 0;
@@ -71,51 +71,89 @@ async function backfillMetadata() {
 
       console.log(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} sentences)...`);
 
-      // Process batch in parallel
-      const results = await Promise.allSettled(
-        batch.map(async (sentence) => {
-          const targetLanguage = sentence.dialogue.episode.targetLanguage;
+      try {
+        // Group sentences by target language
+        const byLanguage = new Map<string, Array<{ index: number; sentence: SentenceWithEpisode }>>();
 
-          // Skip if language doesn't need processing
-          if (targetLanguage !== 'ja' && targetLanguage !== 'zh') {
+        batch.forEach((sentence, idx) => {
+          const lang = sentence.dialogue.episode.targetLanguage;
+          if (!byLanguage.has(lang)) {
+            byLanguage.set(lang, []);
+          }
+          byLanguage.get(lang)!.push({ index: idx, sentence });
+        });
+
+        // Process each language group with a single batch call
+        const metadataResults = new Map<number, any>();
+
+        for (const [lang, items] of byLanguage) {
+          // Skip languages that don't need processing
+          if (lang !== 'ja' && lang !== 'zh') {
+            items.forEach(item => {
+              metadataResults.set(item.index, null); // null = skip
+            });
+            continue;
+          }
+
+          // Batch process all texts for this language
+          const texts = items.map(item => item.sentence.text);
+          console.log(`  [BATCH] Processing ${texts.length} ${lang} sentences in 1 call`);
+
+          const results = await processLanguageTextBatch(texts, lang);
+
+          items.forEach((item, idx) => {
+            metadataResults.set(item.index, results[idx]);
+          });
+        }
+
+        // Update database with results
+        let batchUpdated = 0;
+        let batchSkipped = 0;
+
+        for (let idx = 0; idx < batch.length; idx++) {
+          const sentence = batch[idx];
+          const metadata = metadataResults.get(idx);
+
+          if (metadata === null) {
+            // Skipped language
+            batchSkipped++;
             processed++;
-            return { id: sentence.id, skipped: true };
+            continue;
           }
 
           try {
-            // Compute metadata
-            const metadata = await processLanguageText(sentence.text, targetLanguage);
-
-            // Update database
             await prisma.sentence.update({
               where: { id: sentence.id },
               data: { metadata: metadata as any },
             });
-
-            processed++;
+            batchUpdated++;
             updated++;
-            return { id: sentence.id, success: true };
-          } catch (error) {
             processed++;
+          } catch (error) {
             errors++;
+            processed++;
             const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`  ❌ Error processing sentence ${sentence.id}: ${errorMsg}`);
-            return { id: sentence.id, error: errorMsg };
+            console.error(`  ❌ Error updating sentence ${sentence.id}: ${errorMsg}`);
           }
-        })
-      );
+        }
 
-      // Show progress
-      const succeeded = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
-      const skipped = results.filter(r => r.status === 'fulfilled' && (r.value as any).skipped).length;
-      const failed = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && (r.value as any).error)).length;
+        console.log(`  ✓ Batch complete: ${batchUpdated} updated, ${batchSkipped} skipped, ${batch.length - batchUpdated - batchSkipped} errors`);
+        console.log(`  📈 Progress: ${processed}/${sentences.length} (${Math.round(processed / sentences.length * 100)}%)\n`);
 
-      console.log(`  ✓ Batch complete: ${succeeded} updated, ${skipped} skipped, ${failed} errors`);
-      console.log(`  📈 Progress: ${processed}/${sentences.length} (${Math.round(processed / sentences.length * 100)}%)\n`);
+      } catch (error) {
+        // If entire batch fails, mark all as errors
+        batch.forEach(() => {
+          errors++;
+          processed++;
+        });
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error(`  ❌ Batch failed: ${errorMsg}`);
+        console.log(`  📈 Progress: ${processed}/${sentences.length} (${Math.round(processed / sentences.length * 100)}%)\n`);
+      }
 
-      // Small delay between batches to be nice to the language processor
+      // Small delay between batches
       if (i + BATCH_SIZE < sentences.length) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 200));
       }
     }
 

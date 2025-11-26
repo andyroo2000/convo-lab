@@ -1,4 +1,5 @@
-import { synthesizeSpeech, generateSilence } from './ttsClient.js';
+import { generateSilence } from './ttsClient.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { uploadToGCS } from './storageClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
@@ -43,13 +44,18 @@ function removeFurigana(text: string): string {
 }
 
 /**
- * Generate audio for chunk pack examples at multiple speeds
+ * Generate audio for chunk pack examples at multiple speeds using batched TTS
+ * Groups examples by voice, synthesizes each (voice, speed) combination in one batch.
  */
 export async function generateExampleAudio(
   packId: string,
   examples: ChunkExampleData[]
 ): Promise<Map<string, { audioUrl_0_7: string; audioUrl_0_85: string; audioUrl_1_0: string }>> {
-  console.log(`Generating audio for ${examples.length} chunk examples at 3 speeds`);
+  console.log(`[CHUNK EXAMPLES] Generating audio for ${examples.length} examples at 3 speeds`);
+
+  if (examples.length === 0) {
+    return new Map();
+  }
 
   const audioUrls = new Map<string, { audioUrl_0_7: string; audioUrl_0_85: string; audioUrl_1_0: string }>();
   const speeds = [
@@ -58,57 +64,78 @@ export async function generateExampleAudio(
     { key: 'audioUrl_1_0' as const, speed: 1.0 },
   ];
 
+  // Group examples by voice (cycling through JAPANESE_VOICES)
+  const voiceGroups = new Map<string, Array<{ index: number; sentence: string; cleanText: string }>>();
+
   for (let i = 0; i < examples.length; i++) {
-    const example = examples[i];
-    console.log(`  Example ${i + 1}/${examples.length}: "${example.sentence.substring(0, 30)}..."`);
-
-    // Use different voice for each example (cycle through available voices)
     const voiceId = JAPANESE_VOICES[i % JAPANESE_VOICES.length];
-    console.log(`  Using voice: ${voiceId}`);
+    const cleanText = removeFurigana(examples[i].sentence);
 
-    const exampleUrls: any = {};
+    if (!voiceGroups.has(voiceId)) {
+      voiceGroups.set(voiceId, []);
+    }
+    voiceGroups.get(voiceId)!.push({ index: i, sentence: examples[i].sentence, cleanText });
+  }
 
-    for (const { key, speed } of speeds) {
+  console.log(`[CHUNK EXAMPLES] Grouped into ${voiceGroups.size} voice groups`);
+
+  // Initialize result storage
+  const exampleUrlsArray: Array<{ audioUrl_0_7?: string; audioUrl_0_85?: string; audioUrl_1_0?: string }> =
+    examples.map(() => ({}));
+
+  // For each speed, process all voice groups
+  for (const { key, speed } of speeds) {
+    console.log(`[CHUNK EXAMPLES] Processing speed ${speed}x...`);
+
+    for (const [voiceId, group] of voiceGroups) {
       try {
-        // Clean text and generate TTS at this speed
-        const cleanText = removeFurigana(example.sentence);
-        const buffer = await synthesizeSpeech({
-          text: cleanText,
-          voiceId,
-          languageCode: 'ja-JP',
-          speed,
-          pitch: 0,
-          useSSML: false,
-        });
+        // Batch all texts for this voice at this speed
+        const audioBuffers = await synthesizeBatchedTexts(
+          group.map(g => g.cleanText),
+          {
+            voiceId,
+            languageCode: 'ja-JP',
+            speed,
+            pitch: 0,
+          }
+        );
 
-        // Upload to GCS
-        const filename = `example-${i}-${speed}x.mp3`;
-        const url = await uploadToGCS({
-          buffer,
-          filename,
-          contentType: 'audio/mpeg',
-          folder: `chunk-packs/${packId}`,
-        });
+        // Upload each buffer and store URL
+        for (let i = 0; i < audioBuffers.length; i++) {
+          const originalIndex = group[i].index;
+          const filename = `example-${originalIndex}-${speed}x.mp3`;
+          const url = await uploadToGCS({
+            buffer: audioBuffers[i],
+            filename,
+            contentType: 'audio/mpeg',
+            folder: `chunk-packs/${packId}`,
+          });
 
-        exampleUrls[key] = url;
-        console.log(`    Generated ${speed}x audio`);
+          exampleUrlsArray[originalIndex][key] = url;
+        }
       } catch (error) {
-        console.error(`Failed to generate ${speed}x audio for example ${i}:`, error);
-        // Continue with other speeds even if one fails
+        console.error(`[CHUNK EXAMPLES] Failed to generate ${speed}x audio for voice ${voiceId}:`, error);
       }
     }
+  }
 
-    // Store URLs keyed by sentence for later lookup
-    if (Object.keys(exampleUrls).length > 0) {
-      audioUrls.set(example.sentence, exampleUrls);
+  // Convert array to map keyed by sentence
+  for (let i = 0; i < examples.length; i++) {
+    const urls = exampleUrlsArray[i];
+    if (urls.audioUrl_0_7 && urls.audioUrl_0_85 && urls.audioUrl_1_0) {
+      audioUrls.set(examples[i].sentence, urls as { audioUrl_0_7: string; audioUrl_0_85: string; audioUrl_1_0: string });
     }
   }
+
+  const totalCalls = voiceGroups.size * speeds.length;
+  console.log(`[CHUNK EXAMPLES] Complete: ${totalCalls} TTS calls (was ${examples.length * speeds.length})`);
 
   return audioUrls;
 }
 
 /**
- * Generate audio for chunk pack story segments with timings
+ * Generate audio for chunk pack story segments with timings using batched TTS
+ * Groups segments by speaker voice, synthesizes each voice group in one batch.
  */
 export async function generateStoryAudio(
   packId: string,
@@ -122,20 +149,16 @@ export async function generateStoryAudio(
     endTime: number;
   }>;
 }> {
-  console.log(`Generating audio for story with ${segments.length} segments`);
+  console.log(`[CHUNK STORY] Generating audio for story with ${segments.length} segments`);
 
   // Create temp directory
   const tempDir = path.join(os.tmpdir(), `chunk-story-${Date.now()}`);
   await fs.mkdir(tempDir, { recursive: true });
 
   try {
-    const audioSegmentFiles: string[] = [];
-    const segmentTimings: Array<{ startTime: number; endTime: number; duration: number; url: string }> = [];
-    let currentTime = 0;
-
     // Detect speakers and assign voices
     const speakerVoices = new Map<string, string>();
-    const availableVoices = JAPANESE_VOICES; // Use all available Japanese voices
+    const availableVoices = JAPANESE_VOICES;
     let voiceIndex = 0;
 
     // Parse all speakers first
@@ -150,35 +173,72 @@ export async function generateStoryAudio(
       }
     }
 
-    console.log(`  Detected speakers:`, Array.from(speakerVoices.entries()));
+    console.log(`[CHUNK STORY] Detected speakers:`, Array.from(speakerVoices.entries()));
 
-    // Generate audio for each segment
+    // Prepare segments with voice assignments and group by voice
+    const voiceGroups = new Map<string, Array<{ index: number; cleanText: string }>>();
+    const segmentVoices: string[] = [];
+
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      console.log(`  Segment ${i + 1}/${segments.length}: "${segment.japaneseText.substring(0, 30)}..."`);
-
-      // Parse speaker and text
       let textToSpeak = segment.japaneseText;
-      let voiceId: string = DEFAULT_VOICE;
+      let voiceId = DEFAULT_VOICE;
 
       const speakerMatch = segment.japaneseText.match(/^([^：:]+)[：:]\s*(.+)$/);
       if (speakerMatch) {
         const speaker = speakerMatch[1].trim();
-        textToSpeak = speakerMatch[2].trim(); // Strip speaker name
+        textToSpeak = speakerMatch[2].trim();
         voiceId = speakerVoices.get(speaker) || DEFAULT_VOICE;
-        console.log(`    Speaker: ${speaker}, Voice: ${voiceId}`);
       }
 
-      // Clean furigana and generate TTS with appropriate voice (slower for learning)
       const cleanText = removeFurigana(textToSpeak);
-      const buffer = await synthesizeSpeech({
-        text: cleanText,
-        voiceId,
-        languageCode: 'ja-JP',
-        speed: 0.85, // Slower for learners
-        pitch: 0,
-        useSSML: false,
-      });
+      segmentVoices[i] = voiceId;
+
+      if (!voiceGroups.has(voiceId)) {
+        voiceGroups.set(voiceId, []);
+      }
+      voiceGroups.get(voiceId)!.push({ index: i, cleanText });
+    }
+
+    console.log(`[CHUNK STORY] Grouped ${segments.length} segments into ${voiceGroups.size} voice batches`);
+
+    // Generate audio for each voice group using batched TTS
+    const audioBuffersByIndex = new Map<number, Buffer>();
+
+    for (const [voiceId, group] of voiceGroups) {
+      console.log(`[CHUNK STORY] Batching ${group.length} segments for voice ${voiceId}`);
+
+      const audioBuffers = await synthesizeBatchedTexts(
+        group.map(g => g.cleanText),
+        {
+          voiceId,
+          languageCode: 'ja-JP',
+          speed: 0.85, // Slower for learners
+          pitch: 0,
+        }
+      );
+
+      // Map buffers back to original segment indices
+      for (let i = 0; i < audioBuffers.length; i++) {
+        audioBuffersByIndex.set(group[i].index, audioBuffers[i]);
+      }
+    }
+
+    console.log(`[CHUNK STORY] Complete: ${voiceGroups.size} TTS calls (was ${segments.length})`);
+
+    // Reassemble in order, upload individual segments, calculate timings
+    const audioSegmentFiles: string[] = [];
+    const segmentTimings: Array<{ startTime: number; endTime: number; duration: number; url: string }> = [];
+    let currentTime = 0;
+
+    // Generate silence once and reuse
+    const silenceBuffer = await generateSilence(0.6);
+    const silencePath = path.join(tempDir, `silence-reusable.mp3`);
+    await fs.writeFile(silencePath, silenceBuffer);
+    const silenceDuration = await getAudioDurationFromFile(silencePath);
+
+    for (let i = 0; i < segments.length; i++) {
+      const buffer = audioBuffersByIndex.get(i)!;
 
       // Write to temp file
       const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
@@ -203,14 +263,9 @@ export async function generateStoryAudio(
       segmentTimings.push({ startTime, endTime, duration, url: segmentUrl });
       currentTime = endTime;
 
-      // Add silence between segments (600ms - slightly shorter than NL)
+      // Add silence between segments (600ms - reuse same file)
       if (i < segments.length - 1) {
-        const silenceBuffer = await generateSilence(0.6);
-        const silencePath = path.join(tempDir, `silence-${i}.mp3`);
-        await fs.writeFile(silencePath, silenceBuffer);
         audioSegmentFiles.push(silencePath);
-
-        const silenceDuration = await getAudioDurationFromFile(silencePath);
         currentTime += silenceDuration;
       }
     }
@@ -261,27 +316,33 @@ export async function generateExerciseAudio(
   // Only generate audio for gap-fill exercises
   const gapFillExercises = exercises.filter(ex => ex.exerciseType === 'gap_fill_mc');
 
-  for (let i = 0; i < gapFillExercises.length; i++) {
-    const exercise = gapFillExercises[i];
+  if (gapFillExercises.length === 0) {
+    return audioUrls;
+  }
 
-    // Extract sentence from prompt (remove blank marker if present)
+  // Collect all texts to synthesize
+  const textsToSynthesize = gapFillExercises.map(exercise => {
     const sentence = exercise.prompt.replace(/___/g, exercise.correctOption);
+    return removeFurigana(sentence);
+  });
 
-    try {
-      // Clean furigana and generate TTS (slower for learning)
-      const cleanText = removeFurigana(sentence);
-      const buffer = await synthesizeSpeech({
-        text: cleanText,
-        voiceId: DEFAULT_VOICE,
-        languageCode: 'ja-JP',
-        speed: 0.85, // Slower for learners
-        pitch: 0,
-        useSSML: false,
-      });
+  console.log(`[CHUNK EXERCISES] Batching ${textsToSynthesize.length} exercises into single TTS call`);
 
+  try {
+    // Generate all audio in one batched TTS call
+    const audioBuffers = await synthesizeBatchedTexts(textsToSynthesize, {
+      voiceId: DEFAULT_VOICE,
+      languageCode: 'ja-JP',
+      speed: 0.85, // Slower for learners
+      pitch: 0,
+    });
+
+    // Upload each buffer to GCS
+    for (let i = 0; i < audioBuffers.length; i++) {
+      const exercise = gapFillExercises[i];
       const filename = `exercise-${i}.mp3`;
       const url = await uploadToGCS({
-        buffer,
+        buffer: audioBuffers[i],
         filename,
         contentType: 'audio/mpeg',
         folder: `chunk-packs/${packId}`,
@@ -289,9 +350,12 @@ export async function generateExerciseAudio(
 
       // Store URL keyed by prompt for later lookup
       audioUrls.set(exercise.prompt, url);
-    } catch (error) {
-      console.error(`Failed to generate audio for exercise ${i}:`, error);
     }
+
+    console.log(`[CHUNK EXERCISES] Complete: 1 TTS call (was ${gapFillExercises.length})`);
+  } catch (error) {
+    console.error(`Failed to generate batched audio for exercises:`, error);
+    throw error;
   }
 
   return audioUrls;

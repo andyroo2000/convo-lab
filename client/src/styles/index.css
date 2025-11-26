@@ -94,6 +94,26 @@
   opacity: 0.85;
 }
 
+/* Chinese text rendering */
+.chinese-text {
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+  font-size: 2.25rem;
+  font-weight: 500;
+  line-height: 2.2;
+}
+
+/* Chinese Pinyin styling - pinyin below characters */
+.chinese-text ruby {
+  ruby-align: center;
+  ruby-position: under;
+}
+
+.chinese-text rt {
+  font-size: 0.35em;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 /* Flowline canvas container */
 .flowline-container {
   @apply relative overflow-hidden;

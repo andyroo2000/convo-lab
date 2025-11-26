@@ -142,24 +142,20 @@ async function processCourseGeneration(job: any) {
 
       await job.updateProgress(35);
 
-      // Save vocabulary items from dialogue exchanges
+      // Save vocabulary items from dialogue exchanges (batched for DB efficiency)
       const allVocabItems = dialogueExchanges.flatMap(ex => ex.vocabularyItems || []);
       if (allVocabItems.length > 0) {
-        await Promise.all(
-          allVocabItems.map((item, index) =>
-            prisma.lessonCoreItem.create({
-              data: {
-                lessonId: lesson.id,
-                textL2: item.textL2,
-                readingL2: item.readingL2,
-                translationL1: item.translationL1,
-                complexityScore: index, // Simple ordering
-                sourceEpisodeId: firstEpisode.id,
-                sourceSentenceId: null, // Could be linked if needed
-              },
-            })
-          )
-        );
+        await prisma.lessonCoreItem.createMany({
+          data: allVocabItems.map((item, index) => ({
+            lessonId: lesson.id,
+            textL2: item.textL2,
+            readingL2: item.readingL2,
+            translationL1: item.translationL1,
+            complexityScore: index, // Simple ordering
+            sourceEpisodeId: firstEpisode.id,
+            sourceSentenceId: null, // Could be linked if needed
+          })),
+        });
         console.log(`Saved ${allVocabItems.length} vocabulary items for lesson`);
       }
       await job.updateProgress(40);

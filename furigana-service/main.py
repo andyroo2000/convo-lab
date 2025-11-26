@@ -6,7 +6,7 @@ Generates furigana readings for Japanese text using fugashi (MeCab + UniDic)
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 import re
 
 app = FastAPI(title="Furigana Service")
@@ -35,6 +35,10 @@ except Exception as e:
 
 class TextRequest(BaseModel):
     text: str
+
+
+class BatchTextRequest(BaseModel):
+    texts: List[str]
 
 
 class FuriganaResponse(BaseModel):
@@ -148,6 +152,27 @@ async def process_furigana(request: TextRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Furigana generation failed: {str(e)}")
+
+
+@app.post("/furigana/batch", response_model=List[FuriganaResponse])
+async def process_furigana_batch(request: BatchTextRequest):
+    """
+    Generate furigana for multiple Japanese texts in a single request
+
+    Example:
+    POST /furigana/batch
+    {"texts": ["今日は良い天気です", "明日も晴れるでしょう"]}
+
+    Returns array of FuriganaResponse objects in same order as input
+    """
+    if not request.texts:
+        raise HTTPException(status_code=400, detail="Texts array is required")
+
+    try:
+        results = [generate_furigana(text) for text in request.texts]
+        return results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Batch furigana generation failed: {str(e)}")
 
 
 @app.get("/health")

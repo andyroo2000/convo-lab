@@ -7,7 +7,7 @@ import {
   GRAMMAR_POINTS,
   isGrammarPointValidForLevel
 } from '../services/piGenerator.js';
-import { synthesizeSpeech } from '../services/ttsClient.js';
+import { synthesizeBatchedTexts } from '../services/batchedTTSClient.js';
 import { uploadToGCS } from '../services/storageClient.js';
 
 const router = express.Router();
@@ -53,38 +53,65 @@ router.post('/generate-session', requireAuth, async (req, res) => {
 
     console.log(`Generated ${session.items.length} PI items`);
 
-    // Generate audio for each item
-    const itemsWithAudio = await Promise.all(
-      session.items.map(async (item) => {
-        try {
-          // For meaning_match type, generate audio for both sentences
-          if (item.type === 'meaning_match' && item.sentencePair) {
-            const [audioUrlA, audioUrlB] = await Promise.all([
-              generateAudio(item.sentencePair.sentenceA),
-              generateAudio(item.sentencePair.sentenceB),
-            ]);
+    // Collect all texts that need audio generation
+    const textsToSynthesize: { itemIndex: number; type: 'main' | 'A' | 'B'; text: string }[] = [];
 
-            return {
-              ...item,
-              audioUrl: audioUrlA, // Default to sentenceA
-              audioUrlA,
-              audioUrlB,
-            };
-          } else {
-            // For other types, just generate audio for the main sentence
-            const audioUrl = await generateAudio(item.japaneseSentence);
-            return {
-              ...item,
-              audioUrl,
-            };
-          }
-        } catch (error) {
-          console.error('Error generating audio for item:', error);
-          // Return item without audio rather than failing the whole session
-          return item;
-        }
+    session.items.forEach((item, itemIndex) => {
+      if (item.type === 'meaning_match' && item.sentencePair) {
+        textsToSynthesize.push({ itemIndex, type: 'A', text: item.sentencePair.sentenceA });
+        textsToSynthesize.push({ itemIndex, type: 'B', text: item.sentencePair.sentenceB });
+      } else {
+        textsToSynthesize.push({ itemIndex, type: 'main', text: item.japaneseSentence });
+      }
+    });
+
+    console.log(`[PI] Batching ${textsToSynthesize.length} texts into single TTS call`);
+
+    // Generate all audio in one batched TTS call
+    const audioBuffers = await synthesizeBatchedTexts(
+      textsToSynthesize.map(t => t.text),
+      {
+        voiceId: 'ja-JP-Neural2-B',
+        languageCode: 'ja-JP',
+        speed: 1.0,
+      }
+    );
+
+    // Upload all audio buffers to GCS and map back to items
+    const timestamp = Date.now();
+    const audioUrls = await Promise.all(
+      audioBuffers.map(async (buffer, index) => {
+        const filename = `pi_${timestamp}_${index}.mp3`;
+        return uploadToGCS({
+          buffer,
+          filename,
+          contentType: 'audio/mpeg',
+          folder: 'pi-audio',
+        });
       })
     );
+
+    // Map audio URLs back to items
+    const itemsWithAudio = session.items.map((item, itemIndex) => {
+      if (item.type === 'meaning_match' && item.sentencePair) {
+        const audioIndexA = textsToSynthesize.findIndex(t => t.itemIndex === itemIndex && t.type === 'A');
+        const audioIndexB = textsToSynthesize.findIndex(t => t.itemIndex === itemIndex && t.type === 'B');
+        return {
+          ...item,
+          audioUrl: audioUrls[audioIndexA],
+          audioUrlA: audioUrls[audioIndexA],
+          audioUrlB: audioUrls[audioIndexB],
+        };
+      } else {
+        const audioIndex = textsToSynthesize.findIndex(t => t.itemIndex === itemIndex && t.type === 'main');
+        return {
+          ...item,
+          audioUrl: audioUrls[audioIndex],
+        };
+      }
+    });
+
+    console.log(`[PI] Audio generation complete: 1 TTS call (was ${textsToSynthesize.length})`);
 
     res.json({
       ...session,
@@ -98,43 +125,5 @@ router.post('/generate-session', requireAuth, async (req, res) => {
     });
   }
 });
-
-/**
- * Generate audio for Japanese text using Edge TTS
- */
-async function generateAudio(japaneseText: string): Promise<string> {
-  // Create unique filename
-  const timestamp = Date.now();
-  const randomSuffix = Math.random().toString(36).substring(7);
-  const filename = `pi_${timestamp}_${randomSuffix}.mp3`;
-
-  try {
-    // Generate audio using TTS client (Google Cloud TTS)
-    const audioBuffer = await synthesizeSpeech({
-      text: japaneseText,
-      voiceId: 'ja-JP-Neural2-B', // Female voice, clear pronunciation
-      languageCode: 'ja-JP',
-      speed: 1.0,
-      pitch: 0,
-      useSSML: false,
-    });
-
-    console.log(`Generated audio buffer for: ${japaneseText.substring(0, 30)}...`);
-
-    // Upload to Google Cloud Storage
-    const audioUrl = await uploadToGCS({
-      buffer: audioBuffer,
-      filename: filename,
-      contentType: 'audio/mpeg',
-      folder: 'pi-audio',
-    });
-
-    console.log(`Uploaded audio to GCS: ${audioUrl}`);
-    return audioUrl;
-  } catch (error) {
-    console.error('Error generating audio:', error);
-    throw new Error('Failed to generate audio');
-  }
-}
 
 export default router;

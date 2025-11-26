@@ -1,7 +1,7 @@
 import { generateWithGemini } from './geminiClient.js';
 import { prisma } from '../db/client.js';
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
-import { processLanguageText } from './languageProcessor.js';
+import { processLanguageTextBatch } from './languageProcessor.js';
 
 interface Speaker {
   name: string;
@@ -217,6 +217,12 @@ async function createDialogueInDB(
     speakerRecords.map(s => [stripPhoneticNotation(s.name), s.id])
   );
 
+  // Batch process all sentence metadata in a single request
+  const sentenceTexts = dialogueData.sentences.map((sent: any) => sent.text);
+  console.log(`[DIALOGUE] Batching metadata for ${sentenceTexts.length} sentences`);
+  const allMetadata = await processLanguageTextBatch(sentenceTexts, targetLanguage);
+  console.log(`[DIALOGUE] Metadata batch complete (1 call instead of ${sentenceTexts.length})`);
+
   // Create sentences with precomputed metadata
   const sentences = await Promise.all(
     dialogueData.sentences.map(async (sent: any, index: number) => {
@@ -227,8 +233,8 @@ async function createDialogueInDB(
         throw new Error(`Unknown speaker: ${sent.speaker} (normalized: ${normalizedSpeakerName}). Available speakers: ${Array.from(speakerMap.keys()).join(', ')}`);
       }
 
-      // Compute metadata (furigana/pinyin) once during generation
-      const metadata = await processLanguageText(sent.text, targetLanguage);
+      // Use pre-computed metadata from batch call
+      const metadata = allMetadata[index];
 
       return prisma.sentence.create({
         data: {

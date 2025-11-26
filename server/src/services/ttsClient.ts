@@ -35,6 +35,13 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
       ssml: useSSML,
     });
 
+    // Validate the audio buffer
+    if (!audioBuffer || audioBuffer.length === 0) {
+      console.error(`[TTS] Empty audio buffer returned for voice: ${voiceId}, text: "${text.substring(0, 50)}..."`);
+      throw new Error('TTS returned empty audio buffer');
+    }
+
+    console.log(`[TTS] Generated ${audioBuffer.length} bytes for voice: ${voiceId}`);
     return audioBuffer;
   } catch (error) {
     console.error('TTS error:', error);
