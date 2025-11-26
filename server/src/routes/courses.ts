@@ -182,7 +182,18 @@ router.post('/', async (req: AuthRequest, res, next) => {
     }
 
     // Use default narrator voice if not provided
-    const narratorVoice = l1VoiceId || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+    // Also replace Journey voices with Neural2 equivalents (Journey doesn't support timepointing)
+    let narratorVoice = l1VoiceId || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+
+    // Journey voices don't support enableTimePointing - replace with Neural2 equivalents
+    if (narratorVoice?.includes('Journey')) {
+      const journeyToNeural2: Record<string, string> = {
+        'en-US-Journey-D': 'en-US-Neural2-J',
+        'en-US-Journey-F': 'en-US-Neural2-F',
+      };
+      narratorVoice = journeyToNeural2[narratorVoice] || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+      console.log(`[Course] Replaced Journey voice with Neural2: ${l1VoiceId} -> ${narratorVoice}`);
+    }
 
     if (!narratorVoice) {
       throw new AppError(`No default narrator voice found for language: ${nativeLanguage}`, 400);
@@ -332,6 +343,7 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
 
     // Get active job if generating
     let jobProgress = null;
+    let isStuck = false;
     if (course.status === 'generating') {
       // Try to find active job for this course
       const jobs = await courseQueue.getJobs(['active', 'waiting']);
@@ -339,6 +351,9 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
 
       if (activeJob) {
         jobProgress = activeJob.progress;
+      } else {
+        // No active job but status is 'generating' - course is stuck
+        isStuck = true;
       }
     }
 
@@ -346,6 +361,59 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
       status: course.status,
       progress: jobProgress,
       lessons: course.lessons,
+      isStuck,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Reset stuck course (when status is 'generating' but no active job exists)
+router.post('/:id/reset', async (req: AuthRequest, res, next) => {
+  try {
+    const course = await prisma.course.findFirst({
+      where: {
+        id: req.params.id,
+        userId: req.userId,
+      },
+    });
+
+    if (!course) {
+      throw new AppError('Course not found', 404);
+    }
+
+    if (course.status !== 'generating') {
+      throw new AppError('Course is not in generating status', 400);
+    }
+
+    // Check if there's actually an active job
+    const jobs = await courseQueue.getJobs(['active', 'waiting']);
+    const activeJob = jobs.find(j => j.data.courseId === course.id);
+
+    if (activeJob) {
+      throw new AppError('Course has an active generation job. Cannot reset.', 400);
+    }
+
+    // Reset course status to draft
+    await prisma.course.update({
+      where: { id: course.id },
+      data: { status: 'draft' },
+    });
+
+    // Also reset any lessons that were in 'generating' status
+    await prisma.lesson.updateMany({
+      where: {
+        courseId: course.id,
+        status: 'generating',
+      },
+      data: { status: 'draft' },
+    });
+
+    console.log(`Reset stuck course ${course.id} from 'generating' to 'draft'`);
+
+    res.json({
+      message: 'Course reset successfully. You can now retry generation.',
+      courseId: course.id,
     });
   } catch (error) {
     next(error);

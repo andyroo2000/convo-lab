@@ -54,49 +54,45 @@ export const TONE_STYLES = [
 ] as const;
 
 // TTS Voice Configuration
+// Neural2 voices only (highest quality, support enableTimePointing for batched TTS)
+// Journey and Studio voices do NOT support timepointing and have been removed
+// Note: Chinese uses Wavenet as Neural2 is not available for Mandarin
 export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
     voices: [
-      // Male narrator voices
-      { id: 'en-US-Journey-D', gender: 'male', description: 'Andrew - Warm and natural' },
-      { id: 'en-US-Studio-M', gender: 'male', description: 'Brian - Clear and professional' },
-      { id: 'en-US-Studio-O', gender: 'male', description: 'Eric - Deep and authoritative' },
+      // Male Neural2 voices
       { id: 'en-US-Neural2-J', gender: 'male', description: 'Guy - Deep and authoritative' },
-      { id: 'en-US-Wavenet-B', gender: 'male', description: 'David - Confident and engaging' },
-      // Female narrator voices
+      { id: 'en-US-Neural2-D', gender: 'male', description: 'Andrew - Warm and conversational' },
+      { id: 'en-US-Neural2-A', gender: 'male', description: 'James - Clear and professional' },
+      { id: 'en-US-Neural2-I', gender: 'male', description: 'Michael - Friendly and engaging' },
+      // Female Neural2 voices
       { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable' },
       { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm' },
       { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere' },
-      { id: 'en-US-Wavenet-F', gender: 'female', description: 'Michelle - Authentic and warm' },
+      { id: 'en-US-Neural2-C', gender: 'female', description: 'Emma - Bright and cheerful' },
     ],
   },
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      // Female voices (adult, for dialogue)
+      // Female Neural2 voices
       { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful' },
-      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright' },
-      { id: 'ja-JP-Wavenet-B', gender: 'female', description: 'Daichi - Steady and reliable' },
-
-      // Male voices (adult, for dialogue)
+      { id: 'ja-JP-Neural2-C', gender: 'female', description: 'Mayu - Animated and warm' },
+      // Male Neural2 voices
       { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational' },
-      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Naoki - Clear and natural' },
-      { id: 'ja-JP-Wavenet-D', gender: 'male', description: 'Shiori - Calm and clear' },
     ],
   },
   zh: {
     languageCode: 'cmn-CN',
     voices: [
-      // Female voices (adult, for dialogue) - Google Cloud TTS
-      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Wavenet A - Warm and friendly' },
-      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Wavenet D - Clear and gentle' },
-      { id: 'cmn-TW-Wavenet-A', gender: 'female', description: 'Taiwan A - Bright and lively' },
-
-      // Male voices (adult, for dialogue) - Google Cloud TTS
-      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wavenet B - Natural and conversational' },
-      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Wavenet C - Professional and clear' },
-      { id: 'cmn-TW-Wavenet-B', gender: 'male', description: 'Taiwan B - Calm and steady' },
+      // Chinese uses Wavenet (Neural2 not available for Mandarin)
+      // Female Wavenet voices
+      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Xiaomei - Warm and friendly' },
+      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Xiaoli - Clear and gentle' },
+      // Male Wavenet voices
+      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wei - Natural and conversational' },
+      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Jun - Professional and clear' },
     ],
   },
 } as const;

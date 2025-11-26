@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[feat]** Chinese pinyin tone format conversion for speaker names (commit: 7194823)
+  - Converts tone marks (zhāng) to tone numbers (zhang1) based on user preference
+  - Speaker names now respect user's `pinyinDisplayMode` setting
+  - Matches dialogue text pinyin format for consistency
+- **[feat]** Chinese text CSS styling with pinyin below characters (commit: 7194823)
+  - Uses `ruby-position: under` for Chinese (pinyin below)
+  - Japanese furigana remains above (unchanged)
+  - Character-level ruby rendering for proper alignment
+- **[feat]** Gender diversity in dialogue voice selection (commit: 7194823)
+  - `getDialogueSpeakerVoices()` ensures one male and one female speaker
+  - Randomizes which speaker gets which gender
+
+### Changed
+- **[chore]** Pinyin service dependencies auto-installed in start.sh (commit: 7194823)
+- **[refactor]** TTS services updated for Neural2 voices and batching (commit: 7194823)
+
 ### Fixed
 - **[fix]** Voice assignment type mismatch in DialogueGenerator (commit: a014800)
   - `getDialogueSpeakerVoices()` now returns full voice objects with id, voiceId, gender, and description

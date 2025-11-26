@@ -1,4 +1,5 @@
-import { synthesizeSpeech, generateSilence } from './ttsClient.js';
+import { generateSilence } from './ttsClient.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { uploadFileToGCS } from './storageClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
@@ -64,49 +65,33 @@ export async function generateNarrowListeningAudio(
     const audioSegmentFiles: string[] = [];
     const segmentTimings: Array<{ startTime: number; endTime: number; duration: number }> = [];
 
-    // OPTIMIZATION: Generate all TTS audio in parallel batches
-    const BATCH_SIZE = 10; // Process 10 segments at a time to avoid overwhelming API
+    // OPTIMIZATION: Generate all TTS audio in a single batched call using SSML marks
+    console.log(`[NL] Batching ${segments.length} segments into single TTS call...`);
+
+    // Get language code from voice ID (e.g., ja-JP-Neural2-B -> ja-JP)
+    const languageCode = voiceId.split('-').slice(0, 2).join('-');
+
+    // Generate all audio in one batched TTS call
+    const audioBuffers = await synthesizeBatchedTexts(
+      segments.map(s => s.text),
+      {
+        voiceId,
+        languageCode,
+        speed,
+        pitch: 0,
+      }
+    );
+
+    // Write buffers to temp files and get durations
     const segmentResults: Array<{ index: number; path: string; duration: number }> = [];
-
-    console.log(`  Generating TTS audio for ${segments.length} segments in parallel batches...`);
-
-    for (let batchStart = 0; batchStart < segments.length; batchStart += BATCH_SIZE) {
-      const batch = segments.slice(batchStart, Math.min(batchStart + BATCH_SIZE, segments.length));
-      const batchNum = Math.floor(batchStart / BATCH_SIZE) + 1;
-      const totalBatches = Math.ceil(segments.length / BATCH_SIZE);
-
-      console.log(`  Processing batch ${batchNum}/${totalBatches} (${batch.length} segments)...`);
-
-      // Generate TTS for all segments in this batch in parallel
-      const batchPromises = batch.map(async (segment, idx) => {
-        const actualIndex = batchStart + idx;
-
-        // Generate TTS for this segment
-        const buffer = await synthesizeSpeech({
-          text: segment.text,
-          voiceId: voiceId,
-          languageCode: 'ja-JP',
-          speed: speed,
-          pitch: 0,
-          useSSML: false,
-        });
-
-        // Write to temp file
-        const segmentPath = path.join(tempDir, `segment-${actualIndex}.mp3`);
-        await fs.writeFile(segmentPath, buffer);
-
-        // Get duration
-        const duration = await getAudioDurationFromFile(segmentPath);
-
-        return { index: actualIndex, path: segmentPath, duration };
-      });
-
-      // Wait for all segments in this batch to complete
-      const batchResults = await Promise.all(batchPromises);
-      segmentResults.push(...batchResults);
+    for (let i = 0; i < audioBuffers.length; i++) {
+      const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
+      await fs.writeFile(segmentPath, audioBuffers[i]);
+      const duration = await getAudioDurationFromFile(segmentPath);
+      segmentResults.push({ index: i, path: segmentPath, duration });
     }
 
-    console.log(`  Generated ${segmentResults.length} segment audio files`);
+    console.log(`[NL] Generated ${segmentResults.length} segment audio files from 1 TTS call`);
 
     // Generate silence files (reuse same 800ms silence for all gaps)
     const silenceBuffer = await generateSilence(0.8);

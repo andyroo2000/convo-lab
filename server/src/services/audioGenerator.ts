@@ -1,5 +1,6 @@
 import { prisma } from '../db/client.js';
 import { synthesizeSpeech, createSSMLWithPauses, createSSMLSlow } from './ttsClient.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { uploadAudio } from './storageClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
@@ -161,23 +162,41 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 }
 
 async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
+  // Validate buffer before processing
+  if (!audioBuffer || audioBuffer.length === 0) {
+    console.error('[getAudioDuration] Empty audio buffer received');
+    throw new Error('Empty audio buffer received');
+  }
+
   // Use ffprobe to get actual audio duration
-  const tempDir = path.join(os.tmpdir(), `audio-probe-${Date.now()}`);
+  // Use crypto.randomUUID() for unique directory name to avoid collisions in parallel execution
+  const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+  const tempDir = path.join(os.tmpdir(), `audio-probe-${uniqueId}`);
   await fs.mkdir(tempDir, { recursive: true });
 
   const tempFile = path.join(tempDir, 'temp.mp3');
 
   try {
+    console.log(`[getAudioDuration] Writing ${audioBuffer.length} bytes to ${tempFile}`);
     await fs.writeFile(tempFile, audioBuffer);
+
+    // Verify file was written
+    const stats = await fs.stat(tempFile);
+    if (stats.size === 0) {
+      throw new Error('Temp file was written but is empty');
+    }
+    console.log(`[getAudioDuration] File written successfully: ${stats.size} bytes`);
 
     const duration = await new Promise<number>((resolve, reject) => {
       ffmpeg.ffprobe(tempFile, (err, metadata) => {
         if (err) {
+          console.error(`[getAudioDuration] ffprobe error:`, err);
           reject(err);
           return;
         }
 
         const durationSeconds = metadata.format.duration || 0;
+        console.log(`[getAudioDuration] Duration: ${durationSeconds}s`);
         resolve(durationSeconds * 1000); // Convert to milliseconds
       });
     });
@@ -187,6 +206,7 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
 
     return duration;
   } catch (error) {
+    console.error(`[getAudioDuration] Error processing audio:`, error);
     // Cleanup on error
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -285,7 +305,9 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
 }
 
 /**
- * Generate audio for a single speed configuration
+ * Generate audio for a single speed configuration using batched TTS
+ * Groups sentences by voice, synthesizes each voice group in one batch,
+ * then reassembles audio in original sentence order.
  * @param episodeId - Episode ID
  * @param dialogueId - Dialogue ID
  * @param config - Speed configuration
@@ -297,7 +319,7 @@ async function generateSingleSpeedAudio(
   config: SpeedConfig,
   onProgress?: (progress: number) => void
 ): Promise<{ speed: string; audioUrl: string; duration: number }> {
-  console.log(`Generating ${config.key} (${config.value}x) audio...`);
+  console.log(`[DIALOGUE] Generating ${config.key} (${config.value}x) audio with batched TTS...`);
 
   // Get dialogue with sentences and speakers
   const dialogue = await prisma.dialogue.findUnique({
@@ -325,7 +347,60 @@ async function generateSingleSpeedAudio(
     throw new Error('Episode not found');
   }
 
-  // Generate audio for each sentence
+  const languageCode = episode.targetLanguage === 'ja' ? 'ja-JP' : episode.targetLanguage;
+
+  // Group sentences by voiceId for batching
+  const voiceGroups = new Map<string, Array<{ index: number; text: string; sentenceId: string }>>();
+
+  for (let j = 0; j < dialogue.sentences.length; j++) {
+    const sentence = dialogue.sentences[j];
+    const voiceId = sentence.speaker.voiceId;
+
+    if (!voiceGroups.has(voiceId)) {
+      voiceGroups.set(voiceId, []);
+    }
+    voiceGroups.get(voiceId)!.push({
+      index: j,
+      text: sentence.text,
+      sentenceId: sentence.id,
+    });
+  }
+
+  console.log(`[DIALOGUE] Grouped ${dialogue.sentences.length} sentences into ${voiceGroups.size} voice batches`);
+
+  // Generate audio for each voice group using batched TTS
+  const audioBuffersByIndex = new Map<number, Buffer>();
+
+  let completedVoices = 0;
+  for (const [voiceId, sentences] of voiceGroups) {
+    console.log(`[DIALOGUE] Batching ${sentences.length} sentences for voice ${voiceId}`);
+
+    const audioBuffers = await synthesizeBatchedTexts(
+      sentences.map(s => s.text),
+      {
+        voiceId,
+        languageCode,
+        speed: config.value,
+        pitch: 0,
+      }
+    );
+
+    // Map buffers back to original sentence indices
+    for (let i = 0; i < audioBuffers.length; i++) {
+      audioBuffersByIndex.set(sentences[i].index, audioBuffers[i]);
+    }
+
+    completedVoices++;
+    if (onProgress) {
+      // Report progress based on voice batches completed (rough estimate)
+      const progress = Math.round((completedVoices / voiceGroups.size) * 80);
+      onProgress(progress);
+    }
+  }
+
+  console.log(`[DIALOGUE] Complete: ${voiceGroups.size} TTS calls (was ${dialogue.sentences.length})`);
+
+  // Reassemble audio in original sentence order and calculate timings
   const audioFiles: Array<{ buffer: Buffer; duration: number }> = [];
   const sentenceTimings: Array<{
     sentenceId: string;
@@ -338,16 +413,7 @@ async function generateSingleSpeedAudio(
 
   for (let j = 0; j < dialogue.sentences.length; j++) {
     const sentence = dialogue.sentences[j];
-    const speaker = sentence.speaker;
-
-    // Generate audio with specific speed
-    const audioBuffer = await synthesizeSpeech({
-      text: sentence.text,
-      voiceId: speaker.voiceId,
-      languageCode: episode.targetLanguage === 'ja' ? 'ja-JP' : episode.targetLanguage,
-      speed: config.value,
-      useSSML: false,
-    });
+    const audioBuffer = audioBuffersByIndex.get(j)!;
 
     const duration = await getAudioDuration(audioBuffer);
     audioFiles.push({ buffer: audioBuffer, duration });
@@ -372,12 +438,10 @@ async function generateSingleSpeedAudio(
     if (j < dialogue.sentences.length - 1) {
       currentTime += PAUSE_BETWEEN_TURNS_MS;
     }
+  }
 
-    // Report per-sentence progress for this speed
-    if (onProgress) {
-      const sentenceProgress = Math.round(((j + 1) / dialogue.sentences.length) * 100);
-      onProgress(sentenceProgress);
-    }
+  if (onProgress) {
+    onProgress(90);
   }
 
   // Concatenate all audio files
@@ -398,7 +462,11 @@ async function generateSingleSpeedAudio(
     },
   });
 
-  console.log(`✅ Generated ${config.key} (${config.value}x) audio: ${audioUrl}`);
+  if (onProgress) {
+    onProgress(100);
+  }
+
+  console.log(`[DIALOGUE] ✅ Generated ${config.key} (${config.value}x) audio: ${audioUrl}`);
 
   return {
     speed: config.key,
@@ -408,7 +476,9 @@ async function generateSingleSpeedAudio(
 }
 
 /**
- * Generate audio at all three speeds (0.7x, 0.85x, 1.0x) for a dialogue IN PARALLEL
+ * Generate audio at all three speeds (0.7x, 0.85x, 1.0x) for a dialogue SEQUENTIALLY
+ * Changed from parallel to sequential to avoid overwhelming Cloud Run with 90+ concurrent
+ * TTS calls and ffprobe processes (30 dialogue turns × 3 speeds).
  * @param episodeId - Episode ID
  * @param dialogueId - Dialogue ID
  * @param onProgress - Callback for progress updates (0-100)
@@ -424,27 +494,32 @@ export async function generateAllSpeedsAudio(
     { key: 'normal', value: 1.0, audioUrlField: 'audioUrl_1_0', startTimeField: 'startTime_1_0', endTimeField: 'endTime_1_0' },
   ];
 
-  // Track progress for each speed
-  const speedProgress = { slow: 0, medium: 0, normal: 0 };
+  const results: Array<{ speed: string; audioUrl: string; duration: number }> = [];
 
-  // Generate all speeds in parallel
-  const results = await Promise.all(
-    speedConfigs.map(config =>
-      generateSingleSpeedAudio(episodeId, dialogueId, config, (individualProgress) => {
-        // Update this speed's progress
-        speedProgress[config.key] = individualProgress;
+  // Generate speeds SEQUENTIALLY to avoid resource exhaustion
+  for (let i = 0; i < speedConfigs.length; i++) {
+    const config = speedConfigs[i];
+    console.log(`[generateAllSpeedsAudio] Starting speed ${i + 1}/3: ${config.key} (${config.value}x)`);
 
-        // Calculate aggregate progress (average of all 3 speeds)
-        const aggregateProgress = Math.round(
-          (speedProgress.slow + speedProgress.medium + speedProgress.normal) / 3
-        );
+    const result = await generateSingleSpeedAudio(
+      episodeId,
+      dialogueId,
+      config,
+      (individualProgress) => {
+        // Calculate overall progress: each speed is 1/3 of total
+        // speedIndex * 33.33 + (individualProgress / 3)
+        const overallProgress = Math.round((i * 100 + individualProgress) / 3);
 
         if (onProgress) {
-          onProgress(aggregateProgress);
+          onProgress(overallProgress);
         }
-      })
-    )
-  );
+      }
+    );
 
+    results.push(result);
+    console.log(`[generateAllSpeedsAudio] Completed speed ${i + 1}/3: ${config.key}`);
+  }
+
+  console.log(`[generateAllSpeedsAudio] All 3 speeds completed successfully`);
   return results;
 }

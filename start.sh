@@ -141,6 +141,7 @@ echo ""
 echo -e "${BLUE}🀄 Starting Pinyin service on port 8001...${NC}"
 if [ -d "pinyin-service" ] && command_exists python3; then
     cd pinyin-service
+    pip3 install -q -r requirements.txt
     python3 main.py > ../logs/pinyin.log 2>&1 &
     PINYIN_PID=$!
     cd ..

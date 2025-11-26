@@ -1,3 +1,3 @@
 - In this project, when I refer to "the logo" - I mean ConvoLab with the 2 icons to the right of the text. So, if I say to make the logo bigger, think of these items as a unit and make both of them larger by the same increment.
 
-- When the user asks you to commit changes (e.g., "fix this and /commit" or "then /commit"), you MUST use the SlashCommand tool to invoke the `/commit` slash command. Do NOT manually run git commands and update the changelog yourself. The /commit command handles: analyzing changes, creating a good commit message, updating CHANGELOG.md, and pushing to GitHub.
+- Test credentials for local development are in `.env` under `TEST_USER_EMAIL` and `TEST_USER_PASSWORD`. Use these when testing the app with Playwright or manually.

@@ -140,13 +140,18 @@ export function useEpisodes() {
     }
   };
 
-  const getEpisode = async (episodeId: string): Promise<Episode> => {
+  const getEpisode = async (episodeId: string, bustCache = false): Promise<Episode> => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
+      // Add cache-busting query param when needed (e.g., after audio generation)
+      const url = bustCache
+        ? `${API_URL}/api/episodes/${episodeId}?_t=${Date.now()}`
+        : `${API_URL}/api/episodes/${episodeId}`;
+      const response = await fetch(url, {
         credentials: 'include',
+        ...(bustCache && { cache: 'no-store' }), // Also prevent browser caching
       });
 
       if (!response.ok) {

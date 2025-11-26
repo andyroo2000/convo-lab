@@ -153,6 +153,11 @@ export function useLibraryData() {
   const coursesQuery = useQuery({
     queryKey: libraryKeys.courses(),
     queryFn: fetchCourses,
+    // Poll every 5 seconds while any course is generating
+    refetchInterval: (query) => {
+      const hasGenerating = query.state.data?.some(c => c.status === 'generating');
+      return hasGenerating ? 5000 : false;
+    },
   });
 
   const narrowListeningQuery = useQuery({

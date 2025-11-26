@@ -1,6 +1,6 @@
-import { synthesizeSpeech, generateSilence } from './ttsClient.js';
 import { uploadFileToGCS } from './storageClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
+import { processBatches } from './batchedTTSClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
@@ -46,63 +46,45 @@ export async function assembleLessonAudio(
   await fs.mkdir(tempDir, { recursive: true });
 
   try {
-    // Generate audio files for each unit (file-based, not buffer-based)
+    // Use batched TTS processing to reduce API calls from ~756 to ~15-20
+    const batchResult = await processBatches(scriptUnits, {
+      targetLanguage,
+      nativeLanguage,
+      tempDir,
+      onProgress: (batchIndex, totalBatches) => {
+        // Map batch progress to overall progress (batches are ~60% of work)
+        if (onProgress) {
+          const progress = Math.floor((batchIndex / totalBatches) * 0.6 * scriptUnits.length);
+          onProgress(progress, scriptUnits.length);
+        }
+      },
+    });
+
+    // Write segments to files in order
     const audioSegmentFiles: string[] = [];
 
     for (let i = 0; i < scriptUnits.length; i++) {
       const unit = scriptUnits[i];
-      console.log(`Processing unit ${i + 1}/${scriptUnits.length}: ${unit.type}`);
 
-      // Report progress
-      if (onProgress) {
-        onProgress(i + 1, scriptUnits.length);
+      // Skip markers - they produce no audio
+      if (unit.type === 'marker') {
+        console.log(`  Marker: ${unit.label}`);
+        continue;
       }
 
-      let buffer: Buffer | null = null;
+      let buffer: Buffer | undefined;
 
-      switch (unit.type) {
-        case 'narration_L1':
-          // Generate L1 narration TTS
-          buffer = await synthesizeSpeech({
-            text: unit.text,
-            voiceId: unit.voiceId,
-            languageCode: getLanguageCode(nativeLanguage),
-            speed: 1.0,
-            pitch: unit.pitch || 0,
-            useSSML: false,
-          });
-          break;
-
-        case 'L2':
-          // Generate L2 TTS (use reading if available for better pronunciation)
-          const textToSpeak = unit.reading || unit.text;
-          buffer = await synthesizeSpeech({
-            text: textToSpeak,
-            voiceId: unit.voiceId,
-            languageCode: getLanguageCode(targetLanguage),
-            speed: unit.speed || 1.0,
-            pitch: unit.pitch || 0,
-            useSSML: false,
-          });
-          break;
-
-        case 'pause':
-          // Generate silence
-          buffer = await generateSilence(unit.seconds);
-          break;
-
-        case 'marker':
-          // Markers don't produce audio, skip
-          console.log(`  Marker: ${unit.label}`);
-          break;
+      // Get segment from batch result
+      if (unit.type === 'pause') {
+        buffer = batchResult.pauseSegments.get(i);
+      } else {
+        buffer = batchResult.segments.get(i);
       }
 
-      // Write buffer to temp file immediately and discard from memory
       if (buffer) {
         const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
         await fs.writeFile(segmentPath, buffer);
         audioSegmentFiles.push(segmentPath);
-        // Buffer can now be garbage collected
       }
     }
 
@@ -138,23 +120,6 @@ export async function assembleLessonAudio(
       console.warn('Failed to cleanup temp directory:', e);
     }
   }
-}
-
-/**
- * Get language code for Google TTS
- */
-function getLanguageCode(language: string): string {
-  const languageMap: Record<string, string> = {
-    en: 'en-US',
-    ja: 'ja-JP',
-    zh: 'zh-CN',
-    es: 'es-ES',
-    fr: 'fr-FR',
-    ar: 'ar-XA',
-    he: 'he-IL',
-  };
-
-  return languageMap[language] || 'en-US';
 }
 
 /**

@@ -5,6 +5,7 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
+import ChineseText from '../components/ChineseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
@@ -229,10 +230,10 @@ export default function PlaybackPage() {
     };
   }, []);
 
-  const loadEpisode = async () => {
+  const loadEpisode = async (bustCache = false) => {
     if (!episodeId) return;
     try {
-      const data = await getEpisode(episodeId);
+      const data = await getEpisode(episodeId, bustCache);
       setEpisode(data);
     } catch (err) {
       console.error('Failed to load episode:', err);
@@ -306,7 +307,7 @@ export default function PlaybackPage() {
             if (data.state === 'completed') {
               clearInterval(pollInterval);
               pollingIntervalRef.current = null;
-              await loadEpisode();
+              await loadEpisode(true); // Bust cache to get fresh data with audio URLs
               setIsGeneratingAudio(false);
               setGenerationProgress(0);
               setToastMessage('Audio generated successfully!');
@@ -564,20 +565,32 @@ export default function PlaybackPage() {
                     />
                   </div>
                   <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
-                    <JapaneseText text={speaker.name} />
+                    {episode.targetLanguage === 'zh' ? (
+                      <ChineseText text={speaker.name} showPinyin={showReadings} />
+                    ) : (
+                      <JapaneseText text={speaker.name} showFurigana={showReadings} />
+                    )}
                   </span>
                 </div>
 
                 {/* Japanese Text and Translation - Stack on mobile, side by side on desktop */}
                 <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 flex-1">
-                  {/* Japanese Text - Flexible Column */}
+                  {/* Target Language Text - Flexible Column */}
                   <div className={showTranslations ? "flex-1 sm:pr-6" : "w-full"}>
                     <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
-                      <JapaneseText
-                        text={sentence.text}
-                        metadata={sentence.metadata}
-                        showFurigana={showReadings}
-                      />
+                      {episode.targetLanguage === 'zh' ? (
+                        <ChineseText
+                          text={sentence.text}
+                          metadata={sentence.metadata}
+                          showPinyin={showReadings}
+                        />
+                      ) : (
+                        <JapaneseText
+                          text={sentence.text}
+                          metadata={sentence.metadata}
+                          showFurigana={showReadings}
+                        />
+                      )}
                     </p>
                   </div>
 

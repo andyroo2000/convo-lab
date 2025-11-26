@@ -2,7 +2,7 @@ import { Queue, Worker } from 'bullmq';
 import { prisma } from '../db/client.js';
 import { generateNarrowListeningPack } from '../services/narrowListeningGenerator.js';
 import { generateNarrowListeningAudio } from '../services/narrowListeningAudioGenerator.js';
-import { processJapanese } from '../services/languageProcessor.js';
+import { processJapaneseBatch } from '../services/languageProcessor.js';
 import { TTS_VOICES } from '../../../shared/src/constants.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
@@ -62,19 +62,17 @@ async function processNarrowListeningGeneration(job: any) {
 
       console.log(`Selected voice: ${randomVoice.description} (${voiceId})`);
 
-      // Process segments through language processor to generate furigana
-      const segmentData = await Promise.all(
-        version.segments.map(async seg => {
-          const processed = await processJapanese(seg.japaneseText);
-          return {
-            text: seg.japaneseText,
-            translation: seg.englishTranslation,
-            reading: processed.furigana, // Add furigana in bracket notation
-          };
-        })
-      );
+      // Process all segments through language processor in a single batch call
+      const segmentTexts = version.segments.map(seg => seg.japaneseText);
+      console.log(`[NL] Batching furigana for ${segmentTexts.length} segments`);
+      const furiganaResults = await processJapaneseBatch(segmentTexts);
+      console.log(`[NL] Furigana batch complete (1 call instead of ${segmentTexts.length})`);
 
-      console.log(`Processed ${segmentData.length} segments with furigana from language processor`);
+      const segmentData = version.segments.map((seg, idx) => ({
+        text: seg.japaneseText,
+        translation: seg.englishTranslation,
+        reading: furiganaResults[idx].furigana, // Add furigana in bracket notation
+      }));
 
       await job.updateProgress(baseProgress + (progressPerVersion * 0.2));
 
