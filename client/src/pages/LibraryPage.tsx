@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '../hooks/useLibraryData';
+import { useIsDemo } from '../hooks/useDemo';
 import ConfirmModal from '../components/common/ConfirmModal';
 import EmptyStateCard from '../components/EmptyStateCard';
 import LanguageLevelPill from '../components/common/LanguageLevelPill';
@@ -28,6 +29,7 @@ export default function LibraryPage() {
     isDeletingNarrowListening,
     isDeletingChunkPack,
   } = useLibraryData();
+  const isDemo = useIsDemo();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
@@ -375,14 +377,16 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        <button
-                          onClick={(e) => handleDeleteClick(episode, e)}
-                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete episode"
-                          data-testid={`library-delete-episode-${episode.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isDemo && (
+                          <button
+                            onClick={(e) => handleDeleteClick(episode, e)}
+                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete episode"
+                            data-testid={`library-delete-episode-${episode.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -442,14 +446,16 @@ export default function LibraryPage() {
                             level={course.jlptLevel}
                           />
                         )}
-                        <button
-                          onClick={(e) => handleDeleteCourseClick(course, e)}
-                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete course"
-                          data-testid={`library-delete-course-${course.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isDemo && (
+                          <button
+                            onClick={(e) => handleDeleteCourseClick(course, e)}
+                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete course"
+                            data-testid={`library-delete-course-${course.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -505,14 +511,16 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        <button
-                          onClick={(e) => handleDeletePackClick(pack, e)}
-                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete pack"
-                          data-testid={`library-delete-pack-${pack.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isDemo && (
+                          <button
+                            onClick={(e) => handleDeletePackClick(pack, e)}
+                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete pack"
+                            data-testid={`library-delete-pack-${pack.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -571,14 +579,16 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        <button
-                          onClick={(e) => handleDeleteChunkPackClick(pack, e)}
-                          className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                          title="Delete lexical chunk pack"
-                          data-testid={`library-delete-chunk-pack-${pack.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isDemo && (
+                          <button
+                            onClick={(e) => handleDeleteChunkPackClick(pack, e)}
+                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                            title="Delete lexical chunk pack"
+                            data-testid={`library-delete-chunk-pack-${pack.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

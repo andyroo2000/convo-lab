@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { courseQueue } from '../jobs/courseQueue.js';
@@ -11,17 +12,20 @@ const router = Router();
 // All course routes require authentication
 router.use(requireAuth);
 
-// Get all courses for current user
+// Get all courses for current user (demo users see admin's content)
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
     const isLibraryMode = req.query.library === 'true';
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
       const courses = await prisma.course.findMany({
-        where: { userId: req.userId },
+        where: { userId: queryUserId },
         select: {
           id: true,
           title: true,
@@ -49,7 +53,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     // Full mode: Return complete data with lessons and episodes
     const courses = await prisma.course.findMany({
-      where: { userId: req.userId },
+      where: { userId: queryUserId },
       include: {
         lessons: {
           orderBy: { order: 'asc' },
@@ -82,13 +86,16 @@ router.get('/', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get single course with full details
+// Get single course with full details (demo users can view admin's courses)
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     const course = await prisma.course.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: queryUserId,
       },
       include: {
         lessons: {
@@ -116,8 +123,8 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Create new course from episode(s)
-router.post('/', async (req: AuthRequest, res, next) => {
+// Create new course from episode(s) (blocked for demo users)
+router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const {
       title,
@@ -257,8 +264,8 @@ Write only the description, no formatting or quotes.`;
   }
 });
 
-// Generate course content (lessons, scripts, audio)
-router.post('/:id/generate', async (req: AuthRequest, res, next) => {
+// Generate course content (lessons, scripts, audio) (blocked for demo users)
+router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     // Use a transaction to atomically check and update course status
     const result = await prisma.$transaction(async (tx) => {
@@ -318,13 +325,16 @@ router.post('/:id/generate', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get course generation status
+// Get course generation status (demo users can view admin's courses)
 router.get('/:id/status', async (req: AuthRequest, res, next) => {
   try {
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
     const course = await prisma.course.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: queryUserId,
       },
       include: {
         lessons: {
@@ -448,8 +458,8 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Delete course
-router.delete('/:id', async (req: AuthRequest, res, next) => {
+// Delete course (blocked for demo users)
+router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const deleted = await prisma.course.deleteMany({
       where: {
@@ -468,16 +478,19 @@ router.delete('/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
-// Get single lesson details
+// Get single lesson details (demo users can view admin's lessons)
 router.get('/:courseId/lessons/:lessonId', async (req: AuthRequest, res, next) => {
   try {
     const { courseId, lessonId } = req.params;
 
-    // Verify course belongs to user
+    // Get the appropriate user ID (demo users see admin's content)
+    const queryUserId = await getLibraryUserId(req.userId!);
+
+    // Verify course belongs to user (or admin for demo users)
     const course = await prisma.course.findFirst({
       where: {
         id: courseId,
-        userId: req.userId,
+        userId: queryUserId,
       },
     });
 

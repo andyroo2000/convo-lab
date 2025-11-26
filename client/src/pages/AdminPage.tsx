@@ -501,6 +501,8 @@ export default function AdminPage() {
                               ? 'bg-purple-100 text-purple-800'
                               : u.role === 'moderator'
                               ? 'bg-blue-100 text-blue-800'
+                              : u.role === 'demo'
+                              ? 'bg-amber-100 text-amber-800'
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >

@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Loader } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
+import { useIsDemo } from '../hooks/useDemo';
 import { API_URL } from '../config';
+import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
 type JLPTLevel = 'N5' | 'N4' | 'N3';
 
@@ -59,11 +61,13 @@ function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
 export default function ChunkPackSetupPage() {
   const navigate = useNavigate();
   const invalidateLibrary = useInvalidateLibrary();
+  const isDemo = useIsDemo();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
   const [theme, setTheme] = useState<ChunkPackTheme>('daily_routine');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   // When JLPT level changes, reset to first theme for that level
   useEffect(() => {
@@ -74,6 +78,12 @@ export default function ChunkPackSetupPage() {
   }, [jlptLevel]);
 
   const handleStartGeneration = async () => {
+    // Block demo users from generating content
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
     setProgress(0);
@@ -260,11 +270,17 @@ export default function ChunkPackSetupPage() {
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
             <p>
-              💡 Tip: Each pack contains 5-8 chunks with examples, a story, and exercises.
+              Tip: Each pack contains 5-8 chunks with examples, a story, and exercises.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Demo Restriction Modal */}
+      <DemoRestrictionModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
     </div>
   );
 }

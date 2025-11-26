@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Loader } from 'lucide-react';
 
 import { API_URL } from '../config';
+import { useIsDemo } from '../hooks/useDemo';
+import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
 type JLPTLevel = 'N5' | 'N4' | 'N3' | 'N2';
 type ItemCount = 10 | 15;
@@ -63,11 +65,13 @@ function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
 
 export default function PISetupPage() {
   const navigate = useNavigate();
+  const isDemo = useIsDemo();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
   const [grammarPoint, setGrammarPoint] = useState<GrammarPointType>('ha_vs_ga');
   const [itemCount, setItemCount] = useState<ItemCount>(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   // When JLPT level changes, reset to first grammar point for that level
   useEffect(() => {
@@ -78,6 +82,12 @@ export default function PISetupPage() {
   }, [jlptLevel]);
 
   const handleStartSession = async () => {
+    // Block demo users from generating content
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     setIsGenerating(true);
     setError(null);
 
@@ -251,11 +261,17 @@ export default function PISetupPage() {
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
             <p>
-              💡 Tip: Find a quiet space and use headphones for the best experience.
+              Tip: Find a quiet space and use headphones for the best experience.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Demo Restriction Modal */}
+      <DemoRestrictionModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
     </div>
   );
 }

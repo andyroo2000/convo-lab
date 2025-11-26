@@ -2,10 +2,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader, Sparkles } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
+import { useIsDemo } from '../hooks/useDemo';
+import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
 export default function NarrowListeningCreatorPage() {
   const navigate = useNavigate();
   const invalidateLibrary = useInvalidateLibrary();
+  const isDemo = useIsDemo();
 
   const [topic, setTopic] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
@@ -14,10 +17,17 @@ export default function NarrowListeningCreatorPage() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('');
+  const [showDemoModal, setShowDemoModal] = useState(false);
 
   const versionCount = 5; // Fixed at 5 variations
 
   const handleGenerate = async () => {
+    // Block demo users from generating content
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     if (!topic.trim()) {
       setError('Please enter a topic or story idea');
       return;
@@ -252,6 +262,12 @@ export default function NarrowListeningCreatorPage() {
           </div>
         </div>
       </div>
+
+      {/* Demo Restriction Modal */}
+      <DemoRestrictionModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
     </div>
   );
 }

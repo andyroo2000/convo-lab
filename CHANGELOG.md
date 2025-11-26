@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Demo user mode for app exploration (commit: 778d3d9)
+  - New 'demo' role allows users to browse admin content without creating anything
+  - Demo users see all admin's dialogues, courses, narrow listening, and chunk packs
+  - Friendly "Demo Mode" badge displayed in header
+  - All create/generate forms blocked with DemoRestrictionModal
+  - Delete buttons hidden in library view for demo users
+  - Seed script to create demo user: `npx tsx scripts/seed-demo-user.ts`
+  - Demo credentials: demo.user@test.com / convo-demo-2025
+
+### Fixed
+- **[fix]** Chinese speaker avatars not loading (commit: 778d3d9)
+  - Added language code mapping from 'cmn' (TTS voice ID) to 'zh' (avatar filename)
+  - Fixes avatar lookup for Chinese dialogues
+
+### Added
 - **[feat]** Chinese pinyin tone format conversion for speaker names (commit: 7194823)
   - Converts tone marks (zhāng) to tone numbers (zhang1) based on user preference
   - Speaker names now respect user's `pinyinDisplayMode` setting

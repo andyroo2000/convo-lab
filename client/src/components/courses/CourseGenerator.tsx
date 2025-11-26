@@ -3,13 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
+import { useIsDemo } from '../../hooks/useDemo';
 import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 import { TTS_VOICES } from '../../../../shared/src/constants';
+import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isDemo = useIsDemo();
   const invalidateLibrary = useInvalidateLibrary();
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>('en');
@@ -47,6 +51,12 @@ export default function CourseGenerator() {
   }, [nativeLanguage, targetLanguage]);
 
   const handleCreate = async () => {
+    // Block demo users from creating content
+    if (isDemo) {
+      setShowDemoModal(true);
+      return;
+    }
+
     if (!title.trim() || !sourceText.trim()) {
       setError('Please fill in all required fields');
       return;
@@ -395,6 +405,12 @@ export default function CourseGenerator() {
           </div>
         )}
       </div>
+
+      {/* Demo Restriction Modal */}
+      <DemoRestrictionModal
+        isOpen={showDemoModal}
+        onClose={() => setShowDemoModal(false)}
+      />
     </div>
   );
 }
