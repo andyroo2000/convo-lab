@@ -23,7 +23,7 @@ try {
 const JAPANESE_VOICES = TTS_VOICES.ja.voices.map(v => v.id);
 
 // Default Japanese voice for chunk packs
-const DEFAULT_VOICE = JAPANESE_VOICES[0]; // First voice from available voices
+const DEFAULT_VOICE: string = JAPANESE_VOICES[0]; // First voice from available voices
 
 /**
  * Remove furigana readings and decorative brackets from Japanese text for TTS

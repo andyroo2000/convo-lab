@@ -12,6 +12,12 @@ export interface DialogueSpeakerVoice {
   description: string;
 }
 
+interface VoiceConfig {
+  id: string;
+  gender: string;
+  description: string;
+}
+
 export function getCourseSpeakerVoices(
   targetLanguage: string,
   nativeLanguage: string,
@@ -35,7 +41,8 @@ export function getDialogueSpeakerVoices(
   numSpeakers: number = 2
 ): DialogueSpeakerVoice[] {
   // Get speaker voices for dialogue (target language only)
-  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const voicesConfig = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices;
+  const targetVoices: VoiceConfig[] = voicesConfig ? [...voicesConfig] : [];
 
   // For 2 speakers, ensure gender diversity (one male, one female)
   if (numSpeakers === 2) {
