@@ -181,11 +181,14 @@ model Course {
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
   speaker2VoiceId          String?  // Specific TTS voice ID for speaker 2 (overrides gender default)
+  scriptJson               Json?    // LessonScriptUnit[] - flattened from Lesson
+  approxDurationSeconds    Int?     // Flattened from Lesson
+  audioUrl                 String?  // Flattened from Lesson
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
-  user                     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lessons                  Lesson[]
+  user                     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coreItems                CourseCoreItem[]
   courseEpisodes           CourseEpisode[]
 
   @@index([userId])
@@ -206,29 +209,9 @@ model CourseEpisode {
   @@index([episodeId])
 }
 
-model Lesson {
-  id                    String   @id @default(uuid())
-  courseId              String
-  order                 Int
-  title                 String
-  scriptJson            Json     // LessonScriptUnit[]
-  approxDurationSeconds Int
-  audioUrl              String?
-  status                String   @default("pending") // pending, generating, ready, error
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  course                Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  coreItems             LessonCoreItem[]
-
-  @@index([courseId])
-  @@index([order])
-  @@index([status])
-}
-
-model LessonCoreItem {
+model CourseCoreItem {
   id                String  @id @default(uuid())
-  lessonId          String
+  courseId          String
   textL2            String
   readingL2         String? // kana/pinyin
   translationL1     String
@@ -237,9 +220,9 @@ model LessonCoreItem {
   sourceSentenceId  String?
   components        Json?   // Pimsleur backward-build components: PhraseComponent[]
 
-  lesson            Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  course            Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  @@index([lessonId])
+  @@index([courseId])
 }
 
 // Narrow Listening Models
