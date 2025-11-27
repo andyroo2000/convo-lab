@@ -7,7 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[feat]** Randomized speaker voices for narrow listening with gender alternation (commit: c5b0d37)
+  - Each sentence now uses a different speaker for more natural variety
+  - Gender-balanced alternation: F-M-F-M pattern with round-robin distribution
+  - No consecutive repeats: adjacent sentences always have different speakers
+  - Expanded Japanese voice pool: 5 voices (3 female + 2 male) from 2 voices
+  - Efficient batched TTS: parallel calls grouped by voice (e.g., 5 calls for 36 segments)
+  - Silence buffer caching across versions for better performance
+  - Cost neutral: same total character count = same TTS cost
+
 ### Fixed
+- **[fix]** Japanese Neural2-C voice gender (commit: c5b0d37)
+  - Fixed ja-JP-Neural2-C incorrectly marked as female (now correctly male)
+  - Added Wavenet voices (Mayu, Shiori) for more Japanese variety
 - **[fix]** Dialogue playback page scroll position on mobile (commit: 069c9aa)
   - Applied dynamic header height calculation to dialogue playback page
   - Currently played sentence now scrolls to correct position on mobile
