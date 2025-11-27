@@ -1,10 +1,18 @@
 import { Queue, Worker } from 'bullmq';
 import { prisma } from '../db/client.js';
 import { generateNarrowListeningPack } from '../services/narrowListeningGenerator.js';
-import { generateNarrowListeningAudio } from '../services/narrowListeningAudioGenerator.js';
+import {
+  generateNarrowListeningAudio,
+  assignVoicesToSegments,
+  type VoiceInfo,
+} from '../services/narrowListeningAudioGenerator.js';
 import { processJapaneseBatch, processChineseBatch } from '../services/languageProcessor.js';
 import { TTS_VOICES } from '../../../shared/src/constants.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
+import { generateSilence } from '../services/ttsClient.js';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
 
 const connection = createRedisConnection();
 
@@ -47,21 +55,45 @@ async function processNarrowListeningGeneration(job: any) {
 
     await job.updateProgress(20);
 
-    // STEP 2: Create StoryVersion and StorySegment records
+    // STEP 2: Get available voices and generate shared silence buffer
     const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || TTS_VOICES.ja.voices;
+    const availableVoices: VoiceInfo[] = languageVoices.map(v => ({
+      id: v.id,
+      gender: v.gender as 'male' | 'female',
+      description: v.description,
+    }));
+
+    console.log(
+      `Using ${availableVoices.length} voices for ${targetLanguage}: ${availableVoices.map(v => v.id).join(', ')}`
+    );
+
+    // Generate shared 800ms silence buffer (cached across all versions in this pack)
+    const tempDir = path.join(os.tmpdir(), `nl-silence-${Date.now()}`);
+    await fs.mkdir(tempDir, { recursive: true });
+    const sharedSilencePath = path.join(tempDir, 'shared-silence.mp3');
+    const silenceBuffer = await generateSilence(0.8);
+    await fs.writeFile(sharedSilencePath, silenceBuffer);
+    console.log(`[NL] Generated shared silence buffer: ${sharedSilencePath}`);
+
     const progressPerVersion = 70 / storyPack.versions.length; // 70% total for all versions (20% to 90%)
 
-    for (let i = 0; i < storyPack.versions.length; i++) {
+    try {
+      for (let i = 0; i < storyPack.versions.length; i++) {
       const version = storyPack.versions[i];
       const baseProgress = 20 + (i * progressPerVersion);
 
       console.log(`Processing version ${i + 1}/${storyPack.versions.length}: ${version.title}`);
 
-      // Select a random voice for this version based on target language
-      const randomVoice = languageVoices[Math.floor(Math.random() * languageVoices.length)];
-      const voiceId = randomVoice.id;
+      // Assign voices with gender alternation and balanced distribution
+      const voiceAssignments = assignVoicesToSegments(
+        version.segments.length,
+        availableVoices
+      );
 
-      console.log(`Selected voice: ${randomVoice.description} (${voiceId})`);
+      const uniqueVoicesUsed = new Set(voiceAssignments);
+      console.log(
+        `Assigned ${uniqueVoicesUsed.size} unique voices to ${version.segments.length} segments`
+      );
 
       // Process all segments through language processor in a single batch call
       const segmentTexts = version.segments.map(seg => seg.targetText);
@@ -92,9 +124,11 @@ async function processNarrowListeningGeneration(job: any) {
       const audioResult = await generateNarrowListeningAudio(
         packId,
         segmentData,
-        voiceId,
+        voiceAssignments,
         0.85,
-        i
+        i,
+        targetLanguage,
+        sharedSilencePath
       );
 
       console.log(`Audio generated: ${audioResult.combinedAudioUrl}`);
@@ -102,12 +136,15 @@ async function processNarrowListeningGeneration(job: any) {
       await job.updateProgress(baseProgress + (progressPerVersion * 0.7));
 
       // STEP 4: Create database records
+      // Pick the first voice from assignments as the "primary" voice for backward compatibility
+      const primaryVoiceId = voiceAssignments[0];
+
       const storyVersion = await prisma.storyVersion.create({
         data: {
           packId,
           variationType: version.variationType,
           title: version.title,
-          voiceId,
+          voiceId: primaryVoiceId, // Primary voice (for backward compatibility)
           order: i,
           audioUrl_0_7: null, // Will be generated on demand
           audioUrl_0_85: audioResult.combinedAudioUrl,
@@ -117,7 +154,7 @@ async function processNarrowListeningGeneration(job: any) {
 
       console.log(`Created StoryVersion record: ${storyVersion.id}`);
 
-      // Create segment records
+      // Create segment records with individual voiceId per segment
       await prisma.storySegment.createMany({
         data: audioResult.segments.map((seg: any, segIdx: number) => ({
           versionId: storyVersion.id,
@@ -125,6 +162,7 @@ async function processNarrowListeningGeneration(job: any) {
           targetText: seg.text,
           englishTranslation: seg.translation,
           reading: seg.reading || null,
+          voiceId: seg.voiceId, // NEW: Store voice per segment
           audioUrl_0_7: null,
           startTime_0_7: null,
           endTime_0_7: null,
@@ -140,6 +178,15 @@ async function processNarrowListeningGeneration(job: any) {
       console.log(`Created ${audioResult.segments.length} StorySegment records`);
 
       await job.updateProgress(baseProgress + progressPerVersion);
+      }
+    } finally {
+      // Cleanup shared silence buffer temp directory
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        console.log(`[NL] Cleaned up shared silence temp directory`);
+      } catch (e) {
+        console.warn('[NL] Failed to cleanup silence temp directory:', e);
+      }
     }
 
     // STEP 5: Update pack status to ready
@@ -210,7 +257,18 @@ async function processOnDemandSpeedGeneration(job: any) {
       throw new Error('Pack not found');
     }
 
+    const targetLanguage = pack.targetLanguage;
     const progressPerVersion = 100 / pack.versions.length;
+
+    // Generate shared 800ms silence buffer (cached across all versions)
+    const tempDir = path.join(os.tmpdir(), `nl-silence-ondemand-${Date.now()}`);
+    await fs.mkdir(tempDir, { recursive: true });
+    const sharedSilencePath = path.join(tempDir, 'shared-silence.mp3');
+    const silenceBuffer = await generateSilence(0.8);
+    await fs.writeFile(sharedSilencePath, silenceBuffer);
+    console.log(`[NL] Generated shared silence buffer for on-demand generation`);
+
+    try {
 
     for (let i = 0; i < pack.versions.length; i++) {
       const version = pack.versions[i];
@@ -228,15 +286,24 @@ async function processOnDemandSpeedGeneration(job: any) {
       const segmentData = version.segments.map(seg => ({
         text: seg.targetText,
         translation: seg.englishTranslation,
+        reading: seg.reading || undefined,
       }));
 
-      // Generate audio at specified speed
+      // Build voice assignments from existing segment voiceIds
+      // Fall back to version voiceId if segment doesn't have one (backward compatibility)
+      const voiceAssignments = version.segments.map(
+        seg => seg.voiceId || version.voiceId
+      );
+
+      // Generate audio at specified speed with multi-voice support
       const audioResult = await generateNarrowListeningAudio(
         packId,
         segmentData,
-        version.voiceId,
+        voiceAssignments,
         speed,
-        i
+        i,
+        targetLanguage,
+        sharedSilencePath
       );
 
       // Update version with audio URL
@@ -245,21 +312,35 @@ async function processOnDemandSpeedGeneration(job: any) {
         data: { [audioUrlField]: audioResult.combinedAudioUrl },
       });
 
-      // Update segments with timing data
+      // Update segments with timing data and voiceId (if missing)
       for (let segIdx = 0; segIdx < audioResult.segments.length; segIdx++) {
         const seg = audioResult.segments[segIdx];
+        const existingSegment = version.segments[segIdx];
+
         await prisma.storySegment.update({
-          where: { id: version.segments[segIdx].id },
+          where: { id: existingSegment.id },
           data: {
+            // Update timing data
             [audioUrlField]: seg.audioUrl || null,
             [startTimeField]: seg.startTime,
             [endTimeField]: seg.endTime,
+            // Backfill voiceId if missing (for backward compatibility)
+            ...(existingSegment.voiceId ? {} : { voiceId: seg.voiceId }),
           },
         });
       }
 
       console.log(`✅ Generated ${speedLabel} audio for version ${i + 1}`);
       await job.updateProgress((i + 1) * progressPerVersion);
+    }
+    } finally {
+      // Cleanup shared silence buffer temp directory
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+        console.log(`[NL] Cleaned up shared silence temp directory`);
+      } catch (e) {
+        console.warn('[NL] Failed to cleanup silence temp directory:', e);
+      }
     }
 
     console.log(`✅ ${speedLabel} speed audio generation complete for pack ${packId}`);
