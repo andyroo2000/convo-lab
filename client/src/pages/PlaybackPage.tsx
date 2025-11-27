@@ -212,9 +212,11 @@ export default function PlaybackPage() {
     if (currentSentence) {
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
-        // Scroll with offset to account for sticky header (nav + episode header + audio player)
-        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (80px) = ~324px
-        const yOffset = -324;
+        // Calculate the actual height of the sticky header dynamically
+        const stickyHeader = document.querySelector('.sticky.top-16');
+        const headerHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
+        const navHeight = 64; // nav bar height
+        const yOffset = -(navHeight + headerHeight + 20); // Add 20px padding
         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
