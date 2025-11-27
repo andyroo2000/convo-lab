@@ -274,6 +274,7 @@ model StorySegment {
   targetText          String   @db.Text // Target language text (Japanese/Chinese)
   englishTranslation  String   @db.Text
   reading             String?  @db.Text // Furigana (Japanese) or Pinyin (Chinese)
+  voiceId             String?  // Voice for this specific segment (for randomized speakers)
   audioUrl_0_7        String?  // Slow segment audio
   audioUrl_0_85       String?  // Medium segment audio
   audioUrl_1_0        String?  // Normal segment audio
@@ -290,6 +291,7 @@ model StorySegment {
 
   @@index([versionId])
   @@index([order])
+  @@index([voiceId])
 }
 
 // Lexical Chunk Pack Models

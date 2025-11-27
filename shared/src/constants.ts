@@ -76,11 +76,13 @@ export const TTS_VOICES = {
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      // Female Neural2 voices
+      // Female voices (Neural2 + Wavenet)
       { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful' },
-      { id: 'ja-JP-Neural2-C', gender: 'female', description: 'Mayu - Animated and warm' },
-      // Male Neural2 voices
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Masaru - Warm and conversational' },
+      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright' },
+      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear' },
+      // Male voices (Neural2 only - Wavenet B/C excluded as duplicates)
+      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Naoki - Confident and clear' },
+      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational' },
     ],
   },
   zh: {

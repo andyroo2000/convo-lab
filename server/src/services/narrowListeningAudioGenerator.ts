@@ -23,10 +23,17 @@ export interface SegmentData {
   reading?: string;
 }
 
+export interface VoiceInfo {
+  id: string;
+  gender: 'male' | 'female';
+  description: string;
+}
+
 export interface GeneratedSegment {
   text: string;
   translation: string;
   reading: string | null;
+  voiceId: string; // NEW: Voice for this segment
   audioUrl: string | null;
   startTime: number; // milliseconds in combined audio
   endTime: number; // milliseconds in combined audio
@@ -39,22 +46,137 @@ export interface AudioGenerationResult {
 }
 
 /**
- * Generate audio for a narrow listening story version
+ * Assign voices to segments with gender alternation and balanced distribution
+ * @param segmentCount - Number of segments to assign voices to
+ * @param availableVoices - Available voices with gender info
+ * @returns Array of voiceIds (one per segment, in order)
+ */
+export function assignVoicesToSegments(
+  segmentCount: number,
+  availableVoices: VoiceInfo[]
+): string[] {
+  if (availableVoices.length === 0) {
+    throw new Error('No voices available');
+  }
+
+  if (availableVoices.length === 1) {
+    // Fallback: single voice for all segments
+    return Array(segmentCount).fill(availableVoices[0].id);
+  }
+
+  // 1. Separate voices by gender
+  const femaleVoices = availableVoices.filter(v => v.gender === 'female');
+  const maleVoices = availableVoices.filter(v => v.gender === 'male');
+
+  // Edge case: only one gender available
+  if (femaleVoices.length === 0 || maleVoices.length === 0) {
+    // Use round-robin on available voices
+    const voices = availableVoices;
+    return Array(segmentCount).fill(null).map((_, i) => voices[i % voices.length].id);
+  }
+
+  // 2. Create rotators for each gender group
+  let femaleIndex = 0;
+  let maleIndex = 0;
+
+  // 3. Alternate between genders, rotating through voices within each gender
+  const assignments: string[] = [];
+  let useFemale = Math.random() > 0.5; // Random starting gender
+
+  for (let i = 0; i < segmentCount; i++) {
+    // Alternate gender
+    const voiceGroup = useFemale ? femaleVoices : maleVoices;
+    const index = useFemale ? femaleIndex : maleIndex;
+
+    // Assign voice and rotate
+    assignments.push(voiceGroup[index % voiceGroup.length].id);
+
+    if (useFemale) {
+      femaleIndex++;
+    } else {
+      maleIndex++;
+    }
+
+    // Switch gender for next iteration
+    useFemale = !useFemale;
+  }
+
+  // 4. Verify no consecutive duplicates (shouldn't happen with alternation, but be safe)
+  for (let i = 1; i < assignments.length; i++) {
+    if (assignments[i] === assignments[i - 1]) {
+      // Find next different voice to swap with
+      for (let j = i + 1; j < assignments.length; j++) {
+        if (assignments[j] !== assignments[i]) {
+          [assignments[i], assignments[j]] = [assignments[j], assignments[i]];
+          break;
+        }
+      }
+    }
+  }
+
+  return assignments;
+}
+
+/**
+ * Group segments by their assigned voice for batched TTS processing
+ * @returns Map of voiceId -> array of { index, text, translation, reading }
+ */
+function groupSegmentsByVoice(
+  segments: SegmentData[],
+  voiceAssignments: string[]
+): Map<string, Array<{ index: number; text: string; translation: string; reading?: string }>> {
+  const voiceGroups = new Map<
+    string,
+    Array<{ index: number; text: string; translation: string; reading?: string }>
+  >();
+
+  for (let i = 0; i < segments.length; i++) {
+    const voiceId = voiceAssignments[i];
+    const segment = segments[i];
+
+    if (!voiceGroups.has(voiceId)) {
+      voiceGroups.set(voiceId, []);
+    }
+
+    voiceGroups.get(voiceId)!.push({
+      index: i,
+      text: segment.text,
+      translation: segment.translation,
+      reading: segment.reading,
+    });
+  }
+
+  return voiceGroups;
+}
+
+/**
+ * Generate audio for a narrow listening story version with multiple voices
  * @param packId - Pack ID for folder organization
  * @param segments - Array of text segments to generate audio for
- * @param voiceId - TTS voice ID to use
+ * @param voiceAssignments - Array of voice IDs (one per segment)
  * @param speed - Playback speed (0.7 for slow, 1.0 for normal)
  * @param versionIndex - Version number for unique file naming
+ * @param targetLanguage - Language code (ja, zh, etc.) for logging
+ * @param sharedSilencePath - Optional cached silence buffer path (reused across versions)
  */
 export async function generateNarrowListeningAudio(
   packId: string,
   segments: SegmentData[],
-  voiceId: string,
+  voiceAssignments: string[],
   speed: number,
-  versionIndex: number
+  versionIndex: number,
+  targetLanguage: string,
+  sharedSilencePath?: string
 ): Promise<AudioGenerationResult> {
+  if (segments.length !== voiceAssignments.length) {
+    throw new Error(
+      `Segment count (${segments.length}) must match voice assignment count (${voiceAssignments.length})`
+    );
+  }
+
+  const uniqueVoices = new Set(voiceAssignments);
   console.log(
-    `Generating narrow listening audio: ${segments.length} segments, voice=${voiceId}, speed=${speed}`
+    `Generating narrow listening audio: ${segments.length} segments, ${uniqueVoices.size} voices, speed=${speed}`
   );
 
   // Create temp directory for audio segments
@@ -65,39 +187,81 @@ export async function generateNarrowListeningAudio(
     const audioSegmentFiles: string[] = [];
     const segmentTimings: Array<{ startTime: number; endTime: number; duration: number }> = [];
 
-    // OPTIMIZATION: Generate all TTS audio in a single batched call using SSML marks
-    console.log(`[NL] Batching ${segments.length} segments into single TTS call...`);
+    // OPTIMIZATION: Group segments by voice and make parallel batched TTS calls
+    const voiceGroups = groupSegmentsByVoice(segments, voiceAssignments);
+    console.log(
+      `[NL] Batching ${segments.length} segments into ${voiceGroups.size} voice groups (parallel TTS calls)...`
+    );
 
-    // Get language code from voice ID (e.g., ja-JP-Neural2-B -> ja-JP)
-    const languageCode = voiceId.split('-').slice(0, 2).join('-');
+    // Get language code from first voice ID (all voices in same language)
+    const firstVoiceId = voiceAssignments[0];
+    const languageCode = firstVoiceId.split('-').slice(0, 2).join('-');
 
-    // Generate all audio in one batched TTS call
-    const audioBuffers = await synthesizeBatchedTexts(
-      segments.map(s => s.text),
-      {
-        voiceId,
-        languageCode,
-        speed,
-        pitch: 0,
+    // Generate audio for each voice group in parallel
+    const voiceAudioPromises = Array.from(voiceGroups.entries()).map(
+      async ([voiceId, groupSegments]) => {
+        console.log(
+          `  [NL] Voice ${voiceId}: generating ${groupSegments.length} segments...`
+        );
+
+        // Batch TTS call for this voice
+        const audioBuffers = await synthesizeBatchedTexts(
+          groupSegments.map(s => s.text),
+          {
+            voiceId,
+            languageCode,
+            speed,
+            pitch: 0,
+          }
+        );
+
+        // Write each buffer to temp file with original index in filename
+        const results = [];
+        for (let i = 0; i < audioBuffers.length; i++) {
+          const originalIndex = groupSegments[i].index;
+          const segmentPath = path.join(tempDir, `segment-${originalIndex}.mp3`);
+          await fs.writeFile(segmentPath, audioBuffers[i]);
+          const duration = await getAudioDurationFromFile(segmentPath);
+          results.push({
+            index: originalIndex,
+            path: segmentPath,
+            duration,
+            voiceId,
+          });
+        }
+
+        return results;
       }
     );
 
-    // Write buffers to temp files and get durations
-    const segmentResults: Array<{ index: number; path: string; duration: number }> = [];
-    for (let i = 0; i < audioBuffers.length; i++) {
-      const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
-      await fs.writeFile(segmentPath, audioBuffers[i]);
-      const duration = await getAudioDurationFromFile(segmentPath);
-      segmentResults.push({ index: i, path: segmentPath, duration });
+    // Wait for all voice batches to complete
+    const allVoiceResults = await Promise.all(voiceAudioPromises);
+    const segmentResults = allVoiceResults.flat();
+
+    // Sort by original index to get correct ordering
+    segmentResults.sort((a, b) => a.index - b.index);
+
+    console.log(
+      `[NL] Generated ${segmentResults.length} segment audio files from ${voiceGroups.size} parallel TTS calls`
+    );
+
+    // Use shared silence buffer if provided, otherwise generate (backward compatibility)
+    let reusableSilencePath: string;
+    let silenceDuration: number;
+
+    if (sharedSilencePath) {
+      // Use cached silence buffer
+      reusableSilencePath = sharedSilencePath;
+      silenceDuration = await getAudioDurationFromFile(reusableSilencePath);
+      console.log(`[NL] Using cached silence buffer: ${silenceDuration}ms`);
+    } else {
+      // Generate silence buffer (backward compatibility)
+      const silenceBuffer = await generateSilence(0.8);
+      reusableSilencePath = path.join(tempDir, 'silence-reusable.mp3');
+      await fs.writeFile(reusableSilencePath, silenceBuffer);
+      silenceDuration = await getAudioDurationFromFile(reusableSilencePath);
+      console.log(`[NL] Generated new silence buffer: ${silenceDuration}ms`);
     }
-
-    console.log(`[NL] Generated ${segmentResults.length} segment audio files from 1 TTS call`);
-
-    // Generate silence files (reuse same 800ms silence for all gaps)
-    const silenceBuffer = await generateSilence(0.8);
-    const reusableSilencePath = path.join(tempDir, 'silence-reusable.mp3');
-    await fs.writeFile(reusableSilencePath, silenceBuffer);
-    const silenceDuration = await getAudioDurationFromFile(reusableSilencePath);
 
     // Build final file list with timings in correct order
     let currentTime = 0;
@@ -141,11 +305,12 @@ export async function generateNarrowListeningAudio(
 
     console.log(`  Uploaded to: ${audioUrl}`);
 
-    // Build result with segment data
+    // Build result with segment data (including voiceId for each segment)
     const generatedSegments: GeneratedSegment[] = segments.map((seg, idx) => ({
       text: seg.text,
       translation: seg.translation,
       reading: seg.reading || null,
+      voiceId: voiceAssignments[idx], // NEW: Track which voice was used for this segment
       audioUrl: null, // Individual segment audio URLs not stored for now
       startTime: Math.round(segmentTimings[idx].startTime),
       endTime: Math.round(segmentTimings[idx].endTime),
