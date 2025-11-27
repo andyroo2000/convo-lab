@@ -168,9 +168,11 @@ export default function NarrowListeningPlaybackPage() {
     if (currentSegment) {
       const element = segmentRefs.current.get(currentSegment.id);
       if (element) {
-        // Scroll with offset to account for sticky header (nav + episode header + audio player)
-        // Calculate offset: nav (64px) + episode header (~100px) + audio player (~80px) + padding (20px) = ~264px
-        const yOffset = -264;
+        // Calculate the actual height of the sticky header dynamically
+        const stickyHeader = document.querySelector('.sticky.top-16');
+        const headerHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
+        const navHeight = 64; // nav bar height
+        const yOffset = -(navHeight + headerHeight + 20); // Add 20px padding
         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
       }
@@ -362,8 +364,66 @@ export default function NarrowListeningPlaybackPage() {
       <div className="sticky top-16 z-10 bg-white shadow-lg">
         {/* Episode Header */}
         <div className="border-b border-gray-200 bg-coral">
-          <div className="max-w-5xl mx-auto px-6 py-4">
-            <div className="flex items-start justify-between">
+          <div className="max-w-5xl mx-auto px-4 py-3 lg:px-6 lg:py-4">
+            {/* Mobile Layout: Stack vertically */}
+            <div className="lg:hidden">
+              {/* Title and Pills */}
+              <div className="mb-3">
+                <h1 className="text-xl font-bold text-dark-brown mb-2">{pack.title}</h1>
+
+                {/* Segmented Pill: Level + Variations */}
+                <div className="inline-flex items-center text-xs font-medium overflow-hidden rounded-md shadow-sm">
+                  {/* Left segment - Proficiency Level */}
+                  <div className="pl-3 pr-4 py-1 bg-periwinkle text-white uppercase tracking-wide">
+                    {pack.jlptLevel || pack.hskLevel}
+                  </div>
+
+                  {/* Right segment - Variations (with chevron left edge) */}
+                  <div
+                    className="pl-2 pr-3 py-1 bg-strawberry text-white capitalize relative"
+                    style={{
+                      clipPath: 'polygon(6px 0%, 100% 0%, 100% 100%, 6px 100%, 0% 50%)',
+                      marginLeft: '-6px'
+                    }}
+                  >
+                    <span className="ml-1.5">{pack.versions.length} variations</span>
+                  </div>
+                </div>
+
+                {pack.grammarFocus && (
+                  <p className="text-xs text-gray-600 mt-1.5">
+                    <strong>Focus:</strong> {pack.grammarFocus}
+                  </p>
+                )}
+              </div>
+
+              {/* Controls: Toggles and Speed Selector - Below on mobile */}
+              {!generatingSpeed && currentAudioUrl && (
+                <div className="flex flex-col gap-2">
+                  {/* Row 1: Furigana & English Toggles */}
+                  <ViewToggleButtons
+                    showReadings={showReadings}
+                    showTranslations={showTranslations}
+                    onToggleReadings={() => setShowReadings(!showReadings)}
+                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                    readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
+                  />
+
+                  {/* Row 2: Speed Selector */}
+                  <SpeedSelector
+                    selectedSpeed={selectedSpeed}
+                    onSpeedChange={(speed) => handleSpeedChange(speed as Speed)}
+                    disabled={generatingSpeed}
+                    loading={generatingSpeed}
+                    loadingSpeed={selectedSpeed}
+                    showLabels={true}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Desktop Layout: Side by side */}
+            <div className="hidden lg:flex items-start justify-between">
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-dark-brown mb-2">{pack.title}</h1>
 
@@ -423,15 +483,15 @@ export default function NarrowListeningPlaybackPage() {
         {/* Progress Banner (shown during generation) */}
         {generatingSpeed && (
           <div className="bg-yellow border-b border-periwinkle">
-          <div className="max-w-5xl mx-auto px-6 py-4">
-            <div className="flex items-center gap-4">
+          <div className="max-w-5xl mx-auto px-4 py-3 lg:px-6 lg:py-4">
+            <div className="flex items-center gap-3 lg:gap-4">
               <Loader className="w-5 h-5 text-dark-brown animate-spin flex-shrink-0" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-dark-brown">
+                  <p className="text-xs lg:text-sm font-medium text-dark-brown">
                     Generating {selectedSpeed} speed audio...
                   </p>
-                  <span className="text-sm font-semibold text-dark-brown">
+                  <span className="text-xs lg:text-sm font-semibold text-dark-brown">
                     {generationProgress}%
                   </span>
                 </div>
@@ -441,7 +501,7 @@ export default function NarrowListeningPlaybackPage() {
                     style={{ width: `${generationProgress}%` }}
                   />
                 </div>
-                <p className="text-xs text-periwinkle-dark mt-1">
+                <p className="text-xs text-periwinkle-dark mt-1 hidden lg:block">
                   Please wait while we generate audio for all variations. This may take a minute or two.
                 </p>
               </div>
@@ -453,7 +513,7 @@ export default function NarrowListeningPlaybackPage() {
         {/* Audio Player (shown when not generating) */}
         {currentAudioUrl && !generatingSpeed && (
           <div className="bg-yellow border-b border-gray-200">
-            <div className="max-w-5xl mx-auto px-6 py-3">
+            <div className="max-w-5xl mx-auto px-4 py-2 lg:px-6 lg:py-3">
               <AudioPlayer
                 src={currentAudioUrl}
                 audioRef={audioRef}
@@ -468,11 +528,11 @@ export default function NarrowListeningPlaybackPage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-6 lg:px-6 lg:py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Version List - Sticky */}
+          {/* Version List - Sticky on desktop only */}
           <div className="lg:col-span-1">
-            <div className="sticky top-[280px]">
+            <div className="lg:sticky lg:top-[280px]">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Story Variations</h3>
               <div className="space-y-2">
                 {pack.versions.map((version) => (
