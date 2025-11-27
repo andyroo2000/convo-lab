@@ -34,11 +34,12 @@ router.get('/', async (req: AuthRequest, res, next) => {
           nativeLanguage: true,
           status: true,
           jlptLevel: true,
+          hskLevel: true,
           createdAt: true,
           updatedAt: true,
           _count: {
             select: {
-              lessons: true,
+              coreItems: true,
             },
           },
         },
@@ -51,16 +52,11 @@ router.get('/', async (req: AuthRequest, res, next) => {
       return;
     }
 
-    // Full mode: Return complete data with lessons and episodes
+    // Full mode: Return complete data with coreItems and episodes
     const courses = await prisma.course.findMany({
       where: { userId: queryUserId },
       include: {
-        lessons: {
-          orderBy: { order: 'asc' },
-          include: {
-            coreItems: true,
-          },
-        },
+        coreItems: true,
         courseEpisodes: {
           orderBy: { order: 'asc' },
           include: {
@@ -98,12 +94,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
         userId: queryUserId,
       },
       include: {
-        lessons: {
-          orderBy: { order: 'asc' },
-          include: {
-            coreItems: true,
-          },
-        },
+        coreItems: true,
         courseEpisodes: {
           orderBy: { order: 'asc' },
           include: {
@@ -275,9 +266,6 @@ router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) 
           id: req.params.id,
           userId: req.userId,
         },
-        include: {
-          lessons: true,
-        },
       });
 
       if (!course) {
@@ -286,12 +274,6 @@ router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) 
 
       if (course.status === 'generating') {
         throw new AppError('Course is already being generated', 400);
-      }
-
-      // Check if there are already lessons being generated
-      const generatingLessons = course.lessons?.filter(l => l.status === 'generating');
-      if (generatingLessons && generatingLessons.length > 0) {
-        throw new AppError('Lessons are already being generated for this course', 400);
       }
 
       // Check if there's already an active job for this course
@@ -336,15 +318,6 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
         id: req.params.id,
         userId: queryUserId,
       },
-      include: {
-        lessons: {
-          select: {
-            id: true,
-            order: true,
-            status: true,
-          },
-        },
-      },
     });
 
     if (!course) {
@@ -370,7 +343,6 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
     res.json({
       status: course.status,
       progress: jobProgress,
-      lessons: course.lessons,
       isStuck,
     });
   } catch (error) {
@@ -407,15 +379,6 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
     // Reset course status to draft
     await prisma.course.update({
       where: { id: course.id },
-      data: { status: 'draft' },
-    });
-
-    // Also reset any lessons that were in 'generating' status
-    await prisma.lesson.updateMany({
-      where: {
-        courseId: course.id,
-        status: 'generating',
-      },
       data: { status: 'draft' },
     });
 
@@ -473,46 +436,6 @@ router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
     }
 
     res.json({ message: 'Course deleted' });
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Get single lesson details (demo users can view admin's lessons)
-router.get('/:courseId/lessons/:lessonId', async (req: AuthRequest, res, next) => {
-  try {
-    const { courseId, lessonId } = req.params;
-
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getLibraryUserId(req.userId!);
-
-    // Verify course belongs to user (or admin for demo users)
-    const course = await prisma.course.findFirst({
-      where: {
-        id: courseId,
-        userId: queryUserId,
-      },
-    });
-
-    if (!course) {
-      throw new AppError('Course not found', 404);
-    }
-
-    const lesson = await prisma.lesson.findFirst({
-      where: {
-        id: lessonId,
-        courseId,
-      },
-      include: {
-        coreItems: true,
-      },
-    });
-
-    if (!lesson) {
-      throw new AppError('Lesson not found', 404);
-    }
-
-    res.json(lesson);
   } catch (error) {
     next(error);
   }

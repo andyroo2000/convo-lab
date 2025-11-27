@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- **[fix]** Audio courses not appearing in library view after lesson model flattening (commit: 96a9dfe)
+  - Updated course API routes to use coreItems instead of deleted lessons relationship
+  - Fixed 500 errors when fetching courses from library endpoint
+  - Removed single lesson endpoint since lessons no longer exist as separate entities
+  - Added hskLevel field to library endpoint response for Chinese course support
+
 ### Added
 - **[feat]** Language-specific colors for pills and sidebars (commit: 9fbf2d6)
   - Japanese uses periwinkle (JA), Chinese uses keylime (ZH)
