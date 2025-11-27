@@ -25,9 +25,6 @@ async function checkJobs() {
     where: {
       id: '02b1e7de-841b-4081-8f94-377655dd9c5c',
     },
-    include: {
-      lessons: true,
-    },
   });
 
   if (stuckCourse) {

@@ -101,43 +101,20 @@ async function processCourseGeneration(job: any) {
       console.log(`Planning conversational lesson: ${lessonTitle}`);
       await job.updateProgress(30);
 
-      // STEP 2: Check for existing lesson with same order and create if doesn't exist
-      let lesson = await prisma.lesson.findFirst({
-        where: {
-          courseId: course.id,
-          order: 1,
-        },
-      });
-
-      if (lesson) {
-        console.log(`Lesson already exists: ${lesson.id}, skipping creation`);
-        // If lesson already exists and is ready, we're done
-        if (lesson.status === 'ready') {
-          console.log(`Lesson is already ready, nothing to do`);
-          await prisma.course.update({
-            where: { id: course.id },
-            data: { status: 'ready' },
-          });
-          return {
-            courseId,
-            lessonCount: 1,
-            vocabularyItemCount: 0,
-            exchangeCount: dialogueExchanges.length,
-          };
-        }
-      } else {
-        // Create new lesson
-        lesson = await prisma.lesson.create({
-          data: {
-            courseId: course.id,
-            order: 1,
-            title: lessonTitle,
-            scriptJson: [], // Will be updated after script generation
-            approxDurationSeconds: estimatedDuration,
-            status: 'generating',
-          },
+      // STEP 2: Check if course already has content (scriptJson)
+      // With the flattened model, we store lesson data directly on Course
+      if (course.scriptJson && course.audioUrl) {
+        console.log(`Course already has content, nothing to do`);
+        await prisma.course.update({
+          where: { id: course.id },
+          data: { status: 'ready' },
         });
-        console.log(`Created lesson record: ${lesson.id}`);
+        return {
+          courseId,
+          lessonCount: 1,
+          vocabularyItemCount: 0,
+          exchangeCount: dialogueExchanges.length,
+        };
       }
 
       await job.updateProgress(35);
@@ -145,9 +122,9 @@ async function processCourseGeneration(job: any) {
       // Save vocabulary items from dialogue exchanges (batched for DB efficiency)
       const allVocabItems = dialogueExchanges.flatMap(ex => ex.vocabularyItems || []);
       if (allVocabItems.length > 0) {
-        await prisma.lessonCoreItem.createMany({
+        await prisma.courseCoreItem.createMany({
           data: allVocabItems.map((item, index) => ({
-            lessonId: lesson.id,
+            courseId: course.id,
             textL2: item.textL2,
             readingL2: item.readingL2,
             translationL1: item.translationL1,
@@ -156,7 +133,7 @@ async function processCourseGeneration(job: any) {
             sourceSentenceId: null, // Could be linked if needed
           })),
         });
-        console.log(`Saved ${allVocabItems.length} vocabulary items for lesson`);
+        console.log(`Saved ${allVocabItems.length} vocabulary items for course`);
       }
       await job.updateProgress(40);
 
@@ -181,9 +158,9 @@ async function processCourseGeneration(job: any) {
       console.log(`Generated conversational script with ${generatedScript.units.length} units`);
       await job.updateProgress(60);
 
-      // Update lesson with script
-      await prisma.lesson.update({
-        where: { id: lesson.id },
+      // Update course with script (flattened from lesson)
+      await prisma.course.update({
+        where: { id: course.id },
         data: {
           scriptJson: generatedScript.units as any,
           approxDurationSeconds: generatedScript.estimatedDurationSeconds,
@@ -191,10 +168,10 @@ async function processCourseGeneration(job: any) {
       });
 
       // STEP 4: Assemble audio
-      console.log('Assembling lesson audio with Edge TTS...');
+      console.log('Assembling course audio with Edge TTS...');
 
       const assembledAudio = await assembleLessonAudio({
-        lessonId: lesson.id,
+        lessonId: course.id, // Using courseId (lessonId parameter name kept for backward compatibility)
         scriptUnits: generatedScript.units,
         targetLanguage: course.targetLanguage,
         nativeLanguage: course.nativeLanguage,
@@ -208,9 +185,9 @@ async function processCourseGeneration(job: any) {
       console.log(`Audio assembled: ${assembledAudio.audioUrl}`);
       await job.updateProgress(85);
 
-      // Update lesson with audio URL and actual duration
-      await prisma.lesson.update({
-        where: { id: lesson.id },
+      // Update course with audio URL and actual duration
+      await prisma.course.update({
+        where: { id: course.id },
         data: {
           audioUrl: assembledAudio.audioUrl,
           approxDurationSeconds: assembledAudio.actualDurationSeconds,
@@ -218,7 +195,7 @@ async function processCourseGeneration(job: any) {
         },
       });
 
-      console.log(`Lesson complete!`);
+      console.log(`Course complete!`);
       await job.updateProgress(90);
 
       // Update course status to ready
