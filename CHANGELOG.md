@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Fixed
+- **[fix]** Dialogue playback page scroll position on mobile (commit: 069c9aa)
+  - Applied dynamic header height calculation to dialogue playback page
+  - Currently played sentence now scrolls to correct position on mobile
+  - Matches narrow listening page fix for consistent behavior across playback pages
 - **[fix]** Audio courses not appearing in library view after lesson model flattening (commit: 96a9dfe)
   - Updated course API routes to use coreItems instead of deleted lessons relationship
   - Fixed 500 errors when fetching courses from library endpoint
