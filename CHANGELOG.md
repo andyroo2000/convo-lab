@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[docs]** Proposal for separate worker service architecture (commit: 765ddc1)
+  - Documented future optimization to reduce Redis costs by ~88%
+  - Would split job processing into separate Cloud Run service
+  - Includes implementation plan, cost-benefit analysis, and migration strategy
+  - Reduces Redis polling from ~100K commands/day to under 5K
 - **[feat]** Randomized speaker voices for narrow listening with gender alternation (commit: c5b0d37)
   - Each sentence now uses a different speaker for more natural variety
   - Gender-balanced alternation: F-M-F-M pattern with round-robin distribution
