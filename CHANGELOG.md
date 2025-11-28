@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Configurable worker polling frequency via environment variable (commit: fe06855)
+  - WORKER_DRAIN_DELAY env var controls Redis polling interval
+  - Helper script (scripts/set-worker-polling.sh) to easily adjust on Cloud Run
+  - Comprehensive cost documentation (docs/WORKER_POLLING.md)
+  - Switch between fast testing (5s, ~$15/mo) and idle mode (5min, ~$0/mo)
+  - Default 30s polling reduces costs by ~83% vs previous 5s polling
 - **[docs]** Proposal for separate worker service architecture (commit: 765ddc1)
   - Documented future optimization to reduce Redis costs by ~88%
   - Would split job processing into separate Cloud Run service
