@@ -33,6 +33,9 @@ export default function Layout() {
   const isLibraryActive = location.pathname === '/app/library' || location.pathname.startsWith('/app/playback') || location.pathname.startsWith('/app/practice') || location.pathname.startsWith('/app/courses') || location.pathname.startsWith('/app/narrow-listening') || location.pathname.startsWith('/app/chunk-packs') || location.pathname.startsWith('/app/pi/session');
   const isCreateActive = location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
 
+  // Pages that should have no horizontal padding on mobile for full-width cards
+  const isFullWidthMobilePage = location.pathname === '/app/library' || location.pathname === '/app/create';
+
   return (
     <div className="min-h-screen bg-cream">
       <nav className="sticky top-0 z-20 bg-periwinkle shadow-lg">
@@ -117,7 +120,7 @@ export default function Layout() {
           </div>
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className={`max-w-7xl mx-auto py-8 ${isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'}`}>
         <Outlet />
       </main>
     </div>
