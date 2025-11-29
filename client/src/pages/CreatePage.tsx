@@ -6,7 +6,7 @@ export default function CreatePage() {
 
   return (
     <div>
-      <div className="mb-12 text-center">
+      <div className="mb-12 text-center px-4 sm:px-0">
         <h1 className="text-5xl font-bold text-dark-brown mb-3">What do you want to create?</h1>
         <p className="text-lg text-gray-600">
           Choose an activity type to get started
@@ -115,7 +115,7 @@ export default function CreatePage() {
         </button>
       </div>
 
-      <p className="text-center text-gray-500 mt-12">
+      <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">
         Experiment, iterate, and discover what works for your learning style.
       </p>
     </div>
