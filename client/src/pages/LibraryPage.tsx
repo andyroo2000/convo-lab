@@ -193,7 +193,7 @@ export default function LibraryPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-center sm:justify-end mb-6">
+      <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0">
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
           <button
@@ -248,7 +248,7 @@ export default function LibraryPage() {
       </div>
 
       {allItems.length === 0 ? (
-        <>
+        <div className="px-4 sm:px-0">
           {filter === 'dialogues' && (
             <EmptyStateCard
               icon={MessageSquare}
@@ -326,7 +326,7 @@ export default function LibraryPage() {
               </div>
             </div>
           )}
-        </>
+        </div>
       ) : (
         <div className="space-y-1">
           {allItems.map((item) => {
