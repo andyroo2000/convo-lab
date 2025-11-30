@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** CEFR proficiency level support for Spanish dialogues (commit: ccad672)
+  - Added proper CEFR (A1-C2) level selection for Spanish language dialogues
+  - Spanish dialogues now use appropriate European proficiency scale instead of HSK
+  - Created migration script to update existing Spanish dialogues from HSK1 to A1
+  - Proficiency level logic now correctly handles JLPT (Japanese), HSK (Chinese), and CEFR (Spanish)
 - **[feat]** Admin feature visibility controls for content types (commit: 56e74b3)
   - New Settings tab in admin dashboard with toggle switches for each content type
   - Control visibility of Dialogues, Audio Courses, Narrow Listening, Processing Instruction, and Lexical Chunk Packs
