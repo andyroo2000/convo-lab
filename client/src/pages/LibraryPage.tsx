@@ -564,11 +564,6 @@ export default function LibraryPage() {
 
                       {/* Right: Badges and actions */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        <LanguageLevelPill
-                          className="hidden sm:inline-flex"
-                          language={pack.targetLanguage}
-                          level={pack.jlptLevel || pack.hskLevel}
-                        />
                         {pack.status === 'error' && (
                           <Pill color="red">
                             error
@@ -579,6 +574,11 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
+                        <LanguageLevelPill
+                          className="hidden sm:inline-flex"
+                          language={pack.targetLanguage}
+                          level={pack.jlptLevel || pack.hskLevel}
+                        />
                         {!isDemo && (
                           <button
                             onClick={(e) => handleDeleteChunkPackClick(pack, e)}
