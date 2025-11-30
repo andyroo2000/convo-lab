@@ -48,6 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cost neutral: same total character count = same TTS cost
 
 ### Fixed
+- **[fix]** Spanish dialogue avatar assignment and module import issues (commit: 7e77bad)
+  - Fixed broken avatar assignment where both male and female Spanish speakers showed the same avatar
+  - Updated 8 files to import from constants-new.js instead of outdated constants.js
+  - Removed stale build artifacts (constants.js, constants.d.ts, etc.)
+  - Avatar assignment now correctly identifies speaker gender from voice ID configuration
 - **[fix]** Chunk pack generating badge position and visibility (commit: 8ca9d65)
   - Moved generating/error badges before language pill to match other card types
   - Added polling to chunk packs query to auto-update when generation completes
