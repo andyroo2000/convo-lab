@@ -170,6 +170,11 @@ export function useLibraryData() {
   const chunkPacksQuery = useQuery({
     queryKey: libraryKeys.chunkPacks(),
     queryFn: fetchChunkPacks,
+    // Poll every 5 seconds while any chunk pack is generating
+    refetchInterval: (query) => {
+      const hasGenerating = query.state.data?.some(cp => cp.status === 'generating');
+      return hasGenerating ? 5000 : false;
+    },
   });
 
   // Delete mutations with optimistic updates
