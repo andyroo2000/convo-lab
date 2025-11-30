@@ -16,6 +16,8 @@
     "build:client": "npm run build --workspace=client",
     "build:server": "npm run build --workspace=server",
     "test": "npm run test --workspaces",
+    "test:run": "npm run test:run --workspaces",
+    "test:coverage": "npm run test:coverage --workspaces",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces"
   },
