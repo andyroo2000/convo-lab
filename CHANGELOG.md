@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Admin feature visibility controls for content types (commit: 56e74b3)
+  - New Settings tab in admin dashboard with toggle switches for each content type
+  - Control visibility of Dialogues, Audio Courses, Narrow Listening, Processing Instruction, and Lexical Chunk Packs
+  - FeatureFlag database model with all flags defaulting to enabled
+  - Backend API endpoints for admins to manage flags and users to fetch them
+  - useFeatureFlags hook for frontend feature flag management
+  - CreatePage conditionally shows/hides cards based on feature flags
+  - LibraryPage conditionally shows/hides filter buttons based on feature flags
+  - Admins always see all content types regardless of settings
+  - Non-admins only see enabled content types
 - **[feat]** Amazon Polly TTS integration for maximum voice variety (commit: 9dd3898)
   - Added 21 Polly neural voices across 6 languages (Japanese, Chinese, Spanish, French, Arabic, Hebrew)
   - Total voice pool increased from 21 to 50 voices (29 Google + 21 Polly)
