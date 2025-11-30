@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 
 export default function CreatePage() {
   const navigate = useNavigate();
+  const { isFeatureEnabled } = useFeatureFlags();
 
   return (
     <div>
@@ -15,7 +17,7 @@ export default function CreatePage() {
 
       <div className="max-w-5xl mx-auto space-y-3">
         {/* Dialogue Content Type */}
-        <button
+        {isFeatureEnabled('dialoguesEnabled') && (<button
           onClick={() => navigate('/app/create/dialogue')}
           className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-dialogues"
@@ -32,10 +34,10 @@ export default function CreatePage() {
               Generate AI dialogues from your own stories, calibrated to your proficiency level
             </p>
           </div>
-        </button>
+        </button>)}
 
         {/* Course Content Type */}
-        <button
+        {isFeatureEnabled('audioCourseEnabled') && (<button
           onClick={() => navigate('/app/create/audio-course')}
           className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-audio-course"
@@ -52,10 +54,10 @@ export default function CreatePage() {
               Audio-only lessons built from your dialogues—perfect for your commute or morning walk
             </p>
           </div>
-        </button>
+        </button>)}
 
         {/* Narrow Listening Content Type */}
-        <button
+        {isFeatureEnabled('narrowListeningEnabled') && (<button
           onClick={() => navigate('/app/create/narrow-listening')}
           className="w-full flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-narrow-listening"
@@ -72,10 +74,10 @@ export default function CreatePage() {
               The same story told 5 different ways—deeply internalize patterns through repetition
             </p>
           </div>
-        </button>
+        </button>)}
 
         {/* Processing Instruction Mode */}
-        <button
+        {isFeatureEnabled('processingInstructionEnabled') && (<button
           onClick={() => navigate('/app/create/processing-instruction')}
           className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-processing-instruction"
@@ -92,10 +94,10 @@ export default function CreatePage() {
               Learn grammar through structured input—answer meaning-based questions
             </p>
           </div>
-        </button>
+        </button>)}
 
         {/* Lexical Chunk Packs */}
-        <button
+        {isFeatureEnabled('lexicalChunksEnabled') && (<button
           onClick={() => navigate('/app/create/lexical-chunk-pack')}
           className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
           data-testid="create-card-lexical-chunks"
@@ -112,7 +114,7 @@ export default function CreatePage() {
               Acquire phrases as complete units—learn high-frequency chunks through examples
             </p>
           </div>
-        </button>
+        </button>)}
       </div>
 
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">

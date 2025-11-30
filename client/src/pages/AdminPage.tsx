@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Users, Ticket, BarChart3, Search, Trash2, Copy, Plus, Check, Image } from 'lucide-react';
+import { Users, Ticket, BarChart3, Search, Trash2, Copy, Plus, Check, Image, Settings } from 'lucide-react';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
 import { API_URL } from '../config';
 
-type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars';
+type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings';
 
 interface UserData {
   id: string;
@@ -63,6 +63,16 @@ interface SpeakerAvatar {
   updatedAt: string;
 }
 
+interface FeatureFlags {
+  id: string;
+  dialoguesEnabled: boolean;
+  audioCourseEnabled: boolean;
+  narrowListeningEnabled: boolean;
+  processingInstructionEnabled: boolean;
+  lexicalChunksEnabled: boolean;
+  updatedAt: string;
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -72,10 +82,12 @@ export default function AdminPage() {
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
+  const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [isSavingFlags, setIsSavingFlags] = useState(false);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -144,6 +156,8 @@ export default function AdminPage() {
     } else if (activeTab === 'avatars') {
       fetchUsers();
       fetchSpeakerAvatars();
+    } else if (activeTab === 'settings') {
+      fetchFeatureFlags();
     }
   }, [activeTab]);
 
@@ -210,6 +224,50 @@ export default function AdminPage() {
       console.error('Failed to fetch speaker avatars:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchFeatureFlags = async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${API_URL}/api/admin/feature-flags`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch feature flags');
+      const data = await response.json();
+      setFeatureFlags(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch feature flags');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateFeatureFlag = async (key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>, value: boolean) => {
+    if (!featureFlags) return;
+
+    // Optimistic update
+    const previous = { ...featureFlags };
+    setFeatureFlags({ ...featureFlags, [key]: value });
+
+    try {
+      const response = await fetch(`${API_URL}/api/admin/feature-flags`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ [key]: value }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update feature flag');
+
+      const updated = await response.json();
+      setFeatureFlags(updated);
+      showToast('Settings updated successfully', 'success');
+    } catch (err) {
+      // Revert on error
+      setFeatureFlags(previous);
+      showToast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
     }
   };
 
@@ -428,6 +486,17 @@ export default function AdminPage() {
           >
             <Image className="w-4 h-4" />
             Avatars
+          </Link>
+          <Link
+            to="/app/admin/settings"
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'settings'
+                ? 'border-indigo text-indigo font-semibold'
+                : 'border-transparent text-gray-600 hover:text-navy'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            Settings
           </Link>
         </nav>
       </div>
@@ -912,6 +981,125 @@ export default function AdminPage() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Settings Tab */}
+      {activeTab === 'settings' && (
+        <div>
+          <h2 className="text-xl font-semibold text-navy mb-2">Feature Visibility Settings</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Control which content types are visible to non-admin users. Admins can always see all content types.
+          </p>
+
+          {isLoading ? (
+            <div className="text-center py-12 text-gray-500">Loading settings...</div>
+          ) : featureFlags ? (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="space-y-6">
+                {/* Dialogues Toggle */}
+                <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-base font-semibold text-navy">Comprehensible Input Dialogues</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      AI-generated dialogues calibrated to user proficiency level
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={featureFlags.dialoguesEnabled}
+                      onChange={(e) => updateFeatureFlag('dialoguesEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {/* Audio Course Toggle */}
+                <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-base font-semibold text-navy">Guided Audio Course</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Audio-only lessons built from dialogues—perfect for commutes
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={featureFlags.audioCourseEnabled}
+                      onChange={(e) => updateFeatureFlag('audioCourseEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {/* Narrow Listening Toggle */}
+                <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-base font-semibold text-navy">Narrow Listening Packs</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      The same story told 5 different ways—deeply internalize patterns
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={featureFlags.narrowListeningEnabled}
+                      onChange={(e) => updateFeatureFlag('narrowListeningEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {/* Processing Instruction Toggle */}
+                <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-base font-semibold text-navy">Processing Instruction Activities</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Learn grammar through structured input—answer meaning-based questions
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={featureFlags.processingInstructionEnabled}
+                      onChange={(e) => updateFeatureFlag('processingInstructionEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {/* Lexical Chunks Toggle */}
+                <div className="flex items-center justify-between py-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-navy">Lexical Chunk Packs</h3>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Acquire phrases as complete units—learn high-frequency chunks
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={featureFlags.lexicalChunksEnabled}
+                      onChange={(e) => updateFeatureFlag('lexicalChunksEnabled', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> These settings only affect non-admin users. As an admin, you will always see all content creation options.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       )}
 
