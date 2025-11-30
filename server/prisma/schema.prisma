@@ -93,15 +93,16 @@ model Dialogue {
 }
 
 model Speaker {
-  id         String  @id @default(uuid())
-  dialogueId String
-  name       String
-  voiceId    String  // Google Cloud TTS voice ID
-  proficiency String // beginner, intermediate, advanced, native
-  tone       String  // casual, polite, formal
-  gender     String? // male or female (for avatar matching)
-  color      String? // For UI differentiation
-  avatarUrl  String? // URL to speaker avatar image
+  id            String  @id @default(uuid())
+  dialogueId    String
+  name          String
+  voiceId       String  // TTS voice ID (Google or Polly)
+  voiceProvider String? @default("google") // "google" | "polly"
+  proficiency   String  // beginner, intermediate, advanced, native
+  tone          String  // casual, polite, formal
+  gender        String? // male or female (for avatar matching)
+  color         String? // For UI differentiation
+  avatarUrl     String? // URL to speaker avatar image
 
   dialogue  Dialogue   @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
   sentences Sentence[]
@@ -175,12 +176,15 @@ model Course {
   targetLanguage           String   // L2 (e.g., 'ja', 'zh')
   maxLessonDurationMinutes Int      @default(30)
   l1VoiceId                String   // English narrator voice
+  l1VoiceProvider          String?  @default("google") // "google" | "polly"
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
   hskLevel                 String?  // Target HSK level: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (null = no specific level)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
+  speaker1VoiceProvider    String?  @default("google") // "google" | "polly"
   speaker2VoiceId          String?  // Specific TTS voice ID for speaker 2 (overrides gender default)
+  speaker2VoiceProvider    String?  @default("google") // "google" | "polly"
   scriptJson               Json?    // LessonScriptUnit[] - flattened from Lesson
   approxDurationSeconds    Int?     // Flattened from Lesson
   audioUrl                 String?  // Flattened from Lesson
@@ -275,6 +279,7 @@ model StorySegment {
   englishTranslation  String   @db.Text
   reading             String?  @db.Text // Furigana (Japanese) or Pinyin (Chinese)
   voiceId             String?  // Voice for this specific segment (for randomized speakers)
+  voiceProvider       String?  @default("google") // "google" | "polly"
   audioUrl_0_7        String?  // Slow segment audio
   audioUrl_0_85       String?  // Medium segment audio
   audioUrl_1_0        String?  // Normal segment audio

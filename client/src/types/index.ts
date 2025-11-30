@@ -197,7 +197,11 @@ export interface Course {
   speaker2Gender: 'male' | 'female';
   createdAt: Date;
   updatedAt: Date;
-  lessons?: Lesson[];
+  // Flattened from Lesson model
+  scriptJson?: LessonScriptUnit[];
+  approxDurationSeconds?: number;
+  audioUrl?: string;
+  coreItems?: CourseCoreItem[];
   courseEpisodes?: CourseEpisode[];
 }
 
@@ -209,23 +213,9 @@ export interface CourseEpisode {
   episode?: Episode;
 }
 
-export interface Lesson {
+export interface CourseCoreItem {
   id: string;
   courseId: string;
-  order: number;
-  title: string;
-  scriptJson: LessonScriptUnit[];
-  approxDurationSeconds: number;
-  audioUrl?: string;
-  status: 'pending' | 'generating' | 'ready' | 'error';
-  createdAt: Date;
-  updatedAt: Date;
-  coreItems?: LessonCoreItem[];
-}
-
-export interface LessonCoreItem {
-  id: string;
-  lessonId: string;
   textL2: string;
   readingL2?: string;
   translationL1: string;
@@ -272,9 +262,4 @@ export interface CourseStatusResponse {
   status: 'draft' | 'generating' | 'ready' | 'error';
   progress?: number;
   currentStage?: string;
-  lessons: Array<{
-    id: string;
-    order: number;
-    status: string;
-  }>;
 }

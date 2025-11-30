@@ -74,3 +74,37 @@ export function getDialogueSpeakerVoices(
     description: v.description,
   }));
 }
+
+/**
+ * Detect TTS provider from voice ID format
+ * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
+ * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu")
+ */
+export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' {
+  if (voiceId.includes('-')) {
+    return 'google';
+  }
+  return 'polly';
+}
+
+/**
+ * Extract language code from voice ID
+ * For Google: Extract from format "ja-JP-Neural2-B" → "ja-JP"
+ * For Polly: Look up in voice configuration
+ */
+export function getLanguageCodeFromVoiceId(voiceId: string): string {
+  const provider = getProviderFromVoiceId(voiceId);
+
+  if (provider === 'google') {
+    // Extract from "ja-JP-Neural2-B" → "ja-JP"
+    return voiceId.split('-').slice(0, 2).join('-');
+  }
+
+  // For Polly, look up in voice config
+  for (const [lang, config] of Object.entries(TTS_VOICES)) {
+    const voice = config.voices.find((v: any) => v.id === voiceId);
+    if (voice) return config.languageCode;
+  }
+
+  throw new Error(`Unknown voice ID: ${voiceId}`);
+}
