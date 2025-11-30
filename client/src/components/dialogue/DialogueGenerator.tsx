@@ -36,6 +36,7 @@ export default function DialogueGenerator() {
   const [dialogueLength, setDialogueLength] = useState(8);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
+  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [tone, setTone] = useState<ToneStyle>('casual');
 
   // Initialize from user preferences
@@ -142,7 +143,9 @@ export default function DialogueGenerator() {
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language
-      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel : hskLevel;
+      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel
+        : targetLanguage === 'zh' ? hskLevel
+        : cefrLevel;
 
       // Step 1: Create episode with placeholder title
       const episode = await createEpisode({
@@ -319,6 +322,27 @@ export default function DialogueGenerator() {
               </div>
             )}
 
+            {targetLanguage === 'es' && (
+              <div>
+                <label className="block text-base font-bold text-dark-brown mb-2">
+                  Target CEFR Level
+                </label>
+                <select
+                  value={cefrLevel}
+                  onChange={(e) => setCefrLevel(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+                  data-testid="dialogue-select-cefr-level"
+                >
+                  <option value="A1">A1 (Beginner)</option>
+                  <option value="A2">A2 (Elementary)</option>
+                  <option value="B1">B1 (Intermediate)</option>
+                  <option value="B2">B2 (Upper Intermediate)</option>
+                  <option value="C1">C1 (Advanced)</option>
+                  <option value="C2">C2 (Mastery)</option>
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
                 Tone
@@ -344,7 +368,7 @@ export default function DialogueGenerator() {
           <div className="flex-1">
             <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
             <p className="text-sm sm:text-base text-gray-700 mb-4">
-              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : hskLevel} level {tone} language.
+              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel} level {tone} language.
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-2">
               <li className="font-medium">• {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
