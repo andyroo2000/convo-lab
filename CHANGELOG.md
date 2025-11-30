@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cost neutral: same total character count = same TTS cost
 
 ### Fixed
+- **[fix]** Chunk pack generating badge position and visibility (commit: 8ca9d65)
+  - Moved generating/error badges before language pill to match other card types
+  - Added polling to chunk packs query to auto-update when generation completes
+  - Badge now properly disappears when status changes to 'ready'
 - **[fix]** Japanese Neural2-C voice gender (commit: c5b0d37)
   - Fixed ja-JP-Neural2-C incorrectly marked as female (now correctly male)
   - Added Wavenet voices (Mayu, Shiori) for more Japanese variety
