@@ -387,4 +387,91 @@ router.post('/avatars/user/:userId/upload', upload.single('image'), async (req: 
   }
 });
 
+// ============================================
+// Feature Flag Routes
+// ============================================
+
+// Get feature flags
+router.get('/feature-flags', async (req: AuthRequest, res, next) => {
+  try {
+    // Feature flags is a singleton - get the first (and only) row
+    let flags = await prisma.featureFlag.findFirst();
+
+    // If no flags exist, create default (all enabled)
+    if (!flags) {
+      flags = await prisma.featureFlag.create({
+        data: {
+          dialoguesEnabled: true,
+          audioCourseEnabled: true,
+          narrowListeningEnabled: true,
+          processingInstructionEnabled: true,
+          lexicalChunksEnabled: true,
+        },
+      });
+    }
+
+    res.json(flags);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Update feature flags
+router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
+  try {
+    const {
+      dialoguesEnabled,
+      audioCourseEnabled,
+      narrowListeningEnabled,
+      processingInstructionEnabled,
+      lexicalChunksEnabled,
+    } = req.body;
+
+    // Validate boolean values
+    const validateBoolean = (val: any, name: string) => {
+      if (val !== undefined && typeof val !== 'boolean') {
+        throw new AppError(`${name} must be a boolean`, 400);
+      }
+    };
+
+    validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
+    validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
+    validateBoolean(narrowListeningEnabled, 'narrowListeningEnabled');
+    validateBoolean(processingInstructionEnabled, 'processingInstructionEnabled');
+    validateBoolean(lexicalChunksEnabled, 'lexicalChunksEnabled');
+
+    // Get or create feature flags
+    let flags = await prisma.featureFlag.findFirst();
+
+    if (!flags) {
+      // Create with provided values (defaults to true for any undefined)
+      flags = await prisma.featureFlag.create({
+        data: {
+          dialoguesEnabled: dialoguesEnabled ?? true,
+          audioCourseEnabled: audioCourseEnabled ?? true,
+          narrowListeningEnabled: narrowListeningEnabled ?? true,
+          processingInstructionEnabled: processingInstructionEnabled ?? true,
+          lexicalChunksEnabled: lexicalChunksEnabled ?? true,
+        },
+      });
+    } else {
+      // Update existing flags
+      flags = await prisma.featureFlag.update({
+        where: { id: flags.id },
+        data: {
+          ...(dialoguesEnabled !== undefined && { dialoguesEnabled }),
+          ...(audioCourseEnabled !== undefined && { audioCourseEnabled }),
+          ...(narrowListeningEnabled !== undefined && { narrowListeningEnabled }),
+          ...(processingInstructionEnabled !== undefined && { processingInstructionEnabled }),
+          ...(lexicalChunksEnabled !== undefined && { lexicalChunksEnabled }),
+        },
+      });
+    }
+
+    res.json(flags);
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

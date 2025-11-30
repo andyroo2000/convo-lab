@@ -428,3 +428,17 @@ model SpeakerAvatar {
   @@index([filename])
   @@index([language, gender, tone])
 }
+
+// Feature Flags - Control visibility of content types for non-admin users
+
+model FeatureFlag {
+  id                           String   @id @default(uuid())
+  dialoguesEnabled             Boolean  @default(true)
+  audioCourseEnabled           Boolean  @default(true)
+  narrowListeningEnabled       Boolean  @default(true)
+  processingInstructionEnabled Boolean  @default(true)
+  lexicalChunksEnabled         Boolean  @default(true)
+  updatedAt                    DateTime @updatedAt
+
+  @@map("feature_flags")
+}
