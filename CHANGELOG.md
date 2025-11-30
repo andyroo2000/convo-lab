@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Amazon Polly TTS integration for maximum voice variety (commit: 9dd3898)
+  - Added 21 Polly neural voices across 6 languages (Japanese, Chinese, Spanish, French, Arabic, Hebrew)
+  - Total voice pool increased from 21 to 50 voices (29 Google + 21 Polly)
+  - Provider detection based on voice ID format (hyphens = Google, single word = Polly)
+  - Provider-aware SSML generation (Google uses speakingRate, Polly uses <prosody rate>)
+  - Polly Speech Marks API for precise timing data (2 API calls per batch)
+  - Database schema updated with voiceProvider fields (Speaker, Course, StorySegment models)
+  - Manual test script for verifying Polly voices (test-polly-voices.ts)
+  - Cost impact: ~10% increase for 2.4x more voices
 - **[feat]** Configurable worker polling frequency via environment variable (commit: fe06855)
   - WORKER_DRAIN_DELAY env var controls Redis polling interval
   - Helper script (scripts/set-worker-polling.sh) to easily adjust on Cloud Run
