@@ -449,11 +449,11 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        {(course.jlptLevel || course.hskLevel) && (
+                        {(course.jlptLevel || course.hskLevel || course.cefrLevel) && (
                           <LanguageLevelPill
                             className="hidden sm:inline-flex"
                             language={course.targetLanguage}
-                            level={course.jlptLevel || course.hskLevel}
+                            level={course.jlptLevel || course.hskLevel || course.cefrLevel}
                           />
                         )}
                         {!isDemo && (
@@ -471,11 +471,11 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Language/Level Sidebar (mobile only) */}
-                  {(course.jlptLevel || course.hskLevel) && (
+                  {(course.jlptLevel || course.hskLevel || course.cefrLevel) && (
                     <LanguageLevelSidebar
                       className="sm:hidden"
                       language={course.targetLanguage.toUpperCase()}
-                      level={course.jlptLevel || course.hskLevel}
+                      level={course.jlptLevel || course.hskLevel || course.cefrLevel}
                     />
                   )}
                 </Link>
@@ -514,7 +514,7 @@ export default function LibraryPage() {
                         <LanguageLevelPill
                           className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
-                          level={pack.jlptLevel || pack.hskLevel}
+                          level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                         />
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
@@ -539,7 +539,7 @@ export default function LibraryPage() {
                   <LanguageLevelSidebar
                     className="sm:hidden"
                     language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel || pack.hskLevel}
+                    level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                   />
                 </Link>
               );
@@ -587,7 +587,7 @@ export default function LibraryPage() {
                         <LanguageLevelPill
                           className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
-                          level={pack.jlptLevel || pack.hskLevel}
+                          level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                         />
                         {!isDemo && (
                           <button
@@ -607,7 +607,7 @@ export default function LibraryPage() {
                   <LanguageLevelSidebar
                     className="sm:hidden"
                     language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel || pack.hskLevel}
+                    level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                   />
                 </Link>
               );

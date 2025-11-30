@@ -27,6 +27,7 @@ export interface NarrowListeningPack {
   targetLanguage: string;
   jlptLevel: string | null;
   hskLevel: string | null;
+  cefrLevel: string | null;
   status: string;
   createdAt: string;
   _count: {
@@ -41,6 +42,7 @@ export interface ChunkPack {
   targetLanguage: string;
   jlptLevel: string | null;
   hskLevel: string | null;
+  cefrLevel: string | null;
   status: string;
   createdAt: string;
   _count: {
