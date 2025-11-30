@@ -21,6 +21,7 @@
     "check:prod": "tsx scripts/quick-check-prod.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-polly": "^3.940.0",
     "@google-cloud/storage": "^7.13.0",
     "@google-cloud/text-to-speech": "^5.4.0",
     "@google-cloud/vertexai": "^1.10.0",

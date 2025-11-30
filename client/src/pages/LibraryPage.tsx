@@ -439,11 +439,11 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        {course.jlptLevel && (
+                        {(course.jlptLevel || course.hskLevel) && (
                           <LanguageLevelPill
                             className="hidden sm:inline-flex"
                             language={course.targetLanguage}
-                            level={course.jlptLevel}
+                            level={course.jlptLevel || course.hskLevel}
                           />
                         )}
                         {!isDemo && (
@@ -461,11 +461,11 @@ export default function LibraryPage() {
                   </div>
 
                   {/* Language/Level Sidebar (mobile only) */}
-                  {course.jlptLevel && (
+                  {(course.jlptLevel || course.hskLevel) && (
                     <LanguageLevelSidebar
                       className="sm:hidden"
                       language={course.targetLanguage.toUpperCase()}
-                      level={course.jlptLevel}
+                      level={course.jlptLevel || course.hskLevel}
                     />
                   )}
                 </Link>
@@ -504,7 +504,7 @@ export default function LibraryPage() {
                         <LanguageLevelPill
                           className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
-                          level={pack.jlptLevel}
+                          level={pack.jlptLevel || pack.hskLevel}
                         />
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
@@ -529,7 +529,7 @@ export default function LibraryPage() {
                   <LanguageLevelSidebar
                     className="sm:hidden"
                     language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel}
+                    level={pack.jlptLevel || pack.hskLevel}
                   />
                 </Link>
               );
@@ -567,7 +567,7 @@ export default function LibraryPage() {
                         <LanguageLevelPill
                           className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
-                          level={pack.jlptLevel}
+                          level={pack.jlptLevel || pack.hskLevel}
                         />
                         {pack.status === 'error' && (
                           <Pill color="red">
@@ -597,7 +597,7 @@ export default function LibraryPage() {
                   <LanguageLevelSidebar
                     className="sm:hidden"
                     language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel}
+                    level={pack.jlptLevel || pack.hskLevel}
                   />
                 </Link>
               );
@@ -623,7 +623,7 @@ export default function LibraryPage() {
       <ConfirmModal
         isOpen={courseToDelete !== null}
         title="Delete Audio Course"
-        message={`Are you sure you want to delete "${courseToDelete?.title}"? This action cannot be undone and will delete all associated lessons and audio files.`}
+        message={`Are you sure you want to delete "${courseToDelete?.title}"? This action cannot be undone and will delete the course content and audio file.`}
         confirmLabel="Delete"
         cancelLabel="Cancel"
         onConfirm={handleConfirmDeleteCourse}

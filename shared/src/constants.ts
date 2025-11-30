@@ -54,47 +54,91 @@ export const TONE_STYLES = [
 ] as const;
 
 // TTS Voice Configuration
-// Neural2 voices only (highest quality, support enableTimePointing for batched TTS)
+// Supports both Google Cloud TTS and Amazon Polly providers
+// Google: Neural2 and Wavenet voices (support enableTimePointing for batched TTS)
+// Polly: Neural voices (support Speech Marks for batched TTS)
 // Journey and Studio voices do NOT support timepointing and have been removed
-// Note: Chinese uses Wavenet as Neural2 is not available for Mandarin
 export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
     voices: [
-      // Male Neural2 voices
-      { id: 'en-US-Neural2-J', gender: 'male', description: 'Guy - Deep and authoritative' },
-      { id: 'en-US-Neural2-D', gender: 'male', description: 'Andrew - Warm and conversational' },
-      { id: 'en-US-Neural2-A', gender: 'male', description: 'James - Clear and professional' },
-      { id: 'en-US-Neural2-I', gender: 'male', description: 'Michael - Friendly and engaging' },
-      // Female Neural2 voices
-      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable' },
-      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm' },
-      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere' },
-      { id: 'en-US-Neural2-C', gender: 'female', description: 'Emma - Bright and cheerful' },
+      // Male Neural2 voices (Google)
+      { id: 'en-US-Neural2-J', gender: 'male', description: 'Guy - Deep and authoritative', provider: 'google' },
+      { id: 'en-US-Neural2-D', gender: 'male', description: 'Andrew - Warm and conversational', provider: 'google' },
+      { id: 'en-US-Neural2-A', gender: 'male', description: 'James - Clear and professional', provider: 'google' },
+      { id: 'en-US-Neural2-I', gender: 'male', description: 'Michael - Friendly and engaging', provider: 'google' },
+      // Female Neural2 voices (Google)
+      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable', provider: 'google' },
+      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm', provider: 'google' },
+      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere', provider: 'google' },
+      { id: 'en-US-Neural2-C', gender: 'female', description: 'Emma - Bright and cheerful', provider: 'google' },
     ],
   },
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      // Female voices (Neural2 + Wavenet)
-      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful' },
-      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright' },
-      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear' },
-      // Male voices (Neural2 only - Wavenet B/C excluded as duplicates)
-      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Naoki - Confident and clear' },
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational' },
+      // Google voices (Neural2 + Wavenet)
+      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', provider: 'google' },
+      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright', provider: 'google' },
+      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear', provider: 'google' },
+      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Naoki - Confident and clear', provider: 'google' },
+      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational', provider: 'google' },
+      // Polly voices (Neural)
+      { id: 'Takumi', gender: 'male', description: 'Takumi - Natural and smooth', provider: 'polly' },
+      { id: 'Kazuha', gender: 'female', description: 'Kazuha - Friendly and clear', provider: 'polly' },
+      { id: 'Tomoko', gender: 'female', description: 'Tomoko - Natural and pleasant', provider: 'polly' },
     ],
   },
   zh: {
     languageCode: 'cmn-CN',
     voices: [
-      // Chinese uses Wavenet (Neural2 not available for Mandarin)
-      // Female Wavenet voices
-      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Xiaomei - Warm and friendly' },
-      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Xiaoli - Clear and gentle' },
-      // Male Wavenet voices
-      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wei - Natural and conversational' },
-      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Jun - Professional and clear' },
+      // Google voices (Wavenet - Neural2 not available for Mandarin)
+      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Xiaomei - Warm and friendly', provider: 'google' },
+      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Xiaoli - Clear and gentle', provider: 'google' },
+      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wei - Natural and conversational', provider: 'google' },
+      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Jun - Professional and clear', provider: 'google' },
+      // Polly voices (Neural)
+      { id: 'Zhiyu', gender: 'female', description: 'Zhiyu - Professional and natural', provider: 'polly' },
+    ],
+  },
+  es: {
+    languageCode: 'es-ES',
+    voices: [
+      // Polly voices (Neural) - Spain Spanish
+      { id: 'Lucia', gender: 'female', description: 'Lucia - Clear and natural', provider: 'polly' },
+      { id: 'Sergio', gender: 'male', description: 'Sergio - Professional and warm', provider: 'polly' },
+      // Polly voices (Neural) - Mexican Spanish
+      { id: 'Mia', gender: 'female', description: 'Mia - Friendly and engaging', provider: 'polly' },
+      { id: 'Andrés', gender: 'male', description: 'Andrés - Natural and conversational', provider: 'polly' },
+      // Polly voices (Neural) - US Spanish
+      { id: 'Lupe', gender: 'female', description: 'Lupe - Clear and professional', provider: 'polly' },
+      { id: 'Pedro', gender: 'male', description: 'Pedro - Warm and friendly', provider: 'polly' },
+    ],
+  },
+  fr: {
+    languageCode: 'fr-FR',
+    voices: [
+      // Polly voices (Neural) - France French
+      { id: 'Léa', gender: 'female', description: 'Léa - Natural and pleasant', provider: 'polly' },
+      { id: 'Rémi', gender: 'male', description: 'Rémi - Clear and professional', provider: 'polly' },
+      // Polly voices (Neural) - Canadian French
+      { id: 'Gabrielle', gender: 'female', description: 'Gabrielle - Warm and friendly', provider: 'polly' },
+      { id: 'Liam', gender: 'male', description: 'Liam - Natural and engaging', provider: 'polly' },
+    ],
+  },
+  ar: {
+    languageCode: 'arb',
+    voices: [
+      // Polly voices (Neural) - Gulf Arabic
+      { id: 'Hala', gender: 'female', description: 'Hala - Clear and natural', provider: 'polly' },
+      { id: 'Zayd', gender: 'male', description: 'Zayd - Professional and warm', provider: 'polly' },
+    ],
+  },
+  he: {
+    languageCode: 'he-IL',
+    voices: [
+      // No Polly neural voices available for Hebrew yet
+      // Google Cloud TTS voices would go here when available
     ],
   },
 } as const;

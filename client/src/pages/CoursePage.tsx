@@ -9,7 +9,6 @@ export default function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
-  const [selectedLessonIndex, setSelectedLessonIndex] = useState(0);
   const { audioRef } = useAudioPlayer();
 
   // Inline editing state
@@ -81,9 +80,6 @@ export default function CoursePage() {
     );
   }
 
-  const lessons = course.lessons || [];
-  const selectedLesson = lessons[selectedLessonIndex];
-
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
@@ -137,17 +133,15 @@ export default function CoursePage() {
       <div className="card">
         <div className="flex items-center gap-6 text-sm text-gray-600">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-4 h-4" />
-            <span>{lessons.length} {lessons.length === 1 ? 'Lesson' : 'Lessons'}</span>
-          </div>
-          <div className="flex items-center gap-2">
             <Clock className="w-4 h-4" />
-            <span>
-              {formatDuration(
-                lessons.reduce((sum, l) => sum + l.approxDurationSeconds, 0)
-              )} total
-            </span>
+            <span>{formatDuration(course.approxDurationSeconds || 0)}</span>
           </div>
+          {course.coreItems && course.coreItems.length > 0 && (
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4" />
+              <span>{course.coreItems.length} Core {course.coreItems.length === 1 ? 'Item' : 'Items'}</span>
+            </div>
+          )}
           <div className="ml-auto">
             <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
               {course.targetLanguage.toUpperCase()} → {course.nativeLanguage.toUpperCase()}
@@ -156,154 +150,102 @@ export default function CoursePage() {
         </div>
       </div>
 
-      {/* Lesson List & Player */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Lesson List */}
-        <div className="lg:col-span-1">
-          <div className="card">
-            <h2 className="text-lg font-bold text-navy mb-4">Lessons</h2>
-            <div className="space-y-2">
-              {lessons.map((lesson, index) => (
-                <button
-                  key={lesson.id}
-                  onClick={() => setSelectedLessonIndex(index)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    selectedLessonIndex === index
-                      ? 'bg-indigo-100 border-2 border-indigo-500'
-                      : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-navy text-sm truncate">
-                        Lesson {lesson.order}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {formatDuration(lesson.approxDurationSeconds)}
-                      </div>
-                    </div>
-                    {lesson.status === 'ready' && (
-                      <div className="flex-shrink-0">
-                        <div className="w-2 h-2 bg-green-500 rounded-full" />
-                      </div>
-                    )}
-                    {lesson.status === 'generating' && (
-                      <div className="flex-shrink-0">
-                        <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" />
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+      {/* Course Player */}
+      <div className="card">
+        {course.status === 'ready' && course.audioUrl ? (
+          <>
+            <h2 className="text-2xl font-bold text-navy mb-4">Course Audio</h2>
 
-        {/* Current Lesson Player */}
-        <div className="lg:col-span-2">
-          {selectedLesson ? (
-            <div className="card">
-              <h2 className="text-2xl font-bold text-navy mb-4">
-                {selectedLesson.title}
-              </h2>
+            <AudioPlayer
+              src={course.audioUrl}
+              audioRef={audioRef}
+              key={course.audioUrl}
+            />
 
-              {selectedLesson.status === 'ready' && selectedLesson.audioUrl ? (
-                <>
-                  <AudioPlayer
-                    src={selectedLesson.audioUrl}
-                    audioRef={audioRef}
-                    key={selectedLesson.audioUrl}
-                  />
-
-                  {/* Core Items */}
-                  {selectedLesson.coreItems && selectedLesson.coreItems.length > 0 && (
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold text-navy mb-3">
-                        Core Vocabulary ({selectedLesson.coreItems.length} items)
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {selectedLesson.coreItems.map((item) => (
-                          <div
-                            key={item.id}
-                            className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                          >
-                            <div className="text-lg font-medium text-navy">
-                              {item.textL2}
-                            </div>
-                            {item.readingL2 && (
-                              <div className="text-sm text-gray-500 mt-1">
-                                {item.readingL2}
-                              </div>
-                            )}
-                            <div className="text-sm text-gray-600 mt-2">
-                              {item.translationL1}
-                            </div>
-                          </div>
-                        ))}
+            {/* Core Vocabulary */}
+            {course.coreItems && course.coreItems.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-navy mb-3">
+                  Core Vocabulary ({course.coreItems.length} items)
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {course.coreItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <div className="text-lg font-medium text-navy">
+                        {item.textL2}
                       </div>
-                    </div>
-                  )}
-
-                  {/* Original Prompt */}
-                  {course.courseEpisodes && course.courseEpisodes.length > 0 && course.courseEpisodes[0].episode?.sourceText && (
-                    <div className="mt-6">
-                      <h3 className="text-lg font-semibold text-navy mb-3">
-                        Original Prompt
-                      </h3>
-                      <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                          {course.courseEpisodes[0].episode.sourceText}
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : selectedLesson.status === 'generating' ? (
-                <div className="text-center py-12">
-                  <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">Generating lesson audio...</p>
-
-                  {/* Progress Bar */}
-                  {generationProgress !== null && (
-                    <div className="max-w-md mx-auto">
-                      <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-xs font-semibold text-white"
-                          style={{ width: `${Math.max(generationProgress, 3)}%` }}
-                        >
-                          {generationProgress > 10 && `${generationProgress}%`}
+                      {item.readingL2 && (
+                        <div className="text-sm text-gray-500 mt-1">
+                          {item.readingL2}
                         </div>
+                      )}
+                      <div className="text-sm text-gray-600 mt-2">
+                        {item.translationL1}
                       </div>
-                      <p className="text-sm text-gray-600 mt-2">
-                        {generationProgress < 20
-                          ? 'Extracting dialogue...'
-                          : generationProgress < 40
-                          ? 'Planning lesson structure...'
-                          : generationProgress < 60
-                          ? 'Generating teaching script...'
-                          : generationProgress < 85
-                          ? `Synthesizing audio (${generationProgress - 60}% complete)...`
-                          : 'Finalizing audio file...'}
-                      </p>
                     </div>
-                  )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                  <p className="text-sm text-gray-500 mt-4">
-                    This may take several minutes due to AI generation
+            {/* Original Prompt */}
+            {course.courseEpisodes && course.courseEpisodes.length > 0 && course.courseEpisodes[0].episode?.sourceText && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-navy mb-3">
+                  Original Prompt
+                </h3>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {course.courseEpisodes[0].episode.sourceText}
                   </p>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-gray-600">Lesson not yet generated</p>
+              </div>
+            )}
+          </>
+        ) : course.status === 'generating' ? (
+          <div className="text-center py-12">
+            <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">Generating course audio...</p>
+
+            {/* Progress Bar */}
+            {generationProgress !== null && (
+              <div className="max-w-md mx-auto">
+                <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-xs font-semibold text-white"
+                    style={{ width: `${Math.max(generationProgress, 3)}%` }}
+                  >
+                    {generationProgress > 10 && `${generationProgress}%`}
+                  </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            <div className="card text-center py-12">
-              <p className="text-gray-600">No lessons available</p>
-            </div>
-          )}
-        </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  {generationProgress < 20
+                    ? 'Extracting dialogue...'
+                    : generationProgress < 40
+                    ? 'Planning course structure...'
+                    : generationProgress < 60
+                    ? 'Generating teaching script...'
+                    : generationProgress < 85
+                    ? `Synthesizing audio (${generationProgress - 60}% complete)...`
+                    : 'Finalizing audio file...'}
+                </p>
+              </div>
+            )}
+
+            <p className="text-sm text-gray-500 mt-4">
+              This may take several minutes due to AI generation
+            </p>
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-600">
+              {course.status === 'draft' ? 'Course not yet generated' : 'No audio available'}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

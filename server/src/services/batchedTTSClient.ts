@@ -1,5 +1,7 @@
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { getGoogleTTSBetaProvider, SynthesizeWithTimepointsResult } from './ttsProviders/GoogleTTSBetaProvider.js';
+import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
+import { getProviderFromVoiceId } from '../../../shared/src/voiceSelection.js';
 import { generateSilence } from './ttsClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
@@ -123,13 +125,29 @@ export function groupUnitsIntoBatches(
 
 /**
  * Build SSML document with <mark> tags for a batch
+ *
+ * For Polly: Wraps content in <prosody rate="X%"> to control speed
+ * For Google: Speed is handled by speakingRate parameter in API
  */
-export function buildBatchSSML(batch: TTSBatch): string {
+export function buildBatchSSML(
+  batch: TTSBatch,
+  provider: 'google' | 'polly'
+): string {
   let ssml = '<speak>';
+
+  // For Polly, wrap entire content in prosody tag for speed control
+  if (provider === 'polly') {
+    const rate = Math.round(batch.speed * 100); // 0.7 → 70%, 1.0 → 100%
+    ssml += `<prosody rate="${rate}%">`;
+  }
 
   for (const unit of batch.units) {
     ssml += `<mark name="${unit.markName}"/>`;
     ssml += escapeSSML(unit.text);
+  }
+
+  if (provider === 'polly') {
+    ssml += '</prosody>';
   }
 
   ssml += '</speak>';
@@ -284,19 +302,24 @@ export async function processBatches(
 
   const segments = new Map<number, Buffer>();
   const pauseSegments = new Map<number, Buffer>();
-  const provider = getGoogleTTSBetaProvider();
 
   // Process each batch
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
 
+    // Detect provider from voice ID
+    const providerType = getProviderFromVoiceId(batch.voiceId);
+    const provider = providerType === 'polly'
+      ? getPollyTTSProvider()
+      : getGoogleTTSBetaProvider();
+
     console.log(
       `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
-      `voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
+      `provider=${providerType}, voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
     );
 
-    // Build SSML with marks
-    const ssml = buildBatchSSML(batch);
+    // Build SSML with marks (provider-aware for speed handling)
+    const ssml = buildBatchSSML(batch, providerType);
 
     // Synthesize with timepoints
     const result = await provider.synthesizeSpeechWithTimepoints({
