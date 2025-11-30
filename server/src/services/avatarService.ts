@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { uploadToGCS } from './storageClient.js';
 import { prisma } from '../db/client.js';
+import { TTS_VOICES } from '../../../shared/src/constants-new.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -217,43 +218,82 @@ const LANGUAGE_CODE_MAP: Record<string, string> = {
 };
 
 /**
- * Google Cloud TTS voice gender mapping
+ * Voice gender mapping for TTS voices (Google Cloud TTS and Amazon Polly)
  * Based on: https://cloud.google.com/text-to-speech/docs/voices
+ * and https://docs.aws.amazon.com/polly/latest/dg/voicelist.html
  */
 const VOICE_GENDER_MAP: Record<string, string> = {
-  // Japanese Wavenet voices
+  // Japanese Wavenet voices (Google)
   'ja-JP-Wavenet-A': 'female', // Ichiro (female)
   'ja-JP-Wavenet-B': 'female', // Daichi (female) - FIXED: B is female, not male
   'ja-JP-Wavenet-C': 'male',   // Kento (male)
   'ja-JP-Wavenet-D': 'male',   // Shiori (male) - FIXED: D is male, not female
-  // Japanese Neural2 voices
+  // Japanese Neural2 voices (Google)
   'ja-JP-Neural2-B': 'female', // Female voice
   'ja-JP-Neural2-C': 'male',   // Male voice
   'ja-JP-Neural2-D': 'male',   // Male voice
-  // Chinese Mandarin voices (mainland)
+  // Japanese Polly voices (Amazon)
+  'Takumi': 'male',
+  'Kazuha': 'female',
+  'Tomoko': 'female',
+  // Chinese Mandarin voices (mainland) (Google)
   'cmn-CN-Wavenet-A': 'female',
   'cmn-CN-Wavenet-B': 'male',
   'cmn-CN-Wavenet-C': 'male',
   'cmn-CN-Wavenet-D': 'female',
-  // Chinese Mandarin voices (Taiwan)
+  // Chinese Mandarin voices (Taiwan) (Google)
   'cmn-TW-Wavenet-A': 'female',
   'cmn-TW-Wavenet-B': 'male',
   'cmn-TW-Wavenet-C': 'male',
+  // Chinese Polly voices (Amazon)
+  'Zhiyu': 'female',
+  // Spanish voices (Amazon Polly)
+  'Lucia': 'female',  // Spain Spanish
+  'Sergio': 'male',   // Spain Spanish
+  // French voices (Amazon Polly)
+  'Léa': 'female',      // France French
+  'Rémi': 'male',       // France French
+  'Gabrielle': 'female', // Canadian French
+  'Liam': 'male',       // Canadian French
+  // Arabic voices (Amazon Polly)
+  'Hala': 'female',  // Gulf Arabic
+  'Zayd': 'male',    // Gulf Arabic
 };
 
 /**
- * Extract language and gender from Google Cloud TTS voiceId
+ * Extract language and gender from TTS voiceId (Google Cloud TTS or Amazon Polly)
  * Examples:
- * - ja-JP-Wavenet-A -> { language: 'ja', gender: 'female' }
- * - ja-JP-Wavenet-C -> { language: 'ja', gender: 'male' }
+ * - Google: ja-JP-Wavenet-A -> { language: 'ja', gender: 'female' }
+ * - Polly: Lucia -> { language: 'es', gender: 'female' }
  */
 function parseVoiceId(voiceId: string): { language: string; gender: string } {
-  // Extract language code (first 2-3 chars before hyphen)
-  const parts = voiceId.split('-');
-  let language = parts[0].toLowerCase();
+  let language: string;
 
-  // Normalize language code for avatar filename matching (e.g., 'cmn' -> 'zh')
-  language = LANGUAGE_CODE_MAP[language] || language;
+  // Check if this is a Polly voice (no hyphens) or Google voice (has hyphens)
+  if (voiceId.includes('-')) {
+    // Google Cloud TTS voice: Extract language code (first 2-3 chars before hyphen)
+    const parts = voiceId.split('-');
+    language = parts[0].toLowerCase();
+
+    // Normalize language code for avatar filename matching (e.g., 'cmn' -> 'zh')
+    language = LANGUAGE_CODE_MAP[language] || language;
+  } else {
+    // Amazon Polly voice: Look up language from TTS_VOICES configuration
+    let found = false;
+    for (const [langCode, config] of Object.entries(TTS_VOICES)) {
+      const voice = config.voices.find((v: any) => v.id === voiceId);
+      if (voice) {
+        language = langCode;
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      // Fallback to 'en' if voice not found
+      language = 'en';
+    }
+  }
 
   // Look up gender in our mapping
   const gender = VOICE_GENDER_MAP[voiceId] || 'female'; // Default to female if not found

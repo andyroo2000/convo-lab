@@ -118,6 +118,7 @@ export default function AdminPage() {
     const languageMap: { [key: string]: string } = {
       ja: 'Japanese',
       zh: 'Chinese',
+      es: 'Spanish',
     };
 
     // Capitalize first letter
@@ -136,6 +137,8 @@ export default function AdminPage() {
     'ja-male-casual.jpg', 'ja-male-polite.jpg', 'ja-male-formal.jpg',
     'zh-female-casual.jpg', 'zh-female-polite.jpg', 'zh-female-formal.jpg',
     'zh-male-casual.jpg', 'zh-male-polite.jpg', 'zh-male-formal.jpg',
+    'es-female-casual.jpg', 'es-female-polite.jpg', 'es-female-formal.jpg',
+    'es-male-casual.jpg', 'es-male-polite.jpg', 'es-male-formal.jpg',
   ];
 
   // Redirect if not admin

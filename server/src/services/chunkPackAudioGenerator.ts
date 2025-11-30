@@ -7,7 +7,7 @@ import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
 import { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../types/chunkPack.js';
-import { TTS_VOICES } from '../../../shared/src/constants.js';
+import { TTS_VOICES } from '../../../shared/src/constants-new.js';
 
 // Configure ffmpeg/ffprobe paths
 try {

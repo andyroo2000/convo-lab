@@ -11,9 +11,10 @@ export default function NarrowListeningCreatorPage() {
   const isDemo = useIsDemo();
 
   const [topic, setTopic] = useState('');
-  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh'>('ja');
+  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh' | 'es'>('ja');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK3');
+  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [grammarFocus, setGrammarFocus] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +52,7 @@ export default function NarrowListeningCreatorPage() {
           targetLanguage,
           jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
           hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
+          cefrLevel: targetLanguage === 'es' ? cefrLevel : undefined,
           versionCount,
           grammarFocus: grammarFocus.trim() || undefined,
         }),
@@ -164,6 +166,18 @@ export default function NarrowListeningCreatorPage() {
                 >
                   Chinese
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetLanguage('es')}
+                  disabled={isGenerating}
+                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
+                    targetLanguage === 'es'
+                      ? 'bg-strawberry text-white border-2 border-strawberry'
+                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
+                  } disabled:opacity-50`}
+                >
+                  Spanish
+                </button>
               </div>
             </div>
 
@@ -178,7 +192,9 @@ export default function NarrowListeningCreatorPage() {
                 disabled={isGenerating}
                 placeholder={targetLanguage === 'ja'
                   ? "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
-                  : "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea"
+                  : targetLanguage === 'zh'
+                  ? "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea"
+                  : "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas"
                 }
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
@@ -192,7 +208,7 @@ export default function NarrowListeningCreatorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target {targetLanguage === 'ja' ? 'JLPT' : 'HSK'} Level <span className="text-strawberry">*</span>
+                  Target {targetLanguage === 'ja' ? 'JLPT' : targetLanguage === 'zh' ? 'HSK' : 'CEFR'} Level <span className="text-strawberry">*</span>
                 </label>
                 {targetLanguage === 'ja' ? (
                   <select
@@ -207,7 +223,7 @@ export default function NarrowListeningCreatorPage() {
                     <option value="N2">N2 (Upper Intermediate)</option>
                     <option value="N1">N1 (Advanced)</option>
                   </select>
-                ) : (
+                ) : targetLanguage === 'zh' ? (
                   <select
                     value={hskLevel}
                     onChange={(e) => setHskLevel(e.target.value)}
@@ -220,6 +236,20 @@ export default function NarrowListeningCreatorPage() {
                     <option value="HSK4">HSK4 (Upper Intermediate)</option>
                     <option value="HSK5">HSK5 (Advanced)</option>
                     <option value="HSK6">HSK6 (Proficient)</option>
+                  </select>
+                ) : (
+                  <select
+                    value={cefrLevel}
+                    onChange={(e) => setCefrLevel(e.target.value)}
+                    disabled={isGenerating}
+                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
+                  >
+                    <option value="A1">A1 (Beginner)</option>
+                    <option value="A2">A2 (Elementary)</option>
+                    <option value="B1">B1 (Intermediate)</option>
+                    <option value="B2">B2 (Upper Intermediate)</option>
+                    <option value="C1">C1 (Advanced)</option>
+                    <option value="C2">C2 (Mastery)</option>
                   </select>
                 )}
                 <p className="text-sm text-gray-500 mt-2">

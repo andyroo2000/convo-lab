@@ -33,6 +33,7 @@ export default function SettingsPage() {
   const [pinyinDisplayMode, setPinyinDisplayMode] = useState<'toneMarks' | 'toneNumbers'>('toneMarks');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
+  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -153,6 +154,10 @@ export default function SettingsPage() {
         // If it's an HSK level (HSK1-HSK6), set hskLevel
         else if (storedLevel.startsWith('HSK')) {
           setHskLevel(storedLevel);
+        }
+        // If it's a CEFR level (A1-C2), set cefrLevel
+        else if (['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(storedLevel)) {
+          setCefrLevel(storedLevel);
         }
       }
     }
@@ -530,6 +535,7 @@ export default function SettingsPage() {
           >
             <option value="ja">Japanese (日本語)</option>
             <option value="zh">Mandarin Chinese (中文)</option>
+            <option value="es">Spanish (Español)</option>
           </select>
           {studyLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
@@ -620,6 +626,38 @@ export default function SettingsPage() {
               <option value="HSK4">HSK 4 (Upper Intermediate)</option>
               <option value="HSK5">HSK 5 (Advanced)</option>
               <option value="HSK6">HSK 6 (Mastery)</option>
+            </select>
+            {proficiencySaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {proficiencySaveMessage}
+              </p>
+            )}
+            {!proficiencySaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                This helps us generate content at the right difficulty level
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Spanish - CEFR Levels */}
+        {preferredStudyLanguage === 'es' && (
+          <div className="mb-6">
+            <label className="block text-base font-bold text-dark-brown mb-3">
+              Spanish Proficiency Level (CEFR)
+            </label>
+            <select
+              value={cefrLevel}
+              onChange={(e) => handleProficiencyLevelChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+              data-testid="settings-select-cefr-level"
+            >
+              <option value="A1">A1 - Beginner</option>
+              <option value="A2">A2 - Elementary</option>
+              <option value="B1">B1 - Intermediate</option>
+              <option value="B2">B2 - Upper Intermediate</option>
+              <option value="C1">C1 - Advanced</option>
+              <option value="C2">C2 - Mastery</option>
             </select>
             {proficiencySaveMessage && (
               <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>

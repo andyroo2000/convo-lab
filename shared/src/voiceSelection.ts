@@ -1,4 +1,4 @@
-import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from './constants';
+import { TTS_VOICES, DEFAULT_NARRATOR_VOICES } from './constants-new';
 
 export interface CourseSpeakerVoices {
   narratorVoice: string;

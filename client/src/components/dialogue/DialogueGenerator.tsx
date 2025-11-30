@@ -5,7 +5,7 @@ import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useAuth } from '../../contexts/AuthContext';
-import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants';
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants-new';
 import { getRandomName } from '../../../../shared/src/nameConstants';
 import { getDialogueSpeakerVoices } from '../../../../shared/src/voiceSelection';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';

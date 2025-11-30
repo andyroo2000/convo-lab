@@ -5,7 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
-import { TTS_VOICES } from '../../../../shared/src/constants';
+import { TTS_VOICES } from '../../../../shared/src/constants-new';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 export default function CourseGenerator() {

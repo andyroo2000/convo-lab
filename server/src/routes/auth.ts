@@ -232,7 +232,11 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Validate proficiency level if provided
-    const validProficiencyLevels = ['N5', 'N4', 'N3', 'N2', 'N1', 'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
+    const validProficiencyLevels = [
+      'N5', 'N4', 'N3', 'N2', 'N1',        // JLPT (Japanese)
+      'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6',  // HSK (Chinese)
+      'A1', 'A2', 'B1', 'B2', 'C1', 'C2',  // CEFR (Spanish/European languages)
+    ];
     if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
       throw new AppError('Invalid proficiency level', 400);
     }

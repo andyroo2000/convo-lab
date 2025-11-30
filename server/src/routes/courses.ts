@@ -4,7 +4,7 @@ import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { courseQueue } from '../jobs/courseQueue.js';
-import { DEFAULT_NARRATOR_VOICES } from '../../../shared/src/constants.js';
+import { DEFAULT_NARRATOR_VOICES } from '../../../shared/src/constants-new.js';
 import { generateWithGemini } from '../services/geminiClient.js';
 
 const router = Router();

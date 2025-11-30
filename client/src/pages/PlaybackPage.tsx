@@ -10,7 +10,7 @@ import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
-import { TTS_VOICES, getSpeakerColor } from '../../../shared/src/constants';
+import { TTS_VOICES, getSpeakerColor } from '../../../shared/src/constants-new';
 import { API_URL } from '../config';
 
 // Helper function to get avatar URL based on speaker voice and tone
@@ -426,14 +426,16 @@ export default function PlaybackPage() {
               {/* Controls: Toggles and Speed Selector - Stack on mobile, side-by-side on desktop */}
               {!isGeneratingAudio && currentAudioUrl && (
                 <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
-                  {/* Row 1: Furigana & English Toggles */}
-                  <ViewToggleButtons
-                    showReadings={showReadings}
-                    showTranslations={showTranslations}
-                    onToggleReadings={() => setShowReadings(!showReadings)}
-                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                    readingsLabel={episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
-                  />
+                  {/* Row 1: Furigana & English Toggles - Only show for Japanese and Chinese */}
+                  {(episode?.targetLanguage === 'ja' || episode?.targetLanguage === 'zh') && (
+                    <ViewToggleButtons
+                      showReadings={showReadings}
+                      showTranslations={showTranslations}
+                      onToggleReadings={() => setShowReadings(!showReadings)}
+                      onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                      readingsLabel={episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
+                    />
+                  )}
 
                   {/* Row 2: Speed Selector */}
                   <SpeedSelector
@@ -569,8 +571,11 @@ export default function PlaybackPage() {
                   <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
                     {episode.targetLanguage === 'zh' ? (
                       <ChineseText text={speaker.name} showPinyin={showReadings} />
-                    ) : (
+                    ) : episode.targetLanguage === 'ja' ? (
                       <JapaneseText text={speaker.name} showFurigana={showReadings} />
+                    ) : (
+                      // Spanish and other languages: plain text
+                      <span>{speaker.name}</span>
                     )}
                   </span>
                 </div>
@@ -586,12 +591,15 @@ export default function PlaybackPage() {
                           metadata={sentence.metadata}
                           showPinyin={showReadings}
                         />
-                      ) : (
+                      ) : episode.targetLanguage === 'ja' ? (
                         <JapaneseText
                           text={sentence.text}
                           metadata={sentence.metadata}
                           showFurigana={showReadings}
                         />
+                      ) : (
+                        // Spanish and other languages: plain text
+                        <span className="text-xl sm:text-2xl">{sentence.text}</span>
                       )}
                     </p>
                   </div>
