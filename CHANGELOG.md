@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[test]** Comprehensive test coverage for server and client
+  - Server: 75 tests covering middleware (auth, errorHandler, roleAuth, demoAuth), services (geminiClient, ttsClient, storageClient), and route validation (auth, admin)
+  - Client: 74 tests covering AuthContext, useAudioPlayer hook, and UI components (Toast, ConfirmModal, SpeedSelector)
+  - Added Vitest infrastructure to server with Prisma mocks
+  - Added test:run and test:coverage scripts to root package.json for workspace-wide testing
+  - Fixed existing page tests (LibraryPage, CreatePage) by adding missing useFeatureFlags mocks
+- **[ci]** Claude Code GitHub integration for automated test running via @claude mentions
+
+### Fixed
+- **[fix]** CEFR proficiency levels now display in library view for Spanish content (commit: 36a160c)
+  - Fixed library view not showing proficiency levels for Spanish narrow listening packs, courses, and chunk packs
+  - Updated 6 locations to include cefrLevel in proficiency level checks
+  - Added cefrLevel field to TypeScript interfaces for proper type safety
+
+### Added
 - **[feat]** CEFR proficiency level support for Spanish dialogues (commit: ccad672)
   - Added proper CEFR (A1-C2) level selection for Spanish language dialogues
   - Spanish dialogues now use appropriate European proficiency scale instead of HSK

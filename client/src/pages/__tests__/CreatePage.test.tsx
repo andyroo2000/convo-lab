@@ -13,6 +13,22 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    flags: {
+      dialoguesEnabled: true,
+      audioCourseEnabled: true,
+      narrowListeningEnabled: true,
+      processingInstructionEnabled: true,
+      lexicalChunksEnabled: true,
+    },
+    isLoading: false,
+    error: null,
+    isFeatureEnabled: () => true,
+    isAdmin: false,
+  }),
+}));
+
 describe('CreatePage', () => {
   const renderCreatePage = () => {
     return render(
