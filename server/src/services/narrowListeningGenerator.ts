@@ -1,5 +1,5 @@
 import { generateWithGemini } from './geminiClient.js';
-import { SUPPORTED_LANGUAGES } from '../../../shared/src/constants.js';
+import { SUPPORTED_LANGUAGES } from '../../../shared/src/constants-new.js';
 
 export interface StorySegment {
   targetText: string;

@@ -7,7 +7,7 @@ import {
   type VoiceInfo,
 } from '../services/narrowListeningAudioGenerator.js';
 import { processJapaneseBatch, processChineseBatch } from '../services/languageProcessor.js';
-import { TTS_VOICES } from '../../../shared/src/constants.js';
+import { TTS_VOICES } from '../../../shared/src/constants-new.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 import { generateSilence } from '../services/ttsClient.js';
 import { promises as fs } from 'fs';
@@ -117,11 +117,28 @@ async function processNarrowListeningGeneration(job: any) {
         reading: readings[idx] || '',
       }));
 
-      await job.updateProgress(baseProgress + (progressPerVersion * 0.2));
+      await job.updateProgress(baseProgress + (progressPerVersion * 0.1));
 
-      // STEP 3: Generate 0.85x speed audio for this version (new default)
-      console.log(`Generating 0.85x audio for version ${i + 1}...`);
-      const audioResult = await generateNarrowListeningAudio(
+      // STEP 3: Generate all three speed audio files for this version
+      console.log(`Generating all speed audio files for version ${i + 1}...`);
+
+      // Generate 0.7x speed audio
+      console.log(`  Generating 0.7x audio...`);
+      const audioResult_0_7 = await generateNarrowListeningAudio(
+        packId,
+        segmentData,
+        voiceAssignments,
+        0.7,
+        i,
+        targetLanguage,
+        sharedSilencePath
+      );
+
+      await job.updateProgress(baseProgress + (progressPerVersion * 0.3));
+
+      // Generate 0.85x speed audio
+      console.log(`  Generating 0.85x audio...`);
+      const audioResult_0_85 = await generateNarrowListeningAudio(
         packId,
         segmentData,
         voiceAssignments,
@@ -131,7 +148,21 @@ async function processNarrowListeningGeneration(job: any) {
         sharedSilencePath
       );
 
-      console.log(`Audio generated: ${audioResult.combinedAudioUrl}`);
+      await job.updateProgress(baseProgress + (progressPerVersion * 0.5));
+
+      // Generate 1.0x speed audio
+      console.log(`  Generating 1.0x audio...`);
+      const audioResult_1_0 = await generateNarrowListeningAudio(
+        packId,
+        segmentData,
+        voiceAssignments,
+        1.0,
+        i,
+        targetLanguage,
+        sharedSilencePath
+      );
+
+      console.log(`All speed audio generated for version ${i + 1}`);
 
       await job.updateProgress(baseProgress + (progressPerVersion * 0.7));
 
@@ -146,17 +177,18 @@ async function processNarrowListeningGeneration(job: any) {
           title: version.title,
           voiceId: primaryVoiceId, // Primary voice (for backward compatibility)
           order: i,
-          audioUrl_0_7: null, // Will be generated on demand
-          audioUrl_0_85: audioResult.combinedAudioUrl,
-          audioUrl_1_0: null, // Will be generated on demand
+          audioUrl_0_7: audioResult_0_7.combinedAudioUrl,
+          audioUrl_0_85: audioResult_0_85.combinedAudioUrl,
+          audioUrl_1_0: audioResult_1_0.combinedAudioUrl,
         },
       });
 
       console.log(`Created StoryVersion record: ${storyVersion.id}`);
 
       // Create segment records with individual voiceId per segment
+      // Use 0.85x as the base timing (since it's the default speed)
       await prisma.storySegment.createMany({
-        data: audioResult.segments.map((seg: any, segIdx: number) => ({
+        data: audioResult_0_85.segments.map((seg: any, segIdx: number) => ({
           versionId: storyVersion.id,
           order: segIdx,
           targetText: seg.text,
@@ -164,18 +196,18 @@ async function processNarrowListeningGeneration(job: any) {
           reading: seg.reading || null,
           voiceId: seg.voiceId, // NEW: Store voice per segment
           audioUrl_0_7: null,
-          startTime_0_7: null,
-          endTime_0_7: null,
+          startTime_0_7: audioResult_0_7.segments[segIdx].startTime,
+          endTime_0_7: audioResult_0_7.segments[segIdx].endTime,
           audioUrl_0_85: seg.audioUrl || null,
           startTime_0_85: seg.startTime,
           endTime_0_85: seg.endTime,
           audioUrl_1_0: null,
-          startTime_1_0: null,
-          endTime_1_0: null,
+          startTime_1_0: audioResult_1_0.segments[segIdx].startTime,
+          endTime_1_0: audioResult_1_0.segments[segIdx].endTime,
         })),
       });
 
-      console.log(`Created ${audioResult.segments.length} StorySegment records`);
+      console.log(`Created ${audioResult_0_85.segments.length} StorySegment records`);
 
       await job.updateProgress(baseProgress + progressPerVersion);
       }

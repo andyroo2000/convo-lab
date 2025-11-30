@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { getSpeakerColor } from '../../../shared/src/constants';
+import { getSpeakerColor } from '../../../shared/src/constants-new';
 
 import { API_URL } from '../config';
 

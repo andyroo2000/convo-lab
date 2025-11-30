@@ -46,6 +46,25 @@ export interface AudioGenerationResult {
 }
 
 /**
+ * Convert language code to full language code for TTS
+ * @param language - ISO 639-1 code (ja, zh, es)
+ * @returns Full language code (ja-JP, zh-CN, es-ES)
+ */
+function getLanguageCodeForTTS(language: string): string {
+  const languageMap: Record<string, string> = {
+    ja: 'ja-JP',
+    zh: 'zh-CN',
+    es: 'es-ES',
+    en: 'en-US',
+    fr: 'fr-FR',
+    ar: 'ar-XA',
+    he: 'he-IL',
+  };
+
+  return languageMap[language] || 'en-US';
+}
+
+/**
  * Assign voices to segments with gender alternation and balanced distribution
  * @param segmentCount - Number of segments to assign voices to
  * @param availableVoices - Available voices with gender info
@@ -193,9 +212,8 @@ export async function generateNarrowListeningAudio(
       `[NL] Batching ${segments.length} segments into ${voiceGroups.size} voice groups (parallel TTS calls)...`
     );
 
-    // Get language code from first voice ID (all voices in same language)
-    const firstVoiceId = voiceAssignments[0];
-    const languageCode = firstVoiceId.split('-').slice(0, 2).join('-');
+    // Get language code from targetLanguage parameter (works for both Google and Polly voices)
+    const languageCode = getLanguageCodeForTTS(targetLanguage);
 
     // Generate audio for each voice group in parallel
     const voiceAudioPromises = Array.from(voiceGroups.entries()).map(

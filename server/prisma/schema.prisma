@@ -236,9 +236,10 @@ model NarrowListeningPack {
   userId         String
   title          String
   topic          String   @db.Text
-  targetLanguage String   @default("ja") // ISO 639-1 code (ja, zh)
+  targetLanguage String   @default("ja") // ISO 639-1 code (ja, zh, es)
   jlptLevel      String?  // N5, N4, N3, N2, N1 (for Japanese)
   hskLevel       String?  // HSK1-HSK6 (for Chinese)
+  cefrLevel      String?  // A1, A2, B1, B2, C1, C2 (for Spanish and European languages)
   grammarFocus   String?  @db.Text
   status         String   @default("draft") // draft, generating, ready, error
   createdAt      DateTime @default(now())

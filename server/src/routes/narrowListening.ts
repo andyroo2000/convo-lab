@@ -31,6 +31,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
           targetLanguage: true,
           jlptLevel: true,
           hskLevel: true,
+          cefrLevel: true,
           status: true,
           createdAt: true,
           updatedAt: true,
@@ -114,6 +115,7 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
       targetLanguage = 'ja',
       jlptLevel,
       hskLevel,
+      cefrLevel,
       versionCount = 4,
       grammarFocus,
     } = req.body;
@@ -124,9 +126,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     }
 
     // Validate target language
-    const validLanguages = ['ja', 'zh'];
+    const validLanguages = ['ja', 'zh', 'es'];
     if (!validLanguages.includes(targetLanguage)) {
-      throw new AppError('Invalid target language. Must be ja (Japanese) or zh (Chinese)', 400);
+      throw new AppError('Invalid target language. Must be ja (Japanese), zh (Chinese), or es (Spanish)', 400);
     }
 
     // Validate proficiency level based on language
@@ -149,6 +151,15 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
         throw new AppError('Invalid HSK level. Must be HSK1, HSK2, HSK3, HSK4, HSK5, or HSK6', 400);
       }
       proficiencyLevel = hskLevel;
+    } else if (targetLanguage === 'es') {
+      if (!cefrLevel) {
+        throw new AppError('CEFR level is required for Spanish', 400);
+      }
+      const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+      if (!validCefrLevels.includes(cefrLevel)) {
+        throw new AppError('Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2', 400);
+      }
+      proficiencyLevel = cefrLevel;
     } else {
       throw new AppError('Invalid target language', 400);
     }
@@ -166,6 +177,7 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
         targetLanguage,
         jlptLevel: targetLanguage === 'ja' ? jlptLevel : null,
         hskLevel: targetLanguage === 'zh' ? hskLevel : null,
+        cefrLevel: targetLanguage === 'es' ? cefrLevel : null,
         grammarFocus: grammarFocus || null,
         status: 'generating',
       },

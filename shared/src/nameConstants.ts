@@ -2,6 +2,7 @@
  * Common names for dialogue speakers by language and gender
  * Japanese names include furigana in bracket notation
  * Chinese names include pinyin in bracket notation
+ * Spanish names are plain text (Spanish is phonetic)
  */
 
 export const SPEAKER_NAMES = {
@@ -57,9 +58,35 @@ export const SPEAKER_NAMES = {
       '吴[wú]刚[gāng]',
     ],
   },
+  es: {
+    female: [
+      'María',
+      'Carmen',
+      'Isabel',
+      'Ana',
+      'Lucía',
+      'Elena',
+      'Rosa',
+      'Paula',
+      'Sara',
+      'Laura',
+    ],
+    male: [
+      'Carlos',
+      'Antonio',
+      'José',
+      'Juan',
+      'Manuel',
+      'Francisco',
+      'Luis',
+      'Miguel',
+      'Pedro',
+      'Rafael',
+    ],
+  },
 } as const;
 
-export type LanguageCode = 'ja' | 'zh';
+export type LanguageCode = 'ja' | 'zh' | 'es';
 export type Gender = 'male' | 'female';
 
 /**

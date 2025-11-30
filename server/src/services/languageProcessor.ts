@@ -119,6 +119,9 @@ export async function processLanguageText(
     case 'zh':
       metadata.chinese = await processChinese(text);
       break;
+    case 'es':
+      // Spanish is phonetic - no additional processing needed
+      break;
     // Add more languages here as needed
     default:
       // For languages without special processing, return empty metadata
@@ -225,6 +228,9 @@ export async function processLanguageTextBatch(
       const chineseResults = await processChineseBatch(texts);
       return chineseResults.map(chinese => ({ chinese }));
     }
+    case 'es':
+      // Spanish is phonetic - return empty metadata for all texts
+      return texts.map(() => ({}));
     default:
       // For languages without special processing, return empty metadata
       return texts.map(() => ({}));

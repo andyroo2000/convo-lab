@@ -47,6 +47,17 @@ export const PROFICIENCY_LEVELS = [
   'native',
 ] as const;
 
+// CEFR (Common European Framework of Reference) Proficiency Levels
+// Used for Spanish and other European languages
+export const CEFR_LEVELS = {
+  A1: { code: 'A1', name: 'Beginner (A1)', description: 'Can understand and use familiar everyday expressions' },
+  A2: { code: 'A2', name: 'Elementary (A2)', description: 'Can communicate in simple routine tasks' },
+  B1: { code: 'B1', name: 'Intermediate (B1)', description: 'Can deal with most situations while traveling' },
+  B2: { code: 'B2', name: 'Upper Intermediate (B2)', description: 'Can interact with fluency and spontaneity' },
+  C1: { code: 'C1', name: 'Advanced (C1)', description: 'Can use language flexibly and effectively' },
+  C2: { code: 'C2', name: 'Mastery (C2)', description: 'Can understand virtually everything heard or read' },
+} as const;
+
 export const TONE_STYLES = [
   'casual',
   'polite',
@@ -107,12 +118,6 @@ export const TTS_VOICES = {
       // Polly voices (Neural) - Spain Spanish
       { id: 'Lucia', gender: 'female', description: 'Lucia - Clear and natural', provider: 'polly' },
       { id: 'Sergio', gender: 'male', description: 'Sergio - Professional and warm', provider: 'polly' },
-      // Polly voices (Neural) - Mexican Spanish
-      { id: 'Mia', gender: 'female', description: 'Mia - Friendly and engaging', provider: 'polly' },
-      { id: 'Andrés', gender: 'male', description: 'Andrés - Natural and conversational', provider: 'polly' },
-      // Polly voices (Neural) - US Spanish
-      { id: 'Lupe', gender: 'female', description: 'Lupe - Clear and professional', provider: 'polly' },
-      { id: 'Pedro', gender: 'male', description: 'Pedro - Warm and friendly', provider: 'polly' },
     ],
   },
   fr: {
@@ -148,6 +153,7 @@ export const DEFAULT_NARRATOR_VOICES = {
   en: 'en-US-Neural2-J', // Guy - Deep and authoritative (best for instruction)
   ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
   zh: 'cmn-CN-Wavenet-A', // Female, natural and friendly (Google Cloud TTS)
+  es: 'Lucia', // Clear and natural (Amazon Polly)
 } as const;
 
 // Audio speed configurations for dialogue playback

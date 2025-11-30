@@ -43,6 +43,7 @@ interface NarrowListeningPack {
   targetLanguage: string;
   jlptLevel: string | null;
   hskLevel: string | null;
+  cefrLevel: string | null;
   grammarFocus: string | null;
   status: string;
   versions: StoryVersion[];
@@ -375,7 +376,7 @@ export default function NarrowListeningPlaybackPage() {
                 <div className="inline-flex items-center text-xs font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
                   <div className="pl-3 pr-4 py-1 bg-periwinkle text-white uppercase tracking-wide">
-                    {pack.jlptLevel || pack.hskLevel}
+                    {pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
@@ -400,14 +401,16 @@ export default function NarrowListeningPlaybackPage() {
               {/* Controls: Toggles and Speed Selector - Below on mobile */}
               {!generatingSpeed && currentAudioUrl && (
                 <div className="flex flex-col gap-2">
-                  {/* Row 1: Furigana & English Toggles */}
-                  <ViewToggleButtons
-                    showReadings={showReadings}
-                    showTranslations={showTranslations}
-                    onToggleReadings={() => setShowReadings(!showReadings)}
-                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                    readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
-                  />
+                  {/* Row 1: Furigana & English Toggles - Only show for languages with readings (ja, zh) */}
+                  {(pack.targetLanguage === 'ja' || pack.targetLanguage === 'zh') && (
+                    <ViewToggleButtons
+                      showReadings={showReadings}
+                      showTranslations={showTranslations}
+                      onToggleReadings={() => setShowReadings(!showReadings)}
+                      onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                      readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
+                    />
+                  )}
 
                   {/* Row 2: Speed Selector */}
                   <SpeedSelector
@@ -431,7 +434,7 @@ export default function NarrowListeningPlaybackPage() {
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
                   <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
-                    {pack.jlptLevel || pack.hskLevel}
+                    {pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
@@ -456,14 +459,16 @@ export default function NarrowListeningPlaybackPage() {
               {/* Controls: Toggles and Speed Selector */}
               {!generatingSpeed && currentAudioUrl && (
                 <div className="flex flex-col items-end gap-2 ml-6">
-                  {/* Row 1: Furigana & English Toggles */}
-                  <ViewToggleButtons
-                    showReadings={showReadings}
-                    showTranslations={showTranslations}
-                    onToggleReadings={() => setShowReadings(!showReadings)}
-                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                    readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
-                  />
+                  {/* Row 1: Furigana & English Toggles - Only show for languages with readings (ja, zh) */}
+                  {(pack.targetLanguage === 'ja' || pack.targetLanguage === 'zh') && (
+                    <ViewToggleButtons
+                      showReadings={showReadings}
+                      showTranslations={showTranslations}
+                      onToggleReadings={() => setShowReadings(!showReadings)}
+                      onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                      readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
+                    />
+                  )}
 
                   {/* Row 2: Speed Selector */}
                   <SpeedSelector

@@ -1,11 +1,22 @@
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { getGoogleTTSBetaProvider, SynthesizeWithTimepointsResult } from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
-import { getProviderFromVoiceId } from '../../../shared/src/voiceSelection.js';
 import { generateSilence } from './ttsClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+/**
+ * Detect TTS provider from voice ID format
+ * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
+ * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu", "Lucia", "Sergio")
+ */
+function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' {
+  if (voiceId.includes('-')) {
+    return 'google';
+  }
+  return 'polly';
+}
 
 /**
  * A batch of units that share the same voice and speed settings
@@ -419,16 +430,33 @@ export async function synthesizeBatchedTexts(
 
   console.log(`[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`);
 
-  // Build SSML with marks
+  // Detect provider from voice ID
+  const providerType = getProviderFromVoiceId(voiceId);
+  const provider = providerType === 'polly'
+    ? getPollyTTSProvider()
+    : getGoogleTTSBetaProvider();
+
+  // Build SSML with marks (provider-aware for speed handling)
   let ssml = '<speak>';
+
+  // For Polly, wrap entire content in prosody tag for speed control
+  if (providerType === 'polly') {
+    const rate = Math.round(speed * 100); // 0.7 → 70%, 1.0 → 100%
+    ssml += `<prosody rate="${rate}%">`;
+  }
+
   for (let i = 0; i < texts.length; i++) {
     ssml += `<mark name="text_${i}"/>`;
     ssml += escapeSSML(texts[i]);
   }
+
+  if (providerType === 'polly') {
+    ssml += '</prosody>';
+  }
+
   ssml += '</speak>';
 
   // Synthesize with timepoints
-  const provider = getGoogleTTSBetaProvider();
   const result = await provider.synthesizeSpeechWithTimepoints({
     ssml,
     voiceId,
