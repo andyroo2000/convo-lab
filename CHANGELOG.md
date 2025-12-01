@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[test]** Expanded test coverage with additional unit tests for routes and services
+  - Server routes: audio, chunkPacks, courses, dialogue, episodes, narrowListening, pi
+  - Server services: audioGenerator, avatarService, batchedTTSClient, chunkPackGenerator, courseItemExtractor, coursePlanner, courseScriptGenerator, dialogueGenerator, languageProcessor, lessonPlanner, lessonScriptGenerator, narrowListeningGenerator, piGenerator
+  - Client hooks: useCourse, useEpisodes, useFeatureFlags, useLibraryData, useSpeakerAvatars
+  - Client components: AudioPlayer, ChineseText, JapaneseText, UserMenu, DialogueGenerator, OnboardingModal
+  - Client contexts: AudioPlayerContext
+  - Client pages: LoginPage, PlaybackPage, SettingsPage
+  - Added supertest devDependency for HTTP assertion testing
 - **[test]** Comprehensive test coverage for server and client
   - Server: 75 tests covering middleware (auth, errorHandler, roleAuth, demoAuth), services (geminiClient, ttsClient, storageClient), and route validation (auth, admin)
   - Client: 74 tests covering AuthContext, useAudioPlayer hook, and UI components (Toast, ConfirmModal, SpeedSelector)
