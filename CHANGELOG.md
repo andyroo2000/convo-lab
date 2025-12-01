@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[test]** Comprehensive tests for job queues and audio generators (161 new tests)
+  - Job queue tests: dialogueQueue, audioQueue, imageQueue, courseQueue, chunkPackQueue, narrowListeningQueue
+  - Service tests: audioCourseAssembler, narrowListeningAudioGenerator, chunkPackAudioGenerator, imageGenerator, conversationalLessonScriptGenerator, conversationalCourseScriptGenerator
+  - Client tests: useDemo hook
+  - Reusable mock utilities for BullMQ and ffmpeg
+  - Server test count now at 794 tests passing
 - **[test]** Expanded test coverage with additional unit tests for routes and services
   - Server routes: audio, chunkPacks, courses, dialogue, episodes, narrowListening, pi
   - Server services: audioGenerator, avatarService, batchedTTSClient, chunkPackGenerator, courseItemExtractor, coursePlanner, courseScriptGenerator, dialogueGenerator, languageProcessor, lessonPlanner, lessonScriptGenerator, narrowListeningGenerator, piGenerator
