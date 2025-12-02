@@ -43,6 +43,15 @@ export default function PlaybackPage() {
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
+  // Must be defined before useEffect hooks that reference speedKey
+  const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
+    if (speed === '0.7x' || speed === 'slow' || speed === 0.7) return 'slow';
+    if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return 'medium';
+    return 'normal'; // '1.0x', 'normal', 1.0
+  };
+  const speedKey = normalizeSpeedKey(selectedSpeed);
+
   // Helper function to get speaker avatar URL from GCS
   const getSpeakerAvatarUrl = (speaker: Speaker, targetLanguage: string): string => {
     const filename = getSpeakerAvatarFilename(speaker, targetLanguage);
@@ -377,14 +386,6 @@ export default function PlaybackPage() {
   const speakerIndexMap = new Map(speakers.map((s, index) => [s.id, index]));
 
   // Get current audio URL based on selected speed
-  // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
-  const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
-    if (speed === '0.7x' || speed === 'slow' || speed === 0.7) return 'slow';
-    if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return 'medium';
-    return 'normal'; // '1.0x', 'normal', 1.0
-  };
-
-  const speedKey = normalizeSpeedKey(selectedSpeed);
   const currentAudioUrl = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
     ? (speedKey === 'slow' ? episode.audioUrl_0_7
       : speedKey === 'medium' ? episode.audioUrl_0_85
