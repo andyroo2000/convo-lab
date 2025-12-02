@@ -22,5 +22,6 @@
     "noImplicitThis": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*", "../shared/src/**/*"]
+  "include": ["src/**/*", "../shared/src/**/*"],
+  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**/*", "src/__tests__/**/*"]
 }

@@ -1,4 +1,4 @@
-import { Polly, SynthesizeSpeechCommand } from '@aws-sdk/client-polly';
+import { Polly, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly';
 import { Readable } from 'stream';
 
 export interface SynthesizeWithTimepointsResult {
@@ -125,7 +125,7 @@ export class PollyTTSProvider {
       const audioCommand = new SynthesizeSpeechCommand({
         Text: ssml,
         OutputFormat: 'mp3',
-        VoiceId: voiceId,
+        VoiceId: voiceId as VoiceId,
         Engine: 'neural',
         TextType: 'ssml',
       });
@@ -143,7 +143,7 @@ export class PollyTTSProvider {
       console.log(`[TTS POLLY] Requesting speech marks...`);
       const marksCommand = new SynthesizeSpeechCommand({
         Text: ssml,
-        VoiceId: voiceId,
+        VoiceId: voiceId as VoiceId,
         Engine: 'neural',
         TextType: 'ssml',
         OutputFormat: 'json', // Special format for speech marks
