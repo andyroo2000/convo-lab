@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- **[deploy]** Production deployment issues and database schema mismatches
+  - Excluded test files from TypeScript production build
+  - Added missing database migrations for `voiceProvider` fields on Speaker and StorySegment tables
+  - Added missing `feature_flags` table migration
+  - Fixed AWS Polly SDK type errors with proper VoiceId type casting
+  - Improved furigana rendering to handle spaces in readings
+  - Fixed 500 errors for dialogues and narrow listening content
+  - Fixed audio generation failures due to missing AWS credentials
+
 ### Added
 - **[test]** Expanded test coverage with 17 new test files and 280+ new tests
   - Client components: Logo, Pill, SegmentedPill, ViewToggleButtons
