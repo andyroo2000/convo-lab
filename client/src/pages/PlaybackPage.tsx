@@ -74,8 +74,16 @@ export default function PlaybackPage() {
   useEffect(() => {
     if (!episode || !episode.dialogue) return;
 
-    // Already processed this episode
+    // Already processed this episode in this session
     if (lastProcessedEpisodeRef.current === episode.id) return;
+
+    // Check sessionStorage to see if we've already queued generation for this episode
+    const processedEpisodes = sessionStorage.getItem('audio-generation-queued');
+    const processedList = processedEpisodes ? JSON.parse(processedEpisodes) : [];
+    if (processedList.includes(episode.id)) {
+      lastProcessedEpisodeRef.current = episode.id;
+      return;
+    }
 
     // Check if all three speeds are available
     const hasAllSpeeds = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0;
@@ -83,6 +91,11 @@ export default function PlaybackPage() {
     if (!hasAllSpeeds && !isGeneratingAudio) {
       console.log('Missing audio speeds, generating all speeds...');
       lastProcessedEpisodeRef.current = episode.id;
+
+      // Mark this episode as processed in sessionStorage
+      const updated = [...processedList, episode.id];
+      sessionStorage.setItem('audio-generation-queued', JSON.stringify(updated));
+
       handleGenerateAllSpeeds();
     }
   }, [episode, isGeneratingAudio]);
