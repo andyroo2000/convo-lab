@@ -27,17 +27,12 @@ interface SentenceWithEpisode {
 }
 
 async function backfillMetadata() {
-  console.log('🔍 Finding sentences with empty metadata...\n');
+  console.log('🔍 Finding sentences with empty or incomplete metadata...\n');
 
   try {
-    // Find all sentences with empty metadata
-    const sentences = await prisma.sentence.findMany({
-      where: {
-        OR: [
-          { metadata: { equals: {} } },
-          { metadata: { equals: null } },
-        ],
-      },
+    // Find all sentences - we'll filter incomplete ones in memory
+    // (Prisma doesn't support deep JSON queries well)
+    const allSentences = await prisma.sentence.findMany({
       include: {
         dialogue: {
           include: {
@@ -50,6 +45,39 @@ async function backfillMetadata() {
         },
       },
     }) as SentenceWithEpisode[];
+
+    // Filter to sentences that need metadata processing
+    const sentences = allSentences.filter(s => {
+      const lang = s.dialogue.episode.targetLanguage;
+
+      // For non-Japanese/Chinese languages, skip
+      if (lang !== 'ja' && lang !== 'zh') {
+        return false;
+      }
+
+      // No metadata at all
+      if (!s.metadata || Object.keys(s.metadata).length === 0) {
+        return true;
+      }
+
+      // Check for Japanese sentences with missing or empty furigana
+      if (lang === 'ja') {
+        const japanese = s.metadata?.japanese;
+        if (!japanese || !japanese.furigana || japanese.furigana === s.text) {
+          return true;
+        }
+      }
+
+      // Check for Chinese sentences with missing or empty pinyin
+      if (lang === 'zh') {
+        const chinese = s.metadata?.chinese;
+        if (!chinese || !chinese.pinyinToneMarks || chinese.pinyinToneMarks === '') {
+          return true;
+        }
+      }
+
+      return false;
+    });
 
     if (sentences.length === 0) {
       console.log('✅ No sentences found with empty metadata. All done!\n');
