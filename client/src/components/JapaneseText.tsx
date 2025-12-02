@@ -13,13 +13,15 @@ interface JapaneseTextProps {
  * Output: "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
  */
 function renderRuby(text: string): string {
-  // Pattern matches Japanese characters (hiragana, katakana, kanji, wave dash, prolonged sound mark)
-  // followed by bracket notation containing the reading
+  // Pattern matches one or more kanji characters followed by bracket notation containing the reading
+  // Handles: "買[か]", "鈴木[すずき]", "鈴木[すず き]" (with spaces in reading)
   // Example: "買[か]い物[もの]" -> "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
   const rubyPattern = /([\u4E00-\u9FAF]+)\[([^\]]+)\]/g;
 
   return text.replace(rubyPattern, (match, base, reading) => {
-    return `<ruby>${base}<rt>${reading}</rt></ruby>`;
+    // Remove extra spaces from the reading that might have been added during generation
+    const cleanReading = reading.replace(/\s+/g, '');
+    return `<ruby>${base}<rt>${cleanReading}</rt></ruby>`;
   });
 }
 
