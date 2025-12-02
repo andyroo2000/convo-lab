@@ -94,6 +94,7 @@ gcloud run deploy $SERVICE_NAME \
   --timeout 300 \
   --min-instances 1 \
   --max-instances 10 \
+  --add-cloudsql-instances convolab-mvp:us-central1:convolab-db \
   --set-env-vars "$ENV_VARS"
 
 # Get service URL
