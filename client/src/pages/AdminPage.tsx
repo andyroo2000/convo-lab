@@ -215,9 +215,14 @@ export default function AdminPage() {
     }
   };
 
-  const fetchSpeakerAvatars = async () => {
+  const fetchSpeakerAvatars = async (bustCache = false) => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/avatars/speakers`, {
+      // Add cache-busting timestamp when needed (e.g., after upload)
+      const url = bustCache
+        ? `${API_URL}/api/admin/avatars/speakers?t=${Date.now()}`
+        : `${API_URL}/api/admin/avatars/speakers`;
+
+      const response = await fetch(url, {
         credentials: 'include',
       });
       if (!response.ok) throw new Error('Failed to fetch speaker avatars');
@@ -381,8 +386,8 @@ export default function AdminPage() {
       showToast('Speaker avatar re-cropped successfully', 'success');
       setCropperOpen(false);
 
-      // Refresh speaker avatars to show the updated avatar
-      await fetchSpeakerAvatars();
+      // Refresh speaker avatars to show the updated avatar (bust cache)
+      await fetchSpeakerAvatars(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to re-crop speaker avatar', 'error');
     }
@@ -425,8 +430,8 @@ export default function AdminPage() {
       showToast('Speaker avatar updated successfully', 'success');
       setCropperOpen(false);
 
-      // Refresh speaker avatars to show the updated avatar
-      await fetchSpeakerAvatars();
+      // Refresh speaker avatars to show the updated avatar (bust cache)
+      await fetchSpeakerAvatars(true);
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
     }

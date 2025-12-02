@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Fixed
+- **[admin]** Speaker avatar uploads not appearing in production admin panel due to aggressive CDN caching - added cache-busting timestamp parameter to refresh requests after upload operations
 - **[deploy]** Production deployment issues and database schema mismatches
   - Excluded test files from TypeScript production build
   - Added missing database migrations for `voiceProvider` fields on Speaker and StorySegment tables
