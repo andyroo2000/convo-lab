@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Fixed
+- **[scripts]** Metadata backfill script now detects and fixes incomplete metadata (empty pinyin/furigana strings), not just completely missing metadata - fixes Chinese dialogues with missing pinyin when language processing service was temporarily unavailable
 - **[admin]** Speaker avatar uploads not appearing in production admin panel due to aggressive CDN caching - added cache-busting timestamp parameter to refresh requests after upload operations
 - **[deploy]** Production deployment issues and database schema mismatches
   - Excluded test files from TypeScript production build
