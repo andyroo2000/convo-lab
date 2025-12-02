@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[test]** Expanded test coverage with 17 new test files and 280+ new tests
+  - Client components: Logo, Pill, SegmentedPill, ViewToggleButtons
+  - Client pages: ChunkPackSetupPage, ChunkPackExamplesPage, ChunkPackStoryPage, NarrowListeningCreatorPage, NarrowListeningLibraryPage, LandingPage, NotFoundPage
+  - Server TTS providers: GoogleTTSProvider, GoogleTTSBetaProvider, PollyTTSProvider
+  - Server routes: featureFlags, images
+  - Server middleware: requestLogger
+  - Total coverage: Server 874 tests, Client 711 tests (1,585 total)
+
+### Fixed
+- **[fix]** PlaybackPage speedKey initialization error causing test failures
+  - Moved speedKey calculation before useEffect hooks that reference it
+  - Fixed variable access in early return scenarios (loading/missing episode)
+  - Added proper vi.hoisted() pattern for test mocks
+  - Added window.scrollTo and Element.scrollIntoView mocks for jsdom compatibility
+
+### Added
 - **[test]** Comprehensive tests for job queues and audio generators (161 new tests)
   - Job queue tests: dialogueQueue, audioQueue, imageQueue, courseQueue, chunkPackQueue, narrowListeningQueue
   - Service tests: audioCourseAssembler, narrowListeningAudioGenerator, chunkPackAudioGenerator, imageGenerator, conversationalLessonScriptGenerator, conversationalCourseScriptGenerator
