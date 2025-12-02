@@ -25,12 +25,22 @@ function renderRuby(text: string): string {
   });
 }
 
+/**
+ * Removes bracket notation, leaving only the base kanji
+ * Input: "買[か]い物[もの]"
+ * Output: "買い物"
+ */
+function stripFurigana(text: string): string {
+  const rubyPattern = /([\u4E00-\u9FAF]+)\[([^\]]+)\]/g;
+  return text.replace(rubyPattern, '$1');
+}
+
 export default function JapaneseText({ text, metadata, className = '', showFurigana = true }: JapaneseTextProps) {
   // If showFurigana is false, use plain kanji text without readings
   // Otherwise use furigana from metadata if available
   const displayText = showFurigana
     ? (metadata?.japanese?.furigana || text)
-    : (metadata?.japanese?.kanji || text);
+    : (metadata?.japanese?.kanji || stripFurigana(text));
 
   const htmlContent = showFurigana ? renderRuby(displayText) : displayText;
 
