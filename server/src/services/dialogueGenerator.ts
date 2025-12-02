@@ -63,7 +63,15 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
     jsonText = jsonText.trim();
 
     // Parse response (expected JSON format)
-    const dialogueData = JSON.parse(jsonText);
+    let dialogueData;
+    try {
+      dialogueData = JSON.parse(jsonText);
+    } catch (error) {
+      console.error('[DIALOGUE] JSON parsing failed. Raw response:');
+      console.error(jsonText.substring(0, 5000)); // Log first 5000 chars
+      console.error('[DIALOGUE] Error:', error instanceof Error ? error.message : error);
+      throw new Error(`Failed to parse Gemini response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     // Create dialogue and sentences in database
     const dialogue = await createDialogueInDB(
