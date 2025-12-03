@@ -1,0 +1,62 @@
+# Production Dockerfile for Cloud Run Job (Workers Only)
+# This image runs ONLY the BullMQ workers, not the Express server
+
+FROM node:20-alpine AS base
+RUN apk add --no-cache ffmpeg openssl python3 py3-pip make g++
+
+# Build shared package first
+FROM base AS shared-builder
+WORKDIR /app/shared
+COPY shared/package*.json ./
+COPY shared/tsconfig.json ./
+RUN npm install
+COPY shared/src ./src
+RUN npm run build || true
+
+# Build server
+FROM base AS server-builder
+WORKDIR /app
+
+# Copy root package.json for workspace setup
+COPY package*.json ./
+
+# Copy shared package
+COPY --from=shared-builder /app/shared ./shared
+
+# Copy server files
+WORKDIR /app/server
+COPY server/package*.json ./
+COPY server/tsconfig*.json ./
+RUN npm install
+
+# Copy server source
+COPY server/src ./src
+COPY server/prisma ./prisma
+
+# Generate Prisma client and build TypeScript
+RUN npx prisma generate
+RUN npm run build
+
+# Production stage for WORKER
+FROM base AS production
+WORKDIR /app
+
+# Install production dependencies for server
+COPY server/package*.json ./
+RUN npm install --omit=dev
+
+# Copy Prisma schema and generate client in production
+COPY server/prisma ./prisma
+RUN npx prisma generate
+
+# Copy Google Cloud credentials
+COPY server/gcloud-key.json ./gcloud-key.json
+
+# Copy built server code (output is at dist/server/src/ due to tsconfig.build.json rootDir: "..")
+COPY --from=server-builder /app/server/dist ./dist
+
+# Set environment
+ENV NODE_ENV=production
+
+# Run worker entrypoint (NOT index.js)
+CMD ["node", "dist/server/src/worker.js"]
