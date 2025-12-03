@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { audioQueue } from '../jobs/audioQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
@@ -24,6 +25,11 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
       speed,
       pauseMode,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       jobId: job.id,
@@ -66,6 +72,11 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
       episodeId,
       dialogueId,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       jobId: job.id,

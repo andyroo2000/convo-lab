@@ -4,6 +4,7 @@ import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
@@ -195,6 +196,11 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
     console.log(`Job ${job.id} added to queue successfully`);
 
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
+
     res.json({
       message: 'Narrow listening pack generation started',
       jobId: job.id,
@@ -278,6 +284,11 @@ router.post('/:id/generate-speed', blockDemoUser, async (req: AuthRequest, res, 
       packId: pack.id,
       speed,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       message: `${speedLabel} speed audio generation started`,
