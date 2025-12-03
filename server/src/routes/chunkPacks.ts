@@ -5,6 +5,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { chunkPackQueue } from '../jobs/chunkPackQueue.js';
 import { JLPTLevel, ChunkPackTheme, CHUNK_THEMES } from '../config/chunkThemes.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
@@ -166,6 +167,11 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
       jlptLevel,
       theme,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       jobId: job.id,

@@ -223,15 +223,15 @@ const LANGUAGE_CODE_MAP: Record<string, string> = {
  * and https://docs.aws.amazon.com/polly/latest/dg/voicelist.html
  */
 const VOICE_GENDER_MAP: Record<string, string> = {
-  // Japanese Wavenet voices (Google)
-  'ja-JP-Wavenet-A': 'female', // Ichiro (female)
-  'ja-JP-Wavenet-B': 'female', // Daichi (female) - FIXED: B is female, not male
-  'ja-JP-Wavenet-C': 'male',   // Kento (male)
-  'ja-JP-Wavenet-D': 'male',   // Shiori (male) - FIXED: D is male, not female
+  // Japanese Wavenet voices (Google) - Per https://cloud.google.com/text-to-speech/docs/voices
+  'ja-JP-Wavenet-A': 'female', // FEMALE
+  'ja-JP-Wavenet-B': 'male',   // MALE (corrected from female)
+  'ja-JP-Wavenet-C': 'female', // FEMALE (corrected from male)
+  'ja-JP-Wavenet-D': 'male',   // MALE
   // Japanese Neural2 voices (Google)
-  'ja-JP-Neural2-B': 'female', // Female voice
-  'ja-JP-Neural2-C': 'male',   // Male voice
-  'ja-JP-Neural2-D': 'male',   // Male voice
+  'ja-JP-Neural2-B': 'male',   // MALE (corrected from female)
+  'ja-JP-Neural2-C': 'male',   // MALE
+  'ja-JP-Neural2-D': 'female', // FEMALE (corrected from male)
   // Japanese Polly voices (Amazon)
   'Takumi': 'male',
   'Kazuha': 'female',

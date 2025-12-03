@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { dialogueQueue } from '../jobs/dialogueQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
@@ -25,6 +26,11 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
       variationCount,
       dialogueLength,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       jobId: job.id,

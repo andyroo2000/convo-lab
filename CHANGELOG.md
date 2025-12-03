@@ -12,7 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[deploy]** Cloud Run deployment infrastructure for language processing microservices (furigana, pinyin)
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
 
+### Changed
+- **[workers]** Separated background job processing from API service - workers now run in dedicated Cloud Run Job instead of embedded in API service for better scalability and resource isolation
+
 ### Fixed
+- **[tts]** Incorrect gender mappings for Japanese TTS voices causing mismatched voice genders and avatars - corrected ja-JP-Wavenet-B (male), ja-JP-Wavenet-C (female), ja-JP-Neural2-B (male), and ja-JP-Neural2-D (female) per Google Cloud TTS documentation
 - **[deploy]** Database connectivity failures in production by configuring Cloud Run to use Cloud SQL Proxy instead of direct IP connection - fixes "Dialogue Generation Failed" errors caused by Cloud Run's dynamic IPs
 - **[scripts]** Metadata backfill script now detects and fixes incomplete metadata (empty pinyin/furigana strings), not just completely missing metadata - fixes Chinese dialogues with missing pinyin when language processing service was temporarily unavailable
 - **[admin]** Speaker avatar uploads not appearing in production admin panel due to aggressive CDN caching - added cache-busting timestamp parameter to refresh requests after upload operations

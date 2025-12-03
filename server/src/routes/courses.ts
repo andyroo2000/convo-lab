@@ -6,6 +6,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { courseQueue } from '../jobs/courseQueue.js';
 import { DEFAULT_NARRATOR_VOICES } from '../../../shared/src/constants-new.js';
 import { generateWithGemini } from '../services/geminiClient.js';
+import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
 
@@ -296,6 +297,11 @@ router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) 
     const job = await courseQueue.add('generate-course', {
       courseId: result.id,
     });
+
+    // Trigger Cloud Run Job to process the queue
+    triggerWorkerJob().catch(err =>
+      console.error('Worker trigger failed:', err)
+    );
 
     res.json({
       message: 'Course generation started',
