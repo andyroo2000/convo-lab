@@ -88,12 +88,13 @@ export const TTS_VOICES = {
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      // Google voices (Neural2 + Wavenet)
-      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', provider: 'google' },
+      // Google voices (Neural2 + Wavenet) - Gender corrected per Google Cloud TTS docs
       { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright', provider: 'google' },
-      { id: 'ja-JP-Wavenet-D', gender: 'female', description: 'Shiori - Calm and clear', provider: 'google' },
-      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Naoki - Confident and clear', provider: 'google' },
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational', provider: 'google' },
+      { id: 'ja-JP-Wavenet-C', gender: 'female', description: 'Shiori - Calm and clear', provider: 'google' },
+      { id: 'ja-JP-Neural2-D', gender: 'female', description: 'Daichi - Warm and conversational', provider: 'google' },
+      { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Kentaro - Natural and clear', provider: 'google' },
+      { id: 'ja-JP-Wavenet-D', gender: 'male', description: 'Naoki - Confident and clear', provider: 'google' },
+      { id: 'ja-JP-Neural2-B', gender: 'male', description: 'Nanami - Bright and cheerful', provider: 'google' },
       // Polly voices (Neural)
       { id: 'Takumi', gender: 'male', description: 'Takumi - Natural and smooth', provider: 'polly' },
       { id: 'Kazuha', gender: 'female', description: 'Kazuha - Friendly and clear', provider: 'polly' },
