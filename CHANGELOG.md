@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[deploy]** AWS Polly TTS support in production environment with proper credential configuration
+- **[deploy]** Cloud Run deployment infrastructure for language processing microservices (furigana, pinyin)
+- **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
+
 ### Fixed
 - **[deploy]** Database connectivity failures in production by configuring Cloud Run to use Cloud SQL Proxy instead of direct IP connection - fixes "Dialogue Generation Failed" errors caused by Cloud Run's dynamic IPs
 - **[scripts]** Metadata backfill script now detects and fixes incomplete metadata (empty pinyin/furigana strings), not just completely missing metadata - fixes Chinese dialogues with missing pinyin when language processing service was temporarily unavailable

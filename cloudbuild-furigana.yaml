@@ -1,0 +1,21 @@
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/furigana:latest'
+      - '-f'
+      - 'furigana-service/Dockerfile'
+      - 'furigana-service/'
+
+  # Push the image to Google Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/furigana:latest'
+
+images:
+  - 'gcr.io/$PROJECT_ID/furigana:latest'
+
+timeout: '1200s'
