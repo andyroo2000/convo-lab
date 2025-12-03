@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **[workers]** Separated background job processing from API service - workers now run in dedicated Cloud Run Job instead of embedded in API service for better scalability and resource isolation
+- **[refactor]** Voice gender is now defined only in TTS_VOICES configuration (single source of truth) - removed duplicate hardcoded gender map from avatarService to prevent future mismatches
 
 ### Fixed
 - **[tts]** Incorrect gender mappings for Japanese TTS voices causing mismatched voice genders and avatars - corrected ja-JP-Wavenet-B (male), ja-JP-Wavenet-C (female), ja-JP-Neural2-B (male), and ja-JP-Neural2-D (female) per Google Cloud TTS documentation
