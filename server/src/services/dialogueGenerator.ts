@@ -51,26 +51,52 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
       dialogueLength
     );
 
-    // Generate dialogue with Gemini
-    const response = await generateWithGemini(prompt, systemInstruction);
+    // Retry logic for Gemini API calls (handles transient JSON parsing errors)
+    const MAX_RETRIES = 3;
+    let lastError: Error | null = null;
+    let dialogueData: any = null;
 
-    // Strip markdown code fences if present
-    let jsonText = response.trim();
-    // Remove opening fence (```json or ``` followed by optional newline)
-    jsonText = jsonText.replace(/^```(?:json)?[\r\n]*/, '');
-    // Remove closing fence (``` at end, with optional preceding newline)
-    jsonText = jsonText.replace(/[\r\n]*```\s*$/, '');
-    jsonText = jsonText.trim();
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES}: Generating dialogue with Gemini`);
 
-    // Parse response (expected JSON format)
-    let dialogueData;
-    try {
-      dialogueData = JSON.parse(jsonText);
-    } catch (error) {
-      console.error('[DIALOGUE] JSON parsing failed. Raw response:');
-      console.error(jsonText.substring(0, 5000)); // Log first 5000 chars
-      console.error('[DIALOGUE] Error:', error instanceof Error ? error.message : error);
-      throw new Error(`Failed to parse Gemini response: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Generate dialogue with Gemini
+        const response = await generateWithGemini(prompt, systemInstruction);
+
+        // Strip markdown code fences if present
+        let jsonText = response.trim();
+        // Remove opening fence (```json or ``` followed by optional newline)
+        jsonText = jsonText.replace(/^```(?:json)?[\r\n]*/, '');
+        // Remove closing fence (``` at end, with optional preceding newline)
+        jsonText = jsonText.replace(/[\r\n]*```\s*$/, '');
+        jsonText = jsonText.trim();
+
+        // Parse response (expected JSON format)
+        dialogueData = JSON.parse(jsonText);
+
+        console.log(`[DIALOGUE] Success on attempt ${attempt}`);
+        break; // Success! Exit retry loop
+
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        console.error(`[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES} failed:`, lastError.message);
+
+        // If this was the last attempt, log the raw response for debugging
+        if (attempt === MAX_RETRIES) {
+          console.error('[DIALOGUE] All retry attempts exhausted. Last error:', lastError.message);
+        } else {
+          // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+          const delayMs = Math.pow(2, attempt - 1) * 1000;
+          console.log(`[DIALOGUE] Retrying in ${delayMs}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+
+    // If we exhausted all retries without success, throw the last error
+    if (!dialogueData) {
+      throw new Error(`Failed to generate dialogue after ${MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`);
     }
 
     // Create dialogue and sentences in database
