@@ -200,7 +200,9 @@ IMPORTANT: Use EXACTLY these speaker names in your response: ${speakerNames.join
 Requirements:
 - Generate a succinct, topic-focused title in English (2-4 words max, no speaker names)
 - The title should capture the main topic or theme of the conversation
-- Generate EXACTLY ${dialogueLength} dialogue lines (back and forth turns)
+- Generate EXACTLY ${dialogueLength} dialogue lines with speakers STRICTLY ALTERNATING
+- CRITICAL: Speakers must alternate on every line (${speakerNames[0]} → ${speakerNames[1]} → ${speakerNames[0]} → ${speakerNames[1]}, etc.)
+- Never have the same speaker speak twice in a row
 - Each line should be conversational and natural
 - Progress the conversation naturally through the experience
 - Include reactions, questions, and natural flow

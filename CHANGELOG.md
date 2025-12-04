@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[refactor]** Voice gender is now defined only in TTS_VOICES configuration (single source of truth) - removed duplicate hardcoded gender map from avatarService to prevent future mismatches
 
 ### Fixed
+- **[dialogue]** Gemini occasionally generating dialogues where same speaker spoke multiple times consecutively - added strict speaker alternation requirement to prompt ensuring proper back-and-forth conversation flow
 - **[dialogue]** Added retry logic with exponential backoff (3 attempts: 1s, 2s, 4s delays) for Gemini JSON parsing errors - handles transient API failures that occasionally return malformed JSON mid-response
 - **[tts]** Incorrect gender mappings for Japanese TTS voices causing mismatched voice genders and avatars - corrected ja-JP-Wavenet-B (male), ja-JP-Wavenet-C (female), ja-JP-Neural2-B (male), and ja-JP-Neural2-D (female) per Google Cloud TTS documentation
 - **[deploy]** Database connectivity failures in production by configuring Cloud Run to use Cloud SQL Proxy instead of direct IP connection - fixes "Dialogue Generation Failed" errors caused by Cloud Run's dynamic IPs
