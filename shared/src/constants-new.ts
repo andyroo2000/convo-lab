@@ -88,13 +88,18 @@ export const TTS_VOICES = {
   ja: {
     languageCode: 'ja-JP',
     voices: [
-      // Google voices (Neural2 + Wavenet) - Gender corrected per Google Cloud TTS docs
-      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Mayu - Animated and bright', provider: 'google' },
-      { id: 'ja-JP-Wavenet-C', gender: 'female', description: 'Shiori - Calm and clear', provider: 'google' },
-      { id: 'ja-JP-Neural2-D', gender: 'female', description: 'Daichi - Warm and conversational', provider: 'google' },
-      { id: 'ja-JP-Wavenet-B', gender: 'male', description: 'Kentaro - Natural and clear', provider: 'google' },
+      // Google voices - Verified from Google Cloud TTS API (npx tsx check-google-voices.ts)
+      // Wavenet FEMALE voices
+      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Ichiro - Animated and bright', provider: 'google' },
+      { id: 'ja-JP-Wavenet-B', gender: 'female', description: 'Rina - Natural and clear', provider: 'google' },
+      // Neural2 FEMALE voices
+      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', provider: 'google' },
+      // Wavenet MALE voices
+      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Shohei - Calm and clear', provider: 'google' },
       { id: 'ja-JP-Wavenet-D', gender: 'male', description: 'Naoki - Confident and clear', provider: 'google' },
-      { id: 'ja-JP-Neural2-B', gender: 'male', description: 'Nanami - Bright and cheerful', provider: 'google' },
+      // Neural2 MALE voices
+      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Kento - Professional', provider: 'google' },
+      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational', provider: 'google' },
       // Polly voices (Neural)
       { id: 'Takumi', gender: 'male', description: 'Takumi - Natural and smooth', provider: 'polly' },
       { id: 'Kazuha', gender: 'female', description: 'Kazuha - Friendly and clear', provider: 'polly' },
