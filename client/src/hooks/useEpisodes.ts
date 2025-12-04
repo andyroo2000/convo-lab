@@ -199,21 +199,43 @@ export function useEpisodes() {
     endpoint: 'dialogue' | 'audio' = 'dialogue'
   ): Promise<'completed' | 'failed' | 'pending'> => {
     const checkStatus = async (): Promise<'completed' | 'failed' | 'pending'> => {
-      try {
-        const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
-          credentials: 'include',
-        });
+      const MAX_RETRIES = 3;
+      const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch job status');
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        try {
+          const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
+            credentials: 'include',
+          });
+
+          if (!response.ok) {
+            // Check if it's a transient error (500, 502, 503, 504)
+            if (response.status >= 500 && response.status < 600 && attempt < MAX_RETRIES - 1) {
+              console.warn(`Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`);
+              await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+              continue; // Retry
+            }
+            throw new Error('Failed to fetch job status');
+          }
+
+          const data = await response.json();
+          return data.state === 'completed' ? 'completed' : data.state === 'failed' ? 'failed' : 'pending';
+        } catch (err) {
+          // Network errors or other failures
+          if (attempt < MAX_RETRIES - 1) {
+            console.warn(`Error polling job status (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
+            console.warn(`Retrying in ${RETRY_DELAYS[attempt]}ms...`);
+            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+            continue; // Retry
+          }
+          // Final attempt failed
+          console.error('Error polling job status after all retries:', err);
+          return 'pending';
         }
-
-        const data = await response.json();
-        return data.state === 'completed' ? 'completed' : data.state === 'failed' ? 'failed' : 'pending';
-      } catch (err) {
-        console.error('Error polling job status:', err);
-        return 'pending';
       }
+
+      // Should never reach here, but return pending as fallback
+      return 'pending';
     };
 
     // Poll every 2 seconds until completed or failed
