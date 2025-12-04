@@ -6,6 +6,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { createRedisConnection } from './config/redis.js';
+import { prisma } from './db/client.js';
 import authRoutes from './routes/auth.js';
 import episodeRoutes from './routes/episodes.js';
 import dialogueRoutes from './routes/dialogue.js';
@@ -43,9 +45,45 @@ app.use(requestLogger);
 // Serve static files from public directory (for audio files)
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health check with Redis and Database connectivity
+app.get('/health', async (req, res) => {
+  const checks = {
+    redis: false,
+    database: false,
+  };
+
+  let redisClient;
+
+  try {
+    // Check Redis connectivity
+    redisClient = createRedisConnection();
+    await redisClient.ping();
+    checks.redis = true;
+  } catch (error) {
+    console.error('[HEALTH] Redis check failed:', error);
+  } finally {
+    if (redisClient) {
+      redisClient.disconnect();
+    }
+  }
+
+  try {
+    // Check Database connectivity with a simple query
+    await prisma.$queryRaw`SELECT 1`;
+    checks.database = true;
+  } catch (error) {
+    console.error('[HEALTH] Database check failed:', error);
+  }
+
+  const allHealthy = checks.redis && checks.database;
+  const status = allHealthy ? 'ok' : 'degraded';
+  const httpStatus = allHealthy ? 200 : 503;
+
+  res.status(httpStatus).json({
+    status,
+    timestamp: new Date().toISOString(),
+    checks,
+  });
 });
 
 // API Routes

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[resilience]** Zero-downtime deployment support with enhanced health checks and retry logic - health endpoint now verifies Redis and Database connectivity for Cloud Run startup probes, frontend job polling retries with exponential backoff (1s, 2s, 4s) to handle transient 5xx errors during revision rollouts
 - **[deploy]** AWS Polly TTS support in production environment with proper credential configuration
 - **[deploy]** Cloud Run deployment infrastructure for language processing microservices (furigana, pinyin)
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
