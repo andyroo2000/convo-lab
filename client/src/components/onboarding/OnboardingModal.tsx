@@ -8,6 +8,7 @@ export default function OnboardingModal() {
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(user?.preferredStudyLanguage || 'ja');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
+  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComplete = async () => {
@@ -16,7 +17,10 @@ export default function OnboardingModal() {
     setIsSubmitting(true);
     try {
       // Store the language-specific level in the generic proficiencyLevel field
-      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel : hskLevel;
+      const proficiencyLevel =
+        targetLanguage === 'ja' ? jlptLevel :
+        targetLanguage === 'zh' ? hskLevel :
+        cefrLevel;
 
       await updateUser({
         preferredStudyLanguage: targetLanguage,
@@ -89,6 +93,21 @@ export default function OnboardingModal() {
                   <p className="text-sm text-gray-600">中文</p>
                 </div>
               </button>
+
+              <button
+                onClick={() => setTargetLanguage('fr')}
+                className={`p-6 rounded-xl border-2 transition-all ${
+                  targetLanguage === 'fr'
+                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🇫🇷</div>
+                  <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
+                  <p className="text-sm text-gray-600">Français</p>
+                </div>
+              </button>
             </div>
 
             <div className="flex justify-end mt-8">
@@ -107,7 +126,11 @@ export default function OnboardingModal() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What's your current {targetLanguage === 'ja' ? 'JLPT' : 'HSK'} level?
+                What's your current {
+                  targetLanguage === 'ja' ? 'JLPT' :
+                  targetLanguage === 'zh' ? 'HSK' :
+                  'CEFR'
+                } level?
               </h2>
               <p className="text-gray-600">
                 This helps us create content at the right difficulty
@@ -271,6 +294,94 @@ export default function OnboardingModal() {
                   <h3 className="font-semibold text-navy mb-1">HSK 6 (Mastery)</h3>
                   <p className="text-sm text-gray-600">
                     Can easily comprehend and express yourself in Chinese
+                  </p>
+                </button>
+              </div>
+            )}
+
+            {targetLanguage === 'fr' && (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setCefrLevel('A1')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'A1'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">A1 (Beginner)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand and use familiar everyday expressions
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setCefrLevel('A2')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'A2'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">A2 (Elementary)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can communicate in simple routine tasks
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setCefrLevel('B1')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'B1'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">B1 (Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can deal with most situations while traveling
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setCefrLevel('B2')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'B2'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">B2 (Upper Intermediate)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can interact with fluency and spontaneity
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setCefrLevel('C1')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'C1'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">C1 (Advanced)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can use language flexibly and effectively
+                  </p>
+                </button>
+
+                <button
+                  onClick={() => setCefrLevel('C2')}
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                    cefrLevel === 'C2'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <h3 className="font-semibold text-navy mb-1">C2 (Mastery)</h3>
+                  <p className="text-sm text-gray-600">
+                    Can understand virtually everything heard or read
                   </p>
                 </button>
               </div>
