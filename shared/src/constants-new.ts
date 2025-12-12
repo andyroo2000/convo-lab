@@ -130,8 +130,8 @@ export const TTS_VOICES = {
     languageCode: 'fr-FR',
     voices: [
       // Polly voices (Neural) - France French
-      { id: 'Léa', gender: 'female', description: 'Léa - Natural and pleasant', provider: 'polly' },
-      { id: 'Rémi', gender: 'male', description: 'Rémi - Clear and professional', provider: 'polly' },
+      { id: 'Lea', gender: 'female', description: 'Lea - Natural and pleasant', provider: 'polly' },
+      { id: 'Remi', gender: 'male', description: 'Remi - Clear and professional', provider: 'polly' },
       // Polly voices (Neural) - Canadian French
       { id: 'Gabrielle', gender: 'female', description: 'Gabrielle - Warm and friendly', provider: 'polly' },
       { id: 'Liam', gender: 'male', description: 'Liam - Natural and engaging', provider: 'polly' },
@@ -160,6 +160,7 @@ export const DEFAULT_NARRATOR_VOICES = {
   ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
   zh: 'cmn-CN-Wavenet-A', // Female, natural and friendly (Google Cloud TTS)
   es: 'Lucia', // Clear and natural (Amazon Polly)
+  fr: 'Lea', // Natural and pleasant female voice for instruction (Amazon Polly)
 } as const;
 
 // Audio speed configurations for dialogue playback

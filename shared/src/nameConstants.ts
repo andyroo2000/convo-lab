@@ -84,9 +84,35 @@ export const SPEAKER_NAMES = {
       'Rafael',
     ],
   },
+  fr: {
+    female: [
+      'Sophie',
+      'Camille',
+      'Léa',
+      'Amina',
+      'Marie',
+      'Yasmine',
+      'Chloé',
+      'Fatima',
+      'Julie',
+      'Nadia',
+    ],
+    male: [
+      'Thomas',
+      'Lucas',
+      'Mathieu',
+      'Karim',
+      'Pierre',
+      'Malik',
+      'Antoine',
+      'Youssef',
+      'Alexandre',
+      'Omar',
+    ],
+  },
 } as const;
 
-export type LanguageCode = 'ja' | 'zh' | 'es';
+export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr';
 export type Gender = 'male' | 'female';
 
 /**

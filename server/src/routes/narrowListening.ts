@@ -127,9 +127,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     }
 
     // Validate target language
-    const validLanguages = ['ja', 'zh', 'es'];
+    const validLanguages = ['ja', 'zh', 'es', 'fr'];
     if (!validLanguages.includes(targetLanguage)) {
-      throw new AppError('Invalid target language. Must be ja (Japanese), zh (Chinese), or es (Spanish)', 400);
+      throw new AppError('Invalid target language. Must be ja (Japanese), zh (Chinese), es (Spanish), or fr (French)', 400);
     }
 
     // Validate proficiency level based on language
@@ -155,6 +155,15 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     } else if (targetLanguage === 'es') {
       if (!cefrLevel) {
         throw new AppError('CEFR level is required for Spanish', 400);
+      }
+      const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+      if (!validCefrLevels.includes(cefrLevel)) {
+        throw new AppError('Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2', 400);
+      }
+      proficiencyLevel = cefrLevel;
+    } else if (targetLanguage === 'fr') {
+      if (!cefrLevel) {
+        throw new AppError('CEFR level is required for French', 400);
       }
       const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
       if (!validCefrLevels.includes(cefrLevel)) {

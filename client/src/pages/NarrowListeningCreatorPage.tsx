@@ -11,7 +11,7 @@ export default function NarrowListeningCreatorPage() {
   const isDemo = useIsDemo();
 
   const [topic, setTopic] = useState('');
-  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh' | 'es'>('ja');
+  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh' | 'es' | 'fr'>('ja');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK3');
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
@@ -52,7 +52,7 @@ export default function NarrowListeningCreatorPage() {
           targetLanguage,
           jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
           hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
-          cefrLevel: targetLanguage === 'es' ? cefrLevel : undefined,
+          cefrLevel: (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : undefined,
           versionCount,
           grammarFocus: grammarFocus.trim() || undefined,
         }),
@@ -178,6 +178,18 @@ export default function NarrowListeningCreatorPage() {
                 >
                   Spanish
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetLanguage('fr')}
+                  disabled={isGenerating}
+                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
+                    targetLanguage === 'fr'
+                      ? 'bg-strawberry text-white border-2 border-strawberry'
+                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
+                  } disabled:opacity-50`}
+                >
+                  French
+                </button>
               </div>
             </div>
 
@@ -194,7 +206,9 @@ export default function NarrowListeningCreatorPage() {
                   ? "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
                   : targetLanguage === 'zh'
                   ? "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea"
-                  : "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas"
+                  : targetLanguage === 'es'
+                  ? "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas"
+                  : "Example: Sophie's weekend activities, A trip to the bakery, Meeting a friend for coffee"
                 }
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
@@ -208,7 +222,11 @@ export default function NarrowListeningCreatorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target {targetLanguage === 'ja' ? 'JLPT' : targetLanguage === 'zh' ? 'HSK' : 'CEFR'} Level <span className="text-strawberry">*</span>
+                  Target {
+                    targetLanguage === 'ja' ? 'JLPT' :
+                    targetLanguage === 'zh' ? 'HSK' :
+                    'CEFR'
+                  } Level <span className="text-strawberry">*</span>
                 </label>
                 {targetLanguage === 'ja' ? (
                   <select
@@ -314,7 +332,12 @@ export default function NarrowListeningCreatorPage() {
                 <li className="font-medium">• 5 versions of the same story with different grammar patterns</li>
                 <li className="font-medium">• Slow audio (0.7x speed) for shadowing practice</li>
                 <li className="font-medium">• Optional normal speed audio (1.0x) when you're ready</li>
-                <li className="font-medium">• {targetLanguage === 'ja' ? 'Japanese text with furigana' : 'Chinese text with pinyin'} and English translations</li>
+                <li className="font-medium">• {
+                  targetLanguage === 'ja' ? 'Japanese text with furigana' :
+                  targetLanguage === 'zh' ? 'Chinese text with pinyin' :
+                  targetLanguage === 'es' ? 'Spanish text' :
+                  'French text'
+                } and English translations</li>
               </ul>
             </div>
           </div>

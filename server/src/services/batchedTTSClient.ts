@@ -201,6 +201,11 @@ async function splitAudioAtTimepoints(
     timepointMap.set(tp.markName, tp.timeSeconds);
   }
 
+  // Detect if this is a Polly voice (needs trim adjustment)
+  // Polly Speech Marks can have slight timing discrepancies
+  const provider = getProviderFromVoiceId(batch.voiceId);
+  const POLLY_TRIM_MS = provider === 'polly' ? 0.02 : 0; // 20ms trim for Polly only
+
   // Split each unit
   for (let i = 0; i < batch.units.length; i++) {
     const unit = batch.units[i];
@@ -211,10 +216,12 @@ async function splitAudioAtTimepoints(
     }
 
     // End time is either the next mark's time or end of audio
+    // Apply a small trim for Polly voices to prevent overlap between segments
     let endTime: number;
     if (i < batch.units.length - 1) {
       const nextMarkName = batch.units[i + 1].markName;
-      endTime = timepointMap.get(nextMarkName) || totalDuration;
+      const nextMarkTime = timepointMap.get(nextMarkName) || totalDuration;
+      endTime = Math.max(startTime + 0.1, nextMarkTime - POLLY_TRIM_MS); // Ensure minimum 100ms duration
     } else {
       endTime = totalDuration;
     }
