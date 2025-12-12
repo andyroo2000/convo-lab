@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { execSync } from 'child_process';
 import { uploadSpeakerAvatar } from '../src/services/avatarService.js';
 
-const PROJECT_ID = 'gen-lang-client-0197871243';
+const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || 'convolab-mvp';
 const LOCATION = 'us-central1';
 
 // Get OAuth access token from gcloud
