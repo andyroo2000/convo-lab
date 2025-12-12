@@ -8,16 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** French language support with CEFR proficiency levels (A1-C2)
+- **[feat]** 4 validated AWS Polly neural voices for French (Lea, Remi, Gabrielle, Liam)
+- **[feat]** 20 diverse French speaker names representing modern France
+- **[feat]** French language option in onboarding flow with CEFR level selector
+- **[feat]** French support in settings page and narrow listening creator
+- **[feat]** Voice validation script to test all French TTS voices
+- **[feat]** Avatar generation script for French speakers (6 avatars)
 - **[resilience]** Zero-downtime deployment support with enhanced health checks and retry logic - health endpoint now verifies Redis and Database connectivity for Cloud Run startup probes, frontend job polling retries with exponential backoff (1s, 2s, 4s) to handle transient 5xx errors during revision rollouts
 - **[deploy]** AWS Polly TTS support in production environment with proper credential configuration
 - **[deploy]** Cloud Run deployment infrastructure for language processing microservices (furigana, pinyin)
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
 
 ### Changed
+- **[refactor]** Updated audio splitting logic to handle Polly vs Google TTS differently
 - **[workers]** Separated background job processing from API service - workers now run in dedicated Cloud Run Job instead of embedded in API service for better scalability and resource isolation
 - **[refactor]** Voice gender is now defined only in TTS_VOICES configuration (single source of truth) - removed duplicate hardcoded gender map from avatarService to prevent future mismatches
 
 ### Fixed
+- **[fix]** Corrected French TTS voice names for AWS Polly compatibility (Léa → Lea)
+- **[fix]** Replaced Mathieu voice (standard-only) with Remi (neural support)
+- **[fix]** Added 20ms audio trim for Polly voices to prevent Speech Marks timing overlap
 - **[dialogue]** Gemini occasionally generating dialogues where same speaker spoke multiple times consecutively - added strict speaker alternation requirement to prompt ensuring proper back-and-forth conversation flow
 - **[dialogue]** Added retry logic with exponential backoff (3 attempts: 1s, 2s, 4s delays) for Gemini JSON parsing errors - handles transient API failures that occasionally return malformed JSON mid-response
 - **[tts]** Incorrect gender mappings for Japanese TTS voices causing mismatched voice genders and avatars - corrected ja-JP-Wavenet-B (male), ja-JP-Wavenet-C (female), ja-JP-Neural2-B (male), and ja-JP-Neural2-D (female) per Google Cloud TTS documentation
