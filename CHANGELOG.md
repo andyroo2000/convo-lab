@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Infinite scroll pagination for library page - loads content incrementally (20 items per page) for better performance with large libraries
+- **[feat]** Admin impersonation mode - click eye icon in admin users table to view any user's library in read-only mode for QA purposes
+- **[feat]** AdminAuditLog database model - tracks all admin impersonation events with timestamp, IP address, and user agent for compliance
+- **[feat]** Enhanced error recovery system with ErrorBoundary component to catch unexpected React errors gracefully
+- **[feat]** Smart error display component with context-aware icons (network, auth, server errors) and retry functionality
+- **[feat]** Loading skeleton UI for better perceived performance during initial library loads
+- **[feat]** EmptySearchResults component for filtered library results with helpful suggestions
+- **[feat]** ImpersonationBanner component showing prominent amber banner when admin is viewing as another user
 - **[feat]** Language indicator badge in navigation bar showing current study language (JA/ES/ZH/FR)
 - **[feat]** Spanish and French support for audio courses with CEFR proficiency levels
 - **[feat]** CEFR level field to Course database model for Spanish/French proficiency tracking
@@ -27,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
 
 ### Changed
+- **[refactor]** Library data fetching refactored to use React Query's useInfiniteQuery for pagination support
+- **[refactor]** Global React Query configuration updated with smart retry logic - skips 4xx client errors, retries 5xx server errors up to 2 times with exponential backoff
+- **[refactor]** All library content routes (episodes, courses, narrow listening, chunk packs) now support viewAs query parameter for admin impersonation
 - **[refactor]** Centralized language selection - all content creation forms now use user's preferred study language from settings instead of per-form selectors
 - **[refactor]** Removed language selector dropdowns from narrow listening, audio course, and dialogue creation forms
 - **[refactor]** Removed narrator voice selector from audio course form - now auto-selects based on native language
