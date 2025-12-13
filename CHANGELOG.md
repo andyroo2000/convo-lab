@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[refactor]** Voice gender is now defined only in TTS_VOICES configuration (single source of truth) - removed duplicate hardcoded gender map from avatarService to prevent future mismatches
 
 ### Fixed
+- **[fix]** Arabic missing from study language selector in settings page - users can now properly select Arabic as their target language for learning
 - **[fix]** French avatar uploads blocked by validation regex and file size limit - added 'fr' language code to speaker avatar filename validation and increased upload limit from 5MB to 10MB
 - **[fix]** Corrected French TTS voice names for AWS Polly compatibility (Léa → Lea)
 - **[fix]** Replaced Mathieu voice (standard-only) with Remi (neural support)

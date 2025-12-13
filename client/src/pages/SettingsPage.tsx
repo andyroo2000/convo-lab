@@ -542,6 +542,7 @@ export default function SettingsPage() {
             {preferredNativeLanguage !== 'zh' && <option value="zh">Mandarin Chinese (中文)</option>}
             {preferredNativeLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
             {preferredNativeLanguage !== 'fr' && <option value="fr">French (Français)</option>}
+            {preferredNativeLanguage !== 'ar' && <option value="ar">Arabic (العربية)</option>}
           </select>
           {studyLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
