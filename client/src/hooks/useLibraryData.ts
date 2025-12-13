@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient, QueryClient } from '@tanstack/react-query';
 import { Episode, Course } from '../types';
 import { API_URL } from '../config';
 
@@ -61,9 +61,16 @@ export const libraryKeys = {
   chunkPacks: () => [...libraryKeys.all, 'chunkPacks'] as const,
 };
 
-// Fetch functions
-async function fetchEpisodes(): Promise<Episode[]> {
-  const response = await fetch(`${API_URL}/api/episodes?library=true`, {
+// Fetch functions with pagination support
+async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise<Episode[]> {
+  const params = new URLSearchParams({
+    library: 'true',
+    limit: '20',
+    offset: String(offset),
+  });
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const response = await fetch(`${API_URL}/api/episodes?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -72,8 +79,15 @@ async function fetchEpisodes(): Promise<Episode[]> {
   return response.json();
 }
 
-async function fetchCourses(): Promise<LibraryCourse[]> {
-  const response = await fetch(`${API_URL}/api/courses?library=true`, {
+async function fetchCourses(offset: number = 0, viewAsUserId?: string): Promise<LibraryCourse[]> {
+  const params = new URLSearchParams({
+    library: 'true',
+    limit: '20',
+    offset: String(offset),
+  });
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const response = await fetch(`${API_URL}/api/courses?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -82,8 +96,15 @@ async function fetchCourses(): Promise<LibraryCourse[]> {
   return response.json();
 }
 
-async function fetchNarrowListeningPacks(): Promise<NarrowListeningPack[]> {
-  const response = await fetch(`${API_URL}/api/narrow-listening?library=true`, {
+async function fetchNarrowListeningPacks(offset: number = 0, viewAsUserId?: string): Promise<NarrowListeningPack[]> {
+  const params = new URLSearchParams({
+    library: 'true',
+    limit: '20',
+    offset: String(offset),
+  });
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const response = await fetch(`${API_URL}/api/narrow-listening?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -92,8 +113,15 @@ async function fetchNarrowListeningPacks(): Promise<NarrowListeningPack[]> {
   return response.json();
 }
 
-async function fetchChunkPacks(): Promise<ChunkPack[]> {
-  const response = await fetch(`${API_URL}/api/chunk-packs?library=true`, {
+async function fetchChunkPacks(offset: number = 0, viewAsUserId?: string): Promise<ChunkPack[]> {
+  const params = new URLSearchParams({
+    library: 'true',
+    limit: '20',
+    offset: String(offset),
+  });
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const response = await fetch(`${API_URL}/api/chunk-packs?${params}`, {
     credentials: 'include',
   });
   if (!response.ok) {
@@ -145,36 +173,55 @@ async function deleteChunkPackRequest(packId: string): Promise<void> {
 }
 
 // Main hook
-export function useLibraryData() {
+export function useLibraryData(viewAsUserId?: string) {
   const queryClient = useQueryClient();
 
-  // Queries - all run in parallel automatically
-  const episodesQuery = useQuery({
-    queryKey: libraryKeys.episodes(),
-    queryFn: fetchEpisodes,
+  // Infinite queries - all run in parallel automatically
+  const episodesQuery = useInfiniteQuery({
+    queryKey: [...libraryKeys.episodes(), viewAsUserId],
+    queryFn: ({ pageParam = 0 }) => fetchEpisodes(pageParam, viewAsUserId),
+    getNextPageParam: (lastPage, allPages) => {
+      // If last page has 20 items, there might be more
+      return lastPage.length === 20 ? allPages.length * 20 : undefined;
+    },
+    initialPageParam: 0,
   });
 
-  const coursesQuery = useQuery({
-    queryKey: libraryKeys.courses(),
-    queryFn: fetchCourses,
+  const coursesQuery = useInfiniteQuery({
+    queryKey: [...libraryKeys.courses(), viewAsUserId],
+    queryFn: ({ pageParam = 0 }) => fetchCourses(pageParam, viewAsUserId),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length * 20 : undefined;
+    },
+    initialPageParam: 0,
     // Poll every 5 seconds while any course is generating
     refetchInterval: (query) => {
-      const hasGenerating = query.state.data?.some(c => c.status === 'generating');
+      const allCourses = query.state.data?.pages.flat() ?? [];
+      const hasGenerating = allCourses.some(c => c.status === 'generating');
       return hasGenerating ? 5000 : false;
     },
   });
 
-  const narrowListeningQuery = useQuery({
-    queryKey: libraryKeys.narrowListening(),
-    queryFn: fetchNarrowListeningPacks,
+  const narrowListeningQuery = useInfiniteQuery({
+    queryKey: [...libraryKeys.narrowListening(), viewAsUserId],
+    queryFn: ({ pageParam = 0 }) => fetchNarrowListeningPacks(pageParam, viewAsUserId),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length * 20 : undefined;
+    },
+    initialPageParam: 0,
   });
 
-  const chunkPacksQuery = useQuery({
-    queryKey: libraryKeys.chunkPacks(),
-    queryFn: fetchChunkPacks,
+  const chunkPacksQuery = useInfiniteQuery({
+    queryKey: [...libraryKeys.chunkPacks(), viewAsUserId],
+    queryFn: ({ pageParam = 0 }) => fetchChunkPacks(pageParam, viewAsUserId),
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length * 20 : undefined;
+    },
+    initialPageParam: 0,
     // Poll every 5 seconds while any chunk pack is generating
     refetchInterval: (query) => {
-      const hasGenerating = query.state.data?.some(cp => cp.status === 'generating');
+      const allPacks = query.state.data?.pages.flat() ?? [];
+      const hasGenerating = allPacks.some(cp => cp.status === 'generating');
       return hasGenerating ? 5000 : false;
     },
   });
@@ -218,16 +265,49 @@ export function useLibraryData() {
   // Error state - only show error if episodes fail (primary content)
   const error = episodesQuery.error?.message || null;
 
+  // Flatten paginated data
+  const episodes = episodesQuery.data?.pages.flat() ?? [];
+  const courses = coursesQuery.data?.pages.flat() ?? [];
+  const narrowListeningPacks = narrowListeningQuery.data?.pages.flat() ?? [];
+  const chunkPacks = chunkPacksQuery.data?.pages.flat() ?? [];
+
+  // Check if we're fetching more data
+  const isFetchingNextPage =
+    episodesQuery.isFetchingNextPage ||
+    coursesQuery.isFetchingNextPage ||
+    narrowListeningQuery.isFetchingNextPage ||
+    chunkPacksQuery.isFetchingNextPage;
+
+  // Check if there's more data to load
+  const hasNextPage =
+    episodesQuery.hasNextPage ||
+    coursesQuery.hasNextPage ||
+    narrowListeningQuery.hasNextPage ||
+    chunkPacksQuery.hasNextPage;
+
+  // Fetch next page for all queries
+  const fetchNextPage = () => {
+    if (episodesQuery.hasNextPage) episodesQuery.fetchNextPage();
+    if (coursesQuery.hasNextPage) coursesQuery.fetchNextPage();
+    if (narrowListeningQuery.hasNextPage) narrowListeningQuery.fetchNextPage();
+    if (chunkPacksQuery.hasNextPage) chunkPacksQuery.fetchNextPage();
+  };
+
   return {
     // Data
-    episodes: episodesQuery.data ?? [],
-    courses: coursesQuery.data ?? [],
-    narrowListeningPacks: narrowListeningQuery.data ?? [],
-    chunkPacks: chunkPacksQuery.data ?? [],
+    episodes,
+    courses,
+    narrowListeningPacks,
+    chunkPacks,
 
     // Status
     isLoading,
     error,
+
+    // Pagination
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
 
     // Delete actions
     deleteEpisode: deleteEpisodeMutation.mutateAsync,

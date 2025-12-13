@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
@@ -16,8 +17,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getLibraryUserId(req.userId!);
+    // Get the effective user ID (supports both demo users and admin impersonation)
+    const queryUserId = await getEffectiveUserId(req);
 
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
@@ -86,8 +87,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
 // Get single episode (demo users can view admin's episodes)
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
-    // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getLibraryUserId(req.userId!);
+    // Get the effective user ID (supports both demo users and admin impersonation)
+    const queryUserId = await getEffectiveUserId(req);
 
     const episode = await prisma.episode.findFirst({
       where: {

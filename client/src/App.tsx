@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Lazy load all page components for code splitting
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -41,51 +42,53 @@ function PageLoader() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AudioPlayerProvider>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <AudioPlayerProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* App Routes (Protected) */}
-              <Route path="/app" element={<Layout />}>
-                <Route index element={<Navigate to="/app/library" replace />} />
-                <Route path="library" element={<LibraryPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="settings/:tab" element={<SettingsPage />} />
-                <Route path="admin" element={<AdminPage />} />
-                <Route path="admin/:tab" element={<AdminPage />} />
+                {/* App Routes (Protected) */}
+                <Route path="/app" element={<Layout />}>
+                  <Route index element={<Navigate to="/app/library" replace />} />
+                  <Route path="library" element={<LibraryPage />} />
+                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings/:tab" element={<SettingsPage />} />
+                  <Route path="admin" element={<AdminPage />} />
+                  <Route path="admin/:tab" element={<AdminPage />} />
 
-                {/* Create - Content Creation Hub */}
-                <Route path="create" element={<CreatePage />} />
-                <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-                <Route path="create/audio-course" element={<CourseCreatorPage />} />
-                <Route path="create/narrow-listening" element={<NarrowListeningCreatorPage />} />
-                <Route path="create/processing-instruction" element={<PISetupPage />} />
-                <Route path="create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
+                  {/* Create - Content Creation Hub */}
+                  <Route path="create" element={<CreatePage />} />
+                  <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+                  <Route path="create/audio-course" element={<CourseCreatorPage />} />
+                  <Route path="create/narrow-listening" element={<NarrowListeningCreatorPage />} />
+                  <Route path="create/processing-instruction" element={<PISetupPage />} />
+                  <Route path="create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
 
-                {/* Playback & Practice */}
-                <Route path="playback/:episodeId" element={<PlaybackPage />} />
-                <Route path="practice/:episodeId" element={<PracticePage />} />
-                <Route path="courses/:courseId" element={<CoursePage />} />
-                <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
-                <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
-                <Route path="pi/session" element={<PISessionPage />} />
-                <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
-                <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-                <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
-              </Route>
+                  {/* Playback & Practice */}
+                  <Route path="playback/:episodeId" element={<PlaybackPage />} />
+                  <Route path="practice/:episodeId" element={<PracticePage />} />
+                  <Route path="courses/:courseId" element={<CoursePage />} />
+                  <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
+                  <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
+                  <Route path="pi/session" element={<PISessionPage />} />
+                  <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
+                  <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
+                  <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
+                </Route>
 
-              {/* 404 Catch-all Route */}
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
-          </Suspense>
-        </AudioPlayerProvider>
-      </AuthProvider>
-    </BrowserRouter>
+                {/* 404 Catch-all Route */}
+                <Route path="*" element={<NotFoundPage />} />
+              </Routes>
+            </Suspense>
+          </AudioPlayerProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
