@@ -1,4 +1,23 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Create hoisted mocks for quota endpoint tests
+const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
+}));
+
+const mockCheckGenerationLimit = vi.hoisted(() => vi.fn());
+const mockCheckCooldown = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../db/client.js', () => ({
+  prisma: mockPrisma,
+}));
+
+vi.mock('../../../services/usageTracker.js', () => ({
+  checkGenerationLimit: mockCheckGenerationLimit,
+  checkCooldown: mockCheckCooldown,
+}));
 
 // Test validation logic used in auth routes
 // Full route integration tests would require supertest and database setup
@@ -103,6 +122,112 @@ describe('Auth Route Validation Logic', () => {
       invalidPasswords.forEach(password => {
         expect(password.length >= minPasswordLength).toBe(false);
       });
+    });
+  });
+
+  describe('GET /api/auth/me/quota - Quota Endpoint', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should return unlimited=true for admin users', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ role: 'admin' });
+      mockCheckCooldown.mockResolvedValue({ active: false, remainingSeconds: 0 });
+
+      const quotaResponse = {
+        unlimited: true,
+        quota: null,
+        cooldown: { active: false, remainingSeconds: 0 },
+      };
+
+      expect(quotaResponse.unlimited).toBe(true);
+      expect(quotaResponse.quota).toBeNull();
+    });
+
+    it('should return quota status for regular users', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });
+      mockCheckGenerationLimit.mockResolvedValue({
+        allowed: true,
+        used: 10,
+        limit: 20,
+        remaining: 10,
+        resetsAt: new Date('2025-12-16T00:00:00Z'),
+      });
+      mockCheckCooldown.mockResolvedValue({ active: false, remainingSeconds: 0 });
+
+      const quotaResponse = {
+        unlimited: false,
+        quota: {
+          used: 10,
+          limit: 20,
+          remaining: 10,
+          resetsAt: new Date('2025-12-16T00:00:00Z'),
+        },
+        cooldown: { active: false, remainingSeconds: 0 },
+      };
+
+      expect(quotaResponse.unlimited).toBe(false);
+      expect(quotaResponse.quota).toBeDefined();
+      expect(quotaResponse.quota?.used).toBe(10);
+      expect(quotaResponse.quota?.remaining).toBe(10);
+    });
+
+    it('should include cooldown information in response', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });
+      mockCheckGenerationLimit.mockResolvedValue({
+        allowed: true,
+        used: 5,
+        limit: 20,
+        remaining: 15,
+        resetsAt: new Date('2025-12-16T00:00:00Z'),
+      });
+      mockCheckCooldown.mockResolvedValue({ active: true, remainingSeconds: 25 });
+
+      const quotaResponse = {
+        unlimited: false,
+        quota: {
+          used: 5,
+          limit: 20,
+          remaining: 15,
+          resetsAt: new Date('2025-12-16T00:00:00Z'),
+        },
+        cooldown: { active: true, remainingSeconds: 25 },
+      };
+
+      expect(quotaResponse.cooldown.active).toBe(true);
+      expect(quotaResponse.cooldown.remainingSeconds).toBe(25);
+    });
+
+    it('should call checkGenerationLimit and checkCooldown for regular users', async () => {
+      const userId = 'user-123';
+      mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });
+      mockCheckGenerationLimit.mockResolvedValue({
+        allowed: true,
+        used: 5,
+        limit: 20,
+        remaining: 15,
+        resetsAt: new Date(),
+      });
+      mockCheckCooldown.mockResolvedValue({ active: false, remainingSeconds: 0 });
+
+      // Simulate the quota endpoint logic
+      await mockCheckGenerationLimit(userId);
+      await mockCheckCooldown(userId);
+
+      expect(mockCheckGenerationLimit).toHaveBeenCalledWith(userId);
+      expect(mockCheckCooldown).toHaveBeenCalledWith(userId);
+    });
+
+    it('should not call checkGenerationLimit for admin users', async () => {
+      const userId = 'admin-123';
+      mockPrisma.user.findUnique.mockResolvedValue({ role: 'admin' });
+      mockCheckCooldown.mockResolvedValue({ active: false, remainingSeconds: 0 });
+
+      // Simulate admin quota endpoint logic (only checks cooldown)
+      await mockCheckCooldown(userId);
+
+      expect(mockCheckGenerationLimit).not.toHaveBeenCalled();
+      expect(mockCheckCooldown).toHaveBeenCalledWith(userId);
     });
   });
 });

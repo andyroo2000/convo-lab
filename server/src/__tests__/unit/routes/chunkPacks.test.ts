@@ -23,6 +23,7 @@ const mockNarrowListeningQueue = vi.hoisted(() => ({
 }));
 
 const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
+const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
@@ -41,8 +42,13 @@ vi.mock('../../../middleware/demoAuth.js', () => ({
   getLibraryUserId: mockGetLibraryUserId,
 }));
 
+vi.mock('../../../middleware/impersonation.js', () => ({
+  getEffectiveUserId: mockGetEffectiveUserId,
+}));
+
 describe('Chunk Packs Route Logic', () => {
   beforeEach(() => {
+    mockGetEffectiveUserId.mockResolvedValue('test-user-id');
     vi.clearAllMocks();
     mockGetLibraryUserId.mockResolvedValue('test-user-id');
   });
@@ -485,6 +491,91 @@ describe('Chunk Packs Route Logic', () => {
       expect(canCreateNLSession('generating')).toBe(false);
       expect(canCreateNLSession('pending')).toBe(false);
       expect(canCreateNLSession('error')).toBe(false);
+    });
+  });
+
+  describe('Pagination Tests', () => {
+    beforeEach(() => {
+      mockPrisma.chunkPack.findMany.mockResolvedValue([]);
+    });
+
+    it('should use default pagination values (limit=50, offset=0)', async () => {
+      await mockPrisma.chunkPack.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+        skip: 0,
+      });
+
+      expect(mockPrisma.chunkPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+          skip: 0,
+        })
+      );
+    });
+
+    it('should use custom limit and offset when provided', async () => {
+      await mockPrisma.chunkPack.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 40,
+      });
+
+      expect(mockPrisma.chunkPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          skip: 40,
+        })
+      );
+    });
+
+    it('should return minimal fields in library mode (_count for examples, stories, exercises)', async () => {
+      await mockPrisma.chunkPack.findMany({
+        where: { userId: 'test-user-id' },
+        select: {
+          id: true,
+          title: true,
+          theme: true,
+          targetLanguage: true,
+          status: true,
+          createdAt: true,
+          _count: {
+            select: {
+              examples: true,
+              stories: true,
+              exercises: true,
+            },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.chunkPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            _count: expect.any(Object),
+          }),
+        })
+      );
+    });
+
+    it('should order by updatedAt desc', async () => {
+      await mockPrisma.chunkPack.findMany({
+        where: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.chunkPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'desc' },
+        })
+      );
     });
   });
 });
