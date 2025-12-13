@@ -18,10 +18,15 @@
     "test": "npm run test --workspaces",
     "test:run": "npm run test:run --workspaces",
     "test:coverage": "npm run test:coverage --workspaces",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces"
   },
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "concurrently": "^8.2.2"
   },
   "engines": {

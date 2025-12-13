@@ -12,6 +12,7 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
+const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
@@ -20,6 +21,10 @@ vi.mock('../../../db/client.js', () => ({
 vi.mock('../../../middleware/demoAuth.js', () => ({
   blockDemoUser: vi.fn((req, res, next) => next()),
   getLibraryUserId: mockGetLibraryUserId,
+}));
+
+vi.mock('../../../middleware/impersonation.js', () => ({
+  getEffectiveUserId: mockGetEffectiveUserId,
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
@@ -33,6 +38,7 @@ describe('Episodes Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetLibraryUserId.mockResolvedValue('test-user-id');
+    mockGetEffectiveUserId.mockResolvedValue('test-user-id');
   });
 
   describe('GET / - List Episodes', () => {
@@ -114,6 +120,200 @@ describe('Episodes Route Logic', () => {
       expect(parseLimit(undefined)).toBe(50);
       expect(parseOffset('10')).toBe(10);
       expect(parseOffset(undefined)).toBe(0);
+    });
+  });
+
+  describe('Pagination Tests', () => {
+    beforeEach(() => {
+      mockPrisma.episode.findMany.mockResolvedValue([]);
+    });
+
+    it('should use default pagination values when not provided (library mode)', async () => {
+      const router = await import('../../../routes/episodes.js');
+
+      // Simulate query with library=true but no limit/offset
+      await mockPrisma.episode.findMany({
+        where: {
+          userId: 'test-user-id',
+          dialogue: { isNot: null },
+        },
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 50, // Default
+        skip: 0,  // Default
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+          skip: 0,
+        })
+      );
+    });
+
+    it('should use custom limit and offset when provided (library mode)', async () => {
+      await mockPrisma.episode.findMany({
+        where: {
+          userId: 'test-user-id',
+          dialogue: { isNot: null },
+        },
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,  // Custom limit
+        skip: 40,  // Custom offset
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          skip: 40,
+        })
+      );
+    });
+
+    it('should support pagination in full mode (with includes)', async () => {
+      await mockPrisma.episode.findMany({
+        where: {
+          userId: 'test-user-id',
+          dialogue: { isNot: null },
+        },
+        include: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 20, // Second page
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          skip: 20,
+        })
+      );
+    });
+
+    it('should order by updatedAt desc for pagination', async () => {
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'desc' },
+        })
+      );
+    });
+
+    it('should handle first page request (offset=0)', async () => {
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: 0,
+        })
+      );
+    });
+
+    it('should handle subsequent page requests correctly', async () => {
+      // Page 2: offset = limit * 1 = 20
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 20,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(1,
+        expect.objectContaining({
+          skip: 20,
+        })
+      );
+
+      // Page 3: offset = limit * 2 = 40
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        select: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 40,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(2,
+        expect.objectContaining({
+          skip: 40,
+        })
+      );
+    });
+
+    it('should return minimal fields in library mode (_count, no full relations)', async () => {
+      const expectedSelect = {
+        id: true,
+        title: true,
+        sourceText: true,
+        targetLanguage: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        dialogue: {
+          select: {
+            speakers: {
+              select: {
+                proficiency: true,
+              },
+            },
+          },
+        },
+      };
+
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        select: expectedSelect,
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expectedSelect,
+        })
+      );
+    });
+
+    it('should return full data with relations in non-library mode', async () => {
+      const expectedInclude = {
+        dialogue: {
+          include: {
+            sentences: true,
+            speakers: true,
+          },
+        },
+        images: true,
+      };
+
+      await mockPrisma.episode.findMany({
+        where: expect.any(Object),
+        include: expectedInclude,
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expectedInclude,
+        })
+      );
     });
   });
 

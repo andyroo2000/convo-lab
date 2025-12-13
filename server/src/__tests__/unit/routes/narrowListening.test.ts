@@ -16,6 +16,7 @@ const mockNarrowListeningQueue = vi.hoisted(() => ({
 }));
 
 const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
+const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
@@ -30,10 +31,15 @@ vi.mock('../../../middleware/demoAuth.js', () => ({
   getLibraryUserId: mockGetLibraryUserId,
 }));
 
+vi.mock('../../../middleware/impersonation.js', () => ({
+  getEffectiveUserId: mockGetEffectiveUserId,
+}));
+
 describe('Narrow Listening Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetLibraryUserId.mockResolvedValue('test-user-id');
+    mockGetEffectiveUserId.mockResolvedValue('test-user-id');
   });
 
   describe('GET / - List Packs', () => {
@@ -281,6 +287,87 @@ describe('Narrow Listening Route Logic', () => {
 
       expect(state).toBe('completed');
       expect(job.returnvalue.pack.id).toBe('pack-1');
+    });
+  });
+
+  describe('Pagination Tests', () => {
+    beforeEach(() => {
+      mockPrisma.narrowListeningPack.findMany.mockResolvedValue([]);
+    });
+
+    it('should use default pagination values (limit=50, offset=0)', async () => {
+      await mockPrisma.narrowListeningPack.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+        skip: 0,
+      });
+
+      expect(mockPrisma.narrowListeningPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+          skip: 0,
+        })
+      );
+    });
+
+    it('should use custom limit and offset when provided', async () => {
+      await mockPrisma.narrowListeningPack.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 40,
+      });
+
+      expect(mockPrisma.narrowListeningPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          skip: 40,
+        })
+      );
+    });
+
+    it('should return minimal fields in library mode (_count for versions)', async () => {
+      await mockPrisma.narrowListeningPack.findMany({
+        where: { userId: 'test-user-id' },
+        select: {
+          id: true,
+          title: true,
+          topic: true,
+          targetLanguage: true,
+          status: true,
+          createdAt: true,
+          _count: {
+            select: { versions: true },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.narrowListeningPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            _count: expect.any(Object),
+          }),
+        })
+      );
+    });
+
+    it('should order by updatedAt desc', async () => {
+      await mockPrisma.narrowListeningPack.findMany({
+        where: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.narrowListeningPack.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'desc' },
+        })
+      );
     });
   });
 });

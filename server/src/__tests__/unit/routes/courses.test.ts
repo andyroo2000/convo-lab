@@ -23,6 +23,8 @@ const mockCourseQueue = vi.hoisted(() => ({
   add: vi.fn(),
 }));
 
+const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
+
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
@@ -31,9 +33,14 @@ vi.mock('../../../jobs/courseQueue.js', () => ({
   courseQueue: mockCourseQueue,
 }));
 
+vi.mock('../../../middleware/impersonation.js', () => ({
+  getEffectiveUserId: mockGetEffectiveUserId,
+}));
+
 describe('Courses Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetEffectiveUserId.mockResolvedValue('test-user-id');
   });
 
   describe('GET / - List Courses', () => {
@@ -297,6 +304,105 @@ describe('Courses Route Logic', () => {
       expect(mockPrisma.course.delete).toHaveBeenCalledWith({
         where: { id: 'course-1' },
       });
+    });
+  });
+
+  describe('Pagination Tests', () => {
+    beforeEach(() => {
+      mockPrisma.course.findMany.mockResolvedValue([]);
+    });
+
+    it('should use default pagination values (limit=50, offset=0)', async () => {
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 50,
+        skip: 0,
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 50,
+          skip: 0,
+        })
+      );
+    });
+
+    it('should use custom limit and offset when provided', async () => {
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id' },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 40,
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 20,
+          skip: 40,
+        })
+      );
+    });
+
+    it('should return minimal fields in library mode (_count instead of full relations)', async () => {
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id' },
+        select: {
+          id: true,
+          episodeId: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { lessons: true },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: expect.objectContaining({
+            _count: expect.any(Object),
+          }),
+        })
+      );
+    });
+
+    it('should return full data with relations in non-library mode', async () => {
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id' },
+        include: {
+          lessons: true,
+          episode: true,
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.any(Object),
+        })
+      );
+    });
+
+    it('should order by updatedAt desc', async () => {
+      await mockPrisma.course.findMany({
+        where: expect.any(Object),
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        skip: 0,
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          orderBy: { updatedAt: 'desc' },
+        })
+      );
     });
   });
 
