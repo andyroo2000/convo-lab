@@ -110,9 +110,35 @@ export const SPEAKER_NAMES = {
       'Omar',
     ],
   },
+  ar: {
+    female: [
+      'فاطمة',      // Fatima
+      'نورة',       // Noura
+      'مريم',       // Maryam
+      'سارة',       // Sarah
+      'عائشة',      // Aisha
+      'ليلى',       // Layla
+      'زينب',       // Zainab
+      'هند',        // Hind
+      'لطيفة',      // Latifa
+      'منى',        // Muna
+    ],
+    male: [
+      'محمد',       // Mohammed
+      'أحمد',       // Ahmed
+      'عبدالله',    // Abdullah
+      'خالد',       // Khalid
+      'سالم',       // Salem
+      'عمر',        // Omar
+      'يوسف',       // Youssef
+      'حسن',        // Hassan
+      'علي',        // Ali
+      'راشد',       // Rashid
+    ],
+  },
 } as const;
 
-export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr';
+export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar';
 export type Gender = 'male' | 'female';
 
 /**

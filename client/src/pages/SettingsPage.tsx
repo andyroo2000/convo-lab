@@ -569,6 +569,7 @@ export default function SettingsPage() {
             {preferredStudyLanguage !== 'en' && <option value="en">English</option>}
             {preferredStudyLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
             {preferredStudyLanguage !== 'fr' && <option value="fr">French (Français)</option>}
+            {preferredStudyLanguage !== 'ar' && <option value="ar">Arabic (العربية)</option>}
             {preferredStudyLanguage !== 'zh' && <option value="zh">Chinese (中文)</option>}
             {preferredStudyLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
           </select>
@@ -683,6 +684,38 @@ export default function SettingsPage() {
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
               French Proficiency Level (CEFR)
+            </label>
+            <select
+              value={cefrLevel}
+              onChange={(e) => handleProficiencyLevelChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+              data-testid="settings-select-cefr-level"
+            >
+              <option value="A1">A1 - Beginner</option>
+              <option value="A2">A2 - Elementary</option>
+              <option value="B1">B1 - Intermediate</option>
+              <option value="B2">B2 - Upper Intermediate</option>
+              <option value="C1">C1 - Advanced</option>
+              <option value="C2">C2 - Mastery</option>
+            </select>
+            {proficiencySaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {proficiencySaveMessage}
+              </p>
+            )}
+            {!proficiencySaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                This helps us generate content at the right difficulty level
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Arabic - CEFR Levels */}
+        {preferredStudyLanguage === 'ar' && (
+          <div className="mb-6">
+            <label className="block text-base font-bold text-dark-brown mb-3">
+              Arabic Proficiency Level (CEFR)
             </label>
             <select
               value={cefrLevel}

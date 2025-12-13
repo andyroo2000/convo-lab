@@ -108,6 +108,21 @@ export default function OnboardingModal() {
                   <p className="text-sm text-gray-600">Français</p>
                 </div>
               </button>
+
+              <button
+                onClick={() => setTargetLanguage('ar')}
+                className={`p-6 rounded-xl border-2 transition-all ${
+                  targetLanguage === 'ar'
+                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🇸🇦</div>
+                  <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
+                  <p className="text-sm text-gray-600">العربية</p>
+                </div>
+              </button>
             </div>
 
             <div className="flex justify-end mt-8">
@@ -299,7 +314,7 @@ export default function OnboardingModal() {
               </div>
             )}
 
-            {targetLanguage === 'fr' && (
+            {(targetLanguage === 'fr' || targetLanguage === 'ar') && (
               <div className="space-y-3">
                 <button
                   onClick={() => setCefrLevel('A1')}
