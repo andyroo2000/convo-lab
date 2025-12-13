@@ -3,15 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Loader, Sparkles } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
+import { useAuth } from '../contexts/AuthContext';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
 export default function NarrowListeningCreatorPage() {
   const navigate = useNavigate();
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
+  const { user } = useAuth();
 
   const [topic, setTopic] = useState('');
-  const [targetLanguage, setTargetLanguage] = useState<'ja' | 'zh' | 'es' | 'fr'>('ja');
+  const targetLanguage = (user?.preferredStudyLanguage || 'ja') as 'ja' | 'zh' | 'es' | 'fr';
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK3');
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
@@ -136,63 +138,6 @@ export default function NarrowListeningCreatorPage() {
 
           {/* Form */}
           <div className="space-y-6">
-            {/* Language Selection */}
-            <div>
-              <label className="block text-base font-bold text-dark-brown mb-3">
-                Target Language <span className="text-strawberry">*</span>
-              </label>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setTargetLanguage('ja')}
-                  disabled={isGenerating}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
-                    targetLanguage === 'ja'
-                      ? 'bg-strawberry text-white border-2 border-strawberry'
-                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
-                  } disabled:opacity-50`}
-                >
-                  Japanese
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTargetLanguage('zh')}
-                  disabled={isGenerating}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
-                    targetLanguage === 'zh'
-                      ? 'bg-strawberry text-white border-2 border-strawberry'
-                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
-                  } disabled:opacity-50`}
-                >
-                  Chinese
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTargetLanguage('es')}
-                  disabled={isGenerating}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
-                    targetLanguage === 'es'
-                      ? 'bg-strawberry text-white border-2 border-strawberry'
-                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
-                  } disabled:opacity-50`}
-                >
-                  Spanish
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTargetLanguage('fr')}
-                  disabled={isGenerating}
-                  className={`flex-1 px-4 py-3 rounded-lg font-bold text-base transition-all ${
-                    targetLanguage === 'fr'
-                      ? 'bg-strawberry text-white border-2 border-strawberry'
-                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-strawberry'
-                  } disabled:opacity-50`}
-                >
-                  French
-                </button>
-              </div>
-            </div>
-
             {/* Topic */}
             <div>
               <label className="block text-base font-bold text-dark-brown mb-3">

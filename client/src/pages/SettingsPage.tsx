@@ -538,10 +538,10 @@ export default function SettingsPage() {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-study-language"
           >
-            <option value="ja">Japanese (日本語)</option>
-            <option value="zh">Mandarin Chinese (中文)</option>
-            <option value="es">Spanish (Español)</option>
-            <option value="fr">French (Français)</option>
+            {preferredNativeLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
+            {preferredNativeLanguage !== 'zh' && <option value="zh">Mandarin Chinese (中文)</option>}
+            {preferredNativeLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
+            {preferredNativeLanguage !== 'fr' && <option value="fr">French (Français)</option>}
           </select>
           {studyLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
@@ -566,11 +566,11 @@ export default function SettingsPage() {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-native-language"
           >
-            <option value="en">English</option>
-            <option value="es">Spanish (Español)</option>
-            <option value="fr">French (Français)</option>
-            <option value="zh">Chinese (中文)</option>
-            <option value="ja">Japanese (日本語)</option>
+            {preferredStudyLanguage !== 'en' && <option value="en">English</option>}
+            {preferredStudyLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
+            {preferredStudyLanguage !== 'fr' && <option value="fr">French (Français)</option>}
+            {preferredStudyLanguage !== 'zh' && <option value="zh">Chinese (中文)</option>}
+            {preferredStudyLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
           </select>
           {nativeLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${nativeLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>

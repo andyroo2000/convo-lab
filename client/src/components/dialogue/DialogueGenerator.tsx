@@ -251,19 +251,7 @@ export default function DialogueGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
-                Target Language
-              </label>
-              <input
-                type="text"
-                value={`${SUPPORTED_LANGUAGES[targetLanguage].name} (${SUPPORTED_LANGUAGES[targetLanguage].nativeName})`}
-                disabled
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed text-base"
-              />
-            </div>
-
+          <div className="space-y-6">
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
                 Conversation Length
@@ -322,7 +310,7 @@ export default function DialogueGenerator() {
               </div>
             )}
 
-            {targetLanguage === 'es' && (
+            {(targetLanguage === 'es' || targetLanguage === 'fr') && (
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
                   Target CEFR Level
@@ -368,7 +356,7 @@ export default function DialogueGenerator() {
           <div className="flex-1">
             <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
             <p className="text-sm sm:text-base text-gray-700 mb-4">
-              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel} level {tone} language.
+              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : 'beginner'} level {tone} language.
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-2">
               <li className="font-medium">• {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
