@@ -120,6 +120,7 @@ export default function AdminPage() {
       zh: 'Chinese',
       es: 'Spanish',
       fr: 'French',
+      ar: 'Arabic',
     };
 
     // Capitalize first letter
@@ -142,6 +143,8 @@ export default function AdminPage() {
     'es-male-casual.jpg', 'es-male-polite.jpg', 'es-male-formal.jpg',
     'fr-female-casual.jpg', 'fr-female-polite.jpg', 'fr-female-formal.jpg',
     'fr-male-casual.jpg', 'fr-male-polite.jpg', 'fr-male-formal.jpg',
+    'ar-female-casual.jpg', 'ar-female-polite.jpg', 'ar-female-formal.jpg',
+    'ar-male-casual.jpg', 'ar-male-polite.jpg', 'ar-male-formal.jpg',
   ];
 
   // Redirect if not admin

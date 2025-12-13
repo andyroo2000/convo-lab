@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Arabic language support with CEFR proficiency levels (A1-C2) - complete implementation including 20 Gulf Arabic speaker names, 6 photorealistic avatars, AWS Polly neural voices (Hala, Zayd) with Speech Marks support, RTL text rendering, and full UI integration across onboarding/settings/content creation
 - **[feat]** Weekly quota system for content generation - users limited to 20 content items per week (resets Monday 00:00 UTC) to prevent spam and manage resource usage
 - **[feat]** GenerationLog database model - tracks all content generation events independently from content (persists even if content is deleted to prevent quota gaming)
 - **[feat]** Rate limiting middleware with two-tier protection - weekly quota check (database-backed) and 30-second cooldown between requests (Redis-backed)

@@ -292,7 +292,7 @@ router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, 
     const { filename } = req.params;
 
     // Validate filename format (language-gender-tone.jpg)
-    if (!/^(ja|zh|es|fr)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
@@ -309,7 +309,7 @@ router.post('/avatars/speaker/:filename/upload', upload.single('image'), async (
     const { filename } = req.params;
 
     // Validate filename format
-    if (!/^(ja|zh|es|fr)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
+    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
@@ -343,7 +343,7 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
     const { filename } = req.params;
 
     // Validate filename format
-    if (!/^(ja|zh|es|fr)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 

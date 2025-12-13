@@ -161,6 +161,7 @@ export const DEFAULT_NARRATOR_VOICES = {
   zh: 'cmn-CN-Wavenet-B', // Wei - Male
   es: 'Sergio', // Male
   fr: 'Remi', // Male
+  ar: 'Zayd', // Male Gulf Arabic
 } as const;
 
 // Language abbreviations for UI display
