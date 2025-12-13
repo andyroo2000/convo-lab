@@ -32,6 +32,7 @@ model User {
   narrowListeningPacks NarrowListeningPack[]
   chunkPacks           ChunkPack[]
   inviteCode           InviteCode?
+  generationLogs       GenerationLog[]
 
   @@index([email])
   @@index([role])
@@ -461,4 +462,22 @@ model AdminAuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("admin_audit_logs")
+}
+
+// Generation Log - Track content generation events for rate limiting
+// Persists even if content is deleted to prevent quota gaming
+
+model GenerationLog {
+  id          String   @id @default(uuid())
+  userId      String
+  contentType String   // "dialogue", "course", "narrow_listening", "chunk_pack", "pi_session"
+  contentId   String?  // Optional reference to generated content
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("generation_logs")
 }

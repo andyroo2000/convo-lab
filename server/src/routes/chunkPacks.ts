@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { logGeneration } from '../services/usageTracker.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -135,7 +137,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
  * POST /api/chunk-packs/generate
  * Create and generate new chunk pack (blocked for demo users)
  */
-router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { jlptLevel, theme } = req.body;
 
@@ -168,6 +170,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
       jlptLevel,
       theme,
     });
+
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'chunk_pack');
 
     // Trigger Cloud Run Job to process the queue
     triggerWorkerJob().catch(err =>

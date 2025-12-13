@@ -5,6 +5,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
+import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
 
@@ -343,6 +344,36 @@ router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {
     res.clearCookie('token');
 
     res.json({ message: 'Account deleted successfully' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get quota status for current user
+router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { role: true }
+    });
+
+    // Admins get unlimited
+    if (user?.role === 'admin') {
+      return res.json({
+        unlimited: true,
+        quota: null,
+        cooldown: { active: false, remainingSeconds: 0 }
+      });
+    }
+
+    const status = await checkGenerationLimit(req.userId!);
+    const cooldown = await checkCooldown(req.userId!);
+
+    res.json({
+      unlimited: false,
+      quota: status,
+      cooldown
+    });
   } catch (error) {
     next(error);
   }

@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { logGeneration } from '../services/usageTracker.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -110,7 +112,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 });
 
 // Create and generate new narrow listening pack (blocked for demo users)
-router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const {
       topic,
@@ -206,6 +208,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
     console.log(`Job ${job.id} added to queue successfully`);
 
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'narrow_listening', pack.id);
+
     // Trigger Cloud Run Job to process the queue
     triggerWorkerJob().catch(err =>
       console.error('Worker trigger failed:', err)
@@ -248,7 +253,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
 });
 
 // Generate audio at specific speed for a pack (on-demand) (blocked for demo users)
-router.post('/:id/generate-speed', blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/:id/generate-speed', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { speed } = req.body;
 
@@ -294,6 +299,9 @@ router.post('/:id/generate-speed', blockDemoUser, async (req: AuthRequest, res, 
       packId: pack.id,
       speed,
     });
+
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'narrow_listening', pack.id);
 
     // Trigger Cloud Run Job to process the queue
     triggerWorkerJob().catch(err =>

@@ -1,6 +1,8 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { logGeneration } from '../services/usageTracker.js';
 import {
   generatePISession,
   JLPTLevel,
@@ -17,7 +19,7 @@ const router = express.Router();
  * POST /api/pi/generate-session
  * Generate a new PI practice session (blocked for demo users)
  */
-router.post('/generate-session', requireAuth, blockDemoUser, async (req, res) => {
+router.post('/generate-session', requireAuth, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res) => {
   try {
     const { jlptLevel, itemCount, grammarPoint } = req.body;
 
@@ -113,6 +115,9 @@ router.post('/generate-session', requireAuth, blockDemoUser, async (req, res) =>
     });
 
     console.log(`[PI] Audio generation complete: 1 TTS call (was ${textsToSynthesize.length})`);
+
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'pi_session');
 
     res.json({
       ...session,

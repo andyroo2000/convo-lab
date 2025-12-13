@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { logGeneration } from '../services/usageTracker.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -262,7 +264,7 @@ Write only the description, no formatting or quotes.`;
 });
 
 // Generate course content (lessons, scripts, audio) (blocked for demo users)
-router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/:id/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     // Use a transaction to atomically check and update course status
     const result = await prisma.$transaction(async (tx) => {
@@ -302,6 +304,9 @@ router.post('/:id/generate', blockDemoUser, async (req: AuthRequest, res, next) 
     const job = await courseQueue.add('generate-course', {
       courseId: result.id,
     });
+
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'course', result.id);
 
     // Trigger Cloud Run Job to process the queue
     triggerWorkerJob().catch(err =>

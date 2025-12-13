@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
+import { logGeneration } from '../services/usageTracker.js';
 import { dialogueQueue } from '../jobs/dialogueQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
@@ -9,8 +11,8 @@ const router = Router();
 
 router.use(requireAuth);
 
-// Generate dialogue for an episode (blocked for demo users)
-router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
+// Generate dialogue for an episode (rate limited and blocked for demo users)
+router.post('/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
 
@@ -26,6 +28,9 @@ router.post('/generate', blockDemoUser, async (req: AuthRequest, res, next) => {
       variationCount,
       dialogueLength,
     });
+
+    // Log the generation for quota tracking
+    await logGeneration(req.userId!, 'dialogue', episodeId);
 
     // Trigger Cloud Run Job to process the queue
     triggerWorkerJob().catch(err =>
