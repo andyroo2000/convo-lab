@@ -169,6 +169,32 @@ router.delete('/users/:id', async (req: AuthRequest, res, next) => {
   }
 });
 
+// Get user info for impersonation
+router.get('/users/:id/info', async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        displayName: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Get all invite codes
 router.get('/invite-codes', async (req: AuthRequest, res, next) => {
   try {

@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles } from 'lucide-react';
+import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
@@ -10,10 +10,17 @@ import EmptyStateCard from '../components/EmptyStateCard';
 import LanguageLevelPill from '../components/common/LanguageLevelPill';
 import LanguageLevelSidebar from '../components/common/LanguageLevelSidebar';
 import Pill from '../components/common/Pill';
+import LoadingSkeleton from '../components/LoadingSkeleton';
+import ErrorDisplay from '../components/ErrorDisplay';
+import ImpersonationBanner from '../components/ImpersonationBanner';
+import { API_URL } from '../config';
 
 type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
 
 export default function LibraryPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
+
   const {
     episodes,
     courses,
@@ -21,6 +28,9 @@ export default function LibraryPage() {
     chunkPacks,
     isLoading,
     error,
+    hasNextPage,
+    fetchNextPage,
+    isFetchingNextPage,
     deleteEpisode,
     deleteCourse,
     deleteNarrowListeningPack,
@@ -29,11 +39,32 @@ export default function LibraryPage() {
     isDeletingCourse,
     isDeletingNarrowListening,
     isDeletingChunkPack,
-  } = useLibraryData();
+  } = useLibraryData(viewAsUserId);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
 
-  const [searchParams, setSearchParams] = useSearchParams();
+  // Fetch impersonated user info if viewing as another user
+  const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; email: string } | null>(null);
+
+  useEffect(() => {
+    if (viewAsUserId) {
+      fetch(`${API_URL}/api/admin/users/${viewAsUserId}/info`, {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(user => {
+          setImpersonatedUser({
+            name: user.displayName || user.name,
+            email: user.email,
+          });
+        })
+        .catch(err => {
+          console.error('Failed to fetch impersonated user:', err);
+        });
+    } else {
+      setImpersonatedUser(null);
+    }
+  }, [viewAsUserId]);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
@@ -71,6 +102,28 @@ export default function LibraryPage() {
       setSearchParams({ filter: filterTypeToParam[newFilter] });
     }
   };
+
+  // Infinite scroll setup
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const handleDeleteClick = (episode: Episode, e: React.MouseEvent) => {
     e.preventDefault();
@@ -170,31 +223,32 @@ export default function LibraryPage() {
   }, [filter, episodes, courses, narrowListeningPacks, chunkPacks]);
 
   if (isLoading) {
-    return (
-      <div>
-        <div className="card text-center py-12">
-          <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error) {
-    return (
-      <div>
-        <div className="card text-center py-12">
-          <p className="text-red-600 mb-4">Error: {error}</p>
-          <button onClick={() => window.location.reload()} className="btn-outline">
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
+    return <ErrorDisplay error={error} onRetry={() => window.location.reload()} />;
   }
+
+  // Handler to exit impersonation
+  const handleExitImpersonation = () => {
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      params.delete('viewAs');
+      return params;
+    });
+  };
 
   return (
     <div>
+      {/* Impersonation Banner */}
+      {impersonatedUser && (
+        <ImpersonationBanner
+          impersonatedUser={impersonatedUser}
+          onExit={handleExitImpersonation}
+        />
+      )}
+
       <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0">
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
@@ -387,7 +441,7 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        {!isDemo && (
+                        {!isDemo && !viewAsUserId && (
                           <button
                             onClick={(e) => handleDeleteClick(episode, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
@@ -456,7 +510,7 @@ export default function LibraryPage() {
                             level={course.jlptLevel || course.hskLevel || course.cefrLevel}
                           />
                         )}
-                        {!isDemo && (
+                        {!isDemo && !viewAsUserId && (
                           <button
                             onClick={(e) => handleDeleteCourseClick(course, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
@@ -521,7 +575,7 @@ export default function LibraryPage() {
                             Generating...
                           </Pill>
                         )}
-                        {!isDemo && (
+                        {!isDemo && !viewAsUserId && (
                           <button
                             onClick={(e) => handleDeletePackClick(pack, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
@@ -589,7 +643,7 @@ export default function LibraryPage() {
                           language={pack.targetLanguage}
                           level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                         />
-                        {!isDemo && (
+                        {!isDemo && !viewAsUserId && (
                           <button
                             onClick={(e) => handleDeleteChunkPackClick(pack, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
@@ -614,6 +668,18 @@ export default function LibraryPage() {
             }
             return null;
           })}
+        </div>
+      )}
+
+      {/* Infinite scroll sentinel */}
+      {allItems.length > 0 && (
+        <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+          {isFetchingNextPage && (
+            <div className="flex items-center gap-2 text-gray-600">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span>Loading more...</span>
+            </div>
+          )}
         </div>
       )}
 

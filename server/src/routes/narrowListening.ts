@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
@@ -19,7 +20,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
 
     // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getLibraryUserId(req.userId!);
+    const queryUserId = await getEffectiveUserId(req);
 
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
@@ -79,7 +80,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 router.get('/:id', async (req: AuthRequest, res, next) => {
   try {
     // Get the appropriate user ID (demo users see admin's content)
-    const queryUserId = await getLibraryUserId(req.userId!);
+    const queryUserId = await getEffectiveUserId(req);
 
     const pack = await prisma.narrowListeningPack.findFirst({
       where: {

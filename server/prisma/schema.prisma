@@ -444,3 +444,21 @@ model FeatureFlag {
 
   @@map("feature_flags")
 }
+
+// Admin Audit Log - Track admin actions for compliance and security
+
+model AdminAuditLog {
+  id           String   @id @default(uuid())
+  adminUserId  String   // Admin who performed action
+  action       String   // "impersonate_start", "impersonate_end", etc.
+  targetUserId String?  // User being impersonated (if applicable)
+  metadata     Json?    // Additional context (e.g., IP, user agent)
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  @@index([adminUserId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("admin_audit_logs")
+}

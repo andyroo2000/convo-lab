@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Users, Ticket, BarChart3, Search, Trash2, Copy, Plus, Check, Image, Settings } from 'lucide-react';
+import { Users, Ticket, BarChart3, Search, Trash2, Copy, Plus, Check, Image, Settings, Eye } from 'lucide-react';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
 import { API_URL } from '../config';
@@ -596,14 +596,23 @@ export default function AdminPage() {
                         {formatDate(u.createdAt)}
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-right">
-                        {u.role !== 'admin' && u.id !== user.id && (
+                        <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleDeleteUser(u.id, u.email)}
-                            className="text-red-600 hover:text-red-800 transition-colors"
+                            onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
+                            className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                            title={`View as ${u.displayName || u.name}`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
-                        )}
+                          {u.role !== 'admin' && u.id !== user.id && (
+                            <button
+                              onClick={() => handleDeleteUser(u.id, u.email)}
+                              className="text-red-600 hover:text-red-800 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
