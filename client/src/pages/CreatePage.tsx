@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import QuotaBadge from '../components/QuotaBadge';
 
 export default function CreatePage() {
   const navigate = useNavigate();
@@ -10,9 +11,10 @@ export default function CreatePage() {
     <div>
       <div className="mb-12 text-center px-4 sm:px-0">
         <h1 className="text-5xl font-bold text-dark-brown mb-3">What do you want to create?</h1>
-        <p className="text-lg text-gray-600">
+        <p className="text-lg text-gray-600 mb-4">
           Choose an activity type to get started
         </p>
+        <QuotaBadge />
       </div>
 
       <div className="max-w-5xl mx-auto space-y-3">

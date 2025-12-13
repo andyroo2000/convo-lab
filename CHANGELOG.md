@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Weekly quota system for content generation - users limited to 20 content items per week (resets Monday 00:00 UTC) to prevent spam and manage resource usage
+- **[feat]** GenerationLog database model - tracks all content generation events independently from content (persists even if content is deleted to prevent quota gaming)
+- **[feat]** Rate limiting middleware with two-tier protection - weekly quota check (database-backed) and 30-second cooldown between requests (Redis-backed)
+- **[feat]** Quota status API endpoint (GET /api/auth/me/quota) - returns remaining quota, reset time, and cooldown status
+- **[feat]** QuotaBadge component - displays remaining generations with color-coded warnings (blue → orange → red as quota depletes)
+- **[feat]** useQuota hook - fetches and manages user quota information with refetch functionality
+- **[feat]** Admin quota exemption - admin users bypass all rate limits and have unlimited content generation
+- **[feat]** Rate limit error responses - 429 errors include detailed quota/cooldown information and standard rate limit headers (X-RateLimit-*, Retry-After)
 - **[feat]** Infinite scroll pagination for library page - loads content incrementally (20 items per page) for better performance with large libraries
 - **[feat]** Admin impersonation mode - click eye icon in admin users table to view any user's library in read-only mode for QA purposes
 - **[feat]** AdminAuditLog database model - tracks all admin impersonation events with timestamp, IP address, and user agent for compliance

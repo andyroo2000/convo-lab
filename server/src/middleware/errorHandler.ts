@@ -3,10 +3,12 @@ import { Request, Response, NextFunction } from 'express';
 export class AppError extends Error {
   statusCode: number;
   isOperational: boolean;
+  metadata?: any;
 
-  constructor(message: string, statusCode: number = 500) {
+  constructor(message: string, statusCode: number = 500, metadata?: any) {
     super(message);
     this.statusCode = statusCode;
+    this.metadata = metadata;
     this.isOperational = true;
     Error.captureStackTrace(this, this.constructor);
   }
@@ -19,10 +21,27 @@ export function errorHandler(
   next: NextFunction
 ) {
   if (err instanceof AppError) {
+    // Add rate limit headers for 429 errors
+    if (err.statusCode === 429 && err.metadata) {
+      if (err.metadata.quota) {
+        res.set({
+          'X-RateLimit-Limit': err.metadata.quota.limit.toString(),
+          'X-RateLimit-Remaining': err.metadata.quota.remaining.toString(),
+          'X-RateLimit-Reset': err.metadata.quota.resetsAt.toISOString()
+        });
+      }
+      if (err.metadata.cooldown) {
+        res.set({
+          'Retry-After': err.metadata.cooldown.remainingSeconds.toString()
+        });
+      }
+    }
+
     return res.status(err.statusCode).json({
       error: {
         message: err.message,
         statusCode: err.statusCode,
+        ...(err.metadata && err.metadata)
       },
     });
   }
