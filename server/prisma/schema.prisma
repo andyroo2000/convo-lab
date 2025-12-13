@@ -179,6 +179,7 @@ model Course {
   l1VoiceProvider          String?  @default("google") // "google" | "polly"
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
   hskLevel                 String?  // Target HSK level: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (null = no specific level)
+  cefrLevel                String?  // Target CEFR level: A1, A2, B1, B2, C1, C2 (for Spanish and French)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)

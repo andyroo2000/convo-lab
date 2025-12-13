@@ -156,11 +156,22 @@ export const TTS_VOICES = {
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
-  en: 'en-US-Neural2-J', // Guy - Deep and authoritative (best for instruction)
-  ja: 'ja-JP-Neural2-B', // Female (often used for learning materials)
-  zh: 'cmn-CN-Wavenet-A', // Female, natural and friendly (Google Cloud TTS)
-  es: 'Lucia', // Clear and natural (Amazon Polly)
-  fr: 'Lea', // Natural and pleasant female voice for instruction (Amazon Polly)
+  en: 'en-US-Neural2-J', // Guy - Male
+  ja: 'ja-JP-Wavenet-C', // Shohei - Male
+  zh: 'cmn-CN-Wavenet-B', // Wei - Male
+  es: 'Sergio', // Male
+  fr: 'Remi', // Male
+} as const;
+
+// Language abbreviations for UI display
+export const LANGUAGE_ABBREVIATIONS = {
+  ja: 'JA',
+  zh: 'ZH',
+  es: 'ES',
+  fr: 'FR',
+  ar: 'AR',
+  he: 'HE',
+  en: 'EN',
 } as const;
 
 // Audio speed configurations for dialogue playback

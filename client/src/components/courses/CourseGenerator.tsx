@@ -22,6 +22,7 @@ export default function CourseGenerator() {
   const [selectedVoice, setSelectedVoice] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
+  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [speaker1VoiceId, setSpeaker1VoiceId] = useState('');
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -85,6 +86,7 @@ export default function CourseGenerator() {
           l1VoiceId: selectedVoice,
           jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
           hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
+          cefrLevel: (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : undefined,
           speaker1Gender: 'female',
           speaker2Gender: 'male',
           speaker1VoiceId,
@@ -185,44 +187,6 @@ export default function CourseGenerator() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
-                Target Language
-              </label>
-              <select
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value as LanguageCode)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-              >
-                <option value="ja">Japanese (日本語)</option>
-                <option value="zh">Mandarin Chinese (中文)</option>
-              </select>
-              <p className="text-sm text-gray-500 mt-2">
-                The language you want to learn
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
-                Native Language
-              </label>
-              <select
-                value={nativeLanguage}
-                onChange={(e) => setNativeLanguage(e.target.value as LanguageCode)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-              >
-                <option value="en">English</option>
-                <option value="es">Spanish (Español)</option>
-                <option value="fr">French (Français)</option>
-                <option value="zh">Chinese (中文)</option>
-                <option value="ja">Japanese (日本語)</option>
-              </select>
-              <p className="text-sm text-gray-500 mt-2">
-                Your first language for narration
-              </p>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -231,27 +195,6 @@ export default function CourseGenerator() {
         <h2 className="text-2xl font-bold text-dark-brown mb-6">Voice Configuration</h2>
 
         <div className="space-y-6">
-          {/* Narrator Voice */}
-          <div>
-            <label className="block text-base font-bold text-dark-brown mb-3">
-              Narrator Voice ({nativeLanguage.toUpperCase()}) *
-            </label>
-            <select
-              value={selectedVoice}
-              onChange={(e) => setSelectedVoice(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-            >
-              {nativeVoices.map((voice) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.description} ({voice.gender})
-                </option>
-              ))}
-            </select>
-            <p className="text-sm text-gray-500 mt-2">
-              This voice will narrate instructions in {nativeLanguage.toUpperCase()}
-            </p>
-          </div>
-
           {/* Dialogue Voices */}
           <div className="border-t-2 border-gray-200 pt-6">
             <h3 className="text-base font-bold text-dark-brown mb-4">
@@ -365,6 +308,29 @@ export default function CourseGenerator() {
                 <option value="HSK4">HSK 4 (Upper Intermediate)</option>
                 <option value="HSK5">HSK 5 (Advanced)</option>
                 <option value="HSK6">HSK 6 (Mastery)</option>
+              </select>
+              <p className="text-sm text-gray-500 mt-2">
+                Vocabulary and grammar will be tailored to this level
+              </p>
+            </div>
+          )}
+
+          {(targetLanguage === 'es' || targetLanguage === 'fr') && (
+            <div>
+              <label className="block text-base font-bold text-dark-brown mb-2">
+                Target CEFR Level
+              </label>
+              <select
+                value={cefrLevel}
+                onChange={(e) => setCefrLevel(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+              >
+                <option value="A1">A1 (Beginner)</option>
+                <option value="A2">A2 (Elementary)</option>
+                <option value="B1">B1 (Intermediate)</option>
+                <option value="B2">B2 (Upper Intermediate)</option>
+                <option value="C1">C1 (Advanced)</option>
+                <option value="C2">C2 (Mastery)</option>
               </select>
               <p className="text-sm text-gray-500 mt-2">
                 Vocabulary and grammar will be tailored to this level

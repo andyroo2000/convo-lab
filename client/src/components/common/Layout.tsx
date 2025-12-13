@@ -5,6 +5,7 @@ import { Library, Mic } from 'lucide-react';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
+import { LANGUAGE_ABBREVIATIONS } from '../../../../shared/src/constants-new';
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -109,6 +110,22 @@ export default function Layout() {
                   Demo
                 </span>
               )}
+              {/* Language Indicator - Mobile */}
+              <div className="sm:hidden flex items-center mr-2">
+                <div className="px-1.5 py-0.5 bg-white/20 rounded">
+                  <span className="text-[10px] font-bold text-white tracking-wide">
+                    {LANGUAGE_ABBREVIATIONS[user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS] || 'JA'}
+                  </span>
+                </div>
+              </div>
+              {/* Language Indicator - Desktop */}
+              <div className="hidden sm:flex items-center mr-3">
+                <div className="px-2.5 py-1 bg-white/20 rounded-md">
+                  <span className="text-xs font-bold text-white tracking-wide">
+                    {LANGUAGE_ABBREVIATIONS[user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS] || 'JA'}
+                  </span>
+                </div>
+              </div>
               <UserMenu
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}

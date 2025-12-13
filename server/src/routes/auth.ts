@@ -225,6 +225,12 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError('Invalid native language', 400);
     }
 
+    // Validate that study and native languages are different
+    if (preferredStudyLanguage && preferredNativeLanguage &&
+        preferredStudyLanguage === preferredNativeLanguage) {
+      throw new AppError('Study language and native language must be different', 400);
+    }
+
     // Validate pinyin display mode if provided
     const validPinyinModes = ['toneMarks', 'toneNumbers'];
     if (pinyinDisplayMode && !validPinyinModes.includes(pinyinDisplayMode)) {

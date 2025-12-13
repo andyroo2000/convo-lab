@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Language indicator badge in navigation bar showing current study language (JA/ES/ZH/FR)
+- **[feat]** Spanish and French support for audio courses with CEFR proficiency levels
+- **[feat]** CEFR level field to Course database model for Spanish/French proficiency tracking
+- **[feat]** LANGUAGE_ABBREVIATIONS constant for consistent UI language display
+- **[feat]** Server-side validation to prevent users from selecting same target and native language
 - **[feat]** French language support with CEFR proficiency levels (A1-C2)
 - **[feat]** 4 validated AWS Polly neural voices for French (Lea, Remi, Gabrielle, Liam)
 - **[feat]** 20 diverse French speaker names representing modern France
@@ -22,6 +27,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
 
 ### Changed
+- **[refactor]** Centralized language selection - all content creation forms now use user's preferred study language from settings instead of per-form selectors
+- **[refactor]** Removed language selector dropdowns from narrow listening, audio course, and dialogue creation forms
+- **[refactor]** Removed narrator voice selector from audio course form - now auto-selects based on native language
+- **[refactor]** Updated default narrator voices to use male voices across all languages (Shohei/JA, Wei/ZH, Sergio/ES, Remi/FR)
+- **[refactor]** Settings page language dropdowns now filter out selected language from opposite dropdown to prevent invalid configurations
+- **[refactor]** Removed disabled target language field from dialogue form for cleaner UI
 - **[refactor]** Updated audio splitting logic to handle Polly vs Google TTS differently
 - **[refactor]** French avatar generation script now uses GOOGLE_CLOUD_PROJECT environment variable instead of hardcoded project ID
 - **[workers]** Separated background job processing from API service - workers now run in dedicated Cloud Run Job instead of embedded in API service for better scalability and resource isolation
