@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[test]** Comprehensive page test coverage for 9 user-facing pages (145 tests) - improves test coverage from 57% to 100% of pages with tests for PISessionPage (42 tests), ChunkPackExercisesPage (35 tests), AdminPage (24 tests), CoursePage (25 tests), PISetupPage (7 tests), DialogueCreatorPage (4 tests), CourseCreatorPage (4 tests), NarrowListeningPlaybackPage (2 tests), and PracticePage (2 tests)
 - **[test]** Comprehensive test coverage for quota system, admin impersonation, pagination, and error handling (237 unit tests + 5 E2E test suites)
   - Server middleware tests (71 tests): rate limiting with cooldown enforcement, usage tracker with Redis/Prisma integration, admin impersonation with audit logging
   - Server route tests (112 tests): pagination parameters for all content routes, library mode optimization, quota endpoint validation
