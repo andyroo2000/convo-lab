@@ -101,6 +101,14 @@ router.get('/users', async (req: AuthRequest, res, next) => {
           avatarColor: true,
           avatarUrl: true,
           role: true,
+          tier: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          stripeSubscriptionStatus: true,
+          stripePriceId: true,
+          subscriptionStartedAt: true,
+          subscriptionExpiresAt: true,
+          subscriptionCanceledAt: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -190,6 +198,158 @@ router.get('/users/:id/info', async (req: AuthRequest, res, next) => {
     }
 
     res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Get detailed subscription info for a user
+router.get('/users/:id/subscription', async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        tier: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        stripeSubscriptionStatus: true,
+        stripePriceId: true,
+        subscriptionStartedAt: true,
+        subscriptionExpiresAt: true,
+        subscriptionCanceledAt: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    res.json(user);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Admin override: Manually set user tier (bypass Stripe)
+router.post('/users/:id/tier', async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { tier, reason } = req.body;
+
+    // Validate tier
+    if (!['free', 'pro'].includes(tier)) {
+      throw new AppError('Invalid tier. Must be "free" or "pro"', 400);
+    }
+
+    // Get current user state
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, tier: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Update user tier
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { tier },
+    });
+
+    // Log the admin action
+    await prisma.subscriptionEvent.create({
+      data: {
+        userId: id,
+        eventType: 'admin_override',
+        fromTier: user.tier,
+        toTier: tier,
+        stripeEventId: `admin:${req.userId}:${reason || 'manual override'}`,
+      },
+    });
+
+    res.json({
+      message: `User tier updated from ${user.tier} to ${tier}`,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        tier: updatedUser.tier,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Admin cancel subscription
+router.post('/users/:id/subscription/cancel', async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        tier: true,
+        stripeSubscriptionId: true,
+      },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    if (!user.stripeSubscriptionId) {
+      throw new AppError('User has no active subscription', 400);
+    }
+
+    // Import Stripe service for subscription cancellation
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+      apiVersion: '2024-12-18.acacia',
+    });
+
+    // Cancel the subscription in Stripe
+    await stripe.subscriptions.cancel(user.stripeSubscriptionId);
+
+    // Update user in database (webhook will handle full update)
+    await prisma.user.update({
+      where: { id },
+      data: {
+        tier: 'free',
+        stripeSubscriptionStatus: null,
+        stripeSubscriptionId: null,
+        stripePriceId: null,
+        subscriptionCanceledAt: new Date(),
+      },
+    });
+
+    // Log the admin action
+    await prisma.subscriptionEvent.create({
+      data: {
+        userId: id,
+        eventType: 'admin_canceled',
+        fromTier: user.tier,
+        toTier: 'free',
+        stripeEventId: `admin:${req.userId}:${reason || 'admin cancellation'}`,
+      },
+    });
+
+    res.json({
+      message: 'Subscription canceled successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        tier: 'free',
+      },
+    });
   } catch (error) {
     next(error);
   }

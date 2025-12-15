@@ -26,7 +26,7 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          priceId: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY || process.env.STRIPE_PRICE_PRO_MONTHLY
+          priceId: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY
         })
       });
 

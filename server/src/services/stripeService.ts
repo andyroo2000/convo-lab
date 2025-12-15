@@ -61,6 +61,11 @@ export async function createCheckoutSession(
     ],
     success_url: `${CLIENT_URL}/app/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${CLIENT_URL}/app/settings/billing`,
+    subscription_data: {
+      metadata: {
+        userId
+      }
+    },
     metadata: {
       userId
     }

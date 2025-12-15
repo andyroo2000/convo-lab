@@ -22,7 +22,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function SettingsPage() {
-  const { user, updateUser, deleteAccount, changePassword } = useAuth();
+  const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'profile';
@@ -227,10 +227,12 @@ export default function SettingsPage() {
 
   // Fetch subscription status when billing tab is active
   useEffect(() => {
-    if (activeTab === 'billing' && user) {
+    if (activeTab === 'billing') {
+      // Refresh user data to get latest tier info
+      refreshUser();
       fetchSubscriptionStatus();
     }
-  }, [activeTab, user]);
+  }, [activeTab]);
 
   const hasChanges = () => {
     if (!user) return false;
