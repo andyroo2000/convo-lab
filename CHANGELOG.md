@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[chore]** Admin scripts for invite codes and subscription management (check-invites, create-invite, fix-landry-subscription, upgrade-to-pro)
 - **[feat]** Comprehensive authentication system with email verification, Google OAuth integration, and password reset functionality
 - **[feat]** Stripe subscription billing system with Pro tier, customer portal, and subscription management
 - **[feat]** Admin dashboard subscription management with tier filters, status badges, and detailed subscription modals
