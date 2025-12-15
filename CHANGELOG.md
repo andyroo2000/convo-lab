@@ -10,6 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **[feat]** Comprehensive authentication system with email verification, Google OAuth integration, and password reset functionality
 - **[feat]** Stripe subscription billing system with Pro tier, customer portal, and subscription management
+- **[feat]** Admin dashboard subscription management with tier filters, status badges, and detailed subscription modals
+- **[feat]** Admin endpoints for manual tier override and subscription cancellation
+- **[feat]** Subscription columns in admin users table (Tier, Sub Status, Quota)
 - **[feat]** Email verification flow with secure tokens and verification reminder in settings
 - **[feat]** Google OAuth authentication via Passport.js with account linking
 - **[feat]** Password reset flow with secure email tokens and expiration
@@ -22,6 +25,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** User model fields: emailVerified, googleId, tier, Stripe subscription tracking
 
 ### Fixed
+- **[fix]** Stripe subscription metadata propagation - added subscription_data.metadata to checkout sessions to ensure userId is tracked for webhook handlers
+- **[fix]** Auth endpoints missing tier field - updated all auth responses (login, signup, /me, update) to include tier for proper frontend display
+- **[fix]** ClaimInvitePage redirect causing blank page - changed to full page reload instead of client-side navigation for auth context sync
+- **[fix]** PricingPage environment variable access - switched from process.env to import.meta.env for client-side Stripe price ID
+- **[fix]** Billing routes using incorrect auth property - changed from req.user.id to req.userId to match middleware implementation
+- **[fix]** Settings page infinite loop - removed user dependency from billing tab useEffect to prevent refresh loops
 - **[fix]** Production content generation errors - added missing GenerationLog database migration that was causing "table does not exist" errors when creating Arabic dialogues and other content
 
 ### Added
