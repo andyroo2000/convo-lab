@@ -36,8 +36,8 @@ export default function ClaimInvitePage() {
         throw new Error(error.error?.message || error.message || 'Failed to claim invite');
       }
 
-      // Successfully claimed invite, redirect to app
-      navigate('/app/library');
+      // Successfully claimed invite, reload page to update auth context
+      window.location.href = '/app/library';
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

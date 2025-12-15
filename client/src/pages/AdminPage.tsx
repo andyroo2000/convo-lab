@@ -16,6 +16,14 @@ interface UserData {
   avatarColor?: string;
   avatarUrl?: string;
   role: string;
+  tier: 'free' | 'pro';
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  stripeSubscriptionStatus?: string;
+  stripePriceId?: string;
+  subscriptionStartedAt?: string;
+  subscriptionExpiresAt?: string;
+  subscriptionCanceledAt?: string;
   createdAt: string;
   _count: {
     episodes: number;
@@ -79,6 +87,8 @@ export default function AdminPage() {
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'users';
   const [users, setUsers] = useState<UserData[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<UserData[]>([]);
+  const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'pro' | 'canceled'>('all');
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
@@ -88,6 +98,7 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [isSavingFlags, setIsSavingFlags] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -169,6 +180,17 @@ export default function AdminPage() {
       fetchFeatureFlags();
     }
   }, [activeTab]);
+
+  // Filter users based on tier
+  useEffect(() => {
+    if (tierFilter === 'all') {
+      setFilteredUsers(users);
+    } else if (tierFilter === 'canceled') {
+      setFilteredUsers(users.filter(u => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined));
+    } else {
+      setFilteredUsers(users.filter(u => u.tier === tierFilter));
+    }
+  }, [users, tierFilter]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -525,6 +547,50 @@ export default function AdminPage() {
       {/* Users Tab */}
       {activeTab === 'users' && (
         <div>
+          {/* Tier Filter Buttons */}
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => setTierFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                tierFilter === 'all'
+                  ? 'bg-indigo text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All Users
+            </button>
+            <button
+              onClick={() => setTierFilter('free')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                tierFilter === 'free'
+                  ? 'bg-indigo text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Free Tier
+            </button>
+            <button
+              onClick={() => setTierFilter('pro')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                tierFilter === 'pro'
+                  ? 'bg-indigo text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Pro Tier
+            </button>
+            <button
+              onClick={() => setTierFilter('canceled')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                tierFilter === 'canceled'
+                  ? 'bg-indigo text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Canceled
+            </button>
+          </div>
+
           <div className="flex items-center gap-4 mb-6">
             <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -556,6 +622,15 @@ export default function AdminPage() {
                       Role
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                      Tier
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                      Sub Status
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                      Quota
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Content
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
@@ -567,8 +642,8 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {users.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50">
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedUserId(u.id)}>
                       <td className="px-3 sm:px-6 py-4">
                         <div>
                           <div className="font-medium text-navy whitespace-nowrap">
@@ -592,13 +667,48 @@ export default function AdminPage() {
                           {u.role}
                         </span>
                       </td>
+                      <td className="px-3 sm:px-6 py-4">
+                        <span
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                            u.tier === 'pro'
+                              ? 'bg-gradient-to-r from-periwinkle to-indigo text-white'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {u.tier}
+                        </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4">
+                        {u.stripeSubscriptionStatus ? (
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                              u.stripeSubscriptionStatus === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : u.stripeSubscriptionStatus === 'past_due'
+                                ? 'bg-orange-100 text-orange-800'
+                                : u.stripeSubscriptionStatus === 'canceled'
+                                ? 'bg-red-100 text-red-800'
+                                : u.stripeSubscriptionStatus === 'trialing'
+                                ? 'bg-blue-100 text-blue-800'
+                                : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {u.stripeSubscriptionStatus}
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                        {u.tier === 'pro' ? '30/week' : '5/week'}
+                      </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {u._count.episodes + u._count.courses + u._count.narrowListeningPacks + u._count.chunkPacks} items
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {formatDate(u.createdAt)}
                       </td>
-                      <td className="px-3 sm:px-6 py-4 text-right">
+                      <td className="px-3 sm:px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
@@ -622,7 +732,7 @@ export default function AdminPage() {
                 </tbody>
               </table>
 
-              {users.length === 0 && (
+              {filteredUsers.length === 0 && (
                 <div className="text-center py-12 text-gray-500">No users found</div>
               )}
             </div>
@@ -1134,6 +1244,129 @@ export default function AdminPage() {
         onSave={cropperSaveHandler || (async () => {})}
         title={cropperTitle}
       />
+
+      {/* Subscription Details Modal */}
+      {selectedUserId && (() => {
+        const selectedUser = users.find(u => u.id === selectedUserId);
+        if (!selectedUser) return null;
+
+        const formatDate = (dateString: string | undefined) => {
+          if (!dateString) return '-';
+          return new Date(dateString).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+        };
+
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold text-navy">Subscription Details</h2>
+                  <button
+                    onClick={() => setSelectedUserId(null)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* User Info */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-navy mb-2">User Information</h3>
+                  <div className="space-y-1 text-sm">
+                    <p><span className="font-medium">Name:</span> {selectedUser.displayName || selectedUser.name}</p>
+                    <p><span className="font-medium">Email:</span> {selectedUser.email}</p>
+                    <p><span className="font-medium">Role:</span> {selectedUser.role}</p>
+                    <p><span className="font-medium">Tier:</span> {selectedUser.tier}</p>
+                  </div>
+                </div>
+
+                {/* Subscription Details */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-navy mb-2">Subscription Details</h3>
+                  <div className="space-y-2 text-sm">
+                    {selectedUser.stripeCustomerId && (
+                      <p>
+                        <span className="font-medium">Stripe Customer ID:</span>{' '}
+                        <a
+                          href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo hover:text-dark-periwinkle"
+                        >
+                          {selectedUser.stripeCustomerId}
+                        </a>
+                      </p>
+                    )}
+                    {selectedUser.stripeSubscriptionId && (
+                      <p>
+                        <span className="font-medium">Subscription ID:</span>{' '}
+                        <a
+                          href={`https://dashboard.stripe.com/subscriptions/${selectedUser.stripeSubscriptionId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo hover:text-dark-periwinkle"
+                        >
+                          {selectedUser.stripeSubscriptionId}
+                        </a>
+                      </p>
+                    )}
+                    {selectedUser.stripeSubscriptionStatus && (
+                      <p>
+                        <span className="font-medium">Status:</span>{' '}
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          selectedUser.stripeSubscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
+                          selectedUser.stripeSubscriptionStatus === 'past_due' ? 'bg-orange-100 text-orange-800' :
+                          selectedUser.stripeSubscriptionStatus === 'canceled' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {selectedUser.stripeSubscriptionStatus}
+                        </span>
+                      </p>
+                    )}
+                    <p><span className="font-medium">Started:</span> {formatDate(selectedUser.subscriptionStartedAt)}</p>
+                    <p><span className="font-medium">Current period ends:</span> {formatDate(selectedUser.subscriptionExpiresAt)}</p>
+                    <p><span className="font-medium">Canceled at:</span> {formatDate(selectedUser.subscriptionCanceledAt)}</p>
+                  </div>
+                </div>
+
+                {/* Admin Actions */}
+                <div className="flex gap-3">
+                  {selectedUser.stripeCustomerId && (
+                    <a
+                      href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-primary flex items-center gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View in Stripe
+                    </a>
+                  )}
+                  <button
+                    onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}
+                    className="btn-secondary flex items-center gap-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    Impersonate User
+                  </button>
+                  <button
+                    onClick={() => setSelectedUserId(null)}
+                    className="btn-secondary"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Toast Notification */}
       <Toast

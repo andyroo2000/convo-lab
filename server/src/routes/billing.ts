@@ -27,7 +27,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder'
 router.post('/billing/create-checkout-session', requireAuth, async (req: AuthRequest, res) => {
   try {
     const { priceId } = req.body;
-    const userId = req.user!.id;
+    const userId = req.userId!
 
     if (!priceId) {
       return res.status(400).json({ error: { message: 'Price ID is required' } });
@@ -56,7 +56,7 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
  */
 router.post('/billing/create-portal-session', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     const session = await createCustomerPortalSession(userId);
 
@@ -76,7 +76,7 @@ router.post('/billing/create-portal-session', requireAuth, async (req: AuthReque
  */
 router.get('/billing/subscription-status', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const userId = req.user!.id;
+    const userId = req.userId!;
 
     const status = await getSubscriptionStatus(userId);
 

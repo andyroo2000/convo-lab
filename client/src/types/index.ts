@@ -16,11 +16,14 @@ export interface User {
   avatarColor?: string;
   avatarUrl?: string;
   role: 'user' | 'moderator' | 'admin' | 'demo';
+  tier: 'free' | 'pro';
   preferredStudyLanguage?: LanguageCode;
   preferredNativeLanguage?: LanguageCode;
   pinyinDisplayMode?: 'toneMarks' | 'toneNumbers';
   proficiencyLevel?: ProficiencyLevel;
   onboardingCompleted?: boolean;
+  emailVerified?: boolean;
+  emailVerifiedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
