@@ -34,10 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[fix]** Production content generation errors - added missing GenerationLog database migration that was causing "table does not exist" errors when creating Arabic dialogues and other content
 
 ### Added
-- **[test]** Comprehensive test coverage for authentication and billing features (3,469 lines of test code) - adds 9 new test files covering email verification, password reset, Stripe billing, subscription management, and e2e flows to ensure reliability of payment and user authentication workflows
+- **[test]** Comprehensive test coverage for authentication and billing features (4,809 lines of test code) - adds 13 new test files covering email verification, password reset, Stripe billing, subscription management, upgrade prompts, and e2e flows to ensure reliability of payment and user authentication workflows
   - Backend unit tests: verification routes (send/verify/resend), password reset routes (request/verify/reset), billing/Stripe routes (checkout/portal/webhooks), Stripe service (subscriptions/payments/webhooks), email service (all email types + token verification), admin subscription management endpoints
-  - Frontend unit tests: VerifyEmailPage (verification flow, resend, states), PricingPage (tier display, checkout flow, errors)
-  - E2E tests: email-verification.spec.ts (signup, verify, resend, edge cases), subscription-billing.spec.ts (pricing, checkout, admin features)
+  - Frontend unit tests: VerifyEmailPage (verification flow, resend, states), PricingPage (tier display, checkout flow, errors), ForgotPasswordPage (form validation, success/error states), ResetPasswordPage (token validation, password requirements, security), UpgradePrompt (free/pro tiers, navigation)
+  - E2E tests: email-verification.spec.ts (signup, verify, resend, edge cases), subscription-billing.spec.ts (pricing, checkout, admin features), password-reset.spec.ts (full flow from forgot to login, security measures)
 - **[test]** Comprehensive page test coverage for 9 user-facing pages (145 tests) - improves test coverage from 57% to 100% of pages with tests for PISessionPage (42 tests), ChunkPackExercisesPage (35 tests), AdminPage (24 tests), CoursePage (25 tests), PISetupPage (7 tests), DialogueCreatorPage (4 tests), CourseCreatorPage (4 tests), NarrowListeningPlaybackPage (2 tests), and PracticePage (2 tests)
 - **[test]** Comprehensive test coverage for quota system, admin impersonation, pagination, and error handling (237 unit tests + 5 E2E test suites)
   - Server middleware tests (71 tests): rate limiting with cooldown enforcement, usage tracker with Redis/Prisma integration, admin impersonation with audit logging
