@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
+import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { dialogueQueue } from '../jobs/dialogueQueue.js';
@@ -12,7 +13,7 @@ const router = Router();
 router.use(requireAuth);
 
 // Generate dialogue for an episode (rate limited and blocked for demo users)
-router.post('/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
 

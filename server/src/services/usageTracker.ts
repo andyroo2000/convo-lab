@@ -6,7 +6,11 @@ import { prisma } from '../db/client.js';
 import { createRedisConnection } from '../config/redis.js';
 import { getWeekStart, getNextWeekStart } from '../utils/dateUtils.js';
 
-const WEEKLY_LIMIT = 20;
+const TIER_LIMITS: Record<string, number> = {
+  free: 5,
+  pro: 30,
+};
+
 const COOLDOWN_SECONDS = 30;
 
 export interface QuotaStatus {
@@ -15,6 +19,7 @@ export interface QuotaStatus {
   limit: number;
   remaining: number;
   resetsAt: Date;
+  unlimited?: boolean;
 }
 
 export type ContentType = 'dialogue' | 'course' | 'narrow_listening' | 'chunk_pack' | 'pi_session';
@@ -22,9 +27,35 @@ export type ContentType = 'dialogue' | 'course' | 'narrow_listening' | 'chunk_pa
 /**
  * Check if user can generate content (quota check only)
  * Counts all generation logs for the current week (Monday-Sunday UTC)
+ * Uses tier-based limits: free (5/week), pro (30/week), admin (unlimited)
  */
 export async function checkGenerationLimit(userId: string): Promise<QuotaStatus> {
   const weekStart = getWeekStart();
+
+  // Get user tier and role
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { tier: true, role: true }
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Admins have unlimited generations
+  if (user.role === 'admin') {
+    return {
+      allowed: true,
+      used: 0,
+      limit: 0,
+      remaining: 0,
+      resetsAt: getNextWeekStart(),
+      unlimited: true
+    };
+  }
+
+  // Get tier limit (default to free tier)
+  const limit = TIER_LIMITS[user.tier] || TIER_LIMITS.free;
 
   // Count generations this week
   const count = await prisma.generationLog.count({
@@ -34,13 +65,13 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
     }
   });
 
-  const remaining = WEEKLY_LIMIT - count;
+  const remaining = limit - count;
   const resetsAt = getNextWeekStart();
 
   return {
     allowed: remaining > 0,
     used: count,
-    limit: WEEKLY_LIMIT,
+    limit,
     remaining: Math.max(0, remaining),
     resetsAt
   };

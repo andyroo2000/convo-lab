@@ -4,11 +4,14 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import passport from './config/passport.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
 import authRoutes from './routes/auth.js';
+import verificationRoutes from './routes/verification.js';
+import billingRoutes from './routes/billing.js';
 import episodeRoutes from './routes/episodes.js';
 import dialogueRoutes from './routes/dialogue.js';
 import audioRoutes from './routes/audio.js';
@@ -37,9 +40,15 @@ app.use(cors({
     : 'http://localhost:5173',
   credentials: true,
 }));
+
+// Stripe webhook needs raw body for signature verification
+// Must be added BEFORE express.json()
+app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
+app.use(passport.initialize());
 app.use(requestLogger);
 
 // Serve static files from public directory (for audio files)
@@ -88,6 +97,8 @@ app.get('/health', async (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api', verificationRoutes);
+app.use('/api', billingRoutes);
 app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);

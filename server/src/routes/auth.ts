@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
+import { sendVerificationEmail } from '../services/emailService.js';
 
 const router = Router();
 
@@ -69,6 +71,8 @@ router.post('/signup', async (req, res, next) => {
           pinyinDisplayMode: true,
           proficiencyLevel: true,
           onboardingCompleted: true,
+          emailVerified: true,
+          emailVerifiedAt: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -98,6 +102,14 @@ router.post('/signup', async (req, res, next) => {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
+
+    // Send verification email (don't block signup if this fails)
+    try {
+      await sendVerificationEmail(user.id, user.email, user.name);
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      // Continue anyway - user can request resend later
+    }
 
     res.json(user);
   } catch (error) {
@@ -160,6 +172,8 @@ router.post('/login', async (req, res, next) => {
       pinyinDisplayMode: updatedUser.pinyinDisplayMode,
       proficiencyLevel: updatedUser.proficiencyLevel,
       onboardingCompleted: updatedUser.onboardingCompleted,
+      emailVerified: updatedUser.emailVerified,
+      emailVerifiedAt: updatedUser.emailVerifiedAt,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     });
@@ -191,6 +205,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -374,6 +390,168 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
       quota: status,
       cooldown
     });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Google OAuth - Initiate
+router.get('/google',
+  passport.authenticate('google', {
+    scope: ['profile', 'email'],
+    session: false
+  })
+);
+
+// Google OAuth - Callback
+router.get('/google/callback',
+  passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
+  async (req, res) => {
+    try {
+      const user = req.user as any;
+
+      if (!user) {
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+      }
+
+      // If this is an existing user (not newly created via OAuth), skip invite code check
+      // Existing users already have access to the system
+      if (user.isExistingUser) {
+        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+          expiresIn: '7d',
+        });
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
+      }
+
+      // For new OAuth users, check if they have an invite code
+      const inviteCode = await prisma.inviteCode.findFirst({
+        where: { usedBy: user.id }
+      });
+
+      // If new user doesn't have an invite code, redirect to claim invite page
+      if (!inviteCode) {
+        // Create a temporary JWT for the claim invite flow
+        const tempToken = jwt.sign(
+          { userId: user.id, requiresInvite: true },
+          process.env.JWT_SECRET!,
+          { expiresIn: '15m' }
+        );
+
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:5173'}/claim-invite?token=${tempToken}`
+        );
+      }
+
+      // New user has invite code, create session
+      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        expiresIn: '7d',
+      });
+
+      // Set cookie
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+
+      // Redirect to app
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+    }
+  }
+);
+
+// Claim invite code (for OAuth users)
+router.post('/claim-invite', async (req, res, next) => {
+  try {
+    const { inviteCode, token } = req.body;
+
+    if (!inviteCode || !token) {
+      throw new AppError('Invite code and token are required', 400);
+    }
+
+    // Verify temporary token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    } catch (error) {
+      throw new AppError('Invalid or expired token', 401);
+    }
+
+    if (!decoded.requiresInvite) {
+      throw new AppError('Invalid token', 401);
+    }
+
+    // Validate invite code
+    const invite = await prisma.inviteCode.findUnique({
+      where: { code: inviteCode },
+    });
+
+    if (!invite) {
+      throw new AppError('Invalid invite code', 400);
+    }
+
+    if (invite.usedBy) {
+      throw new AppError('This invite code has already been used', 400);
+    }
+
+    // Mark invite code as used
+    await prisma.inviteCode.update({
+      where: { code: inviteCode },
+      data: {
+        usedBy: decoded.userId,
+        usedAt: new Date(),
+      },
+    });
+
+    // Create session token
+    const sessionToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET!, {
+      expiresIn: '7d',
+    });
+
+    // Set cookie
+    res.cookie('token', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
+    // Get user data
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        displayName: true,
+        avatarColor: true,
+        avatarUrl: true,
+        role: true,
+        preferredStudyLanguage: true,
+        preferredNativeLanguage: true,
+        pinyinDisplayMode: true,
+        proficiencyLevel: true,
+        onboardingCompleted: true,
+        emailVerified: true,
+        tier: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.json(user);
   } catch (error) {
     next(error);
   }

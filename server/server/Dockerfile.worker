@@ -1,0 +1,47 @@
+# Multi-stage build for Cloud Run Job (Workers Only)
+
+FROM node:20-alpine AS base
+RUN apk add --no-cache ffmpeg openssl python3 py3-pip make g++
+
+FROM base AS builder
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+COPY tsconfig.build.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source
+COPY src ./src
+COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build TypeScript
+RUN npm run build
+
+# Production stage
+FROM base AS production
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install production dependencies only
+RUN npm ci --only=production
+
+# Copy built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY prisma ./prisma
+COPY gcloud-key.json ./gcloud-key.json
+
+# Set environment
+ENV NODE_ENV=production
+
+# Run worker entrypoint (NOT index.js)
+CMD ["node", "dist/server/src/worker.js"]
