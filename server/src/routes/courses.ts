@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
@@ -264,7 +265,7 @@ Write only the description, no formatting or quotes.`;
 });
 
 // Generate course content (lessons, scripts, audio) (blocked for demo users)
-router.post('/:id/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/:id/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     // Use a transaction to atomically check and update course status
     const result = await prisma.$transaction(async (tx) => {

@@ -8,7 +8,7 @@ import OnboardingModal from '../onboarding/OnboardingModal';
 import { LANGUAGE_ABBREVIATIONS } from '../../../../shared/src/constants-new';
 
 export default function Layout() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
@@ -17,6 +17,18 @@ export default function Layout() {
     await logout();
     navigate('/login');
   };
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-cream">
+        <div className="text-center">
+          <div className="loading-spinner w-12 h-12 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
+          <p className="text-medium-brown">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     // Redirect to login with return URL

@@ -1,0 +1,165 @@
+import { Router } from 'express';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import {
+  createCheckoutSession,
+  createCustomerPortalSession,
+  getSubscriptionStatus,
+  handleSubscriptionCreated,
+  handleSubscriptionUpdated,
+  handleSubscriptionDeleted,
+  handleInvoicePaymentFailed
+} from '../services/stripeService.js';
+import Stripe from 'stripe';
+
+const router = Router();
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('STRIPE_SECRET_KEY not set - Stripe functionality will not work');
+}
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+  apiVersion: '2024-12-18.acacia',
+});
+
+/**
+ * Create a Stripe checkout session
+ */
+router.post('/billing/create-checkout-session', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const { priceId } = req.body;
+    const userId = req.user!.id;
+
+    if (!priceId) {
+      return res.status(400).json({ error: { message: 'Price ID is required' } });
+    }
+
+    // Validate price ID matches configured Pro price
+    if (priceId !== process.env.STRIPE_PRICE_PRO_MONTHLY) {
+      return res.status(400).json({ error: { message: 'Invalid price ID' } });
+    }
+
+    const session = await createCheckoutSession(userId, priceId);
+
+    res.json(session);
+  } catch (error) {
+    console.error('Failed to create checkout session:', error);
+    res.status(500).json({
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to create checkout session'
+      }
+    });
+  }
+});
+
+/**
+ * Create a Stripe customer portal session
+ */
+router.post('/billing/create-portal-session', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const session = await createCustomerPortalSession(userId);
+
+    res.json(session);
+  } catch (error) {
+    console.error('Failed to create portal session:', error);
+    res.status(500).json({
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to create portal session'
+      }
+    });
+  }
+});
+
+/**
+ * Get current subscription status
+ */
+router.get('/billing/subscription-status', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user!.id;
+
+    const status = await getSubscriptionStatus(userId);
+
+    res.json(status);
+  } catch (error) {
+    console.error('Failed to get subscription status:', error);
+    res.status(500).json({
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to get subscription status'
+      }
+    });
+  }
+});
+
+/**
+ * Stripe webhook handler
+ *
+ * This endpoint receives events from Stripe webhooks and processes them.
+ * Authentication is done via Stripe signature verification.
+ */
+router.post('/webhooks/stripe', async (req, res) => {
+  const signature = req.headers['stripe-signature'];
+
+  if (!signature) {
+    console.error('No stripe-signature header present');
+    return res.status(400).json({ error: { message: 'No signature provided' } });
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('STRIPE_WEBHOOK_SECRET not configured');
+    return res.status(500).json({ error: { message: 'Webhook secret not configured' } });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(
+      req.body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
+  } catch (error) {
+    console.error('Webhook signature verification failed:', error);
+    return res.status(400).json({
+      error: {
+        message: error instanceof Error ? error.message : 'Signature verification failed'
+      }
+    });
+  }
+
+  try {
+    // Handle the event
+    switch (event.type) {
+      case 'customer.subscription.created':
+        await handleSubscriptionCreated(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+        break;
+
+      case 'invoice.payment_failed':
+        await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+        break;
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    res.json({ received: true });
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    res.status(500).json({
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to process webhook'
+      }
+    });
+  }
+});
+
+export default router;

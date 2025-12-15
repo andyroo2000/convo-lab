@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[feat]** Comprehensive authentication system with email verification, Google OAuth integration, and password reset functionality
+- **[feat]** Stripe subscription billing system with Pro tier, customer portal, and subscription management
+- **[feat]** Email verification flow with secure tokens and verification reminder in settings
+- **[feat]** Google OAuth authentication via Passport.js with account linking
+- **[feat]** Password reset flow with secure email tokens and expiration
+- **[feat]** New pages: VerifyEmailPage, ForgotPasswordPage, ResetPasswordPage, ClaimInvitePage, PricingPage
+- **[feat]** Billing management page in settings with upgrade and subscription portal access
+- **[feat]** UpgradePrompt component for free tier feature limits
+- **[feat]** Email service integration with Resend for transactional emails
+- **[feat]** Subscription events audit logging for billing compliance
+- **[feat]** Database models: EmailVerificationToken, PasswordResetToken, OAuthAccount, SubscriptionEvent
+- **[feat]** User model fields: emailVerified, googleId, tier, Stripe subscription tracking
+
 ### Fixed
 - **[fix]** Production content generation errors - added missing GenerationLog database migration that was causing "table does not exist" errors when creating Arabic dialogues and other content
 

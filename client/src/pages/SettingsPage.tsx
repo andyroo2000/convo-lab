@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { User, Settings, Trash2, ArrowLeft, Lock, Languages, Camera } from 'lucide-react';
+import { User, Settings, Trash2, ArrowLeft, Lock, Languages, Camera, CreditCard } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
 import { LanguageCode } from '../types';
+import { API_URL } from '../config';
 
-type Tab = 'profile' | 'language' | 'security' | 'danger';
+type Tab = 'profile' | 'language' | 'security' | 'billing' | 'danger';
 
 const AVATAR_COLORS = [
   { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -62,6 +63,11 @@ export default function SettingsPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
+
+  // Billing state
+  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
+  const [billingError, setBillingError] = useState<string | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage(message);
@@ -140,6 +146,57 @@ export default function SettingsPage() {
     }
   };
 
+  // Fetch subscription status
+  const fetchSubscriptionStatus = async () => {
+    setLoadingSubscription(true);
+    setBillingError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/billing/subscription-status`, {
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch subscription status');
+      }
+
+      const data = await response.json();
+      setSubscriptionStatus(data);
+    } catch (err) {
+      setBillingError('Failed to load subscription information');
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
+
+  // Open Stripe customer portal
+  const handleManageSubscription = async () => {
+    setLoadingSubscription(true);
+    setBillingError(null);
+
+    try {
+      const response = await fetch(`${API_URL}/api/billing/create-portal-session`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create portal session');
+      }
+
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (err) {
+      setBillingError(err instanceof Error ? err.message : 'Failed to open billing portal');
+      setLoadingSubscription(false);
+    }
+  };
+
+  // Upgrade to Pro
+  const handleUpgradeToPro = () => {
+    navigate('/pricing');
+  };
+
   // Initialize form with user data
   useEffect(() => {
     if (user) {
@@ -167,6 +224,13 @@ export default function SettingsPage() {
       }
     }
   }, [user]);
+
+  // Fetch subscription status when billing tab is active
+  useEffect(() => {
+    if (activeTab === 'billing' && user) {
+      fetchSubscriptionStatus();
+    }
+  }, [activeTab, user]);
 
   const hasChanges = () => {
     if (!user) return false;
@@ -385,6 +449,20 @@ export default function SettingsPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <Lock className="w-4 h-4" />
             <span className="hidden xs:inline">Security</span>
+          </div>
+        </button>
+        <button
+          onClick={() => navigate('/app/settings/billing')}
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
+            activeTab === 'billing'
+              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
+              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
+          }`}
+          data-testid="settings-tab-billing"
+        >
+          <div className="flex items-center gap-1 sm:gap-2">
+            <CreditCard className="w-4 h-4" />
+            <span className="hidden xs:inline">Billing</span>
           </div>
         </button>
         <button
@@ -870,6 +948,120 @@ export default function SettingsPage() {
           </button>
         </div>
         </div>
+        </div>
+      )}
+
+      {/* Billing Card */}
+      {activeTab === 'billing' && (
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
+            <h2 className="text-2xl font-bold text-dark-brown mb-6">Billing & Subscription</h2>
+
+            {billingError && (
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700">{billingError}</p>
+              </div>
+            )}
+
+            {loadingSubscription ? (
+              <div className="text-center py-8">
+                <div className="loading-spinner w-8 h-8 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
+                <p className="text-medium-brown">Loading subscription info...</p>
+              </div>
+            ) : (
+              <>
+                {/* Current Plan */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-dark-brown mb-4">Current Plan</h3>
+                  <div className="bg-periwinkle-light border-2 border-periwinkle rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-2xl font-bold text-dark-brown capitalize">
+                          {user?.tier || 'Free'} Plan
+                        </p>
+                        <p className="text-medium-brown">
+                          {user?.tier === 'pro' ? '$7/month' : 'Free forever'}
+                        </p>
+                      </div>
+                      {subscriptionStatus?.status && (
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            subscriptionStatus.status === 'active'
+                              ? 'bg-green-100 text-green-700'
+                              : subscriptionStatus.status === 'past_due'
+                              ? 'bg-yellow-100 text-yellow-700'
+                              : 'bg-gray-100 text-gray-700'
+                          }`}
+                        >
+                          {subscriptionStatus.status}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="mb-4">
+                      <p className="text-sm text-dark-brown font-medium mb-2">
+                        Weekly generation limit
+                      </p>
+                      <p className="text-lg font-semibold text-dark-brown">
+                        {user?.tier === 'pro' ? '30' : '5'} generations per week
+                      </p>
+                    </div>
+
+                    {subscriptionStatus?.currentPeriodEnd && (
+                      <p className="text-sm text-medium-brown">
+                        {subscriptionStatus.cancelAtPeriodEnd
+                          ? `Cancels on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
+                          : `Renews on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-4">
+                  {user?.tier === 'free' ? (
+                    <div>
+                      <button
+                        onClick={handleUpgradeToPro}
+                        className="btn-primary w-full"
+                      >
+                        Upgrade to Pro ($7/month)
+                      </button>
+                      <p className="text-sm text-medium-brown mt-2 text-center">
+                        Get 30 generations per week and priority support
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <button
+                        onClick={handleManageSubscription}
+                        disabled={loadingSubscription}
+                        className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loadingSubscription ? 'Loading...' : 'Manage Subscription'}
+                      </button>
+                      <p className="text-sm text-medium-brown mt-2 text-center">
+                        Update payment method, view invoices, or cancel subscription
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Plan Comparison */}
+                <div className="mt-8 pt-8 border-t border-gray-200">
+                  <h3 className="text-lg font-semibold text-dark-brown mb-4">
+                    Need a different plan?
+                  </h3>
+                  <button
+                    onClick={() => navigate('/pricing')}
+                    className="text-periwinkle hover:text-dark-periwinkle font-medium"
+                  >
+                    View all plans →
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 

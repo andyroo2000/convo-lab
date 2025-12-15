@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
@@ -112,7 +113,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 });
 
 // Create and generate new narrow listening pack (blocked for demo users)
-router.post('/generate', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const {
       topic,
@@ -262,7 +263,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
 });
 
 // Generate audio at specific speed for a pack (on-demand) (blocked for demo users)
-router.post('/:id/generate-speed', rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
+router.post('/:id/generate-speed', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
     const { speed } = req.body;
 
