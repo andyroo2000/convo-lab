@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** 3-step onboarding with native language selection - redesigned onboarding flow to support multilingual users: (1) choose native language, (2) choose target language with automatic filtering, (3) select proficiency level; supports 6 languages (en, ja, zh, es, fr, ar) with smart conflict prevention
+- **[feat]** English as a learnable target language - added English language support with 6 AI-generated speaker avatars (Vertex AI Imagen 3), 20 speaker names, and existing 8 Google Neural2 TTS voices with timestamp support
 - **[feat]** Test user feature for safe production testing - allows admins to designate users as test users who can subscribe to a $0.01/month test tier, providing full pro features (30 generations/week) without large charges for testing subscription flows in production
 - **[chore]** Admin scripts for invite codes and subscription management (check-invites, create-invite, fix-landry-subscription, upgrade-to-pro)
 - **[feat]** Comprehensive authentication system with email verification, Google OAuth integration, and password reset functionality
@@ -25,6 +27,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** Subscription events audit logging for billing compliance
 - **[feat]** Database models: EmailVerificationToken, PasswordResetToken, OAuthAccount, SubscriptionEvent
 - **[feat]** User model fields: emailVerified, googleId, tier, Stripe subscription tracking
+
+### Removed
+- **[feat]** Hebrew language support - removed Hebrew from all type definitions, constants, TTS voices, and database with migration to clean up existing Hebrew references
 
 ### Fixed
 - **[fix]** Stripe subscription metadata propagation - added subscription_data.metadata to checkout sessions to ensure userId is tracked for webhook handlers

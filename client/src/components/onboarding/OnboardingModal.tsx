@@ -1,15 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { LanguageCode } from '../../types';
 
 export default function OnboardingModal() {
   const { user, updateUser } = useAuth();
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>(user?.preferredNativeLanguage || 'en');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(user?.preferredStudyLanguage || 'ja');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset target language if it matches native language
+  useEffect(() => {
+    if (targetLanguage === nativeLanguage) {
+      const availableTargets: LanguageCode[] = ['en', 'ja', 'zh', 'es', 'fr', 'ar'];
+      const firstAvailable = availableTargets.find(lang => lang !== nativeLanguage);
+      if (firstAvailable) {
+        setTargetLanguage(firstAvailable);
+      }
+    }
+  }, [nativeLanguage, targetLanguage]);
 
   const handleComplete = async () => {
     if (!user) return;
@@ -23,6 +35,7 @@ export default function OnboardingModal() {
         cefrLevel;
 
       await updateUser({
+        preferredNativeLanguage: nativeLanguage,
         preferredStudyLanguage: targetLanguage,
         proficiencyLevel,
         onboardingCompleted: true,
@@ -49,25 +62,40 @@ export default function OnboardingModal() {
         <div className="flex items-center justify-center gap-2 mb-8">
           <div className={`h-2 w-24 rounded-full ${step === 1 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
           <div className={`h-2 w-24 rounded-full ${step === 2 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
+          <div className={`h-2 w-24 rounded-full ${step === 3 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
         </div>
 
-        {/* Step 1: Language Selection */}
+        {/* Step 1: Native Language Selection */}
         {step === 1 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What language are you learning?
+                What's your native language?
               </h2>
               <p className="text-gray-600">
-                Choose your target language to get started
+                This will be used for translations and explanations
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <button
-                onClick={() => setTargetLanguage('ja')}
+                onClick={() => setNativeLanguage('en')}
                 className={`p-6 rounded-xl border-2 transition-all ${
-                  targetLanguage === 'ja'
+                  nativeLanguage === 'en'
+                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🇺🇸</div>
+                  <h3 className="text-xl font-semibold text-navy mb-1">English</h3>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setNativeLanguage('ja')}
+                className={`p-6 rounded-xl border-2 transition-all ${
+                  nativeLanguage === 'ja'
                     ? 'border-indigo-600 bg-indigo-50 shadow-lg'
                     : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
                 }`}
@@ -80,9 +108,9 @@ export default function OnboardingModal() {
               </button>
 
               <button
-                onClick={() => setTargetLanguage('zh')}
+                onClick={() => setNativeLanguage('zh')}
                 className={`p-6 rounded-xl border-2 transition-all ${
-                  targetLanguage === 'zh'
+                  nativeLanguage === 'zh'
                     ? 'border-indigo-600 bg-indigo-50 shadow-lg'
                     : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
                 }`}
@@ -95,9 +123,24 @@ export default function OnboardingModal() {
               </button>
 
               <button
-                onClick={() => setTargetLanguage('fr')}
+                onClick={() => setNativeLanguage('es')}
                 className={`p-6 rounded-xl border-2 transition-all ${
-                  targetLanguage === 'fr'
+                  nativeLanguage === 'es'
+                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🇪🇸</div>
+                  <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
+                  <p className="text-sm text-gray-600">Español</p>
+                </div>
+              </button>
+
+              <button
+                onClick={() => setNativeLanguage('fr')}
+                className={`p-6 rounded-xl border-2 transition-all ${
+                  nativeLanguage === 'fr'
                     ? 'border-indigo-600 bg-indigo-50 shadow-lg'
                     : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
                 }`}
@@ -110,9 +153,9 @@ export default function OnboardingModal() {
               </button>
 
               <button
-                onClick={() => setTargetLanguage('ar')}
+                onClick={() => setNativeLanguage('ar')}
                 className={`p-6 rounded-xl border-2 transition-all ${
-                  targetLanguage === 'ar'
+                  nativeLanguage === 'ar'
                     ? 'border-indigo-600 bg-indigo-50 shadow-lg'
                     : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
                 }`}
@@ -136,8 +179,140 @@ export default function OnboardingModal() {
           </div>
         )}
 
-        {/* Step 2: Proficiency Level */}
+        {/* Step 2: Target Language Selection */}
         {step === 2 && (
+          <div className="space-y-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-semibold text-navy mb-2">
+                What language are you learning?
+              </h2>
+              <p className="text-gray-600">
+                Choose your target language to get started
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {nativeLanguage !== 'en' && (
+                <button
+                  onClick={() => setTargetLanguage('en')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'en'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇺🇸</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">English</h3>
+                  </div>
+                </button>
+              )}
+
+              {nativeLanguage !== 'ja' && (
+                <button
+                  onClick={() => setTargetLanguage('ja')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'ja'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇯🇵</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">Japanese</h3>
+                    <p className="text-sm text-gray-600">日本語</p>
+                  </div>
+                </button>
+              )}
+
+              {nativeLanguage !== 'zh' && (
+                <button
+                  onClick={() => setTargetLanguage('zh')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'zh'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇨🇳</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">Chinese</h3>
+                    <p className="text-sm text-gray-600">中文</p>
+                  </div>
+                </button>
+              )}
+
+              {nativeLanguage !== 'es' && (
+                <button
+                  onClick={() => setTargetLanguage('es')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'es'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇪🇸</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
+                    <p className="text-sm text-gray-600">Español</p>
+                  </div>
+                </button>
+              )}
+
+              {nativeLanguage !== 'fr' && (
+                <button
+                  onClick={() => setTargetLanguage('fr')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'fr'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇫🇷</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
+                    <p className="text-sm text-gray-600">Français</p>
+                  </div>
+                </button>
+              )}
+
+              {nativeLanguage !== 'ar' && (
+                <button
+                  onClick={() => setTargetLanguage('ar')}
+                  className={`p-6 rounded-xl border-2 transition-all ${
+                    targetLanguage === 'ar'
+                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
+                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-2">🇸🇦</div>
+                    <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
+                    <p className="text-sm text-gray-600">العربية</p>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            <div className="flex justify-between mt-8">
+              <button
+                onClick={() => setStep(1)}
+                className="btn-outline px-8 py-3"
+              >
+                ← Back
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className="btn-primary px-8 py-3"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Proficiency Level */}
+        {step === 3 && (
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
@@ -314,7 +489,7 @@ export default function OnboardingModal() {
               </div>
             )}
 
-            {(targetLanguage === 'fr' || targetLanguage === 'ar') && (
+            {(targetLanguage === 'en' || targetLanguage === 'es' || targetLanguage === 'fr' || targetLanguage === 'ar') && (
               <div className="space-y-3">
                 <button
                   onClick={() => setCefrLevel('A1')}
@@ -404,7 +579,7 @@ export default function OnboardingModal() {
 
             <div className="flex justify-between mt-8">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="btn-outline px-8 py-3"
                 disabled={isSubmitting}
               >
