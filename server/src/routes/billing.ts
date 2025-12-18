@@ -10,6 +10,7 @@ import {
   handleInvoicePaymentFailed
 } from '../services/stripeService.js';
 import Stripe from 'stripe';
+import { prisma } from '../db/client.js';
 
 const router = Router();
 
@@ -33,9 +34,26 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
       return res.status(400).json({ error: { message: 'Price ID is required' } });
     }
 
-    // Validate price ID matches configured Pro price
-    if (priceId !== process.env.STRIPE_PRICE_PRO_MONTHLY) {
+    // Validate price ID matches configured Pro or Test price
+    const validPriceIds = [
+      process.env.STRIPE_PRICE_PRO_MONTHLY,
+      process.env.STRIPE_PRICE_TEST_MONTHLY
+    ].filter(Boolean);
+
+    if (!validPriceIds.includes(priceId)) {
       return res.status(400).json({ error: { message: 'Invalid price ID' } });
+    }
+
+    // Ensure only test users can subscribe to test tier
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { isTestUser: true }
+    });
+
+    if (priceId === process.env.STRIPE_PRICE_TEST_MONTHLY && !user?.isTestUser) {
+      return res.status(403).json({
+        error: { message: 'Test tier is only available for test users' }
+      });
     }
 
     const session = await createCheckoutSession(userId, priceId);

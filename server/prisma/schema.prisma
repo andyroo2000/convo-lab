@@ -39,6 +39,7 @@ model User {
   subscriptionStartedAt    DateTime?
   subscriptionExpiresAt    DateTime?
   subscriptionCanceledAt   DateTime?
+  isTestUser               Boolean   @default(false) // Test users can access $0.01/month test tier
 
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
@@ -61,6 +62,7 @@ model User {
   @@index([tier])
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
+  @@index([isTestUser])
 }
 
 model InviteCode {

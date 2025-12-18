@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Test user feature for safe production testing - allows admins to designate users as test users who can subscribe to a $0.01/month test tier, providing full pro features (30 generations/week) without large charges for testing subscription flows in production
 - **[chore]** Admin scripts for invite codes and subscription management (check-invites, create-invite, fix-landry-subscription, upgrade-to-pro)
 - **[feat]** Comprehensive authentication system with email verification, Google OAuth integration, and password reset functionality
 - **[feat]** Stripe subscription billing system with Pro tier, customer portal, and subscription management

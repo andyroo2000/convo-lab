@@ -74,6 +74,7 @@ router.post('/signup', async (req, res, next) => {
           onboardingCompleted: true,
           emailVerified: true,
           emailVerifiedAt: true,
+          isTestUser: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -176,6 +177,7 @@ router.post('/login', async (req, res, next) => {
       onboardingCompleted: updatedUser.onboardingCompleted,
       emailVerified: updatedUser.emailVerified,
       emailVerifiedAt: updatedUser.emailVerifiedAt,
+      isTestUser: updatedUser.isTestUser,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,
     });
@@ -210,6 +212,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         onboardingCompleted: true,
         emailVerified: true,
         emailVerifiedAt: true,
+        isTestUser: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -237,7 +240,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Validate language codes if provided
-    const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'he', 'en'];
+    const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'en'];
     if (preferredStudyLanguage && !validLanguages.includes(preferredStudyLanguage)) {
       throw new AppError('Invalid study language', 400);
     }

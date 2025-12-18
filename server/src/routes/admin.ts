@@ -109,6 +109,7 @@ router.get('/users', async (req: AuthRequest, res, next) => {
           subscriptionStartedAt: true,
           subscriptionExpiresAt: true,
           subscriptionCanceledAt: true,
+          isTestUser: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -280,6 +281,43 @@ router.post('/users/:id/tier', async (req: AuthRequest, res, next) => {
         email: updatedUser.email,
         tier: updatedUser.tier,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Toggle test user status
+router.post('/users/:id/test-user', async (req: AuthRequest, res, next) => {
+  try {
+    const { id } = req.params;
+    const { isTestUser } = req.body;
+
+    // Validate input
+    if (typeof isTestUser !== 'boolean') {
+      throw new AppError('isTestUser must be a boolean', 400);
+    }
+
+    // Get current user state
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: { id: true, email: true, isTestUser: true },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Update isTestUser flag
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { isTestUser },
+      select: { id: true, email: true, isTestUser: true },
+    });
+
+    res.json({
+      message: `User test status updated to ${isTestUser}`,
+      user: updatedUser,
     });
   } catch (error) {
     next(error);
