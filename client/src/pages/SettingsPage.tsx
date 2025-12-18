@@ -618,6 +618,7 @@ export default function SettingsPage() {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-study-language"
           >
+            {preferredNativeLanguage !== 'en' && <option value="en">English</option>}
             {preferredNativeLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
             {preferredNativeLanguage !== 'zh' && <option value="zh">Mandarin Chinese (中文)</option>}
             {preferredNativeLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
@@ -810,6 +811,38 @@ export default function SettingsPage() {
               <option value="B2">B2 - Upper Intermediate</option>
               <option value="C1">C1 - Advanced</option>
               <option value="C2">C2 - Mastery</option>
+            </select>
+            {proficiencySaveMessage && (
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+                {proficiencySaveMessage}
+              </p>
+            )}
+            {!proficiencySaveMessage && (
+              <p className="text-sm text-gray-500 mt-2">
+                This helps us generate content at the right difficulty level
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* English - CEFR Levels */}
+        {preferredStudyLanguage === 'en' && (
+          <div className="mb-6">
+            <label className="block text-base font-bold text-dark-brown mb-3">
+              English Proficiency Level (CEFR)
+            </label>
+            <select
+              value={cefrLevel}
+              onChange={(e) => handleProficiencyLevelChange(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+              data-testid="settings-select-proficiency"
+            >
+              <option value="A1">A1 (Beginner)</option>
+              <option value="A2">A2 (Elementary)</option>
+              <option value="B1">B1 (Intermediate)</option>
+              <option value="B2">B2 (Upper Intermediate)</option>
+              <option value="C1">C1 (Advanced)</option>
+              <option value="C2">C2 (Mastery)</option>
             </select>
             {proficiencySaveMessage && (
               <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>

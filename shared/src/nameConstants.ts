@@ -136,9 +136,35 @@ export const SPEAKER_NAMES = {
       'راشد',       // Rashid
     ],
   },
+  en: {
+    female: [
+      'Emily',
+      'Sarah',
+      'Jessica',
+      'Emma',
+      'Jennifer',
+      'Ashley',
+      'Amanda',
+      'Melissa',
+      'Stephanie',
+      'Rachel',
+    ],
+    male: [
+      'Michael',
+      'James',
+      'Robert',
+      'John',
+      'David',
+      'William',
+      'Christopher',
+      'Matthew',
+      'Daniel',
+      'Andrew',
+    ],
+  },
 } as const;
 
-export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar';
+export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar' | 'en';
 export type Gender = 'male' | 'female';
 
 /**

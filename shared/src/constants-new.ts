@@ -27,12 +27,6 @@ export const SUPPORTED_LANGUAGES: Record<LanguageCode, LanguageInfo> = {
     nativeName: 'العربية',
     rtl: true,
   },
-  he: {
-    code: 'he',
-    name: 'Hebrew',
-    nativeName: 'עברית',
-    rtl: true,
-  },
   en: {
     code: 'en',
     name: 'English',
@@ -145,13 +139,6 @@ export const TTS_VOICES = {
       { id: 'Zayd', gender: 'male', description: 'Zayd - Professional and warm', provider: 'polly' },
     ],
   },
-  he: {
-    languageCode: 'he-IL',
-    voices: [
-      // No Polly neural voices available for Hebrew yet
-      // Google Cloud TTS voices would go here when available
-    ],
-  },
 } as const;
 
 // Default narrator voices for Pimsleur-style courses
@@ -171,7 +158,6 @@ export const LANGUAGE_ABBREVIATIONS = {
   es: 'ES',
   fr: 'FR',
   ar: 'AR',
-  he: 'HE',
   en: 'EN',
 } as const;
 
