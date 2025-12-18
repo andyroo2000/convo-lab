@@ -10,7 +10,7 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (priceId: string) => {
     if (!user) {
       // Redirect to login with return URL
       navigate(`/login?returnUrl=/pricing`);
@@ -26,7 +26,7 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          priceId: import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY
+          priceId
         })
       });
 
@@ -45,6 +45,10 @@ export default function PricingPage() {
     }
   };
 
+  // Check if test tier is enabled (only for test users)
+  const testPriceId = user?.isTestUser ? import.meta.env.VITE_STRIPE_PRICE_TEST_MONTHLY : undefined;
+  const proPriceId = import.meta.env.VITE_STRIPE_PRICE_PRO_MONTHLY;
+
   const tiers = [
     {
       name: 'Free',
@@ -61,6 +65,23 @@ export default function PricingPage() {
       ctaDisabled: true,
       current: user?.tier === 'free'
     },
+    // Show test tier if user is a test user
+    ...(user?.isTestUser && testPriceId ? [{
+      name: 'Test',
+      price: '$0.01',
+      period: 'per month',
+      description: 'Test tier for internal testing',
+      features: [
+        '30 generations per week',
+        'All content types',
+        'High-quality TTS audio',
+        'Test payment flow'
+      ],
+      cta: 'Test Checkout',
+      ctaDisabled: false,
+      ctaAction: () => handleUpgrade(testPriceId),
+      current: false
+    }] : []),
     {
       name: 'Pro',
       price: '$7',
@@ -75,7 +96,7 @@ export default function PricingPage() {
       ],
       cta: user?.tier === 'pro' ? 'Current Plan' : 'Upgrade to Pro',
       ctaDisabled: user?.tier === 'pro',
-      ctaAction: handleUpgrade,
+      ctaAction: () => handleUpgrade(proPriceId),
       current: user?.tier === 'pro',
       popular: true
     }

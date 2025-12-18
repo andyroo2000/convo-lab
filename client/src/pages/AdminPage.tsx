@@ -24,6 +24,7 @@ interface UserData {
   subscriptionStartedAt?: string;
   subscriptionExpiresAt?: string;
   subscriptionCanceledAt?: string;
+  isTestUser?: boolean;
   createdAt: string;
   _count: {
     episodes: number;
@@ -146,6 +147,8 @@ export default function AdminPage() {
 
   // Speaker avatar filenames for initial upload (when no avatars in DB)
   const DEFAULT_SPEAKER_AVATARS = [
+    'en-female-casual.jpg', 'en-female-polite.jpg', 'en-female-formal.jpg',
+    'en-male-casual.jpg', 'en-male-polite.jpg', 'en-male-formal.jpg',
     'ja-female-casual.jpg', 'ja-female-polite.jpg', 'ja-female-formal.jpg',
     'ja-male-casual.jpg', 'ja-male-polite.jpg', 'ja-male-formal.jpg',
     'zh-female-casual.jpg', 'zh-female-polite.jpg', 'zh-female-formal.jpg',
@@ -625,6 +628,9 @@ export default function AdminPage() {
                       Tier
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                      Test User
+                    </th>
+                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
                       Sub Status
                     </th>
                     <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
@@ -677,6 +683,15 @@ export default function AdminPage() {
                         >
                           {u.tier}
                         </span>
+                      </td>
+                      <td className="px-3 sm:px-6 py-4">
+                        {u.isTestUser ? (
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                            Test
+                          </span>
+                        ) : (
+                          <span className="text-sm text-gray-400">-</span>
+                        )}
                       </td>
                       <td className="px-3 sm:px-6 py-4">
                         {u.stripeSubscriptionStatus ? (
@@ -932,7 +947,7 @@ export default function AdminPage() {
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Manage the 12 speaker avatar images used in dialogues and courses
+              Manage the 36 speaker avatar images used in dialogues and courses (6 languages × 6 avatars each)
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1332,6 +1347,44 @@ export default function AdminPage() {
                     <p><span className="font-medium">Started:</span> {formatDate(selectedUser.subscriptionStartedAt)}</p>
                     <p><span className="font-medium">Current period ends:</span> {formatDate(selectedUser.subscriptionExpiresAt)}</p>
                     <p><span className="font-medium">Canceled at:</span> {formatDate(selectedUser.subscriptionCanceledAt)}</p>
+                  </div>
+                </div>
+
+                {/* Test User Settings */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-semibold text-navy mb-2">Test User Settings</h3>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-700">
+                        Test users can access the $0.01/month test tier
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/test-user`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({ isTestUser: !selectedUser.isTestUser }),
+                          });
+                          if (!response.ok) throw new Error('Failed to update test user status');
+
+                          showToast('Test user status updated', 'success');
+                          fetchUsers(); // Refresh user list
+                          setSelectedUserId(null); // Close modal
+                        } catch (err) {
+                          showToast(err instanceof Error ? err.message : 'Failed to update', 'error');
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                        selectedUser.isTestUser
+                          ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                    >
+                      {selectedUser.isTestUser ? 'Disable Test User' : 'Enable Test User'}
+                    </button>
                   </div>
                 </div>
 

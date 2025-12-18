@@ -117,7 +117,7 @@ export async function handleSubscriptionCreated(
 
   // Determine tier from price
   const priceId = subscription.items.data[0]?.price.id;
-  const tier = 'pro'; // For now we only have one paid tier
+  const tier = 'pro'; // Both test and pro subscriptions map to 'pro' tier in database
 
   // Update user subscription status
   await prisma.user.update({
