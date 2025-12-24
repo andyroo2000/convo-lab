@@ -1,0 +1,73 @@
+{
+  "pageTitle": "Narrow Listening Packs",
+  "pageSubtitle": "The same story told 5 different ways for focused listening practice",
+  "alerts": {
+    "enterTopic": "Please enter a topic or story idea"
+  },
+  "form": {
+    "yourStory": "Your Story",
+    "whatAbout": "What's your story about?",
+    "topicPlaceholder": {
+      "ja": "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee",
+      "zh": "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea",
+      "es": "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas",
+      "fr": "Example: Sophie's weekend activities, A trip to the bakery, Meeting a friend for coffee"
+    },
+    "topicHelper": "Describe the scenario or topic for your story",
+    "targetJLPT": "Target JLPT Level",
+    "targetHSK": "Target HSK Level",
+    "targetCEFR": "Target CEFR Level",
+    "jlpt": {
+      "n5": "N5 (Beginner)",
+      "n4": "N4 (Upper Beginner)",
+      "n3": "N3 (Intermediate)",
+      "n2": "N2 (Upper Intermediate)",
+      "n1": "N1 (Advanced)"
+    },
+    "hsk": {
+      "hsk1": "HSK1 (Beginner)",
+      "hsk2": "HSK2 (Elementary)",
+      "hsk3": "HSK3 (Intermediate)",
+      "hsk4": "HSK4 (Upper Intermediate)",
+      "hsk5": "HSK5 (Advanced)",
+      "hsk6": "HSK6 (Proficient)"
+    },
+    "cefr": {
+      "a1": "A1 (Beginner)",
+      "a2": "A2 (Elementary)",
+      "b1": "B1 (Intermediate)",
+      "b2": "B2 (Upper Intermediate)",
+      "c1": "C1 (Advanced)",
+      "c2": "C2 (Mastery)"
+    },
+    "levelHelper": "Vocabulary and grammar will be tailored to this level",
+    "grammarFocus": "Grammar Focus (Optional)",
+    "grammarPlaceholder": "e.g., past vs present tense",
+    "grammarHelper": "Optionally specify grammar points to focus on"
+  },
+  "progress": {
+    "creating": "Creating narrow listening pack...",
+    "generatingStory": "Generating story with AI...",
+    "creatingAudio": "Creating audio for story variations...",
+    "finalizing": "Finalizing your pack...",
+    "complete": "{{progress}}% complete"
+  },
+  "info": {
+    "title": "What is Narrow Listening?",
+    "description": "Narrow listening is a technique where you listen to the same content with slight variations. This helps you notice differences in grammar, vocabulary, and usage while maintaining context. Your pack will include:",
+    "features": {
+      "versions": "5 versions of the same story with different grammar patterns",
+      "slowAudio": "Slow audio (0.7x speed) for shadowing practice",
+      "normalAudio": "Optional normal speed audio (1.0x) when you're ready",
+      "textJa": "Japanese text with furigana and English translations",
+      "textZh": "Chinese text with pinyin and English translations",
+      "textEs": "Spanish text and English translations",
+      "textFr": "French text and English translations"
+    }
+  },
+  "actions": {
+    "cancel": "Cancel",
+    "generate": "Generate Pack",
+    "generating": "Generating..."
+  }
+}

@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Home, ArrowLeft, Search } from 'lucide-react';
 import Logo from '../components/common/Logo';
 
 export default function NotFoundPage() {
+  const { t } = useTranslation(['notFound']);
   const navigate = useNavigate();
 
   return (
@@ -18,9 +20,9 @@ export default function NotFoundPage() {
         <div className="bg-white rounded-2xl shadow-lg p-12 border border-gray-200">
           <div className="mb-6">
             <h1 className="text-9xl font-bold text-indigo mb-4">404</h1>
-            <h2 className="text-3xl font-bold text-navy mb-3">Page Not Found</h2>
+            <h2 className="text-3xl font-bold text-navy mb-3">{t('notFound:title')}</h2>
             <p className="text-gray-600 text-lg">
-              Oops! The page you're looking for doesn't exist or has been moved.
+              {t('notFound:description')}
             </p>
           </div>
 
@@ -38,19 +40,19 @@ export default function NotFoundPage() {
 
           {/* Helpful Suggestions */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Here's what you can do:</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('notFound:suggestions.title')}</h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-start gap-2">
                 <span className="text-indigo mt-0.5">•</span>
-                <span>Check the URL for typos</span>
+                <span>{t('notFound:suggestions.checkUrl')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo mt-0.5">•</span>
-                <span>Return to the home page and try again</span>
+                <span>{t('notFound:suggestions.returnHome')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo mt-0.5">•</span>
-                <span>Use the navigation menu to find what you're looking for</span>
+                <span>{t('notFound:suggestions.useNavigation')}</span>
               </li>
             </ul>
           </div>
@@ -62,14 +64,14 @@ export default function NotFoundPage() {
               className="btn-outline flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
-              Go Back
+              {t('notFound:buttons.goBack')}
             </button>
             <button
               onClick={() => navigate('/app/library')}
               className="btn-primary flex items-center justify-center gap-2"
             >
               <Home className="w-4 h-4" />
-              Go to Library
+              {t('notFound:buttons.goToLibrary')}
             </button>
           </div>
         </div>

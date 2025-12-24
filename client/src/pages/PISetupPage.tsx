@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles, Loader } from 'lucide-react';
 
 import { API_URL } from '../config';
@@ -65,6 +66,7 @@ function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
 
 export default function PISetupPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['processingInstruction']);
   const isDemo = useIsDemo();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
   const [grammarPoint, setGrammarPoint] = useState<GrammarPointType>('ha_vs_ga');
@@ -131,8 +133,8 @@ export default function PISetupPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 pb-6 border-b-4 border-keylime">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">Processing Instruction Activities</h1>
-        <p className="text-xl text-gray-600">Learn grammar through structured input and meaning-based questions</p>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('processingInstruction:pageTitle')}</h1>
+        <p className="text-xl text-gray-600">{t('processingInstruction:pageSubtitle')}</p>
       </div>
 
       {/* Main Card */}
@@ -140,11 +142,9 @@ export default function PISetupPage() {
         <div className="bg-white border-l-8 border-keylime p-8 shadow-sm">
           {/* Description */}
           <div className="bg-keylime-light border-l-4 border-keylime p-6 mb-8">
-            <h2 className="text-xl font-bold text-dark-brown mb-3">What is Processing Instruction?</h2>
+            <h2 className="text-xl font-bold text-dark-brown mb-3">{t('processingInstruction:what.title')}</h2>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Processing Instruction (PI) helps you understand Japanese grammar through <strong>meaning-based tasks</strong>.
-              You'll hear Japanese sentences and answer questions about <em>what they mean</em> - not which grammar form was used.
-              This trains your brain to process grammar correctly in real-time comprehension.
+              {t('processingInstruction:what.description')}
             </p>
           </div>
 
@@ -153,7 +153,7 @@ export default function PISetupPage() {
             {/* JLPT Level Selection */}
             <div>
               <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
-                Select Your Level
+                {t('processingInstruction:setup.selectLevel')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {(['N5', 'N4', 'N3', 'N2'] as JLPTLevel[]).map((level) => (
@@ -168,10 +168,7 @@ export default function PISetupPage() {
                   >
                     <div className="text-lg sm:text-xl font-bold">{level}</div>
                     <div className="text-xs sm:text-sm mt-1 font-medium">
-                      {level === 'N5' && 'Beginner'}
-                      {level === 'N4' && 'Elementary'}
-                      {level === 'N3' && 'Intermediate'}
-                      {level === 'N2' && 'Advanced'}
+                      {t(`processingInstruction:levels.${level.toLowerCase()}`)}
                     </div>
                   </button>
                 ))}
@@ -181,7 +178,7 @@ export default function PISetupPage() {
             {/* Grammar Point Selection */}
             <div>
               <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
-                Select Grammar Point
+                {t('processingInstruction:setup.selectGrammar')}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2">
                 {availableGrammarPoints.map((gpId) => {
@@ -197,7 +194,7 @@ export default function PISetupPage() {
                       }`}
                     >
                       <div className="font-bold text-base sm:text-lg">{gp.name}</div>
-                      <div className={`text-xs sm:text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{gp.description}</div>
+                      <div className={`text-xs sm:text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{t(`processingInstruction:grammarPoints.${gpId}`)}</div>
                     </button>
                   );
                 })}
@@ -207,7 +204,7 @@ export default function PISetupPage() {
             {/* Item Count Selection */}
             <div>
               <label className="block text-lg font-bold text-dark-brown mb-4">
-                Number of Items
+                {t('processingInstruction:setup.itemCount')}
               </label>
               <div className="grid grid-cols-2 gap-3">
                 {([10, 15] as ItemCount[]).map((count) => (
@@ -222,7 +219,7 @@ export default function PISetupPage() {
                   >
                     <div className="text-2xl font-bold">{count}</div>
                     <div className="text-sm mt-1">
-                      {count === 10 ? '~5-7 minutes' : '~8-10 minutes'}
+                      {t(`processingInstruction:setup.duration.${count}`)}
                     </div>
                   </button>
                 ))}
@@ -247,12 +244,12 @@ export default function PISetupPage() {
               {isGenerating ? (
                 <>
                   <Loader className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
-                  Generating Session...
+                  {t('processingInstruction:actions.generating')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
-                  Start Practice Session
+                  {t('processingInstruction:actions.start')}
                 </>
               )}
             </button>
@@ -261,7 +258,7 @@ export default function PISetupPage() {
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
             <p>
-              Tip: Find a quiet space and use headphones for the best experience.
+              {t('processingInstruction:tip')}
             </p>
           </div>
         </div>

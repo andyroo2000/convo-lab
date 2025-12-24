@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -10,6 +11,7 @@ import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 export default function CourseGenerator() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['audioCourse']);
   const { user } = useAuth();
   const isDemo = useIsDemo();
   const invalidateLibrary = useInvalidateLibrary();
@@ -59,12 +61,12 @@ export default function CourseGenerator() {
     }
 
     if (!title.trim() || !sourceText.trim()) {
-      setError('Please fill in all required fields');
+      setError(t('audioCourse:alerts.fillRequired'));
       return;
     }
 
     if (!selectedVoice) {
-      setError('Please select a narrator voice');
+      setError(t('audioCourse:alerts.selectVoice'));
       return;
     }
 
@@ -140,9 +142,9 @@ export default function CourseGenerator() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">Audio Course Created!</h2>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('audioCourse:complete.title')}</h2>
           <p className="text-xl text-gray-600 mb-6">
-            Your audio course is now generating. You can track its progress on the Audio Courses page.
+            {t('audioCourse:complete.description')}
           </p>
         </div>
       </div>
@@ -156,34 +158,34 @@ export default function CourseGenerator() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Course Details */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">Course Details</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:courseDetails.title')}</h2>
 
         <div className="space-y-6">
           <div>
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Audio Course Title *
+              {t('audioCourse:courseDetails.courseTitle')} *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-              placeholder="e.g., Japanese Restaurant Conversations"
+              placeholder={t('audioCourse:courseDetails.courseTitlePlaceholder')}
             />
           </div>
 
           <div>
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Your Story or Experience *
+              {t('audioCourse:courseDetails.yourStory')} *
             </label>
             <textarea
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base h-40"
-              placeholder="Describe an experience, conversation, or situation you want to learn about. The AI will create an interactive audio course based on your description."
+              placeholder={t('audioCourse:courseDetails.storyPlaceholder')}
             />
             <p className="text-sm text-gray-500 mt-2">
-              Be specific about the context and setting. This helps create more authentic learning material.
+              {t('audioCourse:courseDetails.storyHelper')}
             </p>
           </div>
 
@@ -192,19 +194,19 @@ export default function CourseGenerator() {
 
       {/* Voice Configuration */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">Voice Configuration</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:voiceConfig.title')}</h2>
 
         <div className="space-y-6">
           {/* Dialogue Voices */}
           <div className="border-t-2 border-gray-200 pt-6">
             <h3 className="text-base font-bold text-dark-brown mb-4">
-              Dialogue Voices ({targetLanguage.toUpperCase()})
+              {t('audioCourse:voiceConfig.dialogueVoices')} ({targetLanguage.toUpperCase()})
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Speaker 1 */}
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Speaker 1 (Friend)
+                  {t('audioCourse:voiceConfig.speaker1')}
                 </label>
                 <select
                   value={speaker1VoiceId}
@@ -222,7 +224,7 @@ export default function CourseGenerator() {
               {/* Speaker 2 */}
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Speaker 2 (Listener)
+                  {t('audioCourse:voiceConfig.speaker2')}
                 </label>
                 <select
                   value={speaker2VoiceId}
@@ -238,7 +240,7 @@ export default function CourseGenerator() {
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-3">
-              Choose any voice for each speaker - (M) = Male, (F) = Female
+              {t('audioCourse:voiceConfig.voiceHelper')}
             </p>
           </div>
         </div>
@@ -246,26 +248,26 @@ export default function CourseGenerator() {
 
       {/* Course Settings */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">Course Settings</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:courseSettings.title')}</h2>
 
         <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-6' : ''}>
           {user?.role === 'admin' && (
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Max Lesson Duration
+                {t('audioCourse:courseSettings.maxDuration')}
               </label>
               <select
                 value={maxDuration}
                 onChange={(e) => setMaxDuration(parseInt(e.target.value))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
-                <option value={10}>10 minutes</option>
-                <option value={15}>15 minutes</option>
-                <option value={20}>20 minutes</option>
-                <option value={30}>30 minutes</option>
+                <option value={10}>{t('audioCourse:courseSettings.durationOptions.10')}</option>
+                <option value={15}>{t('audioCourse:courseSettings.durationOptions.15')}</option>
+                <option value={20}>{t('audioCourse:courseSettings.durationOptions.20')}</option>
+                <option value={30}>{t('audioCourse:courseSettings.durationOptions.30')}</option>
               </select>
               <p className="text-sm text-gray-500 mt-2">
-                Lessons longer than this will be split into multiple parts
+                {t('audioCourse:courseSettings.durationHelper')}
               </p>
             </div>
           )}
@@ -273,21 +275,21 @@ export default function CourseGenerator() {
           {targetLanguage === 'ja' && (
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Target JLPT Level
+                {t('audioCourse:courseSettings.targetJLPT')}
               </label>
               <select
                 value={jlptLevel}
                 onChange={(e) => setJlptLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
-                <option value="N5">N5 (Beginner)</option>
-                <option value="N4">N4 (Upper Beginner)</option>
-                <option value="N3">N3 (Intermediate)</option>
-                <option value="N2">N2 (Upper Intermediate)</option>
-                <option value="N1">N1 (Advanced)</option>
+                <option value="N5">{t('audioCourse:courseSettings.jlpt.n5')}</option>
+                <option value="N4">{t('audioCourse:courseSettings.jlpt.n4')}</option>
+                <option value="N3">{t('audioCourse:courseSettings.jlpt.n3')}</option>
+                <option value="N2">{t('audioCourse:courseSettings.jlpt.n2')}</option>
+                <option value="N1">{t('audioCourse:courseSettings.jlpt.n1')}</option>
               </select>
               <p className="text-sm text-gray-500 mt-2">
-                Vocabulary and grammar will be tailored to this level
+                {t('audioCourse:courseSettings.levelHelper')}
               </p>
             </div>
           )}
@@ -295,22 +297,22 @@ export default function CourseGenerator() {
           {targetLanguage === 'zh' && (
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Target HSK Level
+                {t('audioCourse:courseSettings.targetHSK')}
               </label>
               <select
                 value={hskLevel}
                 onChange={(e) => setHskLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
-                <option value="HSK1">HSK 1 (Beginner)</option>
-                <option value="HSK2">HSK 2 (Upper Beginner)</option>
-                <option value="HSK3">HSK 3 (Intermediate)</option>
-                <option value="HSK4">HSK 4 (Upper Intermediate)</option>
-                <option value="HSK5">HSK 5 (Advanced)</option>
-                <option value="HSK6">HSK 6 (Mastery)</option>
+                <option value="HSK1">{t('audioCourse:courseSettings.hsk.hsk1')}</option>
+                <option value="HSK2">{t('audioCourse:courseSettings.hsk.hsk2')}</option>
+                <option value="HSK3">{t('audioCourse:courseSettings.hsk.hsk3')}</option>
+                <option value="HSK4">{t('audioCourse:courseSettings.hsk.hsk4')}</option>
+                <option value="HSK5">{t('audioCourse:courseSettings.hsk.hsk5')}</option>
+                <option value="HSK6">{t('audioCourse:courseSettings.hsk.hsk6')}</option>
               </select>
               <p className="text-sm text-gray-500 mt-2">
-                Vocabulary and grammar will be tailored to this level
+                {t('audioCourse:courseSettings.levelHelper')}
               </p>
             </div>
           )}
@@ -318,22 +320,22 @@ export default function CourseGenerator() {
           {(targetLanguage === 'es' || targetLanguage === 'fr') && (
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Target CEFR Level
+                {t('audioCourse:courseSettings.targetCEFR')}
               </label>
               <select
                 value={cefrLevel}
                 onChange={(e) => setCefrLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
-                <option value="A1">A1 (Beginner)</option>
-                <option value="A2">A2 (Elementary)</option>
-                <option value="B1">B1 (Intermediate)</option>
-                <option value="B2">B2 (Upper Intermediate)</option>
-                <option value="C1">C1 (Advanced)</option>
-                <option value="C2">C2 (Mastery)</option>
+                <option value="A1">{t('audioCourse:courseSettings.cefr.a1')}</option>
+                <option value="A2">{t('audioCourse:courseSettings.cefr.a2')}</option>
+                <option value="B1">{t('audioCourse:courseSettings.cefr.b1')}</option>
+                <option value="B2">{t('audioCourse:courseSettings.cefr.b2')}</option>
+                <option value="C1">{t('audioCourse:courseSettings.cefr.c1')}</option>
+                <option value="C2">{t('audioCourse:courseSettings.cefr.c2')}</option>
               </select>
               <p className="text-sm text-gray-500 mt-2">
-                Vocabulary and grammar will be tailored to this level
+                {t('audioCourse:courseSettings.levelHelper')}
               </p>
             </div>
           )}
@@ -344,16 +346,15 @@ export default function CourseGenerator() {
       <div className="bg-coral-light border-l-8 border-coral p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-2 sm:mb-3">Ready to Generate?</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-2 sm:mb-3">{t('audioCourse:generate.ready')}</h3>
             <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
-              The AI will create audio-only lessons with guided narration, anticipation practice,
-              and spaced repetition—perfect for hands-free learning.
+              {t('audioCourse:generate.description')}
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-1.5 sm:space-y-2">
-              <li className="font-medium">• ~30 minute lessons, audio-only format</li>
-              <li className="font-medium">• Guided L1 narration with L2 prompts</li>
-              <li className="font-medium">• Anticipation pauses for recall practice</li>
-              <li className="font-medium">• JLPT {jlptLevel} level vocabulary & grammar</li>
+              <li className="font-medium">• {t('audioCourse:generate.features.duration')}</li>
+              <li className="font-medium">• {t('audioCourse:generate.features.narration')}</li>
+              <li className="font-medium">• {t('audioCourse:generate.features.pauses')}</li>
+              <li className="font-medium">• {t('audioCourse:generate.features.level', { level: jlptLevel })}</li>
             </ul>
           </div>
           <button
@@ -361,7 +362,7 @@ export default function CourseGenerator() {
             disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            {isCreating ? 'Creating...' : 'Create Audio Course'}
+            {isCreating ? t('audioCourse:generate.creating') : t('audioCourse:generate.button')}
           </button>
         </div>
 

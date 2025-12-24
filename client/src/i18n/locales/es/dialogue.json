@@ -1,0 +1,71 @@
+{
+  "pageTitle": "Comprehensible Input Dialogues",
+  "pageSubtitle": "Generate AI dialogues calibrated to your proficiency level",
+  "alerts": {
+    "fillRequired": "Please fill in all required fields",
+    "twoSpeakers": "Please add at least 2 speakers",
+    "generationFailed": "Dialogue generation failed. Please try again."
+  },
+  "placeholderTitle": "Generating dialogue...",
+  "generating": {
+    "title": "Generating Your Dialogue",
+    "description": "AI is creating a natural conversation based on your story..."
+  },
+  "complete": {
+    "title": "Dialogue Generated!",
+    "redirecting": "Redirecting to playback page..."
+  },
+  "form": {
+    "yourStory": "Your Story",
+    "whatToTalkAbout": "What do you want to talk about?",
+    "storyPlaceholder": "Describe an experience, conversation, or situation you want to learn about. The AI will create a natural dialogue based on your description.",
+    "storyHelper": "Be specific about the context, setting, and what happened. This helps create more authentic dialogue.",
+    "conversationLength": "Conversation Length",
+    "turns": "{{count}} turns",
+    "targetJLPT": "Target JLPT Level",
+    "jlpt": {
+      "n5": "N5 (Beginner)",
+      "n4": "N4 (Upper Beginner)",
+      "n3": "N3 (Intermediate)",
+      "n2": "N2 (Upper Intermediate)",
+      "n1": "N1 (Advanced)"
+    },
+    "targetHSK": "Target HSK Level",
+    "hsk": {
+      "hsk1": "HSK 1 (Beginner)",
+      "hsk2": "HSK 2 (Upper Beginner)",
+      "hsk3": "HSK 3 (Intermediate)",
+      "hsk4": "HSK 4 (Upper Intermediate)",
+      "hsk5": "HSK 5 (Advanced)",
+      "hsk6": "HSK 6 (Mastery)"
+    },
+    "targetCEFR": "Target CEFR Level",
+    "cefr": {
+      "a1": "A1 (Beginner)",
+      "a2": "A2 (Elementary)",
+      "b1": "B1 (Intermediate)",
+      "b2": "B2 (Upper Intermediate)",
+      "c1": "C1 (Advanced)",
+      "c2": "C2 (Mastery)"
+    },
+    "tone": "Tone",
+    "tones": {
+      "casual": "Casual",
+      "polite": "Polite",
+      "formal": "Formal"
+    }
+  },
+  "generate": {
+    "ready": "Ready to Generate?",
+    "description": "The AI will create a natural {{language}} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {{level}} level {{tone}} language.",
+    "features": {
+      "turns": "{{count}} dialogue turn",
+      "turns_plural": "{{count}} dialogue turns",
+      "variations": "3 variations per sentence",
+      "translations": "English translations",
+      "complexity": "Level-matched language complexity"
+    },
+    "button": "Generate Dialogue",
+    "generating": "Generating..."
+  }
+}

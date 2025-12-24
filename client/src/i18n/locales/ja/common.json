@@ -1,0 +1,41 @@
+{
+  "nav": {
+    "library": "ライブラリ",
+    "create": "作成"
+  },
+  "demoMode": "デモモード",
+  "loading": "読み込み中...",
+  "buttons": {
+    "save": "保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "confirm": "確認",
+    "close": "閉じる",
+    "edit": "編集",
+    "add": "追加",
+    "remove": "削除",
+    "back": "戻る",
+    "next": "次へ",
+    "finish": "完了",
+    "continue": "続ける",
+    "submit": "送信",
+    "reset": "リセット",
+    "logout": "ログアウト",
+    "backToHome": "ホームに戻る"
+  },
+  "tagline": "あなた専用のAI語学ラボ",
+  "footer": "Conversational Dynamics Consulting Group",
+  "error": {
+    "generic": "エラーが発生しました",
+    "network": "ネットワークエラーです。もう一度お試しください。"
+  },
+  "success": {
+    "saved": "保存されました！",
+    "deleted": "削除されました",
+    "updated": "更新されました"
+  },
+  "confirm": {
+    "delete": "本当に削除しますか？",
+    "logout": "本当にログアウトしますか？"
+  }
+}

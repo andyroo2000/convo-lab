@@ -1,0 +1,26 @@
+{
+  "welcome": "Welcome to ConvoLab!",
+  "subtitle": "Let's set up your learning preferences",
+  "step1": {
+    "title": "What's your native language?",
+    "description": "This will be used for UI and translations"
+  },
+  "step2": {
+    "title": "What language do you want to learn?",
+    "description": "Choose your target study language"
+  },
+  "step3": {
+    "title": "What's your proficiency level?",
+    "description": "Select your current skill level",
+    "levels": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    }
+  },
+  "buttons": {
+    "next": "Next",
+    "back": "Back",
+    "finish": "Get Started"
+  }
+}

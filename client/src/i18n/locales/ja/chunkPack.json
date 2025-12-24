@@ -1,0 +1,52 @@
+{
+  "pageTitle": "語彙チャンクパック",
+  "pageSubtitle": "例文と練習問題を通じて高頻度フレーズを学ぶ",
+  "what": {
+    "title": "語彙チャンクパックとは？",
+    "description": "語彙チャンクパックは、例文、ストーリー、練習問題を通じて5〜8個の高頻度日本語チャンクを教えます。孤立した単語だけでなく、実際の日本語話者が毎日使用する複数単語のフレーズを学びます。各パックには、これらのチャンクをアクティブな語彙の一部にするためのオーディオ、コンテキスト、練習が含まれています。"
+  },
+  "setup": {
+    "selectLevel": "レベルを選択",
+    "selectTheme": "テーマを選択"
+  },
+  "levels": {
+    "n5": "初級",
+    "n4": "初級",
+    "n3": "中級"
+  },
+  "themes": {
+    "daily_routine": { "name": "日常のルーティン", "description": "日常活動のための必須表現" },
+    "greetings": { "name": "挨拶と丁寧さ", "description": "一般的な社会的表現" },
+    "shopping": { "name": "買い物", "description": "物を買うことと製品について尋ねること" },
+    "family": { "name": "家族", "description": "家族と関係について話す" },
+    "school": { "name": "学校", "description": "教育関連の表現" },
+    "food": { "name": "食べ物と食事", "description": "食事と食べ物の好み" },
+    "weather": { "name": "天気", "description": "天気と季節について話す" },
+    "hobbies": { "name": "趣味と興味", "description": "余暇活動" },
+    "health": { "name": "健康と身体", "description": "医療状況とアドバイス" },
+    "travel": { "name": "旅行", "description": "旅行の計画とナビゲーション" },
+    "opinions": { "name": "意見", "description": "考えと不確実性を表現する" },
+    "plans": { "name": "計画と意図", "description": "将来の意図と決定" },
+    "feelings": { "name": "感情と気持ち", "description": "感情状態を表現する" },
+    "requests": { "name": "依頼と許可", "description": "丁寧に物事を頼む" },
+    "advice": { "name": "アドバイスと提案", "description": "推奨を与えたり受けたりする" },
+    "experiences": { "name": "経験", "description": "したことについて話す" },
+    "work": { "name": "仕事とプロフェッショナル", "description": "職場の言語" },
+    "social_life": { "name": "社会生活", "description": "社会的期待と関係" },
+    "habits": { "name": "習慣とルーティン", "description": "定期的な行動を説明する" },
+    "expectations": { "name": "期待", "description": "起こるべきことまたは起こること" },
+    "comparisons": { "name": "比較", "description": "対比と比較" },
+    "reasoning": { "name": "推論", "description": "原因と理由を説明する" },
+    "preferences": { "name": "好み", "description": "好きと選択を表現する" },
+    "goals": { "name": "目標と目的", "description": "目的と目標を表現する" }
+  },
+  "progress": {
+    "generating": "語彙チャンクパックを生成中...",
+    "tip": "30〜60秒かかる場合があります。コンテンツとオーディオを生成しています..."
+  },
+  "actions": {
+    "generate": "語彙チャンクパックを生成",
+    "generating": "語彙チャンクパックを生成中..."
+  },
+  "tip": "ヒント：各パックには、例文、ストーリー、練習問題を含む5〜8個のチャンクが含まれています。"
+}

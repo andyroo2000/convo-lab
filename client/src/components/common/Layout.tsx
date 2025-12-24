@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
+import { useTranslation } from 'react-i18next';
 import { Library, Mic } from 'lucide-react';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
@@ -9,6 +10,7 @@ import { LANGUAGE_ABBREVIATIONS } from '../../../../shared/src/constants-new';
 
 export default function Layout() {
   const { user, loading, logout } = useAuth();
+  const { t } = useTranslation(['common']);
   const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,7 +26,7 @@ export default function Layout() {
       <div className="min-h-screen flex items-center justify-center bg-cream">
         <div className="text-center">
           <div className="loading-spinner w-12 h-12 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="text-medium-brown">Loading...</p>
+          <p className="text-medium-brown">{t('common:loading')}</p>
         </div>
       </div>
     );
@@ -61,7 +63,7 @@ export default function Layout() {
               </Link>
               {isDemo && (
                 <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
-                  Demo Mode
+                  {t('common:demoMode')}
                 </span>
               )}
               {/* Desktop Navigation */}
@@ -75,7 +77,7 @@ export default function Layout() {
                   }`}
                 >
                   <Library className="w-4 h-4 mr-2 flex-shrink-0" />
-                  Library
+                  {t('common:nav.library')}
                 </Link>
                 <Link
                   to="/app/create"
@@ -86,7 +88,7 @@ export default function Layout() {
                   }`}
                 >
                   <Mic className="w-4 h-4 mr-2 flex-shrink-0" />
-                  Create
+                  {t('common:nav.create')}
                 </Link>
               </div>
               {/* Mobile Navigation */}
@@ -100,7 +102,7 @@ export default function Layout() {
                   }`}
                 >
                   <Library className="w-4 h-4 mr-1 flex-shrink-0" />
-                  Library
+                  {t('common:nav.library')}
                 </Link>
                 <Link
                   to="/app/create"
@@ -111,7 +113,7 @@ export default function Layout() {
                   }`}
                 >
                   <Mic className="w-4 h-4 mr-1 flex-shrink-0" />
-                  Create
+                  {t('common:nav.create')}
                 </Link>
               </div>
             </div>
@@ -119,7 +121,7 @@ export default function Layout() {
             <div className="flex items-center ml-2">
               {isDemo && (
                 <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full">
-                  Demo
+                  {t('common:demoMode')}
                 </span>
               )}
               {/* Language Indicator - Mobile */}

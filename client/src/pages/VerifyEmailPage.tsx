@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
@@ -7,6 +8,7 @@ import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function VerifyEmailPage() {
+  const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -88,7 +90,7 @@ export default function VerifyEmailPage() {
             className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Library
+            {t('auth:verifyEmail.backToLibrary')}
           </Link>
         </div>
 
@@ -97,7 +99,7 @@ export default function VerifyEmailPage() {
             <h1 className="text-4xl font-bold text-dark-brown">ConvoLab</h1>
             <Logo size="large" />
           </div>
-          <p className="text-medium-brown">Email Verification</p>
+          <p className="text-medium-brown">{t('auth:verifyEmail.pageTitle')}</p>
         </div>
 
         <div className="card">
@@ -105,10 +107,10 @@ export default function VerifyEmailPage() {
             <div className="text-center py-8">
               <Loader2 className="w-12 h-12 text-periwinkle animate-spin mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-dark-brown mb-2">
-                Verifying your email...
+                {t('auth:verifyEmail.verifying')}
               </h2>
               <p className="text-medium-brown">
-                Please wait while we verify your email address.
+                {t('auth:verifyEmail.verifyingDescription')}
               </p>
             </div>
           )}
@@ -117,13 +119,13 @@ export default function VerifyEmailPage() {
             <div className="text-center py-8">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Email Verified!
+                {t('auth:verifyEmail.success')}
               </h2>
               <p className="text-medium-brown mb-4">
-                Your email has been successfully verified. You can now create content in ConvoLab.
+                {t('auth:verifyEmail.successDescription')}
               </p>
               <p className="text-sm text-gray-500">
-                Redirecting to your library...
+                {t('auth:verifyEmail.redirecting')}
               </p>
             </div>
           )}
@@ -132,26 +134,26 @@ export default function VerifyEmailPage() {
             <div className="text-center py-8">
               <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Verification Failed
+                {t('auth:verifyEmail.failed')}
               </h2>
               <p className="text-red-600 mb-4">{error}</p>
 
               {user && !user.emailVerified && (
                 <div className="mt-6">
                   <p className="text-medium-brown mb-4">
-                    Need a new verification link?
+                    {t('auth:verifyEmail.needNewLink')}
                   </p>
                   <button
                     onClick={handleResendEmail}
                     disabled={resending}
                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {resending ? 'Sending...' : 'Resend Verification Email'}
+                    {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
                   </button>
 
                   {resendSuccess && (
                     <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-                      Verification email sent! Check your inbox.
+                      {t('auth:verifyEmail.resendSuccess')}
                     </div>
                   )}
                 </div>
@@ -163,13 +165,13 @@ export default function VerifyEmailPage() {
             <div className="text-center py-8">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Email Already Verified
+                {t('auth:verifyEmail.alreadyVerified')}
               </h2>
               <p className="text-medium-brown mb-6">
-                Your email is already verified. You can start creating content!
+                {t('auth:verifyEmail.alreadyVerifiedDescription')}
               </p>
               <Link to="/app/library" className="btn-primary inline-block">
-                Go to Library
+                {t('auth:verifyEmail.goToLibrary')}
               </Link>
             </div>
           )}
@@ -178,11 +180,10 @@ export default function VerifyEmailPage() {
             <div className="text-center py-8">
               <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Verify Your Email
+                {t('auth:verifyEmail.title')}
               </h2>
               <p className="text-medium-brown mb-6">
-                We sent a verification email to <strong>{user.email}</strong>.
-                Click the link in that email to verify your account.
+                {t('auth:verifyEmail.sentTo', { email: user.email })}
               </p>
 
               <button
@@ -190,12 +191,12 @@ export default function VerifyEmailPage() {
                 disabled={resending}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {resending ? 'Sending...' : 'Resend Verification Email'}
+                {resending ? t('auth:verifyEmail.sending') : t('auth:verifyEmail.resendButton')}
               </button>
 
               {resendSuccess && (
                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm">
-                  Verification email sent! Check your inbox.
+                  {t('auth:verifyEmail.resendSuccess')}
                 </div>
               )}
 

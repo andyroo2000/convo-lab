@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '../hooks/useLibraryData';
@@ -18,6 +19,7 @@ import { API_URL } from '../config';
 type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
 
 export default function LibraryPage() {
+  const { t } = useTranslation(['library', 'common']);
   const [searchParams, setSearchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
 
@@ -263,7 +265,7 @@ export default function LibraryPage() {
               data-testid="library-filter-dialogues"
             >
               <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Dialogues
+              {t('library:filters.dialogues')}
             </button>
           )}
           {isFeatureEnabled('audioCourseEnabled') && (
@@ -277,7 +279,7 @@ export default function LibraryPage() {
               data-testid="library-filter-courses"
             >
               <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Audio Courses
+              {t('library:filters.courses')}
             </button>
           )}
           {isFeatureEnabled('narrowListeningEnabled') && (
@@ -291,7 +293,7 @@ export default function LibraryPage() {
               data-testid="library-filter-narrow-listening"
             >
               <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Narrow Listening
+              {t('library:filters.narrowListening')}
             </button>
           )}
           {isFeatureEnabled('lexicalChunksEnabled') && (
@@ -305,7 +307,7 @@ export default function LibraryPage() {
               data-testid="library-filter-chunk-packs"
             >
               <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Lexical Chunk Packs
+              {t('library:filters.chunkPacks')}
             </button>
           )}
         </div>
@@ -411,7 +413,7 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Dialogue</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">{t('library:filters.dialogues').split(' ')[0]}</span>
                   </div>
 
                   {/* Content */}
@@ -438,7 +440,7 @@ export default function LibraryPage() {
                         )}
                         {episode.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
-                            Generating...
+                            {t('common:loading')}
                           </Pill>
                         )}
                         {!isDemo && !viewAsUserId && (
@@ -686,10 +688,10 @@ export default function LibraryPage() {
       {/* Delete Episode Confirmation Modal */}
       <ConfirmModal
         isOpen={episodeToDelete !== null}
-        title="Delete Episode"
-        message={`Are you sure you want to delete "${episodeToDelete?.title}"? This action cannot be undone and will delete all associated dialogue, audio, and images.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('library:delete.confirmTitle')}
+        message={t('library:delete.confirmEpisode', { title: episodeToDelete?.title })}
+        confirmLabel={t('library:delete.confirmButton')}
+        cancelLabel={t('library:delete.cancelButton')}
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         isLoading={isDeletingEpisode}
@@ -698,10 +700,10 @@ export default function LibraryPage() {
       {/* Delete Course Confirmation Modal */}
       <ConfirmModal
         isOpen={courseToDelete !== null}
-        title="Delete Audio Course"
-        message={`Are you sure you want to delete "${courseToDelete?.title}"? This action cannot be undone and will delete the course content and audio file.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('library:delete.confirmTitle')}
+        message={t('library:delete.confirmCourse', { title: courseToDelete?.title })}
+        confirmLabel={t('library:delete.confirmButton')}
+        cancelLabel={t('library:delete.cancelButton')}
         onConfirm={handleConfirmDeleteCourse}
         onCancel={handleCancelDelete}
         isLoading={isDeletingCourse}
@@ -710,10 +712,10 @@ export default function LibraryPage() {
       {/* Delete Narrow Listening Pack Confirmation Modal */}
       <ConfirmModal
         isOpen={packToDelete !== null}
-        title="Delete Narrow Listening Pack"
-        message={`Are you sure you want to delete "${packToDelete?.title}"? This action cannot be undone and will delete all story versions and audio files.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('library:delete.confirmTitle')}
+        message={t('library:delete.confirmNarrowListening', { title: packToDelete?.title })}
+        confirmLabel={t('library:delete.confirmButton')}
+        cancelLabel={t('library:delete.cancelButton')}
         onConfirm={handleConfirmDeletePack}
         onCancel={handleCancelDelete}
         isLoading={isDeletingNarrowListening}
@@ -722,10 +724,10 @@ export default function LibraryPage() {
       {/* Delete Chunk Pack Confirmation Modal */}
       <ConfirmModal
         isOpen={chunkPackToDelete !== null}
-        title="Delete Lexical Chunk Pack"
-        message={`Are you sure you want to delete "${chunkPackToDelete?.title}"? This action cannot be undone and will delete all chunks, examples, stories, exercises, and audio files.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('library:delete.confirmTitle')}
+        message={t('library:delete.confirmChunkPack', { title: chunkPackToDelete?.title })}
+        confirmLabel={t('library:delete.confirmButton')}
+        cancelLabel={t('library:delete.cancelButton')}
         onConfirm={handleConfirmDeleteChunkPack}
         onCancel={handleCancelDelete}
         isLoading={isDeletingChunkPack}

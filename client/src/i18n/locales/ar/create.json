@@ -1,0 +1,36 @@
+{
+  "title": "Create",
+  "subtitle": "Choose a content type to create",
+  "types": {
+    "dialogue": {
+      "title": "Dialogue",
+      "description": "Create a natural conversation between two speakers"
+    },
+    "course": {
+      "title": "Audio Course",
+      "description": "Create a Pimsleur-style audio lesson"
+    },
+    "narrowListening": {
+      "title": "Narrow Listening",
+      "description": "Create focused listening practice on a specific topic"
+    },
+    "processingInstruction": {
+      "title": "Processing Instruction",
+      "description": "Create grammar-focused learning activities"
+    },
+    "chunkPack": {
+      "title": "Lexical Chunk Pack",
+      "description": "Create vocabulary chunk practice sets"
+    }
+  },
+  "buttons": {
+    "create": "Create",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish"
+  },
+  "creating": "Creating...",
+  "success": "Created successfully!",
+  "error": "Failed to create content"
+}

@@ -351,7 +351,7 @@ router.post('/users/:id/subscription/cancel', async (req: AuthRequest, res, next
     // Import Stripe service for subscription cancellation
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2024-12-18.acacia' as any,
     });
 
     // Cancel the subscription in Stripe
