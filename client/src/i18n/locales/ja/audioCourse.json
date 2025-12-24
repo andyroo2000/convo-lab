@@ -73,5 +73,31 @@
     },
     "button": "オーディオコースを作成",
     "creating": "作成中..."
+  },
+  "creator": {
+    "title": "オーディオコースを作成",
+    "subtitle": "「{{episodeTitle}}」からのPimsleurスタイルのインタラクティブレッスン",
+    "titleLabel": "オーディオコースのタイトル",
+    "titlePlaceholder": "例：レストランでの会話 - オーディオコース",
+    "autoDescription": "説明はAIを使用して自動的に生成されます",
+    "narratorLabel": "ナレーターの音声（{{language}}）",
+    "narratorHelper": "この音声は{{language}}で指示をナレーションします",
+    "dialogueVoices": "対話音声（{{language}}）",
+    "cancel": "キャンセル",
+    "create": "オーディオコースを作成して生成",
+    "creating": "作成中...",
+    "errors": {
+      "titleRequired": "コースタイトルを入力してください",
+      "voiceRequired": "ナレーターの音声を選択してください",
+      "createFailed": "コースの作成に失敗しました",
+      "generateFailed": "コース生成の開始に失敗しました"
+    },
+    "pimsleurInfo": {
+      "title": "Pimsleurスタイルのコースとは？",
+      "description": "次の要素を使用した音声のみのレッスン：",
+      "feature1": "予測：応答するための一時停止を伴うプロンプト",
+      "feature2": "間隔反復：増加する間隔でレビューされる項目",
+      "feature3": "段階的難易度：シンプルなフレーズから複雑なフレーズへと構築"
+    }
   }
 }

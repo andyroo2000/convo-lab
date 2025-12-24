@@ -1,0 +1,112 @@
+{
+  "verification": {
+    "subject": "ConvoLabのメールアドレスを確認してください",
+    "title": "ConvoLabへようこそ！",
+    "greeting": "{{name}}様、",
+    "body": "ご登録ありがとうございます！言語学習コンテンツの作成を開始するには、メールアドレスをご確認ください。",
+    "button": "メールアドレスを確認",
+    "linkInstructions": "または、このリンクをブラウザにコピー＆ペーストしてください：",
+    "expiry": "このリンクは24時間で期限切れになります。アカウントを作成されていない場合は、このメールを無視してください。"
+  },
+  "passwordReset": {
+    "subject": "ConvoLabのパスワードをリセット",
+    "title": "パスワードをリセット",
+    "greeting": "{{name}}様、",
+    "body": "パスワードのリセットリクエストを受け付けました。以下のボタンをクリックして新しいパスワードを作成してください。",
+    "button": "パスワードをリセット",
+    "linkInstructions": "または、このリンクをブラウザにコピー＆ペーストしてください：",
+    "expiry": "このリンクは1時間で期限切れになります。パスワードのリセットをリクエストされていない場合は、このメールを無視してください。"
+  },
+  "welcome": {
+    "subject": "ConvoLabへようこそ！",
+    "title": "🎉 準備が完了しました！",
+    "greeting": "{{name}}様、",
+    "body": "メールアドレスが確認されました！これで没入型の言語学習コンテンツの作成を開始できます。",
+    "whatYouCanCreate": "作成できるもの：",
+    "dialogues": {
+      "title": "ダイアログ：",
+      "description": "複数の話者による自然な会話"
+    },
+    "audioCourses": {
+      "title": "オーディオコース：",
+      "description": "逆向き構築法を使ったピムスラー式レッスン"
+    },
+    "narrowListening": {
+      "title": "ナローリスニング：",
+      "description": "文法パターンの集中練習"
+    },
+    "lexicalChunks": {
+      "title": "語彙チャンク：",
+      "description": "一般的なフレーズや表現をマスター"
+    },
+    "button": "作成を開始",
+    "help": "始め方がわからない場合は、スタートガイドをご覧ください。",
+    "footer": "ご質問がございましたら、いつでもこのメールに返信してください！"
+  },
+  "passwordChanged": {
+    "subject": "ConvoLabのパスワードが変更されました",
+    "title": "パスワードが変更されました",
+    "greeting": "{{name}}様、",
+    "body": "ConvoLabのパスワードが正常に変更されたことをお知らせします。",
+    "ifYou": "ご自身で変更された場合は、このメールを無視してください。",
+    "warningTitle": "⚠️ この変更を行っていませんか？",
+    "warningBody": "パスワードを変更していない場合は、すぐに{{email}}までご連絡ください",
+    "footer": "これは自動セキュリティ通知です。"
+  },
+  "subscriptionConfirmed": {
+    "subject": "ConvoLab {{tier}}へようこそ！",
+    "title": "🎉 {{tier}}へようこそ！",
+    "greeting": "{{name}}様、",
+    "body": "ConvoLab {{tier}}サブスクリプションが有効になりました！言語学習をより没入的で効果的にするという私たちのミッションをサポートしていただき、ありがとうございます。",
+    "benefitsTitle": "{{tier}}の特典",
+    "generations": "週{{count}}回の生成",
+    "contentTypes": "すべてのコンテンツタイプ（ダイアログ、コース、ナローリスニング、チャンク）",
+    "tts": "高品質Google Cloud TTS音声",
+    "support": "優先サポート",
+    "button": "作成を開始",
+    "manage": "サブスクリプションは、請求設定からいつでも管理できます。",
+    "footer": "ご質問がございましたら、いつでもこのメールに返信してください！"
+  },
+  "paymentFailed": {
+    "subject": "ConvoLabの支払いが失敗しました - 対応が必要です",
+    "title": "支払いが失敗しました",
+    "greeting": "{{name}}様、",
+    "body": "ConvoLabサブスクリプションの支払い処理ができませんでした。原因として以下が考えられます：",
+    "reasonFunds": "残高不足",
+    "reasonExpired": "カードの有効期限切れ",
+    "reasonVerification": "カード認証の問題",
+    "warningTitle": "⚠️ 対応が必要です",
+    "warningBody": "サービスの中断を避けるため、お支払い方法を更新してください。",
+    "button": "支払い方法を更新",
+    "help": "問題が解決しない場合は、{{email}}までご連絡ください",
+    "footer": "これは自動支払い通知です。"
+  },
+  "subscriptionCanceled": {
+    "subject": "ConvoLabサブスクリプションがキャンセルされました",
+    "title": "サブスクリプションがキャンセルされました",
+    "greeting": "{{name}}様、",
+    "body": "ConvoLab Proサブスクリプションがキャンセルされ、無料プランにダウングレードされました。",
+    "freeTierTitle": "無料プランの制限",
+    "generations": "週{{count}}回の生成",
+    "contentTypes": "すべてのコンテンツタイプが利用可能",
+    "support": "標準サポート",
+    "sorryToSeeYouGo": "残念です！キャンセルの理由についてフィードバックをいただけると幸いです。",
+    "reactivateNote": "Proサブスクリプションは、請求設定からいつでも再開できます。",
+    "button": "請求設定を表示",
+    "footer": "ご質問がございましたら、いつでもこのメールに返信してください！"
+  },
+  "quotaWarning": {
+    "subject": "週次ConvoLab割当量の{{percentage}}%を使用しました",
+    "title": "⚠️ 割当量の警告",
+    "greeting": "{{name}}様、",
+    "body": "今週は{{limit}}回中{{used}}回の生成を使用しました（{{percentage}}%）。",
+    "usageTitle": "週次使用量",
+    "remaining": "残り{{count}}回の生成",
+    "remaining_plural": "残り{{count}}回の生成",
+    "quotaReset": "割当量は毎週月曜日の午前0時（UTC）にリセットされます。",
+    "upgradeTitle": "💡 もっと必要ですか？",
+    "upgradeBody": "Proにアップグレードして週{{count}}回の生成（月額$7）",
+    "button": "Proにアップグレード",
+    "footer": "これは自動使用量通知です。"
+  }
+}

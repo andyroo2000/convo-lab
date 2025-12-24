@@ -1,0 +1,112 @@
+{
+  "verification": {
+    "subject": "Verifica tu correo electrónico de ConvoLab",
+    "title": "¡Bienvenido a ConvoLab!",
+    "greeting": "Hola {{name}},",
+    "body": "¡Gracias por registrarte! Por favor verifica tu dirección de correo electrónico para comenzar a crear contenido de aprendizaje de idiomas.",
+    "button": "Verificar Dirección de Correo",
+    "linkInstructions": "O copia y pega este enlace en tu navegador:",
+    "expiry": "Este enlace expirará en 24 horas. Si no creaste una cuenta, puedes ignorar este correo de forma segura."
+  },
+  "passwordReset": {
+    "subject": "Restablece tu contraseña de ConvoLab",
+    "title": "Restablecer Contraseña",
+    "greeting": "Hola {{name}},",
+    "body": "Recibimos una solicitud para restablecer tu contraseña. Haz clic en el botón de abajo para crear una nueva contraseña.",
+    "button": "Restablecer Contraseña",
+    "linkInstructions": "O copia y pega este enlace en tu navegador:",
+    "expiry": "Este enlace expirará en 1 hora. Si no solicitaste restablecer la contraseña, puedes ignorar este correo de forma segura."
+  },
+  "welcome": {
+    "subject": "¡Bienvenido a ConvoLab!",
+    "title": "🎉 ¡Todo Listo!",
+    "greeting": "Hola {{name}},",
+    "body": "¡Tu correo electrónico ha sido verificado! Ahora puedes comenzar a crear contenido de aprendizaje de idiomas inmersivo.",
+    "whatYouCanCreate": "Lo que puedes crear:",
+    "dialogues": {
+      "title": "Diálogos:",
+      "description": "Conversaciones naturales con múltiples hablantes"
+    },
+    "audioCourses": {
+      "title": "Cursos de Audio:",
+      "description": "Lecciones estilo Pimsleur con construcción inversa"
+    },
+    "narrowListening": {
+      "title": "Escucha Enfocada:",
+      "description": "Práctica centrada en patrones gramaticales"
+    },
+    "lexicalChunks": {
+      "title": "Bloques Léxicos:",
+      "description": "Domina frases y expresiones comunes"
+    },
+    "button": "Comenzar a Crear",
+    "help": "¿Necesitas ayuda para comenzar? Consulta nuestra Guía de Inicio.",
+    "footer": "¿Preguntas? ¡Responde a este correo en cualquier momento!"
+  },
+  "passwordChanged": {
+    "subject": "Tu contraseña de ConvoLab fue cambiada",
+    "title": "Contraseña Cambiada",
+    "greeting": "Hola {{name}},",
+    "body": "Esta es una confirmación de que tu contraseña de ConvoLab ha sido cambiada exitosamente.",
+    "ifYou": "Si realizaste este cambio, puedes ignorar este correo de forma segura.",
+    "warningTitle": "⚠️ ¿No hiciste este cambio?",
+    "warningBody": "Si no cambiaste tu contraseña, por favor contáctanos inmediatamente en {{email}}",
+    "footer": "Esta es una notificación de seguridad automatizada."
+  },
+  "subscriptionConfirmed": {
+    "subject": "¡Bienvenido a ConvoLab {{tier}}!",
+    "title": "🎉 ¡Bienvenido a {{tier}}!",
+    "greeting": "Hola {{name}},",
+    "body": "¡Tu suscripción de ConvoLab {{tier}} ahora está activa! Gracias por apoyar nuestra misión de hacer el aprendizaje de idiomas más inmersivo y efectivo.",
+    "benefitsTitle": "Tus Beneficios de {{tier}}",
+    "generations": "{{count}} generaciones por semana",
+    "contentTypes": "Todos los tipos de contenido (diálogos, cursos, escucha enfocada, bloques)",
+    "tts": "Audio TTS de alta calidad de Google Cloud",
+    "support": "Soporte prioritario",
+    "button": "Comenzar a Crear",
+    "manage": "Puedes administrar tu suscripción en cualquier momento desde tu configuración de facturación.",
+    "footer": "¿Preguntas? ¡Responde a este correo en cualquier momento!"
+  },
+  "paymentFailed": {
+    "subject": "Fallo en el pago de ConvoLab - Acción requerida",
+    "title": "Pago Fallido",
+    "greeting": "Hola {{name}},",
+    "body": "No pudimos procesar tu pago para tu suscripción de ConvoLab. Esto podría deberse a:",
+    "reasonFunds": "Fondos insuficientes",
+    "reasonExpired": "Tarjeta vencida",
+    "reasonVerification": "Problema de verificación de tarjeta",
+    "warningTitle": "⚠️ Acción Requerida",
+    "warningBody": "Por favor actualiza tu método de pago para evitar la interrupción del servicio.",
+    "button": "Actualizar Método de Pago",
+    "help": "Si continúas teniendo problemas, por favor contáctanos en {{email}}",
+    "footer": "Esta es una notificación de pago automatizada."
+  },
+  "subscriptionCanceled": {
+    "subject": "Tu suscripción de ConvoLab ha sido cancelada",
+    "title": "Suscripción Cancelada",
+    "greeting": "Hola {{name}},",
+    "body": "Tu suscripción de ConvoLab Pro ha sido cancelada y has sido degradado al plan Gratuito.",
+    "freeTierTitle": "Límites del Plan Gratuito",
+    "generations": "{{count}} generaciones por semana",
+    "contentTypes": "Todos los tipos de contenido disponibles",
+    "support": "Soporte estándar",
+    "sorryToSeeYouGo": "¡Lamentamos verte partir! Si deseas compartir comentarios sobre por qué cancelaste, nos encantaría escucharte.",
+    "reactivateNote": "Puedes reactivar tu suscripción Pro en cualquier momento desde tu configuración de facturación.",
+    "button": "Ver Configuración de Facturación",
+    "footer": "¿Preguntas? ¡Responde a este correo en cualquier momento!"
+  },
+  "quotaWarning": {
+    "subject": "Has usado el {{percentage}}% de tu cuota semanal de ConvoLab",
+    "title": "⚠️ Advertencia de Cuota",
+    "greeting": "Hola {{name}},",
+    "body": "Has usado {{used}} de {{limit}} generaciones esta semana ({{percentage}}%).",
+    "usageTitle": "Uso Semanal",
+    "remaining": "{{count}} generación restante",
+    "remaining_plural": "{{count}} generaciones restantes",
+    "quotaReset": "Tu cuota se restablece cada lunes a medianoche UTC.",
+    "upgradeTitle": "💡 ¿Necesitas más?",
+    "upgradeBody": "Actualiza a Pro para {{count}} generaciones por semana ($7/mes)",
+    "button": "Actualizar a Pro",
+    "footer": "Esta es una notificación de uso automatizada."
+  }
+}

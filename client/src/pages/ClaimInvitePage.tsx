@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Logo from '../components/common/Logo';
 import { API_URL } from '../config';
 
 export default function ClaimInvitePage() {
+  const { t } = useTranslation('auth');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -62,16 +64,16 @@ export default function ClaimInvitePage() {
 
         <div className="card">
           <h2 className="text-2xl font-bold text-dark-brown mb-2">
-            Welcome to ConvoLab!
+            {t('claimInvite.title')}
           </h2>
           <p className="text-medium-brown mb-6">
-            ConvoLab is currently invite-only. Please enter your invite code to continue.
+            {t('claimInvite.description')}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="inviteCode" className="block text-sm font-medium text-dark-brown mb-1">
-                Invite Code
+                {t('claimInvite.codeLabel')}
               </label>
               <input
                 id="inviteCode"
@@ -79,7 +81,7 @@ export default function ClaimInvitePage() {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 className="input"
-                placeholder="Enter your invite code"
+                placeholder={t('claimInvite.codePlaceholder')}
                 required
                 autoFocus
               />
@@ -96,18 +98,18 @@ export default function ClaimInvitePage() {
               disabled={loading}
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Verifying...' : 'Continue'}
+              {loading ? t('claimInvite.verifying') : t('claimInvite.continue')}
             </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-gray-200">
             <p className="text-sm text-medium-brown text-center">
-              Don't have an invite code?{' '}
+              {t('claimInvite.noCode')}{' '}
               <a
                 href="mailto:support@convolab.app"
                 className="text-periwinkle hover:text-dark-periwinkle"
               >
-                Contact us
+                {t('claimInvite.contact')}
               </a>
             </p>
           </div>

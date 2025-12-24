@@ -73,5 +73,31 @@
     },
     "button": "Créer le Cours Audio",
     "creating": "Création..."
+  },
+  "creator": {
+    "title": "Créer un Cours Audio",
+    "subtitle": "Leçon interactive style Pimsleur de \"{{episodeTitle}}\"",
+    "titleLabel": "Titre du Cours Audio",
+    "titlePlaceholder": "ex., Conversation au Restaurant - Cours Audio",
+    "autoDescription": "Une description sera automatiquement générée par IA",
+    "narratorLabel": "Voix du Narrateur ({{language}})",
+    "narratorHelper": "Cette voix narrera les instructions en {{language}}",
+    "dialogueVoices": "Voix du Dialogue ({{language}})",
+    "cancel": "Annuler",
+    "create": "Créer et Générer le Cours Audio",
+    "creating": "Création...",
+    "errors": {
+      "titleRequired": "Veuillez entrer un titre de cours",
+      "voiceRequired": "Veuillez sélectionner une voix de narrateur",
+      "createFailed": "Échec de la création du cours",
+      "generateFailed": "Échec du démarrage de la génération du cours"
+    },
+    "pimsleurInfo": {
+      "title": "Qu'est-ce qu'un cours style Pimsleur ?",
+      "description": "Une leçon audio uniquement utilisant :",
+      "feature1": "Anticipation : Incitations avec pauses pour que vous répondiez",
+      "feature2": "Répétition Espacée : Éléments revus à intervalles croissants",
+      "feature3": "Difficulté Graduée : Construit du simple au complexe"
+    }
   }
 }

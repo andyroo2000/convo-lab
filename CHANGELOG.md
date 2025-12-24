@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+- **[feat]** Server-side i18n email templates - added i18next integration to server with email templates in 6 languages (English, Japanese, Chinese, Spanish, French, Arabic); refactored email service to use localized templates for all transactional emails including verification, password reset, welcome, subscription confirmations, and payment notifications
+- **[feat]** Husky pre-commit hooks - automated test execution before commits to ensure code quality; includes 906 lines of new unit tests for Redis configuration, admin security, and worker trigger service
+- **[i18n]** Pricing page translations - added complete pricing page content across all 6 supported languages with feature descriptions, CTAs, and tier comparisons
 - **[feat]** i18n support with multilingual UI - implemented comprehensive internationalization infrastructure using i18next to support English, Japanese, Chinese, Spanish, French, and Arabic interfaces; all user-facing pages, components, and dialogs are now fully translatable with LocaleContext managing language preferences across the application
 - **[i18n]** Complete translations for Spanish, French, Arabic, and Chinese - replaced English placeholder text with proper translations across all non-English locales for landing page, dialogue generator, audio courses, chunk packs, narrow listening, processing instruction, and 404 page content
 - **[test]** Integration and security tests for quota and webhooks (1,559 lines) - comprehensive test coverage for quota system race conditions with concurrent request handling and Redis cooldown coordination, Stripe webhook handlers for subscription lifecycle and payment failures, email service token security with cryptographic token generation and one-time use verification, and date utilities for week boundary calculations and timezone handling

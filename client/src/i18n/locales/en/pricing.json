@@ -1,0 +1,60 @@
+{
+  "title": "Choose Your Plan",
+  "subtitle": "Start creating immersive language learning content today. Upgrade or downgrade anytime.",
+  "tiers": {
+    "free": {
+      "name": "Free",
+      "price": "$0",
+      "period": "forever",
+      "description": "Perfect for trying out ConvoLab",
+      "features": {
+        "generations": "5 generations per week",
+        "contentTypes": "All content types",
+        "tts": "High-quality TTS audio",
+        "support": "Standard support"
+      }
+    },
+    "test": {
+      "name": "Test",
+      "price": "$0.01",
+      "period": "per month",
+      "description": "Test tier for internal testing",
+      "features": {
+        "generations": "30 generations per week",
+        "contentTypes": "All content types",
+        "tts": "High-quality TTS audio",
+        "testFlow": "Test payment flow"
+      },
+      "cta": "Test Checkout"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "$7",
+      "period": "per month",
+      "description": "For serious language learners",
+      "features": {
+        "generations": "30 generations per week",
+        "contentTypes": "All content types",
+        "tts": "High-quality TTS audio",
+        "support": "Priority support",
+        "earlyAccess": "Early access to new features"
+      },
+      "cta": "Upgrade to Pro"
+    }
+  },
+  "badges": {
+    "popular": "Most Popular",
+    "current": "Current Plan"
+  },
+  "actions": {
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade to Pro",
+    "downgrade": "Downgrade",
+    "loading": "Loading..."
+  },
+  "footer": {
+    "inviteOnly": "All plans require an invite code. ConvoLab is currently invite-only.",
+    "questions": "Questions about pricing?",
+    "contact": "Contact us"
+  }
+}

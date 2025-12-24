@@ -16,5 +16,11 @@
     "forbidden": "You don't have permission to do that.",
     "notFound": "Resource not found.",
     "serverError": "Server error. Please try again later."
+  },
+  "boundary": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred",
+    "tryAgain": "Try Again",
+    "goToLibrary": "Go to Library"
   }
 }

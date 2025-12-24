@@ -73,5 +73,31 @@
     },
     "button": "إنشاء دورة صوتية",
     "creating": "جاري الإنشاء..."
+  },
+  "creator": {
+    "title": "إنشاء دورة صوتية",
+    "subtitle": "درس تفاعلي بأسلوب Pimsleur من \"{{episodeTitle}}\"",
+    "titleLabel": "عنوان الدورة الصوتية",
+    "titlePlaceholder": "مثال: محادثة المطعم - دورة صوتية",
+    "autoDescription": "سيتم إنشاء وصف تلقائياً باستخدام الذكاء الاصطناعي",
+    "narratorLabel": "صوت الراوي ({{language}})",
+    "narratorHelper": "سيقوم هذا الصوت بسرد التعليمات بـ {{language}}",
+    "dialogueVoices": "أصوات الحوار ({{language}})",
+    "cancel": "إلغاء",
+    "create": "إنشاء وتوليد الدورة الصوتية",
+    "creating": "جاري الإنشاء...",
+    "errors": {
+      "titleRequired": "يرجى إدخال عنوان الدورة",
+      "voiceRequired": "يرجى اختيار صوت الراوي",
+      "createFailed": "فشل إنشاء الدورة",
+      "generateFailed": "فشل بدء إنشاء الدورة"
+    },
+    "pimsleurInfo": {
+      "title": "ما هي دورة بأسلوب Pimsleur؟",
+      "description": "درس صوتي فقط يستخدم:",
+      "feature1": "التوقع: مطالبات مع فترات توقف للاستجابة",
+      "feature2": "التكرار المتباعد: عناصر تتم مراجعتها على فترات متزايدة",
+      "feature3": "الصعوبة المتدرجة: البناء من عبارات بسيطة إلى معقدة"
+    }
   }
 }

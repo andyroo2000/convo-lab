@@ -1,0 +1,112 @@
+{
+  "verification": {
+    "subject": "验证您的ConvoLab电子邮件",
+    "title": "欢迎来到ConvoLab！",
+    "greeting": "您好，{{name}}，",
+    "body": "感谢您的注册！请验证您的电子邮件地址以开始创建语言学习内容。",
+    "button": "验证电子邮件地址",
+    "linkInstructions": "或将此链接复制并粘贴到浏览器中：",
+    "expiry": "此链接将在24小时后过期。如果您没有创建帐户，可以安全地忽略此电子邮件。"
+  },
+  "passwordReset": {
+    "subject": "重置您的ConvoLab密码",
+    "title": "重置密码",
+    "greeting": "您好，{{name}}，",
+    "body": "我们收到了重置您密码的请求。点击下面的按钮创建新密码。",
+    "button": "重置密码",
+    "linkInstructions": "或将此链接复制并粘贴到浏览器中：",
+    "expiry": "此链接将在1小时后过期。如果您没有请求重置密码，可以安全地忽略此电子邮件。"
+  },
+  "welcome": {
+    "subject": "欢迎来到ConvoLab！",
+    "title": "🎉 一切准备就绪！",
+    "greeting": "您好，{{name}}，",
+    "body": "您的电子邮件已验证！现在可以开始创建沉浸式语言学习内容了。",
+    "whatYouCanCreate": "您可以创建：",
+    "dialogues": {
+      "title": "对话：",
+      "description": "多个说话者的自然对话"
+    },
+    "audioCourses": {
+      "title": "音频课程：",
+      "description": "采用反向构建法的Pimsleur风格课程"
+    },
+    "narrowListening": {
+      "title": "窄式听力：",
+      "description": "专注于语法模式的练习"
+    },
+    "lexicalChunks": {
+      "title": "词汇组块：",
+      "description": "掌握常用短语和表达"
+    },
+    "button": "开始创建",
+    "help": "需要入门帮助？查看我们的入门指南。",
+    "footer": "有问题吗？随时回复此邮件！"
+  },
+  "passwordChanged": {
+    "subject": "您的ConvoLab密码已更改",
+    "title": "密码已更改",
+    "greeting": "您好，{{name}}，",
+    "body": "这是确认您的ConvoLab密码已成功更改。",
+    "ifYou": "如果是您进行的更改，可以安全地忽略此电子邮件。",
+    "warningTitle": "⚠️ 不是您做的更改？",
+    "warningBody": "如果您没有更改密码，请立即通过{{email}}联系我们",
+    "footer": "这是自动安全通知。"
+  },
+  "subscriptionConfirmed": {
+    "subject": "欢迎使用ConvoLab {{tier}}！",
+    "title": "🎉 欢迎使用{{tier}}！",
+    "greeting": "您好，{{name}}，",
+    "body": "您的ConvoLab {{tier}}订阅现已激活！感谢您支持我们让语言学习更加沉浸和有效的使命。",
+    "benefitsTitle": "您的{{tier}}权益",
+    "generations": "每周{{count}}次生成",
+    "contentTypes": "所有内容类型（对话、课程、窄式听力、组块）",
+    "tts": "高质量Google Cloud TTS音频",
+    "support": "优先支持",
+    "button": "开始创建",
+    "manage": "您可以随时从账单设置管理订阅。",
+    "footer": "有问题吗？随时回复此邮件！"
+  },
+  "paymentFailed": {
+    "subject": "ConvoLab付款失败 - 需要采取行动",
+    "title": "付款失败",
+    "greeting": "您好，{{name}}，",
+    "body": "我们无法处理您的ConvoLab订阅付款。可能的原因包括：",
+    "reasonFunds": "余额不足",
+    "reasonExpired": "卡已过期",
+    "reasonVerification": "卡验证问题",
+    "warningTitle": "⚠️ 需要采取行动",
+    "warningBody": "请更新您的付款方式以避免服务中断。",
+    "button": "更新付款方式",
+    "help": "如果问题持续存在，请通过{{email}}联系我们",
+    "footer": "这是自动付款通知。"
+  },
+  "subscriptionCanceled": {
+    "subject": "您的ConvoLab订阅已取消",
+    "title": "订阅已取消",
+    "greeting": "您好，{{name}}，",
+    "body": "您的ConvoLab Pro订阅已被取消，并已降级到免费套餐。",
+    "freeTierTitle": "免费套餐限制",
+    "generations": "每周{{count}}次生成",
+    "contentTypes": "所有内容类型可用",
+    "support": "标准支持",
+    "sorryToSeeYouGo": "很遗憾看到您离开！如果您愿意分享取消的原因，我们很乐意听取您的反馈。",
+    "reactivateNote": "您可以随时从账单设置重新激活Pro订阅。",
+    "button": "查看账单设置",
+    "footer": "有问题吗？随时回复此邮件！"
+  },
+  "quotaWarning": {
+    "subject": "您已使用每周ConvoLab配额的{{percentage}}%",
+    "title": "⚠️ 配额警告",
+    "greeting": "您好，{{name}}，",
+    "body": "本周您已使用{{limit}}次生成中的{{used}}次（{{percentage}}%）。",
+    "usageTitle": "每周使用量",
+    "remaining": "剩余{{count}}次生成",
+    "remaining_plural": "剩余{{count}}次生成",
+    "quotaReset": "配额每周一UTC午夜重置。",
+    "upgradeTitle": "💡 需要更多？",
+    "upgradeBody": "升级到Pro，每周{{count}}次生成（$7/月）",
+    "button": "升级到Pro",
+    "footer": "这是自动使用量通知。"
+  }
+}

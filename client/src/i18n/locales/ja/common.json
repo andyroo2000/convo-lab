@@ -37,5 +37,37 @@
   "confirm": {
     "delete": "本当に削除しますか？",
     "logout": "本当にログアウトしますか？"
+  },
+  "upgradePrompt": {
+    "title": "割当量の上限に達しました",
+    "quotaUsed": "今週は{{limit}}回中{{used}}回の生成を使用しました",
+    "limitReached": "週次生成の上限に達しました。Proにアップグレードして、より多くのコンテンツを作成し、プレミアム機能をアンロックしましょう！",
+    "limitReachedPro": "週次生成の上限に達しました。割当量は来週の開始時（月曜日00:00 UTC）にリセットされます。",
+    "proPlan": {
+      "title": "Proプラン - 月額$7",
+      "feature1": "週30回の生成",
+      "feature1Detail": "（無料プランの6倍）",
+      "feature2": "すべてのコンテンツタイプ",
+      "feature3": "高品質Google Cloud TTS",
+      "feature4": "優先サポート"
+    },
+    "proInfo": {
+      "plan": "Proプラン：",
+      "planDetail": "週30回の生成",
+      "quota": "割当量リセット：",
+      "quotaDetail": "毎週月曜日午前0時（UTC）"
+    },
+    "buttons": {
+      "upgrade": "Proにアップグレード - 月額$7",
+      "maybeLater": "後で",
+      "viewBilling": "請求設定を表示",
+      "close": "閉じる"
+    }
+  },
+  "aria": {
+    "close": "閉じる",
+    "play": "再生",
+    "pause": "一時停止",
+    "repeatMode": "リピートモード: {{mode}}"
   }
 }

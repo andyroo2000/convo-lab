@@ -1,38 +1,73 @@
 {
   "nav": {
-    "library": "Library",
-    "create": "Create"
+    "library": "المكتبة",
+    "create": "إنشاء"
   },
-  "demoMode": "Demo Mode",
-  "loading": "Loading...",
+  "demoMode": "الوضع التجريبي",
+  "loading": "جارٍ التحميل...",
   "buttons": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "close": "Close",
-    "edit": "Edit",
-    "add": "Add",
-    "remove": "Remove",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "continue": "Continue",
-    "submit": "Submit",
-    "reset": "Reset",
-    "logout": "Logout"
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "confirm": "تأكيد",
+    "close": "إغلاق",
+    "edit": "تحرير",
+    "add": "إضافة",
+    "remove": "إزالة",
+    "back": "رجوع",
+    "next": "التالي",
+    "finish": "إنهاء",
+    "continue": "متابعة",
+    "submit": "إرسال",
+    "reset": "إعادة تعيين",
+    "logout": "تسجيل الخروج",
+    "backToHome": "العودة للرئيسية"
   },
+  "tagline": "مختبرك الشخصي للغات بالذكاء الاصطناعي",
+  "footer": "من Conversational Dynamics Consulting Group",
   "error": {
-    "generic": "Something went wrong",
-    "network": "Network error. Please try again."
+    "generic": "حدث خطأ ما",
+    "network": "خطأ في الشبكة. يرجى المحاولة مرة أخرى."
   },
   "success": {
-    "saved": "Saved!",
-    "deleted": "Deleted successfully",
-    "updated": "Updated successfully"
+    "saved": "تم الحفظ!",
+    "deleted": "تم الحذف بنجاح",
+    "updated": "تم التحديث بنجاح"
   },
   "confirm": {
-    "delete": "Are you sure you want to delete this?",
-    "logout": "Are you sure you want to logout?"
+    "delete": "هل أنت متأكد أنك تريد حذف هذا؟",
+    "logout": "هل أنت متأكد أنك تريد تسجيل الخروج؟"
+  },
+  "upgradePrompt": {
+    "title": "تم الوصول إلى حد الحصة",
+    "quotaUsed": "لقد استخدمت {{used}} من {{limit}} عملية إنشاء هذا الأسبوع",
+    "limitReached": "لقد وصلت إلى حد الإنشاء الأسبوعي. قم بالترقية إلى Pro لإنشاء المزيد من المحتوى وفتح الميزات المتميزة!",
+    "limitReachedPro": "لقد وصلت إلى حد الإنشاء الأسبوعي. ستتم إعادة تعيين حصتك في بداية الأسبوع المقبل (الاثنين 00:00 UTC).",
+    "proPlan": {
+      "title": "خطة Pro - $7/شهر",
+      "feature1": "30 عملية إنشاء في الأسبوع",
+      "feature1Detail": "(6 أضعاف المجاني)",
+      "feature2": "جميع أنواع المحتوى مشمولة",
+      "feature3": "TTS عالي الجودة من Google Cloud",
+      "feature4": "دعم ذو أولوية"
+    },
+    "proInfo": {
+      "plan": "خطة Pro:",
+      "planDetail": "30 عملية إنشاء في الأسبوع",
+      "quota": "إعادة تعيين الحصة:",
+      "quotaDetail": "كل يوم اثنين في منتصف الليل UTC"
+    },
+    "buttons": {
+      "upgrade": "الترقية إلى Pro - $7/شهر",
+      "maybeLater": "ربما لاحقاً",
+      "viewBilling": "عرض إعدادات الفواتير",
+      "close": "إغلاق"
+    }
+  },
+  "aria": {
+    "close": "إغلاق",
+    "play": "تشغيل",
+    "pause": "إيقاف مؤقت",
+    "repeatMode": "وضع التكرار: {{mode}}"
   }
 }

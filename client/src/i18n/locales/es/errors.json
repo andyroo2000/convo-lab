@@ -1,20 +1,26 @@
 {
   "network": {
-    "offline": "You are offline. Please check your internet connection.",
-    "timeout": "Request timed out. Please try again.",
-    "generic": "Network error. Please try again."
+    "offline": "Estás desconectado. Por favor, verifica tu conexión a internet.",
+    "timeout": "La solicitud ha caducado. Por favor, inténtalo de nuevo.",
+    "generic": "Error de red. Por favor, inténtalo de nuevo."
   },
   "validation": {
-    "required": "This field is required",
-    "email": "Please enter a valid email address",
-    "password": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match",
-    "invalidInviteCode": "Invalid invite code"
+    "required": "Este campo es obligatorio",
+    "email": "Por favor, ingresa una dirección de correo electrónico válida",
+    "password": "La contraseña debe tener al menos 8 caracteres",
+    "passwordMatch": "Las contraseñas no coinciden",
+    "invalidInviteCode": "Código de invitación inválido"
   },
   "api": {
-    "unauthorized": "Unauthorized. Please login again.",
-    "forbidden": "You don't have permission to do that.",
-    "notFound": "Resource not found.",
-    "serverError": "Server error. Please try again later."
+    "unauthorized": "No autorizado. Por favor, inicia sesión de nuevo.",
+    "forbidden": "No tienes permiso para hacer eso.",
+    "notFound": "Recurso no encontrado.",
+    "serverError": "Error del servidor. Por favor, inténtalo más tarde."
+  },
+  "boundary": {
+    "title": "Algo salió mal",
+    "description": "Ocurrió un error inesperado",
+    "tryAgain": "Intentar de nuevo",
+    "goToLibrary": "Ir a la biblioteca"
   }
 }
