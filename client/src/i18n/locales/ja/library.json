@@ -22,7 +22,8 @@
     "cancelButton": "キャンセル",
     "deleting": "削除中...",
     "success": "正常に削除されました",
-    "error": "削除に失敗しました"
+    "error": "削除に失敗しました",
+    "alertError": "[NEEDS_TRANSLATION] Failed to delete {{type}}. Please try again."
   },
   "loading": "コンテンツを読み込み中...",
   "loadMore": "もっと読み込む",
@@ -30,5 +31,36 @@
     "viewing": "表示中",
     "library": "ライブラリ",
     "exitButton": "表示を終了"
+  },
+  "emptyStates": {
+    "dialogue": {
+      "title": "[NEEDS_TRANSLATION] Create Your First Dialogue",
+      "description": "[NEEDS_TRANSLATION] Generate comprehensible input dialogues at your level with natural conversations and audio",
+      "button": "[NEEDS_TRANSLATION] Get Started"
+    },
+    "course": {
+      "title": "[NEEDS_TRANSLATION] Create Your First Audio Course",
+      "description": "[NEEDS_TRANSLATION] Build guided audio courses with structured lessons and pronunciation practice",
+      "button": "[NEEDS_TRANSLATION] Get Started"
+    },
+    "narrowListening": {
+      "title": "[NEEDS_TRANSLATION] Create Your First Narrow Listening Pack",
+      "description": "[NEEDS_TRANSLATION] Practice with story variations at your level for focused listening comprehension",
+      "button": "[NEEDS_TRANSLATION] Get Started"
+    },
+    "chunkPack": {
+      "title": "[NEEDS_TRANSLATION] Create Your First Lexical Chunk Pack",
+      "description": "[NEEDS_TRANSLATION] Master high-frequency expressions with examples, stories, and interactive exercises",
+      "button": "[NEEDS_TRANSLATION] Get Started"
+    },
+    "all": {
+      "description": "[NEEDS_TRANSLATION] No content yet. Get started by creating your first learning material!",
+      "button": "[NEEDS_TRANSLATION] Browse All Options"
+    }
+  },
+  "sidebar": {
+    "course": "[NEEDS_TRANSLATION] Audio\nCourse",
+    "narrowListening": "[NEEDS_TRANSLATION] Narrow\nListening",
+    "chunkPack": "[NEEDS_TRANSLATION] Chunk\nPack"
   }
 }

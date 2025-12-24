@@ -12,11 +12,7 @@
   "step3": {
     "title": "What's your proficiency level?",
     "description": "Select your current skill level",
-    "levels": {
-      "beginner": "Beginner",
-      "intermediate": "Intermediate",
-      "advanced": "Advanced"
-    }
+    "levels": {}
   },
   "buttons": {
     "next": "Next",

@@ -59,11 +59,11 @@
     "ready": "هل أنت مستعد للإنشاء؟",
     "description": "سينشئ الذكاء الاصطناعي محادثة طبيعية بـ {{language}} بين متحدثين بأسماء وأصوات معينة عشوائياً. سيستخدم كلا المتحدثين لغة {{tone}} من مستوى {{level}}.",
     "features": {
-      "turns": "دورة حوار واحدة",
-      "turns_plural": "{{count}} دورة حوار",
       "variations": "3 تنويعات لكل جملة",
       "translations": "ترجمات إنجليزية",
-      "complexity": "تعقيد لغوي يطابق المستوى"
+      "complexity": "تعقيد لغوي يطابق المستوى",
+      "turns_one": "[NEEDS_TRANSLATION] {{count}} dialogue turn",
+      "turns_other": "[NEEDS_TRANSLATION] {{count}} dialogue turns"
     },
     "button": "إنشاء الحوار",
     "generating": "جاري الإنشاء..."

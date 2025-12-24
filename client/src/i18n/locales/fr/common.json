@@ -69,5 +69,31 @@
     "play": "Lecture",
     "pause": "Pause",
     "repeatMode": "Mode répétition : {{mode}}"
-  }
+  },
+  "modal": {
+    "confirm": "[NEEDS_TRANSLATION] Confirm",
+    "cancel": "[NEEDS_TRANSLATION] Cancel",
+    "processing": "[NEEDS_TRANSLATION] Processing...",
+    "gotIt": "[NEEDS_TRANSLATION] Got it"
+  },
+  "quota": {
+    "generationsLeft": "[NEEDS_TRANSLATION] {{remaining}}/{{limit}} generations left this week",
+    "lowQuota": "[NEEDS_TRANSLATION] Low quota",
+    "runningLow": "[NEEDS_TRANSLATION] Running low"
+  },
+  "demo": {
+    "title": "[NEEDS_TRANSLATION] Demo Mode",
+    "description": "[NEEDS_TRANSLATION] You're exploring in demo mode, so content creation is disabled.",
+    "contactAdmin": "[NEEDS_TRANSLATION] Thanks for checking out the app! If you'd like full access, please contact the admin."
+  },
+  "impersonation": {
+    "viewingAs": "[NEEDS_TRANSLATION] Viewing as {{name}}",
+    "readOnly": "[NEEDS_TRANSLATION] Read-only",
+    "exitView": "[NEEDS_TRANSLATION] Exit View"
+  },
+  "status": {
+    "generating": "[NEEDS_TRANSLATION] Generating...",
+    "error": "[NEEDS_TRANSLATION] error"
+  },
+  "loadingMore": "[NEEDS_TRANSLATION] Loading more..."
 }

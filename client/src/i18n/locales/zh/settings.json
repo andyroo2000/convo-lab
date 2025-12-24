@@ -19,7 +19,9 @@
       "uploadSuccess": "Avatar updated successfully!",
       "removeSuccess": "Avatar removed successfully!",
       "uploadError": "Failed to upload avatar. Please try again.",
-      "removeError": "Failed to remove avatar"
+      "removeError": "Failed to remove avatar",
+      "cropTitle": "[NEEDS_TRANSLATION] Crop Profile Picture",
+      "altText": "[NEEDS_TRANSLATION] Your avatar"
     },
     "displayName": {
       "label": "Display Name",
@@ -28,7 +30,17 @@
     },
     "saveButton": "Save Changes",
     "saving": "Saving...",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "colors": {
+      "indigo": "[NEEDS_TRANSLATION] Indigo",
+      "teal": "[NEEDS_TRANSLATION] Teal",
+      "purple": "[NEEDS_TRANSLATION] Purple",
+      "pink": "[NEEDS_TRANSLATION] Pink",
+      "emerald": "[NEEDS_TRANSLATION] Emerald",
+      "amber": "[NEEDS_TRANSLATION] Amber",
+      "rose": "[NEEDS_TRANSLATION] Rose",
+      "cyan": "[NEEDS_TRANSLATION] Cyan"
+    }
   },
   "language": {
     "title": "Language Preferences",
@@ -79,6 +91,14 @@
       "toneMarks": "Tone marks (nǐ hǎo)",
       "toneNumbers": "Tone numbers (ni3 hao3)",
       "helper": "Choose how pinyin is displayed above Chinese characters"
+    },
+    "names": {
+      "en": "[NEEDS_TRANSLATION] English",
+      "ja": "[NEEDS_TRANSLATION] Japanese (日本語)",
+      "zh": "[NEEDS_TRANSLATION] Mandarin Chinese (中文)",
+      "es": "[NEEDS_TRANSLATION] Spanish (Español)",
+      "fr": "[NEEDS_TRANSLATION] French (Français)",
+      "ar": "[NEEDS_TRANSLATION] Arabic (العربية)"
     }
   },
   "security": {

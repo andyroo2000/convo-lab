@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+- **[i18n]** Translation consistency across all locales - fixed 309 missing translation keys and removed 21 obsolete keys across Arabic, Spanish, French, Japanese, and Chinese locales; added missing translations for modal dialogs, quota badges, demo mode, impersonation banners, error displays, library empty states, sidebar navigation, and settings color options; all translations now structurally consistent with English source files (keys marked with [NEEDS_TRANSLATION] prefix for future localization)
+
 ### Added
 - **[feat]** Complete client and server i18n implementation - comprehensive internationalization for all user-facing text across both client and server; all UI components, pages, error messages, and server responses now use translation keys from centralized JSON locale files; created server.json with 89 translation keys covering auth errors, verification flows, rate limiting, validation, content management, and billing; updated all client components (ErrorDisplay, ImpersonationBanner, QuotaBadge, ConfirmModal, DemoRestrictionModal, LibraryPage, SettingsPage) and server routes (auth, billing, verification, audio, chunkPacks, courses, dialogue, episodes, images, narrowListening, pi) to use localized messages; establishes foundation for multi-language support throughout application
 
