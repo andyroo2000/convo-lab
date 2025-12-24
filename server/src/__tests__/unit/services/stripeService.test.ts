@@ -41,9 +41,14 @@ vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
 
-vi.mock('stripe', () => ({
-  default: vi.fn(() => mockStripe),
-}));
+vi.mock('stripe', () => {
+  class MockStripe {
+    constructor() {
+      return mockStripe;
+    }
+  }
+  return { default: MockStripe };
+});
 
 vi.mock('../../../services/emailService.js', () => mockEmailService);
 
