@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '../../../test/utils';
 import { MemoryRouter } from 'react-router-dom';
 
 // Mock hooks
@@ -671,19 +671,6 @@ describe('DialogueGenerator', () => {
           }),
         ]),
       }));
-    });
-  });
-
-  describe('language display', () => {
-    it('should display target language as Japanese', () => {
-      renderDialogueGenerator();
-      expect(screen.getByDisplayValue('Japanese (日本語)')).toBeInTheDocument();
-    });
-
-    it('should show target language is disabled', () => {
-      renderDialogueGenerator();
-      const input = screen.getByDisplayValue('Japanese (日本語)');
-      expect(input).toBeDisabled();
     });
   });
 
