@@ -19,7 +19,19 @@
       "uploadSuccess": "Avatar updated successfully!",
       "removeSuccess": "Avatar removed successfully!",
       "uploadError": "Failed to upload avatar. Please try again.",
-      "removeError": "Failed to remove avatar"
+      "removeError": "Failed to remove avatar",
+      "cropTitle": "Crop Profile Picture",
+      "altText": "Your avatar"
+    },
+    "colors": {
+      "indigo": "Indigo",
+      "teal": "Teal",
+      "purple": "Purple",
+      "pink": "Pink",
+      "emerald": "Emerald",
+      "amber": "Amber",
+      "rose": "Rose",
+      "cyan": "Cyan"
     },
     "displayName": {
       "label": "Display Name",
@@ -32,6 +44,14 @@
   },
   "language": {
     "title": "Language Preferences",
+    "names": {
+      "en": "English",
+      "ja": "Japanese (日本語)",
+      "zh": "Mandarin Chinese (中文)",
+      "es": "Spanish (Español)",
+      "fr": "French (Français)",
+      "ar": "Arabic (العربية)"
+    },
     "study": {
       "label": "Study Language",
       "helper": "Your primary target language for learning"

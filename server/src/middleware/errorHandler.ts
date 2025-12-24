@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import i18next from '../i18n/index.js';
 
 export class AppError extends Error {
   statusCode: number;
@@ -52,7 +53,7 @@ export function errorHandler(
   return res.status(500).json({
     error: {
       message: process.env.NODE_ENV === 'production'
-        ? 'Internal server error'
+        ? i18next.t('server:errors.internal')
         : err.message,
       statusCode: 500,
     },

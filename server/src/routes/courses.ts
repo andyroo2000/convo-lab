@@ -11,6 +11,7 @@ import { courseQueue } from '../jobs/courseQueue.js';
 import { DEFAULT_NARRATOR_VOICES } from '../../../shared/src/constants-new.js';
 import { generateWithGemini } from '../services/geminiClient.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -110,7 +111,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (!course) {
-      throw new AppError('Course not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
     }
 
     res.json(course);
@@ -142,7 +143,7 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
 
     // Must provide either episodeIds or sourceText
     if (!title || (!episodeIds && !sourceText)) {
-      throw new AppError('Missing required fields: title, and either episodeIds or sourceText', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     if (!nativeLanguage || !targetLanguage) {
@@ -278,18 +279,18 @@ router.post('/:id/generate', requireEmailVerified, rateLimitGeneration, blockDem
       });
 
       if (!course) {
-        throw new AppError('Course not found', 404);
+        throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
       }
 
       if (course.status === 'generating') {
-        throw new AppError('Course is already being generated', 400);
+        throw new AppError(i18next.t('server:content.alreadyGenerating', { type: 'Course' }), 400);
       }
 
       // Check if there's already an active job for this course
       const activeJobs = await courseQueue.getJobs(['active', 'waiting', 'delayed']);
       const existingJob = activeJobs.find(j => j.data.courseId === course.id);
       if (existingJob) {
-        throw new AppError('Course generation is already in progress', 400);
+        throw new AppError(i18next.t('server:content.generationInProgress', { type: 'Course' }), 400);
       }
 
       // Update course status to 'generating' atomically
@@ -315,7 +316,7 @@ router.post('/:id/generate', requireEmailVerified, rateLimitGeneration, blockDem
     );
 
     res.json({
-      message: 'Course generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Course' }),
       jobId: job.id,
       courseId: result.id,
     });
@@ -338,7 +339,7 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
     });
 
     if (!course) {
-      throw new AppError('Course not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
     }
 
     // Get active job if generating
@@ -378,11 +379,11 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
     });
 
     if (!course) {
-      throw new AppError('Course not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
     }
 
     if (course.status !== 'generating') {
-      throw new AppError('Course is not in generating status', 400);
+      throw new AppError(i18next.t('server:content.notGenerating', { type: 'Course' }), 400);
     }
 
     // Check if there's actually an active job
@@ -390,7 +391,7 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
     const activeJob = jobs.find(j => j.data.courseId === course.id);
 
     if (activeJob) {
-      throw new AppError('Course has an active generation job. Cannot reset.', 400);
+      throw new AppError(i18next.t('server:content.hasActiveJob', { type: 'Course' }), 400);
     }
 
     // Reset course status to draft
@@ -429,10 +430,10 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (course.count === 0) {
-      throw new AppError('Course not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
     }
 
-    res.json({ message: 'Course updated' });
+    res.json({ message: i18next.t('server:content.updateSuccess', { type: 'Course' }) });
   } catch (error) {
     next(error);
   }
@@ -449,10 +450,10 @@ router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
 
     if (deleted.count === 0) {
-      throw new AppError('Course not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
     }
 
-    res.json({ message: 'Course deleted' });
+    res.json({ message: i18next.t('server:content.deleteSuccess', { type: 'Course' }) });
   } catch (error) {
     next(error);
   }

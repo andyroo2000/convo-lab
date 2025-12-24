@@ -22,7 +22,8 @@
     "cancelButton": "Cancel",
     "deleting": "Deleting...",
     "success": "Deleted successfully",
-    "error": "Failed to delete"
+    "error": "Failed to delete",
+    "alertError": "Failed to delete {{type}}. Please try again."
   },
   "loading": "Loading your content...",
   "loadMore": "Load more",
@@ -30,5 +31,36 @@
     "viewing": "Viewing",
     "library": "library",
     "exitButton": "Exit View"
+  },
+  "emptyStates": {
+    "dialogue": {
+      "title": "Create Your First Dialogue",
+      "description": "Generate comprehensible input dialogues at your level with natural conversations and audio",
+      "button": "Get Started"
+    },
+    "course": {
+      "title": "Create Your First Audio Course",
+      "description": "Build guided audio courses with structured lessons and pronunciation practice",
+      "button": "Get Started"
+    },
+    "narrowListening": {
+      "title": "Create Your First Narrow Listening Pack",
+      "description": "Practice with story variations at your level for focused listening comprehension",
+      "button": "Get Started"
+    },
+    "chunkPack": {
+      "title": "Create Your First Lexical Chunk Pack",
+      "description": "Master high-frequency expressions with examples, stories, and interactive exercises",
+      "button": "Get Started"
+    },
+    "all": {
+      "description": "No content yet. Get started by creating your first learning material!",
+      "button": "Browse All Options"
+    }
+  },
+  "sidebar": {
+    "course": "Audio\nCourse",
+    "narrowListening": "Narrow\nListening",
+    "chunkPack": "Chunk\nPack"
   }
 }

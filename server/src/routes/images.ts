@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { imageQueue } from '../jobs/imageQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
     const { episodeId, dialogueId, imageCount = 3 } = req.body;
 
     if (!episodeId || !dialogueId) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     // Add job to queue
@@ -32,7 +33,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
 
     res.json({
       jobId: job.id,
-      message: 'Image generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Image' }),
     });
   } catch (error) {
     next(error);
@@ -45,7 +46,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     const job = await imageQueue.getJob(req.params.jobId);
 
     if (!job) {
-      throw new AppError('Job not found', 404);
+      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
     }
 
     const state = await job.getState();

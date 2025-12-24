@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X, Lock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DemoRestrictionModalProps {
   isOpen: boolean;
@@ -10,6 +11,7 @@ export default function DemoRestrictionModal({
   isOpen,
   onClose,
 }: DemoRestrictionModalProps) {
+  const { t } = useTranslation(['common']);
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -44,7 +46,7 @@ export default function DemoRestrictionModal({
         <div className="flex items-center justify-between p-6 border-b">
           <div className="flex items-center gap-2">
             <Lock className="w-5 h-5 text-amber-600" />
-            <h2 className="text-xl font-bold text-navy">Demo Mode</h2>
+            <h2 className="text-xl font-bold text-navy">{t('common:demo.title')}</h2>
           </div>
           <button
             onClick={onClose}
@@ -57,10 +59,10 @@ export default function DemoRestrictionModal({
         {/* Content */}
         <div className="p-6">
           <p className="text-gray-700 mb-4">
-            You're exploring in demo mode, so content creation is disabled.
+            {t('common:demo.description')}
           </p>
           <p className="text-gray-600 text-sm">
-            Thanks for checking out the app! If you'd like full access, please contact the admin.
+            {t('common:demo.contactAdmin')}
           </p>
         </div>
 
@@ -70,7 +72,7 @@ export default function DemoRestrictionModal({
             onClick={onClose}
             className="btn-primary flex-1"
           >
-            Got it
+            {t('common:modal.gotIt')}
           </button>
         </div>
       </div>

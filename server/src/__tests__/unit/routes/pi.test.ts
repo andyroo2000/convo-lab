@@ -381,7 +381,7 @@ describe('PI Routes', () => {
           .send(validRequest);
 
         expect(response.status).toBe(500);
-        expect(response.body.error).toContain('Failed to generate PI session');
+        expect(response.body.error).toBe('Internal server error');
         expect(response.body.details).toBe('Gemini API error');
       });
 
@@ -393,7 +393,7 @@ describe('PI Routes', () => {
           .send(validRequest);
 
         expect(response.status).toBe(500);
-        expect(response.body.error).toContain('Failed to generate PI session');
+        expect(response.body.error).toBe('Internal server error');
       });
 
       it('should handle GCS upload errors', async () => {
@@ -404,7 +404,7 @@ describe('PI Routes', () => {
           .send(validRequest);
 
         expect(response.status).toBe(500);
-        expect(response.body.error).toContain('Failed to generate PI session');
+        expect(response.body.error).toBe('Internal server error');
       });
     });
 

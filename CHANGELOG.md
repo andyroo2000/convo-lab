@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[feat]** Complete client and server i18n implementation - comprehensive internationalization for all user-facing text across both client and server; all UI components, pages, error messages, and server responses now use translation keys from centralized JSON locale files; created server.json with 89 translation keys covering auth errors, verification flows, rate limiting, validation, content management, and billing; updated all client components (ErrorDisplay, ImpersonationBanner, QuotaBadge, ConfirmModal, DemoRestrictionModal, LibraryPage, SettingsPage) and server routes (auth, billing, verification, audio, chunkPacks, courses, dialogue, episodes, images, narrowListening, pi) to use localized messages; establishes foundation for multi-language support throughout application
+
 ### Fixed
 - **[test]** Stripe-related server test failures - fixed all 3 failing Stripe test files by correcting Stripe constructor mock using class syntax, adding missing requireAdmin export to roleAuth middleware mock, fixing error response assertions to check error.message, and fixing date serialization in subscription status test; all 1200 server tests now pass
 - **[test]** DialogueGenerator i18n test failures - fixed all 16 failing tests by initializing i18n in test setup, creating custom render utility with I18nextProvider wrapper, fixing pluralization format in translation files, and removing outdated language selector tests; all 47 DialogueGenerator tests now pass

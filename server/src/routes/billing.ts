@@ -11,6 +11,7 @@ import {
 } from '../services/stripeService.js';
 import Stripe from 'stripe';
 import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -31,7 +32,7 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
     const userId = req.userId!
 
     if (!priceId) {
-      return res.status(400).json({ error: { message: 'Price ID is required' } });
+      return res.status(400).json({ error: { message: i18next.t('server:billing.priceIdRequired') } });
     }
 
     // Validate price ID matches configured Pro or Test price
@@ -41,7 +42,7 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
     ].filter(Boolean);
 
     if (!validPriceIds.includes(priceId)) {
-      return res.status(400).json({ error: { message: 'Invalid price ID' } });
+      return res.status(400).json({ error: { message: i18next.t('server:billing.invalidPriceId') } });
     }
 
     // Ensure only test users can subscribe to test tier
@@ -52,7 +53,7 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
 
     if (priceId === process.env.STRIPE_PRICE_TEST_MONTHLY && !user?.isTestUser) {
       return res.status(403).json({
-        error: { message: 'Test tier is only available for test users' }
+        error: { message: i18next.t('server:billing.testTierOnly') }
       });
     }
 
@@ -63,7 +64,7 @@ router.post('/billing/create-checkout-session', requireAuth, async (req: AuthReq
     console.error('Failed to create checkout session:', error);
     res.status(500).json({
       error: {
-        message: error instanceof Error ? error.message : 'Failed to create checkout session'
+        message: error instanceof Error ? error.message : i18next.t('server:billing.checkoutFailed')
       }
     });
   }
@@ -83,7 +84,7 @@ router.post('/billing/create-portal-session', requireAuth, async (req: AuthReque
     console.error('Failed to create portal session:', error);
     res.status(500).json({
       error: {
-        message: error instanceof Error ? error.message : 'Failed to create portal session'
+        message: error instanceof Error ? error.message : i18next.t('server:billing.portalFailed')
       }
     });
   }
@@ -103,7 +104,7 @@ router.get('/billing/subscription-status', requireAuth, async (req: AuthRequest,
     console.error('Failed to get subscription status:', error);
     res.status(500).json({
       error: {
-        message: error instanceof Error ? error.message : 'Failed to get subscription status'
+        message: error instanceof Error ? error.message : i18next.t('server:billing.subscriptionFailed')
       }
     });
   }
@@ -120,12 +121,12 @@ router.post('/webhooks/stripe', async (req, res) => {
 
   if (!signature) {
     console.error('No stripe-signature header present');
-    return res.status(400).json({ error: { message: 'No signature provided' } });
+    return res.status(400).json({ error: { message: i18next.t('server:billing.noSignature') } });
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     console.error('STRIPE_WEBHOOK_SECRET not configured');
-    return res.status(500).json({ error: { message: 'Webhook secret not configured' } });
+    return res.status(500).json({ error: { message: i18next.t('server:billing.webhookSecretMissing') } });
   }
 
   let event: Stripe.Event;
@@ -141,7 +142,7 @@ router.post('/webhooks/stripe', async (req, res) => {
     console.error('Webhook signature verification failed:', error);
     return res.status(400).json({
       error: {
-        message: error instanceof Error ? error.message : 'Signature verification failed'
+        message: error instanceof Error ? error.message : i18next.t('server:billing.signatureVerificationFailed')
       }
     });
   }
@@ -174,7 +175,7 @@ router.post('/webhooks/stripe', async (req, res) => {
     console.error('Error processing webhook:', error);
     res.status(500).json({
       error: {
-        message: error instanceof Error ? error.message : 'Failed to process webhook'
+        message: error instanceof Error ? error.message : i18next.t('server:billing.webhookProcessingFailed')
       }
     });
   }

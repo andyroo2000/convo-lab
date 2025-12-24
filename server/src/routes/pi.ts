@@ -13,6 +13,7 @@ import {
 } from '../services/piGenerator.js';
 import { synthesizeBatchedTexts } from '../services/batchedTTSClient.js';
 import { uploadToGCS } from '../services/storageClient.js';
+import i18next from '../i18n/index.js';
 
 const router = express.Router();
 
@@ -26,23 +27,27 @@ router.post('/generate-session', requireAuth, requireEmailVerified, rateLimitGen
 
     // Validate inputs
     if (!['N5', 'N4', 'N3', 'N2'].includes(jlptLevel)) {
-      return res.status(400).json({ error: 'Invalid JLPT level. Must be N5, N4, N3, or N2.' });
+      return res.status(400).json({ error: i18next.t('server:validation.jlptLevel') });
     }
 
     if (![10, 15].includes(itemCount)) {
-      return res.status(400).json({ error: 'Invalid item count. Must be 10 or 15.' });
+      return res.status(400).json({ error: i18next.t('server:validation.itemCount') });
     }
 
     // Validate grammar point
     if (!grammarPoint || !GRAMMAR_POINTS[grammarPoint as GrammarPointType]) {
-      return res.status(400).json({ error: 'Invalid grammar point.' });
+      return res.status(400).json({ error: i18next.t('server:validation.grammarPoint') });
     }
 
     // Validate that grammar point matches JLPT level
     if (!isGrammarPointValidForLevel(grammarPoint as GrammarPointType, jlptLevel as JLPTLevel)) {
       const expectedLevel = GRAMMAR_POINTS[grammarPoint as GrammarPointType].level;
       return res.status(400).json({
-        error: `Grammar point "${grammarPoint}" is for ${expectedLevel} level, but you selected ${jlptLevel}.`
+        error: i18next.t('server:validation.grammarPointMismatch', {
+          point: grammarPoint,
+          expected: expectedLevel,
+          actual: jlptLevel
+        })
       });
     }
 
@@ -127,7 +132,7 @@ router.post('/generate-session', requireAuth, requireEmailVerified, rateLimitGen
   } catch (error: any) {
     console.error('Error generating PI session:', error);
     res.status(500).json({
-      error: 'Failed to generate PI session',
+      error: i18next.t('server:errors.internal'),
       details: error.message,
     });
   }

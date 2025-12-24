@@ -10,6 +10,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { chunkPackQueue } from '../jobs/chunkPackQueue.js';
 import { JLPTLevel, ChunkPackTheme, CHUNK_THEMES } from '../config/chunkThemes.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -125,7 +126,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (!pack) {
-      throw new AppError('Chunk pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Chunk pack' }), 404);
     }
 
     res.json(pack);
@@ -144,23 +145,26 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
 
     // Validate inputs
     if (!jlptLevel || !theme) {
-      throw new AppError('JLPT level and theme are required', 400);
+      throw new AppError(i18next.t('server:validation.jlptRequired'), 400);
     }
 
     const validJlptLevels: JLPTLevel[] = ['N5', 'N4', 'N3'];
     if (!validJlptLevels.includes(jlptLevel)) {
-      throw new AppError('Invalid JLPT level. Must be N5, N4, or N3', 400);
+      throw new AppError(i18next.t('server:validation.invalidJlptLevel'), 400);
     }
 
     // Validate theme exists and matches level
     const themeMetadata = CHUNK_THEMES[theme as ChunkPackTheme];
     if (!themeMetadata) {
-      throw new AppError('Invalid theme', 400);
+      throw new AppError(i18next.t('server:validation.invalidTheme'), 400);
     }
 
     if (themeMetadata.level !== jlptLevel) {
       throw new AppError(
-        `Theme "${themeMetadata.name}" is for ${themeMetadata.level} level, but you selected ${jlptLevel}`,
+        i18next.t('server:validation.themeMismatch', {
+          theme: themeMetadata.name,
+          level: themeMetadata.level
+        }),
         400
       );
     }
@@ -182,7 +186,7 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
 
     res.json({
       jobId: job.id,
-      message: 'Chunk pack generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Chunk pack' }),
     });
   } catch (error) {
     next(error);
@@ -199,7 +203,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     const job = await chunkPackQueue.getJob(jobId);
 
     if (!job) {
-      throw new AppError('Job not found', 404);
+      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
     }
 
     const state = await job.getState();
@@ -239,11 +243,11 @@ router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, re
     });
 
     if (!pack) {
-      throw new AppError('Chunk pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Chunk pack' }), 404);
     }
 
     if (pack.status !== 'ready') {
-      throw new AppError('Chunk pack is not ready yet', 400);
+      throw new AppError(i18next.t('server:content.notReady', { type: 'Chunk pack' }), 400);
     }
 
     if (pack.stories.length === 0) {
@@ -284,7 +288,7 @@ router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, re
     res.json({
       nlPackId: nlPack.id,
       jobId: job.id,
-      message: 'Narrow Listening session creation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Narrow Listening session' }),
     });
   } catch (error) {
     next(error);
@@ -305,14 +309,14 @@ router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
 
     if (!pack) {
-      throw new AppError('Chunk pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Chunk pack' }), 404);
     }
 
     await prisma.chunkPack.delete({
       where: { id: req.params.id },
     });
 
-    res.json({ message: 'Chunk pack deleted successfully' });
+    res.json({ message: i18next.t('server:content.deleteSuccess', { type: 'Chunk pack' }) });
   } catch (error) {
     next(error);
   }

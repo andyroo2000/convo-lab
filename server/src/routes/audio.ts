@@ -3,6 +3,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { audioQueue } from '../jobs/audioQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
     const { episodeId, dialogueId, speed = 'normal', pauseMode = false } = req.body;
 
     if (!episodeId || !dialogueId) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     // Add job to queue
@@ -33,7 +34,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
 
     res.json({
       jobId: job.id,
-      message: 'Audio generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Audio' }),
     });
   } catch (error) {
     next(error);
@@ -46,7 +47,7 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
     const { episodeId, dialogueId } = req.body;
 
     if (!episodeId || !dialogueId) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     // Check for existing active or waiting jobs to prevent duplicates
@@ -62,7 +63,7 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
       console.log(`Duplicate job detected for episode ${episodeId}, returning existing job ${duplicateJob.id}`);
       return res.json({
         jobId: duplicateJob.id,
-        message: 'Audio generation already in progress',
+        message: i18next.t('server:content.generationInProgress', { type: 'Audio' }),
         existing: true,
       });
     }
@@ -80,7 +81,7 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
 
     res.json({
       jobId: job.id,
-      message: 'Multi-speed audio generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Multi-speed audio' }),
     });
   } catch (error) {
     next(error);
@@ -93,7 +94,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     const job = await audioQueue.getJob(req.params.jobId);
 
     if (!job) {
-      throw new AppError('Job not found', 404);
+      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
     }
 
     const state = await job.getState();

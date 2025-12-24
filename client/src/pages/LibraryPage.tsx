@@ -158,7 +158,7 @@ export default function LibraryPage() {
       setPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete pack:', err);
-      alert('Failed to delete pack. Please try again.');
+      alert(t('library:delete.alertError', { type: 'pack' }));
     }
   };
 
@@ -176,7 +176,7 @@ export default function LibraryPage() {
       setChunkPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete chunk pack:', err);
-      alert('Failed to delete chunk pack. Please try again.');
+      alert(t('library:delete.alertError', { type: 'chunk pack' }));
     }
   };
 
@@ -203,7 +203,7 @@ export default function LibraryPage() {
       setCourseToDelete(null);
     } catch (err) {
       console.error('Failed to delete course:', err);
-      alert('Failed to delete course. Please try again.');
+      alert(t('library:delete.alertError', { type: 'course' }));
     }
   };
 
@@ -318,9 +318,9 @@ export default function LibraryPage() {
           {filter === 'dialogues' && (
             <EmptyStateCard
               icon={MessageSquare}
-              title="Create Your First Dialogue"
-              description="Generate comprehensible input dialogues at your level with natural conversations and audio"
-              buttonText="Get Started"
+              title={t('library:emptyStates.dialogue.title')}
+              description={t('library:emptyStates.dialogue.description')}
+              buttonText={t('library:emptyStates.dialogue.button')}
               route="/app/create/dialogue"
               colorTheme={{
                 bg: 'bg-periwinkle-light',
@@ -333,9 +333,9 @@ export default function LibraryPage() {
           {filter === 'courses' && (
             <EmptyStateCard
               icon={Headphones}
-              title="Create Your First Audio Course"
-              description="Build guided audio courses with structured lessons and pronunciation practice"
-              buttonText="Get Started"
+              title={t('library:emptyStates.course.title')}
+              description={t('library:emptyStates.course.description')}
+              buttonText={t('library:emptyStates.course.button')}
               route="/app/create/audio-course"
               colorTheme={{
                 bg: 'bg-coral-light',
@@ -348,9 +348,9 @@ export default function LibraryPage() {
           {filter === 'narrowListening' && (
             <EmptyStateCard
               icon={Sparkles}
-              title="Create Your First Narrow Listening Pack"
-              description="Practice with story variations at your level for focused listening comprehension"
-              buttonText="Get Started"
+              title={t('library:emptyStates.narrowListening.title')}
+              description={t('library:emptyStates.narrowListening.description')}
+              buttonText={t('library:emptyStates.narrowListening.button')}
               route="/app/create/narrow-listening"
               colorTheme={{
                 bg: 'bg-strawberry-light',
@@ -363,9 +363,9 @@ export default function LibraryPage() {
           {filter === 'chunkPacks' && (
             <EmptyStateCard
               icon={BookOpen}
-              title="Create Your First Lexical Chunk Pack"
-              description="Master high-frequency expressions with examples, stories, and interactive exercises"
-              buttonText="Get Started"
+              title={t('library:emptyStates.chunkPack.title')}
+              description={t('library:emptyStates.chunkPack.description')}
+              buttonText={t('library:emptyStates.chunkPack.button')}
               route="/app/create/lexical-chunk-pack"
               colorTheme={{
                 bg: 'bg-yellow-light',
@@ -379,14 +379,14 @@ export default function LibraryPage() {
             <div className="card">
               <div className="text-center py-12 space-y-4">
                 <p className="text-gray-500">
-                  No content yet. Get started by creating your first learning material!
+                  {t('library:emptyStates.all.description')}
                 </p>
                 <button
                   onClick={() => window.location.href = '/app/create'}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"
                 >
-                  Browse All Options
+                  {t('library:emptyStates.all.button')}
                   <span>→</span>
                 </button>
               </div>
@@ -480,7 +480,7 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Audio<br/>Course</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.course') }} />
                   </div>
 
                   {/* Content */}
@@ -502,7 +502,7 @@ export default function LibraryPage() {
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
-                            Generating...
+                            {t('common:status.generating')}
                           </Pill>
                         )}
                         {(course.jlptLevel || course.hskLevel || course.cefrLevel) && (
@@ -549,7 +549,7 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">Narrow<br/>Listening</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.narrowListening') }} />
                   </div>
 
                   {/* Content */}
@@ -574,7 +574,7 @@ export default function LibraryPage() {
                         />
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
-                            Generating...
+                            {t('common:status.generating')}
                           </Pill>
                         )}
                         {!isDemo && !viewAsUserId && (
@@ -612,7 +612,7 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
-                    <span className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">Chunk<br/>Pack</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.chunkPack') }} />
                   </div>
 
                   {/* Content */}
@@ -637,7 +637,7 @@ export default function LibraryPage() {
                         )}
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
-                            Generating...
+                            {t('common:status.generating')}
                           </Pill>
                         )}
                         <LanguageLevelPill
@@ -679,7 +679,7 @@ export default function LibraryPage() {
           {isFetchingNextPage && (
             <div className="flex items-center gap-2 text-gray-600">
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>Loading more...</span>
+              <span>{t('common:loadingMore')}</span>
             </div>
           )}
         </div>

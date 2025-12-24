@@ -1,4 +1,5 @@
 import { AlertTriangle, WifiOff, Lock, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ErrorDisplayProps {
   error: Error | string;
@@ -8,6 +9,7 @@ interface ErrorDisplayProps {
 }
 
 export default function ErrorDisplay({ error, onRetry, title, description }: ErrorDisplayProps) {
+  const { t } = useTranslation(['errors']);
   const errorMessage = typeof error === 'string' ? error : error.message;
 
   // Determine error type and icon
@@ -17,8 +19,8 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
     if (lowerError.includes('network') || lowerError.includes('offline') || lowerError.includes('fetch')) {
       return {
         icon: <WifiOff className="w-12 h-12 text-gray-400" />,
-        title: 'Connection Error',
-        description: 'Check your internet connection and try again',
+        title: t('errors:display.connection.title'),
+        description: t('errors:display.connection.description'),
         color: 'text-gray-700',
       };
     }
@@ -26,8 +28,8 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
     if (lowerError.includes('unauthorized') || lowerError.includes('401') || lowerError.includes('forbidden') || lowerError.includes('403')) {
       return {
         icon: <Lock className="w-12 h-12 text-amber-500" />,
-        title: 'Authentication Error',
-        description: 'Please log in again to continue',
+        title: t('errors:display.auth.title'),
+        description: t('errors:display.auth.description'),
         color: 'text-amber-700',
       };
     }
@@ -35,8 +37,8 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
     if (lowerError.includes('generation') || lowerError.includes('generate')) {
       return {
         icon: <RefreshCw className="w-12 h-12 text-indigo-500" />,
-        title: 'Generation Failed',
-        description: 'Content generation failed. Please try again',
+        title: t('errors:display.generation.title'),
+        description: t('errors:display.generation.description'),
         color: 'text-indigo-700',
       };
     }
@@ -44,8 +46,8 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
     // Default error
     return {
       icon: <AlertTriangle className="w-12 h-12 text-red-500" />,
-      title: 'Error',
-      description: 'Something went wrong. Please try again',
+      title: t('errors:display.generic.title'),
+      description: t('errors:display.generic.description'),
       color: 'text-red-700',
     };
   };
@@ -76,7 +78,7 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
           className="btn-primary inline-flex items-center gap-2"
         >
           <RefreshCw className="w-4 h-4" />
-          Try Again
+          {t('errors:display.tryAgain')}
         </button>
       )}
     </div>

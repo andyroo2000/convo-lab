@@ -4,6 +4,7 @@ import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -111,7 +112,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (!episode) {
-      throw new AppError('Episode not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Episode' }), 404);
     }
 
     // Metadata (furigana/pinyin) is already stored in the database
@@ -129,7 +130,7 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
     const { title, sourceText, targetLanguage, nativeLanguage, audioSpeed = 'medium' } = req.body;
 
     if (!title || !sourceText || !targetLanguage || !nativeLanguage) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     const episode = await prisma.episode.create({
@@ -168,10 +169,10 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (episode.count === 0) {
-      throw new AppError('Episode not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Episode' }), 404);
     }
 
-    res.json({ message: 'Episode updated' });
+    res.json({ message: i18next.t('server:content.updateSuccess', { type: 'Episode' }) });
   } catch (error) {
     next(error);
   }
@@ -188,10 +189,10 @@ router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
 
     if (deleted.count === 0) {
-      throw new AppError('Episode not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Episode' }), 404);
     }
 
-    res.json({ message: 'Episode deleted' });
+    res.json({ message: i18next.t('server:content.deleteSuccess', { type: 'Episode' }) });
   } catch (error) {
     next(error);
   }

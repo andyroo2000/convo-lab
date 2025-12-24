@@ -11,7 +11,7 @@ i18next
   .init({
     lng: 'en',
     fallbackLng: 'en',
-    ns: ['email'],
+    ns: ['email', 'server'],
     defaultNS: 'email',
     backend: {
       loadPath: path.join(__dirname, 'locales/{{lng}}/{{ns}}.json')
