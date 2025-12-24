@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { X, Zap, Check } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 interface UpgradePromptProps {
   onClose?: () => void;
@@ -9,6 +10,7 @@ interface UpgradePromptProps {
 }
 
 export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: UpgradePromptProps) {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -31,18 +33,18 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
             <button
               onClick={onClose}
               className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
-              aria-label="Close"
+              aria-label={t('upgradePrompt.buttons.close')}
             >
               <X className="w-6 h-6" />
             </button>
           )}
           <div className="flex items-center gap-3 mb-2">
             <Zap className="w-8 h-8" />
-            <h2 className="text-2xl font-bold">Quota Limit Reached</h2>
+            <h2 className="text-2xl font-bold">{t('upgradePrompt.title')}</h2>
           </div>
           {quotaUsed !== undefined && quotaLimit !== undefined && (
             <p className="text-white text-opacity-90">
-              You've used {quotaUsed} of {quotaLimit} generations this week
+              {t('upgradePrompt.quotaUsed', { used: quotaUsed, limit: quotaLimit })}
             </p>
           )}
         </div>
@@ -52,31 +54,31 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
           {user?.tier === 'free' ? (
             <>
               <p className="text-dark-brown mb-6">
-                You've reached your weekly generation limit. Upgrade to Pro to create more content and unlock premium features!
+                {t('upgradePrompt.limitReached')}
               </p>
 
               <div className="bg-periwinkle-light border-2 border-periwinkle rounded-lg p-6 mb-6">
                 <h3 className="text-xl font-bold text-dark-brown mb-4">
-                  Pro Plan - $7/month
+                  {t('upgradePrompt.proPlan.title')}
                 </h3>
                 <ul className="space-y-3 mb-4">
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                     <span className="text-dark-brown">
-                      <strong>30 generations per week</strong> (6x more than Free)
+                      {t('upgradePrompt.proPlan.features.0')}
                     </span>
                   </li>
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">All content types included</span>
+                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.1')}</span>
                   </li>
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">High-quality Google Cloud TTS</span>
+                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.2')}</span>
                   </li>
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">Priority support</span>
+                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.3')}</span>
                   </li>
                 </ul>
               </div>
@@ -85,7 +87,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 onClick={handleUpgrade}
                 className="btn-primary w-full mb-3"
               >
-                Upgrade to Pro - $7/month
+                {t('upgradePrompt.buttons.upgrade')}
               </button>
 
               {onClose && (
@@ -93,22 +95,22 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                   onClick={onClose}
                   className="btn-secondary w-full"
                 >
-                  Maybe Later
+                  {t('upgradePrompt.buttons.maybeLater')}
                 </button>
               )}
             </>
           ) : (
             <>
               <p className="text-dark-brown mb-6">
-                You've reached your weekly generation limit. Your quota will reset at the start of next week (Monday 00:00 UTC).
+                {t('upgradePrompt.resetInfo')}
               </p>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-medium-brown mb-2">
-                  <strong>Pro Plan:</strong> 30 generations per week
+                  {t('upgradePrompt.proQuotaInfo')}
                 </p>
                 <p className="text-sm text-medium-brown">
-                  <strong>Quota resets:</strong> Every Monday at midnight UTC
+                  {t('upgradePrompt.quotaResetInfo')}
                 </p>
               </div>
 
@@ -116,7 +118,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 onClick={handleViewBilling}
                 className="btn-secondary w-full mb-3"
               >
-                View Billing Settings
+                {t('upgradePrompt.buttons.viewBilling')}
               </button>
 
               {onClose && (
@@ -124,7 +126,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                   onClick={onClose}
                   className="btn-secondary w-full"
                 >
-                  Close
+                  {t('upgradePrompt.buttons.close')}
                 </button>
               )}
             </>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type RepeatMode = 'off' | 'one' | 'all';
 
@@ -11,6 +12,7 @@ interface AudioPlayerProps {
 }
 
 export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepeatModeChange, onEnded }: AudioPlayerProps) {
+  const { t } = useTranslation('common');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -135,7 +137,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
       <button
         onClick={togglePlayPause}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
-        aria-label={isPlaying ? 'Pause' : 'Play'}
+        aria-label={isPlaying ? t('aria.pause') : t('aria.play')}
         data-testid="audio-button-play-pause"
       >
         {isPlaying ? (
@@ -189,7 +191,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
               ? 'bg-indigo text-white hover:bg-indigo-600'
               : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
           }`}
-          aria-label={`Repeat mode: ${repeatMode}`}
+          aria-label={t('aria.repeatMode', { mode: repeatMode })}
           data-testid="audio-button-repeat"
         >
           {repeatMode === 'one' ? (

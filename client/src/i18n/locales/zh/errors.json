@@ -1,20 +1,26 @@
 {
   "network": {
-    "offline": "You are offline. Please check your internet connection.",
-    "timeout": "Request timed out. Please try again.",
-    "generic": "Network error. Please try again."
+    "offline": "您处于离线状态。请检查您的网络连接。",
+    "timeout": "请求超时。请重试。",
+    "generic": "网络错误。请重试。"
   },
   "validation": {
-    "required": "This field is required",
-    "email": "Please enter a valid email address",
-    "password": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match",
-    "invalidInviteCode": "Invalid invite code"
+    "required": "此字段为必填项",
+    "email": "请输入有效的电子邮箱地址",
+    "password": "密码至少需要8个字符",
+    "passwordMatch": "密码不匹配",
+    "invalidInviteCode": "无效的邀请码"
   },
   "api": {
-    "unauthorized": "Unauthorized. Please login again.",
-    "forbidden": "You don't have permission to do that.",
-    "notFound": "Resource not found.",
-    "serverError": "Server error. Please try again later."
+    "unauthorized": "未授权。请重新登录。",
+    "forbidden": "您没有权限执行此操作。",
+    "notFound": "未找到资源。",
+    "serverError": "服务器错误。请稍后重试。"
+  },
+  "boundary": {
+    "title": "出了点问题",
+    "description": "发生了意外错误",
+    "tryAgain": "重试",
+    "goToLibrary": "前往资料库"
   }
 }

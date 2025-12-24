@@ -17,6 +17,7 @@ import enAudioCourse from './locales/en/audioCourse.json';
 import enNarrowListening from './locales/en/narrowListening.json';
 import enProcessingInstruction from './locales/en/processingInstruction.json';
 import enChunkPack from './locales/en/chunkPack.json';
+import enPricing from './locales/en/pricing.json';
 
 // Import Japanese translations
 import jaCommon from './locales/ja/common.json';
@@ -33,6 +34,7 @@ import jaAudioCourse from './locales/ja/audioCourse.json';
 import jaNarrowListening from './locales/ja/narrowListening.json';
 import jaProcessingInstruction from './locales/ja/processingInstruction.json';
 import jaChunkPack from './locales/ja/chunkPack.json';
+import jaPricing from './locales/ja/pricing.json';
 
 // Import Chinese translations
 import zhCommon from './locales/zh/common.json';
@@ -49,6 +51,7 @@ import zhAudioCourse from './locales/zh/audioCourse.json';
 import zhNarrowListening from './locales/zh/narrowListening.json';
 import zhProcessingInstruction from './locales/zh/processingInstruction.json';
 import zhChunkPack from './locales/zh/chunkPack.json';
+import zhPricing from './locales/zh/pricing.json';
 
 // Import Spanish translations
 import esCommon from './locales/es/common.json';
@@ -65,6 +68,7 @@ import esAudioCourse from './locales/es/audioCourse.json';
 import esNarrowListening from './locales/es/narrowListening.json';
 import esProcessingInstruction from './locales/es/processingInstruction.json';
 import esChunkPack from './locales/es/chunkPack.json';
+import esPricing from './locales/es/pricing.json';
 
 // Import French translations
 import frCommon from './locales/fr/common.json';
@@ -81,6 +85,7 @@ import frAudioCourse from './locales/fr/audioCourse.json';
 import frNarrowListening from './locales/fr/narrowListening.json';
 import frProcessingInstruction from './locales/fr/processingInstruction.json';
 import frChunkPack from './locales/fr/chunkPack.json';
+import frPricing from './locales/fr/pricing.json';
 
 // Import Arabic translations
 import arCommon from './locales/ar/common.json';
@@ -97,6 +102,7 @@ import arAudioCourse from './locales/ar/audioCourse.json';
 import arNarrowListening from './locales/ar/narrowListening.json';
 import arProcessingInstruction from './locales/ar/processingInstruction.json';
 import arChunkPack from './locales/ar/chunkPack.json';
+import arPricing from './locales/ar/pricing.json';
 
 // Configure i18next resources
 const resources = {
@@ -115,6 +121,7 @@ const resources = {
     narrowListening: enNarrowListening,
     processingInstruction: enProcessingInstruction,
     chunkPack: enChunkPack,
+    pricing: enPricing,
   },
   ja: {
     common: jaCommon,
@@ -131,6 +138,7 @@ const resources = {
     narrowListening: jaNarrowListening,
     processingInstruction: jaProcessingInstruction,
     chunkPack: jaChunkPack,
+    pricing: jaPricing,
   },
   zh: {
     common: zhCommon,
@@ -147,6 +155,7 @@ const resources = {
     narrowListening: zhNarrowListening,
     processingInstruction: zhProcessingInstruction,
     chunkPack: zhChunkPack,
+    pricing: zhPricing,
   },
   es: {
     common: esCommon,
@@ -163,6 +172,7 @@ const resources = {
     narrowListening: esNarrowListening,
     processingInstruction: esProcessingInstruction,
     chunkPack: esChunkPack,
+    pricing: esPricing,
   },
   fr: {
     common: frCommon,
@@ -179,6 +189,7 @@ const resources = {
     narrowListening: frNarrowListening,
     processingInstruction: frProcessingInstruction,
     chunkPack: frChunkPack,
+    pricing: frPricing,
   },
   ar: {
     common: arCommon,
@@ -195,6 +206,7 @@ const resources = {
     narrowListening: arNarrowListening,
     processingInstruction: arProcessingInstruction,
     chunkPack: arChunkPack,
+    pricing: arPricing,
   },
 };
 
@@ -205,7 +217,7 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'auth', 'settings', 'library', 'create', 'onboarding', 'errors', 'landing', 'notFound', 'dialogue', 'audioCourse', 'narrowListening', 'processingInstruction', 'chunkPack'],
+    ns: ['common', 'auth', 'settings', 'library', 'create', 'onboarding', 'errors', 'landing', 'notFound', 'dialogue', 'audioCourse', 'narrowListening', 'processingInstruction', 'chunkPack', 'pricing'],
 
     interpolation: {
       escapeValue: false, // React already escapes values

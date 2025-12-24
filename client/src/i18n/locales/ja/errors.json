@@ -1,20 +1,26 @@
 {
   "network": {
-    "offline": "You are offline. Please check your internet connection.",
-    "timeout": "Request timed out. Please try again.",
-    "generic": "Network error. Please try again."
+    "offline": "オフラインです。インターネット接続を確認してください。",
+    "timeout": "リクエストがタイムアウトしました。もう一度お試しください。",
+    "generic": "ネットワークエラーです。もう一度お試しください。"
   },
   "validation": {
-    "required": "This field is required",
-    "email": "Please enter a valid email address",
-    "password": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match",
-    "invalidInviteCode": "Invalid invite code"
+    "required": "このフィールドは必須です",
+    "email": "有効なメールアドレスを入力してください",
+    "password": "パスワードは8文字以上である必要があります",
+    "passwordMatch": "パスワードが一致しません",
+    "invalidInviteCode": "無効な招待コードです"
   },
   "api": {
-    "unauthorized": "Unauthorized. Please login again.",
-    "forbidden": "You don't have permission to do that.",
-    "notFound": "Resource not found.",
-    "serverError": "Server error. Please try again later."
+    "unauthorized": "認証されていません。再度ログインしてください。",
+    "forbidden": "その操作を行う権限がありません。",
+    "notFound": "リソースが見つかりません。",
+    "serverError": "サーバーエラーです。後でもう一度お試しください。"
+  },
+  "boundary": {
+    "title": "エラーが発生しました",
+    "description": "予期しないエラーが発生しました",
+    "tryAgain": "再試行",
+    "goToLibrary": "ライブラリに移動"
   }
 }

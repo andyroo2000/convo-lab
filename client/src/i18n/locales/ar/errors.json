@@ -1,20 +1,26 @@
 {
   "network": {
-    "offline": "You are offline. Please check your internet connection.",
-    "timeout": "Request timed out. Please try again.",
-    "generic": "Network error. Please try again."
+    "offline": "أنت غير متصل بالإنترنت. يرجى التحقق من اتصالك بالإنترنت.",
+    "timeout": "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.",
+    "generic": "خطأ في الشبكة. يرجى المحاولة مرة أخرى."
   },
   "validation": {
-    "required": "This field is required",
-    "email": "Please enter a valid email address",
-    "password": "Password must be at least 8 characters",
-    "passwordMatch": "Passwords do not match",
-    "invalidInviteCode": "Invalid invite code"
+    "required": "هذا الحقل مطلوب",
+    "email": "يرجى إدخال عنوان بريد إلكتروني صالح",
+    "password": "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل",
+    "passwordMatch": "كلمات المرور غير متطابقة",
+    "invalidInviteCode": "رمز دعوة غير صالح"
   },
   "api": {
-    "unauthorized": "Unauthorized. Please login again.",
-    "forbidden": "You don't have permission to do that.",
-    "notFound": "Resource not found.",
-    "serverError": "Server error. Please try again later."
+    "unauthorized": "غير مصرح. يرجى تسجيل الدخول مرة أخرى.",
+    "forbidden": "ليس لديك إذن للقيام بذلك.",
+    "notFound": "المورد غير موجود.",
+    "serverError": "خطأ في الخادم. يرجى المحاولة لاحقاً."
+  },
+  "boundary": {
+    "title": "حدث خطأ ما",
+    "description": "حدث خطأ غير متوقع",
+    "tryAgain": "حاول مرة أخرى",
+    "goToLibrary": "الذهاب للمكتبة"
   }
 }

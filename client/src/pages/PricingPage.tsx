@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { Check } from 'lucide-react';
 import { API_URL } from '../config';
 
 export default function PricingPage() {
+  const { t } = useTranslation('pricing');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -51,50 +53,50 @@ export default function PricingPage() {
 
   const tiers = [
     {
-      name: 'Free',
-      price: '$0',
-      period: 'forever',
-      description: 'Perfect for trying out ConvoLab',
+      name: t('tiers.free.name'),
+      price: t('tiers.free.price'),
+      period: t('tiers.free.period'),
+      description: t('tiers.free.description'),
       features: [
-        '5 generations per week',
-        'All content types',
-        'High-quality TTS audio',
-        'Standard support'
+        t('tiers.free.features.generations'),
+        t('tiers.free.features.contentTypes'),
+        t('tiers.free.features.tts'),
+        t('tiers.free.features.support')
       ],
-      cta: user?.tier === 'free' ? 'Current Plan' : 'Downgrade',
+      cta: user?.tier === 'free' ? t('actions.currentPlan') : t('actions.downgrade'),
       ctaDisabled: true,
       current: user?.tier === 'free'
     },
     // Show test tier if user is a test user
     ...(user?.isTestUser && testPriceId ? [{
-      name: 'Test',
-      price: '$0.01',
-      period: 'per month',
-      description: 'Test tier for internal testing',
+      name: t('tiers.test.name'),
+      price: t('tiers.test.price'),
+      period: t('tiers.test.period'),
+      description: t('tiers.test.description'),
       features: [
-        '30 generations per week',
-        'All content types',
-        'High-quality TTS audio',
-        'Test payment flow'
+        t('tiers.test.features.generations'),
+        t('tiers.test.features.contentTypes'),
+        t('tiers.test.features.tts'),
+        t('tiers.test.features.payment')
       ],
-      cta: 'Test Checkout',
+      cta: t('tiers.test.cta'),
       ctaDisabled: false,
       ctaAction: () => handleUpgrade(testPriceId),
       current: false
     }] : []),
     {
-      name: 'Pro',
-      price: '$7',
-      period: 'per month',
-      description: 'For serious language learners',
+      name: t('tiers.pro.name'),
+      price: t('tiers.pro.price'),
+      period: t('tiers.pro.period'),
+      description: t('tiers.pro.description'),
       features: [
-        '30 generations per week',
-        'All content types',
-        'High-quality TTS audio',
-        'Priority support',
-        'Early access to new features'
+        t('tiers.pro.features.generations'),
+        t('tiers.pro.features.contentTypes'),
+        t('tiers.pro.features.tts'),
+        t('tiers.pro.features.support'),
+        t('tiers.pro.features.earlyAccess')
       ],
-      cta: user?.tier === 'pro' ? 'Current Plan' : 'Upgrade to Pro',
+      cta: user?.tier === 'pro' ? t('actions.currentPlan') : t('actions.upgrade'),
       ctaDisabled: user?.tier === 'pro',
       ctaAction: () => handleUpgrade(proPriceId),
       current: user?.tier === 'pro',
@@ -107,10 +109,10 @@ export default function PricingPage() {
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-dark-brown mb-4">
-            Choose Your Plan
+            {t('title')}
           </h1>
           <p className="text-lg text-medium-brown max-w-2xl mx-auto">
-            Start creating immersive language learning content today. Upgrade or downgrade anytime.
+            {t('subtitle')}
           </p>
         </div>
 
@@ -129,7 +131,7 @@ export default function PricingPage() {
               {tier.popular && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                   <span className="bg-periwinkle text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Most Popular
+                    {t('badges.popular')}
                   </span>
                 </div>
               )}
@@ -137,7 +139,7 @@ export default function PricingPage() {
               {tier.current && (
                 <div className="absolute -top-4 right-4">
                   <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    Current Plan
+                    {t('badges.current')}
                   </span>
                 </div>
               )}
@@ -177,7 +179,7 @@ export default function PricingPage() {
                     : ''
                 }`}
               >
-                {loading && tier.ctaAction ? 'Loading...' : tier.cta}
+                {loading && tier.ctaAction ? t('actions.loading') : tier.cta}
               </button>
             </div>
           ))}
@@ -185,15 +187,15 @@ export default function PricingPage() {
 
         <div className="mt-12 text-center">
           <p className="text-medium-brown mb-4">
-            All plans require an invite code. ConvoLab is currently invite-only.
+            {t('footer.inviteOnly')}
           </p>
           <p className="text-sm text-gray-500">
-            Questions about pricing?{' '}
+            {t('footer.questions')}{' '}
             <a
               href="mailto:support@convolab.app"
               className="text-periwinkle hover:text-dark-periwinkle"
             >
-              Contact us
+              {t('footer.contact')}
             </a>
           </p>
         </div>

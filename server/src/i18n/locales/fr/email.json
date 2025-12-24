@@ -1,0 +1,112 @@
+{
+  "verification": {
+    "subject": "Vérifiez votre adresse e-mail ConvoLab",
+    "title": "Bienvenue sur ConvoLab !",
+    "greeting": "Bonjour {{name}},",
+    "body": "Merci de vous être inscrit ! Veuillez vérifier votre adresse e-mail pour commencer à créer du contenu d'apprentissage linguistique.",
+    "button": "Vérifier l'adresse e-mail",
+    "linkInstructions": "Ou copiez et collez ce lien dans votre navigateur :",
+    "expiry": "Ce lien expirera dans 24 heures. Si vous n'avez pas créé de compte, vous pouvez ignorer cet e-mail en toute sécurité."
+  },
+  "passwordReset": {
+    "subject": "Réinitialisez votre mot de passe ConvoLab",
+    "title": "Réinitialiser le mot de passe",
+    "greeting": "Bonjour {{name}},",
+    "body": "Nous avons reçu une demande de réinitialisation de votre mot de passe. Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe.",
+    "button": "Réinitialiser le mot de passe",
+    "linkInstructions": "Ou copiez et collez ce lien dans votre navigateur :",
+    "expiry": "Ce lien expirera dans 1 heure. Si vous n'avez pas demandé de réinitialisation de mot de passe, vous pouvez ignorer cet e-mail en toute sécurité."
+  },
+  "welcome": {
+    "subject": "Bienvenue sur ConvoLab !",
+    "title": "🎉 Tout est prêt !",
+    "greeting": "Bonjour {{name}},",
+    "body": "Votre adresse e-mail a été vérifiée ! Vous pouvez maintenant commencer à créer du contenu d'apprentissage linguistique immersif.",
+    "whatYouCanCreate": "Ce que vous pouvez créer :",
+    "dialogues": {
+      "title": "Dialogues :",
+      "description": "Conversations naturelles avec plusieurs interlocuteurs"
+    },
+    "audioCourses": {
+      "title": "Cours audio :",
+      "description": "Leçons de style Pimsleur avec construction inverse"
+    },
+    "narrowListening": {
+      "title": "Écoute ciblée :",
+      "description": "Pratique axée sur les modèles grammaticaux"
+    },
+    "lexicalChunks": {
+      "title": "Blocs lexicaux :",
+      "description": "Maîtrisez les phrases et expressions courantes"
+    },
+    "button": "Commencer à créer",
+    "help": "Besoin d'aide pour commencer ? Consultez notre Guide de démarrage.",
+    "footer": "Des questions ? Répondez à cet e-mail à tout moment !"
+  },
+  "passwordChanged": {
+    "subject": "Votre mot de passe ConvoLab a été modifié",
+    "title": "Mot de passe modifié",
+    "greeting": "Bonjour {{name}},",
+    "body": "Ceci est une confirmation que votre mot de passe ConvoLab a été modifié avec succès.",
+    "ifYou": "Si vous avez effectué cette modification, vous pouvez ignorer cet e-mail en toute sécurité.",
+    "warningTitle": "⚠️ Vous n'avez pas fait cette modification ?",
+    "warningBody": "Si vous n'avez pas modifié votre mot de passe, veuillez nous contacter immédiatement à {{email}}",
+    "footer": "Ceci est une notification de sécurité automatisée."
+  },
+  "subscriptionConfirmed": {
+    "subject": "Bienvenue sur ConvoLab {{tier}} !",
+    "title": "🎉 Bienvenue sur {{tier}} !",
+    "greeting": "Bonjour {{name}},",
+    "body": "Votre abonnement ConvoLab {{tier}} est maintenant actif ! Merci de soutenir notre mission de rendre l'apprentissage des langues plus immersif et efficace.",
+    "benefitsTitle": "Vos avantages {{tier}}",
+    "generations": "{{count}} générations par semaine",
+    "contentTypes": "Tous les types de contenu (dialogues, cours, écoute ciblée, blocs)",
+    "tts": "Audio TTS de haute qualité Google Cloud",
+    "support": "Support prioritaire",
+    "button": "Commencer à créer",
+    "manage": "Vous pouvez gérer votre abonnement à tout moment depuis vos paramètres de facturation.",
+    "footer": "Des questions ? Répondez à cet e-mail à tout moment !"
+  },
+  "paymentFailed": {
+    "subject": "Échec du paiement ConvoLab - Action requise",
+    "title": "Échec du paiement",
+    "greeting": "Bonjour {{name}},",
+    "body": "Nous n'avons pas pu traiter votre paiement pour votre abonnement ConvoLab. Cela pourrait être dû à :",
+    "reasonFunds": "Fonds insuffisants",
+    "reasonExpired": "Carte expirée",
+    "reasonVerification": "Problème de vérification de la carte",
+    "warningTitle": "⚠️ Action requise",
+    "warningBody": "Veuillez mettre à jour votre mode de paiement pour éviter une interruption de service.",
+    "button": "Mettre à jour le mode de paiement",
+    "help": "Si vous continuez à rencontrer des problèmes, veuillez nous contacter à {{email}}",
+    "footer": "Ceci est une notification de paiement automatisée."
+  },
+  "subscriptionCanceled": {
+    "subject": "Votre abonnement ConvoLab a été annulé",
+    "title": "Abonnement annulé",
+    "greeting": "Bonjour {{name}},",
+    "body": "Votre abonnement ConvoLab Pro a été annulé et vous avez été rétrogradé au forfait Gratuit.",
+    "freeTierTitle": "Limites du forfait Gratuit",
+    "generations": "{{count}} générations par semaine",
+    "contentTypes": "Tous les types de contenu disponibles",
+    "support": "Support standard",
+    "sorryToSeeYouGo": "Nous sommes désolés de vous voir partir ! Si vous souhaitez partager vos commentaires sur la raison de votre annulation, nous serions ravis de vous entendre.",
+    "reactivateNote": "Vous pouvez réactiver votre abonnement Pro à tout moment depuis vos paramètres de facturation.",
+    "button": "Voir les paramètres de facturation",
+    "footer": "Des questions ? Répondez à cet e-mail à tout moment !"
+  },
+  "quotaWarning": {
+    "subject": "Vous avez utilisé {{percentage}}% de votre quota hebdomadaire ConvoLab",
+    "title": "⚠️ Avertissement de quota",
+    "greeting": "Bonjour {{name}},",
+    "body": "Vous avez utilisé {{used}} sur {{limit}} générations cette semaine ({{percentage}}%).",
+    "usageTitle": "Utilisation hebdomadaire",
+    "remaining": "{{count}} génération restante",
+    "remaining_plural": "{{count}} générations restantes",
+    "quotaReset": "Votre quota se réinitialise tous les lundis à minuit UTC.",
+    "upgradeTitle": "💡 Besoin de plus ?",
+    "upgradeBody": "Passez à Pro pour {{count}} générations par semaine (7$/mois)",
+    "button": "Passer à Pro",
+    "footer": "Ceci est une notification d'utilisation automatisée."
+  }
+}

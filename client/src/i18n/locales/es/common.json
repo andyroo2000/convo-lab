@@ -1,38 +1,73 @@
 {
   "nav": {
-    "library": "Library",
-    "create": "Create"
+    "library": "Biblioteca",
+    "create": "Crear"
   },
-  "demoMode": "Demo Mode",
-  "loading": "Loading...",
+  "demoMode": "Modo Demo",
+  "loading": "Cargando...",
   "buttons": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "confirm": "Confirm",
-    "close": "Close",
-    "edit": "Edit",
-    "add": "Add",
-    "remove": "Remove",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish",
-    "continue": "Continue",
-    "submit": "Submit",
-    "reset": "Reset",
-    "logout": "Logout"
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "remove": "Quitar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "finish": "Finalizar",
+    "continue": "Continuar",
+    "submit": "Enviar",
+    "reset": "Restablecer",
+    "logout": "Cerrar sesión",
+    "backToHome": "Volver al inicio"
   },
+  "tagline": "Tu laboratorio personal de idiomas con IA",
+  "footer": "Por Conversational Dynamics Consulting Group",
   "error": {
-    "generic": "Something went wrong",
-    "network": "Network error. Please try again."
+    "generic": "Algo salió mal",
+    "network": "Error de red. Por favor, inténtalo de nuevo."
   },
   "success": {
-    "saved": "Saved!",
-    "deleted": "Deleted successfully",
-    "updated": "Updated successfully"
+    "saved": "¡Guardado!",
+    "deleted": "Eliminado exitosamente",
+    "updated": "Actualizado exitosamente"
   },
   "confirm": {
-    "delete": "Are you sure you want to delete this?",
-    "logout": "Are you sure you want to logout?"
+    "delete": "¿Estás seguro de que quieres eliminar esto?",
+    "logout": "¿Estás seguro de que quieres cerrar sesión?"
+  },
+  "upgradePrompt": {
+    "title": "Límite de Cuota Alcanzado",
+    "quotaUsed": "Has usado {{used}} de {{limit}} generaciones esta semana",
+    "limitReached": "Has alcanzado tu límite de generación semanal. ¡Actualiza a Pro para crear más contenido y desbloquear funciones premium!",
+    "limitReachedPro": "Has alcanzado tu límite de generación semanal. Tu cuota se restablecerá al inicio de la próxima semana (lunes 00:00 UTC).",
+    "proPlan": {
+      "title": "Plan Pro - $7/mes",
+      "feature1": "30 generaciones por semana",
+      "feature1Detail": "(6 veces más que Gratis)",
+      "feature2": "Todos los tipos de contenido incluidos",
+      "feature3": "TTS de alta calidad de Google Cloud",
+      "feature4": "Soporte prioritario"
+    },
+    "proInfo": {
+      "plan": "Plan Pro:",
+      "planDetail": "30 generaciones por semana",
+      "quota": "La cuota se restablece:",
+      "quotaDetail": "Cada lunes a medianoche UTC"
+    },
+    "buttons": {
+      "upgrade": "Actualizar a Pro - $7/mes",
+      "maybeLater": "Tal vez más tarde",
+      "viewBilling": "Ver Configuración de Facturación",
+      "close": "Cerrar"
+    }
+  },
+  "aria": {
+    "close": "Cerrar",
+    "play": "Reproducir",
+    "pause": "Pausar",
+    "repeatMode": "Modo de repetición: {{mode}}"
   }
 }

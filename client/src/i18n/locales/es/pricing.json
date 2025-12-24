@@ -1,0 +1,60 @@
+{
+  "title": "Elige Tu Plan",
+  "subtitle": "Comienza a crear contenido de aprendizaje de idiomas inmersivo hoy. Actualiza o baja de categoría en cualquier momento.",
+  "tiers": {
+    "free": {
+      "name": "Gratis",
+      "price": "$0",
+      "period": "para siempre",
+      "description": "Perfecto para probar ConvoLab",
+      "features": {
+        "generations": "5 generaciones por semana",
+        "contentTypes": "Todos los tipos de contenido",
+        "tts": "Audio TTS de alta calidad",
+        "support": "Soporte estándar"
+      }
+    },
+    "test": {
+      "name": "Prueba",
+      "price": "$0.01",
+      "period": "por mes",
+      "description": "Nivel de prueba para pruebas internas",
+      "features": {
+        "generations": "30 generaciones por semana",
+        "contentTypes": "Todos los tipos de contenido",
+        "tts": "Audio TTS de alta calidad",
+        "testFlow": "Flujo de pago de prueba"
+      },
+      "cta": "Prueba de Pago"
+    },
+    "pro": {
+      "name": "Pro",
+      "price": "$7",
+      "period": "por mes",
+      "description": "Para estudiantes de idiomas serios",
+      "features": {
+        "generations": "30 generaciones por semana",
+        "contentTypes": "Todos los tipos de contenido",
+        "tts": "Audio TTS de alta calidad",
+        "support": "Soporte prioritario",
+        "earlyAccess": "Acceso anticipado a nuevas funciones"
+      },
+      "cta": "Actualizar a Pro"
+    }
+  },
+  "badges": {
+    "popular": "Más Popular",
+    "current": "Plan Actual"
+  },
+  "actions": {
+    "currentPlan": "Plan Actual",
+    "upgrade": "Actualizar a Pro",
+    "downgrade": "Bajar de categoría",
+    "loading": "Cargando..."
+  },
+  "footer": {
+    "inviteOnly": "Todos los planes requieren un código de invitación. ConvoLab es actualmente solo por invitación.",
+    "questions": "¿Preguntas sobre precios?",
+    "contact": "Contáctanos"
+  }
+}

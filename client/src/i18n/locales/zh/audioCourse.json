@@ -73,5 +73,31 @@
     },
     "button": "创建音频课程",
     "creating": "正在创建..."
+  },
+  "creator": {
+    "title": "创建音频课程",
+    "subtitle": "基于「{{episodeTitle}}」的Pimsleur风格互动课程",
+    "titleLabel": "音频课程标题",
+    "titlePlaceholder": "例如：餐厅对话 - 音频课程",
+    "autoDescription": "说明将使用AI自动生成",
+    "narratorLabel": "解说员声音（{{language}}）",
+    "narratorHelper": "此声音将用{{language}}解说指导",
+    "dialogueVoices": "对话声音（{{language}}）",
+    "cancel": "取消",
+    "create": "创建并生成音频课程",
+    "creating": "正在创建...",
+    "errors": {
+      "titleRequired": "请输入课程标题",
+      "voiceRequired": "请选择解说员声音",
+      "createFailed": "创建课程失败",
+      "generateFailed": "启动课程生成失败"
+    },
+    "pimsleurInfo": {
+      "title": "什么是Pimsleur风格课程？",
+      "description": "使用以下方法的纯音频课程：",
+      "feature1": "预期：带有暂停的提示让您回应",
+      "feature2": "间隔重复：以递增间隔复习的项目",
+      "feature3": "渐进难度：从简单到复杂的短语构建"
+    }
   }
 }

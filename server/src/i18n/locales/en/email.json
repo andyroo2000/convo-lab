@@ -1,0 +1,112 @@
+{
+  "verification": {
+    "subject": "Verify your ConvoLab email",
+    "title": "Welcome to ConvoLab!",
+    "greeting": "Hi {{name}},",
+    "body": "Thanks for signing up! Please verify your email address to start creating language learning content.",
+    "button": "Verify Email Address",
+    "linkInstructions": "Or copy and paste this link into your browser:",
+    "expiry": "This link will expire in 24 hours. If you didn't create an account, you can safely ignore this email."
+  },
+  "passwordReset": {
+    "subject": "Reset your ConvoLab password",
+    "title": "Reset Your Password",
+    "greeting": "Hi {{name}},",
+    "body": "We received a request to reset your password. Click the button below to create a new password.",
+    "button": "Reset Password",
+    "linkInstructions": "Or copy and paste this link into your browser:",
+    "expiry": "This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email."
+  },
+  "welcome": {
+    "subject": "Welcome to ConvoLab!",
+    "title": "🎉 You're All Set!",
+    "greeting": "Hi {{name}},",
+    "body": "Your email has been verified! You can now start creating immersive language learning content.",
+    "whatYouCanCreate": "What you can create:",
+    "dialogues": {
+      "title": "Dialogues:",
+      "description": "Natural conversations with multiple speakers"
+    },
+    "audioCourses": {
+      "title": "Audio Courses:",
+      "description": "Pimsleur-style lessons with backward-building"
+    },
+    "narrowListening": {
+      "title": "Narrow Listening:",
+      "description": "Focused practice on grammar patterns"
+    },
+    "lexicalChunks": {
+      "title": "Lexical Chunks:",
+      "description": "Master common phrases and expressions"
+    },
+    "button": "Start Creating",
+    "help": "Need help getting started? Check out our Getting Started Guide.",
+    "footer": "Questions? Reply to this email anytime!"
+  },
+  "passwordChanged": {
+    "subject": "Your ConvoLab password was changed",
+    "title": "Password Changed",
+    "greeting": "Hi {{name}},",
+    "body": "This is a confirmation that your ConvoLab password has been successfully changed.",
+    "ifYou": "If you made this change, you can safely ignore this email.",
+    "warningTitle": "⚠️ Didn't make this change?",
+    "warningBody": "If you did not change your password, please contact us immediately at {{email}}",
+    "footer": "This is an automated security notification."
+  },
+  "subscriptionConfirmed": {
+    "subject": "Welcome to ConvoLab {{tier}}!",
+    "title": "🎉 Welcome to {{tier}}!",
+    "greeting": "Hi {{name}},",
+    "body": "Your ConvoLab {{tier}} subscription is now active! Thank you for supporting our mission to make language learning more immersive and effective.",
+    "benefitsTitle": "Your {{tier}} Benefits",
+    "generations": "{{count}} generations per week",
+    "contentTypes": "All content types (dialogues, courses, narrow listening, chunks)",
+    "tts": "High-quality Google Cloud TTS audio",
+    "support": "Priority support",
+    "button": "Start Creating",
+    "manage": "You can manage your subscription anytime from your billing settings.",
+    "footer": "Questions? Reply to this email anytime!"
+  },
+  "paymentFailed": {
+    "subject": "ConvoLab payment failed - Action required",
+    "title": "Payment Failed",
+    "greeting": "Hi {{name}},",
+    "body": "We were unable to process your payment for your ConvoLab subscription. This could be due to:",
+    "reasonFunds": "Insufficient funds",
+    "reasonExpired": "Expired card",
+    "reasonVerification": "Card verification issue",
+    "warningTitle": "⚠️ Action Required",
+    "warningBody": "Please update your payment method to avoid service interruption.",
+    "button": "Update Payment Method",
+    "help": "If you continue to have issues, please contact us at {{email}}",
+    "footer": "This is an automated payment notification."
+  },
+  "subscriptionCanceled": {
+    "subject": "Your ConvoLab subscription has been canceled",
+    "title": "Subscription Canceled",
+    "greeting": "Hi {{name}},",
+    "body": "Your ConvoLab Pro subscription has been canceled and you've been downgraded to the Free tier.",
+    "freeTierTitle": "Free Tier Limits",
+    "generations": "{{count}} generations per week",
+    "contentTypes": "All content types available",
+    "support": "Standard support",
+    "sorryToSeeYouGo": "We're sorry to see you go! If you'd like to share feedback about why you canceled, we'd love to hear from you.",
+    "reactivateNote": "You can reactivate your Pro subscription anytime from your billing settings.",
+    "button": "View Billing Settings",
+    "footer": "Questions? Reply to this email anytime!"
+  },
+  "quotaWarning": {
+    "subject": "You've used {{percentage}}% of your weekly ConvoLab quota",
+    "title": "⚠️ Quota Warning",
+    "greeting": "Hi {{name}},",
+    "body": "You've used {{used}} of {{limit}} generations this week ({{percentage}}%).",
+    "usageTitle": "Weekly Usage",
+    "remaining": "{{count}} generation remaining",
+    "remaining_plural": "{{count}} generations remaining",
+    "quotaReset": "Your quota resets every Monday at midnight UTC.",
+    "upgradeTitle": "💡 Need more?",
+    "upgradeBody": "Upgrade to Pro for {{count}} generations per week ($7/month)",
+    "button": "Upgrade to Pro",
+    "footer": "This is an automated usage notification."
+  }
+}

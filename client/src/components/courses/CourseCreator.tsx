@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
@@ -16,6 +17,7 @@ export default function CourseCreator({
   onClose,
   onCourseCreated,
 }: CourseCreatorProps) {
+  const { t } = useTranslation('audioCourse');
   const [title, setTitle] = useState('');
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
@@ -70,12 +72,12 @@ export default function CourseCreator({
     }
 
     if (!title.trim()) {
-      setError('Please enter a course title');
+      setError(t('creator.errors.titleRequired'));
       return;
     }
 
     if (!selectedVoice) {
-      setError('Please select a narrator voice');
+      setError(t('creator.errors.voiceRequired'));
       return;
     }
 
@@ -149,9 +151,9 @@ export default function CourseCreator({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-navy">Create Audio Course</h2>
+            <h2 className="text-xl font-bold text-navy">{t('creator.title')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Pimsleur-style interactive lesson from "{episode.title}"
+              {t('creator.subtitle', { episodeTitle: episode.title })}
             </p>
           </div>
           <button
@@ -168,7 +170,7 @@ export default function CourseCreator({
           {/* Title Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Audio Course Title
+              {t('creator.titleLabel')}
             </label>
             <input
               type="text"
@@ -176,17 +178,17 @@ export default function CourseCreator({
               onChange={(e) => setTitle(e.target.value)}
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
-              placeholder="e.g., Restaurant Conversation - Audio Course"
+              placeholder={t('creator.titlePlaceholder')}
             />
             <p className="text-xs text-gray-500 mt-1">
-              A description will be automatically generated using AI
+              {t('creator.autoDescription')}
             </p>
           </div>
 
           {/* Narrator Voice Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Narrator Voice ({episode.nativeLanguage.toUpperCase()})
+              {t('creator.narratorLabel', { language: episode.nativeLanguage.toUpperCase() })}
             </label>
             <select
               value={selectedVoice}
@@ -201,20 +203,20 @@ export default function CourseCreator({
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              This voice will narrate instructions in {episode.nativeLanguage.toUpperCase()}
+              {t('creator.narratorHelper', { language: episode.nativeLanguage.toUpperCase() })}
             </p>
           </div>
 
           {/* Dialogue Voice Selection */}
           <div className="border-t pt-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Dialogue Voices ({episode.targetLanguage.toUpperCase()})
+              {t('creator.dialogueVoices', { language: episode.targetLanguage.toUpperCase() })}
             </h3>
             <div className="grid grid-cols-2 gap-4">
               {/* Speaker 1 Voice */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Speaker 1 (Friend)
+                  {t('voiceConfig.speaker1')}
                 </label>
                 <select
                   value={speaker1VoiceId}
@@ -234,7 +236,7 @@ export default function CourseCreator({
               {/* Speaker 2 Voice */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Speaker 2 (Listener)
+                  {t('voiceConfig.speaker2')}
                 </label>
                 <select
                   value={speaker2VoiceId}
@@ -252,14 +254,14 @@ export default function CourseCreator({
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Choose any voice for each speaker - (M) = Male, (F) = Female
+              {t('voiceConfig.voiceHelper')}
             </p>
           </div>
 
           {/* Max Lesson Duration */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Max Lesson Duration
+              {t('courseSettings.maxDuration')}
             </label>
             <select
               value={maxDuration}
@@ -267,20 +269,20 @@ export default function CourseCreator({
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
-              <option value={10}>10 minutes</option>
-              <option value={15}>15 minutes</option>
-              <option value={20}>20 minutes</option>
-              <option value={30}>30 minutes</option>
+              <option value={10}>{t('courseSettings.durationOptions.10')}</option>
+              <option value={15}>{t('courseSettings.durationOptions.15')}</option>
+              <option value={20}>{t('courseSettings.durationOptions.20')}</option>
+              <option value={30}>{t('courseSettings.durationOptions.30')}</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              Lessons longer than this will be split into multiple parts
+              {t('courseSettings.durationHelper')}
             </p>
           </div>
 
           {/* JLPT Level Selector */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Target JLPT Level
+              {t('courseSettings.targetJLPT')}
             </label>
             <select
               value={jlptLevel}
@@ -288,14 +290,14 @@ export default function CourseCreator({
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
-              <option value="N5">N5 (Beginner)</option>
-              <option value="N4">N4 (Upper Beginner)</option>
-              <option value="N3">N3 (Intermediate)</option>
-              <option value="N2">N2 (Upper Intermediate)</option>
-              <option value="N1">N1 (Advanced)</option>
+              <option value="N5">{t('courseSettings.jlpt.n5')}</option>
+              <option value="N4">{t('courseSettings.jlpt.n4')}</option>
+              <option value="N3">{t('courseSettings.jlpt.n3')}</option>
+              <option value="N2">{t('courseSettings.jlpt.n2')}</option>
+              <option value="N1">{t('courseSettings.jlpt.n1')}</option>
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              Vocabulary and grammar will be tailored to students at this level
+              {t('courseSettings.levelHelper')}
             </p>
           </div>
 
@@ -309,12 +311,12 @@ export default function CourseCreator({
           {/* Info Box */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>What is a Pimsleur-style course?</strong> An audio-only lesson using:
+              <strong>{t('creator.pimsleurInfo.title')}</strong> {t('creator.pimsleurInfo.description')}
             </p>
             <ul className="text-xs text-blue-700 mt-2 ml-4 list-disc space-y-1">
-              <li>Anticipation: Prompts with pauses for you to respond</li>
-              <li>Spaced Repetition: Items reviewed at increasing intervals</li>
-              <li>Graduated Difficulty: Builds from simple to complex phrases</li>
+              <li>{t('creator.pimsleurInfo.feature1')}</li>
+              <li>{t('creator.pimsleurInfo.feature2')}</li>
+              <li>{t('creator.pimsleurInfo.feature3')}</li>
             </ul>
           </div>
         </div>
@@ -326,7 +328,7 @@ export default function CourseCreator({
             disabled={isCreating}
             className="btn-outline flex-1"
           >
-            Cancel
+            {t('creator.cancel')}
           </button>
           <button
             onClick={handleCreate}
@@ -336,10 +338,10 @@ export default function CourseCreator({
             {isCreating ? (
               <>
                 <Loader className="w-4 h-4 animate-spin" />
-                Creating...
+                {t('creator.creating')}
               </>
             ) : (
-              'Create & Generate Audio Course'
+              t('creator.create')
             )}
           </button>
         </div>
