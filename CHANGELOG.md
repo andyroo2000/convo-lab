@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Fixed
+- **[test]** Stripe-related server test failures - fixed all 3 failing Stripe test files by correcting Stripe constructor mock using class syntax, adding missing requireAdmin export to roleAuth middleware mock, fixing error response assertions to check error.message, and fixing date serialization in subscription status test; all 1200 server tests now pass
 - **[test]** DialogueGenerator i18n test failures - fixed all 16 failing tests by initializing i18n in test setup, creating custom render utility with I18nextProvider wrapper, fixing pluralization format in translation files, and removing outdated language selector tests; all 47 DialogueGenerator tests now pass
 
 ### Added
