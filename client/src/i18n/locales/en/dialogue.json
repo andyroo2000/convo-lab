@@ -59,8 +59,8 @@
     "ready": "Ready to Generate?",
     "description": "The AI will create a natural {{language}} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {{level}} level {{tone}} language.",
     "features": {
-      "turns": "{{count}} dialogue turn",
-      "turns_plural": "{{count}} dialogue turns",
+      "turns_one": "{{count}} dialogue turn",
+      "turns_other": "{{count}} dialogue turns",
       "variations": "3 variations per sentence",
       "translations": "English translations",
       "complexity": "Level-matched language complexity"
