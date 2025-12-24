@@ -1,0 +1,70 @@
+{
+  "pageTitle": "理解可能なインプット対話",
+  "pageSubtitle": "あなたの習熟度レベルに合わせたAI対話を生成",
+  "alerts": {
+    "fillRequired": "すべての必須フィールドに入力してください",
+    "twoSpeakers": "少なくとも2人のスピーカーを追加してください",
+    "generationFailed": "対話の生成に失敗しました。もう一度お試しください。"
+  },
+  "placeholderTitle": "対話を生成中...",
+  "generating": {
+    "title": "対話を生成中",
+    "description": "AIがあなたのストーリーに基づいて自然な会話を作成しています..."
+  },
+  "complete": {
+    "title": "対話が生成されました！",
+    "redirecting": "再生ページにリダイレクト中..."
+  },
+  "form": {
+    "yourStory": "あなたのストーリー",
+    "whatToTalkAbout": "何について話したいですか？",
+    "storyPlaceholder": "学びたい経験、会話、または状況を説明してください。AIはあなたの説明に基づいて自然な対話を作成します。",
+    "storyHelper": "文脈、設定、何が起こったかについて具体的に書いてください。これにより、より本物の対話が作成されます。",
+    "conversationLength": "会話の長さ",
+    "turns": "{{count}}ターン",
+    "targetJLPT": "目標JLPTレベル",
+    "jlpt": {
+      "n5": "N5（初級）",
+      "n4": "N4（初級上）",
+      "n3": "N3（中級）",
+      "n2": "N2（中級上）",
+      "n1": "N1（上級）"
+    },
+    "targetHSK": "目標HSKレベル",
+    "hsk": {
+      "hsk1": "HSK 1（初級）",
+      "hsk2": "HSK 2（初級上）",
+      "hsk3": "HSK 3（中級）",
+      "hsk4": "HSK 4（中級上）",
+      "hsk5": "HSK 5（上級）",
+      "hsk6": "HSK 6（マスター）"
+    },
+    "targetCEFR": "目標CEFRレベル",
+    "cefr": {
+      "a1": "A1（初級）",
+      "a2": "A2（初等）",
+      "b1": "B1（中級）",
+      "b2": "B2（中級上）",
+      "c1": "C1（上級）",
+      "c2": "C2（マスター）"
+    },
+    "tone": "トーン",
+    "tones": {
+      "casual": "カジュアル",
+      "polite": "丁寧",
+      "formal": "フォーマル"
+    }
+  },
+  "generate": {
+    "ready": "生成の準備ができましたか？",
+    "description": "AIがランダムに割り当てられた名前と音声を持つ2人のスピーカー間の自然な{{language}}の会話を作成します。両スピーカーは{{level}}レベルの{{tone}}言語を使用します。",
+    "features": {
+      "turns": "{{count}}対話ターン",
+      "variations": "文ごとに3つのバリエーション",
+      "translations": "英語翻訳",
+      "complexity": "レベルに合わせた言語の複雑さ"
+    },
+    "button": "対話を生成",
+    "generating": "生成中..."
+  }
+}

@@ -8,6 +8,12 @@ steps:
       - 'build'
       - '--build-arg'
       - 'CACHE_BUST=${_CACHE_BUST}'
+      - '--build-arg'
+      - 'VITE_STRIPE_PUBLISHABLE_KEY=${_VITE_STRIPE_PUBLISHABLE_KEY}'
+      - '--build-arg'
+      - 'VITE_STRIPE_PRICE_PRO_MONTHLY=${_VITE_STRIPE_PRICE_PRO_MONTHLY}'
+      - '--build-arg'
+      - 'VITE_STRIPE_PRICE_TEST_MONTHLY=${_VITE_STRIPE_PRICE_TEST_MONTHLY}'
       - '-t'
       - '${_IMAGE_NAME}'
       - '.'
@@ -18,6 +24,9 @@ images:
 substitutions:
   _CACHE_BUST: 'default'
   _IMAGE_NAME: 'gcr.io/convolab-mvp/convolab'
+  _VITE_STRIPE_PUBLISHABLE_KEY: ''
+  _VITE_STRIPE_PRICE_PRO_MONTHLY: ''
+  _VITE_STRIPE_PRICE_TEST_MONTHLY: ''
 
 options:
   machineType: 'E2_HIGHCPU_8'

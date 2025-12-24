@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Loader, Sparkles } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
@@ -8,6 +9,7 @@ import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
 export default function NarrowListeningCreatorPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['narrowListening']);
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
   const { user } = useAuth();
@@ -34,14 +36,14 @@ export default function NarrowListeningCreatorPage() {
     }
 
     if (!topic.trim()) {
-      setError('Please enter a topic or story idea');
+      setError(t('narrowListening:alerts.enterTopic'));
       return;
     }
 
     setIsGenerating(true);
     setError(null);
     setProgress(0);
-    setStatusMessage('Creating narrow listening pack...');
+    setStatusMessage(t('narrowListening:progress.creating'));
 
     try {
       // Start generation
@@ -87,11 +89,11 @@ export default function NarrowListeningCreatorPage() {
 
             // Update status message based on progress
             if (status.progress < 20) {
-              setStatusMessage('Generating story with AI...');
+              setStatusMessage(t('narrowListening:progress.generatingStory'));
             } else if (status.progress < 90) {
-              setStatusMessage('Creating audio for story variations...');
+              setStatusMessage(t('narrowListening:progress.creatingAudio'));
             } else {
-              setStatusMessage('Finalizing your pack...');
+              setStatusMessage(t('narrowListening:progress.finalizing'));
             }
           }
 
@@ -127,39 +129,32 @@ export default function NarrowListeningCreatorPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 pb-6 border-b-4 border-strawberry">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">Narrow Listening Packs</h1>
-        <p className="text-xl text-gray-600">The same story told 5 different ways for focused listening practice</p>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('narrowListening:pageTitle')}</h1>
+        <p className="text-xl text-gray-600">{t('narrowListening:pageSubtitle')}</p>
       </div>
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-dark-brown mb-6">Your Story</h2>
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('narrowListening:form.yourStory')}</h2>
 
           {/* Form */}
           <div className="space-y-6">
             {/* Topic */}
             <div>
               <label className="block text-base font-bold text-dark-brown mb-3">
-                What's your story about? <span className="text-strawberry">*</span>
+                {t('narrowListening:form.whatAbout')} <span className="text-strawberry">*</span>
               </label>
               <textarea
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 disabled={isGenerating}
-                placeholder={targetLanguage === 'ja'
-                  ? "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee"
-                  : targetLanguage === 'zh'
-                  ? "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea"
-                  : targetLanguage === 'es'
-                  ? "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas"
-                  : "Example: Sophie's weekend activities, A trip to the bakery, Meeting a friend for coffee"
-                }
+                placeholder={t(`narrowListening:form.topicPlaceholder.${targetLanguage}`)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
               />
               <p className="text-sm text-gray-500 mt-2">
-                Describe the scenario or topic for your story
+                {t('narrowListening:form.topicHelper')}
               </p>
             </div>
 
@@ -167,11 +162,7 @@ export default function NarrowListeningCreatorPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target {
-                    targetLanguage === 'ja' ? 'JLPT' :
-                    targetLanguage === 'zh' ? 'HSK' :
-                    'CEFR'
-                  } Level <span className="text-strawberry">*</span>
+                  {t(targetLanguage === 'ja' ? 'narrowListening:form.targetJLPT' : targetLanguage === 'zh' ? 'narrowListening:form.targetHSK' : 'narrowListening:form.targetCEFR')} <span className="text-strawberry">*</span>
                 </label>
                 {targetLanguage === 'ja' ? (
                   <select
@@ -180,11 +171,11 @@ export default function NarrowListeningCreatorPage() {
                     disabled={isGenerating}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
                   >
-                    <option value="N5">N5 (Beginner)</option>
-                    <option value="N4">N4 (Upper Beginner)</option>
-                    <option value="N3">N3 (Intermediate)</option>
-                    <option value="N2">N2 (Upper Intermediate)</option>
-                    <option value="N1">N1 (Advanced)</option>
+                    <option value="N5">{t('narrowListening:form.jlpt.n5')}</option>
+                    <option value="N4">{t('narrowListening:form.jlpt.n4')}</option>
+                    <option value="N3">{t('narrowListening:form.jlpt.n3')}</option>
+                    <option value="N2">{t('narrowListening:form.jlpt.n2')}</option>
+                    <option value="N1">{t('narrowListening:form.jlpt.n1')}</option>
                   </select>
                 ) : targetLanguage === 'zh' ? (
                   <select
@@ -193,12 +184,12 @@ export default function NarrowListeningCreatorPage() {
                     disabled={isGenerating}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
                   >
-                    <option value="HSK1">HSK1 (Beginner)</option>
-                    <option value="HSK2">HSK2 (Elementary)</option>
-                    <option value="HSK3">HSK3 (Intermediate)</option>
-                    <option value="HSK4">HSK4 (Upper Intermediate)</option>
-                    <option value="HSK5">HSK5 (Advanced)</option>
-                    <option value="HSK6">HSK6 (Proficient)</option>
+                    <option value="HSK1">{t('narrowListening:form.hsk.hsk1')}</option>
+                    <option value="HSK2">{t('narrowListening:form.hsk.hsk2')}</option>
+                    <option value="HSK3">{t('narrowListening:form.hsk.hsk3')}</option>
+                    <option value="HSK4">{t('narrowListening:form.hsk.hsk4')}</option>
+                    <option value="HSK5">{t('narrowListening:form.hsk.hsk5')}</option>
+                    <option value="HSK6">{t('narrowListening:form.hsk.hsk6')}</option>
                   </select>
                 ) : (
                   <select
@@ -207,34 +198,34 @@ export default function NarrowListeningCreatorPage() {
                     disabled={isGenerating}
                     className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
                   >
-                    <option value="A1">A1 (Beginner)</option>
-                    <option value="A2">A2 (Elementary)</option>
-                    <option value="B1">B1 (Intermediate)</option>
-                    <option value="B2">B2 (Upper Intermediate)</option>
-                    <option value="C1">C1 (Advanced)</option>
-                    <option value="C2">C2 (Mastery)</option>
+                    <option value="A1">{t('narrowListening:form.cefr.a1')}</option>
+                    <option value="A2">{t('narrowListening:form.cefr.a2')}</option>
+                    <option value="B1">{t('narrowListening:form.cefr.b1')}</option>
+                    <option value="B2">{t('narrowListening:form.cefr.b2')}</option>
+                    <option value="C1">{t('narrowListening:form.cefr.c1')}</option>
+                    <option value="C2">{t('narrowListening:form.cefr.c2')}</option>
                   </select>
                 )}
                 <p className="text-sm text-gray-500 mt-2">
-                  Vocabulary and grammar will be tailored to this level
+                  {t('narrowListening:form.levelHelper')}
                 </p>
               </div>
 
               {/* Grammar Focus (Optional) */}
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Grammar Focus (Optional)
+                  {t('narrowListening:form.grammarFocus')}
                 </label>
                 <input
                   type="text"
                   value={grammarFocus}
                   onChange={(e) => setGrammarFocus(e.target.value)}
                   disabled={isGenerating}
-                  placeholder="e.g., past vs present tense"
+                  placeholder={t('narrowListening:form.grammarPlaceholder')}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100"
                 />
                 <p className="text-sm text-gray-500 mt-2">
-                  Optionally specify grammar points to focus on
+                  {t('narrowListening:form.grammarHelper')}
                 </p>
               </div>
             </div>
@@ -259,30 +250,23 @@ export default function NarrowListeningCreatorPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-sm text-gray-700 mt-2 font-medium">{Math.round(progress)}% complete</p>
+                <p className="text-sm text-gray-700 mt-2 font-medium">{t('narrowListening:progress.complete', { progress: Math.round(progress) })}</p>
               </div>
             )}
 
             {/* Info Box */}
             <div className="p-6 bg-strawberry-light border-l-4 border-strawberry">
               <p className="text-base text-dark-brown font-bold mb-3">
-                What is Narrow Listening?
+                {t('narrowListening:info.title')}
               </p>
               <p className="text-base text-gray-700 mb-3">
-                Narrow listening is a technique where you listen to the same content with slight variations.
-                This helps you notice differences in grammar, vocabulary, and usage while maintaining context.
-                Your pack will include:
+                {t('narrowListening:info.description')}
               </p>
               <ul className="text-base text-gray-700 ml-4 space-y-2">
-                <li className="font-medium">• 5 versions of the same story with different grammar patterns</li>
-                <li className="font-medium">• Slow audio (0.7x speed) for shadowing practice</li>
-                <li className="font-medium">• Optional normal speed audio (1.0x) when you're ready</li>
-                <li className="font-medium">• {
-                  targetLanguage === 'ja' ? 'Japanese text with furigana' :
-                  targetLanguage === 'zh' ? 'Chinese text with pinyin' :
-                  targetLanguage === 'es' ? 'Spanish text' :
-                  'French text'
-                } and English translations</li>
+                <li className="font-medium">• {t('narrowListening:info.features.versions')}</li>
+                <li className="font-medium">• {t('narrowListening:info.features.slowAudio')}</li>
+                <li className="font-medium">• {t('narrowListening:info.features.normalAudio')}</li>
+                <li className="font-medium">• {t(`narrowListening:info.features.text${targetLanguage === 'ja' ? 'Ja' : targetLanguage === 'zh' ? 'Zh' : targetLanguage === 'es' ? 'Es' : 'Fr'}`)}</li>
               </ul>
             </div>
           </div>
@@ -294,7 +278,7 @@ export default function NarrowListeningCreatorPage() {
               disabled={isGenerating}
               className="px-8 py-4 border-2 border-gray-300 rounded-lg font-bold text-base text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
             >
-              Cancel
+              {t('narrowListening:actions.cancel')}
             </button>
             <button
               onClick={handleGenerate}
@@ -304,12 +288,12 @@ export default function NarrowListeningCreatorPage() {
               {isGenerating ? (
                 <>
                   <Loader className="w-6 h-6 animate-spin" />
-                  Generating...
+                  {t('narrowListening:actions.generating')}
                 </>
               ) : (
                 <>
                   <Sparkles className="w-6 h-6" />
-                  Generate Pack
+                  {t('narrowListening:actions.generate')}
                 </>
               )}
             </button>

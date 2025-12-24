@@ -1,9 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import './i18n';
 
 // Lazy load all page components for code splitting
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -50,9 +52,10 @@ function App() {
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
-          <AudioPlayerProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+          <LocaleProvider>
+            <AudioPlayerProvider>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -94,9 +97,10 @@ function App() {
 
                 {/* 404 Catch-all Route */}
                 <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
-          </AudioPlayerProvider>
+                </Routes>
+              </Suspense>
+            </AudioPlayerProvider>
+          </LocaleProvider>
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>

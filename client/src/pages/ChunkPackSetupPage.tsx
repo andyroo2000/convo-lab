@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BookOpen, Loader } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
@@ -60,6 +61,7 @@ function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
 
 export default function ChunkPackSetupPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation(['chunkPack']);
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
@@ -148,8 +150,8 @@ export default function ChunkPackSetupPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 pb-6 border-b-4 border-yellow">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">Lexical Chunk Packs</h1>
-        <p className="text-xl text-gray-600">Learn high-frequency phrases through examples and exercises</p>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('chunkPack:pageTitle')}</h1>
+        <p className="text-xl text-gray-600">{t('chunkPack:pageSubtitle')}</p>
       </div>
 
       {/* Main Card */}
@@ -157,11 +159,9 @@ export default function ChunkPackSetupPage() {
         <div className="bg-white border-l-8 border-yellow p-8 shadow-sm">
           {/* Description */}
           <div className="bg-yellow-light border-l-4 border-yellow p-6 mb-8">
-            <h2 className="text-xl font-bold text-dark-brown mb-3">What are Lexical Chunk Packs?</h2>
+            <h2 className="text-xl font-bold text-dark-brown mb-3">{t('chunkPack:what.title')}</h2>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Lexical Chunk Packs teach <strong>5-8 high-frequency Japanese chunks</strong> through examples, stories, and exercises.
-              You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words.
-              Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary.
+              {t('chunkPack:what.description')}
             </p>
           </div>
 
@@ -170,7 +170,7 @@ export default function ChunkPackSetupPage() {
             {/* JLPT Level Selection */}
             <div>
               <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
-                Select Your Level
+                {t('chunkPack:setup.selectLevel')}
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
                 {(['N5', 'N4', 'N3'] as JLPTLevel[]).map((level) => (
@@ -186,9 +186,7 @@ export default function ChunkPackSetupPage() {
                   >
                     <div className="text-lg sm:text-xl font-bold">{level}</div>
                     <div className="text-xs sm:text-sm mt-1 font-medium">
-                      {level === 'N5' && 'Beginner'}
-                      {level === 'N4' && 'Elementary'}
-                      {level === 'N3' && 'Intermediate'}
+                      {t(`chunkPack:levels.${level.toLowerCase()}`)}
                     </div>
                   </button>
                 ))}
@@ -198,7 +196,7 @@ export default function ChunkPackSetupPage() {
             {/* Theme Selection */}
             <div>
               <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
-                Select Theme
+                {t('chunkPack:setup.selectTheme')}
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2">
                 {availableThemes.map((themeData) => (
@@ -212,8 +210,8 @@ export default function ChunkPackSetupPage() {
                         : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="font-bold text-sm sm:text-base">{themeData.name}</div>
-                    <div className="text-xs sm:text-sm mt-1 text-gray-600">{themeData.description}</div>
+                    <div className="font-bold text-sm sm:text-base">{t(`chunkPack:themes.${themeData.id}.name`)}</div>
+                    <div className="text-xs sm:text-sm mt-1 text-gray-600">{t(`chunkPack:themes.${themeData.id}.description`)}</div>
                   </button>
                 ))}
               </div>
@@ -231,7 +229,7 @@ export default function ChunkPackSetupPage() {
           {isGenerating && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">Generating lexical chunk pack...</span>
+                <span className="text-sm font-medium text-gray-700">{t('chunkPack:progress.generating')}</span>
                 <span className="text-sm text-gray-500">{progress}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -241,7 +239,7 @@ export default function ChunkPackSetupPage() {
                 />
               </div>
               <p className="text-sm text-gray-500 mt-2">
-                This may take 30-60 seconds. We're generating content and audio...
+                {t('chunkPack:progress.tip')}
               </p>
             </div>
           )}
@@ -256,12 +254,12 @@ export default function ChunkPackSetupPage() {
               {isGenerating ? (
                 <>
                   <Loader className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
-                  Generating Lexical Chunk Pack...
+                  {t('chunkPack:actions.generating')}
                 </>
               ) : (
                 <>
                   <BookOpen className="w-5 h-5 sm:w-6 sm:h-6" />
-                  Generate Lexical Chunk Pack
+                  {t('chunkPack:actions.generate')}
                 </>
               )}
             </button>
@@ -270,7 +268,7 @@ export default function ChunkPackSetupPage() {
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
             <p>
-              Tip: Each pack contains 5-8 chunks with examples, a story, and exercises.
+              {t('chunkPack:tip')}
             </p>
           </div>
         </div>

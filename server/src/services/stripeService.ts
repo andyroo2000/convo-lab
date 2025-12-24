@@ -7,7 +7,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2024-12-18.acacia' as any,
 });
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -127,8 +127,8 @@ export async function handleSubscriptionCreated(
       stripeSubscriptionId: subscription.id,
       stripeSubscriptionStatus: subscription.status,
       stripePriceId: priceId,
-      subscriptionStartedAt: new Date(subscription.current_period_start * 1000),
-      subscriptionExpiresAt: new Date(subscription.current_period_end * 1000),
+      subscriptionStartedAt: new Date((subscription as any).current_period_start * 1000),
+      subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
       subscriptionCanceledAt: null
     }
   });
@@ -187,10 +187,10 @@ export async function handleSubscriptionUpdated(
     data: {
       stripeSubscriptionStatus: subscription.status,
       stripePriceId: priceId,
-      subscriptionExpiresAt: new Date(subscription.current_period_end * 1000),
+      subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
       // If subscription was canceled, mark when it will end
-      ...(subscription.cancel_at_period_end && {
-        subscriptionCanceledAt: new Date(subscription.current_period_end * 1000)
+      ...((subscription as any).cancel_at_period_end && {
+        subscriptionCanceledAt: new Date((subscription as any).current_period_end * 1000)
       })
     }
   });

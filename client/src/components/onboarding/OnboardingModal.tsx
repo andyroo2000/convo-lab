@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { LanguageCode } from '../../types';
 
 export default function OnboardingModal() {
   const { user, updateUser } = useAuth();
+  const { t } = useTranslation(['onboarding', 'common']);
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>(user?.preferredNativeLanguage || 'en');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(user?.preferredStudyLanguage || 'ja');
@@ -52,9 +54,9 @@ export default function OnboardingModal() {
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-navy mb-2">Welcome to ConvoLab! 🎉</h1>
+          <h1 className="text-4xl font-bold text-navy mb-2">{t('onboarding:welcome')}</h1>
           <p className="text-gray-600">
-            Let's personalize your learning experience
+            {t('onboarding:subtitle')}
           </p>
         </div>
 
@@ -70,10 +72,10 @@ export default function OnboardingModal() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What's your native language?
+                {t('onboarding:step1.title')}
               </h2>
               <p className="text-gray-600">
-                This will be used for translations and explanations
+                {t('onboarding:step1.description')}
               </p>
             </div>
 
@@ -173,7 +175,7 @@ export default function OnboardingModal() {
                 onClick={() => setStep(2)}
                 className="btn-primary px-8 py-3"
               >
-                Next →
+                {t('onboarding:buttons.next')}
               </button>
             </div>
           </div>
@@ -184,10 +186,10 @@ export default function OnboardingModal() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What language are you learning?
+                {t('onboarding:step2.title')}
               </h2>
               <p className="text-gray-600">
-                Choose your target language to get started
+                {t('onboarding:step2.description')}
               </p>
             </div>
 
@@ -299,13 +301,13 @@ export default function OnboardingModal() {
                 onClick={() => setStep(1)}
                 className="btn-outline px-8 py-3"
               >
-                ← Back
+                {t('onboarding:buttons.back')}
               </button>
               <button
                 onClick={() => setStep(3)}
                 className="btn-primary px-8 py-3"
               >
-                Next →
+                {t('onboarding:buttons.next')}
               </button>
             </div>
           </div>
@@ -316,14 +318,10 @@ export default function OnboardingModal() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-semibold text-navy mb-2">
-                What's your current {
-                  targetLanguage === 'ja' ? 'JLPT' :
-                  targetLanguage === 'zh' ? 'HSK' :
-                  'CEFR'
-                } level?
+                {t('onboarding:step3.title')}
               </h2>
               <p className="text-gray-600">
-                This helps us create content at the right difficulty
+                {t('onboarding:step3.description')}
               </p>
             </div>
 
@@ -583,14 +581,14 @@ export default function OnboardingModal() {
                 className="btn-outline px-8 py-3"
                 disabled={isSubmitting}
               >
-                ← Back
+                {t('onboarding:buttons.back')}
               </button>
               <button
                 onClick={handleComplete}
                 disabled={isSubmitting}
                 className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? 'Saving...' : 'Get Started'}
+                {isSubmitting ? t('common:loading') : t('onboarding:buttons.finish')}
               </button>
             </div>
           </div>

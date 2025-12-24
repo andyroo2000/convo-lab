@@ -2,10 +2,14 @@ import { Resend } from 'resend';
 import crypto from 'crypto';
 import { prisma } from '../db/client.js';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+if (!resend) {
+  console.warn('⚠️  RESEND_API_KEY not configured - email functionality will be disabled');
+}
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'ConvoLab <noreply@convolab.app>';
-const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app';
+const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app>';
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Generate a secure random token
@@ -60,6 +64,8 @@ export async function sendVerificationEmail(
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
       return;
     }
+
+    if (!resend) return; // Skip email sending if Resend not configured
 
     await resend.emails.send({
       from: FROM_EMAIL,
@@ -147,6 +153,8 @@ export async function sendPasswordResetEmail(
       return;
     }
 
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -198,6 +206,8 @@ export async function sendWelcomeEmail(
   name: string
 ): Promise<void> {
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -256,6 +266,8 @@ export async function sendPasswordChangedEmail(
   name: string
 ): Promise<void> {
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -388,6 +400,8 @@ export async function sendSubscriptionConfirmedEmail(
   const weeklyLimit = tier === 'pro' ? '30' : '5';
 
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -448,6 +462,8 @@ export async function sendPaymentFailedEmail(
   name: string
 ): Promise<void> {
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -509,6 +525,8 @@ export async function sendSubscriptionCanceledEmail(
   name: string
 ): Promise<void> {
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
@@ -578,6 +596,8 @@ export async function sendQuotaWarningEmail(
   const percentage = Math.round((used / limit) * 100);
 
   try {
+    if (!resend) return; // Skip email sending if Resend not configured
+
     await resend.emails.send({
       from: FROM_EMAIL,
       to: email,

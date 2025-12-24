@@ -1,0 +1,50 @@
+{
+  "pageTitle": "処理指導アクティビティ",
+  "pageSubtitle": "構造化されたインプットと意味ベースの質問を通じて文法を学ぶ",
+  "what": {
+    "title": "処理指導とは？",
+    "description": "処理指導（PI）は、意味ベースのタスクを通じて日本語の文法を理解するのに役立ちます。日本語の文を聞いて、どの文法形式が使われたかではなく、それが何を意味するかについての質問に答えます。これにより、リアルタイムの理解で文法を正しく処理するように脳を訓練します。"
+  },
+  "setup": {
+    "selectLevel": "レベルを選択",
+    "selectGrammar": "文法ポイントを選択",
+    "itemCount": "アイテム数",
+    "duration": {
+      "10": "約5〜7分",
+      "15": "約8〜10分"
+    }
+  },
+  "levels": {
+    "n5": "初級",
+    "n4": "初級",
+    "n3": "中級",
+    "n2": "上級"
+  },
+  "grammarPoints": {
+    "ha_vs_ga": "トピックと主語",
+    "ni_vs_de": "場所のタイプ",
+    "wo_vs_ga": "他動詞と自動詞",
+    "e_vs_ni": "方向",
+    "mada_vs_mou": "完了",
+    "kara_vs_node": "理由のタイプ",
+    "ni_vs_to": "間接目的語と同伴",
+    "teiru_aspect": "状態と動作",
+    "to_vs_tari": "リストのタイプ",
+    "ha_vs_mo": "対比と包含",
+    "passive_vs_active": "受け手と動作主",
+    "garu_vs_tai": "観察された欲求と自己の欲求",
+    "koto_ni_naru_vs_suru": "外部の決定と個人の決定",
+    "conditional_types": "条件のニュアンス",
+    "zu_ni_vs_nai_de": "せずに",
+    "discourse_ha_vs_ga": "談話レベルの対比",
+    "wake_vs_hazu_vs_chigainai": "結論のタイプ",
+    "causative_types": "原因と受難",
+    "you_ni_vs_tame_ni": "目的のタイプ",
+    "koto_da_vs_mono_da": "アドバイスと回想"
+  },
+  "actions": {
+    "start": "練習セッションを開始",
+    "generating": "セッションを生成中..."
+  },
+  "tip": "ヒント：最高の体験のために、静かな場所を見つけてヘッドフォンを使用してください。"
+}

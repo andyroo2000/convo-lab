@@ -1,0 +1,21 @@
+{
+  "welcome": "Welcome to ConvoLab! 🎉",
+  "subtitle": "Let's personalize your learning experience",
+  "step1": {
+    "title": "What's your native language?",
+    "description": "This will be used for translations and explanations"
+  },
+  "step2": {
+    "title": "What language are you learning?",
+    "description": "Choose your target language to get started"
+  },
+  "step3": {
+    "title": "What's your proficiency level?",
+    "description": "This helps us create content at the right difficulty"
+  },
+  "buttons": {
+    "next": "Next →",
+    "back": "← Back",
+    "finish": "Get Started"
+  }
+}

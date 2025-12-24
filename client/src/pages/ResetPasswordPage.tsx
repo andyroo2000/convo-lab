@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Logo from '../components/common/Logo';
 import { ArrowLeft, CheckCircle, XCircle, Loader2, Lock } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export default function ResetPasswordPage() {
+  const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
 
@@ -56,12 +58,12 @@ export default function ResetPasswordPage() {
     setError('');
 
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('auth:resetPassword.errors.passwordMismatch'));
       return;
     }
 
     if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('auth:resetPassword.errors.passwordLength'));
       return;
     }
 
@@ -107,7 +109,7 @@ export default function ResetPasswordPage() {
             className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Login
+            {t('auth:resetPassword.backToLogin')}
           </Link>
         </div>
 
@@ -116,7 +118,7 @@ export default function ResetPasswordPage() {
             <h1 className="text-4xl font-bold text-dark-brown">ConvoLab</h1>
             <Logo size="large" />
           </div>
-          <p className="text-medium-brown">Reset your password</p>
+          <p className="text-medium-brown">{t('auth:resetPassword.subtitle')}</p>
         </div>
 
         <div className="card">
@@ -124,10 +126,10 @@ export default function ResetPasswordPage() {
             <div className="text-center py-8">
               <Loader2 className="w-12 h-12 text-periwinkle animate-spin mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-dark-brown mb-2">
-                Validating reset link...
+                {t('auth:resetPassword.validating.title')}
               </h2>
               <p className="text-medium-brown">
-                Please wait while we validate your password reset link.
+                {t('auth:resetPassword.validating.description')}
               </p>
             </div>
           )}
@@ -136,14 +138,14 @@ export default function ResetPasswordPage() {
             <div className="text-center py-8">
               <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Invalid Reset Link
+                {t('auth:resetPassword.invalid.title')}
               </h2>
               <p className="text-red-600 mb-6">{error}</p>
               <p className="text-medium-brown mb-6">
-                Your password reset link may have expired or is invalid.
+                {t('auth:resetPassword.invalid.description')}
               </p>
               <Link to="/forgot-password" className="btn-primary inline-block">
-                Request New Link
+                {t('auth:resetPassword.invalid.requestNewLink')}
               </Link>
             </div>
           )}
@@ -153,17 +155,17 @@ export default function ResetPasswordPage() {
               <div className="text-center mb-6">
                 <Lock className="w-12 h-12 text-periwinkle mx-auto mb-3" />
                 <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                  Reset Password
+                  {t('auth:resetPassword.title')}
                 </h2>
                 <p className="text-medium-brown text-sm">
-                  Enter a new password for <strong>{email}</strong>
+                  {t('auth:resetPassword.description', { email })}
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="newPassword" className="block text-sm font-medium text-dark-brown mb-1">
-                    New Password
+                    {t('auth:resetPassword.newPassword')}
                   </label>
                   <input
                     id="newPassword"
@@ -171,7 +173,7 @@ export default function ResetPasswordPage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     className="input"
-                    placeholder="At least 8 characters"
+                    placeholder={t('auth:resetPassword.newPasswordPlaceholder')}
                     required
                     minLength={8}
                   />
@@ -179,7 +181,7 @@ export default function ResetPasswordPage() {
 
                 <div>
                   <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-brown mb-1">
-                    Confirm Password
+                    {t('auth:resetPassword.confirmPassword')}
                   </label>
                   <input
                     id="confirmPassword"
@@ -187,7 +189,7 @@ export default function ResetPasswordPage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="input"
-                    placeholder="Re-enter your password"
+                    placeholder={t('auth:resetPassword.confirmPasswordPlaceholder')}
                     required
                     minLength={8}
                   />
@@ -204,7 +206,7 @@ export default function ResetPasswordPage() {
                   disabled={loading}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Resetting Password...' : 'Reset Password'}
+                  {loading ? t('auth:resetPassword.submitting') : t('auth:resetPassword.submit')}
                 </button>
               </form>
             </>
@@ -214,20 +216,20 @@ export default function ResetPasswordPage() {
             <div className="text-center py-8">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
-                Password Reset!
+                {t('auth:resetPassword.success.title')}
               </h2>
               <p className="text-medium-brown mb-4">
-                Your password has been successfully reset.
+                {t('auth:resetPassword.success.description')}
               </p>
               <p className="text-sm text-gray-500">
-                Redirecting to login...
+                {t('auth:resetPassword.success.redirecting')}
               </p>
             </div>
           )}
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          By Conversational Dynamics Consulting Group
+          {t('common:footer')}
         </p>
       </div>
     </div>

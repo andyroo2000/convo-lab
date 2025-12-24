@@ -1,0 +1,37 @@
+{
+  "title": "What do you want to create?",
+  "subtitle": "Choose an activity type to get started",
+  "types": {
+    "dialogue": {
+      "title": "Dialogue",
+      "description": "Generate AI dialogues from your own stories, calibrated to your proficiency level"
+    },
+    "course": {
+      "title": "Audio Course",
+      "description": "Audio-only lessons built from your dialogues—perfect for your commute or morning walk"
+    },
+    "narrowListening": {
+      "title": "Narrow Listening",
+      "description": "The same story told 5 different ways—deeply internalize patterns through repetition"
+    },
+    "processingInstruction": {
+      "title": "Grammar",
+      "description": "Learn grammar through structured input—answer meaning-based questions"
+    },
+    "chunkPack": {
+      "title": "Chunk Pack",
+      "description": "Acquire phrases as complete units—learn high-frequency chunks through examples"
+    }
+  },
+  "buttons": {
+    "create": "Create",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish"
+  },
+  "footer": "Experiment, iterate, and discover what works for your learning style.",
+  "creating": "Creating...",
+  "success": "Created successfully!",
+  "error": "Failed to create content"
+}

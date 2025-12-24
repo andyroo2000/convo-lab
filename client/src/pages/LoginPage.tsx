@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { ArrowLeft } from 'lucide-react';
 import { API_URL } from '../config';
 
 export default function LoginPage() {
+  const { t } = useTranslation(['auth', 'common']);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,7 +52,7 @@ export default function LoginPage() {
             data-testid="auth-link-back-home"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Home
+            {t('common:buttons.backToHome')}
           </Link>
         </div>
 
@@ -59,7 +61,7 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-dark-brown">ConvoLab</h1>
             <Logo size="large" />
           </div>
-          <p className="text-medium-brown">Your personal AI language lab</p>
+          <p className="text-medium-brown">{t('common:tagline')}</p>
         </div>
 
         <div className="card">
@@ -73,7 +75,7 @@ export default function LoginPage() {
               }`}
               data-testid="auth-tab-login"
             >
-              Login
+              {t('auth:login.title')}
             </button>
             <button
               onClick={() => setIsLogin(false)}
@@ -84,7 +86,7 @@ export default function LoginPage() {
               }`}
               data-testid="auth-tab-signup"
             >
-              Sign Up
+              {t('auth:signup.title')}
             </button>
           </div>
 
@@ -93,7 +95,7 @@ export default function LoginPage() {
               <>
                 <div>
                   <label htmlFor="name" className="block text-sm font-medium text-dark-brown mb-1">
-                    Name
+                    {t('auth:signup.name')}
                   </label>
                   <input
                     id="name"
@@ -101,6 +103,7 @@ export default function LoginPage() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="input"
+                    placeholder={t('auth:signup.namePlaceholder')}
                     required={!isLogin}
                     data-testid="auth-input-name"
                   />
@@ -108,7 +111,7 @@ export default function LoginPage() {
 
                 <div>
                   <label htmlFor="inviteCode" className="block text-sm font-medium text-dark-brown mb-1">
-                    Invite Code
+                    {t('auth:signup.inviteCode')}
                   </label>
                   <input
                     id="inviteCode"
@@ -116,20 +119,17 @@ export default function LoginPage() {
                     value={inviteCode}
                     onChange={(e) => setInviteCode(e.target.value)}
                     className="input"
-                    placeholder="Enter your invite code"
+                    placeholder={t('auth:signup.inviteCodePlaceholder')}
                     required={!isLogin}
                     data-testid="auth-input-invite-code"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
-                    ConvoLab is currently invite-only
-                  </p>
                 </div>
               </>
             )}
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-dark-brown mb-1">
-                Email
+                {isLogin ? t('auth:login.email') : t('auth:signup.email')}
               </label>
               <input
                 id="email"
@@ -137,6 +137,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
+                placeholder={isLogin ? t('auth:login.emailPlaceholder') : t('auth:signup.emailPlaceholder')}
                 required
                 data-testid="auth-input-email"
               />
@@ -145,14 +146,14 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="password" className="block text-sm font-medium text-dark-brown">
-                  Password
+                  {isLogin ? t('auth:login.password') : t('auth:signup.password')}
                 </label>
                 {isLogin && (
                   <Link
                     to="/forgot-password"
                     className="text-xs text-periwinkle hover:text-dark-periwinkle"
                   >
-                    Forgot password?
+                    {t('auth:login.forgotPassword')}
                   </Link>
                 )}
               </div>
@@ -162,6 +163,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
+                placeholder={isLogin ? t('auth:login.passwordPlaceholder') : t('auth:signup.passwordPlaceholder')}
                 required
                 data-testid="auth-input-password"
               />
@@ -179,14 +181,14 @@ export default function LoginPage() {
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="auth-submit-button"
             >
-              {loading ? 'Loading...' : isLogin ? 'Login' : 'Sign Up'}
+              {loading ? (isLogin ? t('auth:login.submitting') : t('auth:signup.submitting')) : (isLogin ? t('auth:login.submit') : t('auth:signup.submit'))}
             </button>
           </form>
 
           {/* OAuth Divider */}
           <div className="my-6 flex items-center">
             <div className="flex-1 border-t border-gray-300"></div>
-            <span className="px-4 text-sm text-medium-brown">or</span>
+            <span className="px-4 text-sm text-medium-brown">{isLogin ? t('auth:login.orContinueWith') : t('auth:signup.orContinueWith')}</span>
             <div className="flex-1 border-t border-gray-300"></div>
           </div>
 
@@ -213,12 +215,12 @@ export default function LoginPage() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {isLogin ? t('auth:login.continueWithGoogle') : t('auth:signup.continueWithGoogle')}
           </a>
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          By Conversational Dynamics Consulting Group
+          {t('common:footer')}
         </p>
       </div>
     </div>

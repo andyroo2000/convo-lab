@@ -1,0 +1,77 @@
+{
+  "pageTitle": "Guided Audio Course",
+  "pageSubtitle": "Audio-only lessons perfect for your commute or morning walk",
+  "alerts": {
+    "fillRequired": "Please fill in all required fields",
+    "selectVoice": "Please select a narrator voice"
+  },
+  "complete": {
+    "title": "Audio Course Created!",
+    "description": "Your audio course is now generating. You can track its progress on the Audio Courses page."
+  },
+  "courseDetails": {
+    "title": "Course Details",
+    "courseTitle": "Audio Course Title",
+    "courseTitlePlaceholder": "e.g., Japanese Restaurant Conversations",
+    "yourStory": "Your Story or Experience",
+    "storyPlaceholder": "Describe an experience, conversation, or situation you want to learn about. The AI will create an interactive audio course based on your description.",
+    "storyHelper": "Be specific about the context and setting. This helps create more authentic learning material."
+  },
+  "voiceConfig": {
+    "title": "Voice Configuration",
+    "dialogueVoices": "Dialogue Voices",
+    "speaker1": "Speaker 1 (Friend)",
+    "speaker2": "Speaker 2 (Listener)",
+    "voiceHelper": "Choose any voice for each speaker - (M) = Male, (F) = Female"
+  },
+  "courseSettings": {
+    "title": "Course Settings",
+    "maxDuration": "Max Lesson Duration",
+    "durationOptions": {
+      "10": "10 minutes",
+      "15": "15 minutes",
+      "20": "20 minutes",
+      "30": "30 minutes"
+    },
+    "durationHelper": "Lessons longer than this will be split into multiple parts",
+    "targetJLPT": "Target JLPT Level",
+    "jlpt": {
+      "n5": "N5 (Beginner)",
+      "n4": "N4 (Upper Beginner)",
+      "n3": "N3 (Intermediate)",
+      "n2": "N2 (Upper Intermediate)",
+      "n1": "N1 (Advanced)"
+    },
+    "targetHSK": "Target HSK Level",
+    "hsk": {
+      "hsk1": "HSK 1 (Beginner)",
+      "hsk2": "HSK 2 (Upper Beginner)",
+      "hsk3": "HSK 3 (Intermediate)",
+      "hsk4": "HSK 4 (Upper Intermediate)",
+      "hsk5": "HSK 5 (Advanced)",
+      "hsk6": "HSK 6 (Mastery)"
+    },
+    "targetCEFR": "Target CEFR Level",
+    "cefr": {
+      "a1": "A1 (Beginner)",
+      "a2": "A2 (Elementary)",
+      "b1": "B1 (Intermediate)",
+      "b2": "B2 (Upper Intermediate)",
+      "c1": "C1 (Advanced)",
+      "c2": "C2 (Mastery)"
+    },
+    "levelHelper": "Vocabulary and grammar will be tailored to this level"
+  },
+  "generate": {
+    "ready": "Ready to Generate?",
+    "description": "The AI will create audio-only lessons with guided narration, anticipation practice, and spaced repetition—perfect for hands-free learning.",
+    "features": {
+      "duration": "~30 minute lessons, audio-only format",
+      "narration": "Guided L1 narration with L2 prompts",
+      "pauses": "Anticipation pauses for recall practice",
+      "level": "JLPT {{level}} level vocabulary & grammar"
+    },
+    "button": "Create Audio Course",
+    "creating": "Creating..."
+  }
+}

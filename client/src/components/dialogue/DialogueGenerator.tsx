@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -23,6 +24,7 @@ interface SpeakerFormData {
 const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 
 export default function DialogueGenerator() {
+  const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
   const { user } = useAuth();
   const isDemo = useIsDemo();
@@ -115,7 +117,7 @@ export default function DialogueGenerator() {
       } else if (status === 'failed') {
         clearInterval(pollInterval);
         setStep('input');
-        alert('Dialogue generation failed. Please try again.');
+        alert(t('dialogue:alerts.generationFailed'));
       }
     }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
 
@@ -130,12 +132,12 @@ export default function DialogueGenerator() {
     }
 
     if (!sourceText.trim()) {
-      alert('Please fill in all required fields');
+      alert(t('dialogue:alerts.fillRequired'));
       return;
     }
 
     if (speakers.length < 2) {
-      alert('Please add at least 2 speakers');
+      alert(t('dialogue:alerts.twoSpeakers'));
       return;
     }
 
@@ -149,7 +151,7 @@ export default function DialogueGenerator() {
 
       // Step 1: Create episode with placeholder title
       const episode = await createEpisode({
-        title: 'Generating dialogue...',
+        title: t('dialogue:placeholderTitle'),
         sourceText,
         targetLanguage,
         nativeLanguage,
@@ -196,9 +198,9 @@ export default function DialogueGenerator() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
           <div className="loading-spinner w-16 h-16 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-8" />
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">Generating Your Dialogue</h2>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('dialogue:generating.title')}</h2>
           <p className="text-xl text-gray-600">
-            AI is creating a natural conversation based on your story...
+            {t('dialogue:generating.description')}
           </p>
           {error && (
             <div className="mt-8 p-6 bg-red-50 border-l-4 border-red-500 text-red-700 text-lg font-medium">
@@ -219,9 +221,9 @@ export default function DialogueGenerator() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">Dialogue Generated!</h2>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('dialogue:complete.title')}</h2>
           <p className="text-xl text-gray-600 mb-6">
-            Redirecting to playback page...
+            {t('dialogue:complete.redirecting')}
           </p>
         </div>
       </div>
@@ -232,29 +234,29 @@ export default function DialogueGenerator() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Episode Details */}
       <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">Your Story</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('dialogue:form.yourStory')}</h2>
 
         <div className="space-y-6">
           <div>
             <label className="block text-base font-bold text-dark-brown mb-3">
-              What do you want to talk about? *
+              {t('dialogue:form.whatToTalkAbout')} *
             </label>
             <textarea
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-40"
-              placeholder="Describe an experience, conversation, or situation you want to learn about. The AI will create a natural dialogue based on your description."
+              placeholder={t('dialogue:form.storyPlaceholder')}
               data-testid="dialogue-input-source-text"
             />
             <p className="text-sm text-gray-500 mt-2">
-              Be specific about the context, setting, and what happened. This helps create more authentic dialogue.
+              {t('dialogue:form.storyHelper')}
             </p>
           </div>
 
           <div className="space-y-6">
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Conversation Length
+                {t('dialogue:form.conversationLength')}
               </label>
               <select
                 value={dialogueLength}
@@ -262,17 +264,17 @@ export default function DialogueGenerator() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 data-testid="dialogue-select-length"
               >
-                <option value="8">8 turns</option>
-                <option value="15">15 turns</option>
-                <option value="30">30 turns</option>
-                <option value="50">50 turns</option>
+                <option value="8">{t('dialogue:form.turns', { count: 8 })}</option>
+                <option value="15">{t('dialogue:form.turns', { count: 15 })}</option>
+                <option value="30">{t('dialogue:form.turns', { count: 30 })}</option>
+                <option value="50">{t('dialogue:form.turns', { count: 50 })}</option>
               </select>
             </div>
 
             {targetLanguage === 'ja' && (
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target JLPT Level
+                  {t('dialogue:form.targetJLPT')}
                 </label>
                 <select
                   value={jlptLevel}
@@ -280,11 +282,11 @@ export default function DialogueGenerator() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                   data-testid="dialogue-select-jlpt-level"
                 >
-                  <option value="N5">N5 (Beginner)</option>
-                  <option value="N4">N4 (Upper Beginner)</option>
-                  <option value="N3">N3 (Intermediate)</option>
-                  <option value="N2">N2 (Upper Intermediate)</option>
-                  <option value="N1">N1 (Advanced)</option>
+                  <option value="N5">{t('dialogue:form.jlpt.n5')}</option>
+                  <option value="N4">{t('dialogue:form.jlpt.n4')}</option>
+                  <option value="N3">{t('dialogue:form.jlpt.n3')}</option>
+                  <option value="N2">{t('dialogue:form.jlpt.n2')}</option>
+                  <option value="N1">{t('dialogue:form.jlpt.n1')}</option>
                 </select>
               </div>
             )}
@@ -292,7 +294,7 @@ export default function DialogueGenerator() {
             {targetLanguage === 'zh' && (
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target HSK Level
+                  {t('dialogue:form.targetHSK')}
                 </label>
                 <select
                   value={hskLevel}
@@ -300,12 +302,12 @@ export default function DialogueGenerator() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                   data-testid="dialogue-select-hsk-level"
                 >
-                  <option value="HSK1">HSK 1 (Beginner)</option>
-                  <option value="HSK2">HSK 2 (Upper Beginner)</option>
-                  <option value="HSK3">HSK 3 (Intermediate)</option>
-                  <option value="HSK4">HSK 4 (Upper Intermediate)</option>
-                  <option value="HSK5">HSK 5 (Advanced)</option>
-                  <option value="HSK6">HSK 6 (Mastery)</option>
+                  <option value="HSK1">{t('dialogue:form.hsk.hsk1')}</option>
+                  <option value="HSK2">{t('dialogue:form.hsk.hsk2')}</option>
+                  <option value="HSK3">{t('dialogue:form.hsk.hsk3')}</option>
+                  <option value="HSK4">{t('dialogue:form.hsk.hsk4')}</option>
+                  <option value="HSK5">{t('dialogue:form.hsk.hsk5')}</option>
+                  <option value="HSK6">{t('dialogue:form.hsk.hsk6')}</option>
                 </select>
               </div>
             )}
@@ -313,7 +315,7 @@ export default function DialogueGenerator() {
             {(targetLanguage === 'es' || targetLanguage === 'fr') && (
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  Target CEFR Level
+                  {t('dialogue:form.targetCEFR')}
                 </label>
                 <select
                   value={cefrLevel}
@@ -321,19 +323,19 @@ export default function DialogueGenerator() {
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                   data-testid="dialogue-select-cefr-level"
                 >
-                  <option value="A1">A1 (Beginner)</option>
-                  <option value="A2">A2 (Elementary)</option>
-                  <option value="B1">B1 (Intermediate)</option>
-                  <option value="B2">B2 (Upper Intermediate)</option>
-                  <option value="C1">C1 (Advanced)</option>
-                  <option value="C2">C2 (Mastery)</option>
+                  <option value="A1">{t('dialogue:form.cefr.a1')}</option>
+                  <option value="A2">{t('dialogue:form.cefr.a2')}</option>
+                  <option value="B1">{t('dialogue:form.cefr.b1')}</option>
+                  <option value="B2">{t('dialogue:form.cefr.b2')}</option>
+                  <option value="C1">{t('dialogue:form.cefr.c1')}</option>
+                  <option value="C2">{t('dialogue:form.cefr.c2')}</option>
                 </select>
               </div>
             )}
 
             <div>
               <label className="block text-base font-bold text-dark-brown mb-2">
-                Tone
+                {t('dialogue:form.tone')}
               </label>
               <select
                 value={tone}
@@ -341,9 +343,9 @@ export default function DialogueGenerator() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 data-testid="dialogue-select-tone"
               >
-                <option value="casual">Casual</option>
-                <option value="polite">Polite</option>
-                <option value="formal">Formal</option>
+                <option value="casual">{t('dialogue:form.tones.casual')}</option>
+                <option value="polite">{t('dialogue:form.tones.polite')}</option>
+                <option value="formal">{t('dialogue:form.tones.formal')}</option>
               </select>
             </div>
           </div>
@@ -354,15 +356,19 @@ export default function DialogueGenerator() {
       <div className="bg-periwinkle-light border-l-8 border-periwinkle p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">Ready to Generate?</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">{t('dialogue:generate.ready')}</h3>
             <p className="text-sm sm:text-base text-gray-700 mb-4">
-              The AI will create a natural {SUPPORTED_LANGUAGES[targetLanguage].name} conversation between 2 speakers with randomly assigned names and voices. Both speakers will use {targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : 'beginner'} level {tone} language.
+              {t('dialogue:generate.description', {
+                language: SUPPORTED_LANGUAGES[targetLanguage].name,
+                level: targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : 'beginner',
+                tone: tone
+              })}
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-2">
-              <li className="font-medium">• {dialogueLength} dialogue turn{dialogueLength !== 1 ? 's' : ''}</li>
-              <li className="font-medium">• 3 variations per sentence</li>
-              <li className="font-medium">• English translations</li>
-              <li className="font-medium">• Level-matched language complexity</li>
+              <li className="font-medium">• {t('dialogue:generate.features.turns', { count: dialogueLength })}</li>
+              <li className="font-medium">• {t('dialogue:generate.features.variations')}</li>
+              <li className="font-medium">• {t('dialogue:generate.features.translations')}</li>
+              <li className="font-medium">• {t('dialogue:generate.features.complexity')}</li>
             </ul>
           </div>
           <button
@@ -371,7 +377,7 @@ export default function DialogueGenerator() {
             className="w-full sm:w-auto bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             data-testid="dialogue-button-generate"
           >
-            {loading ? 'Generating...' : 'Generate Dialogue'}
+            {loading ? t('dialogue:generate.generating') : t('dialogue:generate.button')}
           </button>
         </div>
 

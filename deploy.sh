@@ -76,10 +76,16 @@ done < .env.production
 
 echo -e "${GREEN}Building Docker image with Cloud Build (no cache)...${NC}"
 
+# Load Stripe frontend env vars from .env.stripe-production if it exists
+if [ -f .env.stripe-production ]; then
+  echo -e "${YELLOW}Loading Stripe frontend environment variables...${NC}"
+  export $(cat .env.stripe-production | grep "^VITE_" | xargs)
+fi
+
 # Build image with Cloud Build (no cache to force fresh build)
 IMAGE_NAME="gcr.io/$GOOGLE_CLOUD_PROJECT/$SERVICE_NAME"
 TIMESTAMP=$(date +%s)
-gcloud builds submit --config=cloudbuild.yaml --substitutions=_CACHE_BUST=$TIMESTAMP,_IMAGE_NAME=$IMAGE_NAME
+gcloud builds submit --config=cloudbuild.yaml --substitutions=_CACHE_BUST=$TIMESTAMP,_IMAGE_NAME=$IMAGE_NAME,_VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY,_VITE_STRIPE_PRICE_PRO_MONTHLY=$VITE_STRIPE_PRICE_PRO_MONTHLY,_VITE_STRIPE_PRICE_TEST_MONTHLY=$VITE_STRIPE_PRICE_TEST_MONTHLY
 
 echo -e "${GREEN}Deploying to Cloud Run...${NC}"
 

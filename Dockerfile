@@ -32,6 +32,13 @@ RUN npm install
 COPY client/ ./
 # Set API URL to empty string so it uses relative URLs (same origin)
 ENV VITE_API_URL=""
+# Stripe environment variables for client build (passed as build args)
+ARG VITE_STRIPE_PUBLISHABLE_KEY
+ARG VITE_STRIPE_PRICE_PRO_MONTHLY
+ARG VITE_STRIPE_PRICE_TEST_MONTHLY
+ENV VITE_STRIPE_PUBLISHABLE_KEY=$VITE_STRIPE_PUBLISHABLE_KEY
+ENV VITE_STRIPE_PRICE_PRO_MONTHLY=$VITE_STRIPE_PRICE_PRO_MONTHLY
+ENV VITE_STRIPE_PRICE_TEST_MONTHLY=$VITE_STRIPE_PRICE_TEST_MONTHLY
 # Cache busting: this ARG changes with each build to force rebuild
 ARG CACHE_BUST=unknown
 RUN echo "Build timestamp: $CACHE_BUST" && npm run build

@@ -1,0 +1,14 @@
+{
+  "title": "Page Not Found",
+  "description": "Oops! The page you're looking for doesn't exist or has been moved.",
+  "suggestions": {
+    "title": "Here's what you can do:",
+    "checkUrl": "Check the URL for typos",
+    "returnHome": "Return to the home page and try again",
+    "useNavigation": "Use the navigation menu to find what you're looking for"
+  },
+  "buttons": {
+    "goBack": "Go Back",
+    "goToLibrary": "Go to Library"
+  }
+}

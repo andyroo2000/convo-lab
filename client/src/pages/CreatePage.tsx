@@ -1,18 +1,20 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import QuotaBadge from '../components/QuotaBadge';
 
 export default function CreatePage() {
+  const { t } = useTranslation(['create']);
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatureFlags();
 
   return (
     <div>
       <div className="mb-12 text-center px-4 sm:px-0">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">What do you want to create?</h1>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('create:title')}</h1>
         <p className="text-lg text-gray-600 mb-4">
-          Choose an activity type to get started
+          {t('create:subtitle')}
         </p>
         <QuotaBadge />
       </div>
@@ -26,14 +28,14 @@ export default function CreatePage() {
         >
           <div className="w-20 sm:w-32 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center py-6 sm:py-8">
             <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">Dialogue</span>
+            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">{t('create:types.dialogue.title')}</span>
           </div>
           <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
             <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors mb-1 sm:mb-2">
-              Comprehensible Input Dialogues
+              {t('create:types.dialogue.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Generate AI dialogues from your own stories, calibrated to your proficiency level
+              {t('create:types.dialogue.description')}
             </p>
           </div>
         </button>)}
@@ -46,14 +48,14 @@ export default function CreatePage() {
         >
           <div className="w-20 sm:w-32 flex-shrink-0 bg-coral flex flex-col items-center justify-center py-6 sm:py-8">
             <Headphones className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">Audio<br/>Course</span>
+            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">{t('create:types.course.title').split(' ')[0]}<br/>{t('create:types.course.title').split(' ')[1]}</span>
           </div>
           <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
             <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-coral transition-colors mb-1 sm:mb-2">
-              Guided Audio Course
+              {t('create:types.course.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Audio-only lessons built from your dialogues—perfect for your commute or morning walk
+              {t('create:types.course.description')}
             </p>
           </div>
         </button>)}
@@ -66,14 +68,14 @@ export default function CreatePage() {
         >
           <div className="w-20 sm:w-32 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center py-6 sm:py-8">
             <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">Narrow<br/>Listening</span>
+            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">{t('create:types.narrowListening.title').split(' ')[0]}<br/>{t('create:types.narrowListening.title').split(' ')[1]}</span>
           </div>
           <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
             <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-strawberry transition-colors mb-1 sm:mb-2">
-              Narrow Listening Packs
+              {t('create:types.narrowListening.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              The same story told 5 different ways—deeply internalize patterns through repetition
+              {t('create:types.narrowListening.description')}
             </p>
           </div>
         </button>)}
@@ -86,14 +88,14 @@ export default function CreatePage() {
         >
           <div className="w-20 sm:w-32 flex-shrink-0 bg-keylime flex flex-col items-center justify-center py-6 sm:py-8">
             <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center">Grammar</span>
+            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center">{t('create:types.processingInstruction.title')}</span>
           </div>
           <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
             <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-keylime-dark transition-colors mb-1 sm:mb-2">
-              Processing Instruction Activities
+              {t('create:types.processingInstruction.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Learn grammar through structured input—answer meaning-based questions
+              {t('create:types.processingInstruction.description')}
             </p>
           </div>
         </button>)}
@@ -106,21 +108,21 @@ export default function CreatePage() {
         >
           <div className="w-20 sm:w-32 flex-shrink-0 bg-yellow flex flex-col items-center justify-center py-6 sm:py-8">
             <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-dark-brown mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">Chunk<br/>Pack</span>
+            <span className="text-xs sm:text-sm font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">{t('create:types.chunkPack.title').split(' ').slice(-2)[0]}<br/>{t('create:types.chunkPack.title').split(' ').slice(-1)[0]}</span>
           </div>
           <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
             <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors mb-1 sm:mb-2">
-              Lexical Chunk Packs
+              {t('create:types.chunkPack.title')}
             </h2>
             <p className="text-sm sm:text-base text-gray-600">
-              Acquire phrases as complete units—learn high-frequency chunks through examples
+              {t('create:types.chunkPack.description')}
             </p>
           </div>
         </button>)}
       </div>
 
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">
-        Experiment, iterate, and discover what works for your learning style.
+        {t('create:footer')}
       </p>
     </div>
   );

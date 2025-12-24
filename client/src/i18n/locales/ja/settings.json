@@ -1,0 +1,164 @@
+{
+  "title": "設定",
+  "subtitle": "アカウントの設定を管理",
+  "tabs": {
+    "profile": "プロフィール",
+    "language": "言語",
+    "security": "セキュリティ",
+    "billing": "請求",
+    "danger": "危険ゾーン"
+  },
+  "profile": {
+    "title": "プロフィール設定",
+    "avatar": {
+      "label": "アバター",
+      "upload": "アバターをアップロード",
+      "change": "アバターを変更",
+      "remove": "削除",
+      "helper": "カスタムプロフィール画像をアップロードするか、イニシャルをアバターとして使用します",
+      "uploadSuccess": "アバターが正常に更新されました！",
+      "removeSuccess": "アバターが正常に削除されました！",
+      "uploadError": "アバターのアップロードに失敗しました。もう一度お試しください。",
+      "removeError": "アバターの削除に失敗しました"
+    },
+    "displayName": {
+      "label": "表示名",
+      "placeholder": "表示名を入力",
+      "helper": "アプリ全体で表示される名前です"
+    },
+    "saveButton": "変更を保存",
+    "saving": "保存中...",
+    "cancelButton": "キャンセル"
+  },
+  "language": {
+    "title": "言語設定",
+    "study": {
+      "label": "学習言語",
+      "helper": "主に学習する対象言語"
+    },
+    "native": {
+      "label": "母国語",
+      "helper": "翻訳に使用される第一言語"
+    },
+    "proficiency": {
+      "jlpt": {
+        "label": "現在のJLPTレベル",
+        "helper": "適切な難易度のコンテンツを生成するために使用されます",
+        "n5": "N5（初級）",
+        "n4": "N4（初級上）",
+        "n3": "N3（中級）",
+        "n2": "N2（中級上）",
+        "n1": "N1（上級）"
+      },
+      "hsk": {
+        "label": "現在のHSKレベル",
+        "helper": "適切な難易度のコンテンツを生成するために使用されます",
+        "hsk1": "HSK 1（初級）",
+        "hsk2": "HSK 2（初級上）",
+        "hsk3": "HSK 3（中級）",
+        "hsk4": "HSK 4（中級上）",
+        "hsk5": "HSK 5（上級）",
+        "hsk6": "HSK 6（マスター）"
+      },
+      "cefr": {
+        "spanish": "スペイン語習熟度レベル（CEFR）",
+        "french": "フランス語習熟度レベル（CEFR）",
+        "arabic": "アラビア語習熟度レベル（CEFR）",
+        "english": "英語習熟度レベル（CEFR）",
+        "helper": "適切な難易度のコンテンツを生成するために使用されます",
+        "a1": "A1 - 初級",
+        "a2": "A2 - 初級上",
+        "b1": "B1 - 中級",
+        "b2": "B2 - 中級上",
+        "c1": "C1 - 上級",
+        "c2": "C2 - マスター"
+      }
+    },
+    "pinyin": {
+      "label": "ピンイン表示形式",
+      "toneMarks": "声調記号（nǐ hǎo）",
+      "toneNumbers": "声調番号（ni3 hao3）",
+      "helper": "中国語の文字の上にピンインを表示する方法を選択"
+    }
+  },
+  "security": {
+    "title": "パスワードを変更",
+    "currentPassword": {
+      "label": "現在のパスワード",
+      "placeholder": "現在のパスワードを入力"
+    },
+    "newPassword": {
+      "label": "新しいパスワード",
+      "placeholder": "新しいパスワードを入力（最低8文字）"
+    },
+    "confirmPassword": {
+      "label": "新しいパスワードを確認",
+      "placeholder": "新しいパスワードを確認"
+    },
+    "changeButton": "パスワードを変更",
+    "changing": "変更中...",
+    "success": "パスワードが正常に変更されました！",
+    "errors": {
+      "required": "すべてのパスワードフィールドが必要です",
+      "tooShort": "新しいパスワードは8文字以上である必要があります",
+      "mismatch": "新しいパスワードが一致しません"
+    }
+  },
+  "billing": {
+    "title": "請求とサブスクリプション",
+    "loading": "サブスクリプション情報を読み込み中...",
+    "currentPlan": {
+      "title": "現在のプラン",
+      "free": "無料",
+      "pro": "プロ",
+      "plan": "プラン",
+      "freePrice": "永久無料",
+      "proPrice": "$7/月",
+      "limit": "週間生成制限",
+      "generations": "週あたりの生成回数",
+      "cancelsOn": "キャンセル日",
+      "renewsOn": "更新日"
+    },
+    "actions": {
+      "upgrade": "プロにアップグレード（$7/月）",
+      "upgradeHelper": "週30回の生成と優先サポートを取得",
+      "manage": "サブスクリプションを管理",
+      "manageHelper": "支払い方法の更新、請求書の表示、またはサブスクリプションのキャンセル"
+    },
+    "comparison": {
+      "title": "別のプランが必要ですか？",
+      "viewAll": "すべてのプランを表示 →"
+    },
+    "errors": {
+      "loadSubscription": "サブスクリプション情報の読み込みに失敗しました",
+      "createPortal": "請求ポータルを開けませんでした"
+    }
+  },
+  "danger": {
+    "title": "危険ゾーン",
+    "deleteAccount": {
+      "title": "アカウントを削除",
+      "warning": "アカウントを削除すると、元に戻すことはできません。以下が完全に削除されます：",
+      "items": {
+        "dialogues": "すべての対話とエピソード",
+        "courses": "すべてのオーディオコース",
+        "narrowListening": "すべてのナローリスニングパック",
+        "chunkPacks": "すべてのチャンクパック",
+        "account": "アカウント情報と設定"
+      },
+      "button": "アカウントを削除",
+      "confirmTitle": "アカウントを削除",
+      "confirmMessage": "本当にアカウントを削除しますか？この操作は元に戻すことができず、エピソード、コース、ナローリスニングパック、チャンクパックを含むすべてのデータが完全に削除されます。",
+      "confirmButton": "はい、アカウントを削除します",
+      "cancelButton": "キャンセル"
+    }
+  },
+  "messages": {
+    "saved": "保存されました！",
+    "failedToSave": "保存に失敗しました",
+    "noChanges": "保存する変更がありません",
+    "saveSuccess": "設定が正常に保存されました！",
+    "deleteSuccess": "アカウントが正常に削除されました",
+    "deleteError": "アカウントの削除に失敗しました"
+  }
+}

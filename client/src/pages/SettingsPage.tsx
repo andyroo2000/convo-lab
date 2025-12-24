@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Settings, Trash2, ArrowLeft, Lock, Languages, Camera, CreditCard } from 'lucide-react';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -22,6 +23,7 @@ const AVATAR_COLORS = [
 ];
 
 export default function SettingsPage() {
+  const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
@@ -82,10 +84,10 @@ export default function SettingsPage() {
 
     try {
       await updateUser({ preferredStudyLanguage: lang });
-      setStudyLanguageSaveMessage('Saved!');
+      setStudyLanguageSaveMessage(t('settings:messages.saved'));
       setTimeout(() => setStudyLanguageSaveMessage(null), 2000);
     } catch (err: any) {
-      setStudyLanguageSaveMessage('Failed to save');
+      setStudyLanguageSaveMessage(t('settings:messages.failedToSave'));
       setTimeout(() => setStudyLanguageSaveMessage(null), 3000);
     }
   };
@@ -97,10 +99,10 @@ export default function SettingsPage() {
 
     try {
       await updateUser({ preferredNativeLanguage: lang });
-      setNativeLanguageSaveMessage('Saved!');
+      setNativeLanguageSaveMessage(t('settings:messages.saved'));
       setTimeout(() => setNativeLanguageSaveMessage(null), 2000);
     } catch (err: any) {
-      setNativeLanguageSaveMessage('Failed to save');
+      setNativeLanguageSaveMessage(t('settings:messages.failedToSave'));
       setTimeout(() => setNativeLanguageSaveMessage(null), 3000);
     }
   };
@@ -123,10 +125,10 @@ export default function SettingsPage() {
 
     try {
       await updateUser({ proficiencyLevel: level });
-      setProficiencySaveMessage('Saved!');
+      setProficiencySaveMessage(t('settings:messages.saved'));
       setTimeout(() => setProficiencySaveMessage(null), 2000);
     } catch (err: any) {
-      setProficiencySaveMessage('Failed to save');
+      setProficiencySaveMessage(t('settings:messages.failedToSave'));
       setTimeout(() => setProficiencySaveMessage(null), 3000);
     }
   };
@@ -138,10 +140,10 @@ export default function SettingsPage() {
 
     try {
       await updateUser({ pinyinDisplayMode: mode });
-      setPinyinSaveMessage('Saved!');
+      setPinyinSaveMessage(t('settings:messages.saved'));
       setTimeout(() => setPinyinSaveMessage(null), 2000);
     } catch (err: any) {
-      setPinyinSaveMessage('Failed to save');
+      setPinyinSaveMessage(t('settings:messages.failedToSave'));
       setTimeout(() => setPinyinSaveMessage(null), 3000);
     }
   };
@@ -163,7 +165,7 @@ export default function SettingsPage() {
       const data = await response.json();
       setSubscriptionStatus(data);
     } catch (err) {
-      setBillingError('Failed to load subscription information');
+      setBillingError(t('settings:billing.errors.loadSubscription'));
     } finally {
       setLoadingSubscription(false);
     }
@@ -187,7 +189,7 @@ export default function SettingsPage() {
       const { url } = await response.json();
       window.location.href = url;
     } catch (err) {
-      setBillingError(err instanceof Error ? err.message : 'Failed to open billing portal');
+      setBillingError(err instanceof Error ? err.message : t('settings:billing.errors.createPortal'));
       setLoadingSubscription(false);
     }
   };
@@ -251,7 +253,7 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!hasChanges()) {
-      setError('No changes to save');
+      setError(t('settings:messages.noChanges'));
       return;
     }
 
@@ -267,10 +269,10 @@ export default function SettingsPage() {
         preferredNativeLanguage,
         pinyinDisplayMode,
       });
-      setSuccess('Settings saved successfully!');
+      setSuccess(t('settings:messages.saveSuccess'));
       setTimeout(() => setSuccess(null), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save settings');
+      setError(err.message || t('settings:messages.failedToSave'));
     } finally {
       setIsSaving(false);
     }
@@ -305,7 +307,7 @@ export default function SettingsPage() {
       await deleteAccount();
       navigate('/login');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete account');
+      setError(err.message || t('settings:messages.deleteError'));
       setShowDeleteModal(false);
       setIsDeleting(false);
     }
@@ -317,17 +319,17 @@ export default function SettingsPage() {
 
     // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All password fields are required');
+      setPasswordError(t('settings:security.errors.required'));
       return;
     }
 
     if (newPassword.length < 8) {
-      setPasswordError('New password must be at least 8 characters');
+      setPasswordError(t('settings:security.errors.tooShort'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
+      setPasswordError(t('settings:security.errors.mismatch'));
       return;
     }
 
@@ -335,13 +337,13 @@ export default function SettingsPage() {
 
     try {
       await changePassword(currentPassword, newPassword);
-      setPasswordSuccess('Password changed successfully!');
+      setPasswordSuccess(t('settings:security.success'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(null), 3000);
     } catch (err: any) {
-      setPasswordError(err.message || 'Failed to change password');
+      setPasswordError(err.message || t('settings:messages.failedToSave'));
     } finally {
       setIsChangingPassword(false);
     }
@@ -389,11 +391,11 @@ export default function SettingsPage() {
       // Update user context with new avatar URL
       await updateUser({ avatarUrl: data.avatarUrl });
 
-      setSuccess('Avatar updated successfully!');
+      setSuccess(t('settings:profile.avatar.uploadSuccess'));
       setTimeout(() => setSuccess(null), 3000);
     } catch (error) {
       console.error('Failed to upload avatar:', error);
-      setError('Failed to upload avatar. Please try again.');
+      setError(t('settings:profile.avatar.uploadError'));
     }
   };
 
@@ -405,8 +407,8 @@ export default function SettingsPage() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8 pb-6 border-b-4 border-periwinkle">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">Settings</h1>
-        <p className="text-xl text-gray-600">Manage your account preferences</p>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('settings:title')}</h1>
+        <p className="text-xl text-gray-600">{t('settings:subtitle')}</p>
       </div>
 
       {/* Tab Navigation */}
@@ -422,7 +424,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <User className="w-4 h-4" />
-            <span className="hidden xs:inline">Profile</span>
+            <span className="hidden xs:inline">{t('settings:tabs.profile')}</span>
           </div>
         </button>
         <button
@@ -436,7 +438,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <Languages className="w-4 h-4" />
-            <span className="hidden xs:inline">Language</span>
+            <span className="hidden xs:inline">{t('settings:tabs.language')}</span>
           </div>
         </button>
         <button
@@ -450,7 +452,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <Lock className="w-4 h-4" />
-            <span className="hidden xs:inline">Security</span>
+            <span className="hidden xs:inline">{t('settings:tabs.security')}</span>
           </div>
         </button>
         <button
@@ -464,7 +466,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <CreditCard className="w-4 h-4" />
-            <span className="hidden xs:inline">Billing</span>
+            <span className="hidden xs:inline">{t('settings:tabs.billing')}</span>
           </div>
         </button>
         <button
@@ -478,7 +480,7 @@ export default function SettingsPage() {
         >
           <div className="flex items-center gap-1 sm:gap-2">
             <Trash2 className="w-4 h-4" />
-            <span className="hidden xs:inline">Danger Zone</span>
+            <span className="hidden xs:inline">{t('settings:tabs.danger')}</span>
           </div>
         </button>
       </div>
@@ -499,12 +501,12 @@ export default function SettingsPage() {
       {activeTab === 'profile' && (
         <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-          <h2 className="text-2xl font-bold text-dark-brown mb-6">Profile Settings</h2>
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('settings:profile.title')}</h2>
 
           {/* Avatar */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-3">
-              Avatar
+              {t('settings:profile.avatar.label')}
             </label>
             <div className="flex items-center gap-4">
               {/* Current Avatar Preview */}
@@ -532,7 +534,7 @@ export default function SettingsPage() {
                 data-testid="settings-button-upload-avatar"
               >
                 <Camera className="w-4 h-4" />
-                {user?.avatarUrl ? 'Change Avatar' : 'Upload Avatar'}
+                {user?.avatarUrl ? t('settings:profile.avatar.change') : t('settings:profile.avatar.upload')}
               </button>
 
               {user?.avatarUrl && (
@@ -541,40 +543,40 @@ export default function SettingsPage() {
                   onClick={async () => {
                     try {
                       await updateUser({ avatarUrl: null });
-                      setSuccess('Avatar removed successfully!');
+                      setSuccess(t('settings:profile.avatar.removeSuccess'));
                       setTimeout(() => setSuccess(null), 3000);
                     } catch (error) {
-                      setError('Failed to remove avatar');
+                      setError(t('settings:profile.avatar.removeError'));
                     }
                   }}
                   className="text-sm text-red-600 hover:text-red-700"
                   data-testid="settings-button-remove-avatar"
                 >
-                  Remove
+                  {t('settings:profile.avatar.remove')}
                 </button>
               )}
             </div>
             <p className="mt-2 text-sm text-gray-500">
-              Upload a custom profile picture or use your initial as your avatar
+              {t('settings:profile.avatar.helper')}
             </p>
           </div>
 
           {/* Display Name Section */}
           <div className="mb-8">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Display Name
+              {t('settings:profile.displayName.label')}
             </label>
             <input
               type="text"
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-              placeholder="Enter your display name"
+              placeholder={t('settings:profile.displayName.placeholder')}
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               maxLength={50}
               data-testid="settings-input-display-name"
             />
             <p className="text-sm text-gray-500 mt-2">
-              This is the name that will be displayed throughout the app
+              {t('settings:profile.displayName.helper')}
             </p>
           </div>
 
@@ -586,7 +588,7 @@ export default function SettingsPage() {
               className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="settings-button-save"
             >
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
             </button>
             <button
               onClick={handleCancel}
@@ -594,7 +596,7 @@ export default function SettingsPage() {
               className="px-8 py-3 border-2 border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
               data-testid="settings-button-cancel"
             >
-              Cancel
+              {t('settings:profile.cancelButton')}
             </button>
           </div>
         </div>
@@ -605,12 +607,12 @@ export default function SettingsPage() {
       {activeTab === 'language' && (
         <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-          <h2 className="text-2xl font-bold text-dark-brown mb-6">Language Preferences</h2>
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('settings:language.title')}</h2>
 
         {/* Study Language */}
         <div className="mb-6">
           <label className="block text-base font-bold text-dark-brown mb-3">
-            Study Language
+            {t('settings:language.study.label')}
           </label>
           <select
             value={preferredStudyLanguage}
@@ -632,7 +634,7 @@ export default function SettingsPage() {
           )}
           {!studyLanguageSaveMessage && (
             <p className="text-sm text-gray-500 mt-2">
-              Your primary target language for learning
+              {t('settings:language.study.helper')}
             </p>
           )}
         </div>
@@ -640,7 +642,7 @@ export default function SettingsPage() {
         {/* Native Language */}
         <div className="mb-6">
           <label className="block text-base font-bold text-dark-brown mb-3">
-            Native Language
+            {t('settings:language.native.label')}
           </label>
           <select
             value={preferredNativeLanguage}
@@ -662,7 +664,7 @@ export default function SettingsPage() {
           )}
           {!nativeLanguageSaveMessage && (
             <p className="text-sm text-gray-500 mt-2">
-              Your first language, used for translations
+              {t('settings:language.native.helper')}
             </p>
           )}
         </div>
@@ -671,7 +673,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'ja' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Current JLPT Level
+              {t('settings:language.proficiency.jlpt.label')}
             </label>
             <select
               value={jlptLevel}
@@ -679,20 +681,20 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-jlpt-level"
             >
-              <option value="N5">N5 (Beginner)</option>
-              <option value="N4">N4 (Upper Beginner)</option>
-              <option value="N3">N3 (Intermediate)</option>
-              <option value="N2">N2 (Upper Intermediate)</option>
-              <option value="N1">N1 (Advanced)</option>
+              <option value="N5">{t('settings:language.proficiency.jlpt.n5')}</option>
+              <option value="N4">{t('settings:language.proficiency.jlpt.n4')}</option>
+              <option value="N3">{t('settings:language.proficiency.jlpt.n3')}</option>
+              <option value="N2">{t('settings:language.proficiency.jlpt.n2')}</option>
+              <option value="N1">{t('settings:language.proficiency.jlpt.n1')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.jlpt.helper')}
               </p>
             )}
           </div>
@@ -701,7 +703,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'zh' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Current HSK Level
+              {t('settings:language.proficiency.hsk.label')}
             </label>
             <select
               value={hskLevel}
@@ -709,21 +711,21 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-hsk-level"
             >
-              <option value="HSK1">HSK 1 (Beginner)</option>
-              <option value="HSK2">HSK 2 (Upper Beginner)</option>
-              <option value="HSK3">HSK 3 (Intermediate)</option>
-              <option value="HSK4">HSK 4 (Upper Intermediate)</option>
-              <option value="HSK5">HSK 5 (Advanced)</option>
-              <option value="HSK6">HSK 6 (Mastery)</option>
+              <option value="HSK1">{t('settings:language.proficiency.hsk.hsk1')}</option>
+              <option value="HSK2">{t('settings:language.proficiency.hsk.hsk2')}</option>
+              <option value="HSK3">{t('settings:language.proficiency.hsk.hsk3')}</option>
+              <option value="HSK4">{t('settings:language.proficiency.hsk.hsk4')}</option>
+              <option value="HSK5">{t('settings:language.proficiency.hsk.hsk5')}</option>
+              <option value="HSK6">{t('settings:language.proficiency.hsk.hsk6')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.hsk.helper')}
               </p>
             )}
           </div>
@@ -733,7 +735,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'es' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Spanish Proficiency Level (CEFR)
+              {t('settings:language.proficiency.cefr.spanish')}
             </label>
             <select
               value={cefrLevel}
@@ -741,21 +743,21 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-cefr-level"
             >
-              <option value="A1">A1 - Beginner</option>
-              <option value="A2">A2 - Elementary</option>
-              <option value="B1">B1 - Intermediate</option>
-              <option value="B2">B2 - Upper Intermediate</option>
-              <option value="C1">C1 - Advanced</option>
-              <option value="C2">C2 - Mastery</option>
+              <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
+              <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
+              <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
+              <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
+              <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
+              <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.cefr.helper')}
               </p>
             )}
           </div>
@@ -765,7 +767,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'fr' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              French Proficiency Level (CEFR)
+              {t('settings:language.proficiency.cefr.french')}
             </label>
             <select
               value={cefrLevel}
@@ -773,21 +775,21 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-cefr-level"
             >
-              <option value="A1">A1 - Beginner</option>
-              <option value="A2">A2 - Elementary</option>
-              <option value="B1">B1 - Intermediate</option>
-              <option value="B2">B2 - Upper Intermediate</option>
-              <option value="C1">C1 - Advanced</option>
-              <option value="C2">C2 - Mastery</option>
+              <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
+              <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
+              <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
+              <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
+              <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
+              <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.cefr.helper')}
               </p>
             )}
           </div>
@@ -797,7 +799,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'ar' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Arabic Proficiency Level (CEFR)
+              {t('settings:language.proficiency.cefr.arabic')}
             </label>
             <select
               value={cefrLevel}
@@ -805,21 +807,21 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-cefr-level"
             >
-              <option value="A1">A1 - Beginner</option>
-              <option value="A2">A2 - Elementary</option>
-              <option value="B1">B1 - Intermediate</option>
-              <option value="B2">B2 - Upper Intermediate</option>
-              <option value="C1">C1 - Advanced</option>
-              <option value="C2">C2 - Mastery</option>
+              <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
+              <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
+              <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
+              <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
+              <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
+              <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.cefr.helper')}
               </p>
             )}
           </div>
@@ -829,7 +831,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'en' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              English Proficiency Level (CEFR)
+              {t('settings:language.proficiency.cefr.english')}
             </label>
             <select
               value={cefrLevel}
@@ -837,21 +839,21 @@ export default function SettingsPage() {
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
               data-testid="settings-select-proficiency"
             >
-              <option value="A1">A1 (Beginner)</option>
-              <option value="A2">A2 (Elementary)</option>
-              <option value="B1">B1 (Intermediate)</option>
-              <option value="B2">B2 (Upper Intermediate)</option>
-              <option value="C1">C1 (Advanced)</option>
-              <option value="C2">C2 (Mastery)</option>
+              <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
+              <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
+              <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
+              <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
+              <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
+              <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
             </select>
             {proficiencySaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {proficiencySaveMessage}
               </p>
             )}
             {!proficiencySaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                This helps us generate content at the right difficulty level
+                {t('settings:language.proficiency.cefr.helper')}
               </p>
             )}
           </div>
@@ -861,7 +863,7 @@ export default function SettingsPage() {
         {preferredStudyLanguage === 'zh' && (
           <div className="mb-6">
             <label className="block text-base font-bold text-dark-brown mb-3">
-              Pinyin Display Format
+              {t('settings:language.pinyin.label')}
             </label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -874,7 +876,7 @@ export default function SettingsPage() {
                   className="w-4 h-4 text-periwinkle"
                   data-testid="settings-radio-pinyin-tone-marks"
                 />
-                <span className="text-base text-gray-700">Tone marks (nǐ hǎo)</span>
+                <span className="text-base text-gray-700">{t('settings:language.pinyin.toneMarks')}</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -886,17 +888,17 @@ export default function SettingsPage() {
                   className="w-4 h-4 text-periwinkle"
                   data-testid="settings-radio-pinyin-tone-numbers"
                 />
-                <span className="text-base text-gray-700">Tone numbers (ni3 hao3)</span>
+                <span className="text-base text-gray-700">{t('settings:language.pinyin.toneNumbers')}</span>
               </label>
             </div>
             {pinyinSaveMessage && (
-              <p className={`text-sm font-medium mt-2 ${pinyinSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-sm font-medium mt-2 ${pinyinSaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}>
                 {pinyinSaveMessage}
               </p>
             )}
             {!pinyinSaveMessage && (
               <p className="text-sm text-gray-500 mt-2">
-                Choose how pinyin is displayed above Chinese characters
+                {t('settings:language.pinyin.helper')}
               </p>
             )}
           </div>
@@ -909,7 +911,7 @@ export default function SettingsPage() {
       {activeTab === 'security' && (
         <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-          <h2 className="text-2xl font-bold text-dark-brown mb-6">Change Password</h2>
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('settings:security.title')}</h2>
 
         {/* Password Success/Error Messages */}
         {passwordSuccess && (
@@ -926,12 +928,12 @@ export default function SettingsPage() {
         {/* Current Password */}
         <div className="mb-4">
           <label className="block text-base font-bold text-dark-brown mb-3">
-            Current Password
+            {t('settings:security.currentPassword.label')}
           </label>
           <input
             type="password"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-            placeholder="Enter your current password"
+            placeholder={t('settings:security.currentPassword.placeholder')}
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
             autoComplete="current-password"
@@ -942,12 +944,12 @@ export default function SettingsPage() {
         {/* New Password */}
         <div className="mb-4">
           <label className="block text-base font-bold text-dark-brown mb-3">
-            New Password
+            {t('settings:security.newPassword.label')}
           </label>
           <input
             type="password"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-            placeholder="Enter your new password (min 8 characters)"
+            placeholder={t('settings:security.newPassword.placeholder')}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             autoComplete="new-password"
@@ -958,12 +960,12 @@ export default function SettingsPage() {
         {/* Confirm New Password */}
         <div className="mb-6">
           <label className="block text-base font-bold text-dark-brown mb-3">
-            Confirm New Password
+            {t('settings:security.confirmPassword.label')}
           </label>
           <input
             type="password"
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-            placeholder="Confirm your new password"
+            placeholder={t('settings:security.confirmPassword.placeholder')}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             autoComplete="new-password"
@@ -979,7 +981,7 @@ export default function SettingsPage() {
             className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             data-testid="settings-button-change-password"
           >
-            {isChangingPassword ? 'Changing Password...' : 'Change Password'}
+            {isChangingPassword ? t('settings:security.changing') : t('settings:security.changeButton')}
           </button>
         </div>
         </div>
@@ -990,7 +992,7 @@ export default function SettingsPage() {
       {activeTab === 'billing' && (
         <div className="max-w-4xl mx-auto">
           <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-            <h2 className="text-2xl font-bold text-dark-brown mb-6">Billing & Subscription</h2>
+            <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('settings:billing.title')}</h2>
 
             {billingError && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
@@ -1001,21 +1003,21 @@ export default function SettingsPage() {
             {loadingSubscription ? (
               <div className="text-center py-8">
                 <div className="loading-spinner w-8 h-8 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-medium-brown">Loading subscription info...</p>
+                <p className="text-medium-brown">{t('settings:billing.loading')}</p>
               </div>
             ) : (
               <>
                 {/* Current Plan */}
                 <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-dark-brown mb-4">Current Plan</h3>
+                  <h3 className="text-lg font-semibold text-dark-brown mb-4">{t('settings:billing.currentPlan.title')}</h3>
                   <div className="bg-periwinkle-light border-2 border-periwinkle rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div>
                         <p className="text-2xl font-bold text-dark-brown capitalize">
-                          {user?.tier || 'Free'} Plan
+                          {user?.tier === 'pro' ? t('settings:billing.currentPlan.pro') : t('settings:billing.currentPlan.free')} {t('settings:billing.currentPlan.plan')}
                         </p>
                         <p className="text-medium-brown">
-                          {user?.tier === 'pro' ? '$7/month' : 'Free forever'}
+                          {user?.tier === 'pro' ? t('settings:billing.currentPlan.proPrice') : t('settings:billing.currentPlan.freePrice')}
                         </p>
                       </div>
                       {subscriptionStatus?.status && (
@@ -1035,18 +1037,18 @@ export default function SettingsPage() {
 
                     <div className="mb-4">
                       <p className="text-sm text-dark-brown font-medium mb-2">
-                        Weekly generation limit
+                        {t('settings:billing.currentPlan.limit')}
                       </p>
                       <p className="text-lg font-semibold text-dark-brown">
-                        {user?.tier === 'pro' ? '30' : '5'} generations per week
+                        {user?.tier === 'pro' ? '30' : '5'} {t('settings:billing.currentPlan.generations')}
                       </p>
                     </div>
 
                     {subscriptionStatus?.currentPeriodEnd && (
                       <p className="text-sm text-medium-brown">
                         {subscriptionStatus.cancelAtPeriodEnd
-                          ? `Cancels on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
-                          : `Renews on ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
+                          ? `${t('settings:billing.currentPlan.cancelsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
+                          : `${t('settings:billing.currentPlan.renewsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
                       </p>
                     )}
                   </div>
@@ -1060,10 +1062,10 @@ export default function SettingsPage() {
                         onClick={handleUpgradeToPro}
                         className="btn-primary w-full"
                       >
-                        Upgrade to Pro ($7/month)
+                        {t('settings:billing.actions.upgrade')}
                       </button>
                       <p className="text-sm text-medium-brown mt-2 text-center">
-                        Get 30 generations per week and priority support
+                        {t('settings:billing.actions.upgradeHelper')}
                       </p>
                     </div>
                   ) : (
@@ -1073,10 +1075,10 @@ export default function SettingsPage() {
                         disabled={loadingSubscription}
                         className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {loadingSubscription ? 'Loading...' : 'Manage Subscription'}
+                        {loadingSubscription ? t('settings:billing.loading') : t('settings:billing.actions.manage')}
                       </button>
                       <p className="text-sm text-medium-brown mt-2 text-center">
-                        Update payment method, view invoices, or cancel subscription
+                        {t('settings:billing.actions.manageHelper')}
                       </p>
                     </div>
                   )}
@@ -1085,13 +1087,13 @@ export default function SettingsPage() {
                 {/* Plan Comparison */}
                 <div className="mt-8 pt-8 border-t border-gray-200">
                   <h3 className="text-lg font-semibold text-dark-brown mb-4">
-                    Need a different plan?
+                    {t('settings:billing.comparison.title')}
                   </h3>
                   <button
                     onClick={() => navigate('/pricing')}
                     className="text-periwinkle hover:text-dark-periwinkle font-medium"
                   >
-                    View all plans →
+                    {t('settings:billing.comparison.viewAll')}
                   </button>
                 </div>
               </>
@@ -1104,28 +1106,28 @@ export default function SettingsPage() {
       {activeTab === 'danger' && (
         <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-strawberry mb-6">Danger Zone</h2>
+          <h2 className="text-2xl font-bold text-strawberry mb-6">{t('settings:danger.title')}</h2>
           <div className="bg-strawberry-light border-l-4 border-strawberry p-6">
             <div className="flex items-start gap-3">
               <Trash2 className="w-5 h-5 text-strawberry flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-bold text-lg text-dark-brown mb-2">Delete Account</h3>
+                <h3 className="font-bold text-lg text-dark-brown mb-2">{t('settings:danger.deleteAccount.title')}</h3>
                 <p className="text-base text-gray-700 mb-3">
-                  Once you delete your account, there is no going back. This will permanently delete:
+                  {t('settings:danger.deleteAccount.warning')}
                 </p>
                 <ul className="text-base text-gray-700 list-disc list-inside space-y-1 mb-4">
-                  <li>All your dialogues and episodes</li>
-                  <li>All your audio courses</li>
-                  <li>All your narrow listening packs</li>
-                  <li>All your chunk packs</li>
-                  <li>Your account information and settings</li>
+                  <li>{t('settings:danger.deleteAccount.items.dialogues')}</li>
+                  <li>{t('settings:danger.deleteAccount.items.courses')}</li>
+                  <li>{t('settings:danger.deleteAccount.items.narrowListening')}</li>
+                  <li>{t('settings:danger.deleteAccount.items.chunkPacks')}</li>
+                  <li>{t('settings:danger.deleteAccount.items.account')}</li>
                 </ul>
                 <button
                   onClick={() => setShowDeleteModal(true)}
                   className="px-6 py-3 bg-strawberry text-white rounded-lg hover:bg-strawberry-dark transition-colors font-bold"
                   data-testid="settings-button-delete-account"
                 >
-                  Delete My Account
+                  {t('settings:danger.deleteAccount.button')}
                 </button>
               </div>
             </div>
@@ -1137,10 +1139,10 @@ export default function SettingsPage() {
       {/* Delete Confirmation Modal */}
       <ConfirmModal
         isOpen={showDeleteModal}
-        title="Delete Account"
-        message="Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes, courses, narrow listening packs, and chunk packs."
-        confirmLabel="Yes, Delete My Account"
-        cancelLabel="Cancel"
+        title={t('settings:danger.deleteAccount.confirmTitle')}
+        message={t('settings:danger.deleteAccount.confirmMessage')}
+        confirmLabel={t('settings:danger.deleteAccount.confirmButton')}
+        cancelLabel={t('settings:danger.deleteAccount.cancelButton')}
         onConfirm={handleDeleteAccount}
         onCancel={() => setShowDeleteModal(false)}
         isLoading={isDeleting}
