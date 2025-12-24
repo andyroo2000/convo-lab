@@ -32,5 +32,6 @@
   },
   "creating": "Creating...",
   "success": "Created successfully!",
-  "error": "Failed to create content"
+  "error": "Failed to create content",
+  "footer": "[NEEDS_TRANSLATION] Experiment, iterate, and discover what works for your learning style."
 }

@@ -22,5 +22,24 @@
     "description": "发生了意外错误",
     "tryAgain": "重试",
     "goToLibrary": "前往资料库"
+  },
+  "display": {
+    "connection": {
+      "title": "[NEEDS_TRANSLATION] Connection Error",
+      "description": "[NEEDS_TRANSLATION] Check your internet connection and try again"
+    },
+    "auth": {
+      "title": "[NEEDS_TRANSLATION] Authentication Error",
+      "description": "[NEEDS_TRANSLATION] Please log in again to continue"
+    },
+    "generation": {
+      "title": "[NEEDS_TRANSLATION] Generation Failed",
+      "description": "[NEEDS_TRANSLATION] Content generation failed. Please try again"
+    },
+    "generic": {
+      "title": "[NEEDS_TRANSLATION] Error",
+      "description": "[NEEDS_TRANSLATION] Something went wrong. Please try again"
+    },
+    "tryAgain": "[NEEDS_TRANSLATION] Try Again"
   }
 }
