@@ -1,37 +1,37 @@
 {
   "header": {
-    "goToApp": "Go to App",
-    "signIn": "Sign In",
-    "getStarted": "Get Started"
+    "goToApp": "الذهاب إلى التطبيق",
+    "signIn": "تسجيل الدخول",
+    "getStarted": "ابدأ الآن"
   },
   "hero": {
-    "badge": "Research-Backed Language Lab",
-    "title1": "Your Personal",
-    "title2": "AI Language Lab",
-    "description": "Create custom content grounded in linguistics and SLA research. Design narrow listening exercises, processing instruction activities, and lexical chunk practice tailored to your learning style.",
-    "goToApp": "Go to App",
-    "startLearning": "Start Learning Free"
+    "badge": "مختبر لغات مدعوم بالأبحاث",
+    "title1": "مختبر اللغات",
+    "title2": "بالذكاء الاصطناعي الخاص بك",
+    "description": "أنشئ محتوى مخصص مبني على اللسانيات وأبحاث اكتساب اللغة الثانية. صمم تمارين الاستماع المركز، وأنشطة تعليمات المعالجة، وممارسة الكتل المعجمية المصممة خصيصاً لأسلوب تعلمك.",
+    "goToApp": "الذهاب إلى التطبيق",
+    "startLearning": "ابدأ التعلم مجاناً"
   },
   "features": {
-    "title": "Your Personal\nLanguage Lab",
-    "subtitle": "Apply proven SLA methods with AI-powered personalization",
+    "title": "مختبر اللغات\nالشخصي الخاص بك",
+    "subtitle": "طبق أساليب اكتساب اللغة الثانية المثبتة مع التخصيص بالذكاء الاصطناعي",
     "feature1": {
-      "title": "Comprehensible Input",
-      "description": "Generate AI dialogues calibrated to your proficiency level. Create rich, contextual input that's challenging yet understandable—the sweet spot for acquisition."
+      "title": "مدخلات قابلة للفهم",
+      "description": "أنشئ حوارات بالذكاء الاصطناعي معايرة لمستوى كفاءتك. أنشئ مدخلات غنية وسياقية تكون تحدياً ولكن مفهومة—النقطة المثالية للاكتساب."
     },
     "feature2": {
-      "title": "Narrow Listening",
-      "description": "Build fluency through repetition with variation. Experience the same story told multiple ways—different tenses, formality levels, and perspectives—to deeply internalize patterns."
+      "title": "الاستماع المركز",
+      "description": "طور الطلاقة من خلال التكرار مع التنوع. اختبر نفس القصة تُروى بطرق متعددة—أزمنة مختلفة، ومستويات رسمية، ووجهات نظر—لاستيعاب الأنماط بعمق."
     },
     "feature3": {
-      "title": "Processing Instruction & Chunks",
-      "description": "Acquire grammar through structured input activities. Learn lexical chunks as complete units, the way native speakers actually use language—not isolated words or abstract rules."
+      "title": "تعليمات المعالجة والكتل",
+      "description": "اكتسب القواعد من خلال أنشطة المدخلات المنظمة. تعلم الكتل المعجمية كوحدات كاملة، بالطريقة التي يستخدم بها المتحدثون الأصليون اللغة فعلياً—وليس كلمات معزولة أو قواعد مجردة."
     }
   },
   "cta": {
-    "title": "Ready to Build\nYour Language Lab?",
-    "description": "Start creating research-backed, personalized content in minutes.",
-    "goToApp": "Go to App",
-    "getStarted": "Get Started Free"
+    "title": "هل أنت مستعد لبناء\nمختبر اللغات الخاص بك؟",
+    "description": "ابدأ في إنشاء محتوى شخصي مدعوم بالأبحاث في دقائق.",
+    "goToApp": "الذهاب إلى التطبيق",
+    "getStarted": "ابدأ مجاناً"
   }
 }

@@ -1,73 +1,73 @@
 {
-  "pageTitle": "Narrow Listening Packs",
-  "pageSubtitle": "The same story told 5 different ways for focused listening practice",
+  "pageTitle": "Paquetes de Escucha Enfocada",
+  "pageSubtitle": "La misma historia contada de 5 formas diferentes para práctica de escucha enfocada",
   "alerts": {
-    "enterTopic": "Please enter a topic or story idea"
+    "enterTopic": "Por favor ingresa un tema o idea de historia"
   },
   "form": {
-    "yourStory": "Your Story",
-    "whatAbout": "What's your story about?",
+    "yourStory": "Tu Historia",
+    "whatAbout": "¿De qué trata tu historia?",
     "topicPlaceholder": {
-      "ja": "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee",
-      "zh": "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea",
-      "es": "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas",
-      "fr": "Example: Sophie's weekend activities, A trip to the bakery, Meeting a friend for coffee"
+      "ja": "Ejemplo: Las actividades del fin de semana de Tanaka, Un viaje a la tienda de conveniencia, Reunirse con un amigo para café",
+      "zh": "Ejemplo: Las actividades del fin de semana de Wang Wei, Un viaje al supermercado, Reunirse con un amigo para té",
+      "es": "Ejemplo: Las actividades del fin de semana de María, Un viaje al mercado, Reunirse con un amigo para tapas",
+      "fr": "Ejemplo: Las actividades del fin de semana de Sophie, Un viaje a la panadería, Reunirse con un amigo para café"
     },
-    "topicHelper": "Describe the scenario or topic for your story",
-    "targetJLPT": "Target JLPT Level",
-    "targetHSK": "Target HSK Level",
-    "targetCEFR": "Target CEFR Level",
+    "topicHelper": "Describe el escenario o tema para tu historia",
+    "targetJLPT": "Nivel JLPT Objetivo",
+    "targetHSK": "Nivel HSK Objetivo",
+    "targetCEFR": "Nivel CEFR Objetivo",
     "jlpt": {
-      "n5": "N5 (Beginner)",
-      "n4": "N4 (Upper Beginner)",
-      "n3": "N3 (Intermediate)",
-      "n2": "N2 (Upper Intermediate)",
-      "n1": "N1 (Advanced)"
+      "n5": "N5 (Principiante)",
+      "n4": "N4 (Principiante Alto)",
+      "n3": "N3 (Intermedio)",
+      "n2": "N2 (Intermedio Alto)",
+      "n1": "N1 (Avanzado)"
     },
     "hsk": {
-      "hsk1": "HSK1 (Beginner)",
-      "hsk2": "HSK2 (Elementary)",
-      "hsk3": "HSK3 (Intermediate)",
-      "hsk4": "HSK4 (Upper Intermediate)",
-      "hsk5": "HSK5 (Advanced)",
-      "hsk6": "HSK6 (Proficient)"
+      "hsk1": "HSK1 (Principiante)",
+      "hsk2": "HSK2 (Elemental)",
+      "hsk3": "HSK3 (Intermedio)",
+      "hsk4": "HSK4 (Intermedio Alto)",
+      "hsk5": "HSK5 (Avanzado)",
+      "hsk6": "HSK6 (Competente)"
     },
     "cefr": {
-      "a1": "A1 (Beginner)",
-      "a2": "A2 (Elementary)",
-      "b1": "B1 (Intermediate)",
-      "b2": "B2 (Upper Intermediate)",
-      "c1": "C1 (Advanced)",
-      "c2": "C2 (Mastery)"
+      "a1": "A1 (Principiante)",
+      "a2": "A2 (Elemental)",
+      "b1": "B1 (Intermedio)",
+      "b2": "B2 (Intermedio Alto)",
+      "c1": "C1 (Avanzado)",
+      "c2": "C2 (Maestría)"
     },
-    "levelHelper": "Vocabulary and grammar will be tailored to this level",
-    "grammarFocus": "Grammar Focus (Optional)",
-    "grammarPlaceholder": "e.g., past vs present tense",
-    "grammarHelper": "Optionally specify grammar points to focus on"
+    "levelHelper": "El vocabulario y la gramática se adaptarán a este nivel",
+    "grammarFocus": "Enfoque Gramatical (Opcional)",
+    "grammarPlaceholder": "ej., tiempo pasado vs presente",
+    "grammarHelper": "Opcionalmente especifica puntos gramaticales en los que enfocarte"
   },
   "progress": {
-    "creating": "Creating narrow listening pack...",
-    "generatingStory": "Generating story with AI...",
-    "creatingAudio": "Creating audio for story variations...",
-    "finalizing": "Finalizing your pack...",
-    "complete": "{{progress}}% complete"
+    "creating": "Creando paquete de escucha enfocada...",
+    "generatingStory": "Generando historia con IA...",
+    "creatingAudio": "Creando audio para variaciones de historia...",
+    "finalizing": "Finalizando tu paquete...",
+    "complete": "{{progress}}% completo"
   },
   "info": {
-    "title": "What is Narrow Listening?",
-    "description": "Narrow listening is a technique where you listen to the same content with slight variations. This helps you notice differences in grammar, vocabulary, and usage while maintaining context. Your pack will include:",
+    "title": "¿Qué es la Escucha Enfocada?",
+    "description": "La escucha enfocada es una técnica donde escuchas el mismo contenido con ligeras variaciones. Esto te ayuda a notar diferencias en gramática, vocabulario y uso mientras mantienes el contexto. Tu paquete incluirá:",
     "features": {
-      "versions": "5 versions of the same story with different grammar patterns",
-      "slowAudio": "Slow audio (0.7x speed) for shadowing practice",
-      "normalAudio": "Optional normal speed audio (1.0x) when you're ready",
-      "textJa": "Japanese text with furigana and English translations",
-      "textZh": "Chinese text with pinyin and English translations",
-      "textEs": "Spanish text and English translations",
-      "textFr": "French text and English translations"
+      "versions": "5 versiones de la misma historia con diferentes patrones gramaticales",
+      "slowAudio": "Audio lento (0.7x velocidad) para práctica de sombreado",
+      "normalAudio": "Audio opcional a velocidad normal (1.0x) cuando estés listo",
+      "textJa": "Texto en japonés con furigana y traducciones al inglés",
+      "textZh": "Texto en chino con pinyin y traducciones al inglés",
+      "textEs": "Texto en español y traducciones al inglés",
+      "textFr": "Texto en francés y traducciones al inglés"
     }
   },
   "actions": {
-    "cancel": "Cancel",
-    "generate": "Generate Pack",
-    "generating": "Generating..."
+    "cancel": "Cancelar",
+    "generate": "Generar Paquete",
+    "generating": "Generando..."
   }
 }

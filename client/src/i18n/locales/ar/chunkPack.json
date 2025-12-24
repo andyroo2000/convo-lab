@@ -1,52 +1,52 @@
 {
-  "pageTitle": "Lexical Chunk Packs",
-  "pageSubtitle": "Learn high-frequency phrases through examples and exercises",
+  "pageTitle": "حزم الكتل المعجمية",
+  "pageSubtitle": "تعلم العبارات عالية التكرار من خلال الأمثلة والتمارين",
   "what": {
-    "title": "What are Lexical Chunk Packs?",
-    "description": "Lexical Chunk Packs teach 5-8 high-frequency Japanese chunks through examples, stories, and exercises. You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words. Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary."
+    "title": "ما هي حزم الكتل المعجمية؟",
+    "description": "تعلم حزم الكتل المعجمية من 5-8 كتل عالية التكرار من خلال الأمثلة والقصص والتمارين. ستتعلم عبارات متعددة الكلمات يستخدمها المتحدثون الحقيقيون كل يوم—وليس مجرد كلمات معزولة. تتضمن كل حزمة صوت وسياق وممارسة لمساعدة هذه الكتل على أن تصبح جزءاً من مفرداتك النشطة."
   },
   "setup": {
-    "selectLevel": "Select Your Level",
-    "selectTheme": "Select Theme"
+    "selectLevel": "حدد مستواك",
+    "selectTheme": "حدد الموضوع"
   },
   "levels": {
-    "n5": "Beginner",
-    "n4": "Elementary",
-    "n3": "Intermediate"
+    "n5": "مبتدئ",
+    "n4": "أساسي",
+    "n3": "متوسط"
   },
   "themes": {
-    "daily_routine": { "name": "Daily Routine", "description": "Essential expressions for daily activities" },
-    "greetings": { "name": "Greetings & Politeness", "description": "Common social expressions" },
-    "shopping": { "name": "Shopping", "description": "Buying things and asking about products" },
-    "family": { "name": "Family", "description": "Talking about family and relationships" },
-    "school": { "name": "School", "description": "Education-related expressions" },
-    "food": { "name": "Food & Eating", "description": "Meals and food preferences" },
-    "weather": { "name": "Weather", "description": "Talking about weather and seasons" },
-    "hobbies": { "name": "Hobbies & Interests", "description": "Leisure activities" },
-    "health": { "name": "Health & Body", "description": "Medical situations and advice" },
-    "travel": { "name": "Travel", "description": "Planning trips and navigating" },
-    "opinions": { "name": "Opinions", "description": "Expressing thoughts and uncertainty" },
-    "plans": { "name": "Plans & Intentions", "description": "Future intentions and decisions" },
-    "feelings": { "name": "Feelings & Emotions", "description": "Expressing emotional states" },
-    "requests": { "name": "Requests & Permissions", "description": "Politely asking for things" },
-    "advice": { "name": "Advice & Suggestions", "description": "Giving and receiving recommendations" },
-    "experiences": { "name": "Experiences", "description": "Talking about what you've done" },
-    "work": { "name": "Work & Professional", "description": "Workplace language" },
-    "social_life": { "name": "Social Life", "description": "Social expectations and relationships" },
-    "habits": { "name": "Habits & Routines", "description": "Describing regular behaviors" },
-    "expectations": { "name": "Expectations", "description": "What should or will happen" },
-    "comparisons": { "name": "Comparisons", "description": "Contrasting and comparing" },
-    "reasoning": { "name": "Reasoning", "description": "Explaining causes and reasons" },
-    "preferences": { "name": "Preferences", "description": "Expressing likes and choices" },
-    "goals": { "name": "Goals & Purposes", "description": "Expressing aims and objectives" }
+    "daily_routine": { "name": "الروتين اليومي", "description": "تعبيرات أساسية للأنشطة اليومية" },
+    "greetings": { "name": "التحيات والأدب", "description": "تعبيرات اجتماعية شائعة" },
+    "shopping": { "name": "التسوق", "description": "شراء الأشياء والاستفسار عن المنتجات" },
+    "family": { "name": "العائلة", "description": "الحديث عن العائلة والعلاقات" },
+    "school": { "name": "المدرسة", "description": "تعبيرات متعلقة بالتعليم" },
+    "food": { "name": "الطعام والأكل", "description": "الوجبات وتفضيلات الطعام" },
+    "weather": { "name": "الطقس", "description": "الحديث عن الطقس والفصول" },
+    "hobbies": { "name": "الهوايات والاهتمامات", "description": "أنشطة الترفيه" },
+    "health": { "name": "الصحة والجسم", "description": "المواقف الطبية والنصائح" },
+    "travel": { "name": "السفر", "description": "تخطيط الرحلات والتنقل" },
+    "opinions": { "name": "الآراء", "description": "التعبير عن الأفكار والشك" },
+    "plans": { "name": "الخطط والنوايا", "description": "النوايا والقرارات المستقبلية" },
+    "feelings": { "name": "المشاعر والعواطف", "description": "التعبير عن الحالات العاطفية" },
+    "requests": { "name": "الطلبات والأذونات", "description": "طلب الأشياء بأدب" },
+    "advice": { "name": "النصائح والاقتراحات", "description": "إعطاء وتلقي التوصيات" },
+    "experiences": { "name": "التجارب", "description": "الحديث عما فعلته" },
+    "work": { "name": "العمل والمهني", "description": "لغة مكان العمل" },
+    "social_life": { "name": "الحياة الاجتماعية", "description": "التوقعات الاجتماعية والعلاقات" },
+    "habits": { "name": "العادات والروتين", "description": "وصف السلوكيات المنتظمة" },
+    "expectations": { "name": "التوقعات", "description": "ما يجب أو سيحدث" },
+    "comparisons": { "name": "المقارنات", "description": "التباين والمقارنة" },
+    "reasoning": { "name": "الاستدلال", "description": "شرح الأسباب والأسباب" },
+    "preferences": { "name": "التفضيلات", "description": "التعبير عن الإعجابات والاختيارات" },
+    "goals": { "name": "الأهداف والمقاصد", "description": "التعبير عن الطموحات والأهداف" }
   },
   "progress": {
-    "generating": "Generating lexical chunk pack...",
-    "tip": "This may take 30-60 seconds. We're generating content and audio..."
+    "generating": "جاري إنشاء حزمة الكتل المعجمية...",
+    "tip": "قد يستغرق هذا 30-60 ثانية. نحن ننشئ المحتوى والصوت..."
   },
   "actions": {
-    "generate": "Generate Lexical Chunk Pack",
-    "generating": "Generating Lexical Chunk Pack..."
+    "generate": "إنشاء حزمة الكتل المعجمية",
+    "generating": "جاري إنشاء حزمة الكتل المعجمية..."
   },
-  "tip": "Tip: Each pack contains 5-8 chunks with examples, a story, and exercises."
+  "tip": "نصيحة: تحتوي كل حزمة على 5-8 كتل مع أمثلة وقصة وتمارين."
 }

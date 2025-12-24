@@ -1,14 +1,14 @@
 {
-  "title": "Page Not Found",
-  "description": "Oops! The page you're looking for doesn't exist or has been moved.",
+  "title": "Página No Encontrada",
+  "description": "¡Ups! La página que buscas no existe o ha sido movida.",
   "suggestions": {
-    "title": "Here's what you can do:",
-    "checkUrl": "Check the URL for typos",
-    "returnHome": "Return to the home page and try again",
-    "useNavigation": "Use the navigation menu to find what you're looking for"
+    "title": "Esto es lo que puedes hacer:",
+    "checkUrl": "Verifica si hay errores en la URL",
+    "returnHome": "Regresa a la página de inicio e intenta de nuevo",
+    "useNavigation": "Usa el menú de navegación para encontrar lo que buscas"
   },
   "buttons": {
-    "goBack": "Go Back",
-    "goToLibrary": "Go to Library"
+    "goBack": "Regresar",
+    "goToLibrary": "Ir a la Biblioteca"
   }
 }
