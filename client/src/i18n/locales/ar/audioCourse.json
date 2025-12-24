@@ -1,77 +1,77 @@
 {
-  "pageTitle": "Guided Audio Course",
-  "pageSubtitle": "Audio-only lessons perfect for your commute or morning walk",
+  "pageTitle": "دورة صوتية موجهة",
+  "pageSubtitle": "دروس صوتية فقط مثالية لتنقلاتك أو مشيك الصباحي",
   "alerts": {
-    "fillRequired": "Please fill in all required fields",
-    "selectVoice": "Please select a narrator voice"
+    "fillRequired": "يرجى ملء جميع الحقول المطلوبة",
+    "selectVoice": "يرجى اختيار صوت السارد"
   },
   "complete": {
-    "title": "Audio Course Created!",
-    "description": "Your audio course is now generating. You can track its progress on the Audio Courses page."
+    "title": "تم إنشاء الدورة الصوتية!",
+    "description": "دورتك الصوتية قيد الإنشاء الآن. يمكنك تتبع تقدمها في صفحة الدورات الصوتية."
   },
   "courseDetails": {
-    "title": "Course Details",
-    "courseTitle": "Audio Course Title",
-    "courseTitlePlaceholder": "e.g., Japanese Restaurant Conversations",
-    "yourStory": "Your Story or Experience",
-    "storyPlaceholder": "Describe an experience, conversation, or situation you want to learn about. The AI will create an interactive audio course based on your description.",
-    "storyHelper": "Be specific about the context and setting. This helps create more authentic learning material."
+    "title": "تفاصيل الدورة",
+    "courseTitle": "عنوان الدورة الصوتية",
+    "courseTitlePlaceholder": "مثال: محادثات المطاعم اليابانية",
+    "yourStory": "قصتك أو تجربتك",
+    "storyPlaceholder": "صف تجربة أو محادثة أو موقف تريد التعلم عنه. سينشئ الذكاء الاصطناعي دورة صوتية تفاعلية بناءً على وصفك.",
+    "storyHelper": "كن محدداً بشأن السياق والإعداد. هذا يساعد في إنشاء مواد تعليمية أكثر أصالة."
   },
   "voiceConfig": {
-    "title": "Voice Configuration",
-    "dialogueVoices": "Dialogue Voices",
-    "speaker1": "Speaker 1 (Friend)",
-    "speaker2": "Speaker 2 (Listener)",
-    "voiceHelper": "Choose any voice for each speaker - (M) = Male, (F) = Female"
+    "title": "تكوين الصوت",
+    "dialogueVoices": "أصوات الحوار",
+    "speaker1": "المتحدث 1 (صديق)",
+    "speaker2": "المتحدث 2 (مستمع)",
+    "voiceHelper": "اختر أي صوت لكل متحدث - (M) = ذكر، (F) = أنثى"
   },
   "courseSettings": {
-    "title": "Course Settings",
-    "maxDuration": "Max Lesson Duration",
+    "title": "إعدادات الدورة",
+    "maxDuration": "أقصى مدة للدرس",
     "durationOptions": {
-      "10": "10 minutes",
-      "15": "15 minutes",
-      "20": "20 minutes",
-      "30": "30 minutes"
+      "10": "10 دقائق",
+      "15": "15 دقيقة",
+      "20": "20 دقيقة",
+      "30": "30 دقيقة"
     },
-    "durationHelper": "Lessons longer than this will be split into multiple parts",
-    "targetJLPT": "Target JLPT Level",
+    "durationHelper": "سيتم تقسيم الدروس الأطول من ذلك إلى أجزاء متعددة",
+    "targetJLPT": "مستوى JLPT المستهدف",
     "jlpt": {
-      "n5": "N5 (Beginner)",
-      "n4": "N4 (Upper Beginner)",
-      "n3": "N3 (Intermediate)",
-      "n2": "N2 (Upper Intermediate)",
-      "n1": "N1 (Advanced)"
+      "n5": "N5 (مبتدئ)",
+      "n4": "N4 (مبتدئ متقدم)",
+      "n3": "N3 (متوسط)",
+      "n2": "N2 (متوسط متقدم)",
+      "n1": "N1 (متقدم)"
     },
-    "targetHSK": "Target HSK Level",
+    "targetHSK": "مستوى HSK المستهدف",
     "hsk": {
-      "hsk1": "HSK 1 (Beginner)",
-      "hsk2": "HSK 2 (Upper Beginner)",
-      "hsk3": "HSK 3 (Intermediate)",
-      "hsk4": "HSK 4 (Upper Intermediate)",
-      "hsk5": "HSK 5 (Advanced)",
-      "hsk6": "HSK 6 (Mastery)"
+      "hsk1": "HSK 1 (مبتدئ)",
+      "hsk2": "HSK 2 (مبتدئ متقدم)",
+      "hsk3": "HSK 3 (متوسط)",
+      "hsk4": "HSK 4 (متوسط متقدم)",
+      "hsk5": "HSK 5 (متقدم)",
+      "hsk6": "HSK 6 (إتقان)"
     },
-    "targetCEFR": "Target CEFR Level",
+    "targetCEFR": "مستوى CEFR المستهدف",
     "cefr": {
-      "a1": "A1 (Beginner)",
-      "a2": "A2 (Elementary)",
-      "b1": "B1 (Intermediate)",
-      "b2": "B2 (Upper Intermediate)",
-      "c1": "C1 (Advanced)",
-      "c2": "C2 (Mastery)"
+      "a1": "A1 (مبتدئ)",
+      "a2": "A2 (أساسي)",
+      "b1": "B1 (متوسط)",
+      "b2": "B2 (متوسط متقدم)",
+      "c1": "C1 (متقدم)",
+      "c2": "C2 (إتقان)"
     },
-    "levelHelper": "Vocabulary and grammar will be tailored to this level"
+    "levelHelper": "سيتم تخصيص المفردات والقواعد لهذا المستوى"
   },
   "generate": {
-    "ready": "Ready to Generate?",
-    "description": "The AI will create audio-only lessons with guided narration, anticipation practice, and spaced repetition—perfect for hands-free learning.",
+    "ready": "هل أنت مستعد للإنشاء؟",
+    "description": "سينشئ الذكاء الاصطناعي دروساً صوتية فقط بسرد موجه، وممارسة التوقع، والتكرار المتباعد—مثالي للتعلم بدون استخدام اليدين.",
     "features": {
-      "duration": "~30 minute lessons, audio-only format",
-      "narration": "Guided L1 narration with L2 prompts",
-      "pauses": "Anticipation pauses for recall practice",
-      "level": "JLPT {{level}} level vocabulary & grammar"
+      "duration": "دروس ~30 دقيقة، تنسيق صوتي فقط",
+      "narration": "سرد L1 موجه مع مطالبات L2",
+      "pauses": "فترات توقف توقعية لممارسة الاستدعاء",
+      "level": "مفردات وقواعد مستوى JLPT {{level}}"
     },
-    "button": "Create Audio Course",
-    "creating": "Creating..."
+    "button": "إنشاء دورة صوتية",
+    "creating": "جاري الإنشاء..."
   }
 }

@@ -1,14 +1,14 @@
 {
-  "title": "Page Not Found",
-  "description": "Oops! The page you're looking for doesn't exist or has been moved.",
+  "title": "页面未找到",
+  "description": "糟糕！您要找的页面不存在或已被移动。",
   "suggestions": {
-    "title": "Here's what you can do:",
-    "checkUrl": "Check the URL for typos",
-    "returnHome": "Return to the home page and try again",
-    "useNavigation": "Use the navigation menu to find what you're looking for"
+    "title": "您可以这样做：",
+    "checkUrl": "检查URL是否有拼写错误",
+    "returnHome": "返回主页并重试",
+    "useNavigation": "使用导航菜单查找您要找的内容"
   },
   "buttons": {
-    "goBack": "Go Back",
-    "goToLibrary": "Go to Library"
+    "goBack": "返回",
+    "goToLibrary": "前往资料库"
   }
 }

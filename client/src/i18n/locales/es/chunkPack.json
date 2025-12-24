@@ -1,52 +1,52 @@
 {
-  "pageTitle": "Lexical Chunk Packs",
-  "pageSubtitle": "Learn high-frequency phrases through examples and exercises",
+  "pageTitle": "Paquetes de Bloques Léxicos",
+  "pageSubtitle": "Aprende frases de alta frecuencia a través de ejemplos y ejercicios",
   "what": {
-    "title": "What are Lexical Chunk Packs?",
-    "description": "Lexical Chunk Packs teach 5-8 high-frequency Japanese chunks through examples, stories, and exercises. You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words. Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary."
+    "title": "¿Qué son los Paquetes de Bloques Léxicos?",
+    "description": "Los Paquetes de Bloques Léxicos enseñan 5-8 bloques de alta frecuencia a través de ejemplos, historias y ejercicios. Aprenderás frases de múltiples palabras que los hablantes reales usan todos los días—no solo palabras aisladas. Cada paquete incluye audio, contexto y práctica para ayudar a que estos bloques se conviertan en parte de tu vocabulario activo."
   },
   "setup": {
-    "selectLevel": "Select Your Level",
-    "selectTheme": "Select Theme"
+    "selectLevel": "Selecciona Tu Nivel",
+    "selectTheme": "Selecciona Tema"
   },
   "levels": {
-    "n5": "Beginner",
-    "n4": "Elementary",
-    "n3": "Intermediate"
+    "n5": "Principiante",
+    "n4": "Elemental",
+    "n3": "Intermedio"
   },
   "themes": {
-    "daily_routine": { "name": "Daily Routine", "description": "Essential expressions for daily activities" },
-    "greetings": { "name": "Greetings & Politeness", "description": "Common social expressions" },
-    "shopping": { "name": "Shopping", "description": "Buying things and asking about products" },
-    "family": { "name": "Family", "description": "Talking about family and relationships" },
-    "school": { "name": "School", "description": "Education-related expressions" },
-    "food": { "name": "Food & Eating", "description": "Meals and food preferences" },
-    "weather": { "name": "Weather", "description": "Talking about weather and seasons" },
-    "hobbies": { "name": "Hobbies & Interests", "description": "Leisure activities" },
-    "health": { "name": "Health & Body", "description": "Medical situations and advice" },
-    "travel": { "name": "Travel", "description": "Planning trips and navigating" },
-    "opinions": { "name": "Opinions", "description": "Expressing thoughts and uncertainty" },
-    "plans": { "name": "Plans & Intentions", "description": "Future intentions and decisions" },
-    "feelings": { "name": "Feelings & Emotions", "description": "Expressing emotional states" },
-    "requests": { "name": "Requests & Permissions", "description": "Politely asking for things" },
-    "advice": { "name": "Advice & Suggestions", "description": "Giving and receiving recommendations" },
-    "experiences": { "name": "Experiences", "description": "Talking about what you've done" },
-    "work": { "name": "Work & Professional", "description": "Workplace language" },
-    "social_life": { "name": "Social Life", "description": "Social expectations and relationships" },
-    "habits": { "name": "Habits & Routines", "description": "Describing regular behaviors" },
-    "expectations": { "name": "Expectations", "description": "What should or will happen" },
-    "comparisons": { "name": "Comparisons", "description": "Contrasting and comparing" },
-    "reasoning": { "name": "Reasoning", "description": "Explaining causes and reasons" },
-    "preferences": { "name": "Preferences", "description": "Expressing likes and choices" },
-    "goals": { "name": "Goals & Purposes", "description": "Expressing aims and objectives" }
+    "daily_routine": { "name": "Rutina Diaria", "description": "Expresiones esenciales para actividades diarias" },
+    "greetings": { "name": "Saludos y Cortesía", "description": "Expresiones sociales comunes" },
+    "shopping": { "name": "Compras", "description": "Comprar cosas y preguntar sobre productos" },
+    "family": { "name": "Familia", "description": "Hablar sobre familia y relaciones" },
+    "school": { "name": "Escuela", "description": "Expresiones relacionadas con educación" },
+    "food": { "name": "Comida y Alimentación", "description": "Comidas y preferencias alimentarias" },
+    "weather": { "name": "Clima", "description": "Hablar sobre el clima y las estaciones" },
+    "hobbies": { "name": "Pasatiempos e Intereses", "description": "Actividades de ocio" },
+    "health": { "name": "Salud y Cuerpo", "description": "Situaciones médicas y consejos" },
+    "travel": { "name": "Viajes", "description": "Planificar viajes y navegar" },
+    "opinions": { "name": "Opiniones", "description": "Expresar pensamientos e incertidumbre" },
+    "plans": { "name": "Planes e Intenciones", "description": "Intenciones y decisiones futuras" },
+    "feelings": { "name": "Sentimientos y Emociones", "description": "Expresar estados emocionales" },
+    "requests": { "name": "Solicitudes y Permisos", "description": "Pedir cosas cortésmente" },
+    "advice": { "name": "Consejos y Sugerencias", "description": "Dar y recibir recomendaciones" },
+    "experiences": { "name": "Experiencias", "description": "Hablar sobre lo que has hecho" },
+    "work": { "name": "Trabajo y Profesional", "description": "Lenguaje del lugar de trabajo" },
+    "social_life": { "name": "Vida Social", "description": "Expectativas sociales y relaciones" },
+    "habits": { "name": "Hábitos y Rutinas", "description": "Describir comportamientos regulares" },
+    "expectations": { "name": "Expectativas", "description": "Lo que debería o va a suceder" },
+    "comparisons": { "name": "Comparaciones", "description": "Contrastar y comparar" },
+    "reasoning": { "name": "Razonamiento", "description": "Explicar causas y razones" },
+    "preferences": { "name": "Preferencias", "description": "Expresar gustos y elecciones" },
+    "goals": { "name": "Metas y Propósitos", "description": "Expresar objetivos y propósitos" }
   },
   "progress": {
-    "generating": "Generating lexical chunk pack...",
-    "tip": "This may take 30-60 seconds. We're generating content and audio..."
+    "generating": "Generando paquete de bloques léxicos...",
+    "tip": "Esto puede tomar 30-60 segundos. Estamos generando contenido y audio..."
   },
   "actions": {
-    "generate": "Generate Lexical Chunk Pack",
-    "generating": "Generating Lexical Chunk Pack..."
+    "generate": "Generar Paquete de Bloques Léxicos",
+    "generating": "Generando Paquete de Bloques Léxicos..."
   },
-  "tip": "Tip: Each pack contains 5-8 chunks with examples, a story, and exercises."
+  "tip": "Consejo: Cada paquete contiene 5-8 bloques con ejemplos, una historia y ejercicios."
 }

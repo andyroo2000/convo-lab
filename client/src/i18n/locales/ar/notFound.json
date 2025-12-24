@@ -1,14 +1,14 @@
 {
-  "title": "Page Not Found",
-  "description": "Oops! The page you're looking for doesn't exist or has been moved.",
+  "title": "الصفحة غير موجودة",
+  "description": "عذراً! الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
   "suggestions": {
-    "title": "Here's what you can do:",
-    "checkUrl": "Check the URL for typos",
-    "returnHome": "Return to the home page and try again",
-    "useNavigation": "Use the navigation menu to find what you're looking for"
+    "title": "إليك ما يمكنك فعله:",
+    "checkUrl": "تحقق من عنوان URL للأخطاء المطبعية",
+    "returnHome": "العودة إلى الصفحة الرئيسية والمحاولة مرة أخرى",
+    "useNavigation": "استخدم قائمة التنقل للعثور على ما تبحث عنه"
   },
   "buttons": {
-    "goBack": "Go Back",
-    "goToLibrary": "Go to Library"
+    "goBack": "العودة",
+    "goToLibrary": "الذهاب إلى المكتبة"
   }
 }

@@ -1,37 +1,37 @@
 {
   "header": {
-    "goToApp": "Go to App",
-    "signIn": "Sign In",
-    "getStarted": "Get Started"
+    "goToApp": "Ir a la App",
+    "signIn": "Iniciar Sesión",
+    "getStarted": "Comenzar"
   },
   "hero": {
-    "badge": "Research-Backed Language Lab",
-    "title1": "Your Personal",
-    "title2": "AI Language Lab",
-    "description": "Create custom content grounded in linguistics and SLA research. Design narrow listening exercises, processing instruction activities, and lexical chunk practice tailored to your learning style.",
-    "goToApp": "Go to App",
-    "startLearning": "Start Learning Free"
+    "badge": "Laboratorio de Idiomas Basado en Investigación",
+    "title1": "Tu Laboratorio",
+    "title2": "de Idiomas con IA",
+    "description": "Crea contenido personalizado basado en lingüística e investigación de ASL. Diseña ejercicios de escucha enfocada, actividades de instrucción de procesamiento y práctica de bloques léxicos adaptados a tu estilo de aprendizaje.",
+    "goToApp": "Ir a la App",
+    "startLearning": "Comienza a Aprender Gratis"
   },
   "features": {
-    "title": "Your Personal\nLanguage Lab",
-    "subtitle": "Apply proven SLA methods with AI-powered personalization",
+    "title": "Tu Laboratorio\nPersonal de Idiomas",
+    "subtitle": "Aplica métodos probados de ASL con personalización impulsada por IA",
     "feature1": {
-      "title": "Comprehensible Input",
-      "description": "Generate AI dialogues calibrated to your proficiency level. Create rich, contextual input that's challenging yet understandable—the sweet spot for acquisition."
+      "title": "Input Comprensible",
+      "description": "Genera diálogos de IA calibrados a tu nivel de competencia. Crea input rico y contextual que sea desafiante pero comprensible: el punto óptimo para la adquisición."
     },
     "feature2": {
-      "title": "Narrow Listening",
-      "description": "Build fluency through repetition with variation. Experience the same story told multiple ways—different tenses, formality levels, and perspectives—to deeply internalize patterns."
+      "title": "Escucha Enfocada",
+      "description": "Desarrolla fluidez mediante repetición con variación. Experimenta la misma historia contada de múltiples formas—diferentes tiempos verbales, niveles de formalidad y perspectivas—para internalizar profundamente los patrones."
     },
     "feature3": {
-      "title": "Processing Instruction & Chunks",
-      "description": "Acquire grammar through structured input activities. Learn lexical chunks as complete units, the way native speakers actually use language—not isolated words or abstract rules."
+      "title": "Instrucción de Procesamiento y Bloques",
+      "description": "Adquiere gramática a través de actividades de input estructurado. Aprende bloques léxicos como unidades completas, de la forma en que los hablantes nativos realmente usan el idioma—no palabras aisladas ni reglas abstractas."
     }
   },
   "cta": {
-    "title": "Ready to Build\nYour Language Lab?",
-    "description": "Start creating research-backed, personalized content in minutes.",
-    "goToApp": "Go to App",
-    "getStarted": "Get Started Free"
+    "title": "¿Listo para Construir\nTu Laboratorio de Idiomas?",
+    "description": "Comienza a crear contenido personalizado basado en investigación en minutos.",
+    "goToApp": "Ir a la App",
+    "getStarted": "Comenzar Gratis"
   }
 }

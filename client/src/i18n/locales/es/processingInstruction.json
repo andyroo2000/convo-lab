@@ -1,50 +1,50 @@
 {
-  "pageTitle": "Processing Instruction Activities",
-  "pageSubtitle": "Learn grammar through structured input and meaning-based questions",
+  "pageTitle": "Actividades de Instrucción de Procesamiento",
+  "pageSubtitle": "Aprende gramática a través de input estructurado y preguntas basadas en significado",
   "what": {
-    "title": "What is Processing Instruction?",
-    "description": "Processing Instruction (PI) helps you understand Japanese grammar through meaning-based tasks. You'll hear Japanese sentences and answer questions about what they mean - not which grammar form was used. This trains your brain to process grammar correctly in real-time comprehension."
+    "title": "¿Qué es la Instrucción de Procesamiento?",
+    "description": "La Instrucción de Procesamiento (IP) te ayuda a entender la gramática a través de tareas basadas en significado. Escucharás oraciones y responderás preguntas sobre lo que significan—no qué forma gramatical se usó. Esto entrena a tu cerebro para procesar la gramática correctamente en la comprensión en tiempo real."
   },
   "setup": {
-    "selectLevel": "Select Your Level",
-    "selectGrammar": "Select Grammar Point",
-    "itemCount": "Number of Items",
+    "selectLevel": "Selecciona Tu Nivel",
+    "selectGrammar": "Selecciona Punto Gramatical",
+    "itemCount": "Número de Elementos",
     "duration": {
-      "10": "~5-7 minutes",
-      "15": "~8-10 minutes"
+      "10": "~5-7 minutos",
+      "15": "~8-10 minutos"
     }
   },
   "levels": {
-    "n5": "Beginner",
-    "n4": "Elementary",
-    "n3": "Intermediate",
-    "n2": "Advanced"
+    "n5": "Principiante",
+    "n4": "Elemental",
+    "n3": "Intermedio",
+    "n2": "Avanzado"
   },
   "grammarPoints": {
-    "ha_vs_ga": "Topic vs subject",
-    "ni_vs_de": "Location types",
+    "ha_vs_ga": "Tema vs sujeto",
+    "ni_vs_de": "Tipos de ubicación",
     "wo_vs_ga": "Trans/intrans",
-    "e_vs_ni": "Direction",
-    "mada_vs_mou": "Completion",
-    "kara_vs_node": "Reason types",
-    "ni_vs_to": "Indirect object vs accompaniment",
-    "teiru_aspect": "State vs action",
-    "to_vs_tari": "List types",
-    "ha_vs_mo": "Contrast vs inclusion",
-    "passive_vs_active": "Receiver vs agent",
-    "garu_vs_tai": "Observed vs self desire",
-    "koto_ni_naru_vs_suru": "External vs personal decision",
-    "conditional_types": "Conditional nuances",
-    "zu_ni_vs_nai_de": "Without doing",
-    "discourse_ha_vs_ga": "Discourse-level contrast",
-    "wake_vs_hazu_vs_chigainai": "Conclusion types",
-    "causative_types": "Cause vs suffer",
-    "you_ni_vs_tame_ni": "Purpose types",
-    "koto_da_vs_mono_da": "Advice vs reminiscence"
+    "e_vs_ni": "Dirección",
+    "mada_vs_mou": "Completitud",
+    "kara_vs_node": "Tipos de razón",
+    "ni_vs_to": "Objeto indirecto vs acompañamiento",
+    "teiru_aspect": "Estado vs acción",
+    "to_vs_tari": "Tipos de lista",
+    "ha_vs_mo": "Contraste vs inclusión",
+    "passive_vs_active": "Receptor vs agente",
+    "garu_vs_tai": "Deseo observado vs propio",
+    "koto_ni_naru_vs_suru": "Decisión externa vs personal",
+    "conditional_types": "Matices condicionales",
+    "zu_ni_vs_nai_de": "Sin hacer",
+    "discourse_ha_vs_ga": "Contraste a nivel de discurso",
+    "wake_vs_hazu_vs_chigainai": "Tipos de conclusión",
+    "causative_types": "Causar vs sufrir",
+    "you_ni_vs_tame_ni": "Tipos de propósito",
+    "koto_da_vs_mono_da": "Consejo vs reminiscencia"
   },
   "actions": {
-    "start": "Start Practice Session",
-    "generating": "Generating Session..."
+    "start": "Iniciar Sesión de Práctica",
+    "generating": "Generando Sesión..."
   },
-  "tip": "Tip: Find a quiet space and use headphones for the best experience."
+  "tip": "Consejo: Encuentra un espacio tranquilo y usa audífonos para la mejor experiencia."
 }

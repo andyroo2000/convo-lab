@@ -1,52 +1,52 @@
 {
-  "pageTitle": "Lexical Chunk Packs",
-  "pageSubtitle": "Learn high-frequency phrases through examples and exercises",
+  "pageTitle": "词汇块包",
+  "pageSubtitle": "通过例句和练习学习高频短语",
   "what": {
-    "title": "What are Lexical Chunk Packs?",
-    "description": "Lexical Chunk Packs teach 5-8 high-frequency Japanese chunks through examples, stories, and exercises. You'll learn multi-word phrases that real Japanese speakers use every day - not just isolated words. Each pack includes audio, context, and practice to help these chunks become part of your active vocabulary."
+    "title": "什么是词汇块包？",
+    "description": "词汇块包通过例句、故事和练习教授5-8个高频中文词块。您将学习真正的中文使用者每天使用的多词短语——而不仅仅是孤立的单词。每个包都包含音频、上下文和练习，帮助这些词块成为您主动词汇的一部分。"
   },
   "setup": {
-    "selectLevel": "Select Your Level",
-    "selectTheme": "Select Theme"
+    "selectLevel": "选择您的级别",
+    "selectTheme": "选择主题"
   },
   "levels": {
-    "n5": "Beginner",
-    "n4": "Elementary",
-    "n3": "Intermediate"
+    "n5": "初级",
+    "n4": "基础",
+    "n3": "中级"
   },
   "themes": {
-    "daily_routine": { "name": "Daily Routine", "description": "Essential expressions for daily activities" },
-    "greetings": { "name": "Greetings & Politeness", "description": "Common social expressions" },
-    "shopping": { "name": "Shopping", "description": "Buying things and asking about products" },
-    "family": { "name": "Family", "description": "Talking about family and relationships" },
-    "school": { "name": "School", "description": "Education-related expressions" },
-    "food": { "name": "Food & Eating", "description": "Meals and food preferences" },
-    "weather": { "name": "Weather", "description": "Talking about weather and seasons" },
-    "hobbies": { "name": "Hobbies & Interests", "description": "Leisure activities" },
-    "health": { "name": "Health & Body", "description": "Medical situations and advice" },
-    "travel": { "name": "Travel", "description": "Planning trips and navigating" },
-    "opinions": { "name": "Opinions", "description": "Expressing thoughts and uncertainty" },
-    "plans": { "name": "Plans & Intentions", "description": "Future intentions and decisions" },
-    "feelings": { "name": "Feelings & Emotions", "description": "Expressing emotional states" },
-    "requests": { "name": "Requests & Permissions", "description": "Politely asking for things" },
-    "advice": { "name": "Advice & Suggestions", "description": "Giving and receiving recommendations" },
-    "experiences": { "name": "Experiences", "description": "Talking about what you've done" },
-    "work": { "name": "Work & Professional", "description": "Workplace language" },
-    "social_life": { "name": "Social Life", "description": "Social expectations and relationships" },
-    "habits": { "name": "Habits & Routines", "description": "Describing regular behaviors" },
-    "expectations": { "name": "Expectations", "description": "What should or will happen" },
-    "comparisons": { "name": "Comparisons", "description": "Contrasting and comparing" },
-    "reasoning": { "name": "Reasoning", "description": "Explaining causes and reasons" },
-    "preferences": { "name": "Preferences", "description": "Expressing likes and choices" },
-    "goals": { "name": "Goals & Purposes", "description": "Expressing aims and objectives" }
+    "daily_routine": { "name": "日常生活", "description": "日常活动的基本表达" },
+    "greetings": { "name": "问候与礼貌", "description": "常见社交表达" },
+    "shopping": { "name": "购物", "description": "购买东西和询问产品" },
+    "family": { "name": "家庭", "description": "谈论家庭和关系" },
+    "school": { "name": "学校", "description": "与教育相关的表达" },
+    "food": { "name": "食物与饮食", "description": "用餐和食物偏好" },
+    "weather": { "name": "天气", "description": "谈论天气和季节" },
+    "hobbies": { "name": "爱好与兴趣", "description": "休闲活动" },
+    "health": { "name": "健康与身体", "description": "医疗情况和建议" },
+    "travel": { "name": "旅行", "description": "规划旅行和导航" },
+    "opinions": { "name": "意见", "description": "表达想法和不确定性" },
+    "plans": { "name": "计划与意图", "description": "未来的意图和决定" },
+    "feelings": { "name": "感受与情绪", "description": "表达情绪状态" },
+    "requests": { "name": "请求与许可", "description": "礼貌地请求事物" },
+    "advice": { "name": "建议与提议", "description": "给予和接受推荐" },
+    "experiences": { "name": "经历", "description": "谈论您做过的事情" },
+    "work": { "name": "工作与职业", "description": "职场语言" },
+    "social_life": { "name": "社交生活", "description": "社交期望和关系" },
+    "habits": { "name": "习惯与惯例", "description": "描述常规行为" },
+    "expectations": { "name": "期望", "description": "应该或将要发生的事情" },
+    "comparisons": { "name": "比较", "description": "对比和比较" },
+    "reasoning": { "name": "推理", "description": "解释原因和理由" },
+    "preferences": { "name": "偏好", "description": "表达喜好和选择" },
+    "goals": { "name": "目标与目的", "description": "表达目标和目的" }
   },
   "progress": {
-    "generating": "Generating lexical chunk pack...",
-    "tip": "This may take 30-60 seconds. We're generating content and audio..."
+    "generating": "正在生成词汇块包...",
+    "tip": "这可能需要30-60秒。我们正在生成内容和音频..."
   },
   "actions": {
-    "generate": "Generate Lexical Chunk Pack",
-    "generating": "Generating Lexical Chunk Pack..."
+    "generate": "生成词汇块包",
+    "generating": "正在生成词汇块包..."
   },
-  "tip": "Tip: Each pack contains 5-8 chunks with examples, a story, and exercises."
+  "tip": "提示：每个包包含5-8个词块，附带例句、故事和练习。"
 }

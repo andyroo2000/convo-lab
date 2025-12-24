@@ -1,73 +1,73 @@
 {
-  "pageTitle": "Narrow Listening Packs",
-  "pageSubtitle": "The same story told 5 different ways for focused listening practice",
+  "pageTitle": "حزم الاستماع المركز",
+  "pageSubtitle": "نفس القصة تُروى بـ 5 طرق مختلفة لممارسة الاستماع المركز",
   "alerts": {
-    "enterTopic": "Please enter a topic or story idea"
+    "enterTopic": "يرجى إدخال موضوع أو فكرة قصة"
   },
   "form": {
-    "yourStory": "Your Story",
-    "whatAbout": "What's your story about?",
+    "yourStory": "قصتك",
+    "whatAbout": "عن ماذا تتحدث قصتك؟",
     "topicPlaceholder": {
-      "ja": "Example: Tanaka's weekend activities, A trip to the convenience store, Meeting a friend for coffee",
-      "zh": "Example: Wang Wei's weekend activities, A trip to the supermarket, Meeting a friend for tea",
-      "es": "Example: María's weekend activities, A trip to the market, Meeting a friend for tapas",
-      "fr": "Example: Sophie's weekend activities, A trip to the bakery, Meeting a friend for coffee"
+      "ja": "مثال: أنشطة تاناكا في عطلة نهاية الأسبوع، رحلة إلى متجر صغير، لقاء صديق لتناول القهوة",
+      "zh": "مثال: أنشطة وانغ وي في عطلة نهاية الأسبوع، رحلة إلى السوبرماركت، لقاء صديق لتناول الشاي",
+      "es": "مثال: أنشطة ماريا في عطلة نهاية الأسبوع، رحلة إلى السوق، لقاء صديق لتناول التاباس",
+      "fr": "مثال: أنشطة صوفي في عطلة نهاية الأسبوع، رحلة إلى المخبز، لقاء صديق لتناول القهوة"
     },
-    "topicHelper": "Describe the scenario or topic for your story",
-    "targetJLPT": "Target JLPT Level",
-    "targetHSK": "Target HSK Level",
-    "targetCEFR": "Target CEFR Level",
+    "topicHelper": "صف السيناريو أو الموضوع لقصتك",
+    "targetJLPT": "مستوى JLPT المستهدف",
+    "targetHSK": "مستوى HSK المستهدف",
+    "targetCEFR": "مستوى CEFR المستهدف",
     "jlpt": {
-      "n5": "N5 (Beginner)",
-      "n4": "N4 (Upper Beginner)",
-      "n3": "N3 (Intermediate)",
-      "n2": "N2 (Upper Intermediate)",
-      "n1": "N1 (Advanced)"
+      "n5": "N5 (مبتدئ)",
+      "n4": "N4 (مبتدئ متقدم)",
+      "n3": "N3 (متوسط)",
+      "n2": "N2 (متوسط متقدم)",
+      "n1": "N1 (متقدم)"
     },
     "hsk": {
-      "hsk1": "HSK1 (Beginner)",
-      "hsk2": "HSK2 (Elementary)",
-      "hsk3": "HSK3 (Intermediate)",
-      "hsk4": "HSK4 (Upper Intermediate)",
-      "hsk5": "HSK5 (Advanced)",
-      "hsk6": "HSK6 (Proficient)"
+      "hsk1": "HSK1 (مبتدئ)",
+      "hsk2": "HSK2 (أساسي)",
+      "hsk3": "HSK3 (متوسط)",
+      "hsk4": "HSK4 (متوسط متقدم)",
+      "hsk5": "HSK5 (متقدم)",
+      "hsk6": "HSK6 (بارع)"
     },
     "cefr": {
-      "a1": "A1 (Beginner)",
-      "a2": "A2 (Elementary)",
-      "b1": "B1 (Intermediate)",
-      "b2": "B2 (Upper Intermediate)",
-      "c1": "C1 (Advanced)",
-      "c2": "C2 (Mastery)"
+      "a1": "A1 (مبتدئ)",
+      "a2": "A2 (أساسي)",
+      "b1": "B1 (متوسط)",
+      "b2": "B2 (متوسط متقدم)",
+      "c1": "C1 (متقدم)",
+      "c2": "C2 (إتقان)"
     },
-    "levelHelper": "Vocabulary and grammar will be tailored to this level",
-    "grammarFocus": "Grammar Focus (Optional)",
-    "grammarPlaceholder": "e.g., past vs present tense",
-    "grammarHelper": "Optionally specify grammar points to focus on"
+    "levelHelper": "سيتم تخصيص المفردات والقواعد لهذا المستوى",
+    "grammarFocus": "التركيز النحوي (اختياري)",
+    "grammarPlaceholder": "مثال: زمن الماضي مقابل الحاضر",
+    "grammarHelper": "حدد اختيارياً نقاط القواعد للتركيز عليها"
   },
   "progress": {
-    "creating": "Creating narrow listening pack...",
-    "generatingStory": "Generating story with AI...",
-    "creatingAudio": "Creating audio for story variations...",
-    "finalizing": "Finalizing your pack...",
-    "complete": "{{progress}}% complete"
+    "creating": "جاري إنشاء حزمة الاستماع المركز...",
+    "generatingStory": "جاري إنشاء القصة بالذكاء الاصطناعي...",
+    "creatingAudio": "جاري إنشاء صوت لتنويعات القصة...",
+    "finalizing": "جاري الانتهاء من حزمتك...",
+    "complete": "{{progress}}% مكتمل"
   },
   "info": {
-    "title": "What is Narrow Listening?",
-    "description": "Narrow listening is a technique where you listen to the same content with slight variations. This helps you notice differences in grammar, vocabulary, and usage while maintaining context. Your pack will include:",
+    "title": "ما هو الاستماع المركز؟",
+    "description": "الاستماع المركز هو تقنية تستمع فيها إلى نفس المحتوى مع اختلافات طفيفة. يساعدك هذا على ملاحظة الاختلافات في القواعد والمفردات والاستخدام مع الحفاظ على السياق. ستتضمن حزمتك:",
     "features": {
-      "versions": "5 versions of the same story with different grammar patterns",
-      "slowAudio": "Slow audio (0.7x speed) for shadowing practice",
-      "normalAudio": "Optional normal speed audio (1.0x) when you're ready",
-      "textJa": "Japanese text with furigana and English translations",
-      "textZh": "Chinese text with pinyin and English translations",
-      "textEs": "Spanish text and English translations",
-      "textFr": "French text and English translations"
+      "versions": "5 إصدارات من نفس القصة بأنماط قواعد مختلفة",
+      "slowAudio": "صوت بطيء (0.7× سرعة) لممارسة التظليل",
+      "normalAudio": "صوت اختياري بسرعة عادية (1.0×) عندما تكون مستعداً",
+      "textJa": "نص ياباني مع فوريجانا وترجمات إنجليزية",
+      "textZh": "نص صيني مع بينيين وترجمات إنجليزية",
+      "textEs": "نص إسباني وترجمات إنجليزية",
+      "textFr": "نص فرنسي وترجمات إنجليزية"
     }
   },
   "actions": {
-    "cancel": "Cancel",
-    "generate": "Generate Pack",
-    "generating": "Generating..."
+    "cancel": "إلغاء",
+    "generate": "إنشاء الحزمة",
+    "generating": "جاري الإنشاء..."
   }
 }

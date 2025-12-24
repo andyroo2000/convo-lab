@@ -1,77 +1,77 @@
 {
-  "pageTitle": "Guided Audio Course",
-  "pageSubtitle": "Audio-only lessons perfect for your commute or morning walk",
+  "pageTitle": "Curso de Audio Guiado",
+  "pageSubtitle": "Lecciones solo de audio perfectas para tu traslado o caminata matutina",
   "alerts": {
-    "fillRequired": "Please fill in all required fields",
-    "selectVoice": "Please select a narrator voice"
+    "fillRequired": "Por favor completa todos los campos requeridos",
+    "selectVoice": "Por favor selecciona una voz narradora"
   },
   "complete": {
-    "title": "Audio Course Created!",
-    "description": "Your audio course is now generating. You can track its progress on the Audio Courses page."
+    "title": "¡Curso de Audio Creado!",
+    "description": "Tu curso de audio se está generando ahora. Puedes seguir su progreso en la página de Cursos de Audio."
   },
   "courseDetails": {
-    "title": "Course Details",
-    "courseTitle": "Audio Course Title",
-    "courseTitlePlaceholder": "e.g., Japanese Restaurant Conversations",
-    "yourStory": "Your Story or Experience",
-    "storyPlaceholder": "Describe an experience, conversation, or situation you want to learn about. The AI will create an interactive audio course based on your description.",
-    "storyHelper": "Be specific about the context and setting. This helps create more authentic learning material."
+    "title": "Detalles del Curso",
+    "courseTitle": "Título del Curso de Audio",
+    "courseTitlePlaceholder": "ej., Conversaciones en Restaurantes Japoneses",
+    "yourStory": "Tu Historia o Experiencia",
+    "storyPlaceholder": "Describe una experiencia, conversación o situación sobre la que quieres aprender. La IA creará un curso de audio interactivo basado en tu descripción.",
+    "storyHelper": "Sé específico sobre el contexto y el entorno. Esto ayuda a crear material de aprendizaje más auténtico."
   },
   "voiceConfig": {
-    "title": "Voice Configuration",
-    "dialogueVoices": "Dialogue Voices",
-    "speaker1": "Speaker 1 (Friend)",
-    "speaker2": "Speaker 2 (Listener)",
-    "voiceHelper": "Choose any voice for each speaker - (M) = Male, (F) = Female"
+    "title": "Configuración de Voz",
+    "dialogueVoices": "Voces del Diálogo",
+    "speaker1": "Hablante 1 (Amigo)",
+    "speaker2": "Hablante 2 (Oyente)",
+    "voiceHelper": "Elige cualquier voz para cada hablante - (M) = Masculino, (F) = Femenino"
   },
   "courseSettings": {
-    "title": "Course Settings",
-    "maxDuration": "Max Lesson Duration",
+    "title": "Configuración del Curso",
+    "maxDuration": "Duración Máxima de Lección",
     "durationOptions": {
-      "10": "10 minutes",
-      "15": "15 minutes",
-      "20": "20 minutes",
-      "30": "30 minutes"
+      "10": "10 minutos",
+      "15": "15 minutos",
+      "20": "20 minutos",
+      "30": "30 minutos"
     },
-    "durationHelper": "Lessons longer than this will be split into multiple parts",
-    "targetJLPT": "Target JLPT Level",
+    "durationHelper": "Las lecciones más largas que esto se dividirán en múltiples partes",
+    "targetJLPT": "Nivel JLPT Objetivo",
     "jlpt": {
-      "n5": "N5 (Beginner)",
-      "n4": "N4 (Upper Beginner)",
-      "n3": "N3 (Intermediate)",
-      "n2": "N2 (Upper Intermediate)",
-      "n1": "N1 (Advanced)"
+      "n5": "N5 (Principiante)",
+      "n4": "N4 (Principiante Alto)",
+      "n3": "N3 (Intermedio)",
+      "n2": "N2 (Intermedio Alto)",
+      "n1": "N1 (Avanzado)"
     },
-    "targetHSK": "Target HSK Level",
+    "targetHSK": "Nivel HSK Objetivo",
     "hsk": {
-      "hsk1": "HSK 1 (Beginner)",
-      "hsk2": "HSK 2 (Upper Beginner)",
-      "hsk3": "HSK 3 (Intermediate)",
-      "hsk4": "HSK 4 (Upper Intermediate)",
-      "hsk5": "HSK 5 (Advanced)",
-      "hsk6": "HSK 6 (Mastery)"
+      "hsk1": "HSK 1 (Principiante)",
+      "hsk2": "HSK 2 (Principiante Alto)",
+      "hsk3": "HSK 3 (Intermedio)",
+      "hsk4": "HSK 4 (Intermedio Alto)",
+      "hsk5": "HSK 5 (Avanzado)",
+      "hsk6": "HSK 6 (Maestría)"
     },
-    "targetCEFR": "Target CEFR Level",
+    "targetCEFR": "Nivel CEFR Objetivo",
     "cefr": {
-      "a1": "A1 (Beginner)",
-      "a2": "A2 (Elementary)",
-      "b1": "B1 (Intermediate)",
-      "b2": "B2 (Upper Intermediate)",
-      "c1": "C1 (Advanced)",
-      "c2": "C2 (Mastery)"
+      "a1": "A1 (Principiante)",
+      "a2": "A2 (Elemental)",
+      "b1": "B1 (Intermedio)",
+      "b2": "B2 (Intermedio Alto)",
+      "c1": "C1 (Avanzado)",
+      "c2": "C2 (Maestría)"
     },
-    "levelHelper": "Vocabulary and grammar will be tailored to this level"
+    "levelHelper": "El vocabulario y la gramática se adaptarán a este nivel"
   },
   "generate": {
-    "ready": "Ready to Generate?",
-    "description": "The AI will create audio-only lessons with guided narration, anticipation practice, and spaced repetition—perfect for hands-free learning.",
+    "ready": "¿Listo para Generar?",
+    "description": "La IA creará lecciones solo de audio con narración guiada, práctica de anticipación y repetición espaciada—perfecto para aprendizaje sin usar las manos.",
     "features": {
-      "duration": "~30 minute lessons, audio-only format",
-      "narration": "Guided L1 narration with L2 prompts",
-      "pauses": "Anticipation pauses for recall practice",
-      "level": "JLPT {{level}} level vocabulary & grammar"
+      "duration": "Lecciones de ~30 minutos, formato solo audio",
+      "narration": "Narración guiada en L1 con estímulos en L2",
+      "pauses": "Pausas de anticipación para práctica de recuperación",
+      "level": "Vocabulario y gramática de nivel JLPT {{level}}"
     },
-    "button": "Create Audio Course",
-    "creating": "Creating..."
+    "button": "Crear Curso de Audio",
+    "creating": "Creando..."
   }
 }
