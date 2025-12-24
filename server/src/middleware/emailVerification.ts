@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.js';
 import { prisma } from '../db/client.js';
 import { AppError } from './errorHandler.js';
+import i18next from '../i18n/index.js';
 
 /**
  * Middleware to require email verification for content generation
@@ -14,7 +15,7 @@ export async function requireEmailVerified(
 ) {
   try {
     if (!req.userId) {
-      throw new AppError('Authentication required', 401);
+      throw new AppError(i18next.t('server:errors.authRequired'), 401);
     }
 
     const user = await prisma.user.findUnique({
@@ -23,7 +24,7 @@ export async function requireEmailVerified(
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
     // Admins bypass email verification requirement
@@ -34,7 +35,7 @@ export async function requireEmailVerified(
     // Check if email is verified
     if (!user.emailVerified) {
       throw new AppError(
-        'Please verify your email address before generating content. Check your inbox for the verification email.',
+        i18next.t('server:emailVerificationRequired'),
         403
       );
     }

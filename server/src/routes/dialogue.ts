@@ -7,6 +7,7 @@ import { logGeneration } from '../services/usageTracker.js';
 import { dialogueQueue } from '../jobs/dialogueQueue.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -18,7 +19,7 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
     const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
 
     if (!episodeId || !speakers || !Array.isArray(speakers)) {
-      throw new AppError('Missing required fields', 400);
+      throw new AppError(i18next.t('server:content.missingFields'), 400);
     }
 
     // Add job to queue
@@ -40,7 +41,7 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
 
     res.json({
       jobId: job.id,
-      message: 'Dialogue generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Dialogue' }),
     });
   } catch (error) {
     next(error);
@@ -53,7 +54,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     const job = await dialogueQueue.getJob(req.params.jobId);
 
     if (!job) {
-      throw new AppError('Job not found', 404);
+      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
     }
 
     const state = await job.getState();

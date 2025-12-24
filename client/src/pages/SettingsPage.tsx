@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,23 +11,23 @@ import { API_URL } from '../config';
 
 type Tab = 'profile' | 'language' | 'security' | 'billing' | 'danger';
 
-const AVATAR_COLORS = [
-  { name: 'Indigo', value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
-  { name: 'Teal', value: 'teal', bg: 'bg-teal-100', text: 'text-teal-600' },
-  { name: 'Purple', value: 'purple', bg: 'bg-purple-100', text: 'text-purple-600' },
-  { name: 'Pink', value: 'pink', bg: 'bg-pink-100', text: 'text-pink-600' },
-  { name: 'Emerald', value: 'emerald', bg: 'bg-emerald-100', text: 'text-emerald-600' },
-  { name: 'Amber', value: 'amber', bg: 'bg-amber-100', text: 'text-amber-600' },
-  { name: 'Rose', value: 'rose', bg: 'bg-rose-100', text: 'text-rose-600' },
-  { name: 'Cyan', value: 'cyan', bg: 'bg-cyan-100', text: 'text-cyan-600' },
-];
-
 export default function SettingsPage() {
   const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
   const activeTab: Tab = (tab as Tab) || 'profile';
+
+  const AVATAR_COLORS = useMemo(() => [
+    { name: t('settings:profile.colors.indigo'), value: 'indigo', bg: 'bg-indigo-100', text: 'text-indigo-600' },
+    { name: t('settings:profile.colors.teal'), value: 'teal', bg: 'bg-teal-100', text: 'text-teal-600' },
+    { name: t('settings:profile.colors.purple'), value: 'purple', bg: 'bg-purple-100', text: 'text-purple-600' },
+    { name: t('settings:profile.colors.pink'), value: 'pink', bg: 'bg-pink-100', text: 'text-pink-600' },
+    { name: t('settings:profile.colors.emerald'), value: 'emerald', bg: 'bg-emerald-100', text: 'text-emerald-600' },
+    { name: t('settings:profile.colors.amber'), value: 'amber', bg: 'bg-amber-100', text: 'text-amber-600' },
+    { name: t('settings:profile.colors.rose'), value: 'rose', bg: 'bg-rose-100', text: 'text-rose-600' },
+    { name: t('settings:profile.colors.cyan'), value: 'cyan', bg: 'bg-cyan-100', text: 'text-cyan-600' },
+  ], [t]);
 
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('indigo');
@@ -514,7 +514,7 @@ export default function SettingsPage() {
                 <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
                   <img
                     src={user.avatarUrl}
-                    alt="Your avatar"
+                    alt={t('settings:profile.avatar.altText')}
                     className="w-full h-full object-cover"
                   />
                 </div>
@@ -620,12 +620,12 @@ export default function SettingsPage() {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-study-language"
           >
-            {preferredNativeLanguage !== 'en' && <option value="en">English</option>}
-            {preferredNativeLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
-            {preferredNativeLanguage !== 'zh' && <option value="zh">Mandarin Chinese (中文)</option>}
-            {preferredNativeLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
-            {preferredNativeLanguage !== 'fr' && <option value="fr">French (Français)</option>}
-            {preferredNativeLanguage !== 'ar' && <option value="ar">Arabic (العربية)</option>}
+            {preferredNativeLanguage !== 'en' && <option value="en">{t('settings:language.names.en')}</option>}
+            {preferredNativeLanguage !== 'ja' && <option value="ja">{t('settings:language.names.ja')}</option>}
+            {preferredNativeLanguage !== 'zh' && <option value="zh">{t('settings:language.names.zh')}</option>}
+            {preferredNativeLanguage !== 'es' && <option value="es">{t('settings:language.names.es')}</option>}
+            {preferredNativeLanguage !== 'fr' && <option value="fr">{t('settings:language.names.fr')}</option>}
+            {preferredNativeLanguage !== 'ar' && <option value="ar">{t('settings:language.names.ar')}</option>}
           </select>
           {studyLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
@@ -650,12 +650,12 @@ export default function SettingsPage() {
             className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
             data-testid="settings-select-native-language"
           >
-            {preferredStudyLanguage !== 'en' && <option value="en">English</option>}
-            {preferredStudyLanguage !== 'es' && <option value="es">Spanish (Español)</option>}
-            {preferredStudyLanguage !== 'fr' && <option value="fr">French (Français)</option>}
-            {preferredStudyLanguage !== 'ar' && <option value="ar">Arabic (العربية)</option>}
-            {preferredStudyLanguage !== 'zh' && <option value="zh">Chinese (中文)</option>}
-            {preferredStudyLanguage !== 'ja' && <option value="ja">Japanese (日本語)</option>}
+            {preferredStudyLanguage !== 'en' && <option value="en">{t('settings:language.names.en')}</option>}
+            {preferredStudyLanguage !== 'es' && <option value="es">{t('settings:language.names.es')}</option>}
+            {preferredStudyLanguage !== 'fr' && <option value="fr">{t('settings:language.names.fr')}</option>}
+            {preferredStudyLanguage !== 'ar' && <option value="ar">{t('settings:language.names.ar')}</option>}
+            {preferredStudyLanguage !== 'zh' && <option value="zh">{t('settings:language.names.zh')}</option>}
+            {preferredStudyLanguage !== 'ja' && <option value="ja">{t('settings:language.names.ja')}</option>}
           </select>
           {nativeLanguageSaveMessage && (
             <p className={`text-sm font-medium mt-2 ${nativeLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}>
@@ -1155,7 +1155,7 @@ export default function SettingsPage() {
         onClose={() => setCropperOpen(false)}
         imageUrl={cropperImageUrl}
         onSave={handleSaveAvatarCrop}
-        title="Crop Profile Picture"
+        title={t('settings:profile.avatar.cropTitle')}
       />
 
       {/* Toast Notification */}

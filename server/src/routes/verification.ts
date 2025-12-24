@@ -12,6 +12,7 @@ import {
   verifyPasswordResetToken,
   markPasswordResetTokenUsed
 } from '../services/emailService.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -33,13 +34,13 @@ router.post('/verification/send', requireAuth, async (req: AuthRequest, res, nex
     }
 
     if (user.emailVerified) {
-      throw new AppError('Email already verified', 400);
+      throw new AppError(i18next.t('server:verification.emailAlreadyVerified'), 400);
     }
 
     // Send verification email
     await sendVerificationEmail(user.id, user.email, user.name);
 
-    res.json({ message: 'Verification email sent' });
+    res.json({ message: i18next.t('server:verification.emailSent') });
   } catch (error) {
     next(error);
   }
@@ -53,7 +54,7 @@ router.get('/verification/:token', async (req, res, next) => {
     const result = await verifyEmailToken(token);
 
     if (!result) {
-      throw new AppError('Invalid or expired verification token', 400);
+      throw new AppError(i18next.t('server:verification.tokenInvalid'), 400);
     }
 
     // Get user details
@@ -68,7 +69,7 @@ router.get('/verification/:token', async (req, res, next) => {
     }
 
     res.json({
-      message: 'Email verified successfully',
+      message: i18next.t('server:verification.emailVerified'),
       email: result.email
     });
   } catch (error) {
@@ -82,7 +83,7 @@ router.post('/password-reset/request', async (req, res, next) => {
     const { email } = req.body;
 
     if (!email) {
-      throw new AppError('Email is required', 400);
+      throw new AppError(i18next.t('server:verification.emailRequired'), 400);
     }
 
     // Find user
@@ -97,14 +98,14 @@ router.post('/password-reset/request', async (req, res, next) => {
 
     // Always return success to prevent email enumeration
     if (!user) {
-      res.json({ message: 'If an account exists with that email, a password reset link has been sent' });
+      res.json({ message: i18next.t('server:verification.passwordResetSent') });
       return;
     }
 
     // Send password reset email
     await sendPasswordResetEmail(user.id, user.email, user.name);
 
-    res.json({ message: 'If an account exists with that email, a password reset link has been sent' });
+    res.json({ message: i18next.t('server:verification.passwordResetSent') });
   } catch (error) {
     next(error);
   }
@@ -118,7 +119,7 @@ router.get('/password-reset/:token', async (req, res, next) => {
     const result = await verifyPasswordResetToken(token);
 
     if (!result) {
-      throw new AppError('Invalid or expired password reset token', 400);
+      throw new AppError(i18next.t('server:verification.passwordResetTokenInvalid'), 400);
     }
 
     res.json({
@@ -136,18 +137,18 @@ router.post('/password-reset/verify', async (req, res, next) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
-      throw new AppError('Token and new password are required', 400);
+      throw new AppError(i18next.t('server:verification.tokenAndPasswordRequired'), 400);
     }
 
     if (newPassword.length < 8) {
-      throw new AppError('Password must be at least 8 characters', 400);
+      throw new AppError(i18next.t('server:verification.passwordTooShort'), 400);
     }
 
     // Verify token
     const result = await verifyPasswordResetToken(token);
 
     if (!result) {
-      throw new AppError('Invalid or expired password reset token', 400);
+      throw new AppError(i18next.t('server:verification.passwordResetTokenInvalid'), 400);
     }
 
     // Hash new password
@@ -176,7 +177,7 @@ router.post('/password-reset/verify', async (req, res, next) => {
       await sendPasswordChangedEmail(user.email, user.name);
     }
 
-    res.json({ message: 'Password reset successfully' });
+    res.json({ message: i18next.t('server:verification.passwordResetSuccess') });
   } catch (error) {
     next(error);
   }

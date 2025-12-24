@@ -8,6 +8,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 import { sendVerificationEmail } from '../services/emailService.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -17,11 +18,11 @@ router.post('/signup', async (req, res, next) => {
     const { email, password, name, inviteCode } = req.body;
 
     if (!email || !password || !name) {
-      throw new AppError('Email, password, and name are required', 400);
+      throw new AppError(i18next.t('server:auth.emailRequired'), 400);
     }
 
     if (!inviteCode) {
-      throw new AppError('Invite code required. ConvoLab is currently invite-only.', 400);
+      throw new AppError(i18next.t('server:auth.inviteRequired'), 400);
     }
 
     // Validate invite code
@@ -30,17 +31,17 @@ router.post('/signup', async (req, res, next) => {
     });
 
     if (!invite) {
-      throw new AppError('Invalid invite code.', 400);
+      throw new AppError(i18next.t('server:auth.inviteInvalid'), 400);
     }
 
     if (invite.usedBy) {
-      throw new AppError('This invite code has already been used.', 400);
+      throw new AppError(i18next.t('server:auth.inviteUsed'), 400);
     }
 
     // Check if user exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
-      throw new AppError('User already exists', 400);
+      throw new AppError(i18next.t('server:auth.userExists'), 400);
     }
 
     // Hash password
@@ -131,13 +132,13 @@ router.post('/login', async (req, res, next) => {
     // Find user
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
     }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
     }
 
     // Check if user should be promoted to admin
@@ -219,7 +220,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
     res.json(user);
@@ -320,11 +321,11 @@ router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-      throw new AppError('Current password and new password are required', 400);
+      throw new AppError(i18next.t('server:auth.passwordFieldsRequired'), 400);
     }
 
     if (newPassword.length < 8) {
-      throw new AppError('New password must be at least 8 characters', 400);
+      throw new AppError(i18next.t('server:auth.passwordTooShort'), 400);
     }
 
     // Get user with password
@@ -333,7 +334,7 @@ router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
     // Verify current password
@@ -351,7 +352,7 @@ router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next
       data: { password: hashedPassword },
     });
 
-    res.json({ message: 'Password changed successfully' });
+    res.json({ message: i18next.t('server:auth.passwordChanged') });
   } catch (error) {
     next(error);
   }
@@ -368,7 +369,7 @@ router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {
     // Clear auth cookie
     res.clearCookie('token');
 
-    res.json({ message: 'Account deleted successfully' });
+    res.json({ message: i18next.t('server:auth.accountDeleted') });
   } catch (error) {
     next(error);
   }

@@ -1,0 +1,89 @@
+{
+  "auth": {
+    "emailRequired": "Email, password, and name are required",
+    "inviteRequired": "Invite code required. ConvoLab is currently invite-only.",
+    "inviteInvalid": "Invalid invite code.",
+    "inviteUsed": "This invite code has already been used.",
+    "userExists": "User already exists",
+    "invalidCredentials": "Invalid credentials",
+    "logoutSuccess": "Logged out successfully",
+    "invalidAvatarColor": "Invalid avatar color",
+    "invalidStudyLanguage": "Invalid study language",
+    "invalidNativeLanguage": "Invalid native language",
+    "languagesMustDiffer": "Study language and native language must be different",
+    "invalidPinyinMode": "Invalid pinyin display mode",
+    "invalidProficiency": "Invalid proficiency level",
+    "noFieldsToUpdate": "No fields to update",
+    "passwordFieldsRequired": "Current password and new password are required",
+    "passwordTooShort": "New password must be at least 8 characters",
+    "userNotFound": "User not found",
+    "currentPasswordIncorrect": "Current password is incorrect",
+    "passwordChanged": "Password changed successfully",
+    "accountDeleted": "Account deleted successfully"
+  },
+  "verification": {
+    "emailAlreadyVerified": "Email already verified",
+    "emailSent": "Verification email sent",
+    "tokenInvalid": "Invalid or expired verification token",
+    "emailVerified": "Email verified successfully",
+    "emailRequired": "Email is required",
+    "passwordResetSent": "If an account exists with that email, a password reset link has been sent",
+    "tokenAndPasswordRequired": "Token and new password are required",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordResetTokenInvalid": "Invalid or expired password reset token",
+    "passwordResetSuccess": "Password reset successfully"
+  },
+  "rateLimit": {
+    "cooldown": "Please wait {{seconds}} seconds before generating more content.",
+    "quotaExceeded": "Weekly quota exceeded. You've used {{used}} of {{limit}} content generations this week."
+  },
+  "emailVerificationRequired": "Please verify your email address before generating content. Check your inbox for the verification email.",
+  "validation": {
+    "jlptLevel": "Invalid JLPT level. Must be N5, N4, N3, or N2.",
+    "itemCount": "Invalid item count. Must be 10 or 15.",
+    "grammarPoint": "Invalid grammar point.",
+    "grammarPointMismatch": "Grammar point \"{{point}}\" is for {{expected}} level, but you selected {{actual}}.",
+    "topicRequired": "Topic is required",
+    "invalidTargetLanguage": "Invalid target language. Must be ja (Japanese), zh (Chinese), es (Spanish), fr (French), or ar (Arabic)",
+    "jlptRequired": "JLPT level is required for Japanese",
+    "invalidJlptLevel": "Invalid JLPT level. Must be N5, N4, N3, N2, or N1",
+    "hskRequired": "HSK level is required for Chinese",
+    "invalidHskLevel": "Invalid HSK level. Must be HSK1, HSK2, HSK3, HSK4, HSK5, or HSK6",
+    "cefrRequired": "CEFR level is required for {{language}}",
+    "invalidCefrLevel": "Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2",
+    "versionCount": "Version count must be between 3 and 5",
+    "invalidSpeed": "Invalid speed. Must be 0.7, 0.85, or 1.0",
+    "invalidTheme": "Invalid theme",
+    "themeMismatch": "Theme '{{theme}}' is only available for {{level}} level"
+  },
+  "content": {
+    "notFound": "{{type}} not found",
+    "notReady": "{{type}} is not ready yet",
+    "alreadyGenerating": "{{type}} is already being generated",
+    "generationInProgress": "{{type}} generation is already in progress",
+    "hasActiveJob": "{{type}} has an active generation job. Cannot reset.",
+    "notGenerating": "{{type}} is not in generating status",
+    "deleteSuccess": "{{type}} deleted successfully",
+    "updateSuccess": "{{type}} updated",
+    "missingFields": "Missing required fields",
+    "generationStarted": "{{type}} generation started",
+    "jobNotFound": "Job not found",
+    "noStory": "{{type}} has no story"
+  },
+  "billing": {
+    "priceIdRequired": "Price ID is required",
+    "invalidPriceId": "Invalid price ID",
+    "testTierOnly": "Test tier is only available for test users",
+    "checkoutFailed": "Failed to create checkout session",
+    "portalFailed": "Failed to create portal session",
+    "subscriptionFailed": "Failed to get subscription status",
+    "noSignature": "No signature provided",
+    "webhookSecretMissing": "Webhook secret not configured",
+    "signatureVerificationFailed": "Signature verification failed",
+    "webhookProcessingFailed": "Failed to process webhook"
+  },
+  "errors": {
+    "internal": "Internal server error",
+    "authRequired": "Authentication required"
+  }
+}

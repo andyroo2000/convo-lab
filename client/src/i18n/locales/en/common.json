@@ -69,5 +69,31 @@
     "play": "Play",
     "pause": "Pause",
     "repeatMode": "Repeat mode: {{mode}}"
-  }
+  },
+  "modal": {
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "processing": "Processing...",
+    "gotIt": "Got it"
+  },
+  "quota": {
+    "generationsLeft": "{{remaining}}/{{limit}} generations left this week",
+    "lowQuota": "Low quota",
+    "runningLow": "Running low"
+  },
+  "demo": {
+    "title": "Demo Mode",
+    "description": "You're exploring in demo mode, so content creation is disabled.",
+    "contactAdmin": "Thanks for checking out the app! If you'd like full access, please contact the admin."
+  },
+  "impersonation": {
+    "viewingAs": "Viewing as {{name}}",
+    "readOnly": "Read-only",
+    "exitView": "Exit View"
+  },
+  "status": {
+    "generating": "Generating...",
+    "error": "error"
+  },
+  "loadingMore": "Loading more..."
 }

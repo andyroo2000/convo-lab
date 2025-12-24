@@ -9,6 +9,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
+import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -103,7 +104,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
     });
 
     if (!pack) {
-      throw new AppError('Narrow listening pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Narrow listening pack' }), 404);
     }
 
     res.json(pack);
@@ -127,68 +128,68 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
 
     // Validate topic
     if (!topic) {
-      throw new AppError('Topic is required', 400);
+      throw new AppError(i18next.t('server:validation.topicRequired'), 400);
     }
 
     // Validate target language
     const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar'];
     if (!validLanguages.includes(targetLanguage)) {
-      throw new AppError('Invalid target language. Must be ja (Japanese), zh (Chinese), es (Spanish), fr (French), or ar (Arabic)', 400);
+      throw new AppError(i18next.t('server:validation.invalidTargetLanguage'), 400);
     }
 
     // Validate proficiency level based on language
     let proficiencyLevel: string;
     if (targetLanguage === 'ja') {
       if (!jlptLevel) {
-        throw new AppError('JLPT level is required for Japanese', 400);
+        throw new AppError(i18next.t('server:validation.jlptRequired'), 400);
       }
       const validJlptLevels = ['N5', 'N4', 'N3', 'N2', 'N1'];
       if (!validJlptLevels.includes(jlptLevel)) {
-        throw new AppError('Invalid JLPT level. Must be N5, N4, N3, N2, or N1', 400);
+        throw new AppError(i18next.t('server:validation.invalidJlptLevel'), 400);
       }
       proficiencyLevel = jlptLevel;
     } else if (targetLanguage === 'zh') {
       if (!hskLevel) {
-        throw new AppError('HSK level is required for Chinese', 400);
+        throw new AppError(i18next.t('server:validation.hskRequired'), 400);
       }
       const validHskLevels = ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
       if (!validHskLevels.includes(hskLevel)) {
-        throw new AppError('Invalid HSK level. Must be HSK1, HSK2, HSK3, HSK4, HSK5, or HSK6', 400);
+        throw new AppError(i18next.t('server:validation.invalidHskLevel'), 400);
       }
       proficiencyLevel = hskLevel;
     } else if (targetLanguage === 'es') {
       if (!cefrLevel) {
-        throw new AppError('CEFR level is required for Spanish', 400);
+        throw new AppError(i18next.t('server:validation.cefrRequired', { language: 'Spanish' }), 400);
       }
       const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
       if (!validCefrLevels.includes(cefrLevel)) {
-        throw new AppError('Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2', 400);
+        throw new AppError(i18next.t('server:validation.invalidCefrLevel'), 400);
       }
       proficiencyLevel = cefrLevel;
     } else if (targetLanguage === 'fr') {
       if (!cefrLevel) {
-        throw new AppError('CEFR level is required for French', 400);
+        throw new AppError(i18next.t('server:validation.cefrRequired', { language: 'French' }), 400);
       }
       const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
       if (!validCefrLevels.includes(cefrLevel)) {
-        throw new AppError('Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2', 400);
+        throw new AppError(i18next.t('server:validation.invalidCefrLevel'), 400);
       }
       proficiencyLevel = cefrLevel;
     } else if (targetLanguage === 'ar') {
       if (!cefrLevel) {
-        throw new AppError('CEFR level is required for Arabic', 400);
+        throw new AppError(i18next.t('server:validation.cefrRequired', { language: 'Arabic' }), 400);
       }
       const validCefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
       if (!validCefrLevels.includes(cefrLevel)) {
-        throw new AppError('Invalid CEFR level. Must be A1, A2, B1, B2, C1, or C2', 400);
+        throw new AppError(i18next.t('server:validation.invalidCefrLevel'), 400);
       }
       proficiencyLevel = cefrLevel;
     } else {
-      throw new AppError('Invalid target language', 400);
+      throw new AppError(i18next.t('server:validation.invalidTargetLanguage'), 400);
     }
 
     if (versionCount < 3 || versionCount > 5) {
-      throw new AppError('Version count must be between 3 and 5', 400);
+      throw new AppError(i18next.t('server:validation.versionCount'), 400);
     }
 
     // Create pack in draft status
@@ -227,7 +228,7 @@ router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUse
     );
 
     res.json({
-      message: 'Narrow listening pack generation started',
+      message: i18next.t('server:content.generationStarted', { type: 'Narrow listening pack' }),
       jobId: job.id,
       packId: pack.id,
     });
@@ -243,7 +244,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     const job = await narrowListeningQueue.getJob(jobId);
 
     if (!job) {
-      throw new AppError('Job not found', 404);
+      throw new AppError(i18next.t('server:content.jobNotFound'), 404);
     }
 
     const state = await job.getState();
@@ -269,7 +270,7 @@ router.post('/:id/generate-speed', requireEmailVerified, rateLimitGeneration, bl
 
     // Validate speed
     if (!speed || (speed !== 0.7 && speed !== 0.85 && speed !== 1.0)) {
-      throw new AppError('Invalid speed. Must be 0.7, 0.85, or 1.0', 400);
+      throw new AppError(i18next.t('server:validation.invalidSpeed'), 400);
     }
 
     const pack = await prisma.narrowListeningPack.findFirst({
@@ -289,7 +290,7 @@ router.post('/:id/generate-speed', requireEmailVerified, rateLimitGeneration, bl
     });
 
     if (!pack) {
-      throw new AppError('Narrow listening pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Narrow listening pack' }), 404);
     }
 
     // Check if audio already exists for all versions at this speed
@@ -340,10 +341,10 @@ router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
     });
 
     if (result.count === 0) {
-      throw new AppError('Narrow listening pack not found', 404);
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Narrow listening pack' }), 404);
     }
 
-    res.json({ message: 'Pack deleted successfully' });
+    res.json({ message: i18next.t('server:content.deleteSuccess', { type: 'Pack' }) });
   } catch (error) {
     next(error);
   }

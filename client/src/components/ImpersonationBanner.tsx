@@ -1,4 +1,5 @@
 import { Eye, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ImpersonationBannerProps {
   impersonatedUser: {
@@ -12,6 +13,8 @@ export default function ImpersonationBanner({
   impersonatedUser,
   onExit,
 }: ImpersonationBannerProps) {
+  const { t } = useTranslation(['common']);
+
   return (
     <div className="bg-amber-500 text-white px-4 py-3 shadow-md">
       <div className="container mx-auto flex items-center justify-between">
@@ -19,13 +22,13 @@ export default function ImpersonationBanner({
           <Eye className="w-5 h-5 flex-shrink-0" />
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium">
-              Viewing as {impersonatedUser.name}
+              {t('common:impersonation.viewingAs', { name: impersonatedUser.name })}
             </span>
             <span className="text-amber-100">
               ({impersonatedUser.email})
             </span>
             <span className="px-2 py-0.5 bg-amber-600 text-amber-100 text-xs rounded-full">
-              Read-only
+              {t('common:impersonation.readOnly')}
             </span>
           </div>
         </div>
@@ -34,7 +37,7 @@ export default function ImpersonationBanner({
           className="flex items-center gap-2 px-3 py-1.5 bg-white text-amber-600 rounded-md hover:bg-amber-50 transition-colors font-medium"
         >
           <X className="w-4 h-4" />
-          Exit View
+          {t('common:impersonation.exitView')}
         </button>
       </div>
     </div>

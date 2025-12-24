@@ -1,4 +1,5 @@
 import { useQuota } from '../hooks/useQuota';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Badge component that displays the user's remaining content generation quota
@@ -6,6 +7,7 @@ import { useQuota } from '../hooks/useQuota';
  */
 export default function QuotaBadge() {
   const { quotaInfo, loading } = useQuota();
+  const { t } = useTranslation(['common']);
 
   // Don't show for loading state, unlimited users, or if quota couldn't be fetched
   if (loading || !quotaInfo || quotaInfo.unlimited) return null;
@@ -23,11 +25,11 @@ export default function QuotaBadge() {
   return (
     <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ${getBadgeColor()}`}>
       <span className="text-sm font-medium">
-        {remaining}/{limit} generations left this week
+        {t('common:quota.generationsLeft', { remaining, limit })}
       </span>
       {percentage >= 80 && (
         <span className="text-xs font-semibold px-2 py-0.5 bg-white bg-opacity-50 rounded-full">
-          {percentage >= 90 ? 'Low quota' : 'Running low'}
+          {percentage >= 90 ? t('common:quota.lowQuota') : t('common:quota.runningLow')}
         </span>
       )}
     </div>

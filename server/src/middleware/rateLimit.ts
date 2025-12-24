@@ -11,6 +11,7 @@ import {
   checkCooldown,
   setCooldown
 } from '../services/usageTracker.js';
+import i18next from '../i18n/index.js';
 
 /**
  * Middleware to enforce rate limiting on content generation.
@@ -24,7 +25,7 @@ export async function rateLimitGeneration(
 ) {
   try {
     if (!req.userId) {
-      throw new AppError('Authentication required', 401);
+      throw new AppError(i18next.t('server:errors.authRequired'), 401);
     }
 
     // Get user role
@@ -34,7 +35,7 @@ export async function rateLimitGeneration(
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
     // Admins bypass all rate limits
@@ -46,7 +47,7 @@ export async function rateLimitGeneration(
     const cooldown = await checkCooldown(req.userId);
     if (cooldown.active) {
       throw new AppError(
-        `Please wait ${cooldown.remainingSeconds} seconds before generating more content.`,
+        i18next.t('server:rateLimit.cooldown', { seconds: cooldown.remainingSeconds }),
         429,
         {
           cooldown: {
@@ -61,7 +62,7 @@ export async function rateLimitGeneration(
     const quotaStatus = await checkGenerationLimit(req.userId);
     if (!quotaStatus.allowed) {
       throw new AppError(
-        `Weekly quota exceeded. You've used ${quotaStatus.used} of ${quotaStatus.limit} content generations this week.`,
+        i18next.t('server:rateLimit.quotaExceeded', { used: quotaStatus.used, limit: quotaStatus.limit }),
         429,
         {
           quota: {

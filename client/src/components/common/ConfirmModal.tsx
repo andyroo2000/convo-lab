@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -17,13 +18,17 @@ export default function ConfirmModal({
   isOpen,
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   isLoading = false,
   variant = 'danger',
 }: ConfirmModalProps) {
+  const { t } = useTranslation(['common']);
+
+  const defaultConfirmLabel = confirmLabel || t('common:modal.confirm');
+  const defaultCancelLabel = cancelLabel || t('common:modal.cancel');
   // Handle ESC key to close modal
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -81,7 +86,7 @@ export default function ConfirmModal({
             className="btn-outline flex-1"
             data-testid="modal-button-cancel"
           >
-            {cancelLabel}
+            {defaultCancelLabel}
           </button>
           <button
             onClick={onConfirm}
@@ -93,7 +98,7 @@ export default function ConfirmModal({
             }`}
             data-testid="modal-button-confirm"
           >
-            {isLoading ? 'Processing...' : confirmLabel}
+            {isLoading ? t('common:modal.processing') : defaultConfirmLabel}
           </button>
         </div>
       </div>
