@@ -23,9 +23,14 @@ const mockStripe = vi.hoisted(() => ({
 
 vi.mock('../../../services/stripeService.js', () => mockStripeService);
 
-vi.mock('stripe', () => ({
-  default: vi.fn(() => mockStripe),
-}));
+vi.mock('stripe', () => {
+  class MockStripe {
+    constructor() {
+      return mockStripe;
+    }
+  }
+  return { default: MockStripe };
+});
 
 // Mock auth middleware
 vi.mock('../../../middleware/auth.js', () => ({
@@ -161,7 +166,11 @@ describe('Billing Routes', () => {
         .get('/api/billing/subscription-status')
         .expect(200);
 
-      expect(response.body).toEqual(mockStatus);
+      expect(response.body).toEqual({
+        tier: 'pro',
+        status: 'active',
+        currentPeriodEnd: '2025-01-15T00:00:00.000Z',
+      });
       expect(mockStripeService.getSubscriptionStatus).toHaveBeenCalledWith('test-user-id');
     });
 

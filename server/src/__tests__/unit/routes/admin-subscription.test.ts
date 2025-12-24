@@ -25,9 +25,14 @@ vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
 
-vi.mock('stripe', () => ({
-  default: vi.fn(() => mockStripe),
-}));
+vi.mock('stripe', () => {
+  class MockStripe {
+    constructor() {
+      return mockStripe;
+    }
+  }
+  return { default: MockStripe };
+});
 
 // Mock auth middleware to simulate admin user
 vi.mock('../../../middleware/auth.js', () => ({
@@ -40,6 +45,9 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 // Mock role auth middleware
 vi.mock('../../../middleware/roleAuth.js', () => ({
+  requireAdmin: (req: any, res: any, next: any) => {
+    next();
+  },
   requireRole: (role: string) => (req: any, res: any, next: any) => {
     next();
   },
@@ -94,7 +102,7 @@ describe('Admin Subscription Routes', () => {
         .get('/api/admin/users/nonexistent/subscription')
         .expect(404);
 
-      expect(response.body.error).toBe('User not found');
+      expect(response.body.error.message).toBe('User not found');
     });
   });
 
@@ -181,7 +189,7 @@ describe('Admin Subscription Routes', () => {
         .send({ tier: 'premium' })
         .expect(400);
 
-      expect(response.body.error).toBe('Invalid tier. Must be "free" or "pro"');
+      expect(response.body.error.message).toBe('Invalid tier. Must be "free" or "pro"');
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -193,7 +201,7 @@ describe('Admin Subscription Routes', () => {
         .send({ tier: 'pro' })
         .expect(404);
 
-      expect(response.body.error).toBe('User not found');
+      expect(response.body.error.message).toBe('User not found');
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 
@@ -305,7 +313,7 @@ describe('Admin Subscription Routes', () => {
         .post('/api/admin/users/nonexistent/subscription/cancel')
         .expect(404);
 
-      expect(response.body.error).toBe('User not found');
+      expect(response.body.error.message).toBe('User not found');
       expect(mockStripe.subscriptions.cancel).not.toHaveBeenCalled();
     });
 
@@ -323,7 +331,7 @@ describe('Admin Subscription Routes', () => {
         .post('/api/admin/users/user-123/subscription/cancel')
         .expect(400);
 
-      expect(response.body.error).toBe('User has no active subscription');
+      expect(response.body.error.message).toBe('User has no active subscription');
       expect(mockStripe.subscriptions.cancel).not.toHaveBeenCalled();
     });
 
