@@ -8,17 +8,44 @@ const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
 const mockUploadToGCS = vi.hoisted(() => vi.fn());
 const mockRequireAuth = vi.hoisted(() =>
   vi.fn((req: any, res: any, next: any) => {
-    req.user = { id: 'user-123', email: 'test@example.com' };
+    req.userId = 'user-123';
     next();
   })
 );
 const mockBlockDemoUser = vi.hoisted(() =>
   vi.fn((req: any, res: any, next: any) => next())
 );
+const mockRequireEmailVerified = vi.hoisted(() =>
+  vi.fn((req: any, res: any, next: any) => next())
+);
+const mockRateLimitGeneration = vi.hoisted(() =>
+  vi.fn((req: any, res: any, next: any) => next())
+);
+const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
+  generationLog: {
+    create: vi.fn(),
+  },
+}));
 
 // Mock dependencies
+vi.mock('../../../db/client.js', () => ({
+  prisma: mockPrisma,
+}));
+
 vi.mock('../../../middleware/auth.js', () => ({
   requireAuth: mockRequireAuth,
+  AuthRequest: class {},
+}));
+
+vi.mock('../../../middleware/emailVerification.js', () => ({
+  requireEmailVerified: mockRequireEmailVerified,
+}));
+
+vi.mock('../../../middleware/rateLimit.js', () => ({
+  rateLimitGeneration: mockRateLimitGeneration,
 }));
 
 vi.mock('../../../middleware/demoAuth.js', () => ({
@@ -107,6 +134,21 @@ describe('PI Routes', () => {
       Buffer.from('audio3'),
     ]);
     mockUploadToGCS.mockImplementation(async ({ filename }) => `https://storage.example.com/${filename}`);
+
+    // Mock Prisma user lookup
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'user-123',
+      email: 'test@example.com',
+      emailVerified: true,
+      role: 'user',
+    });
+    mockPrisma.generationLog.create.mockResolvedValue({
+      id: 'log-1',
+      userId: 'user-123',
+      contentType: 'pi_session',
+      contentId: null,
+      createdAt: new Date(),
+    });
   });
 
   describe('POST /api/pi/generate-session', () => {

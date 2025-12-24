@@ -9,6 +9,9 @@ import {
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
+  user: {
+    findUnique: vi.fn(),
+  },
   generationLog: {
     count: vi.fn(),
     create: vi.fn(),
@@ -52,6 +55,13 @@ describe('Usage Tracker Service', () => {
     beforeEach(() => {
       mockGetWeekStart.mockReturnValue(weekStart);
       mockGetNextWeekStart.mockReturnValue(nextWeekStart);
+
+      // Mock user lookup to return pro tier user by default (limit: 20)
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        tier: 'pro',
+        role: 'user',
+      });
     });
 
     it('should return allowed=true when under weekly limit', async () => {
@@ -70,35 +80,35 @@ describe('Usage Tracker Service', () => {
       expect(result).toEqual({
         allowed: true,
         used: 10,
-        limit: 20,
-        remaining: 10,
+        limit: 30,
+        remaining: 20,
         resetsAt: nextWeekStart,
       });
     });
 
     it('should return allowed=false when at weekly limit', async () => {
-      mockPrisma.generationLog.count.mockResolvedValue(20);
+      mockPrisma.generationLog.count.mockResolvedValue(30);
 
       const result = await checkGenerationLimit(userId);
 
       expect(result).toEqual({
         allowed: false,
-        used: 20,
-        limit: 20,
+        used: 30,
+        limit: 30,
         remaining: 0,
         resetsAt: nextWeekStart,
       });
     });
 
     it('should return allowed=false when over weekly limit', async () => {
-      mockPrisma.generationLog.count.mockResolvedValue(25);
+      mockPrisma.generationLog.count.mockResolvedValue(35);
 
       const result = await checkGenerationLimit(userId);
 
       expect(result).toEqual({
         allowed: false,
-        used: 25,
-        limit: 20,
+        used: 35,
+        limit: 30,
         remaining: 0,
         resetsAt: nextWeekStart,
       });
@@ -123,7 +133,7 @@ describe('Usage Tracker Service', () => {
 
       const result = await checkGenerationLimit(userId);
 
-      expect(result.remaining).toBe(17);
+      expect(result.remaining).toBe(27);
     });
 
     it('should return correct resetsAt date (next Monday 00:00 UTC)', async () => {
@@ -135,15 +145,15 @@ describe('Usage Tracker Service', () => {
       expect(mockGetNextWeekStart).toHaveBeenCalled();
     });
 
-    it('should handle edge case of exactly 20 generations', async () => {
-      mockPrisma.generationLog.count.mockResolvedValue(20);
+    it('should handle edge case of exactly 30 generations', async () => {
+      mockPrisma.generationLog.count.mockResolvedValue(30);
 
       const result = await checkGenerationLimit(userId);
 
       expect(result).toEqual({
         allowed: false,
-        used: 20,
-        limit: 20,
+        used: 30,
+        limit: 30,
         remaining: 0,
         resetsAt: nextWeekStart,
       });
@@ -157,8 +167,8 @@ describe('Usage Tracker Service', () => {
       expect(result).toEqual({
         allowed: true,
         used: 0,
-        limit: 20,
-        remaining: 20,
+        limit: 30,
+        remaining: 30,
         resetsAt: nextWeekStart,
       });
     });

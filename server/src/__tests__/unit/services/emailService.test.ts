@@ -1,5 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as emailService from '../../../services/emailService.js';
+import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+
+// Set env vars in hoisted context to ensure they're set before module load
+vi.hoisted(() => {
+  process.env.RESEND_API_KEY = 'test-resend-key';
+  process.env.NODE_ENV = 'production';
+});
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -17,6 +22,7 @@ const mockPrisma = vi.hoisted(() => ({
     delete: vi.fn(),
   },
   user: {
+    findUnique: vi.fn(),
     update: vi.fn(),
   },
 }));
@@ -32,8 +38,63 @@ vi.mock('../../../db/client.js', () => ({
 }));
 
 vi.mock('resend', () => ({
-  Resend: vi.fn(() => mockResend),
+  Resend: class MockResend {
+    constructor() {
+      return mockResend;
+    }
+  },
 }));
+
+// Mock i18next (required by emailService)
+vi.mock('../../../i18n/index.js', () => {
+  const mockT = vi.fn((key: string, params?: any) => {
+    // Return translated strings matching test expectations with interpolation
+    const translations: Record<string, (p?: any) => string> = {
+      'verification.subject': () => 'Verify your ConvoLab email',
+      'passwordReset.subject': () => 'Reset your ConvoLab password',
+      'welcome.subject': () => 'Welcome to ConvoLab!',
+      'passwordChanged.subject': () => 'Your ConvoLab password was changed',
+      'subscriptionConfirmed.subject': (p) => `Welcome to ConvoLab ${p?.tier || 'Pro'}!`,
+      'paymentFailed.subject': () => 'ConvoLab payment failed - Action required',
+      'subscriptionCanceled.subject': () => 'Your ConvoLab subscription has been canceled',
+      'quotaWarning.subject': (p) => `You've used ${p?.percentage || 80}% of your weekly ConvoLab quota`,
+    };
+    return translations[key] ? translations[key](params) : key;
+  });
+  return {
+    default: {
+      getFixedT: vi.fn(() => mockT),
+      t: mockT,
+    },
+    t: mockT,
+    getFixedT: vi.fn(() => mockT),
+  };
+});
+
+// Mock email templates
+vi.mock('../../../i18n/emailTemplates.js', () => ({
+  generateVerificationEmail: vi.fn((params: any) =>
+    `<html>Verification Email for ${params.name} - ${params.verificationUrl}</html>`),
+  generatePasswordResetEmail: vi.fn((params: any) =>
+    `<html>Password Reset Email for ${params.name} - ${params.resetUrl}</html>`),
+  generateWelcomeEmail: vi.fn((params: any) =>
+    `<html>Welcome Email for ${params.name}</html>`),
+  generatePasswordChangedEmail: vi.fn((params: any) =>
+    `<html>Password Changed for ${params.name}</html>`),
+  generateSubscriptionConfirmedEmail: vi.fn((params: any) =>
+    `<html>Subscription Confirmed for ${params.tier} - ${params.weeklyLimit} generations per week</html>`),
+  generatePaymentFailedEmail: vi.fn((params: any) =>
+    `<html>Payment Failed for ${params.name}</html>`),
+  generateSubscriptionCanceledEmail: vi.fn((params: any) =>
+    `<html>Subscription Canceled for ${params.name} - downgraded to the Free tier</html>`),
+  generateQuotaWarningEmail: vi.fn((params: any) => {
+    const upgradeText = params.tier === 'free' ? 'Upgrade to Pro for 30 generations per week' : '';
+    return `<html>Quota Warning ${params.percentage}% for ${params.name} - Used: ${params.used}/${params.limit} - ${params.tier} tier - quota resets every Monday${upgradeText ? ` - ${upgradeText}` : ''}</html>`;
+  }),
+}));
+
+// Import emailService AFTER mocks
+import * as emailService from '../../../services/emailService.js';
 
 // Mock console methods
 const originalConsoleLog = console.log;
@@ -44,6 +105,12 @@ describe('Email Service', () => {
     vi.clearAllMocks();
     console.log = vi.fn();
     console.error = vi.fn();
+
+    // Mock user lookup for getUserLocaleByEmail
+    mockPrisma.user.findUnique.mockResolvedValue({
+      id: 'test-user',
+      preferredNativeLanguage: 'en',
+    });
   });
 
   afterEach(() => {

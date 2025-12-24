@@ -93,7 +93,7 @@ describe('Verification Routes', () => {
         .post('/api/verification/send')
         .expect(404);
 
-      expect(response.body.error).toBe('User not found');
+      expect(response.body.error.message).toBe('User not found');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
     });
 
@@ -111,7 +111,7 @@ describe('Verification Routes', () => {
         .post('/api/verification/send')
         .expect(400);
 
-      expect(response.body.error).toBe('Email already verified');
+      expect(response.body.error.message).toBe('Email already verified');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
     });
   });
@@ -154,7 +154,7 @@ describe('Verification Routes', () => {
         .get('/api/verification/invalid-token')
         .expect(400);
 
-      expect(response.body.error).toBe('Invalid or expired verification token');
+      expect(response.body.error.message).toBe('Invalid or expired verification token');
       expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
     });
 
@@ -165,7 +165,7 @@ describe('Verification Routes', () => {
         .get('/api/verification/expired-token')
         .expect(400);
 
-      expect(response.body.error).toBe('Invalid or expired verification token');
+      expect(response.body.error.message).toBe('Invalid or expired verification token');
     });
   });
 
@@ -215,7 +215,7 @@ describe('Verification Routes', () => {
         .send({})
         .expect(400);
 
-      expect(response.body.error).toBe('Email is required');
+      expect(response.body.error.message).toBe('Email is required');
     });
   });
 
@@ -245,7 +245,7 @@ describe('Verification Routes', () => {
         .get('/api/password-reset/invalid-token')
         .expect(400);
 
-      expect(response.body.error).toBe('Invalid or expired password reset token');
+      expect(response.body.error.message).toBe('Invalid or expired password reset token');
     });
   });
 
@@ -293,7 +293,7 @@ describe('Verification Routes', () => {
         .send({ newPassword: 'newpassword123' })
         .expect(400);
 
-      expect(response.body.error).toBe('Token and new password are required');
+      expect(response.body.error.message).toBe('Token and new password are required');
     });
 
     it('should reject password reset without new password', async () => {
@@ -302,7 +302,7 @@ describe('Verification Routes', () => {
         .send({ token: 'valid-token' })
         .expect(400);
 
-      expect(response.body.error).toBe('Token and new password are required');
+      expect(response.body.error.message).toBe('Token and new password are required');
     });
 
     it('should reject password shorter than 8 characters', async () => {
@@ -314,7 +314,7 @@ describe('Verification Routes', () => {
         })
         .expect(400);
 
-      expect(response.body.error).toBe('Password must be at least 8 characters');
+      expect(response.body.error.message).toBe('Password must be at least 8 characters');
     });
 
     it('should reject invalid password reset token', async () => {
@@ -328,7 +328,7 @@ describe('Verification Routes', () => {
         })
         .expect(400);
 
-      expect(response.body.error).toBe('Invalid or expired password reset token');
+      expect(response.body.error.message).toBe('Invalid or expired password reset token');
       expect(mockPrisma.user.update).not.toHaveBeenCalled();
     });
 

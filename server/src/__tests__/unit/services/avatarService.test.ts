@@ -55,32 +55,34 @@ vi.mock('../../../../../shared/src/constants-new.js', () => ({
   TTS_VOICES: {
     ja: {
       voices: [
-        { id: 'ja-JP-Wavenet-A', name: 'Japanese Female 1' },
-        { id: 'Takumi', name: 'Takumi' },
+        { id: 'ja-JP-Wavenet-A', name: 'Japanese Female 1', gender: 'female' },
+        { id: 'ja-JP-Wavenet-C', name: 'Japanese Male 1', gender: 'male' },
+        { id: 'Takumi', name: 'Takumi', gender: 'male' },
       ],
     },
     es: {
       voices: [
-        { id: 'Lucia', name: 'Lucia' },
-        { id: 'Sergio', name: 'Sergio' },
+        { id: 'Lucia', name: 'Lucia', gender: 'female' },
+        { id: 'Sergio', name: 'Sergio', gender: 'male' },
       ],
     },
     zh: {
       voices: [
-        { id: 'cmn-CN-Wavenet-A', name: 'Chinese Female 1' },
-        { id: 'Zhiyu', name: 'Zhiyu' },
+        { id: 'cmn-CN-Wavenet-A', name: 'Chinese Female 1', gender: 'female' },
+        { id: 'cmn-CN-Wavenet-B', name: 'Chinese Male 1', gender: 'male' },
+        { id: 'Zhiyu', name: 'Zhiyu', gender: 'female' },
       ],
     },
     fr: {
       voices: [
-        { id: 'Léa', name: 'Léa' },
-        { id: 'Rémi', name: 'Rémi' },
+        { id: 'Léa', name: 'Léa', gender: 'female' },
+        { id: 'Rémi', name: 'Rémi', gender: 'male' },
       ],
     },
     ar: {
       voices: [
-        { id: 'Hala', name: 'Hala' },
-        { id: 'Zayd', name: 'Zayd' },
+        { id: 'Hala', name: 'Hala', gender: 'female' },
+        { id: 'Zayd', name: 'Zayd', gender: 'male' },
       ],
     },
   },
