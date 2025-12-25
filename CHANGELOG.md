@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[chore]** Set package type to ES module - added "type": "module" to root package.json to eliminate Node.js module type warnings when running harness scripts
 - **[chore]** Additional ESLint fixes and code quality improvements - refined ESLint ignore patterns to exclude compiled TypeScript files and source maps; fixed project references in ESLint config; applied accessibility fixes across components (type="button" attributes, keyboard handlers, ARIA roles); improved test reliability by fixing hanging promises and timeout patterns; added ESLint disable comments for necessary rule violations; converted remaining function declarations to arrow functions; removed unused imports; replaced deprecated isNaN with Number.isNaN
 - **[style]** Applied ESLint and Prettier formatting across entire codebase - automated formatting applied to 324 files across client, server, shared, scripts, and documentation; standardized indentation to 2 spaces, consistent spacing, import ordering, and code style conformance to project ESLint configuration
 
