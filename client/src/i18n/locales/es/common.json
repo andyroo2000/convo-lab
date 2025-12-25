@@ -23,6 +23,8 @@
     "logout": "Cerrar sesión",
     "backToHome": "Volver al inicio"
   },
+  "admin": "Admin",
+  "settings": "Configuración",
   "tagline": "Tu laboratorio personal de idiomas con IA",
   "footer": "Por Conversational Dynamics Consulting Group",
   "error": {

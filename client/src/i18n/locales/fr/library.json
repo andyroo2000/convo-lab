@@ -1,36 +1,36 @@
 {
-  "title": "Library",
+  "title": "Bibliothèque",
   "filters": {
-    "all": "All",
+    "all": "Tous",
     "dialogues": "Dialogues",
-    "courses": "Audio Courses",
-    "narrowListening": "Narrow Listening",
-    "chunkPacks": "Lexical Chunk Packs"
+    "courses": "Cours Audio",
+    "narrowListening": "Écoute Ciblée",
+    "chunkPacks": "Packs de Blocs Lexicaux"
   },
   "empty": {
-    "title": "No content yet",
-    "description": "Create your first piece of content to get started",
-    "button": "Create Content"
+    "title": "Pas encore de contenu",
+    "description": "Créez votre premier contenu pour commencer",
+    "button": "Créer du Contenu"
   },
   "delete": {
-    "confirmTitle": "Delete Content",
-    "confirmEpisode": "Are you sure you want to delete this dialogue?",
-    "confirmCourse": "Are you sure you want to delete this course?",
-    "confirmNarrowListening": "Are you sure you want to delete this narrow listening pack?",
-    "confirmChunkPack": "Are you sure you want to delete this chunk pack?",
-    "confirmButton": "Yes, Delete",
-    "cancelButton": "Cancel",
-    "deleting": "Deleting...",
-    "success": "Deleted successfully",
-    "error": "Failed to delete",
+    "confirmTitle": "Supprimer le Contenu",
+    "confirmEpisode": "Êtes-vous sûr de vouloir supprimer ce dialogue ?",
+    "confirmCourse": "Êtes-vous sûr de vouloir supprimer ce cours ?",
+    "confirmNarrowListening": "Êtes-vous sûr de vouloir supprimer ce pack d'écoute ciblée ?",
+    "confirmChunkPack": "Êtes-vous sûr de vouloir supprimer ce pack de blocs ?",
+    "confirmButton": "Oui, Supprimer",
+    "cancelButton": "Annuler",
+    "deleting": "Suppression...",
+    "success": "Supprimé avec succès",
+    "error": "Échec de la suppression",
     "alertError": "Échec de la suppression de {{type}}. Veuillez réessayer."
   },
-  "loading": "Loading your content...",
-  "loadMore": "Load more",
+  "loading": "Chargement de votre contenu...",
+  "loadMore": "Charger plus",
   "impersonation": {
-    "viewing": "Viewing",
-    "library": "library",
-    "exitButton": "Exit View"
+    "viewing": "Consultation",
+    "library": "bibliothèque",
+    "exitButton": "Quitter la Vue"
   },
   "emptyStates": {
     "dialogue": {

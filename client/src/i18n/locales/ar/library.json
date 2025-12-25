@@ -1,36 +1,36 @@
 {
-  "title": "Library",
+  "title": "المكتبة",
   "filters": {
-    "all": "All",
-    "dialogues": "Dialogues",
-    "courses": "Audio Courses",
-    "narrowListening": "Narrow Listening",
-    "chunkPacks": "Lexical Chunk Packs"
+    "all": "الكل",
+    "dialogues": "الحوارات",
+    "courses": "الدورات الصوتية",
+    "narrowListening": "الاستماع المركز",
+    "chunkPacks": "حزم الكتل المعجمية"
   },
   "empty": {
-    "title": "No content yet",
-    "description": "Create your first piece of content to get started",
-    "button": "Create Content"
+    "title": "لا يوجد محتوى حتى الآن",
+    "description": "أنشئ أول محتوى لك للبدء",
+    "button": "إنشاء محتوى"
   },
   "delete": {
-    "confirmTitle": "Delete Content",
-    "confirmEpisode": "Are you sure you want to delete this dialogue?",
-    "confirmCourse": "Are you sure you want to delete this course?",
-    "confirmNarrowListening": "Are you sure you want to delete this narrow listening pack?",
-    "confirmChunkPack": "Are you sure you want to delete this chunk pack?",
-    "confirmButton": "Yes, Delete",
-    "cancelButton": "Cancel",
-    "deleting": "Deleting...",
-    "success": "Deleted successfully",
-    "error": "Failed to delete",
+    "confirmTitle": "حذف المحتوى",
+    "confirmEpisode": "هل أنت متأكد أنك تريد حذف هذا الحوار؟",
+    "confirmCourse": "هل أنت متأكد أنك تريد حذف هذه الدورة؟",
+    "confirmNarrowListening": "هل أنت متأكد أنك تريد حذف حزمة الاستماع المركز هذه؟",
+    "confirmChunkPack": "هل أنت متأكد أنك تريد حذف حزمة الكتل هذه؟",
+    "confirmButton": "نعم، احذف",
+    "cancelButton": "إلغاء",
+    "deleting": "جارٍ الحذف...",
+    "success": "تم الحذف بنجاح",
+    "error": "فشل الحذف",
     "alertError": "فشل حذف {{type}}. يرجى المحاولة مرة أخرى."
   },
-  "loading": "Loading your content...",
-  "loadMore": "Load more",
+  "loading": "جارٍ تحميل محتواك...",
+  "loadMore": "تحميل المزيد",
   "impersonation": {
-    "viewing": "Viewing",
-    "library": "library",
-    "exitButton": "Exit View"
+    "viewing": "عرض",
+    "library": "المكتبة",
+    "exitButton": "إنهاء العرض"
   },
   "emptyStates": {
     "dialogue": {

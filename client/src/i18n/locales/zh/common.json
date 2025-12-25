@@ -23,6 +23,8 @@
     "logout": "登出",
     "backToHome": "返回首页"
   },
+  "admin": "管理员",
+  "settings": "设置",
   "tagline": "您的个人AI语言实验室",
   "footer": "由Conversational Dynamics Consulting Group提供",
   "error": {

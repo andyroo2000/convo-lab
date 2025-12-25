@@ -1,36 +1,36 @@
 {
-  "title": "Library",
+  "title": "资料库",
   "filters": {
-    "all": "All",
-    "dialogues": "Dialogues",
-    "courses": "Audio Courses",
-    "narrowListening": "Narrow Listening",
-    "chunkPacks": "Lexical Chunk Packs"
+    "all": "全部",
+    "dialogues": "对话",
+    "courses": "音频课程",
+    "narrowListening": "窄听",
+    "chunkPacks": "词汇块包"
   },
   "empty": {
-    "title": "No content yet",
-    "description": "Create your first piece of content to get started",
-    "button": "Create Content"
+    "title": "还没有内容",
+    "description": "创建您的第一个内容以开始",
+    "button": "创建内容"
   },
   "delete": {
-    "confirmTitle": "Delete Content",
-    "confirmEpisode": "Are you sure you want to delete this dialogue?",
-    "confirmCourse": "Are you sure you want to delete this course?",
-    "confirmNarrowListening": "Are you sure you want to delete this narrow listening pack?",
-    "confirmChunkPack": "Are you sure you want to delete this chunk pack?",
-    "confirmButton": "Yes, Delete",
-    "cancelButton": "Cancel",
-    "deleting": "Deleting...",
-    "success": "Deleted successfully",
-    "error": "Failed to delete",
+    "confirmTitle": "删除内容",
+    "confirmEpisode": "确定要删除此对话吗？",
+    "confirmCourse": "确定要删除此课程吗？",
+    "confirmNarrowListening": "确定要删除此窄听包吗？",
+    "confirmChunkPack": "确定要删除此词块包吗？",
+    "confirmButton": "是的，删除",
+    "cancelButton": "取消",
+    "deleting": "删除中...",
+    "success": "删除成功",
+    "error": "删除失败",
     "alertError": "删除{{type}}失败。请重试。"
   },
-  "loading": "Loading your content...",
-  "loadMore": "Load more",
+  "loading": "正在加载您的内容...",
+  "loadMore": "加载更多",
   "impersonation": {
-    "viewing": "Viewing",
-    "library": "library",
-    "exitButton": "Exit View"
+    "viewing": "正在查看",
+    "library": "资料库",
+    "exitButton": "退出查看"
   },
   "emptyStates": {
     "dialogue": {

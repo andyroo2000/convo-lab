@@ -23,6 +23,8 @@
     "logout": "ログアウト",
     "backToHome": "ホームに戻る"
   },
+  "admin": "管理者",
+  "settings": "設定",
   "tagline": "あなた専用のAI語学ラボ",
   "footer": "Conversational Dynamics Consulting Group",
   "error": {
