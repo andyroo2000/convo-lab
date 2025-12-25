@@ -156,6 +156,22 @@ ${!dryRun ? '8. **Commit once** - Use /commit once at the very end with all chan
 ${!dryRun ? '- Only use /commit once at the end with all changes' : ''}
 - At the end, provide a summary showing all 15 files were processed and all English text was translated
 
+${!dryRun ? `
+## Session Completion Rules
+
+You are in AUTONOMOUS MODE. This means:
+- ✅ Process ALL 15 translation files automatically without stopping
+- ✅ Move from file 1 → file 2 → ... → file 15 without asking
+- ✅ Only create ONE commit at the very end
+- ❌ Do NOT stop after completing a few files
+- ❌ Do NOT ask "should I continue?"
+- ❌ Do NOT create "Recommendations for Next Session"
+- ❌ Do NOT provide suggestions for follow-up work
+- ❌ Do NOT stop until all 15 files complete OR you hit turn limit (${maxTurns})
+
+If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue to the next file instead.
+` : ''}
+
 Begin with file 1: audioCourse.json
   `.trim();
 
