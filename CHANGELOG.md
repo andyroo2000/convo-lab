@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **[chore]** Increase harness max turns limit to 50000 - updated DEFAULT_MAX_TURNS across all autonomous harness scripts (accessibility, i18n, lint, maintenance, mobile, monitoring, perf, security, test) from varying limits (200-5000) to 50000 to allow more comprehensive automated fixes without hitting turn limits prematurely
+
 ### Added
 
 - **[test]** Comprehensive integration tests for episodes route - added 27 new integration tests for episodes.ts route using supertest for full HTTP request/response testing; tests cover all endpoints (GET /, GET /:id, POST /, PATCH /:id, DELETE /:id), library mode vs full mode queries, pagination, error handling, demo user restrictions, and effective user ID resolution; improved coverage from 14.89% to 100%

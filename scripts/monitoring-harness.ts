@@ -27,7 +27,7 @@ interface MonitoringHarnessOptions {
   loggingOnly?: boolean; // Only focus on logging infrastructure
 }
 
-const DEFAULT_MAX_TURNS = 200;
+const DEFAULT_MAX_TURNS = 50000;
 
 async function runMonitoringHarness(options: MonitoringHarnessOptions = {}) {
   const {

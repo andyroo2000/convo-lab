@@ -29,7 +29,7 @@ interface TestHarnessOptions {
   targetCoverage?: number; // Target coverage % (default: 80)
 }
 
-const DEFAULT_MAX_TURNS = 500;
+const DEFAULT_MAX_TURNS = 50000;
 const DEFAULT_TARGET_COVERAGE = 80;
 
 async function runTestHarness(options: TestHarnessOptions = {}) {
