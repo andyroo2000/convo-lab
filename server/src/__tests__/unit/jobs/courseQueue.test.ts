@@ -336,6 +336,31 @@ describe('courseQueue', () => {
       expect(job.updateProgress).toHaveBeenCalledWith(100);
     });
 
+    it('should update progress during audio assembly', async () => {
+      // Mock assembleLessonAudio to invoke the onProgress callback
+      mockAssembleLessonAudio.mockImplementation(async (options: any) => {
+        // Simulate progress callbacks during audio assembly
+        if (options.onProgress) {
+          options.onProgress(1, 4); // Should update to 60 + (1/4 * 25) = 66
+          options.onProgress(2, 4); // Should update to 60 + (2/4 * 25) = 72
+          options.onProgress(3, 4); // Should update to 60 + (3/4 * 25) = 78
+          options.onProgress(4, 4); // Should update to 60 + (4/4 * 25) = 85
+        }
+        return mockAssembledAudio;
+      });
+
+      const processor = workerProcessors.get('course-generation')!;
+      const job = createMockJob({ data: { courseId: 'course-123' } });
+
+      await processor(job);
+
+      // Verify audio assembly progress updates were called
+      expect(job.updateProgress).toHaveBeenCalledWith(66);
+      expect(job.updateProgress).toHaveBeenCalledWith(72);
+      expect(job.updateProgress).toHaveBeenCalledWith(78);
+      expect(job.updateProgress).toHaveBeenCalledWith(85);
+    });
+
     it('should return result with course details', async () => {
       const processor = workerProcessors.get('course-generation')!;
       const job = createMockJob({ data: { courseId: 'course-123' } });

@@ -74,6 +74,31 @@ describe('requireRole middleware', () => {
     vi.clearAllMocks();
   });
 
+  it('should call next() with error when userId is not set', async () => {
+    mockReq.userId = undefined;
+
+    const middleware = requireRole(['user', 'admin']);
+    await middleware(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
+    expect(error.message).toBe('Authentication required');
+    expect(error.statusCode).toBe(401);
+  });
+
+  it('should call next() with error when user is not found', async () => {
+    mockReq.userId = 'user-123';
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    const middleware = requireRole(['user', 'admin']);
+    await middleware(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
+    const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
+    expect(error.message).toBe('User not found');
+    expect(error.statusCode).toBe(404);
+  });
+
   it('should call next() when user has required role', async () => {
     mockReq.userId = 'user-123';
     mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });

@@ -4,10 +4,19 @@ import {
   createSSMLSlow,
   createLessonSSML,
   createAnticipationPromptSSML,
+  synthesizeSpeech,
+  generateSilence,
 } from '../../../services/ttsClient.js';
 
-// Note: synthesizeSpeech and generateSilence require complex provider mocking
-// These tests cover the SSML helper functions which are pure functions
+// Mock TTS Provider
+const mockProvider = vi.hoisted(() => ({
+  getName: vi.fn(() => 'GoogleTTS'),
+  synthesizeSpeech: vi.fn(),
+}));
+
+vi.mock('../../../services/ttsProviders/TTSProvider.js', () => ({
+  getTTSProvider: vi.fn(async () => mockProvider),
+}));
 
 describe('SSML Helper Functions', () => {
   describe('createSSMLWithPauses', () => {
@@ -56,5 +65,195 @@ describe('SSML Helper Functions', () => {
       const result = createAnticipationPromptSSML('How do you say hello?');
       expect(result).toBe('<speak>How do you say hello?<break time="3s"/></speak>');
     });
+  });
+});
+
+describe('synthesizeSpeech', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Suppress console logs
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('should synthesize speech with default parameters', async () => {
+    const mockAudioBuffer = Buffer.from('audio data');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    const result = await synthesizeSpeech({
+      text: 'Hello world',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+    });
+
+    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
+      text: 'Hello world',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 1.0,
+      pitch: 0,
+      ssml: false,
+    });
+    expect(result).toBe(mockAudioBuffer);
+  });
+
+  it('should synthesize speech with custom speed and pitch', async () => {
+    const mockAudioBuffer = Buffer.from('audio data');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    const result = await synthesizeSpeech({
+      text: 'Hello world',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 0.8,
+      pitch: 2,
+    });
+
+    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
+      text: 'Hello world',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 0.8,
+      pitch: 2,
+      ssml: false,
+    });
+    expect(result).toBe(mockAudioBuffer);
+  });
+
+  it('should synthesize speech with SSML enabled', async () => {
+    const mockAudioBuffer = Buffer.from('audio data');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    const result = await synthesizeSpeech({
+      text: '<speak>Hello world</speak>',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      useSSML: true,
+    });
+
+    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
+      text: '<speak>Hello world</speak>',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 1.0,
+      pitch: 0,
+      ssml: true,
+    });
+    expect(result).toBe(mockAudioBuffer);
+  });
+
+  it('should throw error when audio buffer is empty', async () => {
+    mockProvider.synthesizeSpeech.mockResolvedValue(Buffer.from(''));
+
+    await expect(
+      synthesizeSpeech({
+        text: 'Hello world',
+        voiceId: 'en-US-Neural2-D',
+        languageCode: 'en-US',
+      })
+    ).rejects.toThrow('TTS returned empty audio buffer');
+  });
+
+  it('should throw error when audio buffer is null', async () => {
+    mockProvider.synthesizeSpeech.mockResolvedValue(null as any);
+
+    await expect(
+      synthesizeSpeech({
+        text: 'Hello world',
+        voiceId: 'en-US-Neural2-D',
+        languageCode: 'en-US',
+      })
+    ).rejects.toThrow('TTS returned empty audio buffer');
+  });
+
+  it('should handle provider errors with Error instance', async () => {
+    mockProvider.synthesizeSpeech.mockRejectedValue(new Error('Provider error'));
+
+    await expect(
+      synthesizeSpeech({
+        text: 'Hello world',
+        voiceId: 'en-US-Neural2-D',
+        languageCode: 'en-US',
+      })
+    ).rejects.toThrow('Failed to synthesize speech: Provider error');
+  });
+
+  it('should handle provider errors with non-Error object', async () => {
+    mockProvider.synthesizeSpeech.mockRejectedValue('String error');
+
+    await expect(
+      synthesizeSpeech({
+        text: 'Hello world',
+        voiceId: 'en-US-Neural2-D',
+        languageCode: 'en-US',
+      })
+    ).rejects.toThrow('Failed to synthesize speech: Unknown TTS error');
+  });
+
+  it('should log provider name and voice', async () => {
+    const mockAudioBuffer = Buffer.from('audio data');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    await synthesizeSpeech({
+      text: 'Hello world',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+    });
+
+    // eslint-disable-next-line no-console
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('[TTS] Using provider: GoogleTTS for voice: en-US-Neural2-D')
+    );
+    // eslint-disable-next-line no-console
+    expect(console.log).toHaveBeenCalledWith(
+      expect.stringContaining('[TTS] Generated')
+    );
+  });
+});
+
+describe('generateSilence', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('should generate silence using SSML break', async () => {
+    const mockAudioBuffer = Buffer.from('silence audio');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    const result = await generateSilence(2);
+
+    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
+      text: '<speak><break time="2s"/></speak>',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 1.0,
+      pitch: 0,
+      ssml: true,
+    });
+    expect(result).toBe(mockAudioBuffer);
+  });
+
+  it('should handle different durations', async () => {
+    const mockAudioBuffer = Buffer.from('silence audio');
+    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
+
+    await generateSilence(5);
+
+    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
+      text: '<speak><break time="5s"/></speak>',
+      voiceId: 'en-US-Neural2-D',
+      languageCode: 'en-US',
+      speed: 1.0,
+      pitch: 0,
+      ssml: true,
+    });
+  });
+
+  it('should propagate errors from synthesizeSpeech', async () => {
+    mockProvider.synthesizeSpeech.mockRejectedValue(new Error('TTS error'));
+
+    await expect(generateSilence(1)).rejects.toThrow('Failed to synthesize speech: TTS error');
   });
 });
