@@ -24,7 +24,7 @@ interface HarnessOptions {
   verbose?: boolean;
 }
 
-const DEFAULT_MAX_TURNS = 500; // High limit for comprehensive i18n fixes across all locales
+const DEFAULT_MAX_TURNS = 50000; // High limit for comprehensive i18n fixes across all locales
 
 async function runI18nHarness(options: HarnessOptions = {}) {
   const { dryRun = false, maxTurns = DEFAULT_MAX_TURNS, verbose = true } = options;

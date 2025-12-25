@@ -32,7 +32,7 @@ interface AccessibilityHarnessOptions {
   disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
-const DEFAULT_MAX_TURNS = 5000;
+const DEFAULT_MAX_TURNS = 50000;
 
 async function runAccessibilityHarness(options: AccessibilityHarnessOptions = {}) {
   const {

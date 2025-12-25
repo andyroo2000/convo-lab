@@ -27,7 +27,7 @@ interface MobileHarnessOptions {
   responsiveOnly?: boolean; // Only focus on responsive design
 }
 
-const DEFAULT_MAX_TURNS = 200;
+const DEFAULT_MAX_TURNS = 50000;
 
 async function runMobileHarness(options: MobileHarnessOptions = {}) {
   const {
