@@ -1,25 +1,25 @@
 {
-  "title": "[NEEDS_TRANSLATION] Settings",
-  "subtitle": "[NEEDS_TRANSLATION] Manage your account preferences",
+  "title": "设置",
+  "subtitle": "管理您的账户偏好",
   "tabs": {
-    "profile": "[NEEDS_TRANSLATION] Profile",
-    "language": "[NEEDS_TRANSLATION] Language",
-    "security": "[NEEDS_TRANSLATION] Security",
-    "billing": "[NEEDS_TRANSLATION] Billing",
-    "danger": "[NEEDS_TRANSLATION] Danger Zone"
+    "profile": "个人资料",
+    "language": "语言",
+    "security": "安全",
+    "billing": "账单",
+    "danger": "危险区域"
   },
   "profile": {
-    "title": "[NEEDS_TRANSLATION] Profile Settings",
+    "title": "个人资料设置",
     "avatar": {
-      "label": "[NEEDS_TRANSLATION] Avatar",
-      "upload": "[NEEDS_TRANSLATION] Upload Avatar",
-      "change": "[NEEDS_TRANSLATION] Change Avatar",
-      "remove": "[NEEDS_TRANSLATION] Remove",
-      "helper": "[NEEDS_TRANSLATION] Upload a custom profile picture or use your initial as your avatar",
-      "uploadSuccess": "[NEEDS_TRANSLATION] Avatar updated successfully!",
-      "removeSuccess": "[NEEDS_TRANSLATION] Avatar removed successfully!",
-      "uploadError": "[NEEDS_TRANSLATION] Failed to upload avatar. Please try again.",
-      "removeError": "[NEEDS_TRANSLATION] Failed to remove avatar",
+      "label": "头像",
+      "upload": "上传头像",
+      "change": "更换头像",
+      "remove": "删除",
+      "helper": "上传自定义个人资料图片或使用您的首字母作为头像",
+      "uploadSuccess": "头像更新成功！",
+      "removeSuccess": "头像删除成功！",
+      "uploadError": "上传头像失败。请重试。",
+      "removeError": "删除头像失败",
       "cropTitle": "裁剪个人资料图片",
       "altText": "您的头像"
     },
@@ -34,16 +34,16 @@
       "cyan": "青绿色"
     },
     "displayName": {
-      "label": "[NEEDS_TRANSLATION] Display Name",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your display name",
-      "helper": "[NEEDS_TRANSLATION] This is the name that will be displayed throughout the app"
+      "label": "显示名称",
+      "placeholder": "输入您的显示名称",
+      "helper": "这是将在整个应用中显示的名称"
     },
-    "saveButton": "[NEEDS_TRANSLATION] Save Changes",
-    "saving": "[NEEDS_TRANSLATION] Saving...",
-    "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+    "saveButton": "保存更改",
+    "saving": "保存中...",
+    "cancelButton": "取消"
   },
   "language": {
-    "title": "[NEEDS_TRANSLATION] Language Preferences",
+    "title": "语言偏好",
     "names": {
       "en": "英语",
       "ja": "日语（日本語）",
@@ -53,132 +53,132 @@
       "ar": "阿拉伯语（العربية）"
     },
     "study": {
-      "label": "[NEEDS_TRANSLATION] Study Language",
-      "helper": "[NEEDS_TRANSLATION] Your primary target language for learning"
+      "label": "学习语言",
+      "helper": "您主要学习的目标语言"
     },
     "native": {
-      "label": "[NEEDS_TRANSLATION] Native Language",
-      "helper": "[NEEDS_TRANSLATION] Your first language, used for translations"
+      "label": "母语",
+      "helper": "您的第一语言，用于翻译"
     },
     "proficiency": {
       "jlpt": {
-        "label": "[NEEDS_TRANSLATION] Current JLPT Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "n5": "[NEEDS_TRANSLATION] N5 (Beginner)",
-        "n4": "[NEEDS_TRANSLATION] N4 (Upper Beginner)",
-        "n3": "[NEEDS_TRANSLATION] N3 (Intermediate)",
-        "n2": "[NEEDS_TRANSLATION] N2 (Upper Intermediate)",
-        "n1": "[NEEDS_TRANSLATION] N1 (Advanced)"
+        "label": "当前JLPT级别",
+        "helper": "这有助于我们生成适当难度级别的内容",
+        "n5": "N5（初级）",
+        "n4": "N4（初级进阶）",
+        "n3": "N3（中级）",
+        "n2": "N2（中级进阶）",
+        "n1": "N1（高级）"
       },
       "hsk": {
-        "label": "[NEEDS_TRANSLATION] Current HSK Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "hsk1": "[NEEDS_TRANSLATION] HSK 1 (Beginner)",
-        "hsk2": "[NEEDS_TRANSLATION] HSK 2 (Upper Beginner)",
-        "hsk3": "[NEEDS_TRANSLATION] HSK 3 (Intermediate)",
-        "hsk4": "[NEEDS_TRANSLATION] HSK 4 (Upper Intermediate)",
-        "hsk5": "[NEEDS_TRANSLATION] HSK 5 (Advanced)",
-        "hsk6": "[NEEDS_TRANSLATION] HSK 6 (Mastery)"
+        "label": "当前HSK级别",
+        "helper": "这有助于我们生成适当难度级别的内容",
+        "hsk1": "HSK 1（初级）",
+        "hsk2": "HSK 2（初级进阶）",
+        "hsk3": "HSK 3（中级）",
+        "hsk4": "HSK 4（中级进阶）",
+        "hsk5": "HSK 5（高级）",
+        "hsk6": "HSK 6（精通）"
       },
       "cefr": {
-        "spanish": "[NEEDS_TRANSLATION] Spanish Proficiency Level (CEFR)",
-        "french": "[NEEDS_TRANSLATION] French Proficiency Level (CEFR)",
-        "arabic": "[NEEDS_TRANSLATION] Arabic Proficiency Level (CEFR)",
-        "english": "[NEEDS_TRANSLATION] English Proficiency Level (CEFR)",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "a1": "[NEEDS_TRANSLATION] A1 - Beginner",
-        "a2": "[NEEDS_TRANSLATION] A2 - Elementary",
-        "b1": "[NEEDS_TRANSLATION] B1 - Intermediate",
-        "b2": "[NEEDS_TRANSLATION] B2 - Upper Intermediate",
-        "c1": "[NEEDS_TRANSLATION] C1 - Advanced",
-        "c2": "[NEEDS_TRANSLATION] C2 - Mastery"
+        "spanish": "西班牙语熟练程度（CEFR）",
+        "french": "法语熟练程度（CEFR）",
+        "arabic": "阿拉伯语熟练程度（CEFR）",
+        "english": "英语熟练程度（CEFR）",
+        "helper": "这有助于我们生成适当难度级别的内容",
+        "a1": "A1 - 初级",
+        "a2": "A2 - 基础",
+        "b1": "B1 - 中级",
+        "b2": "B2 - 中级进阶",
+        "c1": "C1 - 高级",
+        "c2": "C2 - 精通"
       }
     },
     "pinyin": {
-      "label": "[NEEDS_TRANSLATION] Pinyin Display Format",
-      "toneMarks": "[NEEDS_TRANSLATION] Tone marks (nǐ hǎo)",
-      "toneNumbers": "[NEEDS_TRANSLATION] Tone numbers (ni3 hao3)",
-      "helper": "[NEEDS_TRANSLATION] Choose how pinyin is displayed above Chinese characters"
+      "label": "拼音显示格式",
+      "toneMarks": "声调符号（nǐ hǎo）",
+      "toneNumbers": "声调数字（ni3 hao3）",
+      "helper": "选择如何在汉字上方显示拼音"
     }
   },
   "security": {
-    "title": "[NEEDS_TRANSLATION] Change Password",
+    "title": "更改密码",
     "currentPassword": {
-      "label": "[NEEDS_TRANSLATION] Current Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your current password"
+      "label": "当前密码",
+      "placeholder": "输入您的当前密码"
     },
     "newPassword": {
-      "label": "[NEEDS_TRANSLATION] New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your new password (min 8 characters)"
+      "label": "新密码",
+      "placeholder": "输入您的新密码（至少8个字符）"
     },
     "confirmPassword": {
-      "label": "[NEEDS_TRANSLATION] Confirm New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Confirm your new password"
+      "label": "确认新密码",
+      "placeholder": "确认您的新密码"
     },
-    "changeButton": "[NEEDS_TRANSLATION] Change Password",
-    "changing": "[NEEDS_TRANSLATION] Changing Password...",
-    "success": "[NEEDS_TRANSLATION] Password changed successfully!",
+    "changeButton": "更改密码",
+    "changing": "更改密码中...",
+    "success": "密码更改成功！",
     "errors": {
-      "required": "[NEEDS_TRANSLATION] All password fields are required",
-      "tooShort": "[NEEDS_TRANSLATION] New password must be at least 8 characters",
-      "mismatch": "[NEEDS_TRANSLATION] New passwords do not match"
+      "required": "所有密码字段都是必需的",
+      "tooShort": "新密码必须至少为8个字符",
+      "mismatch": "新密码不匹配"
     }
   },
   "billing": {
-    "title": "[NEEDS_TRANSLATION] Billing & Subscription",
-    "loading": "[NEEDS_TRANSLATION] Loading subscription info...",
+    "title": "账单与订阅",
+    "loading": "加载订阅信息中...",
     "currentPlan": {
-      "title": "[NEEDS_TRANSLATION] Current Plan",
-      "free": "[NEEDS_TRANSLATION] Free",
-      "pro": "[NEEDS_TRANSLATION] Pro",
-      "plan": "[NEEDS_TRANSLATION] Plan",
-      "freePrice": "[NEEDS_TRANSLATION] Free forever",
-      "proPrice": "[NEEDS_TRANSLATION] $7/month",
-      "limit": "[NEEDS_TRANSLATION] Weekly generation limit",
-      "generations": "[NEEDS_TRANSLATION] generations per week",
-      "cancelsOn": "[NEEDS_TRANSLATION] Cancels on",
-      "renewsOn": "[NEEDS_TRANSLATION] Renews on"
+      "title": "当前计划",
+      "free": "免费",
+      "pro": "专业版",
+      "plan": "计划",
+      "freePrice": "永久免费",
+      "proPrice": "$7/月",
+      "limit": "每周生成限制",
+      "generations": "每周生成次数",
+      "cancelsOn": "取消日期",
+      "renewsOn": "续订日期"
     },
     "actions": {
-      "upgrade": "[NEEDS_TRANSLATION] Upgrade to Pro ($7/month)",
-      "upgradeHelper": "[NEEDS_TRANSLATION] Get 30 generations per week and priority support",
-      "manage": "[NEEDS_TRANSLATION] Manage Subscription",
-      "manageHelper": "[NEEDS_TRANSLATION] Update payment method, view invoices, or cancel subscription"
+      "upgrade": "升级到专业版（$7/月）",
+      "upgradeHelper": "获得每周30次生成和优先支持",
+      "manage": "管理订阅",
+      "manageHelper": "更新付款方式、查看发票或取消订阅"
     },
     "comparison": {
-      "title": "[NEEDS_TRANSLATION] Need a different plan?",
-      "viewAll": "[NEEDS_TRANSLATION] View all plans →"
+      "title": "需要不同的计划？",
+      "viewAll": "查看所有计划 →"
     },
     "errors": {
-      "loadSubscription": "[NEEDS_TRANSLATION] Failed to load subscription information",
-      "createPortal": "[NEEDS_TRANSLATION] Failed to open billing portal"
+      "loadSubscription": "加载订阅信息失败",
+      "createPortal": "打开账单门户失败"
     }
   },
   "danger": {
-    "title": "[NEEDS_TRANSLATION] Danger Zone",
+    "title": "危险区域",
     "deleteAccount": {
-      "title": "[NEEDS_TRANSLATION] Delete Account",
-      "warning": "[NEEDS_TRANSLATION] Once you delete your account, there is no going back. This will permanently delete:",
+      "title": "删除账户",
+      "warning": "一旦删除您的账户，就无法恢复。这将永久删除：",
       "items": {
-        "dialogues": "[NEEDS_TRANSLATION] All your dialogues and episodes",
-        "courses": "[NEEDS_TRANSLATION] All your audio courses",
-        "narrowListening": "[NEEDS_TRANSLATION] All your narrow listening packs",
-        "chunkPacks": "[NEEDS_TRANSLATION] All your chunk packs",
-        "account": "[NEEDS_TRANSLATION] Your account information and settings"
+        "dialogues": "您所有的对话和剧集",
+        "courses": "您所有的音频课程",
+        "narrowListening": "您所有的窄听包",
+        "chunkPacks": "您所有的语块包",
+        "account": "您的账户信息和设置"
       },
-      "button": "[NEEDS_TRANSLATION] Delete My Account",
-      "confirmTitle": "[NEEDS_TRANSLATION] Delete Account",
-      "confirmMessage": "[NEEDS_TRANSLATION] Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes, courses, narrow listening packs, and chunk packs.",
-      "confirmButton": "[NEEDS_TRANSLATION] Yes, Delete My Account",
-      "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+      "button": "删除我的账户",
+      "confirmTitle": "删除账户",
+      "confirmMessage": "您确定要删除您的账户吗？此操作无法撤销，将永久删除您的所有数据，包括剧集、课程、窄听包和语块包。",
+      "confirmButton": "是的，删除我的账户",
+      "cancelButton": "取消"
     }
   },
   "messages": {
-    "saved": "[NEEDS_TRANSLATION] Saved!",
-    "failedToSave": "[NEEDS_TRANSLATION] Failed to save",
-    "noChanges": "[NEEDS_TRANSLATION] No changes to save",
-    "saveSuccess": "[NEEDS_TRANSLATION] Settings saved successfully!",
-    "deleteSuccess": "[NEEDS_TRANSLATION] Account deleted successfully",
-    "deleteError": "[NEEDS_TRANSLATION] Failed to delete account"
+    "saved": "已保存！",
+    "failedToSave": "保存失败",
+    "noChanges": "没有要保存的更改",
+    "saveSuccess": "设置保存成功！",
+    "deleteSuccess": "账户删除成功",
+    "deleteError": "删除账户失败"
   }
 }

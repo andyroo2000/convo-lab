@@ -1,25 +1,25 @@
 {
-  "title": "[NEEDS_TRANSLATION] Settings",
-  "subtitle": "[NEEDS_TRANSLATION] Manage your account preferences",
+  "title": "Paramètres",
+  "subtitle": "Gérez les préférences de votre compte",
   "tabs": {
-    "profile": "[NEEDS_TRANSLATION] Profile",
-    "language": "[NEEDS_TRANSLATION] Language",
-    "security": "[NEEDS_TRANSLATION] Security",
-    "billing": "[NEEDS_TRANSLATION] Billing",
-    "danger": "[NEEDS_TRANSLATION] Danger Zone"
+    "profile": "Profil",
+    "language": "Langue",
+    "security": "Sécurité",
+    "billing": "Facturation",
+    "danger": "Zone de Danger"
   },
   "profile": {
-    "title": "[NEEDS_TRANSLATION] Profile Settings",
+    "title": "Paramètres du Profil",
     "avatar": {
-      "label": "[NEEDS_TRANSLATION] Avatar",
-      "upload": "[NEEDS_TRANSLATION] Upload Avatar",
-      "change": "[NEEDS_TRANSLATION] Change Avatar",
-      "remove": "[NEEDS_TRANSLATION] Remove",
-      "helper": "[NEEDS_TRANSLATION] Upload a custom profile picture or use your initial as your avatar",
-      "uploadSuccess": "[NEEDS_TRANSLATION] Avatar updated successfully!",
-      "removeSuccess": "[NEEDS_TRANSLATION] Avatar removed successfully!",
-      "uploadError": "[NEEDS_TRANSLATION] Failed to upload avatar. Please try again.",
-      "removeError": "[NEEDS_TRANSLATION] Failed to remove avatar",
+      "label": "Avatar",
+      "upload": "Télécharger un Avatar",
+      "change": "Modifier l'Avatar",
+      "remove": "Supprimer",
+      "helper": "Téléchargez une photo de profil personnalisée ou utilisez votre initiale comme avatar",
+      "uploadSuccess": "Avatar mis à jour avec succès !",
+      "removeSuccess": "Avatar supprimé avec succès !",
+      "uploadError": "Échec du téléchargement de l'avatar. Veuillez réessayer.",
+      "removeError": "Échec de la suppression de l'avatar",
       "cropTitle": "Recadrer la Photo de Profil",
       "altText": "Votre avatar"
     },
@@ -34,16 +34,16 @@
       "cyan": "Cyan"
     },
     "displayName": {
-      "label": "[NEEDS_TRANSLATION] Display Name",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your display name",
-      "helper": "[NEEDS_TRANSLATION] This is the name that will be displayed throughout the app"
+      "label": "Nom d'Affichage",
+      "placeholder": "Entrez votre nom d'affichage",
+      "helper": "C'est le nom qui sera affiché dans toute l'application"
     },
-    "saveButton": "[NEEDS_TRANSLATION] Save Changes",
-    "saving": "[NEEDS_TRANSLATION] Saving...",
-    "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+    "saveButton": "Enregistrer les Modifications",
+    "saving": "Enregistrement...",
+    "cancelButton": "Annuler"
   },
   "language": {
-    "title": "[NEEDS_TRANSLATION] Language Preferences",
+    "title": "Préférences Linguistiques",
     "names": {
       "en": "Anglais",
       "ja": "Japonais (日本語)",
@@ -53,132 +53,132 @@
       "ar": "Arabe (العربية)"
     },
     "study": {
-      "label": "[NEEDS_TRANSLATION] Study Language",
-      "helper": "[NEEDS_TRANSLATION] Your primary target language for learning"
+      "label": "Langue d'Étude",
+      "helper": "Votre langue cible principale pour l'apprentissage"
     },
     "native": {
-      "label": "[NEEDS_TRANSLATION] Native Language",
-      "helper": "[NEEDS_TRANSLATION] Your first language, used for translations"
+      "label": "Langue Maternelle",
+      "helper": "Votre première langue, utilisée pour les traductions"
     },
     "proficiency": {
       "jlpt": {
-        "label": "[NEEDS_TRANSLATION] Current JLPT Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "n5": "[NEEDS_TRANSLATION] N5 (Beginner)",
-        "n4": "[NEEDS_TRANSLATION] N4 (Upper Beginner)",
-        "n3": "[NEEDS_TRANSLATION] N3 (Intermediate)",
-        "n2": "[NEEDS_TRANSLATION] N2 (Upper Intermediate)",
-        "n1": "[NEEDS_TRANSLATION] N1 (Advanced)"
+        "label": "Niveau JLPT Actuel",
+        "helper": "Cela nous aide à générer du contenu au bon niveau de difficulté",
+        "n5": "N5 (Débutant)",
+        "n4": "N4 (Débutant Supérieur)",
+        "n3": "N3 (Intermédiaire)",
+        "n2": "N2 (Intermédiaire Supérieur)",
+        "n1": "N1 (Avancé)"
       },
       "hsk": {
-        "label": "[NEEDS_TRANSLATION] Current HSK Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "hsk1": "[NEEDS_TRANSLATION] HSK 1 (Beginner)",
-        "hsk2": "[NEEDS_TRANSLATION] HSK 2 (Upper Beginner)",
-        "hsk3": "[NEEDS_TRANSLATION] HSK 3 (Intermediate)",
-        "hsk4": "[NEEDS_TRANSLATION] HSK 4 (Upper Intermediate)",
-        "hsk5": "[NEEDS_TRANSLATION] HSK 5 (Advanced)",
-        "hsk6": "[NEEDS_TRANSLATION] HSK 6 (Mastery)"
+        "label": "Niveau HSK Actuel",
+        "helper": "Cela nous aide à générer du contenu au bon niveau de difficulté",
+        "hsk1": "HSK 1 (Débutant)",
+        "hsk2": "HSK 2 (Débutant Supérieur)",
+        "hsk3": "HSK 3 (Intermédiaire)",
+        "hsk4": "HSK 4 (Intermédiaire Supérieur)",
+        "hsk5": "HSK 5 (Avancé)",
+        "hsk6": "HSK 6 (Maîtrise)"
       },
       "cefr": {
-        "spanish": "[NEEDS_TRANSLATION] Spanish Proficiency Level (CEFR)",
-        "french": "[NEEDS_TRANSLATION] French Proficiency Level (CEFR)",
-        "arabic": "[NEEDS_TRANSLATION] Arabic Proficiency Level (CEFR)",
-        "english": "[NEEDS_TRANSLATION] English Proficiency Level (CEFR)",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "a1": "[NEEDS_TRANSLATION] A1 - Beginner",
-        "a2": "[NEEDS_TRANSLATION] A2 - Elementary",
-        "b1": "[NEEDS_TRANSLATION] B1 - Intermediate",
-        "b2": "[NEEDS_TRANSLATION] B2 - Upper Intermediate",
-        "c1": "[NEEDS_TRANSLATION] C1 - Advanced",
-        "c2": "[NEEDS_TRANSLATION] C2 - Mastery"
+        "spanish": "Niveau de Compétence en Espagnol (CECR)",
+        "french": "Niveau de Compétence en Français (CECR)",
+        "arabic": "Niveau de Compétence en Arabe (CECR)",
+        "english": "Niveau de Compétence en Anglais (CECR)",
+        "helper": "Cela nous aide à générer du contenu au bon niveau de difficulté",
+        "a1": "A1 - Débutant",
+        "a2": "A2 - Élémentaire",
+        "b1": "B1 - Intermédiaire",
+        "b2": "B2 - Intermédiaire Supérieur",
+        "c1": "C1 - Avancé",
+        "c2": "C2 - Maîtrise"
       }
     },
     "pinyin": {
-      "label": "[NEEDS_TRANSLATION] Pinyin Display Format",
-      "toneMarks": "[NEEDS_TRANSLATION] Tone marks (nǐ hǎo)",
-      "toneNumbers": "[NEEDS_TRANSLATION] Tone numbers (ni3 hao3)",
-      "helper": "[NEEDS_TRANSLATION] Choose how pinyin is displayed above Chinese characters"
+      "label": "Format d'Affichage du Pinyin",
+      "toneMarks": "Marques tonales (nǐ hǎo)",
+      "toneNumbers": "Numéros de ton (ni3 hao3)",
+      "helper": "Choisissez comment le pinyin est affiché au-dessus des caractères chinois"
     }
   },
   "security": {
-    "title": "[NEEDS_TRANSLATION] Change Password",
+    "title": "Changer le Mot de Passe",
     "currentPassword": {
-      "label": "[NEEDS_TRANSLATION] Current Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your current password"
+      "label": "Mot de Passe Actuel",
+      "placeholder": "Entrez votre mot de passe actuel"
     },
     "newPassword": {
-      "label": "[NEEDS_TRANSLATION] New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your new password (min 8 characters)"
+      "label": "Nouveau Mot de Passe",
+      "placeholder": "Entrez votre nouveau mot de passe (min. 8 caractères)"
     },
     "confirmPassword": {
-      "label": "[NEEDS_TRANSLATION] Confirm New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Confirm your new password"
+      "label": "Confirmer le Nouveau Mot de Passe",
+      "placeholder": "Confirmez votre nouveau mot de passe"
     },
-    "changeButton": "[NEEDS_TRANSLATION] Change Password",
-    "changing": "[NEEDS_TRANSLATION] Changing Password...",
-    "success": "[NEEDS_TRANSLATION] Password changed successfully!",
+    "changeButton": "Changer le Mot de Passe",
+    "changing": "Changement du Mot de Passe...",
+    "success": "Mot de passe modifié avec succès !",
     "errors": {
-      "required": "[NEEDS_TRANSLATION] All password fields are required",
-      "tooShort": "[NEEDS_TRANSLATION] New password must be at least 8 characters",
-      "mismatch": "[NEEDS_TRANSLATION] New passwords do not match"
+      "required": "Tous les champs de mot de passe sont obligatoires",
+      "tooShort": "Le nouveau mot de passe doit contenir au moins 8 caractères",
+      "mismatch": "Les nouveaux mots de passe ne correspondent pas"
     }
   },
   "billing": {
-    "title": "[NEEDS_TRANSLATION] Billing & Subscription",
-    "loading": "[NEEDS_TRANSLATION] Loading subscription info...",
+    "title": "Facturation et Abonnement",
+    "loading": "Chargement des informations d'abonnement...",
     "currentPlan": {
-      "title": "[NEEDS_TRANSLATION] Current Plan",
-      "free": "[NEEDS_TRANSLATION] Free",
-      "pro": "[NEEDS_TRANSLATION] Pro",
-      "plan": "[NEEDS_TRANSLATION] Plan",
-      "freePrice": "[NEEDS_TRANSLATION] Free forever",
-      "proPrice": "[NEEDS_TRANSLATION] $7/month",
-      "limit": "[NEEDS_TRANSLATION] Weekly generation limit",
-      "generations": "[NEEDS_TRANSLATION] generations per week",
-      "cancelsOn": "[NEEDS_TRANSLATION] Cancels on",
-      "renewsOn": "[NEEDS_TRANSLATION] Renews on"
+      "title": "Plan Actuel",
+      "free": "Gratuit",
+      "pro": "Pro",
+      "plan": "Plan",
+      "freePrice": "Gratuit pour toujours",
+      "proPrice": "$7/mois",
+      "limit": "Limite de génération hebdomadaire",
+      "generations": "générations par semaine",
+      "cancelsOn": "Annule le",
+      "renewsOn": "Renouvelle le"
     },
     "actions": {
-      "upgrade": "[NEEDS_TRANSLATION] Upgrade to Pro ($7/month)",
-      "upgradeHelper": "[NEEDS_TRANSLATION] Get 30 generations per week and priority support",
-      "manage": "[NEEDS_TRANSLATION] Manage Subscription",
-      "manageHelper": "[NEEDS_TRANSLATION] Update payment method, view invoices, or cancel subscription"
+      "upgrade": "Passer à Pro ($7/mois)",
+      "upgradeHelper": "Obtenez 30 générations par semaine et un support prioritaire",
+      "manage": "Gérer l'Abonnement",
+      "manageHelper": "Mettez à jour le mode de paiement, consultez les factures ou annulez l'abonnement"
     },
     "comparison": {
-      "title": "[NEEDS_TRANSLATION] Need a different plan?",
-      "viewAll": "[NEEDS_TRANSLATION] View all plans →"
+      "title": "Besoin d'un plan différent ?",
+      "viewAll": "Voir tous les plans →"
     },
     "errors": {
-      "loadSubscription": "[NEEDS_TRANSLATION] Failed to load subscription information",
-      "createPortal": "[NEEDS_TRANSLATION] Failed to open billing portal"
+      "loadSubscription": "Échec du chargement des informations d'abonnement",
+      "createPortal": "Échec de l'ouverture du portail de facturation"
     }
   },
   "danger": {
-    "title": "[NEEDS_TRANSLATION] Danger Zone",
+    "title": "Zone de Danger",
     "deleteAccount": {
-      "title": "[NEEDS_TRANSLATION] Delete Account",
-      "warning": "[NEEDS_TRANSLATION] Once you delete your account, there is no going back. This will permanently delete:",
+      "title": "Supprimer le Compte",
+      "warning": "Une fois que vous supprimez votre compte, il n'y a pas de retour en arrière. Cela supprimera définitivement :",
       "items": {
-        "dialogues": "[NEEDS_TRANSLATION] All your dialogues and episodes",
-        "courses": "[NEEDS_TRANSLATION] All your audio courses",
-        "narrowListening": "[NEEDS_TRANSLATION] All your narrow listening packs",
-        "chunkPacks": "[NEEDS_TRANSLATION] All your chunk packs",
-        "account": "[NEEDS_TRANSLATION] Your account information and settings"
+        "dialogues": "Tous vos dialogues et épisodes",
+        "courses": "Tous vos cours audio",
+        "narrowListening": "Tous vos packs d'écoute ciblée",
+        "chunkPacks": "Tous vos packs de segments",
+        "account": "Les informations et paramètres de votre compte"
       },
-      "button": "[NEEDS_TRANSLATION] Delete My Account",
-      "confirmTitle": "[NEEDS_TRANSLATION] Delete Account",
-      "confirmMessage": "[NEEDS_TRANSLATION] Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes, courses, narrow listening packs, and chunk packs.",
-      "confirmButton": "[NEEDS_TRANSLATION] Yes, Delete My Account",
-      "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+      "button": "Supprimer Mon Compte",
+      "confirmTitle": "Supprimer le Compte",
+      "confirmMessage": "Êtes-vous absolument sûr de vouloir supprimer votre compte ? Cette action ne peut pas être annulée et supprimera définitivement toutes vos données, y compris les épisodes, les cours, les packs d'écoute ciblée et les packs de segments.",
+      "confirmButton": "Oui, Supprimer Mon Compte",
+      "cancelButton": "Annuler"
     }
   },
   "messages": {
-    "saved": "[NEEDS_TRANSLATION] Saved!",
-    "failedToSave": "[NEEDS_TRANSLATION] Failed to save",
-    "noChanges": "[NEEDS_TRANSLATION] No changes to save",
-    "saveSuccess": "[NEEDS_TRANSLATION] Settings saved successfully!",
-    "deleteSuccess": "[NEEDS_TRANSLATION] Account deleted successfully",
-    "deleteError": "[NEEDS_TRANSLATION] Failed to delete account"
+    "saved": "Enregistré !",
+    "failedToSave": "Échec de l'enregistrement",
+    "noChanges": "Aucune modification à enregistrer",
+    "saveSuccess": "Paramètres enregistrés avec succès !",
+    "deleteSuccess": "Compte supprimé avec succès",
+    "deleteError": "Échec de la suppression du compte"
   }
 }

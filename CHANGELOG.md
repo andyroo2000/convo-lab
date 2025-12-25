@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- **[i18n]** Complete translations for settings and UserMenu component - completed full translations for settings.json in Arabic, Spanish, French, and Chinese (replacing all [NEEDS_TRANSLATION] markers with proper natural translations); added i18n support to UserMenu component for Admin, Settings, and Logout menu items; created i18n-harness tool for automated translation consistency checking with npm scripts for easy validation
+
 ### Fixed
 - **[i18n]** Translation consistency across all locales - fixed 309 missing translation keys and removed 21 obsolete keys across Arabic, Spanish, French, Japanese, and Chinese locales; added missing translations for modal dialogs, quota badges, demo mode, impersonation banners, error displays, library empty states, sidebar navigation, and settings color options; all translations now structurally consistent with English source files (keys marked with [NEEDS_TRANSLATION] prefix for future localization)
 

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { User, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
 
 interface UserMenuProps {
@@ -22,6 +23,7 @@ const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
 };
 
 export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, role, onLogout }: UserMenuProps) {
+  const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -97,7 +99,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
                 data-testid="user-menu-item-admin"
               >
                 <Shield className="w-4 h-4" />
-                <span>Admin</span>
+                <span>{t('admin')}</span>
               </button>
             )}
 
@@ -111,7 +113,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
               data-testid="user-menu-item-settings"
             >
               <Settings className="w-4 h-4" />
-              <span>Settings</span>
+              <span>{t('settings')}</span>
             </button>
 
             {/* Divider */}
@@ -127,7 +129,7 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
               data-testid="user-menu-item-logout"
             >
               <LogOut className="w-4 h-4" />
-              <span>Logout</span>
+              <span>{t('buttons.logout')}</span>
             </button>
           </div>
         </div>

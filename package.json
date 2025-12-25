@@ -24,9 +24,12 @@
     "test:e2e:debug": "playwright test --debug",
     "lint": "npm run lint --workspaces",
     "type-check": "npm run type-check --workspaces",
+    "harness:i18n": "npx ts-node scripts/i18n-harness.ts",
+    "harness:i18n:dry-run": "npx ts-node scripts/i18n-harness.ts --dry-run",
     "prepare": "husky"
   },
   "devDependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.76",
     "@playwright/test": "^1.57.0",
     "concurrently": "^8.2.2"
   },
