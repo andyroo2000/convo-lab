@@ -4,6 +4,7 @@ const LoadingSkeleton = () => (
     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {}
       {[...Array(6)].map((_, index) => (
+        // eslint-disable-next-line react/no-array-index-key
         <div key={`skeleton-${index}`} className="bg-white rounded-lg shadow-sm p-6">
           {/* Title skeleton */}
           <div className="h-6 bg-gray-200 rounded w-3/4 mb-3" />

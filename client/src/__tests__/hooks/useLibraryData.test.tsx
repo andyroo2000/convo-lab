@@ -365,7 +365,7 @@ describe('useLibraryData', () => {
       };
 
       expect(pack.id).toBe('pack-1');
-      // eslint-disable-next-line no-underscore-dangle
+       
       expect(pack._count.versions).toBe(3);
     });
 
@@ -384,9 +384,9 @@ describe('useLibraryData', () => {
         _count: { examples: 10, stories: 2, exercises: 5 },
       };
 
-      // eslint-disable-next-line no-underscore-dangle
+       
       expect(pack._count.examples).toBe(10);
-      // eslint-disable-next-line no-underscore-dangle
+       
       expect(pack._count.stories).toBe(2);
     });
   });

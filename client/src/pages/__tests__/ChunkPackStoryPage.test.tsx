@@ -162,23 +162,23 @@ describe('ChunkPackStoryPage', () => {
     it('should toggle to Hide English when clicked', async () => {
       renderPage();
 
+      const toggleButton = await screen.findByText('Show English');
       fireEvent.click(toggleButton);
-      await waitFor(() => {
-        const toggleButton = screen.getByText('Show English');
-      });
 
-      expect(screen.getByText('Hide English')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Hide English')).toBeInTheDocument();
+      });
     });
 
     it('should show English translations when toggled on', async () => {
       renderPage();
 
+      const toggleButton = await screen.findByText('Show English');
       fireEvent.click(toggleButton);
-      await waitFor(() => {
-        const toggleButton = screen.getByText('Show English');
-      });
 
-      expect(screen.getByText('Good morning!')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Good morning!')).toBeInTheDocument();
+      });
     });
   });
 

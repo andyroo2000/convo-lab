@@ -66,7 +66,7 @@ const LoginPage = () => {
 
         <div className="card">
           <div className="flex space-x-4 mb-6">
-            <button
+            <button type="button"
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isLogin
@@ -77,7 +77,7 @@ const LoginPage = () => {
             >
               {t('auth:login.title')}
             </button>
-            <button
+            <button type="button"
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 !isLogin

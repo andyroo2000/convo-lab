@@ -65,28 +65,34 @@ const AvatarCropperModal = ({
 
   // Fetch image and create blob URL
   useEffect(() => {
-    if (!isOpen || !imageUrl) return;
+    if (!isOpen || !imageUrl) return undefined;
 
     const fetchImage = async () => {
       try {
+        // eslint-disable-next-line no-console
         console.log('Fetching image from:', imageUrl);
         // Only send credentials for same-origin requests (not for GCS URLs)
         const isGCSUrl = imageUrl.includes('storage.googleapis.com');
+        // eslint-disable-next-line no-console
         console.log('Is GCS URL:', isGCSUrl);
         const response = await fetch(imageUrl, {
           credentials: isGCSUrl ? 'omit' : 'include',
         });
+        // eslint-disable-next-line no-console
         console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
         }
         const blob = await response.blob();
+        // eslint-disable-next-line no-console
         console.log('Blob created, size:', blob.size);
         const url = URL.createObjectURL(blob);
+        // eslint-disable-next-line no-console
         console.log('Blob URL created:', url);
         setBlobUrl(url);
       } catch (error) {
         console.error('Failed to load image:', error);
+        // eslint-disable-next-line no-alert
         alert(
           `Failed to load image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
         );
@@ -117,6 +123,7 @@ const AvatarCropperModal = ({
       onClose();
     } catch (error) {
       console.error('Failed to crop image:', error);
+      // eslint-disable-next-line no-alert
       alert('Failed to crop image. Please try again.');
     } finally {
       setIsSaving(false);
@@ -132,6 +139,7 @@ const AvatarCropperModal = ({
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-xl font-semibold text-navy">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
             disabled={isSaving}
@@ -163,22 +171,26 @@ const AvatarCropperModal = ({
 
         {/* Zoom Slider */}
         <div className="px-6 py-4 border-b">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
-          <input
-            type="range"
-            min={1}
-            max={3}
-            step={0.1}
-            value={zoom}
-            onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-full"
-            disabled={isSaving}
-          />
+          <label htmlFor="zoom-slider" className="block text-sm font-medium text-gray-700 mb-2">
+            Zoom
+            <input
+              id="zoom-slider"
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full mt-2 block"
+              disabled={isSaving}
+            />
+          </label>
         </div>
 
         {/* Actions */}
         <div className="px-6 py-4 flex justify-end gap-3">
           <button
+            type="button"
             onClick={onClose}
             className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
             disabled={isSaving}
@@ -186,6 +198,7 @@ const AvatarCropperModal = ({
             Cancel
           </button>
           <button
+            type="button"
             onClick={handleSave}
             className="px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isSaving || !croppedAreaPixels}

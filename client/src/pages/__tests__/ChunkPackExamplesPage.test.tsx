@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import { BrowserRouter, useParams } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 import ChunkPackExamplesPage from '../ChunkPackExamplesPage';
 
 // Mock useParams

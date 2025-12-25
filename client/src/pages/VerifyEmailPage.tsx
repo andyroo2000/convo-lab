@@ -137,7 +137,7 @@ const VerifyEmailPage = () => {
               {user && !user.emailVerified && (
                 <div className="mt-6">
                   <p className="text-medium-brown mb-4">{t('auth:verifyEmail.needNewLink')}</p>
-                  <button
+                  <button type="button"
                     onClick={handleResendEmail}
                     disabled={resending}
                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
@@ -180,7 +180,7 @@ const VerifyEmailPage = () => {
                 {t('auth:verifyEmail.sentTo', { email: user.email })}
               </p>
 
-              <button
+              <button type="button"
                 onClick={handleResendEmail}
                 disabled={resending}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"

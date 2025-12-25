@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
+import { ArrowRight, Loader } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import SpeedSelector from '../components/common/SpeedSelector';
@@ -37,7 +37,7 @@ type PlaybackSpeed = 0.7 | 0.85 | 1.0;
 const ChunkPackExamplesPage = () => {
   const { packId } = useParams();
   const navigate = useNavigate();
-  const { currentTime, audioRef, play, pause, isPlaying } = useAudioPlayer();
+  const { currentTime: _currentTime, audioRef, play, pause, isPlaying } = useAudioPlayer();
   const [pack, setPack] = useState<ChunkPack | null>(null);
   const [loading, setLoading] = useState(true);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('all');
@@ -105,11 +105,12 @@ const ChunkPackExamplesPage = () => {
   useEffect(() => {
     if (!currentAudioUrl || !shouldAutoPlay.current) {
       shouldAutoPlay.current = false;
-      return;
+      return undefined;
     }
 
     // Delay to ensure audio element is loaded and ready
     const timer = setTimeout(() => {
+      // eslint-disable-next-line no-console
       console.log('Auto-playing next example:', currentExample?.sentence);
       play();
       shouldAutoPlay.current = false;
@@ -123,6 +124,7 @@ const ChunkPackExamplesPage = () => {
   };
 
   const handleAudioEnded = () => {
+    // eslint-disable-next-line no-console
     console.log('Audio ended, current index:', currentExampleIndex, 'repeat mode:', repeatMode);
     if (!pack || currentExampleIndex < 0) return;
 
@@ -138,11 +140,13 @@ const ChunkPackExamplesPage = () => {
 
     // If there's a next example, play it
     if (currentExampleIndex < allExamples.length - 1) {
+      // eslint-disable-next-line no-console
       console.log('Advancing to next example');
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[currentExampleIndex + 1].id);
     } else if (repeatMode === 'all') {
       // Loop back to first example
+      // eslint-disable-next-line no-console
       console.log('Looping back to first example');
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[0].id);
@@ -245,7 +249,7 @@ const ChunkPackExamplesPage = () => {
 
           {/* Examples by Chunk */}
           <div className="space-y-6 sm:space-y-8">
-            {pack.chunks.map((chunk, chunkIndex) => (
+            {pack.chunks.map((chunk, _chunkIndex) => (
               <div key={chunk.id} className="relative">
                 {/* Sticky Chunk Header */}
                 <div
@@ -271,6 +275,11 @@ const ChunkPackExamplesPage = () => {
                           else exampleRefs.current.delete(example.id);
                         }}
                         onClick={() => example.audioUrl && handleExampleClick(example.id)}
+                        onKeyDown={(e) =>
+                          example.audioUrl && e.key === 'Enter' && handleExampleClick(example.id)
+                        }
+                        role="button"
+                        tabIndex={0}
                         className={`rounded-lg p-3 sm:p-4 transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-50 border-2 border-emerald-300'
@@ -299,6 +308,7 @@ const ChunkPackExamplesPage = () => {
         {/* Navigation */}
         <div className="card bg-white shadow-xl">
           <button
+            type="button"
             onClick={() => navigate(`/app/chunk-packs/${packId}/story`)}
             className="w-full btn-primary flex items-center justify-center gap-2"
           >

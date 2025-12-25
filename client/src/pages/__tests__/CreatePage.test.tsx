@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access, testing-library/no-container */
+// Complex page testing with multiple card elements requires direct node access
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
@@ -150,7 +152,7 @@ describe('CreatePage', () => {
 
   describe('Card structure', () => {
     it('should render cards with full-width class', () => {
-      const { container } = renderCreatePage();
+      renderCreatePage();
 
       const dialogueCard = screen.getByTestId('create-card-dialogues');
       expect(dialogueCard).toHaveClass('w-full');
@@ -167,14 +169,14 @@ describe('CreatePage', () => {
 
   describe('Responsive design', () => {
     it('should use responsive padding for title', () => {
-      const { container } = renderCreatePage();
+      renderCreatePage();
 
       const title = screen.getByText('What do you want to create?');
       expect(title.parentElement).toHaveClass('px-4', 'sm:px-0');
     });
 
     it('should use responsive padding for footer', () => {
-      const { container } = renderCreatePage();
+      renderCreatePage();
 
       const footer = screen.getByText(/Experiment, iterate/i);
       expect(footer).toHaveClass('px-4', 'sm:px-0');

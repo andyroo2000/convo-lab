@@ -1,10 +1,9 @@
-import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CourseGenerator from '../components/courses/CourseGenerator';
 
 const CourseCreatorPage = () => {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { t } = useTranslation(['audioCourse']);
 
   return (

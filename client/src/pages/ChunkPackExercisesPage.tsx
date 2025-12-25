@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, XCircle, ArrowRight, RotateCcw, Loader } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Loader } from 'lucide-react';
 
 import { API_URL } from '../config';
 
@@ -90,7 +90,7 @@ const ChunkPackExercisesPage = () => {
               Exercises Complete!
             </h1>
             <p className="text-sm sm:text-base text-gray-600">
-              You've finished all {exercises.length} exercises
+              You&apos;ve finished all {exercises.length} exercises
             </p>
           </div>
 
@@ -102,10 +102,10 @@ const ChunkPackExercisesPage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
-            <button onClick={() => navigate('/app/library')} className="flex-1 btn-outline">
+            <button type="button" onClick={() => navigate('/app/library')} className="flex-1 btn-outline">
               Back to Library
             </button>
-            <button onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
+            <button type="button" onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
               Back to Create
             </button>
           </div>
@@ -148,6 +148,8 @@ const ChunkPackExercisesPage = () => {
 
               return (
                 <button
+                  type="button"
+                  // eslint-disable-next-line react/no-array-index-key
                   key={idx}
                   onClick={() => handleOptionSelect(option)}
                   disabled={hasAnswered}
@@ -174,7 +176,7 @@ const ChunkPackExercisesPage = () => {
           {hasAnswered && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
               <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1.5 sm:mb-2">
-                Explanation:
+                Explanation
               </h3>
               <p className="text-xs sm:text-sm text-blue-800">{currentExercise.explanation}</p>
             </div>
@@ -182,6 +184,7 @@ const ChunkPackExercisesPage = () => {
 
           {hasAnswered && (
             <button
+              type="button"
               onClick={handleNext}
               className="w-full btn-primary flex items-center justify-center gap-2"
             >

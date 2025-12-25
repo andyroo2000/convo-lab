@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 
@@ -138,10 +139,17 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn"
       onClick={!isCreating ? onClose : undefined}
+      onKeyDown={(e) => !isCreating && e.key === 'Escape' && onClose()}
+      role="button"
+      tabIndex={-1}
+      aria-label="Close modal"
     >
       <div
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-slideUp"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b flex-shrink-0">
@@ -165,10 +173,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
         <div className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Title Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="course-title" className="block text-sm font-medium text-gray-700 mb-2">
               {t('creator.titleLabel')}
             </label>
             <input
+              id="course-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -181,10 +190,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
           {/* Narrator Voice Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="narrator-voice" className="block text-sm font-medium text-gray-700 mb-2">
               {t('creator.narratorLabel', { language: episode.nativeLanguage.toUpperCase() })}
             </label>
             <select
+              id="narrator-voice"
               value={selectedVoice}
               onChange={(e) => setSelectedVoice(e.target.value)}
               disabled={isCreating}
@@ -209,10 +219,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
             <div className="grid grid-cols-2 gap-4">
               {/* Speaker 1 Voice */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="speaker1-voice" className="block text-sm font-medium text-gray-700 mb-2">
                   {t('voiceConfig.speaker1')}
                 </label>
                 <select
+                  id="speaker1-voice"
                   value={speaker1VoiceId}
                   onChange={(e) => setSpeaker1VoiceId(e.target.value)}
                   disabled={isCreating}
@@ -230,10 +241,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
               {/* Speaker 2 Voice */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="speaker2-voice" className="block text-sm font-medium text-gray-700 mb-2">
                   {t('voiceConfig.speaker2')}
                 </label>
                 <select
+                  id="speaker2-voice"
                   value={speaker2VoiceId}
                   onChange={(e) => setSpeaker2VoiceId(e.target.value)}
                   disabled={isCreating}
@@ -254,12 +266,13 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
           {/* Max Lesson Duration */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="max-duration" className="block text-sm font-medium text-gray-700 mb-2">
               {t('courseSettings.maxDuration')}
             </label>
             <select
+              id="max-duration"
               value={maxDuration}
-              onChange={(e) => setMaxDuration(parseInt(e.target.value))}
+              onChange={(e) => setMaxDuration(parseInt(e.target.value, 10))}
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
@@ -273,10 +286,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
           {/* JLPT Level Selector */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="jlpt-level" className="block text-sm font-medium text-gray-700 mb-2">
               {t('courseSettings.targetJLPT')}
             </label>
             <select
+              id="jlpt-level"
               value={jlptLevel}
               onChange={(e) => setJlptLevel(e.target.value)}
               disabled={isCreating}

@@ -203,9 +203,8 @@ describe('ForgotPasswordPage', () => {
         expect(screen.getByRole('heading', { name: /Check Your Email/i })).toBeInTheDocument();
       });
 
-      // Check for mail icon
-      const mailIcon = document.querySelector('.text-periwinkle');
-      expect(mailIcon).toBeInTheDocument();
+      // Verify success message is complete
+      expect(screen.getByText(/sent a password reset link/i)).toBeInTheDocument();
     });
 
     it('should show back to login button in success state', async () => {

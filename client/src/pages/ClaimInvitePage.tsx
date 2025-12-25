@@ -82,6 +82,7 @@ const ClaimInvitePage = () => {
                 className="input"
                 placeholder={t('claimInvite.codePlaceholder')}
                 required
+                // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: Primary action on page
                 autoFocus
               />
             </div>

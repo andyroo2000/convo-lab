@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BookOpen, Clock } from 'lucide-react';
+import { BookOpen, Clock } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
 const CoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
   const { audioRef } = useAudioPlayer();
 
@@ -94,12 +94,16 @@ const CoursePage = () => {
               onBlur={handleTitleSave}
               onKeyDown={(e) => handleKeyDown(e, handleTitleSave)}
               className="text-3xl font-bold text-navy bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full"
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: Inline editing UX
               autoFocus
             />
           ) : (
             <h1
               className="text-3xl font-bold text-navy cursor-pointer hover:text-indigo-600 transition-colors"
               onClick={handleTitleEdit}
+              onKeyDown={(e) => e.key === 'Enter' && handleTitleEdit()}
+              role="button"
+              tabIndex={0}
               title="Click to edit"
             >
               {course.title}
@@ -115,12 +119,16 @@ const CoursePage = () => {
               onKeyDown={(e) => handleKeyDown(e, handleDescriptionSave)}
               className="text-gray-600 mt-2 bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full resize-none"
               rows={2}
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: Inline editing UX
               autoFocus
             />
           ) : (
             <p
               className="text-gray-600 mt-2 cursor-pointer hover:text-indigo-600 transition-colors"
               onClick={handleDescriptionEdit}
+              onKeyDown={(e) => e.key === 'Enter' && handleDescriptionEdit()}
+              role="button"
+              tabIndex={0}
               title="Click to edit"
             >
               {course.description || 'Click to add description...'}

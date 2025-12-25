@@ -1,5 +1,7 @@
+/* eslint-disable testing-library/no-node-access */
+// Complex session page testing with audio elements and dynamic content requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import PISessionPage from '../PISessionPage';
@@ -86,7 +88,7 @@ describe('PISessionPage', () => {
       </MemoryRouter>
     );
 
-  const renderWithoutSession = () =>
+  const _renderWithoutSession = () =>
     render(
       <MemoryRouter initialEntries={['/app/pi/session']}>
         <Routes>

@@ -59,14 +59,14 @@ const NotFoundPage = () => {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
+            <button type="button"
               onClick={() => navigate(-1)}
               className="btn-outline flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               {t('notFound:buttons.goBack')}
             </button>
-            <button
+            <button type="button"
               onClick={() => navigate('/app/library')}
               className="btn-primary flex items-center justify-center gap-2"
             >

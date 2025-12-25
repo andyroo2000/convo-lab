@@ -67,6 +67,20 @@
       }
     ],
     "no-console": ["warn", { "allow": ["warn", "error"] }],
-    "jsx-a11y/media-has-caption": "off"
+    "jsx-a11y/media-has-caption": "off",
+    "no-underscore-dangle": "off",
+    "@typescript-eslint/naming-convention": [
+      "error",
+      {
+        "selector": "variable",
+        "format": ["camelCase", "PascalCase", "UPPER_CASE"],
+        "leadingUnderscore": "allow"
+      },
+      {
+        "selector": "parameter",
+        "format": ["camelCase", "PascalCase"],
+        "leadingUnderscore": "allow"
+      }
+    ]
   }
 }

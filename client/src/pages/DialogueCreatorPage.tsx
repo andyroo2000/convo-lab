@@ -1,11 +1,10 @@
-import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 
 const DialogueCreatorPage = () => {
   const { t } = useTranslation(['dialogue']);
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
 
   return (
     <div className="max-w-6xl mx-auto">
