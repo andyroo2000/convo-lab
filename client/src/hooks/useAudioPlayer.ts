@@ -10,6 +10,8 @@ interface UseAudioPlayerReturn {
   seek: (time: number) => void;
 }
 
+// Named export is intentional for hooks
+// eslint-disable-next-line import/prefer-default-export
 export function useAudioPlayer(): UseAudioPlayerReturn {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);

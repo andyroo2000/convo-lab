@@ -81,6 +81,22 @@ const NarrowListeningPlaybackPage = () => {
         : selectedVersion.audioUrl_1_0
     : null;
 
+  const loadPack = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_URL}/api/narrow-listening/${id}`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch pack');
+      const data = await response.json();
+      setPack(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load pack');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadPack();
   }, [id]);
@@ -194,29 +210,6 @@ const NarrowListeningPlaybackPage = () => {
       }
     }
   }, [currentTime, selectedVersion, isPlaying, selectedSpeed]);
-
-  const loadPack = async () => {
-    if (!id) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(`${API_URL}/api/narrow-listening/${id}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch pack');
-      }
-
-      const data = await response.json();
-      setPack(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSpeedChange = async (newSpeed: Speed) => {
     setSelectedSpeed(newSpeed);

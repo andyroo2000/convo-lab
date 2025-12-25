@@ -63,6 +63,99 @@ const PlaybackPage = () => {
     return url || '/placeholder-avatar.jpg';
   };
 
+  const loadEpisode = async (bustCache = false) => {
+    if (!episodeId) return;
+    try {
+      const data = await getEpisode(episodeId, bustCache);
+      setEpisode(data);
+    } catch (err) {
+      console.error('Failed to load episode:', err);
+    }
+  };
+
+  const handleGenerateAllSpeeds = async () => {
+    if (!episode || !episode.dialogue) return;
+
+    setIsGeneratingAudio(true);
+    setGenerationProgress(0);
+
+    try {
+      const jobId = await generateAllSpeedsAudio(episode.id, episode.dialogue.id);
+
+      // Clear any existing polling interval
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
+      const startTime = Date.now();
+      const MAX_POLL_DURATION = 5 * 60 * 1000; // 5 minutes timeout
+
+      // Poll for progress
+      const pollInterval = setInterval(async () => {
+        try {
+          // Check for timeout
+          if (Date.now() - startTime > MAX_POLL_DURATION) {
+            clearInterval(pollInterval);
+            pollingIntervalRef.current = null;
+            setIsGeneratingAudio(false);
+            setGenerationProgress(0);
+            setToastMessage('Audio generation timed out. Please try again.');
+            setToastType('error');
+            return;
+          }
+
+          const response = await fetch(`${API_URL}/api/audio/job/${jobId}`, {
+            credentials: 'include',
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+
+            // Update progress
+            if (data.progress !== undefined) {
+              setGenerationProgress(data.progress);
+            }
+
+            // Check if completed
+            if (data.state === 'completed') {
+              clearInterval(pollInterval);
+              pollingIntervalRef.current = null;
+              await loadEpisode(true); // Bust cache to get fresh data with audio URLs
+              setIsGeneratingAudio(false);
+              setGenerationProgress(0);
+              setToastMessage('Audio generated successfully!');
+              setToastType('success');
+            } else if (data.state === 'failed') {
+              clearInterval(pollInterval);
+              pollingIntervalRef.current = null;
+              setIsGeneratingAudio(false);
+              setGenerationProgress(0);
+              setToastMessage('Failed to generate audio. Please try again.');
+              setToastType('error');
+            }
+          }
+        } catch (err) {
+          console.error('Error polling job:', err);
+          clearInterval(pollInterval);
+          pollingIntervalRef.current = null;
+          setIsGeneratingAudio(false);
+          setGenerationProgress(0);
+          setToastMessage('Failed to check generation status. Please refresh the page.');
+          setToastType('error');
+        }
+      }, 1000);
+
+      pollingIntervalRef.current = pollInterval;
+    } catch (err) {
+      console.error('Failed to start audio generation:', err);
+      setIsGeneratingAudio(false);
+      setGenerationProgress(0);
+      setToastMessage('Failed to start audio generation. Please try again.');
+      setToastType('error');
+    }
+  };
+
   useEffect(() => {
     if (episodeId) {
       loadEpisode();
@@ -272,16 +365,6 @@ const PlaybackPage = () => {
     []
   );
 
-  const loadEpisode = async (bustCache = false) => {
-    if (!episodeId) return;
-    try {
-      const data = await getEpisode(episodeId, bustCache);
-      setEpisode(data);
-    } catch (err) {
-      console.error('Failed to load episode:', err);
-    }
-  };
-
   const seekToSentence = (sentence: Sentence) => {
     // Get timing for current speed
     const startTime =
@@ -301,89 +384,6 @@ const PlaybackPage = () => {
       if (!isPlaying) {
         play();
       }
-    }
-  };
-
-  const handleGenerateAllSpeeds = async () => {
-    if (!episode || !episode.dialogue) return;
-
-    setIsGeneratingAudio(true);
-    setGenerationProgress(0);
-
-    try {
-      const jobId = await generateAllSpeedsAudio(episode.id, episode.dialogue.id);
-
-      // Clear any existing polling interval
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-        pollingIntervalRef.current = null;
-      }
-
-      const startTime = Date.now();
-      const MAX_POLL_DURATION = 5 * 60 * 1000; // 5 minutes timeout
-
-      // Poll for progress
-      const pollInterval = setInterval(async () => {
-        try {
-          // Check for timeout
-          if (Date.now() - startTime > MAX_POLL_DURATION) {
-            clearInterval(pollInterval);
-            pollingIntervalRef.current = null;
-            setIsGeneratingAudio(false);
-            setGenerationProgress(0);
-            setToastMessage('Audio generation timed out. Please try again.');
-            setToastType('error');
-            return;
-          }
-
-          const response = await fetch(`${API_URL}/api/audio/job/${jobId}`, {
-            credentials: 'include',
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-
-            // Update progress
-            if (data.progress !== undefined) {
-              setGenerationProgress(data.progress);
-            }
-
-            // Check if completed
-            if (data.state === 'completed') {
-              clearInterval(pollInterval);
-              pollingIntervalRef.current = null;
-              await loadEpisode(true); // Bust cache to get fresh data with audio URLs
-              setIsGeneratingAudio(false);
-              setGenerationProgress(0);
-              setToastMessage('Audio generated successfully!');
-              setToastType('success');
-            } else if (data.state === 'failed') {
-              clearInterval(pollInterval);
-              pollingIntervalRef.current = null;
-              setIsGeneratingAudio(false);
-              setGenerationProgress(0);
-              setToastMessage('Failed to generate audio. Please try again.');
-              setToastType('error');
-            }
-          }
-        } catch (err) {
-          console.error('Error polling job:', err);
-          clearInterval(pollInterval);
-          pollingIntervalRef.current = null;
-          setIsGeneratingAudio(false);
-          setGenerationProgress(0);
-          setToastMessage('Failed to check generation status. Please refresh the page.');
-          setToastType('error');
-        }
-      }, 1000);
-
-      pollingIntervalRef.current = pollInterval;
-    } catch (err) {
-      console.error('Failed to start audio generation:', err);
-      setIsGeneratingAudio(false);
-      setGenerationProgress(0);
-      setToastMessage('Failed to start audio generation. Please try again.');
-      setToastType('error');
     }
   };
 

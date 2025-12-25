@@ -199,44 +199,6 @@ const AdminPage = () => {
     'ar-male-formal.jpg',
   ];
 
-  // Redirect if not admin
-  useEffect(() => {
-    if (user && user.role !== 'admin') {
-      navigate('/app/library');
-    }
-  }, [user, navigate]);
-
-  // Fetch data based on active tab
-  useEffect(() => {
-    if (activeTab === 'users') {
-      fetchUsers();
-    } else if (activeTab === 'invite-codes') {
-      fetchInviteCodes();
-    } else if (activeTab === 'analytics') {
-      fetchStats();
-    } else if (activeTab === 'avatars') {
-      fetchUsers();
-      fetchSpeakerAvatars();
-    } else if (activeTab === 'settings') {
-      fetchFeatureFlags();
-    }
-  }, [activeTab]);
-
-  // Filter users based on tier
-  useEffect(() => {
-    if (tierFilter === 'all') {
-      setFilteredUsers(users);
-    } else if (tierFilter === 'canceled') {
-      setFilteredUsers(
-        users.filter(
-          (u) => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined
-        )
-      );
-    } else {
-      setFilteredUsers(users.filter((u) => u.tier === tierFilter));
-    }
-  }, [users, tierFilter]);
-
   const fetchUsers = async () => {
     setIsLoading(true);
     setError('');
@@ -431,27 +393,6 @@ const AdminPage = () => {
     });
 
   // Avatar handler functions
-  const handleRecropSpeaker = async (filename: string) => {
-    try {
-      // Fetch the original image URL from the API
-      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/original`, {
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to fetch original avatar URL');
-      const data = await response.json();
-
-      setCropperImageUrl(data.originalUrl);
-      setCropperTitle(`Re-crop ${filename}`);
-      setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
-        await handleSaveSpeakerRecrop(filename, cropArea);
-      });
-      setCropperOpen(true);
-    } catch (cropError) {
-      console.error('Failed to open cropper:', cropError);
-      showToast('Failed to load original image', 'error');
-    }
-  };
-
   const handleSaveSpeakerRecrop = async (filename: string, cropArea: any) => {
     try {
       const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/recrop`, {
@@ -475,24 +416,25 @@ const AdminPage = () => {
     }
   };
 
-  const handleUploadNewSpeaker = async (filename: string) => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (file) {
-        const url = URL.createObjectURL(file);
-        setCropperImageUrl(url);
-        setCropperTitle(`Upload New ${filename}`);
-        // Capture the file in the closure directly instead of relying on state
-        setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
-          await handleSaveSpeakerCrop(filename, file, cropArea);
-        });
-        setCropperOpen(true);
-      }
-    };
-    input.click();
+  const handleRecropSpeaker = async (filename: string) => {
+    try {
+      // Fetch the original image URL from the API
+      const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/original`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch original avatar URL');
+      const data = await response.json();
+
+      setCropperImageUrl(data.originalUrl);
+      setCropperTitle(`Re-crop ${filename}`);
+      setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
+        await handleSaveSpeakerRecrop(filename, cropArea);
+      });
+      setCropperOpen(true);
+    } catch (cropError) {
+      console.error('Failed to open cropper:', cropError);
+      showToast('Failed to load original image', 'error');
+    }
   };
 
   const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: any) => {
@@ -518,6 +460,64 @@ const AdminPage = () => {
       showToast(err instanceof Error ? err.message : 'Failed to upload speaker avatar', 'error');
     }
   };
+
+  const handleUploadNewSpeaker = async (filename: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setCropperImageUrl(url);
+        setCropperTitle(`Upload New ${filename}`);
+        // Capture the file in the closure directly instead of relying on state
+        setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
+          await handleSaveSpeakerCrop(filename, file, cropArea);
+        });
+        setCropperOpen(true);
+      }
+    };
+    input.click();
+  };
+
+  // Redirect if not admin
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      navigate('/app/library');
+    }
+  }, [user, navigate]);
+
+  // Fetch data based on active tab
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    } else if (activeTab === 'invite-codes') {
+      fetchInviteCodes();
+    } else if (activeTab === 'analytics') {
+      fetchStats();
+    } else if (activeTab === 'avatars') {
+      fetchUsers();
+      fetchSpeakerAvatars();
+    } else if (activeTab === 'settings') {
+      fetchFeatureFlags();
+    }
+  }, [activeTab]);
+
+  // Filter users based on tier
+  useEffect(() => {
+    if (tierFilter === 'all') {
+      setFilteredUsers(users);
+    } else if (tierFilter === 'canceled') {
+      setFilteredUsers(
+        users.filter(
+          (u) => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined
+        )
+      );
+    } else {
+      setFilteredUsers(users.filter((u) => u.tier === tierFilter));
+    }
+  }, [users, tierFilter]);
 
   if (!user || user.role !== 'admin') {
     return null;

@@ -3,6 +3,8 @@ import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
 import { API_URL } from '../config';
 
+// Named export is intentional for hooks
+// eslint-disable-next-line import/prefer-default-export
 export function useEpisodes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from './AuthContext';
 import type { LanguageCode } from '../types';
@@ -47,8 +47,14 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
     document.documentElement.lang = newLocale;
   };
 
+  const value = useMemo(
+    () => ({ locale, changeLocale, isRTL }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [locale, isRTL]
+  );
+
   return (
-    <LocaleContext.Provider value={{ locale, changeLocale, isRTL }}>
+    <LocaleContext.Provider value={value}>
       {children}
     </LocaleContext.Provider>
   );

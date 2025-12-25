@@ -18,7 +18,9 @@ interface QuotaInfo {
 /**
  * Hook to fetch and manage user quota information
  * Returns quota status and a function to refetch
+ * Named export is intentional for hooks
  */
+// eslint-disable-next-line import/prefer-default-export
 export function useQuota() {
   const [quotaInfo, setQuotaInfo] = useState<QuotaInfo | null>(null);
   const [loading, setLoading] = useState(true);

@@ -39,10 +39,10 @@ const DemoRestrictionModal = ({ isOpen, onClose }: DemoRestrictionModalProps) =>
       tabIndex={-1}
       aria-label="Close modal"
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <div
         className="bg-white rounded-lg shadow-xl max-w-md w-full animate-slideUp"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
