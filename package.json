@@ -26,6 +26,10 @@
     "type-check": "npm run type-check --workspaces",
     "harness:i18n": "npx ts-node scripts/i18n-harness.ts",
     "harness:i18n:dry-run": "npx ts-node scripts/i18n-harness.ts --dry-run",
+    "harness:test": "npx ts-node scripts/test-harness.ts",
+    "harness:test:dry-run": "npx ts-node scripts/test-harness.ts --dry-run",
+    "harness:test:fix": "npx ts-node scripts/test-harness.ts --fix-only",
+    "harness:test:coverage": "npx ts-node scripts/test-harness.ts --coverage-only",
     "prepare": "husky"
   },
   "devDependencies": {
