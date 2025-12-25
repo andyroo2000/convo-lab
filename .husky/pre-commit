@@ -1,2 +1,5 @@
+echo "🔍 Running linting on staged files..."
+npx lint-staged
+
 echo "🧪 Running tests before commit..."
 cd server && npm run test:run
