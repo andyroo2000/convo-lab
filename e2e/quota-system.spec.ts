@@ -115,7 +115,9 @@ test.describe('Quota System', () => {
       await page.click('button:has-text("Generate")');
 
       // Should see cooldown error
-      const errorText = await page.locator('[data-testid="error-display"]').textContent({ timeout: 5000 });
+      const errorText = await page
+        .locator('[data-testid="error-display"]')
+        .textContent({ timeout: 5000 });
       expect(errorText).toContain('Please wait');
       expect(errorText).toContain('seconds');
     });
@@ -155,7 +157,9 @@ test.describe('Quota System', () => {
       await page.click('button:has-text("Generate")');
 
       // Should see quota exceeded error
-      const errorText = await page.locator('[data-testid="error-display"]').textContent({ timeout: 5000 });
+      const errorText = await page
+        .locator('[data-testid="error-display"]')
+        .textContent({ timeout: 5000 });
       expect(errorText).toContain('Weekly quota exceeded');
       expect(errorText).toContain('20 of 20');
     });
@@ -175,7 +179,9 @@ test.describe('Quota System', () => {
       await page.click('button:has-text("Generate")');
 
       // Should show reset date
-      const errorText = await page.locator('[data-testid="error-display"]').textContent({ timeout: 5000 });
+      const errorText = await page
+        .locator('[data-testid="error-display"]')
+        .textContent({ timeout: 5000 });
       expect(errorText).toMatch(/Quota resets/i);
     });
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act , renderHook } from '@testing-library/react';
+import { render, screen, act, renderHook } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { AudioPlayerProvider, useAudioPlayerContext } from '../AudioPlayerContext';
 
@@ -11,7 +11,10 @@ const TestComponent = () => {
       <span data-testid="audio-url">{audioUrl || 'null'}</span>
       <span data-testid="title">{title || 'null'}</span>
       <span data-testid="speed">{speed || 'null'}</span>
-      <button onClick={() => setAudioInfo('test.mp3', 'Test Song', 'medium')} data-testid="set-audio">
+      <button
+        onClick={() => setAudioInfo('test.mp3', 'Test Song', 'medium')}
+        data-testid="set-audio"
+      >
         Set Audio
       </button>
       <button onClick={clearAudio} data-testid="clear-audio">
@@ -19,7 +22,7 @@ const TestComponent = () => {
       </button>
     </div>
   );
-}
+};
 
 function wrapper({ children }: { children: ReactNode }) {
   return <AudioPlayerProvider>{children}</AudioPlayerProvider>;
@@ -267,7 +270,9 @@ describe('AudioPlayerContext', () => {
       const { result } = renderHook(() => useAudioPlayerContext(), { wrapper });
 
       // Check types
-      expect(result.current.audioUrl === null || typeof result.current.audioUrl === 'string').toBe(true);
+      expect(result.current.audioUrl === null || typeof result.current.audioUrl === 'string').toBe(
+        true
+      );
       expect(result.current.title === null || typeof result.current.title === 'string').toBe(true);
       expect(result.current.speed === null || typeof result.current.speed === 'string').toBe(true);
       expect(typeof result.current.setAudioInfo).toBe('function');

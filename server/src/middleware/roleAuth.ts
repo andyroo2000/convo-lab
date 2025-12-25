@@ -65,6 +65,6 @@ export function requireRole(roles: string[]) {
  * Helper function to check if an email is in the admin emails list
  */
 export function isAdminEmail(email: string): boolean {
-  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map(e => e.trim().toLowerCase()) || [];
+  const adminEmails = process.env.ADMIN_EMAILS?.split(',').map((e) => e.trim().toLowerCase()) || [];
   return adminEmails.includes(email.toLowerCase());
 }

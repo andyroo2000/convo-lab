@@ -3,11 +3,11 @@ import { GoogleAuth } from 'google-auth-library';
 /**
  * Triggers the Cloud Run Job to process queued jobs.
  * This is called after adding jobs to BullMQ queues to wake up the workers.
- * 
+ *
  * The worker job will:
  * - Process all pending jobs across all queues
  * - Auto-shutdown after 5 minutes of idle time
- * 
+ *
  * Note: This only runs in production. In development, workers run embedded in the API service.
  */
 export async function triggerWorkerJob(): Promise<void> {

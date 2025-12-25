@@ -5,7 +5,9 @@ import '../../../jobs/narrowListeningQueue.js';
 
 // Hoisted mocks
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
-const workerEventHandlers = vi.hoisted(() => new Map<string, Map<string, (...args: unknown[]) => void>>());
+const workerEventHandlers = vi.hoisted(
+  () => new Map<string, Map<string, (...args: unknown[]) => void>>()
+);
 const mockGenerateNarrowListeningPack = vi.hoisted(() => vi.fn());
 const mockGenerateNarrowListeningAudio = vi.hoisted(() => vi.fn());
 const mockAssignVoicesToSegments = vi.hoisted(() => vi.fn());
@@ -36,36 +38,36 @@ const mockFs = vi.hoisted(() => ({
 
 // Mock BullMQ
 vi.mock('bullmq', () => ({
-    Queue: class MockQueue {
-      name: string;
+  Queue: class MockQueue {
+    name: string;
 
-      constructor(name: string) {
-        this.name = name;
-      }
+    constructor(name: string) {
+      this.name = name;
+    }
 
-      add = vi.fn();
+    add = vi.fn();
 
-      close = vi.fn();
-    },
-    Worker: class MockWorker {
-      name: string;
+    close = vi.fn();
+  },
+  Worker: class MockWorker {
+    name: string;
 
-      private eventHandlers = new Map<string, (...args: unknown[]) => void>();
+    private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-      constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
-        this.name = name;
-        workerProcessors.set(name, processor);
-        workerEventHandlers.set(name, this.eventHandlers);
-      }
+    constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
+      this.name = name;
+      workerProcessors.set(name, processor);
+      workerEventHandlers.set(name, this.eventHandlers);
+    }
 
-      on(event: string, handler: (...args: unknown[]) => void): this {
-        this.eventHandlers.set(event, handler);
-        return this;
-      }
+    on(event: string, handler: (...args: unknown[]) => void): this {
+      this.eventHandlers.set(event, handler);
+      return this;
+    }
 
-      close = vi.fn();
-    },
-  }));
+    close = vi.fn();
+  },
+}));
 
 // Mock dependencies
 vi.mock('../../../config/redis.js', () => ({
@@ -117,12 +119,14 @@ vi.mock('fs', () => ({
 }));
 
 // Helper to create mock job
-const createMockJob = (overrides: Partial<{
-  id: string;
-  name: string;
-  data: Record<string, unknown>;
-  updateProgress: ReturnType<typeof vi.fn>;
-}> = {}) => ({
+const createMockJob = (
+  overrides: Partial<{
+    id: string;
+    name: string;
+    data: Record<string, unknown>;
+    updateProgress: ReturnType<typeof vi.fn>;
+  }> = {}
+) => ({
   id: 'test-job-123',
   name: 'default',
   data: {},
@@ -157,8 +161,24 @@ describe('narrowListeningQueue', () => {
   const mockAudioResult = {
     combinedAudioUrl: 'https://storage.example.com/audio.mp3',
     segments: [
-      { text: 'こんにちは', translation: 'Hello', reading: 'こんにちは', startTime: 0, endTime: 1, voiceId: 'ja-JP-Neural2-B', audioUrl: 'seg1.mp3' },
-      { text: 'さようなら', translation: 'Goodbye', reading: 'さようなら', startTime: 1, endTime: 2, voiceId: 'ja-JP-Neural2-C', audioUrl: 'seg2.mp3' },
+      {
+        text: 'こんにちは',
+        translation: 'Hello',
+        reading: 'こんにちは',
+        startTime: 0,
+        endTime: 1,
+        voiceId: 'ja-JP-Neural2-B',
+        audioUrl: 'seg1.mp3',
+      },
+      {
+        text: 'さようなら',
+        translation: 'Goodbye',
+        reading: 'さようなら',
+        startTime: 1,
+        endTime: 2,
+        voiceId: 'ja-JP-Neural2-C',
+        audioUrl: 'seg2.mp3',
+      },
     ],
   };
 
@@ -174,8 +194,20 @@ describe('narrowListeningQueue', () => {
         audioUrl_0_85: 'existing-0.85.mp3',
         audioUrl_1_0: null,
         segments: [
-          { id: 'seg-1', targetText: 'こんにちは', englishTranslation: 'Hello', voiceId: 'ja-JP-Neural2-B', reading: 'こんにちは' },
-          { id: 'seg-2', targetText: 'さようなら', englishTranslation: 'Goodbye', voiceId: 'ja-JP-Neural2-C', reading: 'さようなら' },
+          {
+            id: 'seg-1',
+            targetText: 'こんにちは',
+            englishTranslation: 'Hello',
+            voiceId: 'ja-JP-Neural2-B',
+            reading: 'こんにちは',
+          },
+          {
+            id: 'seg-2',
+            targetText: 'さようなら',
+            englishTranslation: 'Goodbye',
+            voiceId: 'ja-JP-Neural2-C',
+            reading: 'さようなら',
+          },
         ],
       },
     ],
@@ -186,8 +218,14 @@ describe('narrowListeningQueue', () => {
     mockGenerateNarrowListeningPack.mockResolvedValue(mockStoryPack);
     mockGenerateNarrowListeningAudio.mockResolvedValue(mockAudioResult);
     mockAssignVoicesToSegments.mockReturnValue(['ja-JP-Neural2-B', 'ja-JP-Neural2-C']);
-    mockProcessJapaneseBatch.mockResolvedValue([{ furigana: 'こんにちは' }, { furigana: 'さようなら' }]);
-    mockProcessChineseBatch.mockResolvedValue([{ pinyinToneMarks: 'nǐ hǎo' }, { pinyinToneMarks: 'zài jiàn' }]);
+    mockProcessJapaneseBatch.mockResolvedValue([
+      { furigana: 'こんにちは' },
+      { furigana: 'さようなら' },
+    ]);
+    mockProcessChineseBatch.mockResolvedValue([
+      { pinyinToneMarks: 'nǐ hǎo' },
+      { pinyinToneMarks: 'zài jiàn' },
+    ]);
     mockGenerateSilence.mockResolvedValue(Buffer.from('silence'));
     mockFs.mkdir.mockResolvedValue(undefined);
     mockFs.writeFile.mockResolvedValue(undefined);
@@ -347,9 +385,7 @@ describe('narrowListeningQueue', () => {
         versions: [
           {
             ...mockStoryPack.versions[0],
-            segments: [
-              { targetText: '你好', englishTranslation: 'Hello' },
-            ],
+            segments: [{ targetText: '你好', englishTranslation: 'Hello' }],
           },
         ],
       });
@@ -503,7 +539,10 @@ describe('narrowListeningQueue', () => {
 
       await processor(job);
 
-      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-silence'), { recursive: true, force: true });
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-silence'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should update pack status to error on failure', async () => {
@@ -613,7 +652,15 @@ describe('narrowListeningQueue', () => {
       mockGenerateNarrowListeningAudio.mockResolvedValue({
         combinedAudioUrl: 'https://storage.example.com/audio.mp3',
         segments: [
-          { text: 'こんにちは', translation: 'Hello', reading: 'こんにちは', startTime: 0, endTime: 1, voiceId: 'ja-JP-Neural2-B', audioUrl: 'seg1.mp3' },
+          {
+            text: 'こんにちは',
+            translation: 'Hello',
+            reading: 'こんにちは',
+            startTime: 0,
+            endTime: 1,
+            voiceId: 'ja-JP-Neural2-B',
+            audioUrl: 'seg1.mp3',
+          },
         ],
       });
 
@@ -624,7 +671,13 @@ describe('narrowListeningQueue', () => {
             ...mockPackWithVersions.versions[0],
             audioUrl_0_7: null, // Must be null to trigger generation
             segments: [
-              { id: 'seg-1', targetText: 'こんにちは', englishTranslation: 'Hello', voiceId: null, reading: null },
+              {
+                id: 'seg-1',
+                targetText: 'こんにちは',
+                englishTranslation: 'Hello',
+                voiceId: null,
+                reading: null,
+              },
             ],
           },
         ],
@@ -655,7 +708,10 @@ describe('narrowListeningQueue', () => {
 
       await processor(job);
 
-      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-silence-ondemand'), { recursive: true, force: true });
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-silence-ondemand'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should throw error for pack not found', async () => {
@@ -696,7 +752,12 @@ describe('narrowListeningQueue', () => {
     it('should log error on failed event', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      triggerWorkerEvent('narrow-listening-generation', 'failed', { id: 'job-456' }, new Error('Test error'));
+      triggerWorkerEvent(
+        'narrow-listening-generation',
+        'failed',
+        { id: 'job-456' },
+        new Error('Test error')
+      );
 
       expect(consoleSpy).toHaveBeenCalledWith('❌ Job job-456 failed:', expect.any(Error));
       consoleSpy.mockRestore();

@@ -4,21 +4,21 @@ import {
   handleSubscriptionCreated,
   handleSubscriptionUpdated,
   handleSubscriptionDeleted,
-  handleInvoicePaymentFailed
+  handleInvoicePaymentFailed,
 } from '../../../services/stripeService.js';
 import { mockPrisma } from '../../setup.js';
 
 import {
   sendSubscriptionConfirmedEmail,
   sendPaymentFailedEmail,
-  sendSubscriptionCanceledEmail
+  sendSubscriptionCanceledEmail,
 } from '../../../services/emailService.js';
 
 // Mock email service
 vi.mock('../../../services/emailService.js', () => ({
   sendSubscriptionConfirmedEmail: vi.fn(),
   sendPaymentFailedEmail: vi.fn(),
-  sendSubscriptionCanceledEmail: vi.fn()
+  sendSubscriptionCanceledEmail: vi.fn(),
 }));
 
 describe('Stripe Webhook Handlers - Integration Tests', () => {
@@ -39,21 +39,21 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: { userId: mockUserId },
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_start: Math.floor(Date.now() / 1000),
-        current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60
+        current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
       } as any;
 
       mockPrisma.user.update.mockResolvedValue({
         id: mockUserId,
-        tier: 'pro'
+        tier: 'pro',
       });
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       mockPrisma.subscriptionEvent.create.mockResolvedValue({});
@@ -68,8 +68,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
           stripeSubscriptionId: mockSubscriptionId,
           stripeSubscriptionStatus: 'active',
           stripePriceId: mockPriceId,
-          subscriptionCanceledAt: null
-        })
+          subscriptionCanceledAt: null,
+        }),
       });
 
       // Verify subscription event logged
@@ -79,8 +79,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
           eventType: 'subscribed',
           fromTier: 'free',
           toTier: 'pro',
-          stripeEventId: mockSubscriptionId
-        }
+          stripeEventId: mockSubscriptionId,
+        },
       });
 
       // Verify confirmation email sent
@@ -98,8 +98,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: {}, // No userId
         items: {
-          data: [{ price: { id: mockPriceId } }]
-        }
+          data: [{ price: { id: mockPriceId } }],
+        },
       } as any;
 
       await handleSubscriptionCreated(subscription);
@@ -118,10 +118,10 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: { userId: mockUserId },
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-        cancel_at_period_end: false
+        cancel_at_period_end: false,
       } as any;
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -132,8 +132,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         where: { id: mockUserId },
         data: expect.objectContaining({
           stripeSubscriptionStatus: 'active',
-          stripePriceId: mockPriceId
-        })
+          stripePriceId: mockPriceId,
+        }),
       });
     });
 
@@ -144,14 +144,14 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: {}, // No userId
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-        cancel_at_period_end: false
+        cancel_at_period_end: false,
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
-        id: mockUserId
+        id: mockUserId,
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -161,13 +161,13 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       // Verify lookup by customerId
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { stripeCustomerId: mockCustomerId },
-        select: { id: true }
+        select: { id: true },
       });
 
       // Verify update by customerId
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { stripeCustomerId: mockCustomerId },
-        data: expect.any(Object)
+        data: expect.any(Object),
       });
     });
 
@@ -179,10 +179,10 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: { userId: mockUserId },
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_end: periodEnd,
-        cancel_at_period_end: true
+        cancel_at_period_end: true,
       } as any;
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -193,8 +193,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         where: { id: mockUserId },
         data: expect.objectContaining({
           stripeSubscriptionStatus: 'active',
-          subscriptionCanceledAt: new Date(periodEnd * 1000)
-        })
+          subscriptionCanceledAt: new Date(periodEnd * 1000),
+        }),
       });
     });
 
@@ -205,10 +205,10 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: {}, // No userId
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_end: Math.floor(Date.now() / 1000),
-        cancel_at_period_end: false
+        cancel_at_period_end: false,
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
@@ -225,14 +225,14 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const subscription = {
         id: mockSubscriptionId,
         customer: mockCustomerId,
-        metadata: { userId: mockUserId }
+        metadata: { userId: mockUserId },
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'pro',
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -248,8 +248,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
           stripeSubscriptionStatus: null,
           stripeSubscriptionId: null,
           stripePriceId: null,
-          subscriptionCanceledAt: expect.any(Date)
-        }
+          subscriptionCanceledAt: expect.any(Date),
+        },
       });
 
       // Verify event logged
@@ -259,29 +259,26 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
           eventType: 'canceled',
           fromTier: 'pro',
           toTier: 'free',
-          stripeEventId: mockSubscriptionId
-        }
+          stripeEventId: mockSubscriptionId,
+        },
       });
 
       // Verify cancellation email
-      expect(sendSubscriptionCanceledEmail).toHaveBeenCalledWith(
-        'test@example.com',
-        'Test User'
-      );
+      expect(sendSubscriptionCanceledEmail).toHaveBeenCalledWith('test@example.com', 'Test User');
     });
 
     it('should lookup user by customerId when userId missing', async () => {
       const subscription = {
         id: mockSubscriptionId,
         customer: mockCustomerId,
-        metadata: {} // No userId
+        metadata: {}, // No userId
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'pro',
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -292,15 +289,15 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       // Verify lookup by customerId
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { stripeCustomerId: mockCustomerId },
-        select: { id: true, tier: true, email: true, name: true }
+        select: { id: true, tier: true, email: true, name: true },
       });
 
       // Verify downgrade
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
         data: expect.objectContaining({
-          tier: 'free'
-        })
+          tier: 'free',
+        }),
       });
     });
 
@@ -308,7 +305,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const subscription = {
         id: mockSubscriptionId,
         customer: mockCustomerId,
-        metadata: {}
+        metadata: {},
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
@@ -324,14 +321,14 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const subscription = {
         id: mockSubscriptionId,
         customer: mockCustomerId,
-        metadata: { userId: mockUserId }
+        metadata: { userId: mockUserId },
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'pro',
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -344,8 +341,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         data: expect.objectContaining({
           eventType: 'canceled',
           fromTier: 'pro',
-          toTier: 'free'
-        })
+          toTier: 'free',
+        }),
       });
     });
   });
@@ -354,13 +351,13 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
     it('should send payment failed email to user', async () => {
       const invoice = {
         id: 'inv_123',
-        customer: mockCustomerId
+        customer: mockCustomerId,
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       await handleInvoicePaymentFailed(invoice);
@@ -368,20 +365,17 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       // Verify user lookup
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { stripeCustomerId: mockCustomerId },
-        select: { id: true, email: true, name: true }
+        select: { id: true, email: true, name: true },
       });
 
       // Verify email sent
-      expect(sendPaymentFailedEmail).toHaveBeenCalledWith(
-        'test@example.com',
-        'Test User'
-      );
+      expect(sendPaymentFailedEmail).toHaveBeenCalledWith('test@example.com', 'Test User');
     });
 
     it('should handle user without subscription gracefully', async () => {
       const invoice = {
         id: 'inv_123',
-        customer: mockCustomerId
+        customer: mockCustomerId,
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
@@ -395,13 +389,13 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
     it('should not immediately downgrade user on payment failure', async () => {
       const invoice = {
         id: 'inv_123',
-        customer: mockCustomerId
+        customer: mockCustomerId,
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         email: 'test@example.com',
-        name: 'Test User'
+        name: 'Test User',
       });
 
       await handleInvoicePaymentFailed(invoice);
@@ -419,10 +413,10 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: { userId: mockUserId },
         items: {
-          data: [{ price: { id: mockPriceId } }]
+          data: [{ price: { id: mockPriceId } }],
         },
         current_period_end: Math.floor(Date.now() / 1000),
-        cancel_at_period_end: false
+        cancel_at_period_end: false,
       } as any;
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -430,7 +424,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       // Simulate concurrent updates
       await Promise.all([
         handleSubscriptionUpdated(subscription),
-        handleSubscriptionUpdated(subscription)
+        handleSubscriptionUpdated(subscription),
       ]);
 
       // Both should complete successfully (last write wins)
@@ -441,7 +435,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const subscription = {
         id: mockSubscriptionId,
         customer: mockCustomerId,
-        metadata: {}
+        metadata: {},
       } as any;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
@@ -458,10 +452,10 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         status: 'active',
         metadata: { userId: mockUserId },
         items: {
-          data: [{ price: { id: newPriceId } }]
+          data: [{ price: { id: newPriceId } }],
         },
         current_period_end: Math.floor(Date.now() / 1000),
-        cancel_at_period_end: false
+        cancel_at_period_end: false,
       } as any;
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -471,8 +465,8 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       expect(mockPrisma.user.update).toHaveBeenCalledWith({
         where: { id: mockUserId },
         data: expect.objectContaining({
-          stripePriceId: newPriceId
-        })
+          stripePriceId: newPriceId,
+        }),
       });
     });
   });

@@ -6,11 +6,7 @@ import { Response, NextFunction } from 'express';
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
 import { prisma } from '../db/client.js';
-import {
-  checkGenerationLimit,
-  checkCooldown,
-  setCooldown
-} from '../services/usageTracker.js';
+import { checkGenerationLimit, checkCooldown, setCooldown } from '../services/usageTracker.js';
 import i18next from '../i18n/index.js';
 
 /**
@@ -18,11 +14,7 @@ import i18next from '../i18n/index.js';
  * Checks both weekly quota and cooldown period.
  * Admins are exempt from all limits.
  */
-export async function rateLimitGeneration(
-  req: AuthRequest,
-  _res: Response,
-  next: NextFunction
-) {
+export async function rateLimitGeneration(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
     if (!req.userId) {
       throw new AppError(i18next.t('server:errors.authRequired'), 401);
@@ -31,7 +23,7 @@ export async function rateLimitGeneration(
     // Get user role
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { role: true }
+      select: { role: true },
     });
 
     if (!user) {
@@ -52,8 +44,8 @@ export async function rateLimitGeneration(
         {
           cooldown: {
             remainingSeconds: cooldown.remainingSeconds,
-            retryAfter: new Date(Date.now() + cooldown.remainingSeconds * 1000)
-          }
+            retryAfter: new Date(Date.now() + cooldown.remainingSeconds * 1000),
+          },
         }
       );
     }
@@ -62,15 +54,18 @@ export async function rateLimitGeneration(
     const quotaStatus = await checkGenerationLimit(req.userId);
     if (!quotaStatus.allowed) {
       throw new AppError(
-        i18next.t('server:rateLimit.quotaExceeded', { used: quotaStatus.used, limit: quotaStatus.limit }),
+        i18next.t('server:rateLimit.quotaExceeded', {
+          used: quotaStatus.used,
+          limit: quotaStatus.limit,
+        }),
         429,
         {
           quota: {
             limit: quotaStatus.limit,
             used: quotaStatus.used,
             remaining: 0,
-            resetsAt: quotaStatus.resetsAt
-          }
+            resetsAt: quotaStatus.resetsAt,
+          },
         }
       );
     }

@@ -28,9 +28,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
     });
 
     // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
+    triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
     res.json({
       jobId: job.id,
@@ -60,7 +58,9 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
     );
 
     if (duplicateJob) {
-      console.log(`Duplicate job detected for episode ${episodeId}, returning existing job ${duplicateJob.id}`);
+      console.log(
+        `Duplicate job detected for episode ${episodeId}, returning existing job ${duplicateJob.id}`
+      );
       return res.json({
         jobId: duplicateJob.id,
         message: i18next.t('server:content.generationInProgress', { type: 'Audio' }),
@@ -75,9 +75,7 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
     });
 
     // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
+    triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
     res.json({
       jobId: job.id,

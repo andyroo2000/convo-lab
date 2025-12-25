@@ -69,7 +69,6 @@ async function checkJob() {
       const emoji = s === 'completed' ? '✅' : s === 'failed' ? '❌' : s === 'active' ? '⏳' : '⏸️';
       console.log(`${emoji} #${j.id} - ${j.name} (${s}) - Episode: ${j.data.episodeId}`);
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

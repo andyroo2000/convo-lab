@@ -73,17 +73,13 @@ describe('SegmentedPill', () => {
     });
 
     it('should apply uppercase to left segment when prop is true', () => {
-      const { container } = render(
-        <SegmentedPill leftText="left" rightText="right" uppercase />
-      );
+      const { container } = render(<SegmentedPill leftText="left" rightText="right" uppercase />);
       const leftSegment = container.querySelector('.pl-4');
       expect(leftSegment).toHaveClass('uppercase', 'tracking-wide');
     });
 
     it('should apply capitalize when prop is true', () => {
-      const { container } = render(
-        <SegmentedPill leftText="left" rightText="right" capitalize />
-      );
+      const { container } = render(<SegmentedPill leftText="left" rightText="right" capitalize />);
       const leftSegment = container.querySelector('.pl-4');
       const rightSegment = container.querySelector('.pl-3');
 
@@ -138,11 +134,22 @@ describe('SegmentedPill', () => {
 
   describe('all color schemes', () => {
     const colors = [
-      'periwinkle', 'coral', 'strawberry', 'keylime', 'mint',
-      'olive', 'blue', 'yellow', 'red', 'green', 'gray', 'orange', 'pale-sky'
+      'periwinkle',
+      'coral',
+      'strawberry',
+      'keylime',
+      'mint',
+      'olive',
+      'blue',
+      'yellow',
+      'red',
+      'green',
+      'gray',
+      'orange',
+      'pale-sky',
     ] as const;
 
-    colors.forEach(color => {
+    colors.forEach((color) => {
       it(`should render ${color} color on left segment without error`, () => {
         render(<SegmentedPill leftText={color} rightText="Right" leftColor={color} />);
         expect(screen.getByText(color)).toBeInTheDocument();
@@ -160,7 +167,9 @@ describe('SegmentedPill', () => {
       const { container } = render(<SegmentedPill leftText="Left" rightText="Right" />);
       const rightSegment = container.querySelector('.pl-3') as HTMLElement;
 
-      expect(rightSegment.style.clipPath).toBe('polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)');
+      expect(rightSegment.style.clipPath).toBe(
+        'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)'
+      );
     });
 
     it('should have negative margin on right segment', () => {

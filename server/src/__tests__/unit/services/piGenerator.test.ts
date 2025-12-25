@@ -18,16 +18,16 @@ const mockGenerateContent = vi.hoisted(() => vi.fn());
 
 // Mock the @google/generative-ai module with a proper class constructor
 vi.mock('@google/generative-ai', () => ({
-    GoogleGenerativeAI: class MockGoogleGenerativeAI {
-      constructor() {}
+  GoogleGenerativeAI: class MockGoogleGenerativeAI {
+    constructor() {}
 
-      getGenerativeModel() {
-        return {
-          generateContent: mockGenerateContent,
-        };
-      }
-    },
-  }));
+    getGenerativeModel() {
+      return {
+        generateContent: mockGenerateContent,
+      };
+    }
+  },
+}));
 
 describe('piGenerator', () => {
   beforeEach(() => {
@@ -36,47 +36,47 @@ describe('piGenerator', () => {
 
   describe('GRAMMAR_POINTS constant', () => {
     it('should have all N5 grammar points', () => {
-      const n5Points = Object.values(GRAMMAR_POINTS).filter(gp => gp.level === 'N5');
+      const n5Points = Object.values(GRAMMAR_POINTS).filter((gp) => gp.level === 'N5');
 
       expect(n5Points.length).toBe(5);
-      expect(n5Points.map(gp => gp.id)).toContain('ha_vs_ga');
-      expect(n5Points.map(gp => gp.id)).toContain('ni_vs_de');
-      expect(n5Points.map(gp => gp.id)).toContain('wo_vs_ga');
-      expect(n5Points.map(gp => gp.id)).toContain('e_vs_ni');
-      expect(n5Points.map(gp => gp.id)).toContain('mada_vs_mou');
+      expect(n5Points.map((gp) => gp.id)).toContain('ha_vs_ga');
+      expect(n5Points.map((gp) => gp.id)).toContain('ni_vs_de');
+      expect(n5Points.map((gp) => gp.id)).toContain('wo_vs_ga');
+      expect(n5Points.map((gp) => gp.id)).toContain('e_vs_ni');
+      expect(n5Points.map((gp) => gp.id)).toContain('mada_vs_mou');
     });
 
     it('should have all N4 grammar points', () => {
-      const n4Points = Object.values(GRAMMAR_POINTS).filter(gp => gp.level === 'N4');
+      const n4Points = Object.values(GRAMMAR_POINTS).filter((gp) => gp.level === 'N4');
 
       expect(n4Points.length).toBe(5);
-      expect(n4Points.map(gp => gp.id)).toContain('kara_vs_node');
-      expect(n4Points.map(gp => gp.id)).toContain('ni_vs_to');
-      expect(n4Points.map(gp => gp.id)).toContain('teiru_aspect');
-      expect(n4Points.map(gp => gp.id)).toContain('to_vs_tari');
-      expect(n4Points.map(gp => gp.id)).toContain('ha_vs_mo');
+      expect(n4Points.map((gp) => gp.id)).toContain('kara_vs_node');
+      expect(n4Points.map((gp) => gp.id)).toContain('ni_vs_to');
+      expect(n4Points.map((gp) => gp.id)).toContain('teiru_aspect');
+      expect(n4Points.map((gp) => gp.id)).toContain('to_vs_tari');
+      expect(n4Points.map((gp) => gp.id)).toContain('ha_vs_mo');
     });
 
     it('should have all N3 grammar points', () => {
-      const n3Points = Object.values(GRAMMAR_POINTS).filter(gp => gp.level === 'N3');
+      const n3Points = Object.values(GRAMMAR_POINTS).filter((gp) => gp.level === 'N3');
 
       expect(n3Points.length).toBe(5);
-      expect(n3Points.map(gp => gp.id)).toContain('passive_vs_active');
-      expect(n3Points.map(gp => gp.id)).toContain('garu_vs_tai');
-      expect(n3Points.map(gp => gp.id)).toContain('koto_ni_naru_vs_suru');
-      expect(n3Points.map(gp => gp.id)).toContain('conditional_types');
-      expect(n3Points.map(gp => gp.id)).toContain('zu_ni_vs_nai_de');
+      expect(n3Points.map((gp) => gp.id)).toContain('passive_vs_active');
+      expect(n3Points.map((gp) => gp.id)).toContain('garu_vs_tai');
+      expect(n3Points.map((gp) => gp.id)).toContain('koto_ni_naru_vs_suru');
+      expect(n3Points.map((gp) => gp.id)).toContain('conditional_types');
+      expect(n3Points.map((gp) => gp.id)).toContain('zu_ni_vs_nai_de');
     });
 
     it('should have all N2 grammar points', () => {
-      const n2Points = Object.values(GRAMMAR_POINTS).filter(gp => gp.level === 'N2');
+      const n2Points = Object.values(GRAMMAR_POINTS).filter((gp) => gp.level === 'N2');
 
       expect(n2Points.length).toBe(5);
-      expect(n2Points.map(gp => gp.id)).toContain('discourse_ha_vs_ga');
-      expect(n2Points.map(gp => gp.id)).toContain('wake_vs_hazu_vs_chigainai');
-      expect(n2Points.map(gp => gp.id)).toContain('causative_types');
-      expect(n2Points.map(gp => gp.id)).toContain('you_ni_vs_tame_ni');
-      expect(n2Points.map(gp => gp.id)).toContain('koto_da_vs_mono_da');
+      expect(n2Points.map((gp) => gp.id)).toContain('discourse_ha_vs_ga');
+      expect(n2Points.map((gp) => gp.id)).toContain('wake_vs_hazu_vs_chigainai');
+      expect(n2Points.map((gp) => gp.id)).toContain('causative_types');
+      expect(n2Points.map((gp) => gp.id)).toContain('you_ni_vs_tame_ni');
+      expect(n2Points.map((gp) => gp.id)).toContain('koto_da_vs_mono_da');
     });
 
     it('should have 20 total grammar points', () => {
@@ -263,8 +263,9 @@ describe('piGenerator', () => {
     it('should throw error on API failure', async () => {
       mockGenerateContent.mockRejectedValue(new Error('API error'));
 
-      await expect(generatePISession('N5', 5, 'ha_vs_ga'))
-        .rejects.toThrow('Failed to generate PI session');
+      await expect(generatePISession('N5', 5, 'ha_vs_ga')).rejects.toThrow(
+        'Failed to generate PI session'
+      );
     });
 
     it('should throw error on invalid JSON response', async () => {
@@ -274,8 +275,9 @@ describe('piGenerator', () => {
         },
       });
 
-      await expect(generatePISession('N5', 5, 'ha_vs_ga'))
-        .rejects.toThrow('Failed to generate PI session');
+      await expect(generatePISession('N5', 5, 'ha_vs_ga')).rejects.toThrow(
+        'Failed to generate PI session'
+      );
     });
 
     it('should work with different JLPT levels', async () => {
@@ -327,7 +329,7 @@ describe('piGenerator', () => {
       },
       meaning_match: {
         type: 'meaning_match' as const,
-        question: 'Which means: It\'s Tanaka who came?',
+        question: "Which means: It's Tanaka who came?",
         japaneseSentence: '田中さんが来ました。',
         audioText: '田中さんが来ました。',
         choices: [

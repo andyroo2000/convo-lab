@@ -82,9 +82,7 @@ describe('Admin Subscription Routes', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const response = await request(app)
-        .get('/api/admin/users/user-123/subscription')
-        .expect(200);
+      const response = await request(app).get('/api/admin/users/user-123/subscription').expect(200);
 
       expect(response.body).toMatchObject({
         id: 'user-123',
@@ -147,7 +145,9 @@ describe('Admin Subscription Routes', () => {
           eventType: 'admin_override',
           fromTier: 'free',
           toTier: 'pro',
-          stripeEventId: expect.stringContaining('admin:admin-user-id:Manual upgrade for beta tester'),
+          stripeEventId: expect.stringContaining(
+            'admin:admin-user-id:Manual upgrade for beta tester'
+          ),
         },
       });
     });
@@ -239,10 +239,7 @@ describe('Admin Subscription Routes', () => {
       mockPrisma.user.update.mockResolvedValue({ ...existingUser, tier: 'pro' });
       mockPrisma.subscriptionEvent.create.mockResolvedValue({});
 
-      await request(app)
-        .post('/api/admin/users/user-123/tier')
-        .send({ tier: 'pro' })
-        .expect(200);
+      await request(app).post('/api/admin/users/user-123/tier').send({ tier: 'pro' }).expect(200);
 
       expect(mockPrisma.subscriptionEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -348,10 +345,7 @@ describe('Admin Subscription Routes', () => {
       mockPrisma.user.update.mockResolvedValue({});
       mockPrisma.subscriptionEvent.create.mockResolvedValue({});
 
-      await request(app)
-        .post('/api/admin/users/user-123/subscription/cancel')
-        .send({})
-        .expect(200);
+      await request(app).post('/api/admin/users/user-123/subscription/cancel').send({}).expect(200);
 
       expect(mockPrisma.subscriptionEvent.create).toHaveBeenCalledWith({
         data: expect.objectContaining({

@@ -1,7 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic } from 'lucide-react';
-import { LANGUAGE_ABBREVIATIONS } from "@languageflow/shared/src/constants-new";
+import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
 import UserMenu from './UserMenu';
@@ -45,11 +45,20 @@ export default function Layout() {
   }
 
   // Determine active navigation (updated for /app prefix)
-  const isLibraryActive = location.pathname === '/app/library' || location.pathname.startsWith('/app/playback') || location.pathname.startsWith('/app/practice') || location.pathname.startsWith('/app/courses') || location.pathname.startsWith('/app/narrow-listening') || location.pathname.startsWith('/app/chunk-packs') || location.pathname.startsWith('/app/pi/session');
-  const isCreateActive = location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
+  const isLibraryActive =
+    location.pathname === '/app/library' ||
+    location.pathname.startsWith('/app/playback') ||
+    location.pathname.startsWith('/app/practice') ||
+    location.pathname.startsWith('/app/courses') ||
+    location.pathname.startsWith('/app/narrow-listening') ||
+    location.pathname.startsWith('/app/chunk-packs') ||
+    location.pathname.startsWith('/app/pi/session');
+  const isCreateActive =
+    location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
 
   // Pages that should have no horizontal padding on mobile for full-width cards
-  const isFullWidthMobilePage = location.pathname === '/app/library' || location.pathname === '/app/create';
+  const isFullWidthMobilePage =
+    location.pathname === '/app/library' || location.pathname === '/app/create';
 
   return (
     <div className="min-h-screen bg-cream">
@@ -57,7 +66,10 @@ export default function Layout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16">
             <div className="flex items-center flex-1">
-              <Link to="/app/library" className="flex items-center gap-2 px-2 sm:px-4 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0">
+              <Link
+                to="/app/library"
+                className="flex items-center gap-2 px-2 sm:px-4 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
+              >
                 <span className="hidden xs:inline">ConvoLab</span>
                 <Logo size="small" />
               </Link>
@@ -128,7 +140,9 @@ export default function Layout() {
               <div className="sm:hidden flex items-center mr-2">
                 <div className="px-1.5 py-0.5 bg-white/20 rounded">
                   <span className="text-[10px] font-bold text-white tracking-wide">
-                    {LANGUAGE_ABBREVIATIONS[user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS] || 'JA'}
+                    {LANGUAGE_ABBREVIATIONS[
+                      user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
+                    ] || 'JA'}
                   </span>
                 </div>
               </div>
@@ -136,7 +150,9 @@ export default function Layout() {
               <div className="hidden sm:flex items-center mr-3">
                 <div className="px-2.5 py-1 bg-white/20 rounded-md">
                   <span className="text-xs font-bold text-white tracking-wide">
-                    {LANGUAGE_ABBREVIATIONS[user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS] || 'JA'}
+                    {LANGUAGE_ABBREVIATIONS[
+                      user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
+                    ] || 'JA'}
                   </span>
                 </div>
               </div>
@@ -151,7 +167,9 @@ export default function Layout() {
           </div>
         </div>
       </nav>
-      <main className={`max-w-7xl mx-auto py-8 ${isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'}`}>
+      <main
+        className={`max-w-7xl mx-auto py-8 ${isFullWidthMobilePage ? 'sm:px-6 lg:px-8' : 'px-4 sm:px-6 lg:px-8'}`}
+      >
         <Outlet />
       </main>
     </div>

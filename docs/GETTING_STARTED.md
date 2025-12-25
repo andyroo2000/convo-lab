@@ -7,17 +7,20 @@ This guide will help you get ConvoLab running locally in the fastest way possibl
 The easiest way to run the full stack locally.
 
 ### 1. Prerequisites
+
 - Docker Desktop installed
 - Google Cloud account (for API keys)
 
 ### 2. Get API Keys
 
 **Gemini API Key:**
+
 1. Visit https://aistudio.google.com/app/apikey
 2. Create an API key
 3. Copy it
 
 **Google Cloud Service Account:**
+
 1. Go to Google Cloud Console
 2. Create service account with these roles:
    - Cloud Text-to-Speech User
@@ -26,6 +29,7 @@ The easiest way to run the full stack locally.
 4. Save as `server/gcloud-key.json`
 
 **Create Storage Bucket:**
+
 ```bash
 # Replace YOUR-PROJECT-ID
 gsutil mb -l us-central1 gs://languageflow-storage-YOUR-PROJECT-ID
@@ -35,6 +39,7 @@ gsutil iam ch allUsers:objectViewer gs://languageflow-storage-YOUR-PROJECT-ID
 ### 3. Configure Environment
 
 Create `.env` in project root:
+
 ```env
 GEMINI_API_KEY=your-gemini-api-key-here
 GOOGLE_CLOUD_PROJECT=your-project-id
@@ -49,6 +54,7 @@ docker-compose up
 ```
 
 This starts:
+
 - PostgreSQL database
 - Redis
 - Backend server (port 3001)
@@ -57,6 +63,7 @@ This starts:
 ### 5. Initialize Database
 
 In a new terminal:
+
 ```bash
 docker-compose exec server npx prisma migrate dev --name init
 ```
@@ -72,6 +79,7 @@ Create an account and start creating dialogues!
 ### 1. Install Dependencies
 
 **System Requirements:**
+
 - Node.js 20+
 - PostgreSQL 15+
 - Redis 7+
@@ -98,6 +106,7 @@ npm install
 Follow steps 2 & 3 from Docker setup above.
 
 Also configure `server/.env`:
+
 ```bash
 cp server/.env.example server/.env
 ```
@@ -121,6 +130,7 @@ npm run dev
 ```
 
 Or in separate terminals:
+
 ```bash
 # Terminal 1 - Server
 npm run dev:server
@@ -130,6 +140,7 @@ npm run dev:client
 ```
 
 Access:
+
 - Frontend: http://localhost:5173
 - Backend: http://localhost:3001
 - API health: http://localhost:3001/health
@@ -137,11 +148,13 @@ Access:
 ## Creating Your First Dialogue
 
 ### 1. Sign Up
+
 - Go to http://localhost:5173
 - Click "Sign Up"
 - Create an account
 
 ### 2. Create Episode
+
 - Click "Create New Episode"
 - Enter a title (e.g., "Coffee Shop Conversation")
 - Write a story in the source text area:
@@ -153,6 +166,7 @@ It was a nice experience.
 ```
 
 ### 3. Configure Speakers
+
 - Select target language: Japanese
 - Select native language: English
 - Add two speakers:
@@ -160,27 +174,32 @@ It was a nice experience.
   - Speaker 2: Name "Kenji", Proficiency "Native", Tone "Polite"
 
 ### 4. Generate Dialogue
+
 - Click "Generate Dialogue"
 - Wait 10-30 seconds for AI generation
 - Review the generated conversation
 
 ### 5. Select Variations
+
 - Each sentence has multiple variations
 - Click on your preferred variation
 - Or keep the default
 
 ### 6. Generate Audio
+
 - Click "Generate Audio"
 - Wait 30-90 seconds for TTS processing
 - Audio will be synced with text
 
 ### 7. Playback
+
 - Click "Play Episode"
 - Watch as sentences highlight in sync with audio
 - See the Flowline animation
 - Control speed, pause, skip
 
 ### 8. Practice Mode
+
 - Click "Practice"
 - Listen to one speaker
 - Speak the other speaker's lines
@@ -189,12 +208,14 @@ It was a nice experience.
 ## Understanding the Interface
 
 ### Studio Page
+
 - Input area for your story
 - Speaker configuration
 - Dialogue generation controls
 - Sentence variation selector
 
 ### Playback Page
+
 - Audio player with waveform
 - Synced sentence highlighting
 - Flowline animation
@@ -202,12 +223,14 @@ It was a nice experience.
 - Image carousel
 
 ### Practice Page
+
 - Turn-based dialogue playback
 - Hint system (first word, furigana, full text)
 - Speaking prompts
 - No judgment mode (encourages output)
 
 ### Library Page
+
 - List of all your episodes
 - Quick access to playback/practice
 - Delete/edit options
@@ -215,22 +238,26 @@ It was a nice experience.
 ## Tips for Best Results
 
 ### Writing Source Text
+
 - Be specific and descriptive
 - Include emotions and context
 - 3-5 sentences works well
 - Focus on realistic scenarios
 
 ### Speaker Configuration
+
 - Match proficiency to your learning level
 - Use "Native + Learner" for practice dialogues
 - Mix tones for natural variety
 
 ### Dialogue Generation
+
 - Generate multiple times if needed
 - Variations give you learning options
 - Save episodes for later review
 
 ### Audio Features
+
 - Normal speed: everyday listening
 - Slow speed: learning mode
 - Pause mode: Pimsleur-style practice
@@ -238,6 +265,7 @@ It was a nice experience.
 ## Troubleshooting
 
 ### "Database connection failed"
+
 ```bash
 # Check PostgreSQL is running
 brew services list | grep postgresql
@@ -247,6 +275,7 @@ brew services start postgresql@15
 ```
 
 ### "Redis connection failed"
+
 ```bash
 # Check Redis
 brew services list | grep redis
@@ -256,15 +285,18 @@ brew services start redis
 ```
 
 ### "Gemini API error"
+
 - Check your API key in `.env`
 - Verify quota at https://aistudio.google.com
 
 ### "TTS error"
+
 - Check service account permissions
 - Verify `gcloud-key.json` exists
 - Check bucket name matches project
 
 ### Port already in use
+
 ```bash
 # Kill process on port 3001
 lsof -ti:3001 | xargs kill

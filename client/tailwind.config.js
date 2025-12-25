@@ -1,57 +1,54 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+  content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
       colors: {
         // ConvoLab warm, playful color palette
         // Base colors
-        'cream': '#FCF9F4',
+        cream: '#FCF9F4',
         'warm-cream': '#FAF6F0',
         'dark-brown': '#4B1800',
         'medium-brown': '#8B5A3C',
         'light-brown': '#C19A7E',
 
         // Playful accent colors
-        'strawberry': {
+        strawberry: {
           DEFAULT: '#FC66A7',
           light: '#FFE5F1',
           dark: '#D84A89',
         },
-        'coral': {
+        coral: {
           DEFAULT: '#FC8155',
           light: '#FFE8DF',
           dark: '#E86234',
         },
-        'periwinkle': {
+        periwinkle: {
           DEFAULT: '#6796EC',
           light: '#E5EEFB',
           dark: '#4A73C4',
         },
-        'keylime': {
-          DEFAULT: '#748C00',  // Dark green from hurryupandhavefun.com
+        keylime: {
+          DEFAULT: '#748C00', // Dark green from hurryupandhavefun.com
           light: '#E8EDCC',
           dark: '#5A6C00',
         },
-        'yellow': {
-          DEFAULT: '#FFCC3F',  // Yellow from hurryupandhavefun.com
+        yellow: {
+          DEFAULT: '#FFCC3F', // Yellow from hurryupandhavefun.com
           light: '#FFF4D6',
           dark: '#E6B52E',
         },
-        'lilac': {
+        lilac: {
           DEFAULT: '#EBDBFF',
           light: '#F7F1FF',
           dark: '#C4A8E8',
         },
-        'mint': {
+        mint: {
           DEFAULT: '#E5F6E7',
           light: '#F2FBF3',
           dark: '#A8E6AD',
         },
-        'olive': {
+        olive: {
           DEFAULT: '#748C00',
           light: '#E8EDCC',
           dark: '#5A6C00',
@@ -78,8 +75,8 @@ export default {
       animation: {
         'flow-wave': 'flow-wave 3s ease-in-out infinite',
         'flow-pulse': 'flow-pulse 2s ease-in-out infinite',
-        'fadeIn': 'fadeIn 0.2s ease-out',
-        'slideUp': 'slideUp 0.3s ease-out',
+        fadeIn: 'fadeIn 0.2s ease-out',
+        slideUp: 'slideUp 0.3s ease-out',
       },
       keyframes: {
         'flow-wave': {
@@ -90,11 +87,11 @@ export default {
           '0%, 100%': { opacity: '0.8' },
           '50%': { opacity: '1' },
         },
-        'fadeIn': {
+        fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        'slideUp': {
+        slideUp: {
           '0%': { transform: 'translateY(20px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
@@ -102,4 +99,4 @@ export default {
     },
   },
   plugins: [],
-}
+};

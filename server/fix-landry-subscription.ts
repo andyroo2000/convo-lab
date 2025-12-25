@@ -13,7 +13,7 @@ async function fixSubscription() {
       stripeSubscriptionId: subscriptionId,
       subscriptionStartedAt: startedAt,
       subscriptionExpiresAt: expiresAt,
-    }
+    },
   });
 
   console.log(`✅ Fixed subscription for ${user.email}`);

@@ -15,7 +15,11 @@ function getLanguageColor(language: string): ColorScheme {
   return colorMap[language.toLowerCase()] || 'periwinkle';
 }
 
-export default function LanguageLevelPill({ language, level, className = '' }: LanguageLevelPillProps) {
+export default function LanguageLevelPill({
+  language,
+  level,
+  className = '',
+}: LanguageLevelPillProps) {
   return (
     <SegmentedPill
       leftText={language.toUpperCase()}

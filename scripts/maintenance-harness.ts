@@ -18,7 +18,7 @@
  *   npm run harness:maintenance -- --max-turns 300 # Custom max turns
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
 import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 
@@ -26,8 +26,8 @@ interface MaintenanceHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  quick?: boolean;  // Tests + types + build only (skip deps/docs)
-  watchdogTimeout?: number;  // Progress watchdog timeout in ms
+  quick?: boolean; // Tests + types + build only (skip deps/docs)
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
   disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
@@ -40,7 +40,7 @@ async function runMaintenanceHarness(options: MaintenanceHarnessOptions = {}) {
     verbose = true,
     quick = false,
     watchdogTimeout,
-    disableWatchdog = false
+    disableWatchdog = false,
   } = options;
 
   console.log('🔧 ConvoLab Maintenance Harness');
@@ -64,7 +64,9 @@ You are running an autonomous maintenance harness for ConvoLab.
 
 ## Your Mission
 
-${quick ? `
+${
+  quick
+    ? `
 ### Quick Maintenance Mode (Tests + Types + Build Only)
 
 1. Run tests: npm run test:run
@@ -78,7 +80,8 @@ ${quick ? `
 9. Commit with /commit if fixes were made
 
 Note: Quick mode skips dependency health, code quality, git health, documentation, accessibility, monitoring, and mobile checks. Use full mode for comprehensive maintenance.
-` : `
+`
+    : `
 ## Complete Daily Maintenance Workflow
 
 ### PHASE 1: Run All Tests
@@ -227,18 +230,23 @@ Note: Quick mode skips dependency health, code quality, git health, documentatio
    - Suggest running full mobile harness if needed
 
 ### PHASE 11: Summary & Commit
-${dryRun ? `
+${
+  dryRun
+    ? `
 - Summarize all findings
 - List issues by category
 - Provide recommendations
 - No changes made
-` : `
+`
+    : `
 - Summarize all fixes made
 - List remaining issues for manual review
 - Update CHANGELOG.md with maintenance summary
 - Use /commit with detailed maintenance message
-`}
-`}
+`
+}
+`
+}
 
 ## Maintenance Task Guidelines
 
@@ -274,18 +282,22 @@ ${dryRun ? `
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze and report
 - List all issues found
 - Provide fix recommendations
-` : `
+`
+    : `
 - Fix quick wins first
 - Document complex issues for later
 - Test after significant changes
 - Update CHANGELOG.md
 - Use /commit once at the end
-`}
+`
+}
 
 - Be thorough but efficient
 - Prioritize high-impact issues
@@ -299,7 +311,7 @@ Begin your maintenance tasks now.
     {
       harnessName: 'maintenance',
       watchdogTimeoutMs: watchdogTimeout,
-      disableWatchdog
+      disableWatchdog,
     },
     async (context) => {
       const startTime = Date.now();
@@ -320,8 +332,8 @@ Begin your maintenance tasks now.
               : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
             systemPrompt: enhanceSystemPrompt(`You are a maintenance automation expert for ConvoLab.
 Fix quick wins, document complex issues.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Perform maintenance and use /commit when done.'}`)
-          }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Perform maintenance and use /commit when done.'}`),
+          },
         })) {
           messageCount++;
 
@@ -330,7 +342,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Perform mainte
 
           // Show progress
           const now = Date.now();
-          if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
             const progress = ((messageCount / maxTurns) * 100).toFixed(1);
             console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
             lastProgressUpdate = now;
@@ -376,12 +388,13 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Perform mainte
         console.log('═══════════════════════════════════════════\n');
         console.log(`📊 Total messages: ${messageCount}`);
         console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-        console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
 
         if (dryRun) {
           console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
         }
-
       } catch (error) {
         console.error('\n❌ Maintenance failed with error:');
         console.error(error);
@@ -395,7 +408,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Perform mainte
 const args = process.argv.slice(2);
 
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -405,7 +418,7 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
 }
 
 let customWatchdogTimeout: number | undefined;
-const watchdogTimeoutIndex = args.findIndex(arg => arg === '--watchdog-timeout');
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
 if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
   customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
   if (isNaN(customWatchdogTimeout)) {
@@ -420,11 +433,11 @@ const options: MaintenanceHarnessOptions = {
   quick: args.includes('--quick'),
   maxTurns: customMaxTurns,
   watchdogTimeout: customWatchdogTimeout,
-  disableWatchdog: args.includes('--disable-watchdog')
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness
-runMaintenanceHarness(options).catch(error => {
+runMaintenanceHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

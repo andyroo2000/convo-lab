@@ -8,10 +8,10 @@ async function getAllLessons() {
       course: {
         select: {
           title: true,
-          status: true
-        }
-      }
-    }
+          status: true,
+        },
+      },
+    },
   });
 
   console.log('Found', lessons.length, 'lessons\n');

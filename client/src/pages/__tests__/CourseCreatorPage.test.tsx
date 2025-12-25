@@ -10,7 +10,8 @@ vi.mock('../../components/courses/CourseGenerator', () => ({
 }));
 
 describe('CourseCreatorPage', () => {
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <CourseCreatorPage />
       </BrowserRouter>
@@ -23,7 +24,9 @@ describe('CourseCreatorPage', () => {
 
   it('should render page description', () => {
     renderPage();
-    expect(screen.getByText('Audio-only lessons perfect for your commute or morning walk')).toBeInTheDocument();
+    expect(
+      screen.getByText('Audio-only lessons perfect for your commute or morning walk')
+    ).toBeInTheDocument();
   });
 
   it('should render CourseGenerator component', () => {

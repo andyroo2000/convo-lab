@@ -137,7 +137,11 @@ describe('useQuota', () => {
   it('should include credentials in fetch request', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ unlimited: true, quota: null, cooldown: { active: false, remainingSeconds: 0 } }),
+      json: async () => ({
+        unlimited: true,
+        quota: null,
+        cooldown: { active: false, remainingSeconds: 0 },
+      }),
     });
 
     renderHook(() => useQuota());
@@ -155,7 +159,14 @@ describe('useQuota', () => {
   it('should clear error on successful refetch after error', async () => {
     mockFetch
       .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ unlimited: true, quota: null, cooldown: { active: false, remainingSeconds: 0 } }) });
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          unlimited: true,
+          quota: null,
+          cooldown: { active: false, remainingSeconds: 0 },
+        }),
+      });
 
     const { result } = renderHook(() => useQuota());
 

@@ -15,15 +15,9 @@ const mockRequireAuth = vi.hoisted(() =>
     next();
   })
 );
-const mockBlockDemoUser = vi.hoisted(() =>
-  vi.fn((req: any, res: any, next: any) => next())
-);
-const mockRequireEmailVerified = vi.hoisted(() =>
-  vi.fn((req: any, res: any, next: any) => next())
-);
-const mockRateLimitGeneration = vi.hoisted(() =>
-  vi.fn((req: any, res: any, next: any) => next())
-);
+const mockBlockDemoUser = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
+const mockRequireEmailVerified = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
+const mockRateLimitGeneration = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
 const mockPrisma = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
@@ -62,10 +56,25 @@ vi.mock('../../../services/piGenerator.js', () => ({
   GRAMMAR_POINTS: {
     ha_vs_ga: { id: 'ha_vs_ga', name: 'は vs が', level: 'N5', category: 'particles' },
     ni_vs_de: { id: 'ni_vs_de', name: 'に vs で', level: 'N5', category: 'particles' },
-    kara_vs_node: { id: 'kara_vs_node', name: '〜から vs 〜ので', level: 'N4', category: 'conjunctions' },
+    kara_vs_node: {
+      id: 'kara_vs_node',
+      name: '〜から vs 〜ので',
+      level: 'N4',
+      category: 'conjunctions',
+    },
     teiru_aspect: { id: 'teiru_aspect', name: '〜ている', level: 'N4', category: 'aspect' },
-    passive_vs_active: { id: 'passive_vs_active', name: 'Passive vs Active', level: 'N3', category: 'voice' },
-    noni_vs_kedo: { id: 'noni_vs_kedo', name: 'のに vs けど', level: 'N2', category: 'conjunctions' },
+    passive_vs_active: {
+      id: 'passive_vs_active',
+      name: 'Passive vs Active',
+      level: 'N3',
+      category: 'voice',
+    },
+    noni_vs_kedo: {
+      id: 'noni_vs_kedo',
+      name: 'のに vs けど',
+      level: 'N2',
+      category: 'conjunctions',
+    },
   },
   isGrammarPointValidForLevel: vi.fn((grammarPoint: string, level: string) => {
     const grammarLevels: Record<string, string> = {
@@ -133,7 +142,9 @@ describe('PI Routes', () => {
       Buffer.from('audio2'),
       Buffer.from('audio3'),
     ]);
-    mockUploadToGCS.mockImplementation(async ({ filename }) => `https://storage.example.com/${filename}`);
+    mockUploadToGCS.mockImplementation(
+      async ({ filename }) => `https://storage.example.com/${filename}`
+    );
 
     // Mock Prisma user lookup
     mockPrisma.user.findUnique.mockResolvedValue({
@@ -160,17 +171,13 @@ describe('PI Routes', () => {
 
     describe('authentication', () => {
       it('should require authentication', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(mockRequireAuth).toHaveBeenCalled();
       });
 
       it('should block demo users', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(mockBlockDemoUser).toHaveBeenCalled();
       });
@@ -178,13 +185,11 @@ describe('PI Routes', () => {
 
     describe('validation', () => {
       it('should reject invalid JLPT level', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send({
-            jlptLevel: 'N6',
-            itemCount: 10,
-            grammarPoint: 'ha_vs_ga',
-          });
+        const response = await request(app).post('/api/pi/generate-session').send({
+          jlptLevel: 'N6',
+          itemCount: 10,
+          grammarPoint: 'ha_vs_ga',
+        });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('Invalid JLPT level');
@@ -229,13 +234,11 @@ describe('PI Routes', () => {
       });
 
       it('should reject invalid item count', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send({
-            jlptLevel: 'N5',
-            itemCount: 5,
-            grammarPoint: 'ha_vs_ga',
-          });
+        const response = await request(app).post('/api/pi/generate-session').send({
+          jlptLevel: 'N5',
+          itemCount: 5,
+          grammarPoint: 'ha_vs_ga',
+        });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('Invalid item count');
@@ -258,38 +261,32 @@ describe('PI Routes', () => {
       });
 
       it('should reject missing grammar point', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send({
-            jlptLevel: 'N5',
-            itemCount: 10,
-          });
+        const response = await request(app).post('/api/pi/generate-session').send({
+          jlptLevel: 'N5',
+          itemCount: 10,
+        });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('Invalid grammar point');
       });
 
       it('should reject invalid grammar point', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send({
-            jlptLevel: 'N5',
-            itemCount: 10,
-            grammarPoint: 'nonexistent_grammar',
-          });
+        const response = await request(app).post('/api/pi/generate-session').send({
+          jlptLevel: 'N5',
+          itemCount: 10,
+          grammarPoint: 'nonexistent_grammar',
+        });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('Invalid grammar point');
       });
 
       it('should reject grammar point that does not match JLPT level', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send({
-            jlptLevel: 'N5',
-            itemCount: 10,
-            grammarPoint: 'kara_vs_node', // This is N4
-          });
+        const response = await request(app).post('/api/pi/generate-session').send({
+          jlptLevel: 'N5',
+          itemCount: 10,
+          grammarPoint: 'kara_vs_node', // This is N4
+        });
 
         expect(response.status).toBe(400);
         expect(response.body.error).toContain('N4 level');
@@ -299,17 +296,13 @@ describe('PI Routes', () => {
 
     describe('successful generation', () => {
       it('should call generatePISession with correct parameters', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(mockGeneratePISession).toHaveBeenCalledWith('N5', 10, 'ha_vs_ga');
       });
 
       it('should call synthesizeBatchedTexts for audio generation', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(mockSynthesizeBatchedTexts).toHaveBeenCalled();
         const callArgs = mockSynthesizeBatchedTexts.mock.calls[0];
@@ -320,9 +313,7 @@ describe('PI Routes', () => {
       });
 
       it('should upload audio to GCS', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(mockUploadToGCS).toHaveBeenCalled();
         const uploadCalls = mockUploadToGCS.mock.calls;
@@ -336,9 +327,7 @@ describe('PI Routes', () => {
       });
 
       it('should return session with audio URLs', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('jlptLevel', 'N5');
@@ -354,9 +343,7 @@ describe('PI Routes', () => {
       });
 
       it('should handle meaning_match items with dual audio URLs', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(200);
 
@@ -376,9 +363,7 @@ describe('PI Routes', () => {
       it('should handle generatePISession errors', async () => {
         mockGeneratePISession.mockRejectedValue(new Error('Gemini API error'));
 
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(500);
         expect(response.body.error).toBe('Internal server error');
@@ -388,9 +373,7 @@ describe('PI Routes', () => {
       it('should handle TTS errors', async () => {
         mockSynthesizeBatchedTexts.mockRejectedValue(new Error('TTS service unavailable'));
 
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(500);
         expect(response.body.error).toBe('Internal server error');
@@ -399,9 +382,7 @@ describe('PI Routes', () => {
       it('should handle GCS upload errors', async () => {
         mockUploadToGCS.mockRejectedValue(new Error('Upload failed'));
 
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(500);
         expect(response.body.error).toBe('Internal server error');
@@ -425,9 +406,7 @@ describe('PI Routes', () => {
         mockGeneratePISession.mockResolvedValue(singleItemSession);
         mockSynthesizeBatchedTexts.mockResolvedValue([Buffer.from('audio')]);
 
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         const textsArg = mockSynthesizeBatchedTexts.mock.calls[0][0];
         expect(textsArg).toContain('これは本です。');
@@ -454,9 +433,7 @@ describe('PI Routes', () => {
           Buffer.from('audioB'),
         ]);
 
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         const textsArg = mockSynthesizeBatchedTexts.mock.calls[0][0];
         expect(textsArg).toContain('Sentence A text');
@@ -464,9 +441,7 @@ describe('PI Routes', () => {
       });
 
       it('should batch all texts into single TTS call', async () => {
-        await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        await request(app).post('/api/pi/generate-session').send(validRequest);
 
         // Should only call TTS once (batched)
         expect(mockSynthesizeBatchedTexts).toHaveBeenCalledTimes(1);
@@ -475,9 +450,7 @@ describe('PI Routes', () => {
 
     describe('response structure', () => {
       it('should return complete session structure', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         expect(response.status).toBe(200);
         expect(response.body).toHaveProperty('jlptLevel');
@@ -487,9 +460,7 @@ describe('PI Routes', () => {
       });
 
       it('should preserve original item structure with audio', async () => {
-        const response = await request(app)
-          .post('/api/pi/generate-session')
-          .send(validRequest);
+        const response = await request(app).post('/api/pi/generate-session').send(validRequest);
 
         const sentenceMeaningItem = response.body.items.find(
           (item: any) => item.type === 'sentence_meaning'

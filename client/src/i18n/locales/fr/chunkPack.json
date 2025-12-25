@@ -15,9 +15,18 @@
     "n3": "Intermédiaire"
   },
   "themes": {
-    "daily_routine": { "name": "Routine Quotidienne", "description": "Expressions essentielles pour les activités quotidiennes" },
-    "greetings": { "name": "Salutations et Politesse", "description": "Expressions sociales courantes" },
-    "shopping": { "name": "Shopping", "description": "Acheter des choses et poser des questions sur les produits" },
+    "daily_routine": {
+      "name": "Routine Quotidienne",
+      "description": "Expressions essentielles pour les activités quotidiennes"
+    },
+    "greetings": {
+      "name": "Salutations et Politesse",
+      "description": "Expressions sociales courantes"
+    },
+    "shopping": {
+      "name": "Shopping",
+      "description": "Acheter des choses et poser des questions sur les produits"
+    },
     "family": { "name": "Famille", "description": "Parler de la famille et des relations" },
     "school": { "name": "École", "description": "Expressions liées à l'éducation" },
     "food": { "name": "Nourriture et Repas", "description": "Repas et préférences alimentaires" },
@@ -27,18 +36,33 @@
     "travel": { "name": "Voyage", "description": "Planifier des voyages et naviguer" },
     "opinions": { "name": "Opinions", "description": "Exprimer des pensées et de l'incertitude" },
     "plans": { "name": "Plans et Intentions", "description": "Intentions et décisions futures" },
-    "feelings": { "name": "Sentiments et Émotions", "description": "Exprimer des états émotionnels" },
-    "requests": { "name": "Demandes et Permissions", "description": "Demander poliment des choses" },
-    "advice": { "name": "Conseils et Suggestions", "description": "Donner et recevoir des recommandations" },
+    "feelings": {
+      "name": "Sentiments et Émotions",
+      "description": "Exprimer des états émotionnels"
+    },
+    "requests": {
+      "name": "Demandes et Permissions",
+      "description": "Demander poliment des choses"
+    },
+    "advice": {
+      "name": "Conseils et Suggestions",
+      "description": "Donner et recevoir des recommandations"
+    },
     "experiences": { "name": "Expériences", "description": "Parler de ce que vous avez fait" },
     "work": { "name": "Travail et Professionnel", "description": "Langage du lieu de travail" },
     "social_life": { "name": "Vie Sociale", "description": "Attentes sociales et relations" },
-    "habits": { "name": "Habitudes et Routines", "description": "Décrire les comportements réguliers" },
+    "habits": {
+      "name": "Habitudes et Routines",
+      "description": "Décrire les comportements réguliers"
+    },
     "expectations": { "name": "Attentes", "description": "Ce qui devrait ou va se passer" },
     "comparisons": { "name": "Comparaisons", "description": "Contraster et comparer" },
     "reasoning": { "name": "Raisonnement", "description": "Expliquer les causes et les raisons" },
     "preferences": { "name": "Préférences", "description": "Exprimer les goûts et les choix" },
-    "goals": { "name": "Objectifs et Buts", "description": "Exprimer les aspirations et les objectifs" }
+    "goals": {
+      "name": "Objectifs et Buts",
+      "description": "Exprimer les aspirations et les objectifs"
+    }
   },
   "progress": {
     "generating": "Génération du pack de blocs lexicaux...",

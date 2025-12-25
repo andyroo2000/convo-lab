@@ -52,6 +52,7 @@ gcloud sql instances describe convolab-db --format="value(ipAddresses[0].ipAddre
 ```
 
 **Note the following for environment variables:**
+
 - Database Host: (IP from above command)
 - Database Name: `languageflow`
 - Database User: `languageflow`
@@ -208,21 +209,21 @@ docker run -p 8080:8080 --env-file .env.production convolab:local
 
 ## Environment Variables Reference
 
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `REDIS_HOST` | Redis hostname | Yes |
-| `REDIS_PORT` | Redis port | Yes |
-| `REDIS_PASSWORD` | Redis password | Yes (Upstash) |
-| `JWT_SECRET` | Secret for JWT signing | Yes |
-| `COOKIE_SECRET` | Secret for cookie signing | Yes |
-| `GEMINI_API_KEY` | Google Gemini API key | Yes |
-| `GOOGLE_CLOUD_PROJECT` | GCP project ID | Yes |
-| `GCS_BUCKET_NAME` | Storage bucket name | Yes |
-| `CLIENT_URL` | Frontend URL for CORS | Yes |
-| `NODE_ENV` | Environment (production) | Yes |
-| `ENABLE_IMAGE_GENERATION` | Enable image generation | No (default: true) |
-| `ENABLE_AUDIO_GENERATION` | Enable audio generation | No (default: true) |
+| Variable                  | Description                  | Required           |
+| ------------------------- | ---------------------------- | ------------------ |
+| `DATABASE_URL`            | PostgreSQL connection string | Yes                |
+| `REDIS_HOST`              | Redis hostname               | Yes                |
+| `REDIS_PORT`              | Redis port                   | Yes                |
+| `REDIS_PASSWORD`          | Redis password               | Yes (Upstash)      |
+| `JWT_SECRET`              | Secret for JWT signing       | Yes                |
+| `COOKIE_SECRET`           | Secret for cookie signing    | Yes                |
+| `GEMINI_API_KEY`          | Google Gemini API key        | Yes                |
+| `GOOGLE_CLOUD_PROJECT`    | GCP project ID               | Yes                |
+| `GCS_BUCKET_NAME`         | Storage bucket name          | Yes                |
+| `CLIENT_URL`              | Frontend URL for CORS        | Yes                |
+| `NODE_ENV`                | Environment (production)     | Yes                |
+| `ENABLE_IMAGE_GENERATION` | Enable image generation      | No (default: true) |
+| `ENABLE_AUDIO_GENERATION` | Enable audio generation      | No (default: true) |
 
 ## Cost Estimates (Light Usage)
 
@@ -248,21 +249,25 @@ gcloud run services logs read convolab --region us-central1 --limit 50
 ## Troubleshooting
 
 ### Database Connection Issues
+
 - Check Cloud SQL instance is running
 - Verify DATABASE_URL is correct
 - Ensure Cloud Run service account has SQL Client role
 
 ### Redis Connection Issues
+
 - Verify Upstash credentials
 - Check firewall rules allow outbound connections
 - Test connection from Cloud Shell
 
 ### Build Failures
+
 - Check Docker build locally first
 - Review Cloud Build logs
 - Ensure all environment variables are set
 
 ### 502/503 Errors
+
 - Check container memory limits (increase if needed)
 - Review timeout settings
 - Check health endpoint: `https://your-url.run.app/health`

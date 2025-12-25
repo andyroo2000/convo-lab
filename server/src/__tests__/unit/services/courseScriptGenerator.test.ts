@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
-import { generateCourseScript, LessonScriptUnit, GeneratedScript } from '../../../services/courseScriptGenerator.js';
+import {
+  generateCourseScript,
+  LessonScriptUnit,
+  GeneratedScript,
+} from '../../../services/courseScriptGenerator.js';
 import { LessonPlan, LessonSection, DrillEvent } from '../../../services/coursePlanner.js';
 import { CoreItem } from '../../../services/courseItemExtractor.js';
 
@@ -53,17 +57,23 @@ describe('courseScriptGenerator', () => {
           earlySRSIntro: "Let's practice what you learned.",
         });
       }
-      if (prompt.includes('PHRASE_CONSTRUCTION_INTRO') && prompt.includes('DIALOGUE_INTEGRATION_INTRO')) {
+      if (
+        prompt.includes('PHRASE_CONSTRUCTION_INTRO') &&
+        prompt.includes('DIALOGUE_INTEGRATION_INTRO')
+      ) {
         return JSON.stringify({
           phraseConstructionIntro: "Let's build longer phrases.",
           dialogueIntegrationIntro: "Now let's use these in conversation.",
-          qaScenarios: ['You want to order something. What do you say?', 'You want to know the price. What do you ask?'],
+          qaScenarios: [
+            'You want to order something. What do you say?',
+            'You want to know the price. What do you ask?',
+          ],
         });
       }
       if (prompt.includes('ROLEPLAY_INTRO') && prompt.includes('LATE_SRS_INTRO')) {
         return JSON.stringify({
           roleplayIntro: "Let's practice a conversation.",
-          lateSRSIntro: "Final review time.",
+          lateSRSIntro: 'Final review time.',
           outro: 'Great job completing this lesson!',
         });
       }
@@ -119,9 +129,9 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       // Should contain drill prompt
-      const narrationUnits = result.units.filter(u => u.type === 'narration_L1');
+      const narrationUnits = result.units.filter((u) => u.type === 'narration_L1');
       const hasRecallPrompt = narrationUnits.some(
-        u => u.type === 'narration_L1' && u.text.includes('How do you say')
+        (u) => u.type === 'narration_L1' && u.text.includes('How do you say')
       );
       expect(hasRecallPrompt).toBe(true);
     });
@@ -131,15 +141,25 @@ describe('courseScriptGenerator', () => {
     it('should use batched results for intro section', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       // Should contain the intro narration from batch response
       const introNarration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
+        (u) => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
       );
       expect(introNarration).toBeDefined();
     });
@@ -147,8 +167,18 @@ describe('courseScriptGenerator', () => {
     it('should use batched core intros for vocabulary introduction', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem, mockCoreItem2] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem, mockCoreItem2],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -160,13 +190,23 @@ describe('courseScriptGenerator', () => {
     it('should generate L2 audio units for core items', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
+      const l2Units = result.units.filter((u) => u.type === 'L2');
       expect(l2Units.length).toBeGreaterThan(0);
 
       const l2Unit = l2Units[0] as Extract<LessonScriptUnit, { type: 'L2' }>;
@@ -177,13 +217,23 @@ describe('courseScriptGenerator', () => {
     it('should include pause units after L2 audio', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const pauseUnits = result.units.filter(u => u.type === 'pause');
+      const pauseUnits = result.units.filter((u) => u.type === 'pause');
       expect(pauseUnits.length).toBeGreaterThan(0);
     });
   });
@@ -191,24 +241,44 @@ describe('courseScriptGenerator', () => {
   describe('batch 2 processing (phrase_construction + dialogue_integration + qa)', () => {
     it('should generate batch 2 content when sections exist', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'phrase_construction', title: 'Phrase Building', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'dialogue_integration', title: 'Dialogue Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'phrase_construction',
+          title: 'Phrase Building',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'dialogue_integration',
+          title: 'Dialogue Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
         { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 2 call
-      const batch2Call = mockGenerateWithGemini.mock.calls.find(
-        call => call[0].includes('PHRASE_CONSTRUCTION_INTRO')
+      const batch2Call = mockGenerateWithGemini.mock.calls.find((call) =>
+        call[0].includes('PHRASE_CONSTRUCTION_INTRO')
       );
       expect(batch2Call).toBeDefined();
     });
 
     it('should use qa scenarios from batch response', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'phrase_construction', title: 'Phrase Building', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'dialogue_integration', title: 'Dialogue Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'phrase_construction',
+          title: 'Phrase Building',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'dialogue_integration',
+          title: 'Dialogue Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
         { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
       ]);
 
@@ -216,7 +286,7 @@ describe('courseScriptGenerator', () => {
 
       // Should contain QA scenario from batch response
       const qaNarration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('want to order')
+        (u) => u.type === 'narration_L1' && u.text.includes('want to order')
       );
       expect(qaNarration).toBeDefined();
     });
@@ -225,7 +295,12 @@ describe('courseScriptGenerator', () => {
   describe('batch 3 processing (roleplay + late_srs + outro)', () => {
     it('should generate batch 3 content when sections exist', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'roleplay', title: 'Role Play', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
+        {
+          type: 'roleplay',
+          title: 'Role Play',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem, mockCoreItem2],
+        },
         { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
         { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
       ]);
@@ -233,15 +308,20 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 3 call
-      const batch3Call = mockGenerateWithGemini.mock.calls.find(
-        call => call[0].includes('ROLEPLAY_INTRO')
+      const batch3Call = mockGenerateWithGemini.mock.calls.find((call) =>
+        call[0].includes('ROLEPLAY_INTRO')
       );
       expect(batch3Call).toBeDefined();
     });
 
     it('should include outro narration from batch response', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'roleplay', title: 'Role Play', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
+        {
+          type: 'roleplay',
+          title: 'Role Play',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem, mockCoreItem2],
+        },
         { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
         { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
       ]);
@@ -249,7 +329,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       const outroNarration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Great job')
+        (u) => u.type === 'narration_L1' && u.text.includes('Great job')
       );
       expect(outroNarration).toBeDefined();
     });
@@ -261,8 +341,18 @@ describe('courseScriptGenerator', () => {
 
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       // Should not throw, should fallback
@@ -281,14 +371,24 @@ describe('courseScriptGenerator', () => {
 
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       const introNarration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Welcome wrapped in markdown')
+        (u) => u.type === 'narration_L1' && u.text.includes('Welcome wrapped in markdown')
       );
       expect(introNarration).toBeDefined();
     });
@@ -305,7 +405,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(createDrillPlan('recall'), mockContext);
 
       const narration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('How do you say')
+        (u) => u.type === 'narration_L1' && u.text.includes('How do you say')
       );
       expect(narration).toBeDefined();
     });
@@ -314,7 +414,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(createDrillPlan('transform'), mockContext);
 
       const narration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Try saying')
+        (u) => u.type === 'narration_L1' && u.text.includes('Try saying')
       );
       expect(narration).toBeDefined();
     });
@@ -323,7 +423,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(createDrillPlan('expand'), mockContext);
 
       const narration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('One more time')
+        (u) => u.type === 'narration_L1' && u.text.includes('One more time')
       );
       expect(narration).toBeDefined();
     });
@@ -332,7 +432,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(createDrillPlan('context'), mockContext);
 
       const narration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Remember')
+        (u) => u.type === 'narration_L1' && u.text.includes('Remember')
       );
       expect(narration).toBeDefined();
     });
@@ -341,7 +441,7 @@ describe('courseScriptGenerator', () => {
       const result = await generateCourseScript(createDrillPlan('roleplay'), mockContext);
 
       const narration = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('In the conversation')
+        (u) => u.type === 'narration_L1' && u.text.includes('In the conversation')
       );
       expect(narration).toBeDefined();
     });
@@ -361,15 +461,28 @@ describe('courseScriptGenerator', () => {
 
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [coreItemWithComponents] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [coreItemWithComponents] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [coreItemWithComponents],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [coreItemWithComponents],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       // Should have L2 units for components
-      const l2Units = result.units.filter(u => u.type === 'L2') as Extract<LessonScriptUnit, { type: 'L2' }>[];
-      const componentTexts = l2Units.map(u => u.text);
+      const l2Units = result.units.filter((u) => u.type === 'L2') as Extract<
+        LessonScriptUnit,
+        { type: 'L2' }
+      >[];
+      const componentTexts = l2Units.map((u) => u.text);
 
       expect(componentTexts).toContain('ください');
       expect(componentTexts).toContain('水を');
@@ -387,14 +500,24 @@ describe('courseScriptGenerator', () => {
 
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [coreItemWithComponents] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [coreItemWithComponents] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [coreItemWithComponents],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [coreItemWithComponents],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
       const fullPhrasePrompt = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Now try saying the full phrase')
+        (u) => u.type === 'narration_L1' && u.text.includes('Now try saying the full phrase')
       );
       expect(fullPhrasePrompt).toBeDefined();
     });
@@ -429,7 +552,12 @@ describe('courseScriptGenerator', () => {
   describe('roleplay section', () => {
     it('should require at least 2 core items for roleplay', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'roleplay', title: 'Role Play', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
+        {
+          type: 'roleplay',
+          title: 'Role Play',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem, mockCoreItem2],
+        },
         { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
         { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
       ]);
@@ -438,14 +566,19 @@ describe('courseScriptGenerator', () => {
 
       // Should have "You start the conversation" prompt
       const startPrompt = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('You start the conversation')
+        (u) => u.type === 'narration_L1' && u.text.includes('You start the conversation')
       );
       expect(startPrompt).toBeDefined();
     });
 
     it('should include response prompt after learner speaks', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'roleplay', title: 'Role Play', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
+        {
+          type: 'roleplay',
+          title: 'Role Play',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem, mockCoreItem2],
+        },
         { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
         { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
       ]);
@@ -454,7 +587,7 @@ describe('courseScriptGenerator', () => {
 
       // Should have "Good! Now they respond" prompt
       const responsePrompt = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Good! Now they respond')
+        (u) => u.type === 'narration_L1' && u.text.includes('Good! Now they respond')
       );
       expect(responsePrompt).toBeDefined();
     });
@@ -464,41 +597,80 @@ describe('courseScriptGenerator', () => {
     it('should set correct voice ID on L2 units', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2') as Extract<LessonScriptUnit, { type: 'L2' }>[];
-      expect(l2Units.every(u => u.voiceId === 'ja-JP-Neural2-B')).toBe(true);
+      const l2Units = result.units.filter((u) => u.type === 'L2') as Extract<
+        LessonScriptUnit,
+        { type: 'L2' }
+      >[];
+      expect(l2Units.every((u) => u.voiceId === 'ja-JP-Neural2-B')).toBe(true);
     });
 
     it('should include reading when available', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const l2Unit = result.units.find(u => u.type === 'L2') as Extract<LessonScriptUnit, { type: 'L2' }>;
+      const l2Unit = result.units.find((u) => u.type === 'L2') as Extract<
+        LessonScriptUnit,
+        { type: 'L2' }
+      >;
       expect(l2Unit.reading).toBe('kore o kudasai');
     });
 
     it('should set speed on L2 units when specified', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2') as Extract<LessonScriptUnit, { type: 'L2' }>[];
+      const l2Units = result.units.filter((u) => u.type === 'L2') as Extract<
+        LessonScriptUnit,
+        { type: 'L2' }
+      >[];
       // Should have some units with speed 1.0 and some with speed 0.75
-      const speeds = l2Units.map(u => u.speed).filter(Boolean);
+      const speeds = l2Units.map((u) => u.speed).filter(Boolean);
       expect(speeds).toContain(1.0);
       expect(speeds).toContain(0.75);
     });
@@ -508,14 +680,27 @@ describe('courseScriptGenerator', () => {
     it('should set correct voice ID on narration units', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const narrationUnits = result.units.filter(u => u.type === 'narration_L1') as Extract<LessonScriptUnit, { type: 'narration_L1' }>[];
-      expect(narrationUnits.every(u => u.voiceId === 'en-US-Neural2-D')).toBe(true);
+      const narrationUnits = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
+      expect(narrationUnits.every((u) => u.voiceId === 'en-US-Neural2-D')).toBe(true);
     });
   });
 
@@ -523,31 +708,57 @@ describe('courseScriptGenerator', () => {
     it('should have appropriate pause durations for different contexts', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const pauseUnits = result.units.filter(u => u.type === 'pause') as Extract<LessonScriptUnit, { type: 'pause' }>[];
-      const durations = pauseUnits.map(u => u.seconds);
+      const pauseUnits = result.units.filter((u) => u.type === 'pause') as Extract<
+        LessonScriptUnit,
+        { type: 'pause' }
+      >[];
+      const durations = pauseUnits.map((u) => u.seconds);
 
       // Should have various pause durations
-      expect(durations.some(d => d >= 0.5 && d <= 1.0)).toBe(true); // Short pauses
-      expect(durations.some(d => d >= 2.0)).toBe(true); // Longer pauses for practice
+      expect(durations.some((d) => d >= 0.5 && d <= 1.0)).toBe(true); // Short pauses
+      expect(durations.some((d) => d >= 2.0)).toBe(true); // Longer pauses for practice
     });
 
     it('should have anticipation pauses (3+ seconds) for SRS drills', async () => {
       const lessonPlan = createMinimalLessonPlan([
         { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'core_intro',
+          title: 'Core Vocabulary',
+          durationMinutes: 5,
+          coreItems: [mockCoreItem],
+        },
+        {
+          type: 'early_srs',
+          title: 'Early Practice',
+          durationMinutes: 3,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
 
-      const pauseUnits = result.units.filter(u => u.type === 'pause') as Extract<LessonScriptUnit, { type: 'pause' }>[];
-      const anticipationPauses = pauseUnits.filter(u => u.seconds >= 3.0);
+      const pauseUnits = result.units.filter((u) => u.type === 'pause') as Extract<
+        LessonScriptUnit,
+        { type: 'pause' }
+      >[];
+      const anticipationPauses = pauseUnits.filter((u) => u.seconds >= 3.0);
 
       expect(anticipationPauses.length).toBeGreaterThan(0);
     });
@@ -559,13 +770,43 @@ describe('courseScriptGenerator', () => {
         lessonNumber: 1,
         sections: [
           { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-          { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [mockCoreItem, mockCoreItem2] },
-          { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
-          { type: 'phrase_construction', title: 'Phrase Building', durationMinutes: 3, coreItems: [mockCoreItem] },
-          { type: 'dialogue_integration', title: 'Dialogue Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+          {
+            type: 'core_intro',
+            title: 'Core Vocabulary',
+            durationMinutes: 5,
+            coreItems: [mockCoreItem, mockCoreItem2],
+          },
+          {
+            type: 'early_srs',
+            title: 'Early Practice',
+            durationMinutes: 3,
+            coreItems: [mockCoreItem, mockCoreItem2],
+          },
+          {
+            type: 'phrase_construction',
+            title: 'Phrase Building',
+            durationMinutes: 3,
+            coreItems: [mockCoreItem],
+          },
+          {
+            type: 'dialogue_integration',
+            title: 'Dialogue Practice',
+            durationMinutes: 3,
+            coreItems: [mockCoreItem],
+          },
           { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
-          { type: 'roleplay', title: 'Role Play', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
-          { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem, mockCoreItem2] },
+          {
+            type: 'roleplay',
+            title: 'Role Play',
+            durationMinutes: 3,
+            coreItems: [mockCoreItem, mockCoreItem2],
+          },
+          {
+            type: 'late_srs',
+            title: 'Final Review',
+            durationMinutes: 3,
+            coreItems: [mockCoreItem, mockCoreItem2],
+          },
           { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
         ],
         drillEvents: [],

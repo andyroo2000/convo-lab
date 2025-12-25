@@ -68,13 +68,21 @@ describe('Pill', () => {
     });
 
     it('should apply solid intensity', () => {
-      render(<Pill color="blue" intensity="solid">Solid Blue</Pill>);
+      render(
+        <Pill color="blue" intensity="solid">
+          Solid Blue
+        </Pill>
+      );
       const pill = screen.getByText('Solid Blue');
       expect(pill).toHaveClass('bg-blue-600', 'text-white');
     });
 
     it('should apply solid periwinkle', () => {
-      render(<Pill color="periwinkle" intensity="solid">Solid</Pill>);
+      render(
+        <Pill color="periwinkle" intensity="solid">
+          Solid
+        </Pill>
+      );
       const pill = screen.getByText('Solid');
       expect(pill).toHaveClass('bg-periwinkle', 'text-white');
     });
@@ -135,7 +143,11 @@ describe('Pill', () => {
     });
 
     it('should prioritize uppercase over capitalize', () => {
-      render(<Pill uppercase capitalize>Both</Pill>);
+      render(
+        <Pill uppercase capitalize>
+          Both
+        </Pill>
+      );
       const pill = screen.getByText('Both');
       expect(pill).toHaveClass('uppercase');
       expect(pill).not.toHaveClass('capitalize');
@@ -160,7 +172,11 @@ describe('Pill', () => {
 
     it('should render icon on the right when iconPosition is right', () => {
       const icon = <span data-testid="test-icon">*</span>;
-      const { container } = render(<Pill icon={icon} iconPosition="right">With Icon</Pill>);
+      const { container } = render(
+        <Pill icon={icon} iconPosition="right">
+          With Icon
+        </Pill>
+      );
 
       const testIcon = screen.getByTestId('test-icon');
       expect(testIcon).toBeInTheDocument();
@@ -197,11 +213,22 @@ describe('Pill', () => {
 
   describe('all color schemes', () => {
     const colors = [
-      'periwinkle', 'coral', 'strawberry', 'keylime', 'mint',
-      'olive', 'blue', 'yellow', 'red', 'green', 'gray', 'orange', 'pale-sky'
+      'periwinkle',
+      'coral',
+      'strawberry',
+      'keylime',
+      'mint',
+      'olive',
+      'blue',
+      'yellow',
+      'red',
+      'green',
+      'gray',
+      'orange',
+      'pale-sky',
     ] as const;
 
-    colors.forEach(color => {
+    colors.forEach((color) => {
       it(`should render ${color} color without error`, () => {
         render(<Pill color={color}>{color}</Pill>);
         expect(screen.getByText(color)).toBeInTheDocument();

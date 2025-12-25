@@ -13,117 +13,139 @@ export default function CreatePage() {
     <div>
       <div className="mb-12 text-center px-4 sm:px-0">
         <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('create:title')}</h1>
-        <p className="text-lg text-gray-600 mb-4">
-          {t('create:subtitle')}
-        </p>
+        <p className="text-lg text-gray-600 mb-4">{t('create:subtitle')}</p>
         <QuotaBadge />
       </div>
 
       <div className="max-w-5xl mx-auto space-y-3">
         {/* Dialogue Content Type */}
-        {isFeatureEnabled('dialoguesEnabled') && (<button
-          onClick={() => navigate('/app/create/dialogue')}
-          className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
-          data-testid="create-card-dialogues"
-        >
-          <div className="w-20 sm:w-32 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center py-6 sm:py-8">
-            <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">{t('create:types.dialogue.title')}</span>
-          </div>
-          <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-            <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors mb-1 sm:mb-2">
-              {t('create:types.dialogue.title')}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {t('create:types.dialogue.description')}
-            </p>
-          </div>
-        </button>)}
+        {isFeatureEnabled('dialoguesEnabled') && (
+          <button
+            onClick={() => navigate('/app/create/dialogue')}
+            className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
+            data-testid="create-card-dialogues"
+          >
+            <div className="w-20 sm:w-32 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center py-6 sm:py-8">
+              <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
+              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">
+                {t('create:types.dialogue.title')}
+              </span>
+            </div>
+            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
+              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors mb-1 sm:mb-2">
+                {t('create:types.dialogue.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {t('create:types.dialogue.description')}
+              </p>
+            </div>
+          </button>
+        )}
 
         {/* Course Content Type */}
-        {isFeatureEnabled('audioCourseEnabled') && (<button
-          onClick={() => navigate('/app/create/audio-course')}
-          className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
-          data-testid="create-card-audio-course"
-        >
-          <div className="w-20 sm:w-32 flex-shrink-0 bg-coral flex flex-col items-center justify-center py-6 sm:py-8">
-            <Headphones className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">{t('create:types.course.title').split(' ')[0]}<br/>{t('create:types.course.title').split(' ')[1]}</span>
-          </div>
-          <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-            <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-coral transition-colors mb-1 sm:mb-2">
-              {t('create:types.course.title')}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {t('create:types.course.description')}
-            </p>
-          </div>
-        </button>)}
+        {isFeatureEnabled('audioCourseEnabled') && (
+          <button
+            onClick={() => navigate('/app/create/audio-course')}
+            className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
+            data-testid="create-card-audio-course"
+          >
+            <div className="w-20 sm:w-32 flex-shrink-0 bg-coral flex flex-col items-center justify-center py-6 sm:py-8">
+              <Headphones className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
+              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">
+                {t('create:types.course.title').split(' ')[0]}
+                <br />
+                {t('create:types.course.title').split(' ')[1]}
+              </span>
+            </div>
+            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
+              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-coral transition-colors mb-1 sm:mb-2">
+                {t('create:types.course.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {t('create:types.course.description')}
+              </p>
+            </div>
+          </button>
+        )}
 
         {/* Narrow Listening Content Type */}
-        {isFeatureEnabled('narrowListeningEnabled') && (<button
-          onClick={() => navigate('/app/create/narrow-listening')}
-          className="w-full flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-xl group"
-          data-testid="create-card-narrow-listening"
-        >
-          <div className="w-20 sm:w-32 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center py-6 sm:py-8">
-            <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">{t('create:types.narrowListening.title').split(' ')[0]}<br/>{t('create:types.narrowListening.title').split(' ')[1]}</span>
-          </div>
-          <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-            <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-strawberry transition-colors mb-1 sm:mb-2">
-              {t('create:types.narrowListening.title')}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {t('create:types.narrowListening.description')}
-            </p>
-          </div>
-        </button>)}
+        {isFeatureEnabled('narrowListeningEnabled') && (
+          <button
+            onClick={() => navigate('/app/create/narrow-listening')}
+            className="w-full flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-xl group"
+            data-testid="create-card-narrow-listening"
+          >
+            <div className="w-20 sm:w-32 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center py-6 sm:py-8">
+              <Sparkles className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
+              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">
+                {t('create:types.narrowListening.title').split(' ')[0]}
+                <br />
+                {t('create:types.narrowListening.title').split(' ')[1]}
+              </span>
+            </div>
+            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
+              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-strawberry transition-colors mb-1 sm:mb-2">
+                {t('create:types.narrowListening.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {t('create:types.narrowListening.description')}
+              </p>
+            </div>
+          </button>
+        )}
 
         {/* Processing Instruction Mode */}
-        {isFeatureEnabled('processingInstructionEnabled') && (<button
-          onClick={() => navigate('/app/create/processing-instruction')}
-          className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
-          data-testid="create-card-processing-instruction"
-        >
-          <div className="w-20 sm:w-32 flex-shrink-0 bg-keylime flex flex-col items-center justify-center py-6 sm:py-8">
-            <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center">{t('create:types.processingInstruction.title')}</span>
-          </div>
-          <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-            <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-keylime-dark transition-colors mb-1 sm:mb-2">
-              {t('create:types.processingInstruction.title')}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {t('create:types.processingInstruction.description')}
-            </p>
-          </div>
-        </button>)}
+        {isFeatureEnabled('processingInstructionEnabled') && (
+          <button
+            onClick={() => navigate('/app/create/processing-instruction')}
+            className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
+            data-testid="create-card-processing-instruction"
+          >
+            <div className="w-20 sm:w-32 flex-shrink-0 bg-keylime flex flex-col items-center justify-center py-6 sm:py-8">
+              <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
+              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center">
+                {t('create:types.processingInstruction.title')}
+              </span>
+            </div>
+            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
+              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-keylime-dark transition-colors mb-1 sm:mb-2">
+                {t('create:types.processingInstruction.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {t('create:types.processingInstruction.description')}
+              </p>
+            </div>
+          </button>
+        )}
 
         {/* Lexical Chunk Packs */}
-        {isFeatureEnabled('lexicalChunksEnabled') && (<button
-          onClick={() => navigate('/app/create/lexical-chunk-pack')}
-          className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
-          data-testid="create-card-lexical-chunks"
-        >
-          <div className="w-20 sm:w-32 flex-shrink-0 bg-yellow flex flex-col items-center justify-center py-6 sm:py-8">
-            <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-dark-brown mb-2" />
-            <span className="text-xs sm:text-sm font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">{t('create:types.chunkPack.title').split(' ').slice(-2)[0]}<br/>{t('create:types.chunkPack.title').split(' ').slice(-1)[0]}</span>
-          </div>
-          <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-            <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors mb-1 sm:mb-2">
-              {t('create:types.chunkPack.title')}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {t('create:types.chunkPack.description')}
-            </p>
-          </div>
-        </button>)}
+        {isFeatureEnabled('lexicalChunksEnabled') && (
+          <button
+            onClick={() => navigate('/app/create/lexical-chunk-pack')}
+            className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
+            data-testid="create-card-lexical-chunks"
+          >
+            <div className="w-20 sm:w-32 flex-shrink-0 bg-yellow flex flex-col items-center justify-center py-6 sm:py-8">
+              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-dark-brown mb-2" />
+              <span className="text-xs sm:text-sm font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">
+                {t('create:types.chunkPack.title').split(' ').slice(-2)[0]}
+                <br />
+                {t('create:types.chunkPack.title').split(' ').slice(-1)[0]}
+              </span>
+            </div>
+            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
+              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors mb-1 sm:mb-2">
+                {t('create:types.chunkPack.title')}
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600">
+                {t('create:types.chunkPack.description')}
+              </p>
+            </div>
+          </button>
+        )}
       </div>
 
-      <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">
-        {t('create:footer')}
-      </p>
+      <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>
     </div>
   );
 }

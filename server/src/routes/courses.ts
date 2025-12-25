@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { DEFAULT_NARRATOR_VOICES } from "@languageflow/shared/src/constants-new.js";
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
@@ -189,7 +189,8 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
 
     // Use default narrator voice if not provided
     // Also replace Journey voices with Neural2 equivalents (Journey doesn't support timepointing)
-    let narratorVoice = l1VoiceId || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+    let narratorVoice =
+      l1VoiceId || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
 
     // Journey voices don't support enableTimePointing - replace with Neural2 equivalents
     if (narratorVoice?.includes('Journey')) {
@@ -197,7 +198,9 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
         'en-US-Journey-D': 'en-US-Neural2-J',
         'en-US-Journey-F': 'en-US-Neural2-F',
       };
-      narratorVoice = journeyToNeural2[narratorVoice] || DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+      narratorVoice =
+        journeyToNeural2[narratorVoice] ||
+        DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
       console.log(`[Course] Replaced Journey voice with Neural2: ${l1VoiceId} -> ${narratorVoice}`);
     }
 
@@ -209,7 +212,7 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
     let courseDescription = description;
     if (!courseDescription) {
       try {
-        const episodeTitles = episodes.map(ep => ep.title).join(', ');
+        const episodeTitles = episodes.map((ep) => ep.title).join(', ');
         const prompt = `Write a brief, engaging 1-2 sentence description for a Pimsleur-style audio language course based on these dialogue episodes: "${episodeTitles}".
 
 The course teaches ${targetLanguage.toUpperCase()} to ${nativeLanguage.toUpperCase()} speakers through interactive audio lessons with spaced repetition.
@@ -266,64 +269,74 @@ Write only the description, no formatting or quotes.`;
 });
 
 // Generate course content (lessons, scripts, audio) (blocked for demo users)
-router.post('/:id/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    // Use a transaction to atomically check and update course status
-    const result = await prisma.$transaction(async (tx) => {
-      // Lock the course row for this transaction
-      const course = await tx.course.findFirst({
-        where: {
-          id: req.params.id,
-          userId: req.userId,
-        },
+router.post(
+  '/:id/generate',
+  requireEmailVerified,
+  rateLimitGeneration,
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      // Use a transaction to atomically check and update course status
+      const result = await prisma.$transaction(async (tx) => {
+        // Lock the course row for this transaction
+        const course = await tx.course.findFirst({
+          where: {
+            id: req.params.id,
+            userId: req.userId,
+          },
+        });
+
+        if (!course) {
+          throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+        }
+
+        if (course.status === 'generating') {
+          throw new AppError(
+            i18next.t('server:content.alreadyGenerating', { type: 'Course' }),
+            400
+          );
+        }
+
+        // Check if there's already an active job for this course
+        const activeJobs = await courseQueue.getJobs(['active', 'waiting', 'delayed']);
+        const existingJob = activeJobs.find((j) => j.data.courseId === course.id);
+        if (existingJob) {
+          throw new AppError(
+            i18next.t('server:content.generationInProgress', { type: 'Course' }),
+            400
+          );
+        }
+
+        // Update course status to 'generating' atomically
+        await tx.course.update({
+          where: { id: course.id },
+          data: { status: 'generating' },
+        });
+
+        return course;
       });
 
-      if (!course) {
-        throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
-      }
-
-      if (course.status === 'generating') {
-        throw new AppError(i18next.t('server:content.alreadyGenerating', { type: 'Course' }), 400);
-      }
-
-      // Check if there's already an active job for this course
-      const activeJobs = await courseQueue.getJobs(['active', 'waiting', 'delayed']);
-      const existingJob = activeJobs.find(j => j.data.courseId === course.id);
-      if (existingJob) {
-        throw new AppError(i18next.t('server:content.generationInProgress', { type: 'Course' }), 400);
-      }
-
-      // Update course status to 'generating' atomically
-      await tx.course.update({
-        where: { id: course.id },
-        data: { status: 'generating' },
+      // Queue course generation job (outside transaction to avoid holding DB lock)
+      const job = await courseQueue.add('generate-course', {
+        courseId: result.id,
       });
 
-      return course;
-    });
+      // Log the generation for quota tracking
+      await logGeneration(req.userId!, 'course', result.id);
 
-    // Queue course generation job (outside transaction to avoid holding DB lock)
-    const job = await courseQueue.add('generate-course', {
-      courseId: result.id,
-    });
+      // Trigger Cloud Run Job to process the queue
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
-    // Log the generation for quota tracking
-    await logGeneration(req.userId!, 'course', result.id);
-
-    // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
-
-    res.json({
-      message: i18next.t('server:content.generationStarted', { type: 'Course' }),
-      jobId: job.id,
-      courseId: result.id,
-    });
-  } catch (error) {
-    next(error);
+      res.json({
+        message: i18next.t('server:content.generationStarted', { type: 'Course' }),
+        jobId: job.id,
+        courseId: result.id,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 // Get course generation status (demo users can view admin's courses)
 router.get('/:id/status', async (req: AuthRequest, res, next) => {
@@ -348,7 +361,7 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
     if (course.status === 'generating') {
       // Try to find active job for this course
       const jobs = await courseQueue.getJobs(['active', 'waiting']);
-      const activeJob = jobs.find(j => j.data.courseId === course.id);
+      const activeJob = jobs.find((j) => j.data.courseId === course.id);
 
       if (activeJob) {
         jobProgress = activeJob.progress;
@@ -388,7 +401,7 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
 
     // Check if there's actually an active job
     const jobs = await courseQueue.getJobs(['active', 'waiting']);
-    const activeJob = jobs.find(j => j.data.courseId === course.id);
+    const activeJob = jobs.find((j) => j.data.courseId === course.id);
 
     if (activeJob) {
       throw new AppError(i18next.t('server:content.hasActiveJob', { type: 'Course' }), 400);

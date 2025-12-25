@@ -32,7 +32,7 @@ async function backfillMetadata() {
   try {
     // Find all sentences - we'll filter incomplete ones in memory
     // (Prisma doesn't support deep JSON queries well)
-    const allSentences = await prisma.sentence.findMany({
+    const allSentences = (await prisma.sentence.findMany({
       include: {
         dialogue: {
           include: {
@@ -44,10 +44,10 @@ async function backfillMetadata() {
           },
         },
       },
-    }) as SentenceWithEpisode[];
+    })) as SentenceWithEpisode[];
 
     // Filter to sentences that need metadata processing
-    const sentences = allSentences.filter(s => {
+    const sentences = allSentences.filter((s) => {
       const lang = s.dialogue.episode.targetLanguage;
 
       // For non-Japanese/Chinese languages, skip
@@ -97,11 +97,16 @@ async function backfillMetadata() {
       const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
       const totalBatches = Math.ceil(sentences.length / BATCH_SIZE);
 
-      console.log(`📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} sentences)...`);
+      console.log(
+        `📦 Processing batch ${batchNumber}/${totalBatches} (${batch.length} sentences)...`
+      );
 
       try {
         // Group sentences by target language
-        const byLanguage = new Map<string, Array<{ index: number; sentence: SentenceWithEpisode }>>();
+        const byLanguage = new Map<
+          string,
+          Array<{ index: number; sentence: SentenceWithEpisode }>
+        >();
 
         batch.forEach((sentence, idx) => {
           const lang = sentence.dialogue.episode.targetLanguage;
@@ -117,14 +122,14 @@ async function backfillMetadata() {
         for (const [lang, items] of byLanguage) {
           // Skip languages that don't need processing
           if (lang !== 'ja' && lang !== 'zh') {
-            items.forEach(item => {
+            items.forEach((item) => {
               metadataResults.set(item.index, null); // null = skip
             });
             continue;
           }
 
           // Batch process all texts for this language
-          const texts = items.map(item => item.sentence.text);
+          const texts = items.map((item) => item.sentence.text);
           console.log(`  [BATCH] Processing ${texts.length} ${lang} sentences in 1 call`);
 
           const results = await processLanguageTextBatch(texts, lang);
@@ -165,9 +170,12 @@ async function backfillMetadata() {
           }
         }
 
-        console.log(`  ✓ Batch complete: ${batchUpdated} updated, ${batchSkipped} skipped, ${batch.length - batchUpdated - batchSkipped} errors`);
-        console.log(`  📈 Progress: ${processed}/${sentences.length} (${Math.round(processed / sentences.length * 100)}%)\n`);
-
+        console.log(
+          `  ✓ Batch complete: ${batchUpdated} updated, ${batchSkipped} skipped, ${batch.length - batchUpdated - batchSkipped} errors`
+        );
+        console.log(
+          `  📈 Progress: ${processed}/${sentences.length} (${Math.round((processed / sentences.length) * 100)}%)\n`
+        );
       } catch (error) {
         // If entire batch fails, mark all as errors
         batch.forEach(() => {
@@ -176,12 +184,14 @@ async function backfillMetadata() {
         });
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         console.error(`  ❌ Batch failed: ${errorMsg}`);
-        console.log(`  📈 Progress: ${processed}/${sentences.length} (${Math.round(processed / sentences.length * 100)}%)\n`);
+        console.log(
+          `  📈 Progress: ${processed}/${sentences.length} (${Math.round((processed / sentences.length) * 100)}%)\n`
+        );
       }
 
       // Small delay between batches
       if (i + BATCH_SIZE < sentences.length) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     }
 
@@ -192,8 +202,7 @@ async function backfillMetadata() {
     console.log(`   Total processed: ${processed}`);
     console.log(`   Successfully updated: ${updated}`);
     console.log(`   Errors: ${errors}`);
-    console.log(`   Success rate: ${Math.round(updated / processed * 100)}%\n`);
-
+    console.log(`   Success rate: ${Math.round((updated / processed) * 100)}%\n`);
   } catch (error) {
     console.error('❌ Fatal error during backfill:', error);
     process.exit(1);

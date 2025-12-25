@@ -53,7 +53,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     description: 'Essential expressions for describing daily activities',
     exampleChunks: [
       '〜てください (please do ~)',
-      '〜ましょう (let\'s ~)',
+      "〜ましょう (let's ~)",
       '〜ています (doing ~)',
       '〜から (because ~)',
       '〜まえに (before ~)',
@@ -70,7 +70,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     exampleChunks: [
       'お疲れ様です (good work / hello)',
       'よろしくお願いします (please treat me well)',
-      'いただきます (let\'s eat)',
+      "いただきます (let's eat)",
       'ごちそうさまでした (thank you for the meal)',
       'すみません (excuse me / sorry)',
       'ありがとうございます (thank you)',
@@ -88,7 +88,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
       '〜でいいです (~ is fine)',
       '〜はありますか (do you have ~?)',
       '〜が欲しいです (I want ~)',
-      '〜を探しています (I\'m looking for ~)',
+      "〜を探しています (I'm looking for ~)",
     ],
     usageContext: 'Shopping, restaurants, convenience stores',
   },
@@ -273,7 +273,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     id: 'experiences',
     name: 'Experiences',
     level: 'N4',
-    description: 'Talking about what you\'ve done',
+    description: "Talking about what you've done",
     exampleChunks: [
       '〜たことがある (have done ~)',
       '〜てみた (tried ~ing)',
@@ -306,11 +306,11 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     level: 'N3',
     description: 'Social expectations and relationships',
     exampleChunks: [
-      '〜ことになっている (it\'s decided / expected that ~)',
+      "〜ことになっている (it's decided / expected that ~)",
       '〜みたいだ (seems like ~)',
       '〜ようだ (appears ~)',
       '〜らしい (I heard ~)',
-      '〜わけではない (it doesn\'t mean ~)',
+      "〜わけではない (it doesn't mean ~)",
     ],
     usageContext: 'Navigating social rules, interpreting situations, gossip',
   },
@@ -324,7 +324,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
       '〜ようにしている (try to ~)',
       '〜たものだ (used to ~)',
       '〜がちだ (tend to ~)',
-      '〜ものだ (should ~ / it\'s natural to ~)',
+      "〜ものだ (should ~ / it's natural to ~)",
     ],
     usageContext: 'Self-improvement, explaining behavior, lifestyle discussions',
   },
@@ -362,8 +362,8 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     level: 'N3',
     description: 'Explaining causes and reasons',
     exampleChunks: [
-      '〜わけではない (it\'s not that ~)',
-      '〜というわけだ (that\'s why ~)',
+      "〜わけではない (it's not that ~)",
+      "〜というわけだ (that's why ~)",
       '〜せいで (because of ~ / blame)',
       '〜おかげで (thanks to ~)',
       '〜ため (because of ~)',
@@ -378,7 +378,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
     exampleChunks: [
       '〜というより (rather than ~)',
       '〜ほうがいい (prefer ~)',
-      '〜くらいなら (rather than ~ / if it\'s like ~)',
+      "〜くらいなら (rather than ~ / if it's like ~)",
       '〜ばかりでなく (not only ~ but also)',
       '〜というか (or rather ~)',
     ],
@@ -402,7 +402,7 @@ export const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
 
 // Helper function to get themes for a specific JLPT level
 export function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
-  return Object.values(CHUNK_THEMES).filter(theme => theme.level === level);
+  return Object.values(CHUNK_THEMES).filter((theme) => theme.level === level);
 }
 
 // Helper function to get theme metadata

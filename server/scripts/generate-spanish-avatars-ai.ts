@@ -13,27 +13,33 @@ interface AvatarConfig {
 const SPANISH_AVATARS: AvatarConfig[] = [
   {
     filename: 'es-female-casual.jpg',
-    prompt: 'Professional headshot portrait of a friendly young Spanish woman in her 20s, warm smile, modern casual clothing, Mediterranean features, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a friendly young Spanish woman in her 20s, warm smile, modern casual clothing, Mediterranean features, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
   },
   {
     filename: 'es-female-polite.jpg',
-    prompt: 'Professional headshot portrait of a polite Spanish woman in her late 20s, gentle smile, business casual attire, Mediterranean features, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a polite Spanish woman in her late 20s, gentle smile, business casual attire, Mediterranean features, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
   },
   {
     filename: 'es-female-formal.jpg',
-    prompt: 'Professional headshot portrait of a professional Spanish woman in her 30s, subtle smile, formal business attire, Mediterranean features, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a professional Spanish woman in her 30s, subtle smile, formal business attire, Mediterranean features, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
   },
   {
     filename: 'es-male-casual.jpg',
-    prompt: 'Professional headshot portrait of a friendly young Spanish man in his 20s, relaxed smile, casual modern clothing, Mediterranean features, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a friendly young Spanish man in his 20s, relaxed smile, casual modern clothing, Mediterranean features, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
   },
   {
     filename: 'es-male-polite.jpg',
-    prompt: 'Professional headshot portrait of a courteous Spanish man in his late 20s, warm smile, smart casual attire, Mediterranean features, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a courteous Spanish man in his late 20s, warm smile, smart casual attire, Mediterranean features, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
   },
   {
     filename: 'es-male-formal.jpg',
-    prompt: 'Professional headshot portrait of a professional Spanish businessman in his 30s, composed expression, formal business suit, Mediterranean features, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a professional Spanish businessman in his 30s, composed expression, formal business suit, Mediterranean features, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
   },
 ];
 
@@ -42,16 +48,19 @@ async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${NANOBANANA_API_KEY}`;
 
   const requestBody = {
-    instances: [{
-      prompt: prompt,
-    }],
+    instances: [
+      {
+        prompt: prompt,
+      },
+    ],
     parameters: {
       sampleCount: 1,
       aspectRatio: '1:1',
-      negativePrompt: 'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
+      negativePrompt:
+        'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
       personGeneration: 'allow_adult',
       safetySetting: 'block_some',
-    }
+    },
   };
 
   const response = await fetch(endpoint, {
@@ -111,7 +120,6 @@ async function generateAndUploadAvatar(config: AvatarConfig): Promise<void> {
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${config.filename}:`, error.message);
     throw error;
@@ -134,7 +142,7 @@ async function main() {
       // Wait between requests to avoid rate limiting
       if (config !== SPANISH_AVATARS[SPANISH_AVATARS.length - 1]) {
         console.log('\nWaiting 3 seconds before next generation...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     } catch (error) {
       failCount++;

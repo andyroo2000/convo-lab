@@ -20,9 +20,9 @@ try {
 
 // Audio speed presets mapping
 const SPEED_PRESETS: Record<string, number> = {
-  'slow': 0.7,
-  'medium': 0.85,
-  'normal': 1.0,
+  slow: 0.7,
+  medium: 0.85,
+  normal: 1.0,
   // Legacy support
   'very-slow': 0.65,
 };
@@ -87,10 +87,10 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 
   for (let i = 0; i < dialogue.sentences.length; i++) {
     const sentence = dialogue.sentences[i];
-    const {speaker} = sentence;
+    const { speaker } = sentence;
 
     // Prepare text (with SSML if needed)
-    let {text} = sentence;
+    let { text } = sentence;
     const useSSML = pauseMode;
 
     if (pauseMode) {
@@ -136,7 +136,7 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
   }
 
   // Concatenate all audio files
-  const finalAudioBuffer = await concatenateAudio(audioFiles.map(f => f.buffer));
+  const finalAudioBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
 
   // Upload to GCS
   const audioUrl = await uploadAudio(
@@ -267,7 +267,9 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       }
     });
     const listContent = listItems.join('\n');
-    console.log(`Creating concat list with ${tempFiles.length} audio segments and ${tempFiles.length - 1} silence gaps`);
+    console.log(
+      `Creating concat list with ${tempFiles.length} audio segments and ${tempFiles.length - 1} silence gaps`
+    );
     console.log('Concat list content:', listContent);
     await fs.writeFile(listFile, listContent);
 
@@ -278,12 +280,7 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       ffmpeg()
         .input(listFile)
         .inputOptions(['-f concat', '-safe 0'])
-        .outputOptions([
-          '-c:a libmp3lame',
-          '-b:a 128k',
-          '-ar 44100',
-          '-ac 2'
-        ])
+        .outputOptions(['-c:a libmp3lame', '-b:a 128k', '-ar 44100', '-ac 2'])
         .output(outputFile)
         .on('end', () => resolve())
         .on('error', (err) => reject(err))
@@ -354,7 +351,7 @@ async function generateSingleSpeedAudio(
 
   for (let j = 0; j < dialogue.sentences.length; j++) {
     const sentence = dialogue.sentences[j];
-    const {voiceId} = sentence.speaker;
+    const { voiceId } = sentence.speaker;
 
     if (!voiceGroups.has(voiceId)) {
       voiceGroups.set(voiceId, []);
@@ -366,7 +363,9 @@ async function generateSingleSpeedAudio(
     });
   }
 
-  console.log(`[DIALOGUE] Grouped ${dialogue.sentences.length} sentences into ${voiceGroups.size} voice batches`);
+  console.log(
+    `[DIALOGUE] Grouped ${dialogue.sentences.length} sentences into ${voiceGroups.size} voice batches`
+  );
 
   // Generate audio for each voice group using batched TTS
   const audioBuffersByIndex = new Map<number, Buffer>();
@@ -376,7 +375,7 @@ async function generateSingleSpeedAudio(
     console.log(`[DIALOGUE] Batching ${sentences.length} sentences for voice ${voiceId}`);
 
     const audioBuffers = await synthesizeBatchedTexts(
-      sentences.map(s => s.text),
+      sentences.map((s) => s.text),
       {
         voiceId,
         languageCode,
@@ -398,7 +397,9 @@ async function generateSingleSpeedAudio(
     }
   }
 
-  console.log(`[DIALOGUE] Complete: ${voiceGroups.size} TTS calls (was ${dialogue.sentences.length})`);
+  console.log(
+    `[DIALOGUE] Complete: ${voiceGroups.size} TTS calls (was ${dialogue.sentences.length})`
+  );
 
   // Reassemble audio in original sentence order and calculate timings
   const audioFiles: Array<{ buffer: Buffer; duration: number }> = [];
@@ -445,14 +446,10 @@ async function generateSingleSpeedAudio(
   }
 
   // Concatenate all audio files
-  const finalAudioBuffer = await concatenateAudio(audioFiles.map(f => f.buffer));
+  const finalAudioBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
 
   // Upload to GCS
-  const audioUrl = await uploadAudio(
-    finalAudioBuffer,
-    episodeId,
-    config.key
-  );
+  const audioUrl = await uploadAudio(finalAudioBuffer, episodeId, config.key);
 
   // Update episode with this speed's audio URL
   await prisma.episode.update({
@@ -489,9 +486,27 @@ export async function generateAllSpeedsAudio(
   onProgress?: (progress: number) => void
 ) {
   const speedConfigs: SpeedConfig[] = [
-    { key: 'slow', value: 0.7, audioUrlField: 'audioUrl_0_7', startTimeField: 'startTime_0_7', endTimeField: 'endTime_0_7' },
-    { key: 'medium', value: 0.85, audioUrlField: 'audioUrl_0_85', startTimeField: 'startTime_0_85', endTimeField: 'endTime_0_85' },
-    { key: 'normal', value: 1.0, audioUrlField: 'audioUrl_1_0', startTimeField: 'startTime_1_0', endTimeField: 'endTime_1_0' },
+    {
+      key: 'slow',
+      value: 0.7,
+      audioUrlField: 'audioUrl_0_7',
+      startTimeField: 'startTime_0_7',
+      endTimeField: 'endTime_0_7',
+    },
+    {
+      key: 'medium',
+      value: 0.85,
+      audioUrlField: 'audioUrl_0_85',
+      startTimeField: 'startTime_0_85',
+      endTimeField: 'endTime_0_85',
+    },
+    {
+      key: 'normal',
+      value: 1.0,
+      audioUrlField: 'audioUrl_1_0',
+      startTimeField: 'startTime_1_0',
+      endTimeField: 'endTime_1_0',
+    },
   ];
 
   const results: Array<{ speed: string; audioUrl: string; duration: number }> = [];
@@ -499,7 +514,9 @@ export async function generateAllSpeedsAudio(
   // Generate speeds SEQUENTIALLY to avoid resource exhaustion
   for (let i = 0; i < speedConfigs.length; i++) {
     const config = speedConfigs[i];
-    console.log(`[generateAllSpeedsAudio] Starting speed ${i + 1}/3: ${config.key} (${config.value}x)`);
+    console.log(
+      `[generateAllSpeedsAudio] Starting speed ${i + 1}/3: ${config.key} (${config.value}x)`
+    );
 
     const result = await generateSingleSpeedAudio(
       episodeId,

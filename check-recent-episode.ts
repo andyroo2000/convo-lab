@@ -3,9 +3,9 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://languageflow:Kx9mP2vNwQ7bL5tRj8dF3hYzW6cM4nXs@34.57.57.13:5432/languageflow?schema=public'
-    }
-  }
+      url: 'postgresql://languageflow:Kx9mP2vNwQ7bL5tRj8dF3hYzW6cM4nXs@34.57.57.13:5432/languageflow?schema=public',
+    },
+  },
 });
 
 async function main() {
@@ -18,11 +18,11 @@ async function main() {
           include: {
             sentences: {
               take: 2,
-              orderBy: { order: 'asc' }
-            }
-          }
-        }
-      }
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
     });
 
     if (latestEpisode) {
@@ -38,7 +38,9 @@ async function main() {
 
       if (latestEpisode.dialogue) {
         console.log(`\n  Dialogue ID: ${latestEpisode.dialogue.id}`);
-        console.log(`  Sentences: ${latestEpisode.dialogue.sentences.length > 0 ? 'Present' : 'None'}`);
+        console.log(
+          `  Sentences: ${latestEpisode.dialogue.sentences.length > 0 ? 'Present' : 'None'}`
+        );
 
         if (latestEpisode.dialogue.sentences.length > 0) {
           console.log(`\n  First sentence: ${latestEpisode.dialogue.sentences[0].text}`);
@@ -51,7 +53,6 @@ async function main() {
     } else {
       console.log('No episodes found');
     }
-
   } catch (error) {
     console.error('Error:', error);
   } finally {

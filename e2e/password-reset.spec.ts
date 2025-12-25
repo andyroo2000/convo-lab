@@ -43,7 +43,9 @@ test.describe('Password Reset Flow', () => {
       await expect(page.locator('text=test@example.com')).toBeVisible();
     });
 
-    it('should show success message even for non-existent email (prevent enumeration)', async ({ page }) => {
+    it('should show success message even for non-existent email (prevent enumeration)', async ({
+      page,
+    }) => {
       await page.goto(`${APP_URL}/forgot-password`);
 
       await page.fill('input[type="email"]', 'nonexistent@example.com');
@@ -132,7 +134,9 @@ test.describe('Password Reset Flow', () => {
       await page.click('button:has-text("Reset Password")');
 
       // Should show success message
-      await expect(page.locator('h2:has-text("Password Reset Successfully")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('h2:has-text("Password Reset Successfully")')).toBeVisible({
+        timeout: 5000,
+      });
 
       // Wait for redirect
       await page.waitForURL(/\/login/, { timeout: 5000 });
@@ -225,7 +229,9 @@ test.describe('Password Reset Flow', () => {
       await page.fill('input[id="confirm-password"]', 'newpassword123');
       await page.click('button:has-text("Reset Password")');
 
-      await expect(page.locator('h2:has-text("Password Reset Successfully")')).toBeVisible({ timeout: 5000 });
+      await expect(page.locator('h2:has-text("Password Reset Successfully")')).toBeVisible({
+        timeout: 5000,
+      });
 
       // Try to use the same token again
       await page.goto(`${APP_URL}/reset-password/${token}`);
@@ -247,7 +253,10 @@ test.describe('Password Reset Flow', () => {
   });
 
   test.describe('Complete Flow Integration', () => {
-    test('should complete full password reset flow from forgot to login', async ({ page, request }) => {
+    test('should complete full password reset flow from forgot to login', async ({
+      page,
+      request,
+    }) => {
       const testEmail = `test-full-flow-${Date.now()}@example.com`;
 
       // 1. Create user

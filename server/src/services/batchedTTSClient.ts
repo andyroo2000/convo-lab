@@ -2,7 +2,10 @@ import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
-import { getGoogleTTSBetaProvider, SynthesizeWithTimepointsResult } from './ttsProviders/GoogleTTSBetaProvider.js';
+import {
+  getGoogleTTSBetaProvider,
+  SynthesizeWithTimepointsResult,
+} from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 import { generateSilence } from './ttsClient.js';
 
@@ -27,9 +30,9 @@ interface TTSBatch {
   speed: number;
   pitch: number;
   units: Array<{
-    originalIndex: number;  // Position in original script
-    markName: string;       // e.g., "unit_42"
-    text: string;           // Text content to speak
+    originalIndex: number; // Position in original script
+    markName: string; // e.g., "unit_42"
+    text: string; // Text content to speak
   }>;
 }
 
@@ -37,8 +40,8 @@ interface TTSBatch {
  * Result of processing all batches - segments ordered by original index
  */
 export interface BatchProcessingResult {
-  segments: Map<number, Buffer>;  // originalIndex -> audio buffer
-  pauseSegments: Map<number, Buffer>;  // originalIndex -> silence buffer
+  segments: Map<number, Buffer>; // originalIndex -> audio buffer
+  pauseSegments: Map<number, Buffer>; // originalIndex -> silence buffer
   totalBatches: number;
   totalTTSCalls: number;
 }
@@ -91,14 +94,15 @@ export function groupUnitsIntoBatches(
     }
 
     // Get batch key properties
-    const {voiceId} = unit;
-    const speed = unit.type === 'L2' ? (unit.speed || 1.0) : 1.0;
+    const { voiceId } = unit;
+    const speed = unit.type === 'L2' ? unit.speed || 1.0 : 1.0;
     const pitch = unit.pitch || 0;
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;
     const text = unit.type === 'L2' && unit.reading ? unit.reading : unit.text;
 
     // Check if we need a new batch
-    const needsNewBatch = !currentBatch ||
+    const needsNewBatch =
+      !currentBatch ||
       currentBatch.voiceId !== voiceId ||
       currentBatch.speed !== speed ||
       currentBatch.languageCode !== languageCode;
@@ -140,10 +144,7 @@ export function groupUnitsIntoBatches(
  * For Polly: Wraps content in <prosody rate="X%"> to control speed
  * For Google: Speed is handled by speakingRate parameter in API
  */
-export function buildBatchSSML(
-  batch: TTSBatch,
-  provider: 'google' | 'polly'
-): string {
+export function buildBatchSSML(batch: TTSBatch, provider: 'google' | 'polly'): string {
   let ssml = '<speak>';
 
   // For Polly, wrap entire content in prosody tag for speed control
@@ -255,7 +256,9 @@ async function extractAudioSegment(
   const duration = endSeconds - startSeconds;
 
   if (duration <= 0) {
-    throw new Error(`Invalid segment duration: ${duration}s (start=${startSeconds}, end=${endSeconds})`);
+    throw new Error(
+      `Invalid segment duration: ${duration}s (start=${startSeconds}, end=${endSeconds})`
+    );
   }
 
   return new Promise((resolve, reject) => {
@@ -327,13 +330,11 @@ export async function processBatches(
 
     // Detect provider from voice ID
     const providerType = getProviderFromVoiceId(batch.voiceId);
-    const provider = providerType === 'polly'
-      ? getPollyTTSProvider()
-      : getGoogleTTSBetaProvider();
+    const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
     console.log(
       `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
-      `provider=${providerType}, voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
+        `provider=${providerType}, voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
     );
 
     // Build SSML with marks (provider-aware for speed handling)
@@ -350,7 +351,7 @@ export async function processBatches(
 
     console.log(
       `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
-      `Got ${result.timepoints.length} timepoints, splitting audio...`
+        `Got ${result.timepoints.length} timepoints, splitting audio...`
     );
 
     // Split audio at timepoints
@@ -382,7 +383,7 @@ export async function processBatches(
   const totalTTSCalls = batches.length + pauseIndices.size; // batches + silence calls
   console.log(
     `[TTS BATCH] Complete: ${totalTTSCalls} TTS calls ` +
-    `(was ${units.filter(u => u.type !== 'marker').length})`
+      `(was ${units.filter((u) => u.type !== 'marker').length})`
   );
 
   return {
@@ -435,13 +436,13 @@ export async function synthesizeBatchedTexts(
 
   const { voiceId, languageCode, speed = 1.0, pitch = 0 } = options;
 
-  console.log(`[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`);
+  console.log(
+    `[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`
+  );
 
   // Detect provider from voice ID
   const providerType = getProviderFromVoiceId(voiceId);
-  const provider = providerType === 'polly'
-    ? getPollyTTSProvider()
-    : getGoogleTTSBetaProvider();
+  const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
   // Build SSML with marks (provider-aware for speed handling)
   let ssml = '<speak>';

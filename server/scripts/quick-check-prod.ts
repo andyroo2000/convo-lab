@@ -16,18 +16,18 @@ async function quickCheck() {
     // Get first dialogue with sentences
     const episode = await prisma.episode.findFirst({
       where: {
-        dialogue: { isNot: null }
+        dialogue: { isNot: null },
       },
       include: {
         dialogue: {
           include: {
             sentences: {
               take: 3,
-              orderBy: { order: 'asc' }
-            }
-          }
-        }
-      }
+              orderBy: { order: 'asc' },
+            },
+          },
+        },
+      },
     });
 
     if (!episode || !episode.dialogue) {
@@ -59,11 +59,8 @@ async function quickCheck() {
     const total = await prisma.sentence.count();
     const empty = await prisma.sentence.count({
       where: {
-        OR: [
-          { metadata: { equals: {} } },
-          { metadata: { equals: null } }
-        ]
-      }
+        OR: [{ metadata: { equals: {} } }, { metadata: { equals: null } }],
+      },
     });
 
     console.log('━'.repeat(60));
@@ -82,7 +79,6 @@ async function quickCheck() {
     } else {
       console.log('✅ All sentences have metadata!\n');
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

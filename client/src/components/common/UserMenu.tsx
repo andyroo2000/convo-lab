@@ -22,7 +22,13 @@ const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600' },
 };
 
-export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, role, onLogout }: UserMenuProps) {
+export default function UserMenu({
+  userName,
+  avatarColor = 'indigo',
+  avatarUrl,
+  role,
+  onLogout,
+}: UserMenuProps) {
   const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -66,17 +72,11 @@ export default function UserMenu({ userName, avatarColor = 'indigo', avatarUrl, 
       >
         {avatarUrl ? (
           <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
-            <img
-              src={avatarUrl}
-              alt={userName}
-              className="w-full h-full object-cover"
-            />
+            <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
           </div>
         ) : (
           <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-periwinkle">
-              {userInitial}
-            </span>
+            <span className="text-sm font-bold text-periwinkle">{userInitial}</span>
           </div>
         )}
       </button>

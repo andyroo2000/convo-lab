@@ -96,7 +96,10 @@ async function fetchCourses(offset: number = 0, viewAsUserId?: string): Promise<
   return response.json();
 }
 
-async function fetchNarrowListeningPacks(offset: number = 0, viewAsUserId?: string): Promise<NarrowListeningPack[]> {
+async function fetchNarrowListeningPacks(
+  offset: number = 0,
+  viewAsUserId?: string
+): Promise<NarrowListeningPack[]> {
   const params = new URLSearchParams({
     library: 'true',
     limit: '20',
@@ -180,22 +183,22 @@ export function useLibraryData(viewAsUserId?: string) {
   const episodesQuery = useInfiniteQuery({
     queryKey: [...libraryKeys.episodes(), viewAsUserId],
     queryFn: ({ pageParam = 0 }) => fetchEpisodes(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) => 
+    getNextPageParam: (lastPage, allPages) =>
       // If last page has 20 items, there might be more
-       lastPage.length === 20 ? allPages.length * 20 : undefined
-    ,
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
   });
 
   const coursesQuery = useInfiniteQuery({
     queryKey: [...libraryKeys.courses(), viewAsUserId],
     queryFn: ({ pageParam = 0 }) => fetchCourses(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === 20 ? allPages.length * 20 : undefined,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
     // Poll every 5 seconds while any course is generating
     refetchInterval: (query) => {
       const allCourses = query.state.data?.pages.flat() ?? [];
-      const hasGenerating = allCourses.some(c => c.status === 'generating');
+      const hasGenerating = allCourses.some((c) => c.status === 'generating');
       return hasGenerating ? 5000 : false;
     },
   });
@@ -203,19 +206,21 @@ export function useLibraryData(viewAsUserId?: string) {
   const narrowListeningQuery = useInfiniteQuery({
     queryKey: [...libraryKeys.narrowListening(), viewAsUserId],
     queryFn: ({ pageParam = 0 }) => fetchNarrowListeningPacks(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === 20 ? allPages.length * 20 : undefined,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
   });
 
   const chunkPacksQuery = useInfiniteQuery({
     queryKey: [...libraryKeys.chunkPacks(), viewAsUserId],
     queryFn: ({ pageParam = 0 }) => fetchChunkPacks(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) => lastPage.length === 20 ? allPages.length * 20 : undefined,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
     // Poll every 5 seconds while any chunk pack is generating
     refetchInterval: (query) => {
       const allPacks = query.state.data?.pages.flat() ?? [];
-      const hasGenerating = allPacks.some(cp => cp.status === 'generating');
+      const hasGenerating = allPacks.some((cp) => cp.status === 'generating');
       return hasGenerating ? 5000 : false;
     },
   });

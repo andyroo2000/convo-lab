@@ -97,9 +97,7 @@ describe('Chunk Packs Route Logic', () => {
       const mockPacks = [
         {
           id: 'pack-1',
-          chunks: [
-            { id: 'chunk-1', form: '食べる', meaning: 'to eat', order: 0 },
-          ],
+          chunks: [{ id: 'chunk-1', form: '食べる', meaning: 'to eat', order: 0 }],
           _count: { examples: 10, stories: 2, exercises: 5 },
         },
       ];
@@ -118,8 +116,7 @@ describe('Chunk Packs Route Logic', () => {
     });
 
     it('should support pagination with limit and offset', () => {
-      const parseLimit = (limitStr: string | undefined) =>
-        limitStr ? parseInt(limitStr, 10) : 50;
+      const parseLimit = (limitStr: string | undefined) => (limitStr ? parseInt(limitStr, 10) : 50);
       const parseOffset = (offsetStr: string | undefined) =>
         offsetStr ? parseInt(offsetStr, 10) : 0;
 

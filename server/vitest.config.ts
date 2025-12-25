@@ -9,13 +9,7 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html'],
-      exclude: [
-        'node_modules/**',
-        'dist/**',
-        'src/__tests__/**',
-        'scripts/**',
-        'prisma/**',
-      ],
+      exclude: ['node_modules/**', 'dist/**', 'src/__tests__/**', 'scripts/**', 'prisma/**'],
     },
   },
 });

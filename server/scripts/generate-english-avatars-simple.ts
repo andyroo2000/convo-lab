@@ -31,12 +31,10 @@ async function createSimpleAvatar(bgColor: string, initial: string): Promise<Buf
     </svg>
   `;
 
-  return await sharp(Buffer.from(svg))
-    .jpeg({ quality: 90 })
-    .toBuffer();
+  return await sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
 }
 
-async function generateAndUploadAvatar(config: typeof AVATAR_CONFIGS[0]): Promise<void> {
+async function generateAndUploadAvatar(config: (typeof AVATAR_CONFIGS)[0]): Promise<void> {
   console.log(`\nGenerating: ${config.filename} (${config.name})`);
 
   try {
@@ -66,7 +64,6 @@ async function generateAndUploadAvatar(config: typeof AVATAR_CONFIGS[0]): Promis
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${config.filename}:`, error.message);
     throw error;
@@ -91,7 +88,7 @@ async function main() {
       // Wait between uploads
       if (config !== AVATAR_CONFIGS[AVATAR_CONFIGS.length - 1]) {
         console.log('\nWaiting 1 second before next generation...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
       failCount++;

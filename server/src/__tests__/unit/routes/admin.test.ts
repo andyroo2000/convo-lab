@@ -9,14 +9,14 @@ describe('Admin Route Validation Logic', () => {
 
     it('should accept valid custom invite codes', () => {
       const validCodes = ['ABCDEF', 'abc123', 'INVITE2024', '12345678', 'a1b2c3d4e5f6g7h8i9j0'];
-      validCodes.forEach(code => {
+      validCodes.forEach((code) => {
         expect(isValidCustomCode(code)).toBe(true);
       });
     });
 
     it('should reject codes shorter than 6 characters', () => {
       const shortCodes = ['ABC', '12345', 'a', ''];
-      shortCodes.forEach(code => {
+      shortCodes.forEach((code) => {
         expect(isValidCustomCode(code)).toBe(false);
       });
     });
@@ -28,14 +28,15 @@ describe('Admin Route Validation Logic', () => {
 
     it('should reject codes with special characters', () => {
       const invalidCodes = ['ABC-123', 'invite_code', 'CODE@2024', 'code with space'];
-      invalidCodes.forEach(code => {
+      invalidCodes.forEach((code) => {
         expect(isValidCustomCode(code)).toBe(false);
       });
     });
   });
 
   describe('Avatar Filename Validation', () => {
-    const isValidAvatarFilename = (filename: string): boolean => /^(ja|zh|es)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
+    const isValidAvatarFilename = (filename: string): boolean =>
+      /^(ja|zh|es)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
 
     it('should accept valid avatar filenames', () => {
       const validFilenames = [
@@ -44,49 +45,35 @@ describe('Admin Route Validation Logic', () => {
         'es-male-formal.webp',
         'JA-FEMALE-CASUAL.jpeg',
       ];
-      validFilenames.forEach(filename => {
+      validFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(true);
       });
     });
 
     it('should reject invalid language codes', () => {
-      const invalidFilenames = [
-        'en-male-casual.jpg',
-        'fr-female-polite.jpg',
-        'de-male-formal.jpg',
-      ];
-      invalidFilenames.forEach(filename => {
+      const invalidFilenames = ['en-male-casual.jpg', 'fr-female-polite.jpg', 'de-male-formal.jpg'];
+      invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid gender values', () => {
-      const invalidFilenames = [
-        'ja-other-casual.jpg',
-        'zh-neutral-polite.jpg',
-      ];
-      invalidFilenames.forEach(filename => {
+      const invalidFilenames = ['ja-other-casual.jpg', 'zh-neutral-polite.jpg'];
+      invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid tone values', () => {
-      const invalidFilenames = [
-        'ja-male-informal.jpg',
-        'zh-female-professional.jpg',
-      ];
-      invalidFilenames.forEach(filename => {
+      const invalidFilenames = ['ja-male-informal.jpg', 'zh-female-professional.jpg'];
+      invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid file extensions', () => {
-      const invalidFilenames = [
-        'ja-male-casual.gif',
-        'zh-female-polite.bmp',
-        'es-male-formal.svg',
-      ];
-      invalidFilenames.forEach(filename => {
+      const invalidFilenames = ['ja-male-casual.gif', 'zh-female-polite.bmp', 'es-male-formal.svg'];
+      invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
@@ -102,7 +89,7 @@ describe('Admin Route Validation Logic', () => {
 
     it('should reject non-boolean values', () => {
       const invalidValues = ['true', 'false', 1, 0, null, undefined, {}, []];
-      invalidValues.forEach(val => {
+      invalidValues.forEach((val) => {
         expect(isValidBoolean(val)).toBe(false);
       });
     });
@@ -125,7 +112,7 @@ describe('Admin Route Validation Logic', () => {
         { x: 50, y: 50, width: 200, height: 200 },
         { x: 0.5, y: 0.5, width: 0.5, height: 0.5 },
       ];
-      validCropAreas.forEach(area => {
+      validCropAreas.forEach((area) => {
         expect(isValidCropArea(area)).toBe(true);
       });
     });
@@ -140,7 +127,7 @@ describe('Admin Route Validation Logic', () => {
         { x: 0, y: 0, width: 100 },
         { x: '0', y: 0, width: 100, height: 100 },
       ];
-      invalidCropAreas.forEach(area => {
+      invalidCropAreas.forEach((area) => {
         expect(isValidCropArea(area)).toBe(false);
       });
     });

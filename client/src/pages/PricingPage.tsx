@@ -28,8 +28,8 @@ export default function PricingPage() {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({
-          priceId
-        })
+          priceId,
+        }),
       });
 
       if (!response.ok) {
@@ -61,29 +61,33 @@ export default function PricingPage() {
         t('tiers.free.features.generations'),
         t('tiers.free.features.contentTypes'),
         t('tiers.free.features.tts'),
-        t('tiers.free.features.support')
+        t('tiers.free.features.support'),
       ],
       cta: user?.tier === 'free' ? t('actions.currentPlan') : t('actions.downgrade'),
       ctaDisabled: true,
-      current: user?.tier === 'free'
+      current: user?.tier === 'free',
     },
     // Show test tier if user is a test user
-    ...(user?.isTestUser && testPriceId ? [{
-      name: t('tiers.test.name'),
-      price: t('tiers.test.price'),
-      period: t('tiers.test.period'),
-      description: t('tiers.test.description'),
-      features: [
-        t('tiers.test.features.generations'),
-        t('tiers.test.features.contentTypes'),
-        t('tiers.test.features.tts'),
-        t('tiers.test.features.payment')
-      ],
-      cta: t('tiers.test.cta'),
-      ctaDisabled: false,
-      ctaAction: () => handleUpgrade(testPriceId),
-      current: false
-    }] : []),
+    ...(user?.isTestUser && testPriceId
+      ? [
+          {
+            name: t('tiers.test.name'),
+            price: t('tiers.test.price'),
+            period: t('tiers.test.period'),
+            description: t('tiers.test.description'),
+            features: [
+              t('tiers.test.features.generations'),
+              t('tiers.test.features.contentTypes'),
+              t('tiers.test.features.tts'),
+              t('tiers.test.features.payment'),
+            ],
+            cta: t('tiers.test.cta'),
+            ctaDisabled: false,
+            ctaAction: () => handleUpgrade(testPriceId),
+            current: false,
+          },
+        ]
+      : []),
     {
       name: t('tiers.pro.name'),
       price: t('tiers.pro.price'),
@@ -94,26 +98,22 @@ export default function PricingPage() {
         t('tiers.pro.features.contentTypes'),
         t('tiers.pro.features.tts'),
         t('tiers.pro.features.support'),
-        t('tiers.pro.features.earlyAccess')
+        t('tiers.pro.features.earlyAccess'),
       ],
       cta: user?.tier === 'pro' ? t('actions.currentPlan') : t('actions.upgrade'),
       ctaDisabled: user?.tier === 'pro',
       ctaAction: () => handleUpgrade(proPriceId),
       current: user?.tier === 'pro',
-      popular: true
-    }
+      popular: true,
+    },
   ];
 
   return (
     <div className="min-h-screen bg-cream">
       <div className="max-w-7xl mx-auto px-4 py-12">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-dark-brown mb-4">
-            {t('title')}
-          </h1>
-          <p className="text-lg text-medium-brown max-w-2xl mx-auto">
-            {t('subtitle')}
-          </p>
+          <h1 className="text-4xl font-bold text-dark-brown mb-4">{t('title')}</h1>
+          <p className="text-lg text-medium-brown max-w-2xl mx-auto">{t('subtitle')}</p>
         </div>
 
         {error && (
@@ -145,19 +145,11 @@ export default function PricingPage() {
               )}
 
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-dark-brown mb-2">
-                  {tier.name}
-                </h2>
-                <p className="text-medium-brown text-sm mb-4">
-                  {tier.description}
-                </p>
+                <h2 className="text-2xl font-bold text-dark-brown mb-2">{tier.name}</h2>
+                <p className="text-medium-brown text-sm mb-4">{tier.description}</p>
                 <div className="flex items-baseline">
-                  <span className="text-5xl font-bold text-dark-brown">
-                    {tier.price}
-                  </span>
-                  <span className="text-medium-brown ml-2">
-                    {tier.period}
-                  </span>
+                  <span className="text-5xl font-bold text-dark-brown">{tier.price}</span>
+                  <span className="text-medium-brown ml-2">{tier.period}</span>
                 </div>
               </div>
 
@@ -174,9 +166,7 @@ export default function PricingPage() {
                 onClick={tier.ctaAction}
                 disabled={tier.ctaDisabled || loading}
                 className={`btn-primary w-full ${
-                  tier.ctaDisabled || loading
-                    ? 'opacity-50 cursor-not-allowed'
-                    : ''
+                  tier.ctaDisabled || loading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {loading && tier.ctaAction ? t('actions.loading') : tier.cta}
@@ -186,9 +176,7 @@ export default function PricingPage() {
         </div>
 
         <div className="mt-12 text-center">
-          <p className="text-medium-brown mb-4">
-            {t('footer.inviteOnly')}
-          </p>
+          <p className="text-medium-brown mb-4">{t('footer.inviteOnly')}</p>
           <p className="text-sm text-gray-500">
             {t('footer.questions')}{' '}
             <a

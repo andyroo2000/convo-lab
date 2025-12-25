@@ -18,13 +18,13 @@
  *   npm run harness:mobile -- --responsive-only        # Only check responsiveness
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 interface MobileHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  responsiveOnly?: boolean;  // Only focus on responsive design
+  responsiveOnly?: boolean; // Only focus on responsive design
 }
 
 const DEFAULT_MAX_TURNS = 200;
@@ -34,7 +34,7 @@ async function runMobileHarness(options: MobileHarnessOptions = {}) {
     dryRun = false,
     maxTurns = DEFAULT_MAX_TURNS,
     verbose = true,
-    responsiveOnly = false
+    responsiveOnly = false,
   } = options;
 
   console.log('📱 ConvoLab Mobile Optimization Harness');
@@ -45,7 +45,9 @@ async function runMobileHarness(options: MobileHarnessOptions = {}) {
   }
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
-  console.log(`🎯 Mode: ${responsiveOnly ? 'Responsive design only' : 'Full mobile optimization'}\n`);
+  console.log(
+    `🎯 Mode: ${responsiveOnly ? 'Responsive design only' : 'Full mobile optimization'}\n`
+  );
 
   console.log('Starting mobile audit...\n');
 
@@ -54,7 +56,9 @@ You are running an autonomous mobile optimization harness for ConvoLab.
 
 ## Your Mission
 
-${responsiveOnly ? `
+${
+  responsiveOnly
+    ? `
 ### Responsive Design Only
 
 1. Review viewport meta tag
@@ -64,7 +68,8 @@ ${responsiveOnly ? `
 5. Check touch target sizes
 6. Fix responsive issues
 7. Commit with /commit
-` : `
+`
+    : `
 ## Complete Mobile Optimization Workflow
 
 ### PHASE 1: Viewport & Meta Tags
@@ -245,21 +250,26 @@ ${responsiveOnly ? `
 4. Document mobile testing results
 
 ### PHASE 10: Report & Implement
-${dryRun ? `
+${
+  dryRun
+    ? `
 - List current mobile state
 - Identify mobile issues
 - Categorize by priority (critical, important, nice-to-have)
 - Provide implementation recommendations
 - No changes made
-` : `
+`
+    : `
 - Fix critical mobile issues first
 - Implement responsive design improvements
 - Add PWA features if missing
 - Optimize mobile performance
 - Update CHANGELOG.md with mobile improvements
 - Use /commit with detailed mobile optimization message
-`}
-`}
+`
+}
+`
+}
 
 ## Mobile Optimization Guidelines
 
@@ -326,20 +336,24 @@ Write CSS for mobile first, then add media queries for larger screens:
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze mobile experience
 - List mobile issues by priority
 - Provide recommendations
 - Document current state
-` : `
+`
+    : `
 - Fix responsive design issues first
 - Ensure touch targets are adequate
 - Add PWA features if missing
 - Test on multiple screen sizes
 - Document mobile optimizations
 - Use /commit once at the end with all mobile improvements
-`}
+`
+}
 
 - Mobile-first approach
 - Test on real devices when possible
@@ -367,14 +381,14 @@ Begin your mobile audit now.
           : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
         systemPrompt: `You are a mobile optimization expert for ConvoLab.
 Follow mobile-first principles. Prioritize user experience.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for mobile and use /commit when done.'}`
-      }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for mobile and use /commit when done.'}`,
+      },
     })) {
       messageCount++;
 
       // Show progress
       const now = Date.now();
-      if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
         const progress = ((messageCount / maxTurns) * 100).toFixed(1);
         console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
         lastProgressUpdate = now;
@@ -415,12 +429,13 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for m
     console.log('═══════════════════════════════════════════\n');
     console.log(`📊 Total messages: ${messageCount}`);
     console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
+    console.log(
+      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+    );
 
     if (dryRun) {
       console.log('\n💡 This was a dry run. To apply optimizations, run without --dry-run flag.');
     }
-
   } catch (error) {
     console.error('\n❌ Mobile optimization failed with error:');
     console.error(error);
@@ -432,7 +447,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for m
 const args = process.argv.slice(2);
 
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -445,11 +460,11 @@ const options: MobileHarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
   responsiveOnly: args.includes('--responsive-only'),
-  maxTurns: customMaxTurns
+  maxTurns: customMaxTurns,
 };
 
 // Run the harness
-runMobileHarness(options).catch(error => {
+runMobileHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

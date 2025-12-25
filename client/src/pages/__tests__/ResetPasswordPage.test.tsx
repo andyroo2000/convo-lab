@@ -50,10 +50,9 @@ describe('ResetPasswordPage', () => {
       renderWithRouter('/reset-password/valid-token');
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          `${API_URL}/api/password-reset/valid-token`,
-          { credentials: 'include' }
-        );
+        expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/password-reset/valid-token`, {
+          credentials: 'include',
+        });
       });
     });
 

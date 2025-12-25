@@ -13,7 +13,9 @@ export default function VerifyEmailPage() {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'already-verified'>('verifying');
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'already-verified'>(
+    'verifying'
+  );
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -31,7 +33,7 @@ export default function VerifyEmailPage() {
     const verifyToken = async () => {
       try {
         const response = await fetch(`${API_URL}/api/verification/${token}`, {
-          credentials: 'include'
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -109,9 +111,7 @@ export default function VerifyEmailPage() {
               <h2 className="text-xl font-semibold text-dark-brown mb-2">
                 {t('auth:verifyEmail.verifying')}
               </h2>
-              <p className="text-medium-brown">
-                {t('auth:verifyEmail.verifyingDescription')}
-              </p>
+              <p className="text-medium-brown">{t('auth:verifyEmail.verifyingDescription')}</p>
             </div>
           )}
 
@@ -121,12 +121,8 @@ export default function VerifyEmailPage() {
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
                 {t('auth:verifyEmail.success')}
               </h2>
-              <p className="text-medium-brown mb-4">
-                {t('auth:verifyEmail.successDescription')}
-              </p>
-              <p className="text-sm text-gray-500">
-                {t('auth:verifyEmail.redirecting')}
-              </p>
+              <p className="text-medium-brown mb-4">{t('auth:verifyEmail.successDescription')}</p>
+              <p className="text-sm text-gray-500">{t('auth:verifyEmail.redirecting')}</p>
             </div>
           )}
 
@@ -140,9 +136,7 @@ export default function VerifyEmailPage() {
 
               {user && !user.emailVerified && (
                 <div className="mt-6">
-                  <p className="text-medium-brown mb-4">
-                    {t('auth:verifyEmail.needNewLink')}
-                  </p>
+                  <p className="text-medium-brown mb-4">{t('auth:verifyEmail.needNewLink')}</p>
                   <button
                     onClick={handleResendEmail}
                     disabled={resending}

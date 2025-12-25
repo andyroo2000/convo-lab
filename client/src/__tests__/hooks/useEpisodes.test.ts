@@ -77,7 +77,8 @@ describe('useEpisodes', () => {
 
     it('should set loading state during request', async () => {
       mockFetch.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => ({}) }), 100))
+        () =>
+          new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => ({}) }), 100))
       );
 
       const { result } = renderHook(() => useEpisodes());

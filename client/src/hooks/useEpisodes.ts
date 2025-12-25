@@ -107,10 +107,7 @@ export function useEpisodes() {
     }
   };
 
-  const generateAllSpeedsAudio = async (
-    episodeId: string,
-    dialogueId: string
-  ): Promise<string> => {
+  const generateAllSpeedsAudio = async (episodeId: string, dialogueId: string): Promise<string> => {
     setLoading(true);
     setError(null);
 
@@ -211,21 +208,27 @@ export function useEpisodes() {
           if (!response.ok) {
             // Check if it's a transient error (500, 502, 503, 504)
             if (response.status >= 500 && response.status < 600 && attempt < MAX_RETRIES - 1) {
-              console.warn(`Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`);
-              await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+              console.warn(
+                `Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`
+              );
+              await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]));
               continue; // Retry
             }
             throw new Error('Failed to fetch job status');
           }
 
           const data = await response.json();
-          return data.state === 'completed' ? 'completed' : data.state === 'failed' ? 'failed' : 'pending';
+          return data.state === 'completed'
+            ? 'completed'
+            : data.state === 'failed'
+              ? 'failed'
+              : 'pending';
         } catch (err) {
           // Network errors or other failures
           if (attempt < MAX_RETRIES - 1) {
             console.warn(`Error polling job status (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
             console.warn(`Retrying in ${RETRY_DELAYS[attempt]}ms...`);
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAYS[attempt]));
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]));
             continue; // Retry
           }
           // Final attempt failed
@@ -248,7 +251,7 @@ export function useEpisodes() {
       }
 
       if (status === 'pending') {
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 

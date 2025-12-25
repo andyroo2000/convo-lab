@@ -222,7 +222,10 @@ test.describe('Subscription and Billing Flow', () => {
       expect(quotaText).toContain('5'); // Free tier limit
     });
 
-    test('should show upgrade prompt when free tier hits quota limit', async ({ page, request }) => {
+    test('should show upgrade prompt when free tier hits quota limit', async ({
+      page,
+      request,
+    }) => {
       // This would require generating content to hit the limit
       // Implementation would depend on test helpers to set quota
       test.skip();

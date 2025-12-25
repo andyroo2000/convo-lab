@@ -71,11 +71,15 @@ function estimateSingleLessonDuration(coreItems: CoreItem[]): number {
   const introItems = Math.min(5, coreItems.length);
   // Only count section durations for the split decision (not drill overhead)
   // This matches the original behavior where small numbers of items don't cause splits
-  const baseSections = 120 + (introItems * 90) + (introItems * 30) + 120 + 180 + 180 + 240 + 300 + 60;
+  const baseSections = 120 + introItems * 90 + introItems * 30 + 120 + 180 + 180 + 240 + 300 + 60;
   return baseSections;
 }
 
-function planSingleLesson(coreItems: CoreItem[], episodeTitle: string, lessonNumber: number): LessonPlan {
+function planSingleLesson(
+  coreItems: CoreItem[],
+  episodeTitle: string,
+  lessonNumber: number
+): LessonPlan {
   const sections: LessonSection[] = [];
   let currentTime = 0;
 
@@ -85,17 +89,35 @@ function planSingleLesson(coreItems: CoreItem[], episodeTitle: string, lessonNum
   // Cap at 5 items for both duration and display
   const introItems = coreItems.slice(0, Math.min(5, coreItems.length));
   const coreIntroDuration = introItems.length * 90;
-  sections.push({ type: 'core_intro', title: 'Core Vocabulary', targetDurationSeconds: coreIntroDuration, coreItems: introItems });
+  sections.push({
+    type: 'core_intro',
+    title: 'Core Vocabulary',
+    targetDurationSeconds: coreIntroDuration,
+    coreItems: introItems,
+  });
   currentTime += coreIntroDuration;
 
   const earlySrsDuration = introItems.length * 30;
-  sections.push({ type: 'early_srs', title: 'Early Practice', targetDurationSeconds: earlySrsDuration, coreItems: introItems });
+  sections.push({
+    type: 'early_srs',
+    title: 'Early Practice',
+    targetDurationSeconds: earlySrsDuration,
+    coreItems: introItems,
+  });
   currentTime += earlySrsDuration;
 
-  sections.push({ type: 'phrase_construction', title: 'Phrase Construction', targetDurationSeconds: 120 });
+  sections.push({
+    type: 'phrase_construction',
+    title: 'Phrase Construction',
+    targetDurationSeconds: 120,
+  });
   currentTime += 120;
 
-  sections.push({ type: 'dialogue_integration', title: 'Dialogue Integration', targetDurationSeconds: 180 });
+  sections.push({
+    type: 'dialogue_integration',
+    title: 'Dialogue Integration',
+    targetDurationSeconds: 180,
+  });
   currentTime += 180;
 
   sections.push({ type: 'qa', title: 'Q&A Practice', targetDurationSeconds: 180 });
@@ -104,7 +126,12 @@ function planSingleLesson(coreItems: CoreItem[], episodeTitle: string, lessonNum
   sections.push({ type: 'roleplay', title: 'Roleplay', targetDurationSeconds: 240 });
   currentTime += 240;
 
-  sections.push({ type: 'late_srs', title: 'Late SRS Review', targetDurationSeconds: 300, coreItems });
+  sections.push({
+    type: 'late_srs',
+    title: 'Late SRS Review',
+    targetDurationSeconds: 300,
+    coreItems,
+  });
   currentTime += 300;
 
   sections.push({ type: 'outro', title: 'Outro', targetDurationSeconds: 60 });
@@ -141,7 +168,11 @@ function scheduleDrills(coreItems: CoreItem[], lessonDuration: number): DrillEve
   return drills.sort((a, b) => a.targetOffsetSeconds - b.targetOffsetSeconds);
 }
 
-function splitIntoMultipleLessons(coreItems: CoreItem[], episodeTitle: string, maxDurationSeconds: number): CoursePlan {
+function splitIntoMultipleLessons(
+  coreItems: CoreItem[],
+  episodeTitle: string,
+  maxDurationSeconds: number
+): CoursePlan {
   const lessons: LessonPlan[] = [];
   const remainingItems = [...coreItems];
   let lessonNumber = 1;
@@ -163,7 +194,8 @@ function estimateLessonDuration(lesson: LessonPlan): number {
 
 describe('lessonPlanner', () => {
   // Helper to create mock core items
-  const createCoreItems = (count: number): CoreItem[] => Array.from({ length: count }, (_, i) => ({
+  const createCoreItems = (count: number): CoreItem[] =>
+    Array.from({ length: count }, (_, i) => ({
       id: `item-${i}`,
       textL2: `Target ${i}`,
       readingL2: `Reading ${i}`,
@@ -205,7 +237,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(5);
 
       const plan = planCourse(items, 'Test');
-      const sectionTypes = plan.lessons[0].sections.map(s => s.type);
+      const sectionTypes = plan.lessons[0].sections.map((s) => s.type);
 
       expect(sectionTypes).toContain('intro');
       expect(sectionTypes).toContain('core_intro');
@@ -230,7 +262,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(5);
 
       const plan = planCourse(items, 'Test');
-      const drillTimes = plan.lessons[0].drillEvents.map(d => d.targetOffsetSeconds);
+      const drillTimes = plan.lessons[0].drillEvents.map((d) => d.targetOffsetSeconds);
 
       // Check that times are sorted
       for (let i = 1; i < drillTimes.length; i++) {
@@ -264,7 +296,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const intro = plan.lessons[0].sections.find(s => s.type === 'intro');
+      const intro = plan.lessons[0].sections.find((s) => s.type === 'intro');
 
       expect(intro?.targetDurationSeconds).toBe(120);
     });
@@ -273,7 +305,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(4);
 
       const plan = planCourse(items, 'Test');
-      const coreIntro = plan.lessons[0].sections.find(s => s.type === 'core_intro');
+      const coreIntro = plan.lessons[0].sections.find((s) => s.type === 'core_intro');
 
       // 4 items * 90 seconds = 360 seconds
       expect(coreIntro?.targetDurationSeconds).toBe(360);
@@ -283,7 +315,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(10);
 
       const plan = planCourse(items, 'Test');
-      const coreIntro = plan.lessons[0].sections.find(s => s.type === 'core_intro');
+      const coreIntro = plan.lessons[0].sections.find((s) => s.type === 'core_intro');
 
       // Should be capped at 5 items * 90 seconds = 450 seconds
       expect(coreIntro?.targetDurationSeconds).toBe(450);
@@ -294,7 +326,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(4);
 
       const plan = planCourse(items, 'Test');
-      const earlySrs = plan.lessons[0].sections.find(s => s.type === 'early_srs');
+      const earlySrs = plan.lessons[0].sections.find((s) => s.type === 'early_srs');
 
       // 4 items * 30 seconds = 120 seconds
       expect(earlySrs?.targetDurationSeconds).toBe(120);
@@ -304,7 +336,9 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const phraseConstruction = plan.lessons[0].sections.find(s => s.type === 'phrase_construction');
+      const phraseConstruction = plan.lessons[0].sections.find(
+        (s) => s.type === 'phrase_construction'
+      );
 
       expect(phraseConstruction?.targetDurationSeconds).toBe(120);
     });
@@ -313,7 +347,9 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const dialogueIntegration = plan.lessons[0].sections.find(s => s.type === 'dialogue_integration');
+      const dialogueIntegration = plan.lessons[0].sections.find(
+        (s) => s.type === 'dialogue_integration'
+      );
 
       expect(dialogueIntegration?.targetDurationSeconds).toBe(180);
     });
@@ -322,7 +358,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const qa = plan.lessons[0].sections.find(s => s.type === 'qa');
+      const qa = plan.lessons[0].sections.find((s) => s.type === 'qa');
 
       expect(qa?.targetDurationSeconds).toBe(180);
     });
@@ -331,7 +367,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const roleplay = plan.lessons[0].sections.find(s => s.type === 'roleplay');
+      const roleplay = plan.lessons[0].sections.find((s) => s.type === 'roleplay');
 
       expect(roleplay?.targetDurationSeconds).toBe(240);
     });
@@ -340,7 +376,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const lateSrs = plan.lessons[0].sections.find(s => s.type === 'late_srs');
+      const lateSrs = plan.lessons[0].sections.find((s) => s.type === 'late_srs');
 
       expect(lateSrs?.targetDurationSeconds).toBe(300);
     });
@@ -349,7 +385,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(3);
 
       const plan = planCourse(items, 'Test');
-      const outro = plan.lessons[0].sections.find(s => s.type === 'outro');
+      const outro = plan.lessons[0].sections.find((s) => s.type === 'outro');
 
       expect(outro?.targetDurationSeconds).toBe(60);
     });
@@ -369,7 +405,7 @@ describe('lessonPlanner', () => {
       const items = createCoreItems(1);
 
       const plan = planCourse(items, 'Test');
-      const drillTypes = plan.lessons[0].drillEvents.map(d => d.drillType);
+      const drillTypes = plan.lessons[0].drillEvents.map((d) => d.drillType);
 
       expect(drillTypes).toContain('recall');
       expect(drillTypes).toContain('transform');
@@ -382,7 +418,7 @@ describe('lessonPlanner', () => {
 
       const plan = planCourse(items, 'Test');
 
-      plan.lessons[0].drillEvents.forEach(drill => {
+      plan.lessons[0].drillEvents.forEach((drill) => {
         expect(drill.coreItemId).toMatch(/^item-\d$/);
         expect(drill.coreItem).toBeDefined();
         expect(drill.coreItem.id).toBe(drill.coreItemId);
@@ -394,8 +430,8 @@ describe('lessonPlanner', () => {
 
       const plan = planCourse(items, 'Test');
       const drillTimes = plan.lessons[0].drillEvents
-        .filter(d => d.coreItemId === 'item-0')
-        .map(d => d.targetOffsetSeconds);
+        .filter((d) => d.coreItemId === 'item-0')
+        .map((d) => d.targetOffsetSeconds);
 
       // Each subsequent drill should be later
       for (let i = 1; i < drillTimes.length; i++) {
@@ -469,7 +505,7 @@ describe('lessonPlanner', () => {
 
       const plan = planCourse(items, 'My Episode', 10);
 
-      plan.lessons.forEach(lesson => {
+      plan.lessons.forEach((lesson) => {
         expect(lesson.title).toContain('My Episode');
       });
     });

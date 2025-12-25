@@ -22,7 +22,7 @@
  *   npm run harness:security -- --code-only            # Only audit code, skip deps
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
 import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 
@@ -30,9 +30,9 @@ interface SecurityHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  depsOnly?: boolean;  // Only check dependencies
-  codeOnly?: boolean;  // Only audit code, skip dependency scan
-  watchdogTimeout?: number;  // Progress watchdog timeout in ms
+  depsOnly?: boolean; // Only check dependencies
+  codeOnly?: boolean; // Only audit code, skip dependency scan
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
   disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
@@ -46,7 +46,7 @@ async function runSecurityHarness(options: SecurityHarnessOptions = {}) {
     depsOnly = false,
     codeOnly = false,
     watchdogTimeout,
-    disableWatchdog = false
+    disableWatchdog = false,
   } = options;
 
   console.log('🔒 ConvoLab Security Audit Harness');
@@ -57,7 +57,9 @@ async function runSecurityHarness(options: SecurityHarnessOptions = {}) {
   }
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
-  console.log(`🎯 Mode: ${depsOnly ? 'Dependencies only' : codeOnly ? 'Code audit only' : 'Full security audit'}`);
+  console.log(
+    `🎯 Mode: ${depsOnly ? 'Dependencies only' : codeOnly ? 'Code audit only' : 'Full security audit'}`
+  );
   if (!disableWatchdog) {
     console.log(`⏱️  Watchdog timeout: ${watchdogTimeout || 300000}ms`);
   }
@@ -75,7 +77,9 @@ You are running an autonomous security audit harness for ConvoLab.
 
 ## Your Mission
 
-${depsOnly ? `
+${
+  depsOnly
+    ? `
 ### Dependencies Security Audit Only
 
 1. Run: npm audit
@@ -89,11 +93,14 @@ ${depsOnly ? `
 5. Identify security-critical outdated packages
 6. Update and test
 7. Commit with /commit
-` : codeOnly ? `
+`
+    : codeOnly
+      ? `
 ### Code Security Audit Only
 
 Skip dependency scanning. Focus on code-level security issues.
-` : `
+`
+      : `
 ## Complete Security Audit Workflow
 
 ### PHASE 1: Dependency Vulnerabilities
@@ -209,18 +216,23 @@ Skip dependency scanning. Focus on code-level security issues.
    - Stack traces not exposed to users
 
 ### PHASE 8: Report & Fix
-${dryRun ? `
+${
+  dryRun
+    ? `
 - List all vulnerabilities found
 - Categorize by severity
 - Provide fix recommendations
 - No changes made
-` : `
+`
+    : `
 - Fix all critical and high severity issues
 - Document moderate/low issues for future work
 - Update CHANGELOG.md with security fixes
 - Use /commit with detailed security update message
-`}
-`}
+`
+}
+`
+}
 
 ## Security Scanning Tools
 
@@ -258,19 +270,23 @@ Look for:
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze and report
 - Categorize issues by severity
 - Provide fix recommendations
-` : `
+`
+    : `
 - Fix critical/high severity issues first
 - Test after each fix
 - Document all security changes in CHANGELOG.md
 - Be thorough but avoid breaking changes
 - If breaking change needed, document clearly
 - Use /commit once at the end with security update
-`}
+`
+}
 
 - Follow OWASP Top 10 guidelines
 - Be security-first but practical
@@ -284,7 +300,7 @@ Begin your security audit now.
     {
       harnessName: 'security',
       watchdogTimeoutMs: watchdogTimeout || 300000, // 5 min default for security tasks
-      disableWatchdog
+      disableWatchdog,
     },
     async (context) => {
       const startTime = Date.now();
@@ -305,8 +321,8 @@ Begin your security audit now.
               : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
             systemPrompt: enhanceSystemPrompt(`You are a security expert auditing ConvoLab.
 Follow OWASP Top 10 and security best practices.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabilities and use /commit when done.'}`)
-          }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabilities and use /commit when done.'}`),
+          },
         })) {
           messageCount++;
 
@@ -315,7 +331,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabil
 
           // Show progress
           const now = Date.now();
-          if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
             const progress = ((messageCount / maxTurns) * 100).toFixed(1);
             console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
             lastProgressUpdate = now;
@@ -326,47 +342,48 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabil
             context.logCheckpoint(messageCount, startTime, lastMessage);
           }
 
-      // Log messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Log messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+        const durationMin = (durationMs / 60000).toFixed(1);
+        const durationHr = (durationMs / 3600000).toFixed(2);
+
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ Security Audit Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
         }
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
-        }
-      }
-    }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-    const durationMin = (durationMs / 60000).toFixed(1);
-    const durationHr = (durationMs / 3600000).toFixed(2);
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Security Audit Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
-    }
-
       } catch (error) {
         console.error('\n❌ Security audit failed with error:');
         console.error(error);
@@ -380,7 +397,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabil
 const args = process.argv.slice(2);
 
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -390,7 +407,7 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
 }
 
 let customWatchdogTimeout: number | undefined;
-const watchdogTimeoutIndex = args.findIndex(arg => arg === '--watchdog-timeout');
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
 if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
   customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
   if (isNaN(customWatchdogTimeout)) {
@@ -406,11 +423,11 @@ const options: SecurityHarnessOptions = {
   codeOnly: args.includes('--code-only'),
   maxTurns: customMaxTurns,
   watchdogTimeout: customWatchdogTimeout,
-  disableWatchdog: args.includes('--disable-watchdog')
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness
-runSecurityHarness(options).catch(error => {
+runSecurityHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

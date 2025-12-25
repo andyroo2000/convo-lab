@@ -63,7 +63,7 @@ describe('coursePlanner', () => {
       const course = planCourse(coreItems, 'Test');
       const lesson = course.lessons[0];
 
-      const sectionTypes = lesson.sections.map(s => s.type);
+      const sectionTypes = lesson.sections.map((s) => s.type);
       expect(sectionTypes).toContain('intro');
       expect(sectionTypes).toContain('core_intro');
       expect(sectionTypes).toContain('early_srs');
@@ -87,7 +87,7 @@ describe('coursePlanner', () => {
     it('should sort drill events by target time', () => {
       const coreItems = createMockCoreItems(3);
       const course = planCourse(coreItems, 'Test');
-      const {drillEvents} = course.lessons[0];
+      const { drillEvents } = course.lessons[0];
 
       for (let i = 1; i < drillEvents.length; i++) {
         expect(drillEvents[i].targetOffsetSeconds).toBeGreaterThanOrEqual(

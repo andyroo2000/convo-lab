@@ -3,7 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
 import { Episode, Course } from '../types';
-import { useLibraryData, LibraryCourse, NarrowListeningPack, ChunkPack } from '../hooks/useLibraryData';
+import {
+  useLibraryData,
+  LibraryCourse,
+  NarrowListeningPack,
+  ChunkPack,
+} from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import ConfirmModal from '../components/common/ConfirmModal';
@@ -46,21 +51,23 @@ export default function LibraryPage() {
   const { isFeatureEnabled } = useFeatureFlags();
 
   // Fetch impersonated user info if viewing as another user
-  const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; email: string } | null>(null);
+  const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; email: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (viewAsUserId) {
       fetch(`${API_URL}/api/admin/users/${viewAsUserId}/info`, {
         credentials: 'include',
       })
-        .then(res => res.json())
-        .then(user => {
+        .then((res) => res.json())
+        .then((user) => {
           setImpersonatedUser({
             name: user.displayName || user.name,
             email: user.email,
           });
         })
-        .catch(err => {
+        .catch((err) => {
           console.error('Failed to fetch impersonated user:', err);
         });
     } else {
@@ -73,23 +80,24 @@ export default function LibraryPage() {
   const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
 
   // Combined deleting state for modal
-  const isDeleting = isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening || isDeletingChunkPack;
+  const isDeleting =
+    isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening || isDeletingChunkPack;
 
   // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
-    'all': 'all',
-    'dialogues': 'dialogues',
-    'courses': 'courses',
+    all: 'all',
+    dialogues: 'dialogues',
+    courses: 'courses',
     'narrow-listening': 'narrowListening',
     'lexical-chunk-packs': 'chunkPacks',
   };
 
   const filterTypeToParam: Record<FilterType, string> = {
-    'all': 'all',
-    'dialogues': 'dialogues',
-    'courses': 'courses',
-    'narrowListening': 'narrow-listening',
-    'chunkPacks': 'lexical-chunk-packs',
+    all: 'all',
+    dialogues: 'dialogues',
+    courses: 'courses',
+    narrowListening: 'narrow-listening',
+    chunkPacks: 'lexical-chunk-packs',
   };
 
   // Get filter from URL or default to 'all'
@@ -210,17 +218,45 @@ export default function LibraryPage() {
   // Memoize filtered and sorted items to avoid expensive recalculations
   const allItems = useMemo(() => {
     // Filter content based on selected filter
-    const filteredEpisodes = (filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : episodes;
-    const filteredCourses = (filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks') ? [] : courses;
-    const filteredPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks') ? [] : narrowListeningPacks;
-    const filteredChunkPacks = (filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening') ? [] : chunkPacks;
+    const filteredEpisodes =
+      filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks'
+        ? []
+        : episodes;
+    const filteredCourses =
+      filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks'
+        ? []
+        : courses;
+    const filteredPacks =
+      filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks'
+        ? []
+        : narrowListeningPacks;
+    const filteredChunkPacks =
+      filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening'
+        ? []
+        : chunkPacks;
 
     // Combine and sort by date
     return [
-      ...filteredEpisodes.map(ep => ({ type: 'episode' as const, data: ep, date: new Date(ep.createdAt) })),
-      ...filteredCourses.map(course => ({ type: 'course' as const, data: course, date: new Date(course.createdAt) })),
-      ...filteredPacks.map(pack => ({ type: 'narrowListening' as const, data: pack, date: new Date(pack.createdAt) })),
-      ...filteredChunkPacks.map(pack => ({ type: 'chunkPack' as const, data: pack, date: new Date(pack.createdAt) }))
+      ...filteredEpisodes.map((ep) => ({
+        type: 'episode' as const,
+        data: ep,
+        date: new Date(ep.createdAt),
+      })),
+      ...filteredCourses.map((course) => ({
+        type: 'course' as const,
+        data: course,
+        date: new Date(course.createdAt),
+      })),
+      ...filteredPacks.map((pack) => ({
+        type: 'narrowListening' as const,
+        data: pack,
+        date: new Date(pack.createdAt),
+      })),
+      ...filteredChunkPacks.map((pack) => ({
+        type: 'chunkPack' as const,
+        data: pack,
+        date: new Date(pack.createdAt),
+      })),
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [filter, episodes, courses, narrowListeningPacks, chunkPacks]);
 
@@ -234,7 +270,7 @@ export default function LibraryPage() {
 
   // Handler to exit impersonation
   const handleExitImpersonation = () => {
-    setSearchParams(prev => {
+    setSearchParams((prev) => {
       const params = new URLSearchParams(prev);
       params.delete('viewAs');
       return params;
@@ -245,10 +281,7 @@ export default function LibraryPage() {
     <div>
       {/* Impersonation Banner */}
       {impersonatedUser && (
-        <ImpersonationBanner
-          impersonatedUser={impersonatedUser}
-          onExit={handleExitImpersonation}
-        />
+        <ImpersonationBanner impersonatedUser={impersonatedUser} onExit={handleExitImpersonation} />
       )}
 
       <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0">
@@ -378,11 +411,9 @@ export default function LibraryPage() {
           {filter === 'all' && (
             <div className="card">
               <div className="text-center py-12 space-y-4">
-                <p className="text-gray-500">
-                  {t('library:emptyStates.all.description')}
-                </p>
+                <p className="text-gray-500">{t('library:emptyStates.all.description')}</p>
                 <button
-                  onClick={() => window.location.href = '/app/create'}
+                  onClick={() => (window.location.href = '/app/create')}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"
                 >
@@ -400,7 +431,7 @@ export default function LibraryPage() {
               const episode = item.data as Episode;
               // Get unique proficiency levels from speakers
               const proficiencyLevels = episode.dialogue?.speakers
-                ? [...new Set(episode.dialogue.speakers.map(s => s.proficiency))]
+                ? [...new Set(episode.dialogue.speakers.map((s) => s.proficiency))]
                 : [];
 
               return (
@@ -413,7 +444,9 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">{t('library:filters.dialogues').split(' ')[0]}</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">
+                      {t('library:filters.dialogues').split(' ')[0]}
+                    </span>
                   </div>
 
                   {/* Content */}
@@ -467,7 +500,8 @@ export default function LibraryPage() {
                   )}
                 </Link>
               );
-            } if (item.type === 'course') {
+            }
+            if (item.type === 'course') {
               const course = item.data as LibraryCourse;
 
               return (
@@ -480,7 +514,10 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.course') }} />
+                    <span
+                      className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
+                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.course') }}
+                    />
                   </div>
 
                   {/* Content */}
@@ -536,7 +573,8 @@ export default function LibraryPage() {
                   )}
                 </Link>
               );
-            } if (item.type === 'narrowListening') {
+            }
+            if (item.type === 'narrowListening') {
               const pack = item.data as NarrowListeningPack;
 
               return (
@@ -549,7 +587,10 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.narrowListening') }} />
+                    <span
+                      className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
+                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.narrowListening') }}
+                    />
                   </div>
 
                   {/* Content */}
@@ -599,7 +640,8 @@ export default function LibraryPage() {
                   />
                 </Link>
               );
-            } if (item.type === 'chunkPack') {
+            }
+            if (item.type === 'chunkPack') {
               const pack = item.data as ChunkPack;
 
               return (
@@ -612,7 +654,10 @@ export default function LibraryPage() {
                   {/* Icon Sidebar */}
                   <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
-                    <span className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight" dangerouslySetInnerHTML={{ __html: t('library:sidebar.chunkPack') }} />
+                    <span
+                      className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight"
+                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.chunkPack') }}
+                    />
                   </div>
 
                   {/* Content */}
@@ -630,11 +675,7 @@ export default function LibraryPage() {
 
                       {/* Right: Badges and actions */}
                       <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        {pack.status === 'error' && (
-                          <Pill color="red">
-                            error
-                          </Pill>
-                        )}
+                        {pack.status === 'error' && <Pill color="red">error</Pill>}
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             {t('common:status.generating')}

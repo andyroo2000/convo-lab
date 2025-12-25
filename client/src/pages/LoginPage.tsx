@@ -110,7 +110,10 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="inviteCode" className="block text-sm font-medium text-dark-brown mb-1">
+                  <label
+                    htmlFor="inviteCode"
+                    className="block text-sm font-medium text-dark-brown mb-1"
+                  >
                     {t('auth:signup.inviteCode')}
                   </label>
                   <input
@@ -137,7 +140,9 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input"
-                placeholder={isLogin ? t('auth:login.emailPlaceholder') : t('auth:signup.emailPlaceholder')}
+                placeholder={
+                  isLogin ? t('auth:login.emailPlaceholder') : t('auth:signup.emailPlaceholder')
+                }
                 required
                 data-testid="auth-input-email"
               />
@@ -163,7 +168,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="input"
-                placeholder={isLogin ? t('auth:login.passwordPlaceholder') : t('auth:signup.passwordPlaceholder')}
+                placeholder={
+                  isLogin
+                    ? t('auth:login.passwordPlaceholder')
+                    : t('auth:signup.passwordPlaceholder')
+                }
                 required
                 data-testid="auth-input-password"
               />
@@ -181,14 +190,22 @@ export default function LoginPage() {
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="auth-submit-button"
             >
-              {loading ? (isLogin ? t('auth:login.submitting') : t('auth:signup.submitting')) : (isLogin ? t('auth:login.submit') : t('auth:signup.submit'))}
+              {loading
+                ? isLogin
+                  ? t('auth:login.submitting')
+                  : t('auth:signup.submitting')
+                : isLogin
+                  ? t('auth:login.submit')
+                  : t('auth:signup.submit')}
             </button>
           </form>
 
           {/* OAuth Divider */}
           <div className="my-6 flex items-center">
             <div className="flex-1 border-t border-gray-300" />
-            <span className="px-4 text-sm text-medium-brown">{isLogin ? t('auth:login.orContinueWith') : t('auth:signup.orContinueWith')}</span>
+            <span className="px-4 text-sm text-medium-brown">
+              {isLogin ? t('auth:login.orContinueWith') : t('auth:signup.orContinueWith')}
+            </span>
             <div className="flex-1 border-t border-gray-300" />
           </div>
 
@@ -219,9 +236,7 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          {t('common:footer')}
-        </p>
+        <p className="text-center text-sm text-gray-500 mt-6">{t('common:footer')}</p>
       </div>
     </div>
   );

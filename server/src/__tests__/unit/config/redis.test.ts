@@ -6,13 +6,13 @@ import { createRedisConnection, defaultWorkerSettings } from '../../../config/re
 // Mock ioredis
 const mockRedisInstance = vi.fn();
 vi.mock('ioredis', () => ({
-    Redis: vi.fn().mockImplementation(function(this: any, config: any) {
-      this.config = config;
-      this.disconnect = vi.fn();
-      mockRedisInstance(config);
-      return this;
-    })
-  }));
+  Redis: vi.fn().mockImplementation(function (this: any, config: any) {
+    this.config = config;
+    this.disconnect = vi.fn();
+    mockRedisInstance(config);
+    return this;
+  }),
+}));
 
 describe('Redis Configuration - Unit Tests', () => {
   const originalEnv = process.env;
@@ -41,7 +41,7 @@ describe('Redis Configuration - Unit Tests', () => {
           password: undefined,
           maxRetriesPerRequest: null,
           enableReadyCheck: false,
-          enableOfflineQueue: true
+          enableOfflineQueue: true,
         })
       );
     });
@@ -57,7 +57,7 @@ describe('Redis Configuration - Unit Tests', () => {
         expect.objectContaining({
           host: 'redis.example.com',
           port: 6380,
-          password: 'secret-password'
+          password: 'secret-password',
         })
       );
     });
@@ -94,7 +94,7 @@ describe('Redis Configuration - Unit Tests', () => {
 
       expect(mockRedisInstance).toHaveBeenCalledWith(
         expect.objectContaining({
-          maxRetriesPerRequest: null
+          maxRetriesPerRequest: null,
         })
       );
     });
@@ -104,7 +104,7 @@ describe('Redis Configuration - Unit Tests', () => {
 
       expect(mockRedisInstance).toHaveBeenCalledWith(
         expect.objectContaining({
-          enableOfflineQueue: true
+          enableOfflineQueue: true,
         })
       );
     });
@@ -114,7 +114,7 @@ describe('Redis Configuration - Unit Tests', () => {
 
       expect(mockRedisInstance).toHaveBeenCalledWith(
         expect.objectContaining({
-          enableReadyCheck: false
+          enableReadyCheck: false,
         })
       );
     });
@@ -165,8 +165,8 @@ describe('Redis Configuration - Unit Tests', () => {
         drainDelay: expect.any(Number),
         limiter: {
           max: 10,
-          duration: 1000
-        }
+          duration: 1000,
+        },
       });
     });
 
@@ -194,7 +194,7 @@ describe('Redis Configuration - Unit Tests', () => {
     it('should configure rate limiter for job processing', () => {
       expect(defaultWorkerSettings.limiter).toEqual({
         max: 10,
-        duration: 1000
+        duration: 1000,
       });
     });
 
@@ -239,9 +239,7 @@ describe('Redis Configuration - Unit Tests', () => {
 
       createRedisConnection();
 
-      expect(mockRedisInstance).toHaveBeenCalledWith(
-        expect.objectContaining({ port: 1234 })
-      );
+      expect(mockRedisInstance).toHaveBeenCalledWith(expect.objectContaining({ port: 1234 }));
     });
 
     it('should handle empty string port', () => {

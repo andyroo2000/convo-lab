@@ -66,7 +66,8 @@ vi.mock('../../components/common/Pill', () => ({
 }));
 
 describe('LibraryPage', () => {
-  const renderLibraryPage = () => render(
+  const renderLibraryPage = () =>
+    render(
       <BrowserRouter>
         <LibraryPage />
       </BrowserRouter>
@@ -76,7 +77,9 @@ describe('LibraryPage', () => {
     it('should have padding on mobile for filter buttons', () => {
       const { container } = renderLibraryPage();
 
-      const filterContainer = container.querySelector('.flex.items-center.justify-center.sm\\:justify-end.mb-6');
+      const filterContainer = container.querySelector(
+        '.flex.items-center.justify-center.sm\\:justify-end.mb-6'
+      );
       expect(filterContainer).toBeTruthy();
       expect(filterContainer).toHaveClass('px-4', 'sm:px-0');
     });

@@ -47,7 +47,7 @@ vi.mock('../../components/ChineseText', () => ({
 vi.mock('../../components/common/SpeedSelector', () => ({
   default: ({ selectedSpeed, onSpeedChange, disabled }: any) => (
     <div data-testid="speed-selector">
-      {['0.7x', '0.85x', '1.0x'].map(speed => (
+      {['0.7x', '0.85x', '1.0x'].map((speed) => (
         <button
           key={speed}
           onClick={() => onSpeedChange(speed)}
@@ -62,7 +62,13 @@ vi.mock('../../components/common/SpeedSelector', () => ({
 }));
 
 vi.mock('../../components/common/ViewToggleButtons', () => ({
-  default: ({ showReadings, showTranslations, onToggleReadings, onToggleTranslations, readingsLabel }: any) => (
+  default: ({
+    showReadings,
+    showTranslations,
+    onToggleReadings,
+    onToggleTranslations,
+    readingsLabel,
+  }: any) => (
     <div data-testid="view-toggle-buttons">
       <button onClick={onToggleReadings}>{readingsLabel}</button>
       <button onClick={onToggleTranslations}>English</button>
@@ -173,7 +179,8 @@ describe('NarrowListeningPlaybackPage', () => {
     vi.clearAllTimers();
   });
 
-  const renderPage = (packId = 'pack-123') => render(
+  const renderPage = (packId = 'pack-123') =>
+    render(
       <MemoryRouter initialEntries={[`/app/narrow-listening/${packId}`]}>
         <Routes>
           <Route path="/app/narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />

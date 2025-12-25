@@ -19,7 +19,7 @@ describe('conversationalCourseScriptGenerator', () => {
     nativeLanguage: 'en',
     l1VoiceId: 'en-US-Neural2-D',
     l2VoiceIds: {
-      'Colleague': 'ja-JP-Neural2-B',
+      Colleague: 'ja-JP-Neural2-B',
     },
     jlptLevel: 'N3',
   };
@@ -69,7 +69,7 @@ describe('conversationalCourseScriptGenerator', () => {
 
       expect(mockGenerateWithGemini).toHaveBeenCalled();
       const scenarioUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Pretend')
+        (u) => u.type === 'narration_L1' && u.text.includes('Pretend')
       );
       expect(scenarioUnit).toBeDefined();
     });
@@ -87,7 +87,7 @@ describe('conversationalCourseScriptGenerator', () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       const fallbackUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
+        (u) => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
       );
       expect(fallbackUnit).toBeDefined();
     });
@@ -95,17 +95,17 @@ describe('conversationalCourseScriptGenerator', () => {
     it('should include lesson start and end markers', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
-      const markers = result.units.filter(u => u.type === 'marker');
+      const markers = result.units.filter((u) => u.type === 'marker');
       expect(markers.length).toBeGreaterThanOrEqual(2);
-      expect(markers.some(m => m.label === 'Lesson Start')).toBe(true);
-      expect(markers.some(m => m.label === 'Lesson End')).toBe(true);
+      expect(markers.some((m) => m.label === 'Lesson Start')).toBe(true);
+      expect(markers.some((m) => m.label === 'Lesson End')).toBe(true);
     });
 
     it('should include outro narration', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       const outroUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Great work')
+        (u) => u.type === 'narration_L1' && u.text.includes('Great work')
       );
       expect(outroUnit).toBeDefined();
     });
@@ -120,7 +120,7 @@ describe('conversationalCourseScriptGenerator', () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       const respondUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('You respond')
+        (u) => u.type === 'narration_L1' && u.text.includes('You respond')
       );
       expect(respondUnit).toBeDefined();
     });
@@ -129,7 +129,7 @@ describe('conversationalCourseScriptGenerator', () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       const saysUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('says:')
+        (u) => u.type === 'narration_L1' && u.text.includes('says:')
       );
       expect(saysUnit).toBeDefined();
     });
@@ -137,27 +137,27 @@ describe('conversationalCourseScriptGenerator', () => {
     it('should include L2 units for dialogue', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
+      const l2Units = result.units.filter((u) => u.type === 'L2');
       expect(l2Units.length).toBeGreaterThan(0);
     });
 
     it('should include pause units', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
-      const pauseUnits = result.units.filter(u => u.type === 'pause');
+      const pauseUnits = result.units.filter((u) => u.type === 'pause');
       expect(pauseUnits.length).toBeGreaterThan(0);
     });
 
     it('should use correct voice IDs', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
-      const l1Units = result.units.filter(u => u.type === 'narration_L1');
-      l1Units.forEach(unit => {
+      const l1Units = result.units.filter((u) => u.type === 'narration_L1');
+      l1Units.forEach((unit) => {
         expect(unit.voiceId).toBe('en-US-Neural2-D');
       });
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
-      l2Units.forEach(unit => {
+      const l2Units = result.units.filter((u) => u.type === 'L2');
+      l2Units.forEach((unit) => {
         expect(['ja-JP-Neural2-B', 'ja-JP-Neural2-C']).toContain(unit.voiceId);
       });
     });
@@ -166,7 +166,7 @@ describe('conversationalCourseScriptGenerator', () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       const translationUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('That means:')
+        (u) => u.type === 'narration_L1' && u.text.includes('That means:')
       );
       expect(translationUnit).toBeDefined();
     });
@@ -174,8 +174,8 @@ describe('conversationalCourseScriptGenerator', () => {
     it('should include slow and normal speed versions', async () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
-      const speeds = l2Units.map(u => u.speed);
+      const l2Units = result.units.filter((u) => u.type === 'L2');
+      const speeds = l2Units.map((u) => u.speed);
       expect(speeds).toContain(0.75);
       expect(speeds).toContain(1.0);
     });
@@ -185,8 +185,8 @@ describe('conversationalCourseScriptGenerator', () => {
       const result = await generateConversationalCourseScript(mockExchanges, mockContext);
 
       // The N5 vocab item should not be taught to N3 learner
-      const l2Units = result.units.filter(u => u.type === 'L2');
-      const hasN5Vocab = l2Units.some(u => u.text === '初めまして');
+      const l2Units = result.units.filter((u) => u.type === 'L2');
+      const hasN5Vocab = l2Units.some((u) => u.text === '初めまして');
       expect(hasN5Vocab).toBe(false);
     });
 
@@ -221,8 +221,8 @@ describe('conversationalCourseScriptGenerator', () => {
 
       const result = await generateConversationalCourseScript(exchangeWithSlash, mockContext);
 
-      const narratorUnits = result.units.filter(u => u.type === 'narration_L1');
-      const hasSlash = narratorUnits.some(u => u.text.includes('/'));
+      const narratorUnits = result.units.filter((u) => u.type === 'narration_L1');
+      const hasSlash = narratorUnits.some((u) => u.text.includes('/'));
       expect(hasSlash).toBe(false);
     });
   });

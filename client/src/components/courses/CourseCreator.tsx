@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getCourseSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
+import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 
 interface CourseCreatorProps {
@@ -99,7 +99,7 @@ export default function CourseCreator({
           l1VoiceId: selectedVoice,
           jlptLevel,
           speaker1Gender: 'female', // Hardcoded: Speaker 1 is always female
-          speaker2Gender: 'male',   // Hardcoded: Speaker 2 is always male
+          speaker2Gender: 'male', // Hardcoded: Speaker 2 is always male
           speaker1VoiceId,
           speaker2VoiceId,
         } as CreateCourseRequest),
@@ -180,9 +180,7 @@ export default function CourseCreator({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
               placeholder={t('creator.titlePlaceholder')}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              {t('creator.autoDescription')}
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t('creator.autoDescription')}</p>
           </div>
 
           {/* Narrator Voice Selection */}
@@ -224,12 +222,13 @@ export default function CourseCreator({
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
-                    .map((voice) => (
-                      <option key={voice.id} value={voice.id}>
-                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
-                    ))}
+                  {(
+                    TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
+                  ).map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -244,18 +243,17 @@ export default function CourseCreator({
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || [])
-                    .map((voice) => (
-                      <option key={voice.id} value={voice.id}>
-                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
-                    ))}
+                  {(
+                    TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
+                  ).map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              {t('voiceConfig.voiceHelper')}
-            </p>
+            <p className="text-xs text-gray-500 mt-2">{t('voiceConfig.voiceHelper')}</p>
           </div>
 
           {/* Max Lesson Duration */}
@@ -274,9 +272,7 @@ export default function CourseCreator({
               <option value={20}>{t('courseSettings.durationOptions.20')}</option>
               <option value={30}>{t('courseSettings.durationOptions.30')}</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {t('courseSettings.durationHelper')}
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t('courseSettings.durationHelper')}</p>
           </div>
 
           {/* JLPT Level Selector */}
@@ -296,9 +292,7 @@ export default function CourseCreator({
               <option value="N2">{t('courseSettings.jlpt.n2')}</option>
               <option value="N1">{t('courseSettings.jlpt.n1')}</option>
             </select>
-            <p className="text-xs text-gray-500 mt-1">
-              {t('courseSettings.levelHelper')}
-            </p>
+            <p className="text-xs text-gray-500 mt-1">{t('courseSettings.levelHelper')}</p>
           </div>
 
           {/* Error Message */}
@@ -311,7 +305,8 @@ export default function CourseCreator({
           {/* Info Box */}
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>{t('creator.pimsleurInfo.title')}</strong> {t('creator.pimsleurInfo.description')}
+              <strong>{t('creator.pimsleurInfo.title')}</strong>{' '}
+              {t('creator.pimsleurInfo.description')}
             </p>
             <ul className="text-xs text-blue-700 mt-2 ml-4 list-disc space-y-1">
               <li>{t('creator.pimsleurInfo.feature1')}</li>
@@ -323,11 +318,7 @@ export default function CourseCreator({
 
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg flex-shrink-0">
-          <button
-            onClick={onClose}
-            disabled={isCreating}
-            className="btn-outline flex-1"
-          >
+          <button onClick={onClose} disabled={isCreating} className="btn-outline flex-1">
             {t('creator.cancel')}
           </button>
           <button

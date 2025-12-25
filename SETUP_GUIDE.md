@@ -1,6 +1,7 @@
 # ConvoLab Auth & Monetization Setup Guide
 
 ## ✅ Completed
+
 - Database migration applied successfully
 - All code implementation complete (Phases 1-3)
 - Your admin account email verified
@@ -10,10 +11,12 @@
 ### 1. Set up Google OAuth (15 minutes)
 
 **Go to Google Cloud Console:**
+
 1. Visit: https://console.cloud.google.com/
 2. Select your project (or create a new one for ConvoLab)
 
 **Create OAuth 2.0 Credentials:**
+
 1. Navigate to: **APIs & Services** → **Credentials**
 2. Click **+ CREATE CREDENTIALS** → **OAuth client ID**
 3. Application type: **Web application**
@@ -22,20 +25,24 @@
 **Configure authorized redirect URIs:**
 
 For local development:
+
 ```
 http://localhost:3001/api/auth/google/callback
 ```
 
 For production (update with your actual domain):
+
 ```
 https://api.convolab.app/api/auth/google/callback
 ```
 
 **Get your credentials:**
+
 - Copy the **Client ID** (looks like: `123456789-abc123.apps.googleusercontent.com`)
 - Copy the **Client Secret** (looks like: `GOCSPX-abc123xyz789`)
 
 **Update your .env file:**
+
 ```bash
 # Replace these with your actual values
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
@@ -48,10 +55,12 @@ GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
 ### 2. Set up Stripe (20 minutes)
 
 **Create/Login to Stripe account:**
+
 1. Visit: https://dashboard.stripe.com/register
 2. Complete account setup
 
 **Create your product:**
+
 1. Go to: **Products** → **+ Add product**
 2. Name: `ConvoLab Pro`
 3. Description: `Premium tier with 30 generations per week`
@@ -62,6 +71,7 @@ GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
 6. **Copy the Price ID** (starts with `price_`)
 
 **Set up webhook:**
+
 1. Go to: **Developers** → **Webhooks**
 2. Click **+ Add endpoint**
 3. Endpoint URL (local testing with Stripe CLI):
@@ -82,12 +92,14 @@ GOOGLE_CALLBACK_URL=http://localhost:3001/api/auth/google/callback
 7. **Copy the Webhook signing secret** (starts with `whsec_`)
 
 **Get your API keys:**
+
 1. Go to: **Developers** → **API keys**
 2. Copy **Publishable key** (starts with `pk_test_` or `pk_live_`)
 3. Click **Reveal test key** or **Reveal live key**
 4. Copy **Secret key** (starts with `sk_test_` or `sk_live_`)
 
 **Update your .env file:**
+
 ```bash
 # Test mode (for development)
 STRIPE_SECRET_KEY=sk_test_your_secret_key
@@ -103,6 +115,7 @@ STRIPE_PRICE_PRO_MONTHLY=price_your_price_id
 **Update client .env:**
 
 Create `/client/.env.local`:
+
 ```bash
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
 ```
@@ -114,18 +127,21 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
 **Start your servers:**
 
 Terminal 1 - Backend:
+
 ```bash
 cd server
 npm run dev
 ```
 
 Terminal 2 - Frontend:
+
 ```bash
 cd client
 npm run dev
 ```
 
 Terminal 3 - Stripe webhook listener (for testing Stripe):
+
 ```bash
 stripe listen --forward-to localhost:3001/api/webhooks/stripe
 ```
@@ -133,6 +149,7 @@ stripe listen --forward-to localhost:3001/api/webhooks/stripe
 **Test each flow:**
 
 ✅ **Email Verification:**
+
 1. Create a test account at http://localhost:5173/login
 2. Switch to "Sign Up" tab
 3. Enter email, password, name, and invite code
@@ -141,12 +158,14 @@ stripe listen --forward-to localhost:3001/api/webhooks/stripe
 6. Open the link to verify email
 
 ✅ **Password Reset:**
+
 1. Go to http://localhost:5173/forgot-password
 2. Enter your email
 3. Check server console for reset link
 4. Open the link and set new password
 
 ✅ **Google OAuth:**
+
 1. Click "Continue with Google" on login page
 2. Sign in with Google
 3. If you don't have an invite code, you'll be redirected to `/claim-invite`
@@ -154,6 +173,7 @@ stripe listen --forward-to localhost:3001/api/webhooks/stripe
 5. Should redirect to `/app/library`
 
 ✅ **Stripe Checkout:**
+
 1. Login to your account
 2. Go to http://localhost:5173/pricing
 3. Click "Upgrade to Pro" on the Pro tier
@@ -163,6 +183,7 @@ stripe listen --forward-to localhost:3001/api/webhooks/stripe
 7. Check Stripe dashboard to confirm subscription
 
 ✅ **Generation Quota:**
+
 1. Try generating content (dialogue, course, etc.)
 2. Should work if email is verified
 3. Track your usage in Settings → Account
@@ -176,6 +197,7 @@ stripe listen --forward-to localhost:3001/api/webhooks/stripe
 Once testing is complete, update your production environment:
 
 **Backend (Cloud Run):**
+
 ```bash
 # Email (Resend)
 RESEND_API_KEY=re_your_actual_key
@@ -197,6 +219,7 @@ CLIENT_URL=https://convolab.app
 ```
 
 **Frontend:**
+
 ```bash
 VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_live_publishable
 ```
@@ -206,6 +229,7 @@ VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_live_publishable
 ### 5. Deploy to Production
 
 **Build and deploy backend:**
+
 ```bash
 cd server
 npm run build
@@ -213,6 +237,7 @@ npm run build
 ```
 
 **Build and deploy frontend:**
+
 ```bash
 cd client
 npm run build

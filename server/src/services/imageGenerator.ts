@@ -49,7 +49,7 @@ export async function generateDialogueImages(request: GenerateImagesRequest) {
     // Generate image prompt
     const imagePrompt = await generateImagePrompt(
       episode.sourceText,
-      section.map(s => s.text).join(' '),
+      section.map((s) => s.text).join(' '),
       episode.targetLanguage
     );
 

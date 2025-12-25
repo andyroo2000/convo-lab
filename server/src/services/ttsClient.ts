@@ -10,14 +10,7 @@ export interface TTSOptions {
 }
 
 export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
-  const {
-    text,
-    voiceId,
-    languageCode,
-    speed = 1.0,
-    pitch = 0,
-    useSSML = false,
-  } = options;
+  const { text, voiceId, languageCode, speed = 1.0, pitch = 0, useSSML = false } = options;
 
   try {
     // Get the Google TTS provider
@@ -37,7 +30,9 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
 
     // Validate the audio buffer
     if (!audioBuffer || audioBuffer.length === 0) {
-      console.error(`[TTS] Empty audio buffer returned for voice: ${voiceId}, text: "${text.substring(0, 50)}..."`);
+      console.error(
+        `[TTS] Empty audio buffer returned for voice: ${voiceId}, text: "${text.substring(0, 50)}..."`
+      );
       throw new Error('TTS returned empty audio buffer');
     }
 
@@ -51,10 +46,7 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
   }
 }
 
-export function createSSMLWithPauses(
-  text: string,
-  pauseDuration: string = '1s'
-): string {
+export function createSSMLWithPauses(text: string, pauseDuration: string = '1s'): string {
   // Add SSML pauses after each sentence
   return `<speak>${text}<break time="${pauseDuration}"/></speak>`;
 }

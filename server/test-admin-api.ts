@@ -7,10 +7,10 @@ async function testAdminAPI() {
 
   console.log(`Found ${avatars.length} total speaker avatars\n`);
 
-  const arabicAvatars = avatars.filter(a => a.language === 'ar');
+  const arabicAvatars = avatars.filter((a) => a.language === 'ar');
   console.log(`Arabic avatars: ${arabicAvatars.length}\n`);
 
-  arabicAvatars.forEach(avatar => {
+  arabicAvatars.forEach((avatar) => {
     console.log(`✓ ${avatar.filename}`);
     console.log(`  Language: ${avatar.language}`);
     console.log(`  Gender: ${avatar.gender}`);

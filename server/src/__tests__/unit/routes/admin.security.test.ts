@@ -78,9 +78,7 @@ describe('Admin Security Tests', () => {
         role: 'user',
       });
 
-      const response = await request(app)
-        .get('/api/admin/stats')
-        .expect(403);
+      const response = await request(app).get('/api/admin/stats').expect(403);
 
       expect(response.body.error.message).toBe('Admin access required');
     });
@@ -105,9 +103,7 @@ describe('Admin Security Tests', () => {
         .mockResolvedValueOnce(15) // total
         .mockResolvedValueOnce(8); // used
 
-      const response = await request(app)
-        .get('/api/admin/stats')
-        .expect(200);
+      const response = await request(app).get('/api/admin/stats').expect(200);
 
       expect(response.body).toHaveProperty('users');
       expect(response.body).toHaveProperty('episodes');
@@ -124,9 +120,7 @@ describe('Admin Security Tests', () => {
         role: 'Admin', // Capital A
       });
 
-      const response = await request(app)
-        .get('/api/admin/stats')
-        .expect(403);
+      const response = await request(app).get('/api/admin/stats').expect(403);
 
       expect(response.body.error.message).toBe('Admin access required');
     });
@@ -140,9 +134,7 @@ describe('Admin Security Tests', () => {
         role: null,
       });
 
-      const response = await request(app)
-        .get('/api/admin/stats')
-        .expect(403);
+      const response = await request(app).get('/api/admin/stats').expect(403);
 
       expect(response.body.error.message).toBe('Admin access required');
     });
@@ -153,9 +145,7 @@ describe('Admin Security Tests', () => {
       // Mock user lookup returns null
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/api/admin/stats')
-        .expect(404);
+      const response = await request(app).get('/api/admin/stats').expect(404);
 
       expect(response.body.error.message).toBe('User not found');
     });
@@ -233,9 +223,7 @@ describe('Admin Security Tests', () => {
         role: 'user',
       });
 
-      const response = await request(app)
-        .get('/api/admin/users')
-        .expect(403);
+      const response = await request(app).get('/api/admin/users').expect(403);
 
       expect(response.body.error.message).toBe('Admin access required');
       expect(mockPrisma.user.findMany).not.toHaveBeenCalled();
@@ -263,9 +251,7 @@ describe('Admin Security Tests', () => {
 
       mockPrisma.user.count.mockResolvedValue(1);
 
-      const response = await request(app)
-        .get('/api/admin/users')
-        .expect(200);
+      const response = await request(app).get('/api/admin/users').expect(200);
 
       expect(response.body).toHaveProperty('users');
       expect(response.body).toHaveProperty('pagination');
@@ -291,9 +277,7 @@ describe('Admin Security Tests', () => {
       mockPrisma.chunkPack.count.mockResolvedValue(0);
       mockPrisma.inviteCode.count.mockResolvedValue(0);
 
-      await request(app)
-        .get('/api/admin/stats')
-        .expect(200);
+      await request(app).get('/api/admin/stats').expect(200);
 
       // Verify role was checked via database lookup
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({

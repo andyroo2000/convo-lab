@@ -139,59 +139,63 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
  * POST /api/chunk-packs/generate
  * Create and generate new chunk pack (blocked for demo users)
  */
-router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    const { jlptLevel, theme } = req.body;
+router.post(
+  '/generate',
+  requireEmailVerified,
+  rateLimitGeneration,
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { jlptLevel, theme } = req.body;
 
-    // Validate inputs
-    if (!jlptLevel || !theme) {
-      throw new AppError(i18next.t('server:validation.jlptRequired'), 400);
+      // Validate inputs
+      if (!jlptLevel || !theme) {
+        throw new AppError(i18next.t('server:validation.jlptRequired'), 400);
+      }
+
+      const validJlptLevels: JLPTLevel[] = ['N5', 'N4', 'N3'];
+      if (!validJlptLevels.includes(jlptLevel)) {
+        throw new AppError(i18next.t('server:validation.invalidJlptLevel'), 400);
+      }
+
+      // Validate theme exists and matches level
+      const themeMetadata = CHUNK_THEMES[theme as ChunkPackTheme];
+      if (!themeMetadata) {
+        throw new AppError(i18next.t('server:validation.invalidTheme'), 400);
+      }
+
+      if (themeMetadata.level !== jlptLevel) {
+        throw new AppError(
+          i18next.t('server:validation.themeMismatch', {
+            theme: themeMetadata.name,
+            level: themeMetadata.level,
+          }),
+          400
+        );
+      }
+
+      // Add job to queue
+      const job = await chunkPackQueue.add('generate', {
+        userId: req.userId!,
+        jlptLevel,
+        theme,
+      });
+
+      // Log the generation for quota tracking
+      await logGeneration(req.userId!, 'chunk_pack');
+
+      // Trigger Cloud Run Job to process the queue
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.json({
+        jobId: job.id,
+        message: i18next.t('server:content.generationStarted', { type: 'Chunk pack' }),
+      });
+    } catch (error) {
+      next(error);
     }
-
-    const validJlptLevels: JLPTLevel[] = ['N5', 'N4', 'N3'];
-    if (!validJlptLevels.includes(jlptLevel)) {
-      throw new AppError(i18next.t('server:validation.invalidJlptLevel'), 400);
-    }
-
-    // Validate theme exists and matches level
-    const themeMetadata = CHUNK_THEMES[theme as ChunkPackTheme];
-    if (!themeMetadata) {
-      throw new AppError(i18next.t('server:validation.invalidTheme'), 400);
-    }
-
-    if (themeMetadata.level !== jlptLevel) {
-      throw new AppError(
-        i18next.t('server:validation.themeMismatch', {
-          theme: themeMetadata.name,
-          level: themeMetadata.level
-        }),
-        400
-      );
-    }
-
-    // Add job to queue
-    const job = await chunkPackQueue.add('generate', {
-      userId: req.userId!,
-      jlptLevel,
-      theme,
-    });
-
-    // Log the generation for quota tracking
-    await logGeneration(req.userId!, 'chunk_pack');
-
-    // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
-
-    res.json({
-      jobId: job.id,
-      message: i18next.t('server:content.generationStarted', { type: 'Chunk pack' }),
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 /**
  * GET /api/chunk-packs/job/:jobId
@@ -207,7 +211,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     }
 
     const state = await job.getState();
-    const {progress} = job;
+    const { progress } = job;
     const result = job.returnvalue;
 
     res.json({
@@ -258,7 +262,7 @@ router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, re
     const story = pack.stories[0];
 
     // Create topic description from chunks
-    const chunkForms = pack.chunks.map(c => c.form).join(', ');
+    const chunkForms = pack.chunks.map((c) => c.form).join(', ');
     const topic = `Story from chunk pack: ${pack.title}. Target chunks: ${chunkForms}`;
 
     // Import narrowListeningQueue

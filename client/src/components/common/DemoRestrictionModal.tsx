@@ -7,10 +7,7 @@ interface DemoRestrictionModalProps {
   onClose: () => void;
 }
 
-export default function DemoRestrictionModal({
-  isOpen,
-  onClose,
-}: DemoRestrictionModalProps) {
+export default function DemoRestrictionModal({ isOpen, onClose }: DemoRestrictionModalProps) {
   const { t } = useTranslation(['common']);
   // Handle ESC key to close modal
   useEffect(() => {
@@ -48,30 +45,20 @@ export default function DemoRestrictionModal({
             <Lock className="w-5 h-5 text-amber-600" />
             <h2 className="text-xl font-bold text-navy">{t('common:demo.title')}</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          <p className="text-gray-700 mb-4">
-            {t('common:demo.description')}
-          </p>
-          <p className="text-gray-600 text-sm">
-            {t('common:demo.contactAdmin')}
-          </p>
+          <p className="text-gray-700 mb-4">{t('common:demo.description')}</p>
+          <p className="text-gray-600 text-sm">{t('common:demo.contactAdmin')}</p>
         </div>
 
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg">
-          <button
-            onClick={onClose}
-            className="btn-primary flex-1"
-          >
+          <button onClick={onClose} className="btn-primary flex-1">
             {t('common:modal.gotIt')}
           </button>
         </div>

@@ -10,7 +10,7 @@ import {
   generateSubscriptionConfirmedEmail,
   generatePaymentFailedEmail,
   generateSubscriptionCanceledEmail,
-  generateQuotaWarningEmail
+  generateQuotaWarningEmail,
 } from '../i18n/emailTemplates.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -27,7 +27,7 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 async function getUserLocale(userId: string): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { preferredNativeLanguage: true }
+    select: { preferredNativeLanguage: true },
   });
   return user?.preferredNativeLanguage || 'en';
 }
@@ -36,7 +36,7 @@ async function getUserLocale(userId: string): Promise<string> {
 async function getUserLocaleByEmail(email: string): Promise<string> {
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { preferredNativeLanguage: true }
+    select: { preferredNativeLanguage: true },
   });
   return user?.preferredNativeLanguage || 'en';
 }
@@ -61,7 +61,7 @@ export async function sendVerificationEmail(
 ): Promise<void> {
   // Delete any existing verification tokens for this user
   await prisma.emailVerificationToken.deleteMany({
-    where: { userId }
+    where: { userId },
   });
 
   // Generate token (expires in 24 hours)
@@ -73,8 +73,8 @@ export async function sendVerificationEmail(
     data: {
       userId,
       token,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   // Get user's preferred language
@@ -107,7 +107,7 @@ export async function sendVerificationEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Verification email sent to ${email} (${locale})`);
@@ -127,7 +127,7 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   // Delete any existing password reset tokens for this user
   await prisma.passwordResetToken.deleteMany({
-    where: { userId }
+    where: { userId },
   });
 
   // Generate token (expires in 1 hour)
@@ -139,8 +139,8 @@ export async function sendPasswordResetEmail(
     data: {
       userId,
       token,
-      expiresAt
-    }
+      expiresAt,
+    },
   });
 
   // Get user's preferred language
@@ -173,7 +173,7 @@ export async function sendPasswordResetEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Password reset email sent to ${email} (${locale})`);
@@ -186,10 +186,7 @@ export async function sendPasswordResetEmail(
 /**
  * Send a welcome email after email verification
  */
-export async function sendWelcomeEmail(
-  email: string,
-  name: string
-): Promise<void> {
+export async function sendWelcomeEmail(email: string, name: string): Promise<void> {
   try {
     if (!resend) return; // Skip email sending if Resend not configured
 
@@ -205,7 +202,7 @@ export async function sendWelcomeEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Welcome email sent to ${email} (${locale})`);
@@ -218,10 +215,7 @@ export async function sendWelcomeEmail(
 /**
  * Send a confirmation email after password change
  */
-export async function sendPasswordChangedEmail(
-  email: string,
-  name: string
-): Promise<void> {
+export async function sendPasswordChangedEmail(email: string, name: string): Promise<void> {
   try {
     if (!resend) return; // Skip email sending if Resend not configured
 
@@ -237,7 +231,7 @@ export async function sendPasswordChangedEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Password changed email sent to ${email} (${locale})`);
@@ -250,10 +244,12 @@ export async function sendPasswordChangedEmail(
 /**
  * Verify an email verification token
  */
-export async function verifyEmailToken(token: string): Promise<{ userId: string; email: string } | null> {
+export async function verifyEmailToken(
+  token: string
+): Promise<{ userId: string; email: string } | null> {
   const tokenRecord = await prisma.emailVerificationToken.findUnique({
     where: { token },
-    include: { user: true }
+    include: { user: true },
   });
 
   if (!tokenRecord) {
@@ -271,8 +267,8 @@ export async function verifyEmailToken(token: string): Promise<{ userId: string;
     where: { id: tokenRecord.userId },
     data: {
       emailVerified: true,
-      emailVerifiedAt: new Date()
-    }
+      emailVerifiedAt: new Date(),
+    },
   });
 
   // Delete the token
@@ -280,17 +276,19 @@ export async function verifyEmailToken(token: string): Promise<{ userId: string;
 
   return {
     userId: tokenRecord.userId,
-    email: tokenRecord.user.email
+    email: tokenRecord.user.email,
   };
 }
 
 /**
  * Verify a password reset token
  */
-export async function verifyPasswordResetToken(token: string): Promise<{ userId: string; email: string } | null> {
+export async function verifyPasswordResetToken(
+  token: string
+): Promise<{ userId: string; email: string } | null> {
   const tokenRecord = await prisma.passwordResetToken.findUnique({
     where: { token },
-    include: { user: true }
+    include: { user: true },
   });
 
   if (!tokenRecord) {
@@ -310,7 +308,7 @@ export async function verifyPasswordResetToken(token: string): Promise<{ userId:
 
   return {
     userId: tokenRecord.userId,
-    email: tokenRecord.user.email
+    email: tokenRecord.user.email,
   };
 }
 
@@ -320,7 +318,7 @@ export async function verifyPasswordResetToken(token: string): Promise<{ userId:
 export async function markPasswordResetTokenUsed(token: string): Promise<void> {
   await prisma.passwordResetToken.update({
     where: { token },
-    data: { usedAt: new Date() }
+    data: { usedAt: new Date() },
   });
 }
 
@@ -347,7 +345,7 @@ export async function sendSubscriptionConfirmedEmail(
       name,
       tier: tierName,
       weeklyLimit,
-      appUrl: CLIENT_URL
+      appUrl: CLIENT_URL,
     });
     const subject = t('subscriptionConfirmed.subject', { tier: tierName });
 
@@ -356,7 +354,7 @@ export async function sendSubscriptionConfirmedEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Subscription confirmed email sent to ${email} (${locale})`);
@@ -369,10 +367,7 @@ export async function sendSubscriptionConfirmedEmail(
 /**
  * Send payment failed email
  */
-export async function sendPaymentFailedEmail(
-  email: string,
-  name: string
-): Promise<void> {
+export async function sendPaymentFailedEmail(email: string, name: string): Promise<void> {
   try {
     if (!resend) return; // Skip email sending if Resend not configured
 
@@ -384,7 +379,7 @@ export async function sendPaymentFailedEmail(
       locale,
       name,
       billingUrl: `${CLIENT_URL}/app/settings/billing`,
-      supportEmail: REPLY_TO_EMAIL
+      supportEmail: REPLY_TO_EMAIL,
     });
     const subject = t('paymentFailed.subject');
 
@@ -393,7 +388,7 @@ export async function sendPaymentFailedEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Payment failed email sent to ${email} (${locale})`);
@@ -406,10 +401,7 @@ export async function sendPaymentFailedEmail(
 /**
  * Send subscription canceled email
  */
-export async function sendSubscriptionCanceledEmail(
-  email: string,
-  name: string
-): Promise<void> {
+export async function sendSubscriptionCanceledEmail(email: string, name: string): Promise<void> {
   try {
     if (!resend) return; // Skip email sending if Resend not configured
 
@@ -420,7 +412,7 @@ export async function sendSubscriptionCanceledEmail(
     const html = generateSubscriptionCanceledEmail({
       locale,
       name,
-      billingUrl: `${CLIENT_URL}/app/settings/billing`
+      billingUrl: `${CLIENT_URL}/app/settings/billing`,
     });
     const subject = t('subscriptionCanceled.subject');
 
@@ -429,7 +421,7 @@ export async function sendSubscriptionCanceledEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Subscription canceled email sent to ${email} (${locale})`);
@@ -465,7 +457,7 @@ export async function sendQuotaWarningEmail(
       limit,
       percentage,
       tier,
-      pricingUrl: `${CLIENT_URL}/pricing`
+      pricingUrl: `${CLIENT_URL}/pricing`,
     });
     const subject = t('quotaWarning.subject', { percentage });
 
@@ -474,7 +466,7 @@ export async function sendQuotaWarningEmail(
       to: email,
       replyTo: REPLY_TO_EMAIL,
       subject,
-      html
+      html,
     });
 
     console.log(`✓ Quota warning email sent to ${email} (${locale})`);

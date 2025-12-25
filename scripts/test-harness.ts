@@ -18,14 +18,14 @@
  *   npm run harness:test -- --max-turns 1000       # Custom max turns
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 interface TestHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  fixOnly?: boolean;       // Only fix existing failures, no new tests
-  coverageOnly?: boolean;  // Only audit and write tests, don't fix
+  fixOnly?: boolean; // Only fix existing failures, no new tests
+  coverageOnly?: boolean; // Only audit and write tests, don't fix
   targetCoverage?: number; // Target coverage % (default: 80)
 }
 
@@ -39,7 +39,7 @@ async function runTestHarness(options: TestHarnessOptions = {}) {
     verbose = true,
     fixOnly = false,
     coverageOnly = false,
-    targetCoverage = DEFAULT_TARGET_COVERAGE
+    targetCoverage = DEFAULT_TARGET_COVERAGE,
   } = options;
 
   console.log('🧪 ConvoLab Test Harness');
@@ -51,7 +51,9 @@ async function runTestHarness(options: TestHarnessOptions = {}) {
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
   console.log(`📊 Target coverage: ${targetCoverage}%`);
-  console.log(`🎯 Mode: ${fixOnly ? 'Fix failures only' : coverageOnly ? 'Coverage audit only' : 'Full test improvement'}\n`);
+  console.log(
+    `🎯 Mode: ${fixOnly ? 'Fix failures only' : coverageOnly ? 'Coverage audit only' : 'Full test improvement'}\n`
+  );
 
   if (maxTurns > 200) {
     console.log('⚠️  WARNING: Large run detected');
@@ -66,7 +68,9 @@ You are running an autonomous test improvement harness for ConvoLab.
 
 ## Your Mission
 
-${fixOnly ? `
+${
+  fixOnly
+    ? `
 ### PHASE 1 ONLY: Fix Failing Tests
 
 1. Run tests: npm run test:run
@@ -77,7 +81,9 @@ ${fixOnly ? `
    - Fix the issue
 4. Re-run to verify
 5. Commit with /commit
-` : coverageOnly ? `
+`
+    : coverageOnly
+      ? `
 ### PHASES 2-5: Coverage Audit & Test Writing
 
 1. Run coverage: npm run test:coverage
@@ -87,7 +93,8 @@ ${fixOnly ? `
 5. Write new tests following existing patterns
 6. Run to verify they pass
 7. Commit with /commit
-` : `
+`
+      : `
 ## Complete Test Improvement Workflow
 
 ### PHASE 1: Fix Failing Tests
@@ -144,7 +151,8 @@ For each missing test case:
 ### PHASE 6: Commit
 1. Update CHANGELOG.md with summary
 2. Use /commit with detailed message
-`}
+`
+}
 
 ## Test Infrastructure Context
 
@@ -222,12 +230,15 @@ Files excluded from coverage:
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze and report
 - List all issues found
 - Provide recommendations
-` : `
+`
+    : `
 - Fix tests before writing new ones
 - Follow existing test patterns exactly
 - Use proper mocking (vi.mock, vi.hoisted)
@@ -236,7 +247,8 @@ ${dryRun ? `
 - Verify all tests pass before committing
 - Update CHANGELOG.md
 - Use /commit once at the end
-`}
+`
+}
 
 - Be thorough but efficient
 - Track progress clearly
@@ -263,14 +275,14 @@ Begin your analysis now.
           : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
         systemPrompt: `You are a test engineering expert maintaining ConvoLab.
 Follow the project's testing patterns exactly.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and write tests. Use /commit when done.'}`
-      }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and write tests. Use /commit when done.'}`,
+      },
     })) {
       messageCount++;
 
       // Show progress
       const now = Date.now();
-      if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
         const progress = ((messageCount / maxTurns) * 100).toFixed(1);
         console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
         lastProgressUpdate = now;
@@ -311,12 +323,13 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and
     console.log('═══════════════════════════════════════════\n');
     console.log(`📊 Total messages: ${messageCount}`);
     console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
+    console.log(
+      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+    );
 
     if (dryRun) {
       console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
     }
-
   } catch (error) {
     console.error('\n❌ Harness failed with error:');
     console.error(error);
@@ -329,7 +342,7 @@ const args = process.argv.slice(2);
 
 // Check for --max-turns argument
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -340,7 +353,7 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
 
 // Check for --target-coverage argument
 let customTargetCoverage = DEFAULT_TARGET_COVERAGE;
-const targetCoverageIndex = args.findIndex(arg => arg === '--target-coverage');
+const targetCoverageIndex = args.findIndex((arg) => arg === '--target-coverage');
 if (targetCoverageIndex !== -1 && args[targetCoverageIndex + 1]) {
   customTargetCoverage = parseInt(args[targetCoverageIndex + 1], 10);
   if (isNaN(customTargetCoverage) || customTargetCoverage < 0 || customTargetCoverage > 100) {
@@ -355,11 +368,11 @@ const options: TestHarnessOptions = {
   fixOnly: args.includes('--fix-only'),
   coverageOnly: args.includes('--coverage-only'),
   maxTurns: customMaxTurns,
-  targetCoverage: customTargetCoverage
+  targetCoverage: customTargetCoverage,
 };
 
 // Run the harness
-runTestHarness(options).catch(error => {
+runTestHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

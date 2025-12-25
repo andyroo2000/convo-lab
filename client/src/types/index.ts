@@ -87,7 +87,7 @@ export interface Sentence {
   // Legacy single-speed timing
   audioUrl?: string;
   startTime?: number; // milliseconds
-  endTime?: number;   // milliseconds
+  endTime?: number; // milliseconds
 
   // Multi-speed timings
   startTime_0_7?: number;
@@ -119,7 +119,7 @@ export interface JapaneseMetadata {
 
 export interface ChineseMetadata {
   characters: string;
-  pinyinToneMarks: string;  // nǐ hǎo
+  pinyinToneMarks: string; // nǐ hǎo
   pinyinToneNumbers: string; // ni3 hao3
 }
 

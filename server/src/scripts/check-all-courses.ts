@@ -10,16 +10,16 @@ async function main() {
       approxDurationSeconds: true,
       _count: {
         select: {
-          coreItems: true
-        }
-      }
+          coreItems: true,
+        },
+      },
     },
-    take: 10
+    take: 10,
   });
 
   console.log(`\n=== Found ${courses.length} courses ===\n`);
 
-  courses.forEach(course => {
+  courses.forEach((course) => {
     const hasData = !!(course.audioUrl || course.approxDurationSeconds);
     console.log(`${course.id.substring(0, 8)}... - ${course.title}`);
     console.log(`  Status: ${course.status}`);
@@ -30,7 +30,7 @@ async function main() {
     console.log('');
   });
 
-  const coursesWithData = courses.filter(c => c.audioUrl || c.approxDurationSeconds);
+  const coursesWithData = courses.filter((c) => c.audioUrl || c.approxDurationSeconds);
   console.log(`Summary: ${coursesWithData.length}/${courses.length} courses have lesson data`);
 
   await prisma.$disconnect();

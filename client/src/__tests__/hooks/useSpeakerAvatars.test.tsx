@@ -320,9 +320,33 @@ describe('useSpeakerAvatars', () => {
   describe('Language and Gender Filtering', () => {
     it('should return avatars with different languages', async () => {
       const multiLanguageAvatars = [
-        { id: '1', filename: 'ja.png', croppedUrl: 'url1', originalUrl: 'url1', language: 'ja', gender: 'male', tone: 'casual' },
-        { id: '2', filename: 'zh.png', croppedUrl: 'url2', originalUrl: 'url2', language: 'zh', gender: 'female', tone: 'polite' },
-        { id: '3', filename: 'es.png', croppedUrl: 'url3', originalUrl: 'url3', language: 'es', gender: 'male', tone: 'formal' },
+        {
+          id: '1',
+          filename: 'ja.png',
+          croppedUrl: 'url1',
+          originalUrl: 'url1',
+          language: 'ja',
+          gender: 'male',
+          tone: 'casual',
+        },
+        {
+          id: '2',
+          filename: 'zh.png',
+          croppedUrl: 'url2',
+          originalUrl: 'url2',
+          language: 'zh',
+          gender: 'female',
+          tone: 'polite',
+        },
+        {
+          id: '3',
+          filename: 'es.png',
+          croppedUrl: 'url3',
+          originalUrl: 'url3',
+          language: 'es',
+          gender: 'male',
+          tone: 'formal',
+        },
       ];
 
       mockFetch.mockResolvedValueOnce({
@@ -338,7 +362,7 @@ describe('useSpeakerAvatars', () => {
         expect(result.current.avatars.length).toBe(3);
       });
 
-      const languages = result.current.avatars.map(a => a.language);
+      const languages = result.current.avatars.map((a) => a.language);
       expect(languages).toContain('ja');
       expect(languages).toContain('zh');
       expect(languages).toContain('es');

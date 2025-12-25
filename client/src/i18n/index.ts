@@ -217,7 +217,23 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'auth', 'settings', 'library', 'create', 'onboarding', 'errors', 'landing', 'notFound', 'dialogue', 'audioCourse', 'narrowListening', 'processingInstruction', 'chunkPack', 'pricing'],
+    ns: [
+      'common',
+      'auth',
+      'settings',
+      'library',
+      'create',
+      'onboarding',
+      'errors',
+      'landing',
+      'notFound',
+      'dialogue',
+      'audioCourse',
+      'narrowListening',
+      'processingInstruction',
+      'chunkPack',
+      'pricing',
+    ],
 
     interpolation: {
       escapeValue: false, // React already escapes values

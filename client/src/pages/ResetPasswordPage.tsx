@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
     const validateToken = async () => {
       try {
         const response = await fetch(`${API_URL}/api/password-reset/${token}`, {
-          credentials: 'include'
+          credentials: 'include',
         });
 
         if (!response.ok) {
@@ -128,9 +128,7 @@ export default function ResetPasswordPage() {
               <h2 className="text-xl font-semibold text-dark-brown mb-2">
                 {t('auth:resetPassword.validating.title')}
               </h2>
-              <p className="text-medium-brown">
-                {t('auth:resetPassword.validating.description')}
-              </p>
+              <p className="text-medium-brown">{t('auth:resetPassword.validating.description')}</p>
             </div>
           )}
 
@@ -164,7 +162,10 @@ export default function ResetPasswordPage() {
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-dark-brown mb-1">
+                  <label
+                    htmlFor="newPassword"
+                    className="block text-sm font-medium text-dark-brown mb-1"
+                  >
                     {t('auth:resetPassword.newPassword')}
                   </label>
                   <input
@@ -180,7 +181,10 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-dark-brown mb-1">
+                  <label
+                    htmlFor="confirmPassword"
+                    className="block text-sm font-medium text-dark-brown mb-1"
+                  >
                     {t('auth:resetPassword.confirmPassword')}
                   </label>
                   <input
@@ -221,16 +225,12 @@ export default function ResetPasswordPage() {
               <p className="text-medium-brown mb-4">
                 {t('auth:resetPassword.success.description')}
               </p>
-              <p className="text-sm text-gray-500">
-                {t('auth:resetPassword.success.redirecting')}
-              </p>
+              <p className="text-sm text-gray-500">{t('auth:resetPassword.success.redirecting')}</p>
             </div>
           )}
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          {t('common:footer')}
-        </p>
+        <p className="text-center text-sm text-gray-500 mt-6">{t('common:footer')}</p>
       </div>
     </div>
   );

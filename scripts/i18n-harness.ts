@@ -16,7 +16,7 @@
  *   npm run harness:i18n -- --quiet                # Minimal output
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 interface HarnessOptions {
   dryRun?: boolean;
@@ -27,11 +27,7 @@ interface HarnessOptions {
 const DEFAULT_MAX_TURNS = 500; // High limit for comprehensive i18n fixes across all locales
 
 async function runI18nHarness(options: HarnessOptions = {}) {
-  const {
-    dryRun = false,
-    maxTurns = DEFAULT_MAX_TURNS,
-    verbose = true
-  } = options;
+  const { dryRun = false, maxTurns = DEFAULT_MAX_TURNS, verbose = true } = options;
 
   console.log('🌍 ConvoLab i18n Consistency Checker Harness');
   console.log('═══════════════════════════════════════════\n');
@@ -110,12 +106,15 @@ Examples of what to fix:
 - ❌ "title": "Audio Course" → ✅ "title": "音声コース" (ja)
 
 ### 4. ${dryRun ? 'Report all issues' : 'Fix all issues'}
-${dryRun ? `
+${
+  dryRun
+    ? `
 - List ALL missing keys for this file
 - List ALL extra keys for this file
 - List ALL strings containing untranslated English text
 - Note any formatting issues
-` : `
+`
+    : `
 - Add missing translation keys
 - Remove extra/obsolete keys
 - **TRANSLATE all English text to the target language**
@@ -132,7 +131,8 @@ ${dryRun ? `
 - Preserve variable placeholders like {{count}}, {{name}}
 - Keep technical terms (ConvoLab, TTS, API) unchanged
 - Maintain consistent terminology across the file
-`}
+`
+}
 
 ## Your Workflow - MANDATORY STEPS
 
@@ -177,14 +177,14 @@ Begin with file 1: audioCourse.json
           : ['Read', 'Edit', 'Glob', 'Grep', 'Bash', 'Skill'],
         systemPrompt: `You are an i18n expert maintaining ConvoLab's translations.
 Follow the project's CLAUDE.md guidelines. Be thorough but efficient.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and use /commit when done.'}`
-      }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and use /commit when done.'}`,
+      },
     })) {
       messageCount++;
 
       // Show progress every 10 turns or every 30 seconds
       const now = Date.now();
-      if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
         const progress = ((messageCount / maxTurns) * 100).toFixed(1);
         console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
         lastProgressUpdate = now;
@@ -228,12 +228,13 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and
     console.log('═══════════════════════════════════════════\n');
     console.log(`📊 Total messages: ${messageCount}`);
     console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
+    console.log(
+      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+    );
 
     if (dryRun) {
       console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
     }
-
   } catch (error) {
     console.error('\n❌ Harness failed with error:');
     console.error(error);
@@ -246,7 +247,7 @@ const args = process.argv.slice(2);
 
 // Check for --max-turns argument
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -258,11 +259,11 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
 const options: HarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
-  maxTurns: customMaxTurns
+  maxTurns: customMaxTurns,
 };
 
 // Run the harness
-runI18nHarness(options).catch(error => {
+runI18nHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

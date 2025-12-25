@@ -30,7 +30,8 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 }));
 
 describe('CreatePage', () => {
-  const renderCreatePage = () => render(
+  const renderCreatePage = () =>
+    render(
       <BrowserRouter>
         <CreatePage />
       </BrowserRouter>

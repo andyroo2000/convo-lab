@@ -1,6 +1,10 @@
 import Stripe from 'stripe';
 import { prisma } from '../db/client.js';
-import { sendSubscriptionConfirmedEmail, sendPaymentFailedEmail, sendSubscriptionCanceledEmail } from './emailService.js';
+import {
+  sendSubscriptionConfirmedEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionCanceledEmail,
+} from './emailService.js';
 
 if (!process.env.STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY not set - Stripe functionality will not work');
@@ -21,7 +25,7 @@ export async function createCheckoutSession(
 ): Promise<{ url: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, stripeCustomerId: true }
+    select: { email: true, stripeCustomerId: true },
   });
 
   if (!user) {
@@ -35,8 +39,8 @@ export async function createCheckoutSession(
     const customer = await stripe.customers.create({
       email: user.email,
       metadata: {
-        userId
-      }
+        userId,
+      },
     });
 
     customerId = customer.id;
@@ -44,7 +48,7 @@ export async function createCheckoutSession(
     // Save customer ID to database
     await prisma.user.update({
       where: { id: userId },
-      data: { stripeCustomerId: customerId }
+      data: { stripeCustomerId: customerId },
     });
   }
 
@@ -63,12 +67,12 @@ export async function createCheckoutSession(
     cancel_url: `${CLIENT_URL}/app/settings/billing`,
     subscription_data: {
       metadata: {
-        userId
-      }
+        userId,
+      },
     },
     metadata: {
-      userId
-    }
+      userId,
+    },
   });
 
   if (!session.url) {
@@ -81,12 +85,10 @@ export async function createCheckoutSession(
 /**
  * Create a Stripe customer portal session
  */
-export async function createCustomerPortalSession(
-  userId: string
-): Promise<{ url: string }> {
+export async function createCustomerPortalSession(userId: string): Promise<{ url: string }> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { stripeCustomerId: true }
+    select: { stripeCustomerId: true },
   });
 
   if (!user?.stripeCustomerId) {
@@ -104,11 +106,9 @@ export async function createCustomerPortalSession(
 /**
  * Handle subscription created webhook
  */
-export async function handleSubscriptionCreated(
-  subscription: Stripe.Subscription
-): Promise<void> {
+export async function handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
   const customerId = subscription.customer as string;
-  const {userId} = subscription.metadata;
+  const { userId } = subscription.metadata;
 
   if (!userId) {
     console.error('No userId in subscription metadata');
@@ -129,8 +129,8 @@ export async function handleSubscriptionCreated(
       stripePriceId: priceId,
       subscriptionStartedAt: new Date((subscription as any).current_period_start * 1000),
       subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
-      subscriptionCanceledAt: null
-    }
+      subscriptionCanceledAt: null,
+    },
   });
 
   // Log subscription event
@@ -140,14 +140,14 @@ export async function handleSubscriptionCreated(
       eventType: 'subscribed',
       fromTier: 'free',
       toTier: tier,
-      stripeEventId: subscription.id
-    }
+      stripeEventId: subscription.id,
+    },
   });
 
   // Send confirmation email
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true, name: true }
+    select: { email: true, name: true },
   });
 
   if (user) {
@@ -160,16 +160,14 @@ export async function handleSubscriptionCreated(
 /**
  * Handle subscription updated webhook
  */
-export async function handleSubscriptionUpdated(
-  subscription: Stripe.Subscription
-): Promise<void> {
-  const {userId} = subscription.metadata;
+export async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
+  const { userId } = subscription.metadata;
 
   if (!userId) {
     // Try to find user by customer ID
     const user = await prisma.user.findUnique({
       where: { stripeCustomerId: subscription.customer as string },
-      select: { id: true }
+      select: { id: true },
     });
 
     if (!user) {
@@ -190,27 +188,27 @@ export async function handleSubscriptionUpdated(
       subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
       // If subscription was canceled, mark when it will end
       ...((subscription as any).cancel_at_period_end && {
-        subscriptionCanceledAt: new Date((subscription as any).current_period_end * 1000)
-      })
-    }
+        subscriptionCanceledAt: new Date((subscription as any).current_period_end * 1000),
+      }),
+    },
   });
 
-  console.log(`✓ Subscription updated for customer ${subscription.customer}, status: ${subscription.status}`);
+  console.log(
+    `✓ Subscription updated for customer ${subscription.customer}, status: ${subscription.status}`
+  );
 }
 
 /**
  * Handle subscription deleted webhook
  */
-export async function handleSubscriptionDeleted(
-  subscription: Stripe.Subscription
-): Promise<void> {
-  const {userId} = subscription.metadata;
+export async function handleSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
+  const { userId } = subscription.metadata;
 
   if (!userId) {
     // Try to find user by customer ID
     const user = await prisma.user.findUnique({
       where: { stripeCustomerId: subscription.customer as string },
-      select: { id: true, tier: true, email: true, name: true }
+      select: { id: true, tier: true, email: true, name: true },
     });
 
     if (!user) {
@@ -226,8 +224,8 @@ export async function handleSubscriptionDeleted(
         stripeSubscriptionStatus: null,
         stripeSubscriptionId: null,
         stripePriceId: null,
-        subscriptionCanceledAt: new Date()
-      }
+        subscriptionCanceledAt: new Date(),
+      },
     });
 
     // Log subscription event
@@ -237,8 +235,8 @@ export async function handleSubscriptionDeleted(
         eventType: 'canceled',
         fromTier: user.tier,
         toTier: 'free',
-        stripeEventId: subscription.id
-      }
+        stripeEventId: subscription.id,
+      },
     });
 
     // Send cancelation email
@@ -251,7 +249,7 @@ export async function handleSubscriptionDeleted(
   // Get current tier
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { tier: true, email: true, name: true }
+    select: { tier: true, email: true, name: true },
   });
 
   if (!user) {
@@ -266,8 +264,8 @@ export async function handleSubscriptionDeleted(
       stripeSubscriptionStatus: null,
       stripeSubscriptionId: null,
       stripePriceId: null,
-      subscriptionCanceledAt: new Date()
-    }
+      subscriptionCanceledAt: new Date(),
+    },
   });
 
   // Log subscription event
@@ -277,8 +275,8 @@ export async function handleSubscriptionDeleted(
       eventType: 'canceled',
       fromTier: user.tier,
       toTier: 'free',
-      stripeEventId: subscription.id
-    }
+      stripeEventId: subscription.id,
+    },
   });
 
   // Send cancelation email
@@ -290,14 +288,12 @@ export async function handleSubscriptionDeleted(
 /**
  * Handle invoice payment failed webhook
  */
-export async function handleInvoicePaymentFailed(
-  invoice: Stripe.Invoice
-): Promise<void> {
+export async function handleInvoicePaymentFailed(invoice: Stripe.Invoice): Promise<void> {
   const customerId = invoice.customer as string;
 
   const user = await prisma.user.findUnique({
     where: { stripeCustomerId: customerId },
-    select: { id: true, email: true, name: true }
+    select: { id: true, email: true, name: true },
   });
 
   if (!user) {
@@ -326,8 +322,8 @@ export async function getSubscriptionStatus(userId: string): Promise<{
       tier: true,
       stripeSubscriptionStatus: true,
       stripeSubscriptionId: true,
-      subscriptionExpiresAt: true
-    }
+      subscriptionExpiresAt: true,
+    },
   });
 
   if (!user) {
@@ -350,6 +346,6 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     tier: user.tier,
     status: user.stripeSubscriptionStatus,
     cancelAtPeriodEnd,
-    currentPeriodEnd: user.subscriptionExpiresAt
+    currentPeriodEnd: user.subscriptionExpiresAt,
   };
 }

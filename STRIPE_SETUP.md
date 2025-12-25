@@ -5,12 +5,14 @@ This guide explains how to set up both a live production product and a test prod
 ## Overview
 
 You'll create two products in Stripe **Live Mode**:
+
 1. **ConvoLab Pro** ($7/month) - Your real production product
 2. **ConvoLab Test** ($0.01/month) - For testing checkout flow in production without real charges
 
 ## Step 1: Create Products in Stripe (Live Mode)
 
 ### Switch to Live Mode
+
 1. Go to https://dashboard.stripe.com
 2. **Toggle to "Live" mode** in the top-right corner (important!)
 
@@ -81,6 +83,7 @@ STRIPE_PRICE_TEST_MONTHLY=price_live_your_test_price_id  # Optional - only if yo
 ```
 
 To set in Cloud Run:
+
 ```bash
 gcloud run services update languageflow-backend \
   --region=us-central1 \
@@ -125,10 +128,12 @@ VITE_STRIPE_PRICE_TEST_MONTHLY=price_live_your_test_price_id  # Optional - only 
 Once you've tested, you can hide the test tier from public view:
 
 **Option 1: Remove from frontend environment**
+
 - Simply don't set `VITE_STRIPE_PRICE_TEST_MONTHLY` in production
 - The test tier won't appear on the pricing page
 
 **Option 2: Keep for admin testing**
+
 - Keep `VITE_STRIPE_PRICE_TEST_MONTHLY` set
 - Only admins or internal team members use it
 
@@ -144,6 +149,7 @@ Once you've tested, you can hide the test tier from public view:
 ### Canceling Test Subscriptions
 
 After testing, cancel test subscriptions:
+
 1. Go to Stripe Dashboard → **Customers**
 2. Find your test customer
 3. Cancel the test subscription
@@ -158,14 +164,17 @@ After testing, cancel test subscriptions:
 ## Troubleshooting
 
 ### Test tier not showing up
+
 - Check that `VITE_STRIPE_PRICE_TEST_MONTHLY` is set in frontend environment
 - Rebuild and redeploy frontend
 
 ### "Invalid price ID" error
+
 - Verify `STRIPE_PRICE_TEST_MONTHLY` is set in backend environment
 - Check that price ID starts with `price_live_` (not `price_test_`)
 
 ### Webhook not firing
+
 - Check webhook URL matches your production API
 - Verify `STRIPE_WEBHOOK_SECRET` is correct
 - Check Stripe Dashboard → Webhooks → Recent deliveries for errors
@@ -173,6 +182,7 @@ After testing, cancel test subscriptions:
 ## Summary
 
 You now have:
+
 - ✅ Live production product ($7/month)
 - ✅ Test product for production testing ($0.01/month)
 - ✅ Both work in production with real payments

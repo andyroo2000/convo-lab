@@ -34,29 +34,44 @@ export const SUPPORTED_LANGUAGES: Record<LanguageCode, LanguageInfo> = {
   },
 };
 
-export const PROFICIENCY_LEVELS = [
-  'beginner',
-  'intermediate',
-  'advanced',
-  'native',
-] as const;
+export const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'native'] as const;
 
 // CEFR (Common European Framework of Reference) Proficiency Levels
 // Used for Spanish and other European languages
 export const CEFR_LEVELS = {
-  A1: { code: 'A1', name: 'Beginner (A1)', description: 'Can understand and use familiar everyday expressions' },
-  A2: { code: 'A2', name: 'Elementary (A2)', description: 'Can communicate in simple routine tasks' },
-  B1: { code: 'B1', name: 'Intermediate (B1)', description: 'Can deal with most situations while traveling' },
-  B2: { code: 'B2', name: 'Upper Intermediate (B2)', description: 'Can interact with fluency and spontaneity' },
-  C1: { code: 'C1', name: 'Advanced (C1)', description: 'Can use language flexibly and effectively' },
-  C2: { code: 'C2', name: 'Mastery (C2)', description: 'Can understand virtually everything heard or read' },
+  A1: {
+    code: 'A1',
+    name: 'Beginner (A1)',
+    description: 'Can understand and use familiar everyday expressions',
+  },
+  A2: {
+    code: 'A2',
+    name: 'Elementary (A2)',
+    description: 'Can communicate in simple routine tasks',
+  },
+  B1: {
+    code: 'B1',
+    name: 'Intermediate (B1)',
+    description: 'Can deal with most situations while traveling',
+  },
+  B2: {
+    code: 'B2',
+    name: 'Upper Intermediate (B2)',
+    description: 'Can interact with fluency and spontaneity',
+  },
+  C1: {
+    code: 'C1',
+    name: 'Advanced (C1)',
+    description: 'Can use language flexibly and effectively',
+  },
+  C2: {
+    code: 'C2',
+    name: 'Mastery (C2)',
+    description: 'Can understand virtually everything heard or read',
+  },
 } as const;
 
-export const TONE_STYLES = [
-  'casual',
-  'polite',
-  'formal',
-] as const;
+export const TONE_STYLES = ['casual', 'polite', 'formal'] as const;
 
 // TTS Voice Configuration
 // Supports both Google Cloud TTS and Amazon Polly providers
@@ -68,15 +83,55 @@ export const TTS_VOICES = {
     languageCode: 'en-US',
     voices: [
       // Male Neural2 voices (Google)
-      { id: 'en-US-Neural2-J', gender: 'male', description: 'Guy - Deep and authoritative', provider: 'google' },
-      { id: 'en-US-Neural2-D', gender: 'male', description: 'Andrew - Warm and conversational', provider: 'google' },
-      { id: 'en-US-Neural2-A', gender: 'male', description: 'James - Clear and professional', provider: 'google' },
-      { id: 'en-US-Neural2-I', gender: 'male', description: 'Michael - Friendly and engaging', provider: 'google' },
+      {
+        id: 'en-US-Neural2-J',
+        gender: 'male',
+        description: 'Guy - Deep and authoritative',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-D',
+        gender: 'male',
+        description: 'Andrew - Warm and conversational',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-A',
+        gender: 'male',
+        description: 'James - Clear and professional',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-I',
+        gender: 'male',
+        description: 'Michael - Friendly and engaging',
+        provider: 'google',
+      },
       // Female Neural2 voices (Google)
-      { id: 'en-US-Neural2-F', gender: 'female', description: 'Jenny - Pleasant and approachable', provider: 'google' },
-      { id: 'en-US-Neural2-H', gender: 'female', description: 'Aria - Confident and warm', provider: 'google' },
-      { id: 'en-US-Neural2-G', gender: 'female', description: 'Sara - Calm and sincere', provider: 'google' },
-      { id: 'en-US-Neural2-C', gender: 'female', description: 'Emma - Bright and cheerful', provider: 'google' },
+      {
+        id: 'en-US-Neural2-F',
+        gender: 'female',
+        description: 'Jenny - Pleasant and approachable',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-H',
+        gender: 'female',
+        description: 'Aria - Confident and warm',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-G',
+        gender: 'female',
+        description: 'Sara - Calm and sincere',
+        provider: 'google',
+      },
+      {
+        id: 'en-US-Neural2-C',
+        gender: 'female',
+        description: 'Emma - Bright and cheerful',
+        provider: 'google',
+      },
     ],
   },
   ja: {
@@ -84,40 +139,125 @@ export const TTS_VOICES = {
     voices: [
       // Google voices - Verified from Google Cloud TTS API (npx tsx check-google-voices.ts)
       // Wavenet FEMALE voices
-      { id: 'ja-JP-Wavenet-A', gender: 'female', description: 'Ichiro - Animated and bright', provider: 'google' },
-      { id: 'ja-JP-Wavenet-B', gender: 'female', description: 'Rina - Natural and clear', provider: 'google' },
+      {
+        id: 'ja-JP-Wavenet-A',
+        gender: 'female',
+        description: 'Ichiro - Animated and bright',
+        provider: 'google',
+      },
+      {
+        id: 'ja-JP-Wavenet-B',
+        gender: 'female',
+        description: 'Rina - Natural and clear',
+        provider: 'google',
+      },
       // Neural2 FEMALE voices
-      { id: 'ja-JP-Neural2-B', gender: 'female', description: 'Nanami - Bright and cheerful', provider: 'google' },
+      {
+        id: 'ja-JP-Neural2-B',
+        gender: 'female',
+        description: 'Nanami - Bright and cheerful',
+        provider: 'google',
+      },
       // Wavenet MALE voices
-      { id: 'ja-JP-Wavenet-C', gender: 'male', description: 'Shohei - Calm and clear', provider: 'google' },
-      { id: 'ja-JP-Wavenet-D', gender: 'male', description: 'Naoki - Confident and clear', provider: 'google' },
+      {
+        id: 'ja-JP-Wavenet-C',
+        gender: 'male',
+        description: 'Shohei - Calm and clear',
+        provider: 'google',
+      },
+      {
+        id: 'ja-JP-Wavenet-D',
+        gender: 'male',
+        description: 'Naoki - Confident and clear',
+        provider: 'google',
+      },
       // Neural2 MALE voices
-      { id: 'ja-JP-Neural2-C', gender: 'male', description: 'Kento - Professional', provider: 'google' },
-      { id: 'ja-JP-Neural2-D', gender: 'male', description: 'Daichi - Warm and conversational', provider: 'google' },
+      {
+        id: 'ja-JP-Neural2-C',
+        gender: 'male',
+        description: 'Kento - Professional',
+        provider: 'google',
+      },
+      {
+        id: 'ja-JP-Neural2-D',
+        gender: 'male',
+        description: 'Daichi - Warm and conversational',
+        provider: 'google',
+      },
       // Polly voices (Neural)
-      { id: 'Takumi', gender: 'male', description: 'Takumi - Natural and smooth', provider: 'polly' },
-      { id: 'Kazuha', gender: 'female', description: 'Kazuha - Friendly and clear', provider: 'polly' },
-      { id: 'Tomoko', gender: 'female', description: 'Tomoko - Natural and pleasant', provider: 'polly' },
+      {
+        id: 'Takumi',
+        gender: 'male',
+        description: 'Takumi - Natural and smooth',
+        provider: 'polly',
+      },
+      {
+        id: 'Kazuha',
+        gender: 'female',
+        description: 'Kazuha - Friendly and clear',
+        provider: 'polly',
+      },
+      {
+        id: 'Tomoko',
+        gender: 'female',
+        description: 'Tomoko - Natural and pleasant',
+        provider: 'polly',
+      },
     ],
   },
   zh: {
     languageCode: 'cmn-CN',
     voices: [
       // Google voices (Wavenet - Neural2 not available for Mandarin)
-      { id: 'cmn-CN-Wavenet-A', gender: 'female', description: 'Xiaomei - Warm and friendly', provider: 'google' },
-      { id: 'cmn-CN-Wavenet-D', gender: 'female', description: 'Xiaoli - Clear and gentle', provider: 'google' },
-      { id: 'cmn-CN-Wavenet-B', gender: 'male', description: 'Wei - Natural and conversational', provider: 'google' },
-      { id: 'cmn-CN-Wavenet-C', gender: 'male', description: 'Jun - Professional and clear', provider: 'google' },
+      {
+        id: 'cmn-CN-Wavenet-A',
+        gender: 'female',
+        description: 'Xiaomei - Warm and friendly',
+        provider: 'google',
+      },
+      {
+        id: 'cmn-CN-Wavenet-D',
+        gender: 'female',
+        description: 'Xiaoli - Clear and gentle',
+        provider: 'google',
+      },
+      {
+        id: 'cmn-CN-Wavenet-B',
+        gender: 'male',
+        description: 'Wei - Natural and conversational',
+        provider: 'google',
+      },
+      {
+        id: 'cmn-CN-Wavenet-C',
+        gender: 'male',
+        description: 'Jun - Professional and clear',
+        provider: 'google',
+      },
       // Polly voices (Neural)
-      { id: 'Zhiyu', gender: 'female', description: 'Zhiyu - Professional and natural', provider: 'polly' },
+      {
+        id: 'Zhiyu',
+        gender: 'female',
+        description: 'Zhiyu - Professional and natural',
+        provider: 'polly',
+      },
     ],
   },
   es: {
     languageCode: 'es-ES',
     voices: [
       // Polly voices (Neural) - Spain Spanish
-      { id: 'Lucia', gender: 'female', description: 'Lucia - Clear and natural', provider: 'polly' },
-      { id: 'Sergio', gender: 'male', description: 'Sergio - Professional and warm', provider: 'polly' },
+      {
+        id: 'Lucia',
+        gender: 'female',
+        description: 'Lucia - Clear and natural',
+        provider: 'polly',
+      },
+      {
+        id: 'Sergio',
+        gender: 'male',
+        description: 'Sergio - Professional and warm',
+        provider: 'polly',
+      },
     ],
   },
   fr: {
@@ -125,9 +265,19 @@ export const TTS_VOICES = {
     voices: [
       // Polly voices (Neural) - France French
       { id: 'Lea', gender: 'female', description: 'Lea - Natural and pleasant', provider: 'polly' },
-      { id: 'Remi', gender: 'male', description: 'Remi - Clear and professional', provider: 'polly' },
+      {
+        id: 'Remi',
+        gender: 'male',
+        description: 'Remi - Clear and professional',
+        provider: 'polly',
+      },
       // Polly voices (Neural) - Canadian French
-      { id: 'Gabrielle', gender: 'female', description: 'Gabrielle - Warm and friendly', provider: 'polly' },
+      {
+        id: 'Gabrielle',
+        gender: 'female',
+        description: 'Gabrielle - Warm and friendly',
+        provider: 'polly',
+      },
       { id: 'Liam', gender: 'male', description: 'Liam - Natural and engaging', provider: 'polly' },
     ],
   },
@@ -136,7 +286,12 @@ export const TTS_VOICES = {
     voices: [
       // Polly voices (Neural) - Gulf Arabic
       { id: 'Hala', gender: 'female', description: 'Hala - Clear and natural', provider: 'polly' },
-      { id: 'Zayd', gender: 'male', description: 'Zayd - Professional and warm', provider: 'polly' },
+      {
+        id: 'Zayd',
+        gender: 'male',
+        description: 'Zayd - Professional and warm',
+        provider: 'polly',
+      },
     ],
   },
 } as const;

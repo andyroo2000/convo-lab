@@ -92,7 +92,6 @@ async function cropAvatar(inputPath: string, outputFilename: string): Promise<vo
 
     const stats = await fs.stat(outputPath);
     console.log(`  ✓ Saved to: ${outputFilename} (${(stats.size / 1024).toFixed(1)}KB)\n`);
-
   } catch (error: any) {
     console.error(`  ✗ Failed: ${error.message}\n`);
     throw error;
@@ -117,8 +116,8 @@ async function main() {
 
   // Read all files from downloads directory
   const files = await fs.readdir(downloadsDir);
-  const imageFiles = files.filter(f =>
-    f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.png') || f.endsWith('.webp')
+  const imageFiles = files.filter(
+    (f) => f.endsWith('.jpg') || f.endsWith('.jpeg') || f.endsWith('.png') || f.endsWith('.webp')
   );
 
   if (imageFiles.length === 0) {

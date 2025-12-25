@@ -6,7 +6,11 @@ import {
   generateStoryAudio,
   generateExerciseAudio,
 } from '../../../services/chunkPackAudioGenerator.js';
-import type { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../../../types/chunkPack.js';
+import type {
+  ChunkExampleData,
+  ChunkStorySegmentData,
+  ChunkExerciseData,
+} from '../../../types/chunkPack.js';
 
 // Hoisted mocks
 const mockGenerateSilence = vi.hoisted(() => vi.fn());
@@ -16,7 +20,18 @@ const mockFfprobe = vi.hoisted(() => vi.fn());
 const mockFfmpegChain = vi.hoisted(() => {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
 
-  ['input', 'inputOptions', 'audioCodec', 'audioBitrate', 'audioFrequency', 'audioChannels', 'output', 'on', 'run', 'mergeToFile'].forEach(method => {
+  [
+    'input',
+    'inputOptions',
+    'audioCodec',
+    'audioBitrate',
+    'audioFrequency',
+    'audioChannels',
+    'output',
+    'on',
+    'run',
+    'mergeToFile',
+  ].forEach((method) => {
     chain[method] = vi.fn();
     if (method !== 'run' && method !== 'mergeToFile') {
       chain[method].mockReturnValue(chain);
@@ -102,7 +117,9 @@ describe('chunkPackAudioGenerator', () => {
     mockFs.readFile.mockResolvedValue(Buffer.from('combined-audio'));
     mockGenerateSilence.mockResolvedValue(Buffer.from('silence-audio'));
     mockSynthesizeBatchedTexts.mockResolvedValue([Buffer.from('audio-data')]);
-    mockUploadToGCS.mockImplementation(async ({ filename }) => `https://storage.example.com/${filename}`);
+    mockUploadToGCS.mockImplementation(
+      async ({ filename }) => `https://storage.example.com/${filename}`
+    );
     mockFfprobe.mockImplementation((filePath, callback) => {
       callback(null, { format: { duration: 2 } }); // 2 seconds
     });
@@ -110,7 +127,11 @@ describe('chunkPackAudioGenerator', () => {
 
   describe('generateExampleAudio', () => {
     const mockExamples: ChunkExampleData[] = [
-      { chunkForm: '〜ておきます', sentence: '宿題（しゅくだい）をしておきます', english: 'I will do my homework in advance' },
+      {
+        chunkForm: '〜ておきます',
+        sentence: '宿題（しゅくだい）をしておきます',
+        english: 'I will do my homework in advance',
+      },
       { chunkForm: '〜てしまう', sentence: '食べてしまいました', english: 'I ate it all' },
     ];
 
@@ -137,7 +158,7 @@ describe('chunkPackAudioGenerator', () => {
       expect(mockSynthesizeBatchedTexts).toHaveBeenCalledTimes(6);
 
       // Check each speed
-      const {calls} = mockSynthesizeBatchedTexts.mock;
+      const { calls } = mockSynthesizeBatchedTexts.mock;
       const speeds = calls.map((call: unknown[]) => (call[1] as { speed: number }).speed);
       expect(speeds).toContain(0.7);
       expect(speeds).toContain(0.85);
@@ -183,16 +204,22 @@ describe('chunkPackAudioGenerator', () => {
 
       // Should upload 3 times (once per speed)
       expect(mockUploadToGCS).toHaveBeenCalledTimes(3);
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'example-0-0.7x.mp3',
-        folder: 'chunk-packs/pack-123',
-      }));
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'example-0-0.85x.mp3',
-      }));
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'example-0-1x.mp3',
-      }));
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'example-0-0.7x.mp3',
+          folder: 'chunk-packs/pack-123',
+        })
+      );
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'example-0-0.85x.mp3',
+        })
+      );
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'example-0-1x.mp3',
+        })
+      );
     });
 
     it('should return map keyed by sentence with all speed URLs', async () => {
@@ -224,7 +251,10 @@ describe('chunkPackAudioGenerator', () => {
     const mockSegments: ChunkStorySegmentData[] = [
       { japaneseText: '田中：おはようございます', englishTranslation: 'Tanaka: Good morning' },
       { japaneseText: '山田：おはよう', englishTranslation: 'Yamada: Morning' },
-      { japaneseText: '田中：今日は会議がありますね', englishTranslation: 'Tanaka: We have a meeting today' },
+      {
+        japaneseText: '田中：今日は会議がありますね',
+        englishTranslation: 'Tanaka: We have a meeting today',
+      },
     ];
 
     it('should create temp directory', async () => {
@@ -232,10 +262,9 @@ describe('chunkPackAudioGenerator', () => {
 
       await generateStoryAudio('pack-123', 0, mockSegments);
 
-      expect(mockFs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining('chunk-story-'),
-        { recursive: true }
-      );
+      expect(mockFs.mkdir).toHaveBeenCalledWith(expect.stringContaining('chunk-story-'), {
+        recursive: true,
+      });
     });
 
     it('should detect and assign voices to speakers', async () => {
@@ -276,10 +305,12 @@ describe('chunkPackAudioGenerator', () => {
 
       await generateStoryAudio('pack-123', 0, [mockSegments[0]]);
 
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'story-0-segment-0.mp3',
-        folder: 'chunk-packs/pack-123',
-      }));
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'story-0-segment-0.mp3',
+          folder: 'chunk-packs/pack-123',
+        })
+      );
     });
 
     it('should concatenate and upload combined audio', async () => {
@@ -287,9 +318,11 @@ describe('chunkPackAudioGenerator', () => {
 
       await generateStoryAudio('pack-123', 0, [mockSegments[0]]);
 
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'story-0-combined.mp3',
-      }));
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'story-0-combined.mp3',
+        })
+      );
     });
 
     it('should return combined URL and segment timing data', async () => {
@@ -330,23 +363,21 @@ describe('chunkPackAudioGenerator', () => {
 
       await generateStoryAudio('pack-123', 0, [mockSegments[0]]);
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('chunk-story-'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('chunk-story-'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should cleanup temp directory on error', async () => {
       mockSynthesizeBatchedTexts.mockRejectedValue(new Error('TTS failed'));
 
-      await expect(
-        generateStoryAudio('pack-123', 0, mockSegments)
-      ).rejects.toThrow('TTS failed');
+      await expect(generateStoryAudio('pack-123', 0, mockSegments)).rejects.toThrow('TTS failed');
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('chunk-story-'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('chunk-story-'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should use 0.85x speed for learners', async () => {
@@ -470,10 +501,12 @@ describe('chunkPackAudioGenerator', () => {
 
       await generateExerciseAudio('pack-123', [mockExercises[0]]);
 
-      expect(mockUploadToGCS).toHaveBeenCalledWith(expect.objectContaining({
-        filename: 'exercise-0.mp3',
-        folder: 'chunk-packs/pack-123',
-      }));
+      expect(mockUploadToGCS).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'exercise-0.mp3',
+          folder: 'chunk-packs/pack-123',
+        })
+      );
     });
 
     it('should return map keyed by prompt', async () => {
@@ -488,9 +521,9 @@ describe('chunkPackAudioGenerator', () => {
     it('should throw on TTS error', async () => {
       mockSynthesizeBatchedTexts.mockRejectedValue(new Error('TTS failed'));
 
-      await expect(
-        generateExerciseAudio('pack-123', [mockExercises[0]])
-      ).rejects.toThrow('TTS failed');
+      await expect(generateExerciseAudio('pack-123', [mockExercises[0]])).rejects.toThrow(
+        'TTS failed'
+      );
     });
   });
 });

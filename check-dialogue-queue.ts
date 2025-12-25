@@ -6,7 +6,7 @@ const redis = new IORedis({
   port: 6379,
   password: 'AYEeAAIncDIyMzc1ZGNjZDc0NGE0MjNlODIxNjllZTQyMzY3NTk4NnAyMzMwNTQ',
   maxRetriesPerRequest: null,
-  tls: {}
+  tls: {},
 });
 
 async function main() {
@@ -14,7 +14,13 @@ async function main() {
     const dialogueQueue = new Queue('dialogue-generation', { connection: redis });
 
     console.log('📊 Dialogue queue status:');
-    const counts = await dialogueQueue.getJobCounts('active', 'waiting', 'failed', 'delayed', 'completed');
+    const counts = await dialogueQueue.getJobCounts(
+      'active',
+      'waiting',
+      'failed',
+      'delayed',
+      'completed'
+    );
     console.log(`  Active: ${counts.active}`);
     console.log(`  Waiting: ${counts.waiting}`);
     console.log(`  Failed: ${counts.failed}`);
@@ -66,7 +72,6 @@ async function main() {
         console.log(`    Failed reason: ${job.failedReason}`);
       }
     }
-
   } catch (error) {
     console.error('Error:', error);
   } finally {

@@ -82,7 +82,9 @@ async function validateAllVoices() {
     const languageCode = config.languageCode;
     const testText = TEST_SENTENCES[langKey as keyof typeof TEST_SENTENCES] || 'Test';
 
-    console.log(`\n=== Testing ${langKey.toUpperCase()} Voices (${config.voices.length} voices) ===`);
+    console.log(
+      `\n=== Testing ${langKey.toUpperCase()} Voices (${config.voices.length} voices) ===`
+    );
 
     for (const voice of config.voices) {
       const result = await testVoice(
@@ -115,7 +117,7 @@ async function validateAllVoices() {
     const testText = TEST_SENTENCES[langKey as keyof typeof TEST_SENTENCES] || 'Test';
 
     // Check if this voice is already tested
-    const alreadyTested = allResults.find(r => r.voiceId === voiceId);
+    const alreadyTested = allResults.find((r) => r.voiceId === voiceId);
     if (alreadyTested) {
       console.log(`  ✅ ${voiceId} (already tested as dialogue voice)`);
       continue;
@@ -145,8 +147,8 @@ async function validateAllVoices() {
   console.log('='.repeat(70));
 
   const totalVoices = allResults.length;
-  const successCount = allResults.filter(r => r.status === 'success').length;
-  const failedCount = allResults.filter(r => r.status === 'failed').length;
+  const successCount = allResults.filter((r) => r.status === 'success').length;
+  const failedCount = allResults.filter((r) => r.status === 'failed').length;
 
   console.log(`Total voices tested: ${totalVoices}`);
   console.log(`✅ Successful: ${successCount}`);
@@ -155,8 +157,8 @@ async function validateAllVoices() {
   if (failedCount > 0) {
     console.log('\n❌ FAILED VOICES:');
     console.log('-'.repeat(70));
-    const failed = allResults.filter(r => r.status === 'failed');
-    failed.forEach(result => {
+    const failed = allResults.filter((r) => r.status === 'failed');
+    failed.forEach((result) => {
       console.log(`\n${result.voiceId}`);
       console.log(`  Language: ${result.language}`);
       console.log(`  Description: ${result.description}`);
@@ -167,8 +169,8 @@ async function validateAllVoices() {
   // Performance stats
   if (successCount > 0) {
     const durations = allResults
-      .filter(r => r.status === 'success' && r.duration)
-      .map(r => r.duration!);
+      .filter((r) => r.status === 'success' && r.duration)
+      .map((r) => r.duration!);
 
     const avgDuration = Math.round(durations.reduce((a, b) => a + b, 0) / durations.length);
     const minDuration = Math.min(...durations);
@@ -192,7 +194,7 @@ async function validateAllVoices() {
 }
 
 // Run validation
-validateAllVoices().catch(error => {
+validateAllVoices().catch((error) => {
   console.error('Fatal error during validation:', error);
   process.exit(1);
 });

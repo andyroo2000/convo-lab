@@ -90,14 +90,7 @@ export async function getAuditLogs(params: {
   limit?: number;
   offset?: number;
 }) {
-  const {
-    adminUserId,
-    action,
-    startDate,
-    endDate,
-    limit = 50,
-    offset = 0,
-  } = params;
+  const { adminUserId, action, startDate, endDate, limit = 50, offset = 0 } = params;
 
   const where: any = {};
 

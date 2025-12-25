@@ -118,6 +118,7 @@ User Controls:
 ### Core Tables
 
 **User**
+
 - id (UUID)
 - email (unique)
 - password (hashed)
@@ -125,6 +126,7 @@ User Controls:
 - timestamps
 
 **Episode**
+
 - id (UUID)
 - userId (FK → User)
 - title
@@ -136,11 +138,13 @@ User Controls:
 - timestamps
 
 **Dialogue**
+
 - id (UUID)
 - episodeId (FK → Episode, unique)
 - timestamps
 
 **Speaker**
+
 - id (UUID)
 - dialogueId (FK → Dialogue)
 - name
@@ -150,6 +154,7 @@ User Controls:
 - color (UI color)
 
 **Sentence**
+
 - id (UUID)
 - dialogueId (FK → Dialogue)
 - speakerId (FK → Speaker)
@@ -164,6 +169,7 @@ User Controls:
 - timestamps
 
 **Image**
+
 - id (UUID)
 - episodeId (FK → Episode)
 - url
@@ -187,6 +193,7 @@ Stored as JSON in `Sentence.metadata`:
 ```
 
 For Chinese:
+
 ```json
 {
   "chinese": {
@@ -199,12 +206,14 @@ For Chinese:
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/signup` - Create account
 - `POST /api/auth/login` - Login
 - `POST /api/auth/logout` - Logout
 - `GET /api/auth/me` - Get current user
 
 ### Episodes
+
 - `GET /api/episodes` - List user's episodes
 - `GET /api/episodes/:id` - Get episode with dialogue
 - `POST /api/episodes` - Create new episode
@@ -212,14 +221,17 @@ For Chinese:
 - `DELETE /api/episodes/:id` - Delete episode
 
 ### Dialogue
+
 - `POST /api/dialogue/generate` - Start dialogue generation job
 - `GET /api/dialogue/job/:jobId` - Check job status
 
 ### Audio
+
 - `POST /api/audio/generate` - Start audio generation job
 - `GET /api/audio/job/:jobId` - Check job status
 
 ### Images
+
 - `POST /api/images/generate` - Start image generation job
 - `GET /api/images/job/:jobId` - Check job status
 
@@ -291,6 +303,7 @@ export async function processLanguageText(
 ### Future Languages
 
 To add a new language:
+
 1. Create processor function (e.g., `processSpanish`)
 2. Define metadata interface (e.g., `SpanishMetadata`)
 3. Add to `LanguageMetadata` type
@@ -299,17 +312,20 @@ To add a new language:
 ## Google Cloud Services
 
 ### Gemini API
+
 - Model: `gemini-2.0-flash-exp` (default)
 - Use: Dialogue generation, image prompt creation
 - Cost: ~$0.05-0.30 per 1K tokens
 
 ### Cloud Text-to-Speech
+
 - Voices: Neural2 (highest quality)
 - Japanese: `ja-JP-Neural2-B` (female), `ja-JP-Neural2-C` (male)
 - Cost: $16 per 1M characters
 - Features: SSML support, speed control, pauses
 
 ### Cloud Storage
+
 - Bucket: Public read access
 - Structure:
   - `/audio/{episodeId}-{type}.mp3`
@@ -319,16 +335,19 @@ To add a new language:
 ## Security Considerations
 
 ### Authentication
+
 - JWT tokens in HTTP-only cookies
 - bcrypt password hashing (10 rounds)
 - 7-day token expiration
 
 ### API Protection
+
 - CORS enabled for frontend domain only
 - Rate limiting (TODO: implement)
 - Request size limits (10MB)
 
 ### Data Privacy
+
 - User episodes isolated by userId
 - No public episode access
 - Secure cookie settings in production
@@ -336,16 +355,19 @@ To add a new language:
 ## Performance Optimization
 
 ### Frontend
+
 - Code splitting by route
 - React Query for API caching
 - Lazy loading of heavy components (WaveSurfer, Flowline)
 
 ### Backend
+
 - Database connection pooling (Prisma)
 - Job queue for async operations
 - Efficient database queries with includes
 
 ### Caching Strategy (Future)
+
 - Redis cache for frequently accessed episodes
 - CDN for static assets
 - Browser caching for audio/images
@@ -353,11 +375,13 @@ To add a new language:
 ## Monitoring & Logging
 
 ### Development
+
 - Request logging middleware
 - Prisma query logging
 - Console error tracking
 
 ### Production (TODO)
+
 - Google Cloud Logging
 - Error tracking (Sentry)
 - Performance monitoring
@@ -366,17 +390,20 @@ To add a new language:
 ## Deployment Architecture
 
 ### Google Cloud Run
+
 - Serverless containers
 - Auto-scaling (0-100 instances)
 - Pay-per-use pricing
 - Built-in load balancing
 
 ### Cloud SQL (PostgreSQL)
+
 - Managed database
 - Automatic backups
 - High availability option
 
 ### Memorystore (Redis)
+
 - Managed Redis
 - Automatic failover
 - VPC peering with Cloud Run

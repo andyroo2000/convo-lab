@@ -18,13 +18,13 @@
  *   npm run harness:monitoring -- --logging-only       # Only review logging
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 
 interface MonitoringHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  loggingOnly?: boolean;  // Only focus on logging infrastructure
+  loggingOnly?: boolean; // Only focus on logging infrastructure
 }
 
 const DEFAULT_MAX_TURNS = 200;
@@ -34,7 +34,7 @@ async function runMonitoringHarness(options: MonitoringHarnessOptions = {}) {
     dryRun = false,
     maxTurns = DEFAULT_MAX_TURNS,
     verbose = true,
-    loggingOnly = false
+    loggingOnly = false,
   } = options;
 
   console.log('📊 ConvoLab Monitoring & Observability Harness');
@@ -45,7 +45,9 @@ async function runMonitoringHarness(options: MonitoringHarnessOptions = {}) {
   }
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
-  console.log(`🎯 Mode: ${loggingOnly ? 'Logging infrastructure only' : 'Full monitoring setup'}\n`);
+  console.log(
+    `🎯 Mode: ${loggingOnly ? 'Logging infrastructure only' : 'Full monitoring setup'}\n`
+  );
 
   console.log('Starting monitoring audit...\n');
 
@@ -54,7 +56,9 @@ You are running an autonomous monitoring and observability harness for ConvoLab.
 
 ## Your Mission
 
-${loggingOnly ? `
+${
+  loggingOnly
+    ? `
 ### Logging Infrastructure Only
 
 1. Review current logging setup
@@ -64,7 +68,8 @@ ${loggingOnly ? `
 5. Add missing logging where needed
 6. Set up log rotation if needed
 7. Commit with /commit
-` : `
+`
+    : `
 ## Complete Monitoring & Observability Workflow
 
 ### PHASE 1: Logging Infrastructure
@@ -242,21 +247,26 @@ ${loggingOnly ? `
    - Escalation procedures
 
 ### PHASE 9: Report & Implement
-${dryRun ? `
+${
+  dryRun
+    ? `
 - List current monitoring state
 - Identify monitoring gaps
 - Recommend monitoring tools
 - Provide implementation plan
 - No changes made
-` : `
+`
+    : `
 - Implement critical monitoring features
 - Set up logging if missing
 - Add error tracking
 - Configure health checks
 - Update CHANGELOG.md with monitoring improvements
 - Use /commit with detailed monitoring update message
-`}
-`}
+`
+}
+`
+}
 
 ## Monitoring Best Practices
 
@@ -317,20 +327,24 @@ ${dryRun ? `
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze current monitoring
 - List monitoring gaps
 - Recommend tools and approaches
 - Provide implementation priorities
-` : `
+`
+    : `
 - Start with logging infrastructure
 - Add error tracking next
 - Implement health checks
 - Set up basic metrics
 - Document everything
 - Use /commit once at the end with monitoring setup
-`}
+`
+}
 
 - Prioritize actionable monitoring
 - Avoid alert fatigue
@@ -358,14 +372,14 @@ Begin your monitoring audit now.
           : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
         systemPrompt: `You are a monitoring and observability expert for ConvoLab.
 Focus on actionable monitoring. Avoid alert fatigue.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitoring and use /commit when done.'}`
-      }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitoring and use /commit when done.'}`,
+      },
     })) {
       messageCount++;
 
       // Show progress
       const now = Date.now();
-      if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
         const progress = ((messageCount / maxTurns) * 100).toFixed(1);
         console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
         lastProgressUpdate = now;
@@ -406,12 +420,13 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitor
     console.log('═══════════════════════════════════════════\n');
     console.log(`📊 Total messages: ${messageCount}`);
     console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
+    console.log(
+      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+    );
 
     if (dryRun) {
       console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
     }
-
   } catch (error) {
     console.error('\n❌ Monitoring setup failed with error:');
     console.error(error);
@@ -423,7 +438,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitor
 const args = process.argv.slice(2);
 
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -436,11 +451,11 @@ const options: MonitoringHarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
   loggingOnly: args.includes('--logging-only'),
-  maxTurns: customMaxTurns
+  maxTurns: customMaxTurns,
 };
 
 // Run the harness
-runMonitoringHarness(options).catch(error => {
+runMonitoringHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

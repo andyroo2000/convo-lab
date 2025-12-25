@@ -101,7 +101,7 @@ describe('Logo', () => {
     it('should render icons as decorative (no role)', () => {
       const { container } = render(<Logo />);
       const svgs = container.querySelectorAll('svg');
-      svgs.forEach(svg => {
+      svgs.forEach((svg) => {
         // Lucide icons don't have explicit roles by default, which is correct
         // for decorative icons alongside text
         expect(svg.tagName).toBe('svg');

@@ -78,9 +78,7 @@ describe('UpgradePrompt', () => {
     it('should show upgrade message for free users', () => {
       renderWithRouter();
 
-      expect(
-        screen.getByText(/You've reached your weekly generation limit/i)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/You've reached your weekly generation limit/i)).toBeInTheDocument();
       expect(screen.getAllByText(/Upgrade to Pro/i).length).toBeGreaterThan(0);
     });
 

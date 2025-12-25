@@ -9,6 +9,7 @@ Python FastAPI service that generates furigana readings for Japanese text.
 ```
 
 This will:
+
 1. Create a Python virtual environment
 2. Install dependencies (fugashi, FastAPI, uvicorn)
 3. Start the service on http://localhost:8000
@@ -20,6 +21,7 @@ This will:
 Generate furigana for Japanese text.
 
 **Request:**
+
 ```json
 {
   "text": "今日は良い天気です"
@@ -27,6 +29,7 @@ Generate furigana for Japanese text.
 ```
 
 **Response:**
+
 ```json
 {
   "kanji": "今日は良い天気です",

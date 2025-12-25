@@ -62,7 +62,8 @@ describe('ChunkPackExercisesPage', () => {
     });
   });
 
-  const renderPage = (packId = 'pack-123') => render(
+  const renderPage = (packId = 'pack-123') =>
+    render(
       <MemoryRouter initialEntries={[`/app/chunk-packs/${packId}/exercises`]}>
         <Routes>
           <Route path="/app/chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
@@ -214,11 +215,11 @@ describe('ChunkPackExercisesPage', () => {
 
       fireEvent.click(screen.getByText('Exercise'));
 
-      const allButtons = ['Exercise', 'TV', 'Coffee', 'Sleep'].map(text =>
+      const allButtons = ['Exercise', 'TV', 'Coffee', 'Sleep'].map((text) =>
         screen.getByText(text).closest('button')
       );
 
-      allButtons.forEach(button => {
+      allButtons.forEach((button) => {
         expect(button).toBeDisabled();
       });
     });
@@ -496,10 +497,7 @@ describe('ChunkPackExercisesPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(consoleError).toHaveBeenCalledWith(
-          'Failed to load exercises:',
-          expect.any(Error)
-        );
+        expect(consoleError).toHaveBeenCalledWith('Failed to load exercises:', expect.any(Error));
       });
 
       consoleError.mockRestore();

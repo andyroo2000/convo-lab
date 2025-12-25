@@ -490,7 +490,11 @@ router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, 
     const { filename } = req.params;
 
     // Validate filename format (language-gender-tone.jpg)
-    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+    if (
+      !/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
+        filename
+      )
+    ) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
@@ -502,38 +506,51 @@ router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, 
 });
 
 // Upload new speaker avatar
-router.post('/avatars/speaker/:filename/upload', upload.single('image'), async (req: AuthRequest, res, next) => {
-  try {
-    const { filename } = req.params;
+router.post(
+  '/avatars/speaker/:filename/upload',
+  upload.single('image'),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { filename } = req.params;
 
-    // Validate filename format
-    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
-      throw new AppError('Invalid avatar filename format', 400);
+      // Validate filename format
+      if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
+        throw new AppError('Invalid avatar filename format', 400);
+      }
+
+      if (!req.file) {
+        throw new AppError('No image file provided', 400);
+      }
+
+      // Parse crop area from request body
+      const cropArea = JSON.parse(req.body.cropArea);
+      if (
+        !cropArea ||
+        typeof cropArea.x !== 'number' ||
+        typeof cropArea.y !== 'number' ||
+        typeof cropArea.width !== 'number' ||
+        typeof cropArea.height !== 'number'
+      ) {
+        throw new AppError('Invalid crop area', 400);
+      }
+
+      const { croppedUrl, originalUrl } = await uploadSpeakerAvatar(
+        filename,
+        req.file.buffer,
+        cropArea
+      );
+
+      res.json({
+        message: 'Speaker avatar uploaded successfully',
+        filename,
+        croppedUrl,
+        originalUrl,
+      });
+    } catch (error) {
+      next(error);
     }
-
-    if (!req.file) {
-      throw new AppError('No image file provided', 400);
-    }
-
-    // Parse crop area from request body
-    const cropArea = JSON.parse(req.body.cropArea);
-    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
-        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
-      throw new AppError('Invalid crop area', 400);
-    }
-
-    const { croppedUrl, originalUrl } = await uploadSpeakerAvatar(filename, req.file.buffer, cropArea);
-
-    res.json({
-      message: 'Speaker avatar uploaded successfully',
-      filename,
-      croppedUrl,
-      originalUrl,
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Re-crop existing speaker avatar
 router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, next) => {
@@ -541,14 +558,23 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
     const { filename } = req.params;
 
     // Validate filename format
-    if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
+    if (
+      !/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
+        filename
+      )
+    ) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
     // Parse crop area from request body
     const { cropArea } = req.body;
-    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
-        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
+    if (
+      !cropArea ||
+      typeof cropArea.x !== 'number' ||
+      typeof cropArea.y !== 'number' ||
+      typeof cropArea.width !== 'number' ||
+      typeof cropArea.height !== 'number'
+    ) {
       throw new AppError('Invalid crop area', 400);
     }
 
@@ -578,38 +604,47 @@ router.get('/avatars/speakers', async (req: AuthRequest, res, next) => {
 });
 
 // Upload user avatar
-router.post('/avatars/user/:userId/upload', upload.single('image'), async (req: AuthRequest, res, next) => {
-  try {
-    const { userId } = req.params;
+router.post(
+  '/avatars/user/:userId/upload',
+  upload.single('image'),
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { userId } = req.params;
 
-    // Verify user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
+      // Verify user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      });
 
-    if (!user) {
-      throw new AppError('User not found', 404);
+      if (!user) {
+        throw new AppError('User not found', 404);
+      }
+
+      if (!req.file) {
+        throw new AppError('No image file provided', 400);
+      }
+
+      // Parse crop area from request body
+      const cropArea = JSON.parse(req.body.cropArea);
+      if (
+        !cropArea ||
+        typeof cropArea.x !== 'number' ||
+        typeof cropArea.y !== 'number' ||
+        typeof cropArea.width !== 'number' ||
+        typeof cropArea.height !== 'number'
+      ) {
+        throw new AppError('Invalid crop area', 400);
+      }
+
+      const avatarUrl = await uploadUserAvatar(userId, req.file.buffer, cropArea);
+
+      res.json({ message: 'User avatar uploaded successfully', avatarUrl });
+    } catch (error) {
+      next(error);
     }
-
-    if (!req.file) {
-      throw new AppError('No image file provided', 400);
-    }
-
-    // Parse crop area from request body
-    const cropArea = JSON.parse(req.body.cropArea);
-    if (!cropArea || typeof cropArea.x !== 'number' || typeof cropArea.y !== 'number' ||
-        typeof cropArea.width !== 'number' || typeof cropArea.height !== 'number') {
-      throw new AppError('Invalid crop area', 400);
-    }
-
-    const avatarUrl = await uploadUserAvatar(userId, req.file.buffer, cropArea);
-
-    res.json({ message: 'User avatar uploaded successfully', avatarUrl });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // ============================================
 // Feature Flag Routes

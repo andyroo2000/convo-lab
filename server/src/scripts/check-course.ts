@@ -7,8 +7,8 @@ async function main() {
     where: { id: courseId },
     include: {
       coreItems: true,
-      courseEpisodes: true
-    }
+      courseEpisodes: true,
+    },
   });
 
   console.log('\n=== Course Data ===');
@@ -17,7 +17,10 @@ async function main() {
   console.log('Status:', course?.status);
   console.log('Audio URL:', course?.audioUrl || 'NULL');
   console.log('Duration (seconds):', course?.approxDurationSeconds || 'NULL');
-  console.log('Script JSON:', course?.scriptJson ? `exists (${JSON.stringify(course.scriptJson).length} chars)` : 'NULL');
+  console.log(
+    'Script JSON:',
+    course?.scriptJson ? `exists (${JSON.stringify(course.scriptJson).length} chars)` : 'NULL'
+  );
   console.log('Core Items:', course?.coreItems?.length || 0);
   console.log('Episodes:', course?.courseEpisodes?.length || 0);
 
@@ -25,7 +28,9 @@ async function main() {
     console.log('\nCourse NOT FOUND in database!');
   } else if (!course.audioUrl && !course.scriptJson) {
     console.log('\nCourse exists but has NO LESSON DATA (audioUrl and scriptJson are null)');
-    console.log('This means the migration did not copy lesson data, or this course was created after lessons were removed.');
+    console.log(
+      'This means the migration did not copy lesson data, or this course was created after lessons were removed.'
+    );
   }
 
   await prisma.$disconnect();

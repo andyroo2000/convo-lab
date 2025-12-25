@@ -29,7 +29,7 @@ export function useQuota() {
       setLoading(true);
       setError(null);
       const res = await fetch(`${API_URL}/api/auth/me/quota`, {
-        credentials: 'include'
+        credentials: 'include',
       });
 
       if (!res.ok) {

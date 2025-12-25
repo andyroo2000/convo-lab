@@ -21,9 +21,7 @@ export default function NotFoundPage() {
           <div className="mb-6">
             <h1 className="text-9xl font-bold text-indigo mb-4">404</h1>
             <h2 className="text-3xl font-bold text-navy mb-3">{t('notFound:title')}</h2>
-            <p className="text-gray-600 text-lg">
-              {t('notFound:description')}
-            </p>
+            <p className="text-gray-600 text-lg">{t('notFound:description')}</p>
           </div>
 
           {/* Decorative Icon */}
@@ -40,7 +38,9 @@ export default function NotFoundPage() {
 
           {/* Helpful Suggestions */}
           <div className="bg-gray-50 rounded-lg p-6 mb-8 text-left">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('notFound:suggestions.title')}</h3>
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+              {t('notFound:suggestions.title')}
+            </h3>
             <ul className="space-y-2 text-sm text-gray-600">
               <li className="flex items-start gap-2">
                 <span className="text-indigo mt-0.5">•</span>

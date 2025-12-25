@@ -37,7 +37,7 @@ test.describe('Error Handling', () => {
 
       // Should show WifiOff icon
       const errorDisplay = page.locator('[data-testid="error-display"]');
-      const iconExists = await errorDisplay.locator('svg').count() > 0;
+      const iconExists = (await errorDisplay.locator('svg').count()) > 0;
       expect(iconExists).toBe(true);
     });
 
@@ -93,7 +93,7 @@ test.describe('Error Handling', () => {
       if (!currentUrl.includes('/login')) {
         // If not redirected, should show auth error with Lock icon
         const errorDisplay = page.locator('[data-testid="error-display"]');
-        const hasLockIcon = await errorDisplay.locator('[data-icon="lock"]').count() > 0;
+        const hasLockIcon = (await errorDisplay.locator('[data-icon="lock"]').count()) > 0;
         expect(hasLockIcon).toBe(true);
       }
     });
@@ -204,7 +204,7 @@ test.describe('Error Handling', () => {
 
       // Should show AlertTriangle icon
       const errorBoundary = page.locator('[data-testid="error-boundary"]');
-      const hasAlertIcon = await errorBoundary.locator('[data-icon="alert"]').count() > 0;
+      const hasAlertIcon = (await errorBoundary.locator('[data-icon="alert"]').count()) > 0;
       expect(hasAlertIcon).toBe(true);
     });
 
@@ -266,7 +266,7 @@ test.describe('Error Handling', () => {
       await page.goto('/app/library');
 
       let errorDisplay = page.locator('[data-testid="error-display"]').first();
-      let hasWifiIcon = await errorDisplay.locator('[data-icon="wifi"]').count() > 0;
+      let hasWifiIcon = (await errorDisplay.locator('[data-icon="wifi"]').count()) > 0;
       expect(hasWifiIcon).toBe(true);
 
       // Auth error - Lock icon
@@ -277,7 +277,7 @@ test.describe('Error Handling', () => {
 
       if (!page.url().includes('/login')) {
         errorDisplay = page.locator('[data-testid="error-display"]').first();
-        const hasLockIcon = await errorDisplay.locator('[data-icon="lock"]').count() > 0;
+        const hasLockIcon = (await errorDisplay.locator('[data-icon="lock"]').count()) > 0;
         expect(hasLockIcon).toBe(true);
       }
     });
@@ -289,7 +289,9 @@ test.describe('Error Handling', () => {
       await page.goto('/app/library');
 
       const errorMessage = page.locator('[data-testid="error-message"]').first();
-      const fontFamily = await errorMessage.evaluate(el => window.getComputedStyle(el).fontFamily);
+      const fontFamily = await errorMessage.evaluate(
+        (el) => window.getComputedStyle(el).fontFamily
+      );
 
       expect(fontFamily).toContain('mono');
     });

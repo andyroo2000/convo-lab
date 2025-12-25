@@ -36,15 +36,15 @@ export async function generateLessonScript(
   let currentTime = 0;
 
   // Find sections by type for batching
-  const introSection = lessonPlan.sections.find(s => s.type === 'intro');
-  const coreIntroSection = lessonPlan.sections.find(s => s.type === 'core_intro');
-  const earlySRSSection = lessonPlan.sections.find(s => s.type === 'early_srs');
-  const phraseSection = lessonPlan.sections.find(s => s.type === 'phrase_construction');
-  const dialogueSection = lessonPlan.sections.find(s => s.type === 'dialogue_integration');
-  const qaSection = lessonPlan.sections.find(s => s.type === 'qa');
-  const roleplaySection = lessonPlan.sections.find(s => s.type === 'roleplay');
-  const lateSRSSection = lessonPlan.sections.find(s => s.type === 'late_srs');
-  const outroSection = lessonPlan.sections.find(s => s.type === 'outro');
+  const introSection = lessonPlan.sections.find((s) => s.type === 'intro');
+  const coreIntroSection = lessonPlan.sections.find((s) => s.type === 'core_intro');
+  const earlySRSSection = lessonPlan.sections.find((s) => s.type === 'early_srs');
+  const phraseSection = lessonPlan.sections.find((s) => s.type === 'phrase_construction');
+  const dialogueSection = lessonPlan.sections.find((s) => s.type === 'dialogue_integration');
+  const qaSection = lessonPlan.sections.find((s) => s.type === 'qa');
+  const roleplaySection = lessonPlan.sections.find((s) => s.type === 'roleplay');
+  const lateSRSSection = lessonPlan.sections.find((s) => s.type === 'late_srs');
+  const outroSection = lessonPlan.sections.find((s) => s.type === 'outro');
 
   console.log('🚀 Generating lesson script with batched AI calls...');
 
@@ -64,12 +64,7 @@ export async function generateLessonScript(
   let batch2Results: Awaited<ReturnType<typeof generateBatch2Script>> | null = null;
   if (phraseSection && dialogueSection && qaSection) {
     console.log('  📦 Batch 2: Phrase Construction + Dialogue + Q&A');
-    batch2Results = await generateBatch2Script(
-      phraseSection,
-      dialogueSection,
-      qaSection,
-      context
-    );
+    batch2Results = await generateBatch2Script(phraseSection, dialogueSection, qaSection, context);
   }
 
   // BATCH 3: Roleplay + Late SRS + Outro
@@ -164,7 +159,7 @@ async function generateSectionScriptBatched(
 
     case 'core_intro':
       if (batch1Results && section.coreItems) {
-        const {coreItems} = section;
+        const { coreItems } = section;
         for (let i = 0; i < coreItems.length; i++) {
           const item = coreItems[i];
           const introNarration = batch1Results.coreIntros[i] || 'Listen carefully to this phrase.';
@@ -287,7 +282,11 @@ async function generateSectionScriptBatched(
     case 'phrase_construction':
       if (batch2Results && section.coreItems) {
         units.push(
-          { type: 'narration_L1', text: batch2Results.phraseConstructionIntro, voiceId: context.l1VoiceId },
+          {
+            type: 'narration_L1',
+            text: batch2Results.phraseConstructionIntro,
+            voiceId: context.l1VoiceId,
+          },
           { type: 'pause', seconds: 1.0 }
         );
 
@@ -315,7 +314,11 @@ async function generateSectionScriptBatched(
     case 'dialogue_integration':
       if (batch2Results && section.coreItems) {
         units.push(
-          { type: 'narration_L1', text: batch2Results.dialogueIntegrationIntro, voiceId: context.l1VoiceId },
+          {
+            type: 'narration_L1',
+            text: batch2Results.dialogueIntegrationIntro,
+            voiceId: context.l1VoiceId,
+          },
           { type: 'pause', seconds: 1.0 }
         );
 
@@ -352,7 +355,8 @@ async function generateSectionScriptBatched(
 
         for (let i = 0; i < qaItems.length; i++) {
           const item = qaItems[i];
-          const scenario = batch2Results.qaScenarios[i] || `How would you say "${item.translationL1}"?`;
+          const scenario =
+            batch2Results.qaScenarios[i] || `How would you say "${item.translationL1}"?`;
 
           units.push(
             {
@@ -564,7 +568,7 @@ Write only the JSON, no additional text.`;
     console.error('Failed to parse batch 1 response:', err);
     console.error('Response was:', response);
     // Fallback to simple splits if JSON parsing fails
-    const lines = response.split('\n').filter(l => l.trim());
+    const lines = response.split('\n').filter((l) => l.trim());
     return {
       introNarration: lines[0] || 'Welcome to this lesson.',
       coreIntros: coreItems.map((_, i) => lines[i + 1] || 'Listen carefully to this phrase.'),
@@ -850,7 +854,7 @@ Write only the JSON, no additional text.`;
     return {
       phraseConstructionIntro: "Let's practice building longer phrases.",
       dialogueIntegrationIntro: "Now let's use these phrases in conversation.",
-      qaScenarios: qaItems.map(item => `How would you say "${item.translationL1}"?`),
+      qaScenarios: qaItems.map((item) => `How would you say "${item.translationL1}"?`),
     };
   }
 }
@@ -1061,7 +1065,7 @@ Write only the JSON, no additional text.`;
     return {
       roleplayIntro: "Now let's practice with a role-play conversation.",
       lateSRSIntro: "Let's review everything you've learned in this lesson.",
-      outro: "Congratulations on completing this lesson! Keep practicing.",
+      outro: 'Congratulations on completing this lesson! Keep practicing.',
     };
   }
 }
@@ -1146,7 +1150,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
       case 'L2':
         // Estimate speech duration: ~150 words per minute (2.5 words/sec)
         // For CJK languages, ~3 characters per second
-        const {text} = unit;
+        const { text } = unit;
         const isCJK = /[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]/.test(text);
 
         if (isCJK) {

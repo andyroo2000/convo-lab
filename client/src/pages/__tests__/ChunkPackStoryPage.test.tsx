@@ -61,7 +61,7 @@ describe('ChunkPackStoryPage', () => {
             id: 'seg-2',
             order: 2,
             japaneseText: '山田さん：おはようございます。今日はいい天気ですね。',
-            englishTranslation: 'Yamada: Good morning. Nice weather today, isn\'t it?',
+            englishTranslation: "Yamada: Good morning. Nice weather today, isn't it?",
             startTime: 2000,
             endTime: 5000,
           },
@@ -70,7 +70,8 @@ describe('ChunkPackStoryPage', () => {
     ],
   };
 
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <ChunkPackStoryPage />
       </BrowserRouter>
@@ -85,9 +86,7 @@ describe('ChunkPackStoryPage', () => {
 
   describe('loading state', () => {
     it('should show loading spinner initially', () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-        () => new Promise(() => {})
-      );
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
 
       const { container } = renderPage();
       const loader = container.querySelector('.animate-spin');

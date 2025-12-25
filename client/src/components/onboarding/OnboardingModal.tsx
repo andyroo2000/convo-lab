@@ -7,8 +7,12 @@ export default function OnboardingModal() {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation(['onboarding', 'common']);
   const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>(user?.preferredNativeLanguage || 'en');
-  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(user?.preferredStudyLanguage || 'ja');
+  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>(
+    user?.preferredNativeLanguage || 'en'
+  );
+  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>(
+    user?.preferredStudyLanguage || 'ja'
+  );
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK1');
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
@@ -18,7 +22,7 @@ export default function OnboardingModal() {
   useEffect(() => {
     if (targetLanguage === nativeLanguage) {
       const availableTargets: LanguageCode[] = ['en', 'ja', 'zh', 'es', 'fr', 'ar'];
-      const firstAvailable = availableTargets.find(lang => lang !== nativeLanguage);
+      const firstAvailable = availableTargets.find((lang) => lang !== nativeLanguage);
       if (firstAvailable) {
         setTargetLanguage(firstAvailable);
       }
@@ -32,9 +36,7 @@ export default function OnboardingModal() {
     try {
       // Store the language-specific level in the generic proficiencyLevel field
       const proficiencyLevel =
-        targetLanguage === 'ja' ? jlptLevel :
-        targetLanguage === 'zh' ? hskLevel :
-        cefrLevel;
+        targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel;
 
       await updateUser({
         preferredNativeLanguage: nativeLanguage,
@@ -55,16 +57,20 @@ export default function OnboardingModal() {
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-navy mb-2">{t('onboarding:welcome')}</h1>
-          <p className="text-gray-600">
-            {t('onboarding:subtitle')}
-          </p>
+          <p className="text-gray-600">{t('onboarding:subtitle')}</p>
         </div>
 
         {/* Progress Indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          <div className={`h-2 w-24 rounded-full ${step === 1 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
-          <div className={`h-2 w-24 rounded-full ${step === 2 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
-          <div className={`h-2 w-24 rounded-full ${step === 3 ? 'bg-indigo-600' : 'bg-gray-300'}`} />
+          <div
+            className={`h-2 w-24 rounded-full ${step === 1 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+          />
+          <div
+            className={`h-2 w-24 rounded-full ${step === 2 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+          />
+          <div
+            className={`h-2 w-24 rounded-full ${step === 3 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+          />
         </div>
 
         {/* Step 1: Native Language Selection */}
@@ -74,9 +80,7 @@ export default function OnboardingModal() {
               <h2 className="text-2xl font-semibold text-navy mb-2">
                 {t('onboarding:step1.title')}
               </h2>
-              <p className="text-gray-600">
-                {t('onboarding:step1.description')}
-              </p>
+              <p className="text-gray-600">{t('onboarding:step1.description')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -171,10 +175,7 @@ export default function OnboardingModal() {
             </div>
 
             <div className="flex justify-end mt-8">
-              <button
-                onClick={() => setStep(2)}
-                className="btn-primary px-8 py-3"
-              >
+              <button onClick={() => setStep(2)} className="btn-primary px-8 py-3">
                 {t('onboarding:buttons.next')}
               </button>
             </div>
@@ -188,9 +189,7 @@ export default function OnboardingModal() {
               <h2 className="text-2xl font-semibold text-navy mb-2">
                 {t('onboarding:step2.title')}
               </h2>
-              <p className="text-gray-600">
-                {t('onboarding:step2.description')}
-              </p>
+              <p className="text-gray-600">{t('onboarding:step2.description')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -297,16 +296,10 @@ export default function OnboardingModal() {
             </div>
 
             <div className="flex justify-between mt-8">
-              <button
-                onClick={() => setStep(1)}
-                className="btn-outline px-8 py-3"
-              >
+              <button onClick={() => setStep(1)} className="btn-outline px-8 py-3">
                 {t('onboarding:buttons.back')}
               </button>
-              <button
-                onClick={() => setStep(3)}
-                className="btn-primary px-8 py-3"
-              >
+              <button onClick={() => setStep(3)} className="btn-primary px-8 py-3">
                 {t('onboarding:buttons.next')}
               </button>
             </div>
@@ -320,9 +313,7 @@ export default function OnboardingModal() {
               <h2 className="text-2xl font-semibold text-navy mb-2">
                 {t('onboarding:step3.title')}
               </h2>
-              <p className="text-gray-600">
-                {t('onboarding:step3.description')}
-              </p>
+              <p className="text-gray-600">{t('onboarding:step3.description')}</p>
             </div>
 
             {targetLanguage === 'ja' && (
@@ -424,9 +415,7 @@ export default function OnboardingModal() {
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 2 (Upper Beginner)</h3>
-                  <p className="text-sm text-gray-600">
-                    Can communicate in simple routine tasks
-                  </p>
+                  <p className="text-sm text-gray-600">Can communicate in simple routine tasks</p>
                 </button>
 
                 <button
@@ -438,9 +427,7 @@ export default function OnboardingModal() {
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 3 (Intermediate)</h3>
-                  <p className="text-sm text-gray-600">
-                    Can handle most everyday situations
-                  </p>
+                  <p className="text-sm text-gray-600">Can handle most everyday situations</p>
                 </button>
 
                 <button
@@ -487,7 +474,10 @@ export default function OnboardingModal() {
               </div>
             )}
 
-            {(targetLanguage === 'en' || targetLanguage === 'es' || targetLanguage === 'fr' || targetLanguage === 'ar') && (
+            {(targetLanguage === 'en' ||
+              targetLanguage === 'es' ||
+              targetLanguage === 'fr' ||
+              targetLanguage === 'ar') && (
               <div className="space-y-3">
                 <button
                   onClick={() => setCefrLevel('A1')}
@@ -512,9 +502,7 @@ export default function OnboardingModal() {
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">A2 (Elementary)</h3>
-                  <p className="text-sm text-gray-600">
-                    Can communicate in simple routine tasks
-                  </p>
+                  <p className="text-sm text-gray-600">Can communicate in simple routine tasks</p>
                 </button>
 
                 <button
@@ -540,9 +528,7 @@ export default function OnboardingModal() {
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">B2 (Upper Intermediate)</h3>
-                  <p className="text-sm text-gray-600">
-                    Can interact with fluency and spontaneity
-                  </p>
+                  <p className="text-sm text-gray-600">Can interact with fluency and spontaneity</p>
                 </button>
 
                 <button
@@ -554,9 +540,7 @@ export default function OnboardingModal() {
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">C1 (Advanced)</h3>
-                  <p className="text-sm text-gray-600">
-                    Can use language flexibly and effectively
-                  </p>
+                  <p className="text-sm text-gray-600">Can use language flexibly and effectively</p>
                 </button>
 
                 <button

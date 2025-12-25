@@ -139,7 +139,9 @@ export default function CoursePage() {
           {course.coreItems && course.coreItems.length > 0 && (
             <div className="flex items-center gap-2">
               <BookOpen className="w-4 h-4" />
-              <span>{course.coreItems.length} Core {course.coreItems.length === 1 ? 'Item' : 'Items'}</span>
+              <span>
+                {course.coreItems.length} Core {course.coreItems.length === 1 ? 'Item' : 'Items'}
+              </span>
             </div>
           )}
           <div className="ml-auto">
@@ -156,11 +158,7 @@ export default function CoursePage() {
           <>
             <h2 className="text-2xl font-bold text-navy mb-4">Course Audio</h2>
 
-            <AudioPlayer
-              src={course.audioUrl}
-              audioRef={audioRef}
-              key={course.audioUrl}
-            />
+            <AudioPlayer src={course.audioUrl} audioRef={audioRef} key={course.audioUrl} />
 
             {/* Core Vocabulary */}
             {course.coreItems && course.coreItems.length > 0 && (
@@ -170,21 +168,12 @@ export default function CoursePage() {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {course.coreItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                    >
-                      <div className="text-lg font-medium text-navy">
-                        {item.textL2}
-                      </div>
+                    <div key={item.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="text-lg font-medium text-navy">{item.textL2}</div>
                       {item.readingL2 && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          {item.readingL2}
-                        </div>
+                        <div className="text-sm text-gray-500 mt-1">{item.readingL2}</div>
                       )}
-                      <div className="text-sm text-gray-600 mt-2">
-                        {item.translationL1}
-                      </div>
+                      <div className="text-sm text-gray-600 mt-2">{item.translationL1}</div>
                     </div>
                   ))}
                 </div>
@@ -192,18 +181,18 @@ export default function CoursePage() {
             )}
 
             {/* Original Prompt */}
-            {course.courseEpisodes && course.courseEpisodes.length > 0 && course.courseEpisodes[0].episode?.sourceText && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-navy mb-3">
-                  Original Prompt
-                </h3>
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {course.courseEpisodes[0].episode.sourceText}
-                  </p>
+            {course.courseEpisodes &&
+              course.courseEpisodes.length > 0 &&
+              course.courseEpisodes[0].episode?.sourceText && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-navy mb-3">Original Prompt</h3>
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {course.courseEpisodes[0].episode.sourceText}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </>
         ) : course.status === 'generating' ? (
           <div className="text-center py-12">
@@ -225,12 +214,12 @@ export default function CoursePage() {
                   {generationProgress < 20
                     ? 'Extracting dialogue...'
                     : generationProgress < 40
-                    ? 'Planning course structure...'
-                    : generationProgress < 60
-                    ? 'Generating teaching script...'
-                    : generationProgress < 85
-                    ? `Synthesizing audio (${generationProgress - 60}% complete)...`
-                    : 'Finalizing audio file...'}
+                      ? 'Planning course structure...'
+                      : generationProgress < 60
+                        ? 'Generating teaching script...'
+                        : generationProgress < 85
+                          ? `Synthesizing audio (${generationProgress - 60}% complete)...`
+                          : 'Finalizing audio file...'}
                 </p>
               </div>
             )}

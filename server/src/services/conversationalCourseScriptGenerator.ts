@@ -111,7 +111,9 @@ Write only the scenario setup, no additional formatting:`;
   );
   totalSeconds += 10;
 
-  console.log(`✅ Generated conversational script with ${units.length} units, ~${Math.round(totalSeconds / 60)} minutes`);
+  console.log(
+    `✅ Generated conversational script with ${units.length} units, ~${Math.round(totalSeconds / 60)} minutes`
+  );
 
   return {
     units,
@@ -368,14 +370,15 @@ async function generateResponseTeachingUnits(
     // STEP 2: Progressive phrase building (NEW!)
     // Generate intermediate phrase chunks using AI - BUT ONLY if we taught vocabulary
     // If we filtered out all vocab, skip progressive building (full phrase was likely taught earlier)
-    const progressiveChunks = vocabToTeach.length > 0
-      ? await generateProgressivePhraseChunks(
-          exchange.textL2,
-          exchange.translationL1,
-          vocabToTeach, // Use only the vocab we ACTUALLY taught
-          context.targetLanguage
-        )
-      : [];
+    const progressiveChunks =
+      vocabToTeach.length > 0
+        ? await generateProgressivePhraseChunks(
+            exchange.textL2,
+            exchange.translationL1,
+            vocabToTeach, // Use only the vocab we ACTUALLY taught
+            context.targetLanguage
+          )
+        : [];
 
     // Teach each progressive chunk
     for (const chunk of progressiveChunks) {
@@ -502,7 +505,10 @@ function normalizeNarratorText(text: string): string {
 
   // Add commas around " or " when it appears in quoted text for natural pauses
   // Example: "In or at" becomes "In, or at,"
-  normalized = normalized.replace(/"([^"]+)\s+or\s+([^"]+)"/g, (match, before, after) => `"${before.trim()}, or ${after.trim()},"`);
+  normalized = normalized.replace(
+    /"([^"]+)\s+or\s+([^"]+)"/g,
+    (match, before, after) => `"${before.trim()}, or ${after.trim()},"`
+  );
 
   // Add comma before " is:" at the end of phrases for natural pause
   // Example: "In, or at," is: (creates rhythm: "In, or at, <pause> is:")
@@ -529,7 +535,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
       // Other languages: ~3 words per second
       const charCount = unit.text.length;
       const speed = unit.speed || 1.0;
-      duration += (charCount / 5 * 1.5) / speed + 0.5;
+      duration += ((charCount / 5) * 1.5) / speed + 0.5;
     }
   }
 

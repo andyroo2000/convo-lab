@@ -16,6 +16,7 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 ## Tech Stack
 
 ### Frontend
+
 - React 18 + TypeScript
 - Vite
 - TailwindCSS
@@ -23,6 +24,7 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 - WaveSurfer.js
 
 ### Backend
+
 - Node.js + Express + TypeScript
 - PostgreSQL + Prisma
 - BullMQ (job queue)
@@ -32,6 +34,7 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
   - Cloud Storage
 
 ### Hosting
+
 - Google Cloud Run
 - Google Cloud SQL (PostgreSQL)
 
@@ -48,6 +51,7 @@ convo-lab/
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js 20+
 - PostgreSQL 15+
 - Google Cloud account with:
@@ -59,6 +63,7 @@ convo-lab/
 
 1. Clone the repository
 2. Install dependencies:
+
    ```bash
    npm install
    ```
@@ -66,6 +71,7 @@ convo-lab/
 3. Set up environment variables (see `.env.example` in server/)
 
 4. Run database migrations:
+
    ```bash
    npm run db:migrate --workspace=server
    ```
@@ -85,11 +91,13 @@ convo-lab/
 To test subscription flows in local development:
 
 1. **Start the Stripe webhook listener** (in a separate terminal):
+
    ```bash
    stripe listen --forward-to localhost:3001/api/webhooks/stripe
    ```
 
    This will output a webhook signing secret like `whsec_...` - copy this to your `.env`:
+
    ```bash
    STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
    ```
@@ -122,6 +130,7 @@ To test subscription flows in local development:
 ## Language Support
 
 Currently supports Japanese with extensible architecture for:
+
 - Chinese (Mandarin)
 - Romance languages
 - Right-to-left languages

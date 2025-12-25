@@ -13,10 +13,7 @@ interface AvatarCropperModalProps {
 /**
  * Creates a cropped image blob from the original image and crop area
  */
-async function getCroppedImage(
-  imageSrc: string,
-  cropArea: Area
-): Promise<Blob> {
+async function getCroppedImage(imageSrc: string, cropArea: Area): Promise<Blob> {
   const image = new Image();
   image.src = imageSrc;
 
@@ -36,17 +33,7 @@ async function getCroppedImage(
   canvas.height = 256;
 
   // Draw the cropped area scaled down to 256x256
-  ctx.drawImage(
-    image,
-    cropArea.x,
-    cropArea.y,
-    cropArea.width,
-    cropArea.height,
-    0,
-    0,
-    256,
-    256
-  );
+  ctx.drawImage(image, cropArea.x, cropArea.y, cropArea.width, cropArea.height, 0, 0, 256, 256);
 
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -100,7 +87,9 @@ export default function AvatarCropperModal({
         setBlobUrl(url);
       } catch (error) {
         console.error('Failed to load image:', error);
-        alert(`Failed to load image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        alert(
+          `Failed to load image. Please try again. Error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     };
 
@@ -174,9 +163,7 @@ export default function AvatarCropperModal({
 
         {/* Zoom Slider */}
         <div className="px-6 py-4 border-b">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Zoom
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Zoom</label>
           <input
             type="range"
             min={1}

@@ -23,14 +23,7 @@ export class GoogleTTSProvider implements TTSProvider {
   }
 
   async synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
-    const {
-      text,
-      voiceId,
-      languageCode,
-      speed = 1.0,
-      pitch = 0,
-      ssml = false,
-    } = options;
+    const { text, voiceId, languageCode, speed = 1.0, pitch = 0, ssml = false } = options;
 
     // Extract language code from voice ID if not provided
     const lang = languageCode || this.extractLanguageCode(voiceId);
@@ -42,9 +35,7 @@ export class GoogleTTSProvider implements TTSProvider {
 
     try {
       const request = {
-        input: (ssml
-          ? { ssml: text }
-          : { text }) as ISynthesisInput,
+        input: (ssml ? { ssml: text } : { text }) as ISynthesisInput,
         voice: {
           languageCode: lang,
           name: voiceId,

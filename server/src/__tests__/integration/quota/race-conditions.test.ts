@@ -3,7 +3,7 @@ import {
   checkGenerationLimit,
   logGeneration,
   checkCooldown,
-  setCooldown
+  setCooldown,
 } from '../../../services/usageTracker.js';
 import { mockPrisma } from '../../setup.js';
 import { getWeekStart, getNextWeekStart } from '../../../utils/dateUtils.js';
@@ -12,11 +12,11 @@ import { getWeekStart, getNextWeekStart } from '../../../utils/dateUtils.js';
 const mockRedis = {
   ttl: vi.fn(),
   setex: vi.fn(),
-  disconnect: vi.fn()
+  disconnect: vi.fn(),
 };
 
 vi.mock('../../../config/redis.js', () => ({
-  createRedisConnection: () => mockRedis
+  createRedisConnection: () => mockRedis,
 }));
 
 describe('Quota System Race Conditions - Integration Tests', () => {
@@ -33,7 +33,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(3); // 3 of 5
@@ -45,7 +45,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         used: 3,
         limit: 5,
         remaining: 2,
-        resetsAt: expect.any(Date)
+        resetsAt: expect.any(Date),
       });
     });
 
@@ -53,7 +53,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(5); // 5 of 5
@@ -65,7 +65,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         used: 5,
         limit: 5,
         remaining: 0,
-        resetsAt: expect.any(Date)
+        resetsAt: expect.any(Date),
       });
     });
 
@@ -73,7 +73,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'free',
-        role: 'admin'
+        role: 'admin',
       });
 
       const status = await checkGenerationLimit(mockUserId);
@@ -84,7 +84,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         limit: 0,
         remaining: 0,
         resetsAt: expect.any(Date),
-        unlimited: true
+        unlimited: true,
       });
 
       // Should not count generations for admin
@@ -95,7 +95,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       // Test free tier
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
       mockPrisma.generationLog.count.mockResolvedValue(0);
 
@@ -105,7 +105,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       // Test pro tier
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro',
-        role: 'user'
+        role: 'user',
       });
 
       const proStatus = await checkGenerationLimit(mockUserId);
@@ -115,7 +115,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should count generations from current week only', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(2);
@@ -125,8 +125,8 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       expect(mockPrisma.generationLog.count).toHaveBeenCalledWith({
         where: {
           userId: mockUserId,
-          createdAt: { gte: expect.any(Date) }
-        }
+          createdAt: { gte: expect.any(Date) },
+        },
       });
 
       // Verify week start calculation
@@ -144,7 +144,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       // Should use current tier limit, not tier at time of previous generations
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro', // Current tier
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(6); // 6 generations
@@ -156,7 +156,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         used: 6,
         limit: 30, // Uses current tier (pro)
         remaining: 24,
-        resetsAt: expect.any(Date)
+        resetsAt: expect.any(Date),
       });
     });
   });
@@ -168,7 +168,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         userId: mockUserId,
         contentType: 'dialogue',
         contentId: 'content-123',
-        createdAt: new Date()
+        createdAt: new Date(),
       });
 
       await logGeneration(mockUserId, 'dialogue', 'content-123');
@@ -177,8 +177,8 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         data: {
           userId: mockUserId,
           contentType: 'dialogue',
-          contentId: 'content-123'
-        }
+          contentId: 'content-123',
+        },
       });
     });
 
@@ -190,8 +190,8 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       // Log created with contentId reference
       expect(mockPrisma.generationLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          contentId: 'content-123'
-        })
+          contentId: 'content-123',
+        }),
       });
 
       // contentId stored but not enforced as foreign key,
@@ -207,7 +207,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       expect(status).toEqual({
         active: false,
-        remainingSeconds: 0
+        remainingSeconds: 0,
       });
 
       expect(mockRedis.ttl).toHaveBeenCalledWith(`cooldown:generation:${mockUserId}`);
@@ -221,7 +221,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       expect(status).toEqual({
         active: true,
-        remainingSeconds: 15
+        remainingSeconds: 15,
       });
     });
 
@@ -230,11 +230,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       await setCooldown(mockUserId);
 
-      expect(mockRedis.setex).toHaveBeenCalledWith(
-        `cooldown:generation:${mockUserId}`,
-        30,
-        '1'
-      );
+      expect(mockRedis.setex).toHaveBeenCalledWith(`cooldown:generation:${mockUserId}`, 30, '1');
       expect(mockRedis.disconnect).toHaveBeenCalled();
     });
 
@@ -255,7 +251,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       // First check: 4 used, allowed
@@ -269,13 +265,13 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       const checks = await Promise.all([
         checkGenerationLimit(mockUserId),
         checkGenerationLimit(mockUserId),
-        checkGenerationLimit(mockUserId)
+        checkGenerationLimit(mockUserId),
       ]);
 
       // All checks see 4/5, all return allowed (race condition exists)
-      expect(checks.every(c => c.allowed)).toBe(true);
-      expect(checks.every(c => c.used === 4)).toBe(true);
-      expect(checks.every(c => c.remaining === 1)).toBe(true);
+      expect(checks.every((c) => c.allowed)).toBe(true);
+      expect(checks.every((c) => c.used === 4)).toBe(true);
+      expect(checks.every((c) => c.remaining === 1)).toBe(true);
 
       // This demonstrates the race condition:
       // Without transaction isolation, all 3 requests could pass quota check
@@ -291,11 +287,11 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       const checks = await Promise.all([
         checkCooldown(mockUserId),
         checkCooldown(mockUserId),
-        checkCooldown(mockUserId)
+        checkCooldown(mockUserId),
       ]);
 
       // All checks see no cooldown (demonstrates race condition)
-      expect(checks.every(c => !c.active)).toBe(true);
+      expect(checks.every((c) => !c.active)).toBe(true);
     });
 
     it('should verify cooldown set after quota check in middleware flow', async () => {
@@ -310,7 +306,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
       mockPrisma.generationLog.count.mockResolvedValue(2); // 2/5
 
@@ -338,7 +334,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
       mockPrisma.generationLog.count.mockResolvedValue(3);
 
@@ -363,7 +359,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should reset quota count on new week', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       // User had 5 generations last week, 0 this week
@@ -381,7 +377,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should enforce free tier limit (5/week)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(5);
@@ -396,7 +392,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should enforce pro tier limit (30/week)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(30);
@@ -411,7 +407,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should default to free tier for unknown tiers', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'unknown-tier',
-        role: 'user'
+        role: 'user',
       });
 
       mockPrisma.generationLog.count.mockResolvedValue(0);

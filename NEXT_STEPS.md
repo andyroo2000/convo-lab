@@ -3,6 +3,7 @@
 ## Current Status
 
 ### ✅ Completed
+
 - [x] Test user feature fully implemented in code
 - [x] Database migration applied (isTestUser field added)
 - [x] Admin panel UI for toggling test users
@@ -12,6 +13,7 @@
 - [x] Tested locally with test user in development
 
 ### 🔄 In Progress
+
 You are about to set up Stripe products in **Live Mode** for production.
 
 ### ⏳ Todo
@@ -21,6 +23,7 @@ You are about to set up Stripe products in **Live Mode** for production.
 **IMPORTANT:** Do this in Stripe Dashboard **LIVE MODE** (toggle in top-right corner)
 
 ##### A. Create Test Product ($0.01/month)
+
 1. Go to https://dashboard.stripe.com/products (ensure "Live" mode)
 2. Click **+ Add product**
 3. Fill in:
@@ -34,6 +37,7 @@ You are about to set up Stripe products in **Live Mode** for production.
    - You'll need this for: `STRIPE_PRICE_TEST_MONTHLY`
 
 ##### B. Create Production Product ($7/month)
+
 1. Click **+ Add product** again
 2. Fill in:
    - **Name**: `ConvoLab Pro`
@@ -62,6 +66,7 @@ You are about to set up Stripe products in **Live Mode** for production.
 #### 3. Update Production Environment Variables
 
 ##### Backend (Cloud Run)
+
 Set these environment variables in your Cloud Run service:
 
 ```bash
@@ -73,6 +78,7 @@ STRIPE_PRICE_TEST_MONTHLY=price_live_xxx  # From step 1A above
 ```
 
 ##### Frontend (Build Environment)
+
 Update your frontend build environment:
 
 ```bash

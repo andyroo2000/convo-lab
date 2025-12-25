@@ -17,10 +17,7 @@ async function checkMetadataStatus() {
     // Sentences with empty metadata
     const emptyMetadata = await prisma.sentence.count({
       where: {
-        OR: [
-          { metadata: { equals: {} } },
-          { metadata: { equals: null } },
-        ],
+        OR: [{ metadata: { equals: {} } }, { metadata: { equals: null } }],
       },
     });
     console.log(`❌ Sentences with empty metadata: ${emptyMetadata}`);
@@ -32,10 +29,7 @@ async function checkMetadataStatus() {
     // Get sample of empty metadata sentences by language
     const sampleEmpty = await prisma.sentence.findMany({
       where: {
-        OR: [
-          { metadata: { equals: {} } },
-          { metadata: { equals: null } },
-        ],
+        OR: [{ metadata: { equals: {} } }, { metadata: { equals: null } }],
       },
       include: {
         dialogue: {
@@ -67,10 +61,7 @@ async function checkMetadataStatus() {
     const sampleWithMetadata = await prisma.sentence.findMany({
       where: {
         NOT: {
-          OR: [
-            { metadata: { equals: {} } },
-            { metadata: { equals: null } },
-          ],
+          OR: [{ metadata: { equals: {} } }, { metadata: { equals: null } }],
         },
       },
       include: {
@@ -108,7 +99,6 @@ async function checkMetadataStatus() {
       console.log(`  npm run backfill:metadata`);
     }
     console.log('');
-
   } catch (error) {
     console.error('❌ Error checking metadata:', error);
   } finally {

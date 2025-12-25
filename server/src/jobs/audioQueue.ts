@@ -14,13 +14,9 @@ export const audioWorker = new Worker(
       const { episodeId, dialogueId } = job.data;
 
       try {
-        const result = await generateAllSpeedsAudio(
-          episodeId,
-          dialogueId,
-          (progress) => {
-            job.updateProgress(progress);
-          }
-        );
+        const result = await generateAllSpeedsAudio(episodeId, dialogueId, (progress) => {
+          job.updateProgress(progress);
+        });
 
         return result;
       } catch (error) {

@@ -29,9 +29,7 @@ export default function Logo({ size = 'medium', variant = 'light', className = '
         <MessageCircle className={`${iconSize} ${colorClass}`} />
         <FlaskConical className={`${iconSize} ${colorClass}`} />
       </div>
-      <span className={`hidden sm:inline font-bold ${textSize} ${colorClass}`}>
-        ConvoLab
-      </span>
+      <span className={`hidden sm:inline font-bold ${textSize} ${colorClass}`}>ConvoLab</span>
     </div>
   );
 }

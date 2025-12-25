@@ -34,12 +34,15 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.CLIENT_URL || true  // Allow same-origin in production if CLIENT_URL not set
-    : 'http://localhost:5173',
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? process.env.CLIENT_URL || true // Allow same-origin in production if CLIENT_URL not set
+        : 'http://localhost:5173',
+    credentials: true,
+  })
+);
 
 // Stripe webhook needs raw body for signature verification
 // Must be added BEFORE express.json()

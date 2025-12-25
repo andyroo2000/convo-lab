@@ -72,11 +72,13 @@ export default function NarrowListeningPlaybackPage() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate selected version and audio URL
-  const selectedVersion = pack?.versions.find(v => v.id === selectedVersionId);
+  const selectedVersion = pack?.versions.find((v) => v.id === selectedVersionId);
   const currentAudioUrl = selectedVersion
-    ? selectedSpeed === '0.7x' ? selectedVersion.audioUrl_0_7
-      : selectedSpeed === '0.85x' ? selectedVersion.audioUrl_0_85
-      : selectedVersion.audioUrl_1_0
+    ? selectedSpeed === '0.7x'
+      ? selectedVersion.audioUrl_0_7
+      : selectedSpeed === '0.85x'
+        ? selectedVersion.audioUrl_0_85
+        : selectedVersion.audioUrl_1_0
     : null;
 
   useEffect(() => {
@@ -103,9 +105,9 @@ export default function NarrowListeningPlaybackPage() {
       // We'll use a small delay to ensure the audio element is ready
       setTimeout(() => {
         const audioElements = document.querySelectorAll('audio');
-        const audio = Array.from(audioElements).find(el => el.src === currentAudioUrl);
+        const audio = Array.from(audioElements).find((el) => el.src === currentAudioUrl);
         if (audio) {
-          audio.play().catch(err => {
+          audio.play().catch((err) => {
             // Ignore auto-play errors (browser restrictions)
             console.log('Auto-play prevented:', err);
           });
@@ -125,7 +127,11 @@ export default function NarrowListeningPlaybackPage() {
 
       // Don't trigger if user is typing in an input or textarea
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      ) {
         return;
       }
 
@@ -152,18 +158,26 @@ export default function NarrowListeningPlaybackPage() {
   useEffect(() => {
     if (!selectedVersion || !isPlaying) return;
 
-    const currentSegment = selectedVersion.segments.find(segment => {
-      const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7
-        : selectedSpeed === '0.85x' ? segment.startTime_0_85
-        : segment.startTime_1_0;
-      const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7
-        : selectedSpeed === '0.85x' ? segment.endTime_0_85
-        : segment.endTime_1_0;
+    const currentSegment = selectedVersion.segments.find((segment) => {
+      const startTime =
+        selectedSpeed === '0.7x'
+          ? segment.startTime_0_7
+          : selectedSpeed === '0.85x'
+            ? segment.startTime_0_85
+            : segment.startTime_1_0;
+      const endTime =
+        selectedSpeed === '0.7x'
+          ? segment.endTime_0_7
+          : selectedSpeed === '0.85x'
+            ? segment.endTime_0_85
+            : segment.endTime_1_0;
 
-      return startTime !== null &&
+      return (
+        startTime !== null &&
         endTime !== null &&
         currentTime * 1000 >= startTime &&
-        currentTime * 1000 < endTime;
+        currentTime * 1000 < endTime
+      );
     });
 
     if (currentSegment) {
@@ -208,31 +222,35 @@ export default function NarrowListeningPlaybackPage() {
 
     // Check if we need to generate audio for any speed that's missing
     if (pack) {
-      const audioUrlField = newSpeed === '0.7x' ? 'audioUrl_0_7'
-        : newSpeed === '0.85x' ? 'audioUrl_0_85'
-        : 'audioUrl_1_0';
-      const speedValue = newSpeed === '0.7x' ? 0.7
-        : newSpeed === '0.85x' ? 0.85
-        : 1.0;
-      const allVersionsHaveSpeed = pack.versions.every(v => v[audioUrlField]);
+      const audioUrlField =
+        newSpeed === '0.7x'
+          ? 'audioUrl_0_7'
+          : newSpeed === '0.85x'
+            ? 'audioUrl_0_85'
+            : 'audioUrl_1_0';
+      const speedValue = newSpeed === '0.7x' ? 0.7 : newSpeed === '0.85x' ? 0.85 : 1.0;
+      const allVersionsHaveSpeed = pack.versions.every((v) => v[audioUrlField]);
 
       if (!allVersionsHaveSpeed) {
         setGeneratingSpeed(true);
         setGenerationProgress(0);
         try {
-          const response = await fetch(`${API_URL}/api/narrow-listening/${pack.id}/generate-speed`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ speed: speedValue }),
-          });
+          const response = await fetch(
+            `${API_URL}/api/narrow-listening/${pack.id}/generate-speed`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+              body: JSON.stringify({ speed: speedValue }),
+            }
+          );
 
           if (!response.ok) {
             throw new Error(`Failed to start ${newSpeed} speed generation`);
           }
 
           const data = await response.json();
-          const {jobId} = data;
+          const { jobId } = data;
           setGenerationJobId(jobId);
 
           // Clear any existing interval
@@ -294,11 +312,14 @@ export default function NarrowListeningPlaybackPage() {
   };
 
   // Cleanup interval on unmount
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
-    }, []);
+    },
+    []
+  );
 
   const handleVersionSelect = (versionId: string) => {
     setSelectedVersionId(versionId);
@@ -318,7 +339,7 @@ export default function NarrowListeningPlaybackPage() {
     }
 
     // Otherwise, move to next variation (for both 'all' and 'off' modes)
-    const currentIndex = pack.versions.findIndex(v => v.id === selectedVersionId);
+    const currentIndex = pack.versions.findIndex((v) => v.id === selectedVersionId);
     const nextIndex = currentIndex + 1;
 
     if (nextIndex < pack.versions.length) {
@@ -346,10 +367,7 @@ export default function NarrowListeningPlaybackPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <p className="text-red-700">{error || 'Pack not found'}</p>
-          <button
-            onClick={() => navigate('/app/narrow-listening')}
-            className="btn-outline mt-4"
-          >
+          <button onClick={() => navigate('/app/narrow-listening')} className="btn-outline mt-4">
             Back to Library
           </button>
         </div>
@@ -382,7 +400,7 @@ export default function NarrowListeningPlaybackPage() {
                     className="pl-2 pr-3 py-1 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(6px 0%, 100% 0%, 100% 100%, 6px 100%, 0% 50%)',
-                      marginLeft: '-6px'
+                      marginLeft: '-6px',
                     }}
                   >
                     <span className="ml-1.5">{pack.versions.length} variations</span>
@@ -440,7 +458,7 @@ export default function NarrowListeningPlaybackPage() {
                     className="pl-3 pr-4 py-1.5 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
-                      marginLeft: '-8px'
+                      marginLeft: '-8px',
                     }}
                   >
                     <span className="ml-2">{pack.versions.length} variations</span>
@@ -486,31 +504,32 @@ export default function NarrowListeningPlaybackPage() {
         {/* Progress Banner (shown during generation) */}
         {generatingSpeed && (
           <div className="bg-yellow border-b border-periwinkle">
-          <div className="max-w-5xl mx-auto px-4 py-3 lg:px-6 lg:py-4">
-            <div className="flex items-center gap-3 lg:gap-4">
-              <Loader className="w-5 h-5 text-dark-brown animate-spin flex-shrink-0" />
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs lg:text-sm font-medium text-dark-brown">
-                    Generating {selectedSpeed} speed audio...
+            <div className="max-w-5xl mx-auto px-4 py-3 lg:px-6 lg:py-4">
+              <div className="flex items-center gap-3 lg:gap-4">
+                <Loader className="w-5 h-5 text-dark-brown animate-spin flex-shrink-0" />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs lg:text-sm font-medium text-dark-brown">
+                      Generating {selectedSpeed} speed audio...
+                    </p>
+                    <span className="text-xs lg:text-sm font-semibold text-dark-brown">
+                      {generationProgress}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-strawberry h-2 rounded-full transition-all duration-300 ease-out"
+                      style={{ width: `${generationProgress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-periwinkle-dark mt-1 hidden lg:block">
+                    Please wait while we generate audio for all variations. This may take a minute
+                    or two.
                   </p>
-                  <span className="text-xs lg:text-sm font-semibold text-dark-brown">
-                    {generationProgress}%
-                  </span>
                 </div>
-                <div className="w-full bg-white/30 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-strawberry h-2 rounded-full transition-all duration-300 ease-out"
-                    style={{ width: `${generationProgress}%` }}
-                  />
-                </div>
-                <p className="text-xs text-periwinkle-dark mt-1 hidden lg:block">
-                  Please wait while we generate audio for all variations. This may take a minute or two.
-                </p>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Audio Player (shown when not generating) */}
@@ -571,14 +590,21 @@ export default function NarrowListeningPlaybackPage() {
                   <h4 className="text-sm font-semibold text-gray-900">Story Text</h4>
                   {selectedVersion.segments.map((segment, idx) => {
                     // Calculate if this segment is currently speaking
-                    const startTime = selectedSpeed === '0.7x' ? segment.startTime_0_7
-                      : selectedSpeed === '0.85x' ? segment.startTime_0_85
-                      : segment.startTime_1_0;
-                    const endTime = selectedSpeed === '0.7x' ? segment.endTime_0_7
-                      : selectedSpeed === '0.85x' ? segment.endTime_0_85
-                      : segment.endTime_1_0;
+                    const startTime =
+                      selectedSpeed === '0.7x'
+                        ? segment.startTime_0_7
+                        : selectedSpeed === '0.85x'
+                          ? segment.startTime_0_85
+                          : segment.startTime_1_0;
+                    const endTime =
+                      selectedSpeed === '0.7x'
+                        ? segment.endTime_0_7
+                        : selectedSpeed === '0.85x'
+                          ? segment.endTime_0_85
+                          : segment.endTime_1_0;
 
-                    const isCurrentlySpeaking = startTime !== null &&
+                    const isCurrentlySpeaking =
+                      startTime !== null &&
                       endTime !== null &&
                       currentTime * 1000 >= startTime &&
                       currentTime * 1000 < endTime;
@@ -592,15 +618,21 @@ export default function NarrowListeningPlaybackPage() {
                         }}
                         className="pl-4 py-3 rounded-lg transition-all duration-200"
                         style={{
-                          backgroundColor: isCurrentlySpeaking ? 'rgba(252, 102, 167, 0.35)' : 'rgba(252, 102, 167, 0.15)',
+                          backgroundColor: isCurrentlySpeaking
+                            ? 'rgba(252, 102, 167, 0.35)'
+                            : 'rgba(252, 102, 167, 0.15)',
                           borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid #FC66A7`,
                           borderRight: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
                           borderTop: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
                           borderBottom: isCurrentlySpeaking ? '3px solid #FC66A7' : undefined,
-                          boxShadow: isCurrentlySpeaking ? '0 4px 12px rgba(252, 102, 167, 0.25)' : 'none',
+                          boxShadow: isCurrentlySpeaking
+                            ? '0 4px 12px rgba(252, 102, 167, 0.25)'
+                            : 'none',
                         }}
                       >
-                        <p className={`text-lg text-dark-brown leading-relaxed ${showTranslations ? 'mb-2' : ''}`}>
+                        <p
+                          className={`text-lg text-dark-brown leading-relaxed ${showTranslations ? 'mb-2' : ''}`}
+                        >
                           {pack.targetLanguage === 'zh' ? (
                             <ChineseText
                               text={segment.targetText}
@@ -610,7 +642,17 @@ export default function NarrowListeningPlaybackPage() {
                           ) : (
                             <JapaneseText
                               text={segment.targetText}
-                              metadata={segment.reading ? { japanese: { kanji: segment.targetText, kana: '', furigana: segment.reading } } : undefined}
+                              metadata={
+                                segment.reading
+                                  ? {
+                                      japanese: {
+                                        kanji: segment.targetText,
+                                        kana: '',
+                                        furigana: segment.reading,
+                                      },
+                                    }
+                                  : undefined
+                              }
                               showFurigana={showReadings}
                             />
                           )}

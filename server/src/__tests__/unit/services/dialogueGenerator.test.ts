@@ -54,7 +54,12 @@ describe('dialogueGenerator', () => {
 
   const mockSpeakers = [
     { name: '田中[たなか]', voiceId: 'ja-JP-Neural2-B', proficiency: 'native', tone: 'casual' },
-    { name: '山田[やまだ]', voiceId: 'ja-JP-Neural2-C', proficiency: 'intermediate', tone: 'polite' },
+    {
+      name: '山田[やまだ]',
+      voiceId: 'ja-JP-Neural2-C',
+      proficiency: 'intermediate',
+      tone: 'polite',
+    },
   ];
 
   const mockDialogueResponse = {
@@ -96,7 +101,13 @@ describe('dialogueGenerator', () => {
     mockParseVoiceIdForGender.mockReturnValue('female');
     mockProcessLanguageTextBatch.mockResolvedValue([
       { japanese: { kanji: 'こんにちは', kana: 'こんにちは', furigana: 'こんにちは' } },
-      { japanese: { kanji: 'お元気ですか', kana: 'おげんきですか', furigana: 'お元[げん]気[き]ですか' } },
+      {
+        japanese: {
+          kanji: 'お元気ですか',
+          kana: 'おげんきですか',
+          furigana: 'お元[げん]気[き]ですか',
+        },
+      },
     ]);
   });
 
@@ -124,19 +135,23 @@ describe('dialogueGenerator', () => {
     it('should throw error if episode not found', async () => {
       mockPrisma.episode.findUnique.mockResolvedValue(null);
 
-      await expect(generateDialogue({
-        episodeId: 'nonexistent',
-        speakers: mockSpeakers,
-      })).rejects.toThrow('Episode not found');
+      await expect(
+        generateDialogue({
+          episodeId: 'nonexistent',
+          speakers: mockSpeakers,
+        })
+      ).rejects.toThrow('Episode not found');
     });
 
     it('should update episode status to error on failure', async () => {
       mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
 
-      await expect(generateDialogue({
-        episodeId: 'episode-123',
-        speakers: mockSpeakers,
-      })).rejects.toThrow('API error');
+      await expect(
+        generateDialogue({
+          episodeId: 'episode-123',
+          speakers: mockSpeakers,
+        })
+      ).rejects.toThrow('API error');
 
       expect(mockPrisma.episode.update).toHaveBeenCalledWith({
         where: { id: 'episode-123' },
@@ -145,7 +160,9 @@ describe('dialogueGenerator', () => {
     });
 
     it('should strip markdown code fences from response', async () => {
-      mockGenerateWithGemini.mockResolvedValue(`\`\`\`json\n${  JSON.stringify(mockDialogueResponse)  }\n\`\`\``);
+      mockGenerateWithGemini.mockResolvedValue(
+        `\`\`\`json\n${JSON.stringify(mockDialogueResponse)}\n\`\`\``
+      );
 
       const result = await generateDialogue({
         episodeId: 'episode-123',
@@ -219,9 +236,7 @@ describe('dialogueGenerator', () => {
 
       // Check that episode was updated with status 'ready' and new title
       const updateCalls = mockPrisma.episode.update.mock.calls;
-      const readyUpdate = updateCalls.find(call =>
-        call[0].data.status === 'ready'
-      );
+      const readyUpdate = updateCalls.find((call) => call[0].data.status === 'ready');
       expect(readyUpdate[0].data.title).toBe('Weekend Plans');
     });
 
@@ -254,9 +269,7 @@ describe('dialogueGenerator', () => {
 
       // Should fallback to original title
       const updateCalls = mockPrisma.episode.update.mock.calls;
-      const readyUpdate = updateCalls.find(call =>
-        call[0].data.status === 'ready'
-      );
+      const readyUpdate = updateCalls.find((call) => call[0].data.status === 'ready');
       expect(readyUpdate[0].data.title).toBe('Test Episode');
     });
 
@@ -278,8 +291,20 @@ describe('dialogueGenerator', () => {
 
     it('should use custom speaker colors when provided', async () => {
       const speakersWithColors = [
-        { name: '田中', voiceId: 'ja-JP-Neural2-B', proficiency: 'native', tone: 'casual', color: '#FF0000' },
-        { name: '山田', voiceId: 'ja-JP-Neural2-C', proficiency: 'native', tone: 'casual', color: '#00FF00' },
+        {
+          name: '田中',
+          voiceId: 'ja-JP-Neural2-B',
+          proficiency: 'native',
+          tone: 'casual',
+          color: '#FF0000',
+        },
+        {
+          name: '山田',
+          voiceId: 'ja-JP-Neural2-C',
+          proficiency: 'native',
+          tone: 'casual',
+          color: '#00FF00',
+        },
       ];
 
       await generateDialogue({

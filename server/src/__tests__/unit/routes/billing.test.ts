@@ -106,9 +106,7 @@ describe('Billing Routes', () => {
       const originalEnv = process.env.STRIPE_PRICE_PRO_MONTHLY;
       process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_test_123';
 
-      mockStripeService.createCheckoutSession.mockRejectedValue(
-        new Error('Stripe API error')
-      );
+      mockStripeService.createCheckoutSession.mockRejectedValue(new Error('Stripe API error'));
 
       const response = await request(app)
         .post('/api/billing/create-checkout-session')
@@ -127,16 +125,12 @@ describe('Billing Routes', () => {
         url: 'https://billing.stripe.com/session-123',
       });
 
-      const response = await request(app)
-        .post('/api/billing/create-portal-session')
-        .expect(200);
+      const response = await request(app).post('/api/billing/create-portal-session').expect(200);
 
       expect(response.body).toEqual({
         url: 'https://billing.stripe.com/session-123',
       });
-      expect(mockStripeService.createCustomerPortalSession).toHaveBeenCalledWith(
-        'test-user-id'
-      );
+      expect(mockStripeService.createCustomerPortalSession).toHaveBeenCalledWith('test-user-id');
     });
 
     it('should handle portal session creation error', async () => {
@@ -144,9 +138,7 @@ describe('Billing Routes', () => {
         new Error('No Stripe customer found')
       );
 
-      const response = await request(app)
-        .post('/api/billing/create-portal-session')
-        .expect(500);
+      const response = await request(app).post('/api/billing/create-portal-session').expect(500);
 
       expect(response.body.error.message).toBe('No Stripe customer found');
     });
@@ -162,9 +154,7 @@ describe('Billing Routes', () => {
 
       mockStripeService.getSubscriptionStatus.mockResolvedValue(mockStatus);
 
-      const response = await request(app)
-        .get('/api/billing/subscription-status')
-        .expect(200);
+      const response = await request(app).get('/api/billing/subscription-status').expect(200);
 
       expect(response.body).toEqual({
         tier: 'pro',
@@ -175,13 +165,9 @@ describe('Billing Routes', () => {
     });
 
     it('should handle error getting subscription status', async () => {
-      mockStripeService.getSubscriptionStatus.mockRejectedValue(
-        new Error('Database error')
-      );
+      mockStripeService.getSubscriptionStatus.mockRejectedValue(new Error('Database error'));
 
-      const response = await request(app)
-        .get('/api/billing/subscription-status')
-        .expect(500);
+      const response = await request(app).get('/api/billing/subscription-status').expect(500);
 
       expect(response.body.error.message).toBe('Database error');
     });
@@ -349,9 +335,7 @@ describe('Billing Routes', () => {
       };
 
       mockStripe.webhooks.constructEvent.mockReturnValue(mockEvent);
-      mockStripeService.handleSubscriptionCreated.mockRejectedValue(
-        new Error('Database error')
-      );
+      mockStripeService.handleSubscriptionCreated.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app)
         .post('/api/webhooks/stripe')

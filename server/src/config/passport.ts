@@ -12,7 +12,8 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID || 'placeholder',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'placeholder',
-      callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/auth/google/callback',
+      callbackURL:
+        process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/auth/google/callback',
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -33,9 +34,7 @@ passport.use(
             update: {
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp
-                ? new Date(profile._json.exp * 1000)
-                : null,
+              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
             },
             create: {
               userId: user.id,
@@ -43,9 +42,7 @@ passport.use(
               providerId: profile.id,
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp
-                ? new Date(profile._json.exp * 1000)
-                : null,
+              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
             },
           });
 
@@ -82,9 +79,7 @@ passport.use(
               providerId: profile.id,
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp
-                ? new Date(profile._json.exp * 1000)
-                : null,
+              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
             },
           });
 
@@ -113,9 +108,7 @@ passport.use(
             providerId: profile.id,
             accessToken,
             refreshToken,
-            expiresAt: profile._json.exp
-              ? new Date(profile._json.exp * 1000)
-              : null,
+            expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
           },
         });
 

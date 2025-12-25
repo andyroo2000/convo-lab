@@ -172,7 +172,15 @@ describe('ViewToggleButtons', () => {
       const { container } = render(<ViewToggleButtons {...defaultProps} />);
 
       const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass('flex', 'items-center', 'gap-1', 'bg-white', 'rounded-lg', 'p-1', 'shadow-sm');
+      expect(wrapper).toHaveClass(
+        'flex',
+        'items-center',
+        'gap-1',
+        'bg-white',
+        'rounded-lg',
+        'p-1',
+        'shadow-sm'
+      );
     });
   });
 });

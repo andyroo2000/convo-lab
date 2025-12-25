@@ -65,7 +65,8 @@ export class MockWorker {
 }
 
 // Helper to get the captured processor for a queue
-export const getWorkerProcessor = (queueName: string): WorkerProcessor | undefined => workerProcessors.get(queueName);
+export const getWorkerProcessor = (queueName: string): WorkerProcessor | undefined =>
+  workerProcessors.get(queueName);
 
 // Helper to trigger event handlers
 export const triggerWorkerEvent = (queueName: string, event: string, ...args: unknown[]): void => {

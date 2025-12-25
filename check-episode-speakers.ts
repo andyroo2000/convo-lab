@@ -3,9 +3,9 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: 'postgresql://languageflow:Kx9mP2vNwQ7bL5tRj8dF3hYzW6cM4nXs@34.57.57.13:5432/languageflow?schema=public'
-    }
-  }
+      url: 'postgresql://languageflow:Kx9mP2vNwQ7bL5tRj8dF3hYzW6cM4nXs@34.57.57.13:5432/languageflow?schema=public',
+    },
+  },
 });
 
 async function main() {
@@ -15,16 +15,16 @@ async function main() {
       include: {
         dialogue: {
           include: {
-            speakers: true
-          }
-        }
-      }
+            speakers: true,
+          },
+        },
+      },
     });
 
     if (episode?.dialogue) {
       console.log(`\nEpisode: ${episode.title}`);
       console.log(`\nSpeakers:`);
-      episode.dialogue.speakers.forEach(s => {
+      episode.dialogue.speakers.forEach((s) => {
         console.log(`\n  Name: ${s.name}`);
         console.log(`  Gender: ${s.gender}`);
         console.log(`  Voice ID: ${s.voiceId}`);

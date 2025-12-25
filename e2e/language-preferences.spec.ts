@@ -139,7 +139,10 @@ test.describe('Language Preferences', () => {
       await page.waitForSelector('[data-testid="dialogue-result"]', { timeout: 60000 });
 
       // Check that content is in Japanese
-      const dialogueContent = await page.locator('[data-testid="dialogue-line"]').first().textContent();
+      const dialogueContent = await page
+        .locator('[data-testid="dialogue-line"]')
+        .first()
+        .textContent();
 
       // Should contain Japanese characters
       expect(dialogueContent).toMatch(/[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/);
@@ -161,7 +164,10 @@ test.describe('Language Preferences', () => {
       await page.waitForSelector('[data-testid="course-result"]', { timeout: 60000 });
 
       // Course content should be in French
-      const courseContent = await page.locator('[data-testid="course-content"]').first().textContent();
+      const courseContent = await page
+        .locator('[data-testid="course-content"]')
+        .first()
+        .textContent();
 
       // Should contain French characters or common French words
       expect(courseContent).toMatch(/[àâäæçéèêëïîôùûü]|le|la|les|de|et/i);
@@ -224,7 +230,10 @@ test.describe('Language Preferences', () => {
       await page.selectOption('[name="nativeLanguage"]', 'en');
 
       // Error should disappear
-      await page.waitForSelector('[data-testid="validation-error"]', { state: 'hidden', timeout: 3000 });
+      await page.waitForSelector('[data-testid="validation-error"]', {
+        state: 'hidden',
+        timeout: 3000,
+      });
     });
   });
 
@@ -359,7 +368,10 @@ test.describe('Language Preferences', () => {
 
       await page.waitForSelector('[data-testid="dialogue-result"]', { timeout: 60000 });
 
-      const dialogueContent = await page.locator('[data-testid="dialogue-line"]').first().textContent();
+      const dialogueContent = await page
+        .locator('[data-testid="dialogue-line"]')
+        .first()
+        .textContent();
       expect(dialogueContent).toMatch(/[àâäæçéèêëïîôùûü]|le|la|les|de|et/i);
     });
   });

@@ -5,8 +5,8 @@ async function main() {
     where: { email: 'andrewlandry@gmail.com' },
     data: {
       emailVerified: true,
-      emailVerifiedAt: new Date()
-    }
+      emailVerifiedAt: new Date(),
+    },
   });
 
   console.log('✓ Email verified for', user.email);

@@ -64,23 +64,34 @@ vi.mock('../../../../../shared/src/constants-new', () => ({
 
 vi.mock('../../../../../shared/src/nameConstants', () => ({
   getRandomName: (language: string, gender: string) =>
-    language === 'ja' ? (gender === 'male' ? '田中' : '鈴木') :
-    language === 'zh' ? (gender === 'male' ? '小明' : '小红') :
-    gender === 'male' ? 'Carlos' : 'María',
+    language === 'ja'
+      ? gender === 'male'
+        ? '田中'
+        : '鈴木'
+      : language === 'zh'
+        ? gender === 'male'
+          ? '小明'
+          : '小红'
+        : gender === 'male'
+          ? 'Carlos'
+          : 'María',
 }));
 
 vi.mock('../../../../../shared/src/voiceSelection', () => ({
-  getDialogueSpeakerVoices: (language: string, count: number) => [
-    { voiceId: `${language}-voice-1`, gender: 'male' },
-    { voiceId: `${language}-voice-2`, gender: 'female' },
-  ].slice(0, count),
+  getDialogueSpeakerVoices: (language: string, count: number) =>
+    [
+      { voiceId: `${language}-voice-1`, gender: 'male' },
+      { voiceId: `${language}-voice-2`, gender: 'female' },
+    ].slice(0, count),
 }));
 
 vi.mock('../../common/DemoRestrictionModal', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? (
       <div data-testid="demo-restriction-modal">
-        <button onClick={onClose} data-testid="close-demo-modal">Close</button>
+        <button onClick={onClose} data-testid="close-demo-modal">
+          Close
+        </button>
       </div>
     ) : null,
 }));
@@ -103,7 +114,8 @@ describe('DialogueGenerator', () => {
     vi.useRealTimers();
   });
 
-  const renderDialogueGenerator = () => render(
+  const renderDialogueGenerator = () =>
+    render(
       <MemoryRouter>
         <DialogueGenerator />
       </MemoryRouter>
@@ -269,11 +281,13 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockCreateEpisode).toHaveBeenCalledWith(expect.objectContaining({
-        sourceText: 'My shopping trip story',
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-      }));
+      expect(mockCreateEpisode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sourceText: 'My shopping trip story',
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+        })
+      );
     });
 
     it('should call generateDialogue after createEpisode', async () => {
@@ -292,7 +306,7 @@ describe('DialogueGenerator', () => {
         'episode-123',
         expect.any(Array),
         3, // variations per sentence
-        8  // default dialogue length
+        8 // default dialogue length
       );
     });
 
@@ -311,12 +325,7 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockGenerateDialogue).toHaveBeenCalledWith(
-        'episode-123',
-        expect.any(Array),
-        3,
-        30
-      );
+      expect(mockGenerateDialogue).toHaveBeenCalledWith('episode-123', expect.any(Array), 3, 30);
     });
   });
 
@@ -540,9 +549,7 @@ describe('DialogueGenerator', () => {
   describe('failure handling', () => {
     it('should return to input state on job failure', async () => {
       // Start with pending, then fail
-      mockPollJobStatus
-        .mockResolvedValueOnce('pending')
-        .mockResolvedValueOnce('failed');
+      mockPollJobStatus.mockResolvedValueOnce('pending').mockResolvedValueOnce('failed');
 
       const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
 
@@ -612,15 +619,17 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockCreateEpisode).toHaveBeenCalledWith(expect.objectContaining({
-        speakers: expect.arrayContaining([
-          expect.objectContaining({
-            voiceId: expect.any(String),
-            proficiency: 'N5',
-            tone: 'casual',
-          }),
-        ]),
-      }));
+      expect(mockCreateEpisode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          speakers: expect.arrayContaining([
+            expect.objectContaining({
+              voiceId: expect.any(String),
+              proficiency: 'N5',
+              tone: 'casual',
+            }),
+          ]),
+        })
+      );
     });
 
     it('should use selected JLPT level for speakers', async () => {
@@ -638,13 +647,15 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockCreateEpisode).toHaveBeenCalledWith(expect.objectContaining({
-        speakers: expect.arrayContaining([
-          expect.objectContaining({
-            proficiency: 'N3',
-          }),
-        ]),
-      }));
+      expect(mockCreateEpisode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          speakers: expect.arrayContaining([
+            expect.objectContaining({
+              proficiency: 'N3',
+            }),
+          ]),
+        })
+      );
     });
 
     it('should use selected tone for speakers', async () => {
@@ -662,13 +673,15 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockCreateEpisode).toHaveBeenCalledWith(expect.objectContaining({
-        speakers: expect.arrayContaining([
-          expect.objectContaining({
-            tone: 'formal',
-          }),
-        ]),
-      }));
+      expect(mockCreateEpisode).toHaveBeenCalledWith(
+        expect.objectContaining({
+          speakers: expect.arrayContaining([
+            expect.objectContaining({
+              tone: 'formal',
+            }),
+          ]),
+        })
+      );
     });
   });
 
@@ -754,6 +767,8 @@ describe('DialogueGenerator - Demo User', () => {
     );
 
     // Modal should not be visible initially
-    expect(container.querySelector('[data-testid="demo-restriction-modal"]')).not.toBeInTheDocument();
+    expect(
+      container.querySelector('[data-testid="demo-restriction-modal"]')
+    ).not.toBeInTheDocument();
   });
 });

@@ -19,7 +19,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('NotFoundPage', () => {
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <NotFoundPage />
       </BrowserRouter>
@@ -71,9 +72,7 @@ describe('NotFoundPage', () => {
 
     it('should suggest returning to home page', () => {
       renderPage();
-      expect(
-        screen.getByText('Return to the home page and try again')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Return to the home page and try again')).toBeInTheDocument();
     });
 
     it('should suggest using navigation menu', () => {

@@ -1,4 +1,4 @@
-import { SUPPORTED_LANGUAGES } from "@languageflow/shared/src/constants-new.js";
+import { SUPPORTED_LANGUAGES } from '@languageflow/shared/src/constants-new.js';
 import { generateWithGemini } from './geminiClient.js';
 
 export interface StorySegment {
@@ -71,7 +71,8 @@ function getVariationTypes(targetLanguage: string): string {
 - FUTURE_POLITE: Future/intention forms (つもり、予定)
 - PARTICLE_FOCUS: Emphasize は vs が、に vs で contrasts
 - FORMALITY_CONTRAST: Mix of casual and formal speech`;
-  } if (targetLanguage === 'zh') {
+  }
+  if (targetLanguage === 'zh') {
     return `Example variation types for Chinese:
 - ASPECT_MARKERS: Variations using 了/过/着 aspect markers
 - MEASURE_WORDS: Different classifier/measure word usage
@@ -88,7 +89,8 @@ function getVariationTypes(targetLanguage: string): string {
 function getLanguageConstraints(targetLanguage: string): string {
   if (targetLanguage === 'ja') {
     return '- Do NOT use furigana or romaji. Use standard Japanese orthography and natural punctuation.';
-  } if (targetLanguage === 'zh') {
+  }
+  if (targetLanguage === 'zh') {
     return '- Use simplified Chinese characters. Do NOT include pinyin. Use natural Chinese punctuation (。！？).';
   }
   return '';
@@ -207,7 +209,12 @@ Output only the JSON now:`;
 
     // Validate each version
     for (const version of storyPack.versions) {
-      if (!version.variationType || !version.title || !version.segments || !Array.isArray(version.segments)) {
+      if (
+        !version.variationType ||
+        !version.title ||
+        !version.segments ||
+        !Array.isArray(version.segments)
+      ) {
         throw new Error('Invalid version structure from Gemini');
       }
 
@@ -219,7 +226,9 @@ Output only the JSON now:`;
       }
     }
 
-    console.log(`✅ Successfully generated story pack: "${storyPack.title}" with ${storyPack.versions.length} versions`);
+    console.log(
+      `✅ Successfully generated story pack: "${storyPack.title}" with ${storyPack.versions.length} versions`
+    );
 
     return storyPack;
   } catch (error: any) {

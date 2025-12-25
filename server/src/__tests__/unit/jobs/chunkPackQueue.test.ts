@@ -5,7 +5,9 @@ import '../../../jobs/chunkPackQueue.js';
 
 // Hoisted mocks
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
-const workerEventHandlers = vi.hoisted(() => new Map<string, Map<string, (...args: unknown[]) => void>>());
+const workerEventHandlers = vi.hoisted(
+  () => new Map<string, Map<string, (...args: unknown[]) => void>>()
+);
 const mockGenerateChunkPack = vi.hoisted(() => vi.fn());
 const mockGenerateExampleAudio = vi.hoisted(() => vi.fn());
 const mockGenerateStoryAudio = vi.hoisted(() => vi.fn());
@@ -35,36 +37,36 @@ const mockPrisma = vi.hoisted(() => ({
 
 // Mock BullMQ
 vi.mock('bullmq', () => ({
-    Queue: class MockQueue {
-      name: string;
+  Queue: class MockQueue {
+    name: string;
 
-      constructor(name: string) {
-        this.name = name;
-      }
+    constructor(name: string) {
+      this.name = name;
+    }
 
-      add = vi.fn();
+    add = vi.fn();
 
-      close = vi.fn();
-    },
-    Worker: class MockWorker {
-      name: string;
+    close = vi.fn();
+  },
+  Worker: class MockWorker {
+    name: string;
 
-      private eventHandlers = new Map<string, (...args: unknown[]) => void>();
+    private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-      constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
-        this.name = name;
-        workerProcessors.set(name, processor);
-        workerEventHandlers.set(name, this.eventHandlers);
-      }
+    constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
+      this.name = name;
+      workerProcessors.set(name, processor);
+      workerEventHandlers.set(name, this.eventHandlers);
+    }
 
-      on(event: string, handler: (...args: unknown[]) => void): this {
-        this.eventHandlers.set(event, handler);
-        return this;
-      }
+    on(event: string, handler: (...args: unknown[]) => void): this {
+      this.eventHandlers.set(event, handler);
+      return this;
+    }
 
-      close = vi.fn();
-    },
-  }));
+    close = vi.fn();
+  },
+}));
 
 // Mock dependencies
 vi.mock('../../../config/redis.js', () => ({
@@ -87,12 +89,14 @@ vi.mock('../../../services/chunkPackAudioGenerator.js', () => ({
 }));
 
 // Helper to create mock job
-const createMockJob = (overrides: Partial<{
-  id: string;
-  name: string;
-  data: Record<string, unknown>;
-  updateProgress: ReturnType<typeof vi.fn>;
-}> = {}) => ({
+const createMockJob = (
+  overrides: Partial<{
+    id: string;
+    name: string;
+    data: Record<string, unknown>;
+    updateProgress: ReturnType<typeof vi.fn>;
+  }> = {}
+) => ({
   id: 'test-job-123',
   name: 'default',
   data: {},
@@ -113,12 +117,34 @@ describe('chunkPackQueue', () => {
   const mockGeneratedPack = {
     title: 'Test Chunk Pack',
     chunks: [
-      { form: 'てしまう', translation: 'completely', register: 'casual', function: 'completion', notes: 'test' },
-      { form: 'ておく', translation: 'in advance', register: 'neutral', function: 'preparation', notes: 'test' },
+      {
+        form: 'てしまう',
+        translation: 'completely',
+        register: 'casual',
+        function: 'completion',
+        notes: 'test',
+      },
+      {
+        form: 'ておく',
+        translation: 'in advance',
+        register: 'neutral',
+        function: 'preparation',
+        notes: 'test',
+      },
     ],
     examples: [
-      { chunkForm: 'てしまう', sentence: '食べてしまった', english: 'I ate it all', contextNote: 'casual' },
-      { chunkForm: 'ておく', sentence: '準備しておく', english: 'I will prepare', contextNote: 'formal' },
+      {
+        chunkForm: 'てしまう',
+        sentence: '食べてしまった',
+        english: 'I ate it all',
+        contextNote: 'casual',
+      },
+      {
+        chunkForm: 'ておく',
+        sentence: '準備しておく',
+        english: 'I will prepare',
+        contextNote: 'formal',
+      },
     ],
     stories: [
       {
@@ -133,13 +159,25 @@ describe('chunkPackQueue', () => {
       },
     ],
     exercises: [
-      { exerciseType: 'gap_fill_mc', prompt: 'Test ___', options: ['A', 'B', 'C'], correctOption: 'A', explanation: 'Test' },
+      {
+        exerciseType: 'gap_fill_mc',
+        prompt: 'Test ___',
+        options: ['A', 'B', 'C'],
+        correctOption: 'A',
+        explanation: 'Test',
+      },
     ],
   };
 
   const mockExampleAudioUrls = new Map([
-    ['食べてしまった', { audioUrl_0_7: 'url-0.7', audioUrl_0_85: 'url-0.85', audioUrl_1_0: 'url-1.0' }],
-    ['準備しておく', { audioUrl_0_7: 'url2-0.7', audioUrl_0_85: 'url2-0.85', audioUrl_1_0: 'url2-1.0' }],
+    [
+      '食べてしまった',
+      { audioUrl_0_7: 'url-0.7', audioUrl_0_85: 'url-0.85', audioUrl_1_0: 'url-1.0' },
+    ],
+    [
+      '準備しておく',
+      { audioUrl_0_7: 'url2-0.7', audioUrl_0_85: 'url2-0.85', audioUrl_1_0: 'url2-1.0' },
+    ],
   ]);
 
   const mockStoryAudio = {
@@ -150,9 +188,7 @@ describe('chunkPackQueue', () => {
     ],
   };
 
-  const mockExerciseAudioUrls = new Map([
-    ['Test ___', 'https://storage.example.com/exercise.mp3'],
-  ]);
+  const mockExerciseAudioUrls = new Map([['Test ___', 'https://storage.example.com/exercise.mp3']]);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -273,7 +309,11 @@ describe('chunkPackQueue', () => {
 
       await processor(job);
 
-      expect(mockGenerateStoryAudio).toHaveBeenCalledWith('pack-123', 0, mockGeneratedPack.stories[0].segments);
+      expect(mockGenerateStoryAudio).toHaveBeenCalledWith(
+        'pack-123',
+        0,
+        mockGeneratedPack.stories[0].segments
+      );
     });
 
     it('should create ChunkStory records with combined audio', async () => {
@@ -319,7 +359,10 @@ describe('chunkPackQueue', () => {
 
       await processor(job);
 
-      expect(mockGenerateExerciseAudio).toHaveBeenCalledWith('pack-123', mockGeneratedPack.exercises);
+      expect(mockGenerateExerciseAudio).toHaveBeenCalledWith(
+        'pack-123',
+        mockGeneratedPack.exercises
+      );
     });
 
     it('should create ChunkExercise records', async () => {
@@ -396,7 +439,9 @@ describe('chunkPackQueue', () => {
 
       await processor(job);
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Could not find chunk for example'));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Could not find chunk for example')
+      );
       consoleSpy.mockRestore();
     });
 
@@ -465,10 +510,12 @@ describe('chunkPackQueue', () => {
 
       const result = await processor(job);
 
-      expect(result).toEqual(expect.objectContaining({
-        status: 'error',
-        error: 'Story audio failed',
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          status: 'error',
+          error: 'Story audio failed',
+        })
+      );
     });
 
     it('should log error on failure', async () => {
@@ -500,7 +547,12 @@ describe('chunkPackQueue', () => {
     it('should log error on failed event', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      triggerWorkerEvent('chunk-pack-generation', 'failed', { id: 'job-456' }, new Error('Test error'));
+      triggerWorkerEvent(
+        'chunk-pack-generation',
+        'failed',
+        { id: 'job-456' },
+        new Error('Test error')
+      );
 
       expect(consoleSpy).toHaveBeenCalledWith('Chunk pack job job-456 failed:', expect.any(Error));
       consoleSpy.mockRestore();

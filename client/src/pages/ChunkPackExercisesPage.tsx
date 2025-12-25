@@ -50,7 +50,7 @@ export default function ChunkPackExercisesPage() {
     // Auto-play the correct answer audio after selection
     if (currentExercise.audioUrl && audioRef.current) {
       audioRef.current.src = currentExercise.audioUrl;
-      audioRef.current.play().catch(err => console.error('Audio playback failed:', err));
+      audioRef.current.play().catch((err) => console.error('Audio playback failed:', err));
     }
   };
 
@@ -76,7 +76,7 @@ export default function ChunkPackExercisesPage() {
   const progress = ((currentIndex + 1) / exercises.length) * 100;
 
   if (sessionComplete) {
-    const correctCount = results.filter(r => r).length;
+    const correctCount = results.filter((r) => r).length;
     const accuracy = Math.round((correctCount / results.length) * 100);
 
     return (
@@ -86,13 +86,19 @@ export default function ChunkPackExercisesPage() {
             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-green-600" />
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-navy mb-1 sm:mb-2">Exercises Complete!</h1>
-            <p className="text-sm sm:text-base text-gray-600">You've finished all {exercises.length} exercises</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-navy mb-1 sm:mb-2">
+              Exercises Complete!
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600">
+              You've finished all {exercises.length} exercises
+            </p>
           </div>
 
           <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-lg p-6 sm:p-8 mb-6 sm:mb-8">
             <div className="text-5xl sm:text-6xl font-bold text-emerald-600 mb-2">{accuracy}%</div>
-            <div className="text-base sm:text-lg text-gray-700">{correctCount} correct out of {results.length}</div>
+            <div className="text-base sm:text-lg text-gray-700">
+              {correctCount} correct out of {results.length}
+            </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">
@@ -113,18 +119,25 @@ export default function ChunkPackExercisesPage() {
       <div className="bg-white border-b shadow-sm sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-            <span className="text-xs sm:text-sm font-medium text-gray-700">Exercise {currentIndex + 1} of {exercises.length}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700">
+              Exercise {currentIndex + 1} of {exercises.length}
+            </span>
             <span className="text-xs sm:text-sm text-gray-500">Step 3: Practice</span>
           </div>
           <div className="h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300" style={{ width: `${progress}%` }} />
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-teal-600 transition-all duration-300"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="card bg-white shadow-xl">
-          <h2 className="text-lg sm:text-2xl font-bold text-navy mb-4 sm:mb-6">{currentExercise.prompt}</h2>
+          <h2 className="text-lg sm:text-2xl font-bold text-navy mb-4 sm:mb-6">
+            {currentExercise.prompt}
+          </h2>
 
           <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
             {currentExercise.options.map((option, idx) => {
@@ -142,13 +155,15 @@ export default function ChunkPackExercisesPage() {
                     showAsCorrect
                       ? 'border-green-500 bg-green-50'
                       : showAsWrong
-                      ? 'border-red-500 bg-red-50'
-                      : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-red-500 bg-red-50'
+                        : 'border-gray-200 hover:border-gray-300'
                   } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-base sm:text-xl">{option}</span>
-                    {showAsCorrect && <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />}
+                    {showAsCorrect && (
+                      <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                    )}
                     {showAsWrong && <XCircle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />}
                   </div>
                 </button>
@@ -158,13 +173,18 @@ export default function ChunkPackExercisesPage() {
 
           {hasAnswered && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 mb-4 sm:mb-6">
-              <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1.5 sm:mb-2">Explanation:</h3>
+              <h3 className="text-sm sm:text-base font-semibold text-blue-900 mb-1.5 sm:mb-2">
+                Explanation:
+              </h3>
               <p className="text-xs sm:text-sm text-blue-800">{currentExercise.explanation}</p>
             </div>
           )}
 
           {hasAnswered && (
-            <button onClick={handleNext} className="w-full btn-primary flex items-center justify-center gap-2">
+            <button
+              onClick={handleNext}
+              className="w-full btn-primary flex items-center justify-center gap-2"
+            >
               {currentIndex < exercises.length - 1 ? (
                 <>
                   Next Exercise

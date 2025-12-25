@@ -14,7 +14,7 @@ export interface JapaneseMetadata {
 
 export interface ChineseMetadata {
   characters: string;
-  pinyinToneMarks: string;  // nǐ hǎo
+  pinyinToneMarks: string; // nǐ hǎo
   pinyinToneNumbers: string; // ni3 hao3
 }
 
@@ -41,7 +41,7 @@ export async function processJapanese(text: string): Promise<JapaneseMetadata> {
       throw new Error(`Furigana service error: ${response.statusText}`);
     }
 
-    const data = await response.json() as JapaneseMetadata;
+    const data = (await response.json()) as JapaneseMetadata;
 
     return {
       kanji: data.kanji,
@@ -81,7 +81,7 @@ export async function processChinese(text: string): Promise<ChineseMetadata> {
       throw new Error(`Pinyin service error: ${response.statusText}`);
     }
 
-    const data = await response.json() as ChineseMetadata;
+    const data = (await response.json()) as ChineseMetadata;
 
     return {
       characters: data.characters,
@@ -153,7 +153,7 @@ export async function processJapaneseBatch(texts: string[]): Promise<JapaneseMet
       throw new Error(`Furigana batch service error: ${response.statusText}`);
     }
 
-    const data = await response.json() as JapaneseMetadata[];
+    const data = (await response.json()) as JapaneseMetadata[];
     return data;
   } catch (error) {
     if (!furiganaServiceWarned) {
@@ -161,7 +161,7 @@ export async function processJapaneseBatch(texts: string[]): Promise<JapaneseMet
       furiganaServiceWarned = true;
     }
     // Return fallback for all texts
-    return texts.map(text => ({
+    return texts.map((text) => ({
       kanji: text,
       kana: text,
       furigana: text,
@@ -191,7 +191,7 @@ export async function processChineseBatch(texts: string[]): Promise<ChineseMetad
       throw new Error(`Pinyin batch service error: ${response.statusText}`);
     }
 
-    const data = await response.json() as ChineseMetadata[];
+    const data = (await response.json()) as ChineseMetadata[];
     return data;
   } catch (error) {
     if (!pinyinServiceWarned) {
@@ -199,7 +199,7 @@ export async function processChineseBatch(texts: string[]): Promise<ChineseMetad
       pinyinServiceWarned = true;
     }
     // Return fallback for all texts
-    return texts.map(text => ({
+    return texts.map((text) => ({
       characters: text,
       pinyinToneMarks: '',
       pinyinToneNumbers: '',
@@ -222,11 +222,11 @@ export async function processLanguageTextBatch(
   switch (languageCode) {
     case 'ja': {
       const japaneseResults = await processJapaneseBatch(texts);
-      return japaneseResults.map(japanese => ({ japanese }));
+      return japaneseResults.map((japanese) => ({ japanese }));
     }
     case 'zh': {
       const chineseResults = await processChineseBatch(texts);
-      return chineseResults.map(chinese => ({ chinese }));
+      return chineseResults.map((chinese) => ({ chinese }));
     }
     case 'es':
       // Spanish is phonetic - return empty metadata for all texts
@@ -245,7 +245,10 @@ export function furiganaToRuby(furigana: string): string {
   // Match pattern: kanji[reading]
   const pattern = /([^[\]]+)\[([^\]]+)\]/g;
 
-  return furigana.replace(pattern, (match, kanji, reading) => `<ruby>${kanji}<rt>${reading}</rt></ruby>`);
+  return furigana.replace(
+    pattern,
+    (match, kanji, reading) => `<ruby>${kanji}<rt>${reading}</rt></ruby>`
+  );
 }
 
 /**

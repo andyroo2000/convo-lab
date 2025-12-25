@@ -8,9 +8,7 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 // Wrapper component for hooks
-const wrapper = ({ children }: { children: ReactNode }) => (
-  <AuthProvider>{children}</AuthProvider>
-);
+const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{children}</AuthProvider>;
 
 describe('AuthContext', () => {
   beforeEach(() => {

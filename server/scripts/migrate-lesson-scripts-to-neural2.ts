@@ -31,7 +31,7 @@ async function migrateLessonScripts() {
     if (!scriptJson || !Array.isArray(scriptJson)) continue;
 
     let hasJourneyVoice = false;
-    const updatedScript = scriptJson.map(unit => {
+    const updatedScript = scriptJson.map((unit) => {
       if (unit.voiceId && voiceMapping[unit.voiceId]) {
         hasJourneyVoice = true;
         return { ...unit, voiceId: voiceMapping[unit.voiceId] };

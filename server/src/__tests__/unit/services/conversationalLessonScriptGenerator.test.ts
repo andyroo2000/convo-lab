@@ -19,8 +19,8 @@ describe('conversationalLessonScriptGenerator', () => {
     nativeLanguage: 'en',
     l1VoiceId: 'en-US-Neural2-D',
     l2VoiceIds: {
-      '田中': 'ja-JP-Neural2-B',
-      '山田': 'ja-JP-Neural2-C',
+      田中: 'ja-JP-Neural2-B',
+      山田: 'ja-JP-Neural2-C',
     },
     jlptLevel: 'N4',
   };
@@ -71,7 +71,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       expect(mockGenerateWithGemini).toHaveBeenCalled();
       const scenarioUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Pretend')
+        (u) => u.type === 'narration_L1' && u.text.includes('Pretend')
       );
       expect(scenarioUnit).toBeDefined();
     });
@@ -89,7 +89,7 @@ describe('conversationalLessonScriptGenerator', () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
       const fallbackUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
+        (u) => u.type === 'narration_L1' && u.text.includes('Welcome to this lesson')
       );
       expect(fallbackUnit).toBeDefined();
     });
@@ -97,17 +97,17 @@ describe('conversationalLessonScriptGenerator', () => {
     it('should include lesson start and end markers', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      const markers = result.units.filter(u => u.type === 'marker');
+      const markers = result.units.filter((u) => u.type === 'marker');
       expect(markers.length).toBeGreaterThanOrEqual(2);
-      expect(markers.some(m => m.label === 'Lesson Start')).toBe(true);
-      expect(markers.some(m => m.label === 'Lesson End')).toBe(true);
+      expect(markers.some((m) => m.label === 'Lesson Start')).toBe(true);
+      expect(markers.some((m) => m.label === 'Lesson End')).toBe(true);
     });
 
     it('should include outro narration', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
       const outroUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('Great work')
+        (u) => u.type === 'narration_L1' && u.text.includes('Great work')
       );
       expect(outroUnit).toBeDefined();
     });
@@ -124,7 +124,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       // User responses should have "You respond:" narration
       const respondUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('You respond')
+        (u) => u.type === 'narration_L1' && u.text.includes('You respond')
       );
       expect(respondUnit).toBeDefined();
     });
@@ -135,7 +135,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       // Should have "says:" narration for other person
       const saysUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('says:')
+        (u) => u.type === 'narration_L1' && u.text.includes('says:')
       );
       expect(saysUnit).toBeDefined();
     });
@@ -143,14 +143,14 @@ describe('conversationalLessonScriptGenerator', () => {
     it('should include L2 units for dialogue', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
+      const l2Units = result.units.filter((u) => u.type === 'L2');
       expect(l2Units.length).toBeGreaterThan(0);
     });
 
     it('should include pause units', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      const pauseUnits = result.units.filter(u => u.type === 'pause');
+      const pauseUnits = result.units.filter((u) => u.type === 'pause');
       expect(pauseUnits.length).toBeGreaterThan(0);
     });
 
@@ -158,14 +158,14 @@ describe('conversationalLessonScriptGenerator', () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
       // Check L1 (narration) uses English voice
-      const l1Units = result.units.filter(u => u.type === 'narration_L1');
-      l1Units.forEach(unit => {
+      const l1Units = result.units.filter((u) => u.type === 'narration_L1');
+      l1Units.forEach((unit) => {
         expect(unit.voiceId).toBe('en-US-Neural2-D');
       });
 
       // Check L2 uses Japanese voice
-      const l2Units = result.units.filter(u => u.type === 'L2');
-      l2Units.forEach(unit => {
+      const l2Units = result.units.filter((u) => u.type === 'L2');
+      l2Units.forEach((unit) => {
         expect(['ja-JP-Neural2-B', 'ja-JP-Neural2-C']).toContain(unit.voiceId);
       });
     });
@@ -175,7 +175,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       // Question translation should be provided
       const translationUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes('That means:')
+        (u) => u.type === 'narration_L1' && u.text.includes('That means:')
       );
       expect(translationUnit).toBeDefined();
     });
@@ -187,7 +187,7 @@ describe('conversationalLessonScriptGenerator', () => {
 
       // Should have vocabulary introduction - looking for "Here's how you say" pattern
       const vocabIntroUnit = result.units.find(
-        u => u.type === 'narration_L1' && u.text.includes("Here's how you say")
+        (u) => u.type === 'narration_L1' && u.text.includes("Here's how you say")
       );
       expect(vocabIntroUnit).toBeDefined();
     });
@@ -226,9 +226,7 @@ describe('conversationalLessonScriptGenerator', () => {
       const result = await generateConversationalLessonScript(exchangesWithDuplicates, mockContext);
 
       // Count how many times 行きました is taught
-      const vocabL2Units = result.units.filter(
-        u => u.type === 'L2' && u.text === '行きました'
-      );
+      const vocabL2Units = result.units.filter((u) => u.type === 'L2' && u.text === '行きました');
       // Should only be taught once (first exchange teaches it, second skips)
       expect(vocabL2Units.length).toBeLessThanOrEqual(2); // At most 2 repetitions from first teaching
     });
@@ -236,8 +234,8 @@ describe('conversationalLessonScriptGenerator', () => {
     it('should include slow and normal speed versions', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
-      const l2Units = result.units.filter(u => u.type === 'L2');
-      const speeds = l2Units.map(u => u.speed);
+      const l2Units = result.units.filter((u) => u.type === 'L2');
+      const speeds = l2Units.map((u) => u.speed);
 
       // Should have both slow (0.75) and normal (1.0) speeds
       expect(speeds).toContain(0.75);
@@ -268,8 +266,8 @@ describe('conversationalLessonScriptGenerator', () => {
       const result = await generateConversationalLessonScript(exchangeWithSlash, mockContext);
 
       // The slash should be replaced with " or "
-      const narratorUnits = result.units.filter(u => u.type === 'narration_L1');
-      const hasSlash = narratorUnits.some(u => u.text.includes('/'));
+      const narratorUnits = result.units.filter((u) => u.type === 'narration_L1');
+      const hasSlash = narratorUnits.some((u) => u.text.includes('/'));
       expect(hasSlash).toBe(false);
     });
 
@@ -304,10 +302,12 @@ describe('conversationalLessonScriptGenerator', () => {
       // Mock Gemini to return progressive chunks
       mockGenerateWithGemini
         .mockResolvedValueOnce('Pretend you are talking to a friend.')
-        .mockResolvedValueOnce(JSON.stringify([
-          { phrase: '楽しい', translation: 'fun' },
-          { phrase: '楽しかった', translation: 'was fun' },
-        ]));
+        .mockResolvedValueOnce(
+          JSON.stringify([
+            { phrase: '楽しい', translation: 'fun' },
+            { phrase: '楽しかった', translation: 'was fun' },
+          ])
+        );
 
       await generateConversationalLessonScript(exchangesForChunks, mockContext);
 

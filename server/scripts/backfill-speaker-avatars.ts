@@ -33,11 +33,15 @@ async function backfillSpeakerAvatars() {
           data: { gender, avatarUrl },
         });
 
-        console.log(`✅ Updated speaker "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})`);
+        console.log(
+          `✅ Updated speaker "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})`
+        );
         console.log(`   Avatar: ${avatarUrl.substring(0, 80)}...\n`);
         successCount++;
       } else {
-        console.log(`⚠️  No matching avatar found for "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})\n`);
+        console.log(
+          `⚠️  No matching avatar found for "${speaker.name}" (${speaker.voiceId}, ${gender}, ${speaker.tone})\n`
+        );
         failureCount++;
       }
     } catch (error) {

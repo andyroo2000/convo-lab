@@ -175,27 +175,27 @@ export default function PISessionPage() {
 
           <div className="space-y-4 mb-8">
             {accuracy >= 90 && (
-              <p className="text-green-700 font-medium">🎉 Excellent work! You're processing は and が very well!</p>
+              <p className="text-green-700 font-medium">
+                🎉 Excellent work! You're processing は and が very well!
+              </p>
             )}
             {accuracy >= 70 && accuracy < 90 && (
-              <p className="text-blue-700 font-medium">👍 Good job! Keep practicing to strengthen your particle processing.</p>
+              <p className="text-blue-700 font-medium">
+                👍 Good job! Keep practicing to strengthen your particle processing.
+              </p>
             )}
             {accuracy < 70 && (
-              <p className="text-yellow-700 font-medium">💪 Keep practicing! Remember to focus on the meaning that each particle creates.</p>
+              <p className="text-yellow-700 font-medium">
+                💪 Keep practicing! Remember to focus on the meaning that each particle creates.
+              </p>
             )}
           </div>
 
           <div className="flex gap-3">
-            <button
-              onClick={handleRestart}
-              className="flex-1 btn-outline"
-            >
+            <button onClick={handleRestart} className="flex-1 btn-outline">
               New Session
             </button>
-            <button
-              onClick={() => navigate('/app/create')}
-              className="flex-1 btn-primary"
-            >
+            <button onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
               Back to Create
             </button>
           </div>
@@ -215,7 +215,8 @@ export default function PISessionPage() {
               Question {currentIndex + 1} of {session.items.length}
             </span>
             <span className="text-sm text-gray-500">
-              {session.jlptLevel} • {GRAMMAR_POINT_NAMES[session.grammarPoint] || session.grammarPoint}
+              {session.jlptLevel} •{' '}
+              {GRAMMAR_POINT_NAMES[session.grammarPoint] || session.grammarPoint}
             </span>
           </div>
           <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -232,9 +233,7 @@ export default function PISessionPage() {
         <div className="card bg-white shadow-xl">
           {/* Question */}
           <div className="mb-8">
-            <h2 className="text-2xl font-bold text-navy mb-4">
-              {currentItem.question}
-            </h2>
+            <h2 className="text-2xl font-bold text-navy mb-4">{currentItem.question}</h2>
 
             {/* Context Sentence (if provided) */}
             {currentItem.contextSentence && (
@@ -256,7 +255,9 @@ export default function PISessionPage() {
                     <Volume2 className="w-5 h-5" />
                     Sentence A
                   </button>
-                  <span className="text-3xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceA}</span>
+                  <span className="text-3xl text-gray-900 font-japanese">
+                    {currentItem.sentencePair.sentenceA}
+                  </span>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg">
                   <button
@@ -266,7 +267,9 @@ export default function PISessionPage() {
                     <Volume2 className="w-5 h-5" />
                     Sentence B
                   </button>
-                  <span className="text-3xl text-gray-900 font-japanese">{currentItem.sentencePair.sentenceB}</span>
+                  <span className="text-3xl text-gray-900 font-japanese">
+                    {currentItem.sentencePair.sentenceB}
+                  </span>
                 </div>
                 <audio
                   ref={audioRefA}
@@ -322,10 +325,10 @@ export default function PISessionPage() {
                     showResult && choice.isCorrect
                       ? 'border-green-500 bg-green-50'
                       : showResult && !choice.isCorrect
-                      ? 'border-red-500 bg-red-50'
-                      : isSelected
-                      ? 'border-indigo-500 bg-indigo-50'
-                      : 'border-gray-200 bg-white hover:border-gray-300'
+                        ? 'border-red-500 bg-red-50'
+                        : isSelected
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-200 bg-white hover:border-gray-300'
                   } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-start justify-between">
@@ -351,9 +354,7 @@ export default function PISessionPage() {
           {hasAnswered && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-blue-900 mb-2">Explanation:</h3>
-              <p className="text-sm text-blue-800 leading-relaxed">
-                {currentItem.explanation}
-              </p>
+              <p className="text-sm text-blue-800 leading-relaxed">{currentItem.explanation}</p>
             </div>
           )}
 

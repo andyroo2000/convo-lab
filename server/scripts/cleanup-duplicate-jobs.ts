@@ -42,11 +42,15 @@ async function cleanupDuplicates() {
         const toKeep = jobs[0];
         const toRemove = jobs.slice(1);
 
-        console.log(`   ✅ Keeping job #${toKeep.id} (created: ${new Date(toKeep.timestamp).toISOString()})`);
+        console.log(
+          `   ✅ Keeping job #${toKeep.id} (created: ${new Date(toKeep.timestamp).toISOString()})`
+        );
 
         for (const job of toRemove) {
           await job.remove();
-          console.log(`   ❌ Removed job #${job.id} (created: ${new Date(job.timestamp).toISOString()})`);
+          console.log(
+            `   ❌ Removed job #${job.id} (created: ${new Date(job.timestamp).toISOString()})`
+          );
           removedCount++;
         }
 
@@ -58,7 +62,6 @@ async function cleanupDuplicates() {
     console.log(`✅ Cleanup complete!`);
     console.log(`   Removed ${removedCount} duplicate jobs`);
     console.log(`   Remaining waiting jobs: ${waitingJobs.length - removedCount}`);
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

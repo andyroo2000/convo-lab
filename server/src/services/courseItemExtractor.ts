@@ -1,5 +1,5 @@
 import { Episode, Sentence } from '@prisma/client';
-import { LanguageCode } from "@languageflow/shared/src/types.js";
+import { LanguageCode } from '@languageflow/shared/src/types.js';
 import { generateWithGemini } from './geminiClient.js';
 // import { getVoicesByGender } from '../../../shared/src/voiceSelection.ts';
 
@@ -61,7 +61,7 @@ export async function extractCoreItems(
     throw new Error('Episode has no dialogue sentences');
   }
 
-  const {sentences} = episode.dialogue;
+  const { sentences } = episode.dialogue;
   const targetLang = episode.targetLanguage;
 
   // Score and rank all sentences
@@ -94,7 +94,7 @@ export async function extractCoreItems(
 
   // Batch decompose all phrases in a single API call
   const allComponents = await batchDecomposePhrasesForPimsleur(
-    sentencesToDecompose.map(item => ({
+    sentencesToDecompose.map((item) => ({
       textL2: item.sentence.text,
       translationL1: item.sentence.translation,
       readingL2: extractReading(item.sentence, targetLang),
@@ -129,7 +129,7 @@ export async function extractCoreItems(
  * Considers: length, character complexity, question vs statement
  */
 function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: string): number {
-  const {text} = sentence;
+  const { text } = sentence;
   let score = 0;
 
   // Base score: character count
@@ -152,7 +152,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
 
     // Common particles indicate natural sentence structure (good for drilling)
     const commonParticles = ['か', 'ね', 'よ', 'ください'];
-    if (commonParticles.some(p => text.includes(p))) {
+    if (commonParticles.some((p) => text.includes(p))) {
       score -= 3;
     }
   } else if (targetLang === 'zh') {
@@ -199,7 +199,8 @@ function extractReading(sentence: SentenceWithMetadata, targetLang: string): str
 
   if (targetLang === 'ja' && metadata?.japanese?.kana) {
     return metadata.japanese.kana;
-  } if (targetLang === 'zh' && metadata?.chinese?.pinyin) {
+  }
+  if (targetLang === 'zh' && metadata?.chinese?.pinyin) {
     return metadata.chinese.pinyin;
   }
 
@@ -225,9 +226,10 @@ async function batchDecomposePhrasesForPimsleur(
 
   // Filter out very short phrases that don't need decomposition
   const phrasesNeedingDecomposition = phrases.map((phrase, index) => {
-    const wordCount = targetLang === 'ja' || targetLang === 'zh'
-      ? phrase.textL2.length
-      : phrase.textL2.split(/\s+/).length;
+    const wordCount =
+      targetLang === 'ja' || targetLang === 'zh'
+        ? phrase.textL2.length
+        : phrase.textL2.split(/\s+/).length;
 
     return {
       phrase,
@@ -237,16 +239,18 @@ async function batchDecomposePhrasesForPimsleur(
   });
 
   // Build prompt for all phrases at once
-  const phrasesToDecompose = phrasesNeedingDecomposition.filter(p => p.needsDecomposition);
+  const phrasesToDecompose = phrasesNeedingDecomposition.filter((p) => p.needsDecomposition);
 
   if (phrasesToDecompose.length === 0) {
     // All phrases are too short, return simple components
-    return phrases.map(phrase => [{
-      textL2: phrase.textL2,
-      readingL2: phrase.readingL2 || undefined,
-      translationL1: phrase.translationL1,
-      order: 0,
-    }]);
+    return phrases.map((phrase) => [
+      {
+        textL2: phrase.textL2,
+        readingL2: phrase.readingL2 || undefined,
+        translationL1: phrase.translationL1,
+        order: 0,
+      },
+    ]);
   }
 
   const prompt = `You are a language teaching expert specializing in the Pimsleur Method's backward-build technique.
@@ -261,9 +265,13 @@ Example for Japanese "東京に行きたいです" (I want to go to Tokyo):
 - Component 2: "東京に行きたいです" → "want to go to Tokyo" (add full phrase)
 
 Phrases to decompose:
-${phrasesToDecompose.map((item, i) => `
+${phrasesToDecompose
+  .map(
+    (item, i) => `
 ${i + 1}. Phrase: "${item.phrase.textL2}"
-   ${item.phrase.readingL2 ? `Reading: "${item.phrase.readingL2}"\n   ` : ''}Translation: "${item.phrase.translationL1}"`).join('\n')}
+   ${item.phrase.readingL2 ? `Reading: "${item.phrase.readingL2}"\n   ` : ''}Translation: "${item.phrase.translationL1}"`
+  )
+  .join('\n')}
 
 Return ONLY a JSON object with this structure (no markdown, no explanation):
 {
@@ -316,32 +324,38 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
 
       if (!phraseInfo.needsDecomposition) {
         // Simple phrase, return as single component
-        results.push([{
-          textL2: phrases[i].textL2,
-          readingL2: phrases[i].readingL2 || undefined,
-          translationL1: phrases[i].translationL1,
-          order: 0,
-        }]);
-      } else {
-        // Find decomposition result for this phrase
-        const decompositionIndex = phrasesToDecompose.findIndex(p => p.index === i);
-        const decomposition = parsed.phrases[decompositionIndex];
-
-        if (decomposition && decomposition.components) {
-          results.push(decomposition.components.map((comp: any) => ({
-            textL2: comp.textL2 || comp.text,
-            readingL2: comp.reading || comp.readingL2,
-            translationL1: comp.translation || comp.translationL1,
-            order: comp.order || 0,
-          })));
-        } else {
-          // Fallback: return full phrase as single component
-          results.push([{
+        results.push([
+          {
             textL2: phrases[i].textL2,
             readingL2: phrases[i].readingL2 || undefined,
             translationL1: phrases[i].translationL1,
             order: 0,
-          }]);
+          },
+        ]);
+      } else {
+        // Find decomposition result for this phrase
+        const decompositionIndex = phrasesToDecompose.findIndex((p) => p.index === i);
+        const decomposition = parsed.phrases[decompositionIndex];
+
+        if (decomposition && decomposition.components) {
+          results.push(
+            decomposition.components.map((comp: any) => ({
+              textL2: comp.textL2 || comp.text,
+              readingL2: comp.reading || comp.readingL2,
+              translationL1: comp.translation || comp.translationL1,
+              order: comp.order || 0,
+            }))
+          );
+        } else {
+          // Fallback: return full phrase as single component
+          results.push([
+            {
+              textL2: phrases[i].textL2,
+              readingL2: phrases[i].readingL2 || undefined,
+              translationL1: phrases[i].translationL1,
+              order: 0,
+            },
+          ]);
         }
       }
     }
@@ -351,12 +365,14 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
     console.error('Failed to batch decompose phrases, using fallback:', err);
 
     // Fallback: return all phrases as single components
-    return phrases.map(phrase => [{
-      textL2: phrase.textL2,
-      readingL2: phrase.readingL2 || undefined,
-      translationL1: phrase.translationL1,
-      order: 0,
-    }]);
+    return phrases.map((phrase) => [
+      {
+        textL2: phrase.textL2,
+        readingL2: phrase.readingL2 || undefined,
+        translationL1: phrase.translationL1,
+        order: 0,
+      },
+    ]);
   }
 }
 
@@ -378,18 +394,21 @@ async function decomposePhraseForPimsleur(
   readingL2: string | null
 ): Promise<PhraseComponent[]> {
   // For very short phrases (1-2 words), don't decompose
-  const wordCount = targetLang === 'ja' || targetLang === 'zh'
-    ? textL2.length  // Character count for Asian languages
-    : textL2.split(/\s+/).length; // Word count for others
+  const wordCount =
+    targetLang === 'ja' || targetLang === 'zh'
+      ? textL2.length // Character count for Asian languages
+      : textL2.split(/\s+/).length; // Word count for others
 
   if (wordCount <= 3) {
     // Just return the full phrase as a single component
-    return [{
-      textL2,
-      readingL2: readingL2 || undefined,
-      translationL1,
-      order: 0,
-    }];
+    return [
+      {
+        textL2,
+        readingL2: readingL2 || undefined,
+        translationL1,
+        order: 0,
+      },
+    ];
   }
 
   const prompt = `You are a language teaching expert specializing in the Pimsleur Method's backward-build technique.
@@ -450,12 +469,14 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
     console.error('Failed to decompose phrase, using fallback:', err);
 
     // Fallback: just return the full phrase
-    return [{
-      textL2,
-      readingL2: readingL2 || undefined,
-      translationL1,
-      order: 0,
-    }];
+    return [
+      {
+        textL2,
+        readingL2: readingL2 || undefined,
+        translationL1,
+        order: 0,
+      },
+    ];
   }
 }
 
@@ -547,20 +568,24 @@ Return ONLY a JSON array (no markdown, no explanation):
  * UPDATED: Now splits long sentences and extracts based on target duration
  */
 export async function extractDialogueExchanges(
-  episode: Episode & { dialogue: { sentences: (SentenceWithMetadata & { speaker: any })[] } | null },
+  episode: Episode & {
+    dialogue: { sentences: (SentenceWithMetadata & { speaker: any })[] } | null;
+  },
   targetDurationMinutes: number = 15
 ): Promise<DialogueExchange[]> {
   if (!episode.dialogue || !episode.dialogue.sentences.length) {
     throw new Error('Episode has no dialogue sentences');
   }
 
-  const {sentences} = episode.dialogue;
+  const { sentences } = episode.dialogue;
   const targetLang = episode.targetLanguage;
 
   // FIRST: Split long sentences (those with multiple questions or statements)
   const splitSentences = await splitLongSentences(sentences, targetLang);
 
-  console.log(`Split ${sentences.length} sentences into ${splitSentences.length} shorter exchanges`);
+  console.log(
+    `Split ${sentences.length} sentences into ${splitSentences.length} shorter exchanges`
+  );
 
   // Estimate how many exchanges we need for target duration
   // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
@@ -570,11 +595,14 @@ export async function extractDialogueExchanges(
   const targetExchangeCount = Math.floor(targetSeconds / estimatedSecondsPerExchange);
 
   // Use all available sentences if we don't have enough, otherwise select diverse subset
-  const selectedSentences = splitSentences.length <= targetExchangeCount
-    ? splitSentences
-    : selectDiverseSentences(splitSentences, targetExchangeCount);
+  const selectedSentences =
+    splitSentences.length <= targetExchangeCount
+      ? splitSentences
+      : selectDiverseSentences(splitSentences, targetExchangeCount);
 
-  console.log(`Selected ${selectedSentences.length} exchanges for ~${targetDurationMinutes} minute lesson`);
+  console.log(
+    `Selected ${selectedSentences.length} exchanges for ~${targetDurationMinutes} minute lesson`
+  );
 
   // Extract vocabulary from each exchange in a single batch API call
   const vocabExtractionPrompt = `You are a language teaching expert. Extract 2-4 key vocabulary words or short phrases from each of these ${targetLang.toUpperCase()} sentences that would be useful to teach in isolation.
@@ -713,7 +741,9 @@ export async function extractDialogueExchangesFromSourceText(
   speaker2VoiceId?: string
 ): Promise<DialogueExchange[]> {
   console.log(`Extracting dialogue from source text for episode: ${episodeTitle}`);
-  console.log(`Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`);
+  console.log(
+    `Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`
+  );
 
   // Estimate how many exchanges we need for target duration
   // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
@@ -767,7 +797,9 @@ Examples of BAD turn length (TOO LONG):
 - "I went to Hokkaido last month and stayed for two weeks cycling around the island, and the weather was perfect except for one rainy day." (too many ideas)
 - "That sounds wonderful! I've always wanted to visit Hokkaido. Did you enjoy the food there and what was your favorite place?" (multiple topics)
 
-${targetLanguage === 'ja' ? `
+${
+  targetLanguage === 'ja'
+    ? `
 IMPORTANT for Japanese vocabulary:
 - "word" should contain ONLY Japanese characters (kanji/kana), NO romanization
 - "reading" should contain the hiragana reading (e.g., "ほっかいどう" for 北海道)
@@ -779,7 +811,9 @@ IMPORTANT for Japanese vocabulary:
   - N1 = advanced
 - Do NOT include romanization in parentheses
 - Example: {"word": "北海道", "reading": "ほっかいどう", "translation": "Hokkaido", "jlptLevel": "N4"}
-` : ''}
+`
+    : ''
+}
 
 Return ONLY a JSON object (no markdown, no explanation):
 {
@@ -826,7 +860,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Speaker 1 (friend) defaults to first female voice, Speaker 2 (listener) defaults to first male voice
     const availableVoices = [
       speaker1VoiceId || 'ja-JP-NanamiNeural', // Speaker 1 (friend) - temp default
-      speaker2VoiceId || 'ja-JP-KeitaNeural',   // Speaker 2 (listener) - temp default
+      speaker2VoiceId || 'ja-JP-KeitaNeural', // Speaker 2 (listener) - temp default
     ];
 
     // Track unique speakers and assign voices
@@ -839,8 +873,8 @@ Return ONLY a JSON object (no markdown, no explanation):
 
       if (!voiceId) {
         // Try to find voice from original dialogue speakers if names match
-        voiceId = speakerVoices?.find(v =>
-          v.speakerName.toLowerCase() === exchange.speakerName.toLowerCase()
+        voiceId = speakerVoices?.find(
+          (v) => v.speakerName.toLowerCase() === exchange.speakerName.toLowerCase()
         )?.voiceId;
 
         // Otherwise assign next available voice
@@ -885,7 +919,9 @@ Return ONLY a JSON object (no markdown, no explanation):
     return exchanges;
   } catch (err) {
     console.error('Failed to extract dialogue from source text:', err);
-    throw new Error(`Failed to generate dialogue exchanges: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to generate dialogue exchanges: ${err instanceof Error ? err.message : 'Unknown error'}`
+    );
   }
 }
 
@@ -894,11 +930,11 @@ Return ONLY a JSON object (no markdown, no explanation):
  */
 function getJLPTDescription(level: string): string {
   const descriptions: Record<string, string> = {
-    'N5': 'Beginner - Basic grammar, ~700 vocabulary words',
-    'N4': 'Upper Beginner - Elementary grammar, ~1500 vocabulary words',
-    'N3': 'Intermediate - Everyday grammar, ~3750 vocabulary words',
-    'N2': 'Upper Intermediate - Advanced grammar, ~6000 vocabulary words',
-    'N1': 'Advanced - Complex grammar, ~10000 vocabulary words',
+    N5: 'Beginner - Basic grammar, ~700 vocabulary words',
+    N4: 'Upper Beginner - Elementary grammar, ~1500 vocabulary words',
+    N3: 'Intermediate - Everyday grammar, ~3750 vocabulary words',
+    N2: 'Upper Intermediate - Advanced grammar, ~6000 vocabulary words',
+    N1: 'Advanced - Complex grammar, ~10000 vocabulary words',
   };
   return descriptions[level] || level;
 }
@@ -907,10 +943,7 @@ function getJLPTDescription(level: string): string {
  * Extract vocabulary from individual sentences (for future use)
  * This could be used to extract sub-phrases or individual words
  */
-export function extractVocabularyFromSentence(
-  sentence: string,
-  targetLang: string
-): string[] {
+export function extractVocabularyFromSentence(sentence: string, targetLang: string): string[] {
   // Future enhancement: use NLP to extract key vocabulary
   // For now, just return the full sentence
   return [sentence];

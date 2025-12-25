@@ -9,7 +9,7 @@ interface EmptySearchResultsProps {
 export default function EmptySearchResults({
   searchQuery,
   onClearSearch,
-  suggestions
+  suggestions,
 }: EmptySearchResultsProps) {
   return (
     <div className="text-center py-12 px-4">
@@ -32,10 +32,7 @@ export default function EmptySearchResults({
           </ul>
         </div>
       )}
-      <button
-        onClick={onClearSearch}
-        className="btn-outline"
-      >
+      <button onClick={onClearSearch} className="btn-outline">
         Clear Search
       </button>
     </div>

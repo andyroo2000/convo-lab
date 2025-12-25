@@ -1,13 +1,15 @@
 import { vi } from 'vitest';
 
 // Mock ffprobe function
-export const mockFfprobe = vi.fn((filePath: string, callback: (err: Error | null, metadata: any) => void) => {
-  callback(null, {
-    format: {
-      duration: 120, // 120 seconds
-    },
-  });
-});
+export const mockFfprobe = vi.fn(
+  (filePath: string, callback: (err: Error | null, metadata: any) => void) => {
+    callback(null, {
+      format: {
+        duration: 120, // 120 seconds
+      },
+    });
+  }
+);
 
 // Mock ffmpeg fluent interface
 export const mockFfmpegOn = vi.fn();
@@ -35,7 +37,7 @@ export const createMockFfmpegChain = () => {
   };
 
   // Make all methods chainable
-  Object.keys(chain).forEach(key => {
+  Object.keys(chain).forEach((key) => {
     if (key !== 'run') {
       chain[key].mockReturnValue(chain);
     }
