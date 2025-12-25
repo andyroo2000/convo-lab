@@ -11,7 +11,8 @@
   },
   "step3": {
     "title": "What's your proficiency level?",
-    "description": "This helps us create content at the right difficulty"
+    "description": "This helps us create content at the right difficulty",
+    "levels": {}
   },
   "buttons": {
     "next": "Next →",

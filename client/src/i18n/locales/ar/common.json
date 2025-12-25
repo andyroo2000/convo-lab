@@ -23,6 +23,8 @@
     "logout": "تسجيل الخروج",
     "backToHome": "العودة للرئيسية"
   },
+  "admin": "المسؤول",
+  "settings": "الإعدادات",
   "tagline": "مختبرك الشخصي للغات بالذكاء الاصطناعي",
   "footer": "من Conversational Dynamics Consulting Group",
   "error": {

@@ -23,6 +23,8 @@
     "logout": "Logout",
     "backToHome": "Back to Home"
   },
+  "admin": "Admin",
+  "settings": "Settings",
   "tagline": "Your personal AI language lab",
   "footer": "By Conversational Dynamics Consulting Group",
   "error": {
