@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// Create hoisted mock for fetch
-const mockFetch = vi.hoisted(() => vi.fn());
-
-vi.stubGlobal('fetch', mockFetch);
-
 // Import after mocking
 import {
   processJapanese,
@@ -17,6 +12,11 @@ import {
   extractKanjiFromFurigana,
   extractReadingFromFurigana,
 } from '../../../services/languageProcessor.js';
+
+// Create hoisted mock for fetch
+const mockFetch = vi.hoisted(() => vi.fn());
+
+vi.stubGlobal('fetch', mockFetch);
 
 describe('languageProcessor', () => {
   beforeEach(() => {

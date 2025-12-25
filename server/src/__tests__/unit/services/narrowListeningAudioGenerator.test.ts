@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import {
+  generateNarrowListeningAudio,
+  assignVoicesToSegments,
+  type VoiceInfo,
+  type SegmentData,
+} from '../../../services/narrowListeningAudioGenerator.js';
+
 // Hoisted mocks
 const mockGenerateSilence = vi.hoisted(() => vi.fn());
 const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
@@ -62,14 +70,6 @@ vi.mock('fs', () => ({
 vi.mock('child_process', () => ({
   execSync: vi.fn(() => '/usr/bin/ffmpeg'),
 }));
-
-// Import after mocking
-import {
-  generateNarrowListeningAudio,
-  assignVoicesToSegments,
-  type VoiceInfo,
-  type SegmentData,
-} from '../../../services/narrowListeningAudioGenerator.js';
 
 describe('narrowListeningAudioGenerator', () => {
   const mockSegments: SegmentData[] = [

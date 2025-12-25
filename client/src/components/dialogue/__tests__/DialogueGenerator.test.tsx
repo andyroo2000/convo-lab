@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '../../../test/utils';
 import { MemoryRouter } from 'react-router-dom';
+import { render, screen, fireEvent, waitFor, act } from '../../../test/utils';
+
+import DialogueGenerator from '../DialogueGenerator';
 
 // Mock hooks
 const mockCreateEpisode = vi.fn();
@@ -83,8 +85,6 @@ vi.mock('../../common/DemoRestrictionModal', () => ({
     ) : null,
 }));
 
-import DialogueGenerator from '../DialogueGenerator';
-
 describe('DialogueGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -103,13 +103,11 @@ describe('DialogueGenerator', () => {
     vi.useRealTimers();
   });
 
-  const renderDialogueGenerator = () => {
-    return render(
+  const renderDialogueGenerator = () => render(
       <MemoryRouter>
         <DialogueGenerator />
       </MemoryRouter>
     );
-  };
 
   describe('rendering', () => {
     it('should render the form with source text input', () => {

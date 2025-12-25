@@ -1,13 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 
+import { planCourse, estimateLessonDuration } from '../../../services/coursePlanner.js';
+
 // Mock the courseItemExtractor to avoid its heavy dependencies (Prisma, Gemini)
 vi.mock('../../../services/courseItemExtractor.js', () => ({
   CoreItem: {},
   extractCoreItems: vi.fn(),
   extractDialogueExchanges: vi.fn(),
 }));
-
-import { planCourse, estimateLessonDuration } from '../../../services/coursePlanner.js';
 
 // Define CoreItem interface locally
 interface CoreItem {
@@ -87,7 +87,7 @@ describe('coursePlanner', () => {
     it('should sort drill events by target time', () => {
       const coreItems = createMockCoreItems(3);
       const course = planCourse(coreItems, 'Test');
-      const drillEvents = course.lessons[0].drillEvents;
+      const {drillEvents} = course.lessons[0];
 
       for (let i = 1; i < drillEvents.length; i++) {
         expect(drillEvents[i].targetOffsetSeconds).toBeGreaterThanOrEqual(

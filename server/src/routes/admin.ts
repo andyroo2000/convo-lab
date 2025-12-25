@@ -1,10 +1,10 @@
 import { Router } from 'express';
+import crypto from 'crypto';
+import multer from 'multer';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
-import crypto from 'crypto';
-import multer from 'multer';
 import {
   uploadUserAvatar,
   uploadSpeakerAvatar,

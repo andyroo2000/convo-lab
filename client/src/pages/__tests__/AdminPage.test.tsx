@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import AdminPage from '../AdminPage';
+
 const mockNavigate = vi.fn();
 const mockUser = vi.hoisted(() => ({ value: { id: 'admin-1', email: 'admin@test.com', role: 'admin' } }));
 
@@ -38,8 +40,6 @@ Object.assign(navigator, {
 
 // Mock window.confirm
 global.confirm = vi.fn();
-
-import AdminPage from '../AdminPage';
 
 const mockUsers = [
   {
@@ -132,15 +132,13 @@ describe('AdminPage', () => {
     (global.confirm as any).mockReturnValue(true);
   });
 
-  const renderPage = (tab = 'users') => {
-    return render(
+  const renderPage = (tab = 'users') => render(
       <MemoryRouter initialEntries={[`/app/admin/${tab}`]}>
         <Routes>
           <Route path="/app/admin/:tab?" element={<AdminPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('access control', () => {
     it('should redirect non-admin users', () => {
@@ -236,9 +234,9 @@ describe('AdminPage', () => {
     it('should handle search input change', async () => {
       renderPage('users');
 
+      fireEvent.change(searchInput, { target: { value: 'user1' } });
       await waitFor(async () => {
         const searchInput = screen.getByPlaceholderText('Search users by name or email...');
-        fireEvent.change(searchInput, { target: { value: 'user1' } });
         expect(searchInput).toHaveValue('user1');
       });
     });
@@ -246,9 +244,9 @@ describe('AdminPage', () => {
     it('should fetch users when search button is clicked', async () => {
       renderPage('users');
 
+      fireEvent.click(searchButton);
       await waitFor(async () => {
         const searchButton = screen.getByText('Search');
-        fireEvent.click(searchButton);
 
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/api/admin/users'),
@@ -359,9 +357,9 @@ describe('AdminPage', () => {
 
       renderPage('invite-codes');
 
+      fireEvent.click(createButton);
       await waitFor(async () => {
         const createButton = screen.getByText('Create Code');
-        fireEvent.click(createButton);
 
         await waitFor(() => {
           expect(global.fetch).toHaveBeenCalledWith(
@@ -375,9 +373,9 @@ describe('AdminPage', () => {
     it('should handle copying invite code', async () => {
       renderPage('invite-codes');
 
+      fireEvent.click(copyButtons[0]);
       await waitFor(async () => {
         const copyButtons = screen.getAllByTitle('Copy code');
-        fireEvent.click(copyButtons[0]);
 
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD1234');
       });

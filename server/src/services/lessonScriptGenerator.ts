@@ -164,7 +164,7 @@ async function generateSectionScriptBatched(
 
     case 'core_intro':
       if (batch1Results && section.coreItems) {
-        const coreItems = section.coreItems;
+        const {coreItems} = section;
         for (let i = 0; i < coreItems.length; i++) {
           const item = coreItems[i];
           const introNarration = batch1Results.coreIntros[i] || 'Listen carefully to this phrase.';
@@ -1146,7 +1146,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
       case 'L2':
         // Estimate speech duration: ~150 words per minute (2.5 words/sec)
         // For CJK languages, ~3 characters per second
-        const text = unit.text;
+        const {text} = unit;
         const isCJK = /[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]/.test(text);
 
         if (isCJK) {
@@ -1158,7 +1158,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
 
         // Adjust for speed if specified
         if (unit.type === 'L2' && unit.speed) {
-          total = total / unit.speed;
+          total /= unit.speed;
         }
         break;
 

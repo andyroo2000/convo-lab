@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateLessonScript, LessonScriptUnit, GeneratedScript } from '../../../services/lessonScriptGenerator.js';
+import { LessonPlan, LessonSection, DrillEvent } from '../../../services/lessonPlanner.js';
+import { CoreItem } from '../../../services/courseItemExtractor.js';
+
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 
@@ -7,15 +12,9 @@ vi.mock('../../../services/geminiClient.js', () => ({
   generateWithGemini: mockGenerateWithGemini,
 }));
 
-// Import after mocking
-import { generateLessonScript, LessonScriptUnit, GeneratedScript } from '../../../services/lessonScriptGenerator.js';
-import { LessonPlan, LessonSection, DrillEvent } from '../../../services/lessonPlanner.js';
-import { CoreItem } from '../../../services/courseItemExtractor.js';
-
 describe('lessonScriptGenerator', () => {
   // Helper to create mock core items
-  const createCoreItems = (count: number): CoreItem[] => {
-    return Array.from({ length: count }, (_, i) => ({
+  const createCoreItems = (count: number): CoreItem[] => Array.from({ length: count }, (_, i) => ({
       id: `item-${i}`,
       textL2: `Japanese text ${i}`,
       readingL2: `reading ${i}`,
@@ -25,11 +24,9 @@ describe('lessonScriptGenerator', () => {
       sourceSentenceId: `sentence-${i}`,
       order: i,
     }));
-  };
 
   // Helper to create a mock lesson plan
-  const createMockLessonPlan = (coreItems: CoreItem[]): LessonPlan => {
-    return {
+  const createMockLessonPlan = (coreItems: CoreItem[]): LessonPlan => ({
       lessonNumber: 1,
       title: 'Test Lesson - Lesson 1',
       coreItems,
@@ -61,8 +58,7 @@ describe('lessonScriptGenerator', () => {
         },
       ] as DrillEvent[],
       totalEstimatedDuration: 1200,
-    };
-  };
+    });
 
   const mockContext = {
     episodeTitle: 'Test Episode',
@@ -216,11 +212,11 @@ describe('lessonScriptGenerator', () => {
       const coreItems = createCoreItems(3);
       const lessonPlan = createMockLessonPlan(coreItems);
 
-      const batch1Response = '```json\n' + JSON.stringify({
+      const batch1Response = `\`\`\`json\n${  JSON.stringify({
         lessonIntro: 'Welcome!',
         coreItemIntros: ['Intro 1', 'Intro 2', 'Intro 3'],
         earlySRSIntro: 'Practice time.',
-      }) + '\n```';
+      })  }\n\`\`\``;
 
       mockGenerateWithGemini
         .mockReset()

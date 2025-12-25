@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { DEFAULT_NARRATOR_VOICES } from "@languageflow/shared/src/constants-new.js";
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
@@ -8,7 +9,6 @@ import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { courseQueue } from '../jobs/courseQueue.js';
-import { DEFAULT_NARRATOR_VOICES } from '../../../shared/src/constants-new.js';
 import { generateWithGemini } from '../services/geminiClient.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 import i18next from '../i18n/index.js';

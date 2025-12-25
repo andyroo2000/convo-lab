@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateDialogue } from '../../../services/dialogueGenerator.js';
+
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 const mockGetAvatarUrlFromVoice = vi.hoisted(() => vi.fn());
@@ -38,9 +41,6 @@ vi.mock('../../../services/languageProcessor.js', () => ({
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
 }));
-
-// Import after mocking
-import { generateDialogue } from '../../../services/dialogueGenerator.js';
 
 describe('dialogueGenerator', () => {
   const mockEpisode = {
@@ -145,7 +145,7 @@ describe('dialogueGenerator', () => {
     });
 
     it('should strip markdown code fences from response', async () => {
-      mockGenerateWithGemini.mockResolvedValue('```json\n' + JSON.stringify(mockDialogueResponse) + '\n```');
+      mockGenerateWithGemini.mockResolvedValue(`\`\`\`json\n${  JSON.stringify(mockDialogueResponse)  }\n\`\`\``);
 
       const result = await generateDialogue({
         episodeId: 'episode-123',

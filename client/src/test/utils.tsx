@@ -1,7 +1,7 @@
 import { render, RenderOptions } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
-import i18n from '../i18n';
 import { ReactElement } from 'react';
+import i18n from '../i18n';
 
 /**
  * Custom render function that wraps components with i18n provider

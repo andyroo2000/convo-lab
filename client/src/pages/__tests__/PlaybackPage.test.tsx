@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import PlaybackPage from '../PlaybackPage';
+import type { Episode } from '../../types';
+
 // Use vi.hoisted to ensure mock functions are available when vi.mock runs (which is hoisted)
 const mockGetEpisode = vi.hoisted(() => vi.fn());
 const mockGenerateAudio = vi.hoisted(() => vi.fn());
@@ -67,9 +70,6 @@ Object.defineProperty(window, 'scrollTo', {
   writable: true,
   value: vi.fn(),
 });
-
-import PlaybackPage from '../PlaybackPage';
-import type { Episode } from '../../types';
 
 const mockEpisode: Episode = {
   id: 'episode-123',
@@ -216,15 +216,13 @@ describe('PlaybackPage', () => {
     vi.clearAllMocks();
   });
 
-  const renderPlaybackPage = (episodeId = 'episode-123') => {
-    return render(
+  const renderPlaybackPage = (episodeId = 'episode-123') => render(
       <MemoryRouter initialEntries={[`/playback/${episodeId}`]}>
         <Routes>
           <Route path="/playback/:episodeId" element={<PlaybackPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('loading state', () => {
     it('should exist as loading state is managed by useEpisodes hook', () => {
@@ -367,9 +365,9 @@ describe('PlaybackPage', () => {
     it('should call seek when clicking a sentence', async () => {
       renderPlaybackPage();
 
+      fireEvent.click(sentence);
       await waitFor(() => {
         const sentence = screen.getByTestId('playback-sentence-sentence-1');
-        fireEvent.click(sentence);
       });
 
       // seek should be called with the start time in seconds
@@ -379,9 +377,9 @@ describe('PlaybackPage', () => {
     it('should call play when clicking sentence if not playing', async () => {
       renderPlaybackPage();
 
+      fireEvent.click(sentence);
       await waitFor(() => {
         const sentence = screen.getByTestId('playback-sentence-sentence-1');
-        fireEvent.click(sentence);
       });
 
       expect(mockPlay).toHaveBeenCalled();
@@ -404,8 +402,8 @@ describe('PlaybackPage', () => {
       await waitFor(() => {
         // Speaker names should be in the DOM (田中 and 鈴木)
         expect(document.body.textContent).toContain('田中');
-        expect(document.body.textContent).toContain('鈴木');
-      });
+      })
+      expect(document.body.textContent).toContain('鈴木');;
     });
   });
 

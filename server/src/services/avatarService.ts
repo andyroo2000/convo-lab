@@ -2,9 +2,9 @@ import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { TTS_VOICES } from "@languageflow/shared/src/constants-new.js";
 import { uploadToGCS } from './storageClient.js';
 import { prisma } from '../db/client.js';
-import { TTS_VOICES } from '../../../shared/src/constants-new.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,7 +32,7 @@ export async function cropAndResizeImage(
   const width = Math.min(Math.round(cropArea.width), metadata.width! - left);
   const height = Math.min(Math.round(cropArea.height), metadata.height! - top);
 
-  return await sharp(imageBuffer)
+  return sharp(imageBuffer)
     .extract({
       left,
       top,
@@ -167,7 +167,7 @@ export async function recropSpeakerAvatar(
   const imageBuffer = Buffer.from(await response.arrayBuffer());
 
   // Re-upload with new crop
-  return await uploadSpeakerAvatar(filename, imageBuffer, cropArea);
+  return uploadSpeakerAvatar(filename, imageBuffer, cropArea);
 }
 
 /**
@@ -190,7 +190,7 @@ export async function getSpeakerAvatarOriginalUrl(filename: string): Promise<str
  * Get all speaker avatars from database
  */
 export async function getAllSpeakerAvatars() {
-  return await prisma.speakerAvatar.findMany({
+  return prisma.speakerAvatar.findMany({
     orderBy: [
       { language: 'asc' },
       { gender: 'asc' },
@@ -203,7 +203,7 @@ export async function getAllSpeakerAvatars() {
  * Get a speaker avatar by filename
  */
 export async function getSpeakerAvatar(filename: string) {
-  return await prisma.speakerAvatar.findUnique({
+  return prisma.speakerAvatar.findUnique({
     where: { filename },
   });
 }

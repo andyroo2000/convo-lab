@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import Logo from '../components/common/Logo';
 import { ArrowLeft, Mail } from 'lucide-react';
+import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 

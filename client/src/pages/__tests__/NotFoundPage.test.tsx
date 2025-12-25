@@ -19,13 +19,11 @@ vi.mock('react-router-dom', async () => {
 });
 
 describe('NotFoundPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <NotFoundPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();

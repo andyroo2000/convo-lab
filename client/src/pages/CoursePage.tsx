@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { ArrowLeft, BookOpen, Clock } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { ArrowLeft, BookOpen, Clock } from 'lucide-react';
 
 export default function CoursePage() {
   const { courseId } = useParams<{ courseId: string }>();

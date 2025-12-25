@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
-import { ArrowLeft, CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 

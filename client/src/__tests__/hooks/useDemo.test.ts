@@ -1,15 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 
+// Import after mocking
+import { useIsDemo } from '../../hooks/useDemo';
+
 // Mock the AuthContext
 const mockUseAuth = vi.hoisted(() => vi.fn());
 
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: mockUseAuth,
 }));
-
-// Import after mocking
-import { useIsDemo } from '../../hooks/useDemo';
 
 describe('useDemo', () => {
   beforeEach(() => {

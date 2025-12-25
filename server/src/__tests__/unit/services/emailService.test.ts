@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 
+// Import emailService AFTER mocks
+import * as emailService from '../../../services/emailService.js';
+
 // Set env vars in hoisted context to ensure they're set before module load
 vi.hoisted(() => {
   process.env.RESEND_API_KEY = 'test-resend-key';
@@ -92,9 +95,6 @@ vi.mock('../../../i18n/emailTemplates.js', () => ({
     return `<html>Quota Warning ${params.percentage}% for ${params.name} - Used: ${params.used}/${params.limit} - ${params.tier} tier - quota resets every Monday${upgradeText ? ` - ${upgradeText}` : ''}</html>`;
   }),
 }));
-
-// Import emailService AFTER mocks
-import * as emailService from '../../../services/emailService.js';
 
 // Mock console methods
 const originalConsoleLog = console.log;

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { GoogleTTSProvider } from '../../../../services/ttsProviders/GoogleTTSProvider.js';
+
 // Create hoisted mocks
 const mockSynthesizeSpeech = vi.hoisted(() => vi.fn());
 
@@ -17,9 +20,6 @@ vi.mock('@google-cloud/text-to-speech', () => ({
     },
   },
 }));
-
-// Import after mocking
-import { GoogleTTSProvider } from '../../../../services/ttsProviders/GoogleTTSProvider.js';
 
 describe('GoogleTTSProvider', () => {
   let provider: GoogleTTSProvider;

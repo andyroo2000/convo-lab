@@ -10,7 +10,7 @@ interface AudioPlayerContextType {
 
 const AudioPlayerContext = createContext<AudioPlayerContextType | undefined>(undefined);
 
-export function AudioPlayerProvider({ children }: { children: ReactNode }) {
+export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [speed, setSpeed] = useState<string | null>(null);

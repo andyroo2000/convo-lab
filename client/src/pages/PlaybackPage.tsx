@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { TTS_VOICES, getSpeakerColor } from "@languageflow/shared/src/constants-new";
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
@@ -10,7 +11,6 @@ import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
-import { TTS_VOICES, getSpeakerColor } from '../../../shared/src/constants-new';
 import { API_URL } from '../config';
 
 // Helper function to get avatar URL based on speaker voice and tone
@@ -126,7 +126,7 @@ export default function PlaybackPage() {
 
         if (!episode?.dialogue?.sentences || episode.dialogue.sentences.length === 0) return;
 
-        const sentences = episode.dialogue.sentences;
+        const {sentences} = episode.dialogue;
         const currentTimeMs = currentTime * 1000;
 
         // Helper function to get effective start time for current speed
@@ -246,13 +246,11 @@ export default function PlaybackPage() {
   }, [currentTime, episode, selectedSpeed]);
 
   // Cleanup polling interval on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
-    };
-  }, []);
+    }, []);
 
   const loadEpisode = async (bustCache = false) => {
     if (!episodeId) return;
@@ -388,7 +386,7 @@ export default function PlaybackPage() {
     );
   }
 
-  const dialogue = episode.dialogue;
+  const {dialogue} = episode;
   const speakers = dialogue?.speakers || [];
   const sentences = dialogue?.sentences || [];
 
@@ -455,7 +453,7 @@ export default function PlaybackPage() {
                   <SpeedSelector
                     selectedSpeed={selectedSpeed}
                     onSpeedChange={(speed) => setSelectedSpeed(speed as AudioSpeed)}
-                    showLabels={true}
+                    showLabels
                   />
                 </div>
               )}

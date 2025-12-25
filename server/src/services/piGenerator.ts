@@ -236,7 +236,7 @@ function getGrammarPointGuidance(grammarPoint: GrammarPointType, jlptLevel: JLPT
   switch (grammarPoint) {
     // === N5 GRAMMAR POINTS ===
     case 'ha_vs_ga':
-      return getTaskTypeGuidance(jlptLevel) + '\n\n' + getMinimalPairExamples(jlptLevel);
+      return `${getTaskTypeGuidance(jlptLevel)  }\n\n${  getMinimalPairExamples(jlptLevel)}`;
 
     case 'ni_vs_de':
       return `CONTRAST TO TEST: に (location of existence) vs で (location of action)
@@ -541,7 +541,7 @@ REQUIRED STRUCTURE:
 
     default:
       // Fallback to basic は vs が guidance
-      return getTaskTypeGuidance(jlptLevel) + '\n\n' + getMinimalPairExamples(jlptLevel);
+      return `${getTaskTypeGuidance(jlptLevel)  }\n\n${  getMinimalPairExamples(jlptLevel)}`;
   }
 }
 

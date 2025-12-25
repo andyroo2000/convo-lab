@@ -8,7 +8,7 @@ export interface AuthRequest extends Request {
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   try {
-    const token = req.cookies.token;
+    const {token} = req.cookies;
 
     if (!token) {
       throw new AppError('Authentication required', 401);

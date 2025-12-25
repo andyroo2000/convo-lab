@@ -5,9 +5,13 @@ import AudioPlayer, { RepeatMode } from '../AudioPlayer';
 // Mock HTMLAudioElement
 class MockAudioElement {
   src = '';
+
   currentTime = 0;
+
   duration = 100;
+
   paused = true;
+
   private eventListeners: Record<string, Function[]> = {};
 
   addEventListener(event: string, callback: Function) {
@@ -67,6 +71,15 @@ describe('AudioPlayer', () => {
     mockOnEnded = vi.fn();
     mockAudioElement = new MockAudioElement();
 
+    // Mock HTMLAudioElement methods that jsdom doesn't implement
+    window.HTMLMediaElement.prototype.play = vi.fn(() => {
+      mockAudioElement.paused = false;
+      return Promise.resolve();
+    });
+    window.HTMLMediaElement.prototype.pause = vi.fn(() => {
+      mockAudioElement.paused = true;
+    });
+
     // Mock requestAnimationFrame and cancelAnimationFrame
     originalRAF = global.requestAnimationFrame;
     originalCAF = global.cancelAnimationFrame;
@@ -86,15 +99,13 @@ describe('AudioPlayer', () => {
     global.cancelAnimationFrame = originalCAF;
   });
 
-  const renderAudioPlayer = (props: Partial<React.ComponentProps<typeof AudioPlayer>> = {}) => {
-    return render(
+  const renderAudioPlayer = (props: Partial<React.ComponentProps<typeof AudioPlayer>> = {}) => render(
       <AudioPlayer
         src="https://example.com/audio.mp3"
         audioRef={mockAudioRef}
         {...props}
       />
     );
-  };
 
   describe('rendering', () => {
     it('should render play/pause button', () => {

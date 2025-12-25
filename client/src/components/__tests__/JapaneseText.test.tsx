@@ -45,7 +45,7 @@ describe('JapaneseText', () => {
 
     it('should show furigana when showFurigana is true', () => {
       const { container } = render(
-        <JapaneseText text="買い物" metadata={metadataWithFurigana} showFurigana={true} />
+        <JapaneseText text="買い物" metadata={metadataWithFurigana} showFurigana />
       );
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
@@ -123,7 +123,7 @@ describe('JapaneseText', () => {
         },
       };
       const { container } = render(
-        <JapaneseText text="plain text" metadata={metadata} showFurigana={true} />
+        <JapaneseText text="plain text" metadata={metadata} showFurigana />
       );
       const ruby = container.querySelector('ruby');
       expect(ruby).toBeInTheDocument();

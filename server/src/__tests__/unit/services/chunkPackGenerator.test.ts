@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateChunkPack } from '../../../services/chunkPackGenerator.js';
+import type { GeneratedChunkPack } from '../../../types/chunkPack.js';
+
 // Create hoisted mocks for Google Generative AI
 const mockGenerateContent = vi.hoisted(() => vi.fn());
 const mockGetGenerativeModel = vi.hoisted(() =>
@@ -8,17 +12,11 @@ const mockGetGenerativeModel = vi.hoisted(() =>
   }))
 );
 
-vi.mock('@google/generative-ai', () => {
-  return {
+vi.mock('@google/generative-ai', () => ({
     GoogleGenerativeAI: class {
       getGenerativeModel = mockGetGenerativeModel;
     },
-  };
-});
-
-// Import after mocking
-import { generateChunkPack } from '../../../services/chunkPackGenerator.js';
-import type { GeneratedChunkPack } from '../../../types/chunkPack.js';
+  }));
 
 describe('chunkPackGenerator', () => {
   const mockChunkPackResponse: GeneratedChunkPack = {

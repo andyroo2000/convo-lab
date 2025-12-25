@@ -1,20 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { Redis } from 'ioredis';
+import { createRedisConnection, defaultWorkerSettings } from '../../../config/redis.js';
+
 // Mock ioredis
 const mockRedisInstance = vi.fn();
-vi.mock('ioredis', () => {
-  return {
+vi.mock('ioredis', () => ({
     Redis: vi.fn().mockImplementation(function(this: any, config: any) {
       this.config = config;
       this.disconnect = vi.fn();
       mockRedisInstance(config);
       return this;
     })
-  };
-});
-
-import { createRedisConnection, defaultWorkerSettings } from '../../../config/redis.js';
-import { Redis } from 'ioredis';
+  }));
 
 describe('Redis Configuration - Unit Tests', () => {
   const originalEnv = process.env;

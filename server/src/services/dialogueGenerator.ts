@@ -87,7 +87,7 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
           console.error('[DIALOGUE] All retry attempts exhausted. Last error:', lastError.message);
         } else {
           // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-          const delayMs = Math.pow(2, attempt - 1) * 1000;
+          const delayMs = 2**(attempt - 1) * 1000;
           console.log(`[DIALOGUE] Retrying in ${delayMs}ms...`);
           await new Promise(resolve => setTimeout(resolve, delayMs));
         }

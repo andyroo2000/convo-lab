@@ -1,13 +1,13 @@
-import { generateSilence } from './ttsClient.js';
-import { synthesizeBatchedTexts } from './batchedTTSClient.js';
-import { uploadToGCS } from './storageClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
+import { TTS_VOICES } from "@languageflow/shared/src/constants-new.js";
+import { generateSilence } from './ttsClient.js';
 import { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../types/chunkPack.js';
-import { TTS_VOICES } from '../../../shared/src/constants-new.js';
+import { uploadToGCS } from './storageClient.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 
 // Configure ffmpeg/ffprobe paths
 try {

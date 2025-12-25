@@ -6,25 +6,25 @@ export default function LoadingSkeleton() {
         {[...Array(6)].map((_, index) => (
           <div key={index} className="bg-white rounded-lg shadow-sm p-6">
             {/* Title skeleton */}
-            <div className="h-6 bg-gray-200 rounded w-3/4 mb-3"></div>
+            <div className="h-6 bg-gray-200 rounded w-3/4 mb-3" />
 
             {/* Subtitle skeleton */}
-            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2 mb-4" />
 
             {/* Content lines skeleton */}
             <div className="space-y-2 mb-4">
-              <div className="h-3 bg-gray-200 rounded w-full"></div>
-              <div className="h-3 bg-gray-200 rounded w-5/6"></div>
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-5/6" />
             </div>
 
             {/* Pills/tags skeleton */}
             <div className="flex gap-2 mb-4">
-              <div className="h-6 bg-gray-200 rounded-full w-16"></div>
-              <div className="h-6 bg-gray-200 rounded-full w-20"></div>
+              <div className="h-6 bg-gray-200 rounded-full w-16" />
+              <div className="h-6 bg-gray-200 rounded-full w-20" />
             </div>
 
             {/* Button skeleton */}
-            <div className="h-10 bg-gray-200 rounded w-full"></div>
+            <div className="h-10 bg-gray-200 rounded w-full" />
           </div>
         ))}
       </div>

@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { assembleLessonAudio } from '../../../services/audioCourseAssembler.js';
+
 // Hoisted mocks
 const mockUploadFileToGCS = vi.hoisted(() => vi.fn());
 const mockProcessBatches = vi.hoisted(() => vi.fn());
@@ -59,9 +62,6 @@ vi.mock('fs', () => ({
 vi.mock('child_process', () => ({
   execSync: vi.fn(() => '/usr/bin/ffmpeg'),
 }));
-
-// Import after mocking
-import { assembleLessonAudio } from '../../../services/audioCourseAssembler.js';
 
 describe('audioCourseAssembler', () => {
   const mockScriptUnits = [

@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import ChunkPackExercisesPage from '../ChunkPackExercisesPage';
+
 // Mock navigate
 const mockNavigate = vi.fn();
 
@@ -15,8 +17,6 @@ vi.mock('react-router-dom', async () => {
     useNavigate: () => mockNavigate,
   };
 });
-
-import ChunkPackExercisesPage from '../ChunkPackExercisesPage';
 
 const mockExercises = [
   {
@@ -62,15 +62,13 @@ describe('ChunkPackExercisesPage', () => {
     });
   });
 
-  const renderPage = (packId = 'pack-123') => {
-    return render(
+  const renderPage = (packId = 'pack-123') => render(
       <MemoryRouter initialEntries={[`/app/chunk-packs/${packId}/exercises`]}>
         <Routes>
           <Route path="/app/chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('loading state', () => {
     it('should show loading spinner while exercises are being fetched', () => {

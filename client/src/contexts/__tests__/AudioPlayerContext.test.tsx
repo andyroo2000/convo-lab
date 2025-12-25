@@ -1,10 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
-import { renderHook } from '@testing-library/react';
-import { AudioPlayerProvider, useAudioPlayerContext } from '../AudioPlayerContext';
+import { render, screen, act , renderHook } from '@testing-library/react';
 import { ReactNode } from 'react';
+import { AudioPlayerProvider, useAudioPlayerContext } from '../AudioPlayerContext';
 
-function TestComponent() {
+const TestComponent = () => {
   const { audioUrl, title, speed, setAudioInfo, clearAudio } = useAudioPlayerContext();
 
   return (

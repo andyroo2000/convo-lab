@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getCourseSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
-import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
 
 interface CourseCreatorProps {
   isOpen: boolean;

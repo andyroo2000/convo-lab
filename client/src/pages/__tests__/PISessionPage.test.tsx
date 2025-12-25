@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import PISessionPage from '../PISessionPage';
+
 // Mock navigate
 const mockNavigate = vi.fn();
 
@@ -18,8 +20,6 @@ vi.mock('react-router-dom', async () => {
 
 // Mock setTimeout for auto-play
 vi.useFakeTimers();
-
-import PISessionPage from '../PISessionPage';
 
 const mockSession = {
   jlptLevel: 'N5',
@@ -77,25 +77,21 @@ describe('PISessionPage', () => {
     global.HTMLAudioElement.prototype.pause = vi.fn();
   });
 
-  const renderWithSession = (session = mockSession) => {
-    return render(
+  const renderWithSession = (session = mockSession) => render(
       <MemoryRouter initialEntries={[{ pathname: '/app/pi/session', state: { session } }]}>
         <Routes>
           <Route path="/app/pi/session" element={<PISessionPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
-  const renderWithoutSession = () => {
-    return render(
+  const renderWithoutSession = () => render(
       <MemoryRouter initialEntries={['/app/pi/session']}>
         <Routes>
           <Route path="/app/pi/session" element={<PISessionPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('session initialization', () => {
     // Note: Testing the "no session" case causes a component error due to currentItem

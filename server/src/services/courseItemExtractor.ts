@@ -1,7 +1,7 @@
 import { Episode, Sentence } from '@prisma/client';
+import { LanguageCode } from "@languageflow/shared/src/types.js";
 import { generateWithGemini } from './geminiClient.js';
 // import { getVoicesByGender } from '../../../shared/src/voiceSelection.ts';
-import { LanguageCode } from '../../../shared/src/types.js';
 
 export interface CoreItem {
   id: string;
@@ -61,7 +61,7 @@ export async function extractCoreItems(
     throw new Error('Episode has no dialogue sentences');
   }
 
-  const sentences = episode.dialogue.sentences;
+  const {sentences} = episode.dialogue;
   const targetLang = episode.targetLanguage;
 
   // Score and rank all sentences
@@ -129,7 +129,7 @@ export async function extractCoreItems(
  * Considers: length, character complexity, question vs statement
  */
 function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: string): number {
-  const text = sentence.text;
+  const {text} = sentence;
   let score = 0;
 
   // Base score: character count
@@ -199,7 +199,7 @@ function extractReading(sentence: SentenceWithMetadata, targetLang: string): str
 
   if (targetLang === 'ja' && metadata?.japanese?.kana) {
     return metadata.japanese.kana;
-  } else if (targetLang === 'zh' && metadata?.chinese?.pinyin) {
+  } if (targetLang === 'zh' && metadata?.chinese?.pinyin) {
     return metadata.chinese.pinyin;
   }
 
@@ -474,7 +474,7 @@ async function splitLongSentences(
     // Japanese: Multiple sentences usually separated by 。or ！or ？
     // For now, simple split by sentence-ending punctuation
     const sentenceEnders = ['。', '！', '？', '!', '?'];
-    let needsSplit = false;
+    const needsSplit = false;
     let splitCount = 0;
 
     for (const ender of sentenceEnders) {
@@ -554,7 +554,7 @@ export async function extractDialogueExchanges(
     throw new Error('Episode has no dialogue sentences');
   }
 
-  const sentences = episode.dialogue.sentences;
+  const {sentences} = episode.dialogue;
   const targetLang = episode.targetLanguage;
 
   // FIRST: Split long sentences (those with multiple questions or statements)

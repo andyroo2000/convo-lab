@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
 import { Check } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import { API_URL } from '../config';
 
 export default function PricingPage() {

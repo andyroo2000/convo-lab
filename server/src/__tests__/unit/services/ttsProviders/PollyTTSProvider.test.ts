@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Readable } from 'stream';
 
+// Import after mocking
+import {
+  PollyTTSProvider,
+  getPollyTTSProvider,
+} from '../../../../services/ttsProviders/PollyTTSProvider.js';
+
 // Create hoisted mocks
 const mockSend = vi.hoisted(() => vi.fn());
 
@@ -12,12 +18,6 @@ vi.mock('@aws-sdk/client-polly', () => ({
     constructor(public params: any) {}
   },
 }));
-
-// Import after mocking
-import {
-  PollyTTSProvider,
-  getPollyTTSProvider,
-} from '../../../../services/ttsProviders/PollyTTSProvider.js';
 
 describe('PollyTTSProvider', () => {
   let provider: PollyTTSProvider;

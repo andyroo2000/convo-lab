@@ -83,13 +83,11 @@ async function checkAndShutdown() {
         }
       }, IDLE_SHUTDOWN_DELAY);
     }
-  } else {
-    if (idleTimeout) {
+  } else if (idleTimeout) {
       clearTimeout(idleTimeout);
       idleTimeout = null;
       console.log('🔄 Jobs detected, staying alive');
     }
-  }
 }
 
 // Check every 30 seconds

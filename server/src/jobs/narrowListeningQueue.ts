@@ -1,4 +1,8 @@
 import { Queue, Worker } from 'bullmq';
+import { promises as fs } from 'fs';
+import path from 'path';
+import os from 'os';
+import { TTS_VOICES } from "@languageflow/shared/src/constants-new.js";
 import { prisma } from '../db/client.js';
 import { generateNarrowListeningPack } from '../services/narrowListeningGenerator.js';
 import {
@@ -7,12 +11,8 @@ import {
   type VoiceInfo,
 } from '../services/narrowListeningAudioGenerator.js';
 import { processJapaneseBatch, processChineseBatch } from '../services/languageProcessor.js';
-import { TTS_VOICES } from '../../../shared/src/constants-new.js';
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 import { generateSilence } from '../services/ttsClient.js';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
 
 const connection = createRedisConnection();
 
@@ -289,7 +289,7 @@ async function processOnDemandSpeedGeneration(job: any) {
       throw new Error('Pack not found');
     }
 
-    const targetLanguage = pack.targetLanguage;
+    const {targetLanguage} = pack;
     const progressPerVersion = 100 / pack.versions.length;
 
     // Generate shared 800ms silence buffer (cached across all versions)
@@ -394,11 +394,11 @@ export const narrowListeningWorker = new Worker(
   async (job) => {
     if (job.name === 'generate-narrow-listening') {
       return processNarrowListeningGeneration(job);
-    } else if (job.name === 'generate-speed') {
+    } if (job.name === 'generate-speed') {
       return processOnDemandSpeedGeneration(job);
-    } else {
+    } 
       throw new Error(`Unknown job type: ${job.name}`);
-    }
+    
   },
   {
     connection,

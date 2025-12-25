@@ -1,8 +1,8 @@
 import { v1beta1, protos } from '@google-cloud/text-to-speech';
 
 // v1beta1 TimepointType enum value for SSML marks
-const TimepointType = protos.google.cloud.texttospeech.v1beta1.SynthesizeSpeechRequest.TimepointType;
-const SSML_MARK = TimepointType.SSML_MARK;
+const {TimepointType} = protos.google.cloud.texttospeech.v1beta1.SynthesizeSpeechRequest;
+const {SSML_MARK} = TimepointType;
 
 /**
  * Result from synthesize with timepoints

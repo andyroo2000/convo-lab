@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateEpisodeAudio, generateAllSpeedsAudio } from '../../../services/audioGenerator.js';
+
 // Create hoisted mocks
 const mockSynthesizeSpeech = vi.hoisted(() => vi.fn());
 const mockCreateSSMLWithPauses = vi.hoisted(() => vi.fn());
@@ -86,9 +89,6 @@ vi.mock('child_process', () => ({
   execSync: mockExecSync,
 }));
 
-// Import after mocking
-import { generateEpisodeAudio, generateAllSpeedsAudio } from '../../../services/audioGenerator.js';
-
 describe('audioGenerator', () => {
   const mockDialogue = {
     id: 'dialogue-123',
@@ -136,9 +136,7 @@ describe('audioGenerator', () => {
 
     mockSynthesizeSpeech.mockResolvedValue(Buffer.from('audio data'));
     // Mock to return the same number of buffers as texts passed in
-    mockSynthesizeBatchedTexts.mockImplementation(async (texts: string[]) => {
-      return texts.map((_, i) => Buffer.from(`audio ${i}`));
-    });
+    mockSynthesizeBatchedTexts.mockImplementation(async (texts: string[]) => texts.map((_, i) => Buffer.from(`audio ${i}`)));
     mockUploadAudio.mockResolvedValue('https://storage.example.com/audio.mp3');
     mockCreateSSMLWithPauses.mockImplementation((text) => `<speak>${text}</speak>`);
   });
@@ -177,7 +175,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].voiceId).toBe('ja-JP-Neural2-B');
       expect(calls[1][0].voiceId).toBe('ja-JP-Neural2-C');
     });
@@ -189,7 +187,7 @@ describe('audioGenerator', () => {
         speed: 'slow',
       });
 
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(0.7);
     });
 
@@ -199,7 +197,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(0.85);
     });
 
@@ -210,7 +208,7 @@ describe('audioGenerator', () => {
         speed: 'normal',
       });
 
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(1.0);
     });
 
@@ -222,7 +220,7 @@ describe('audioGenerator', () => {
       });
 
       expect(mockCreateSSMLWithPauses).toHaveBeenCalled();
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].useSSML).toBe(true);
     });
 
@@ -282,7 +280,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const calls = mockSynthesizeSpeech.mock.calls;
+      const {calls} = mockSynthesizeSpeech.mock;
       expect(calls[0][0].languageCode).toBe('ja-JP');
     });
   });
@@ -336,7 +334,7 @@ describe('audioGenerator', () => {
 
       // With 1 voice and 3 sentences, should have 1 batch call per speed = 3 total
       // (Not 3 sentences * 3 speeds = 9 individual calls)
-      const calls = mockSynthesizeBatchedTexts.mock.calls;
+      const {calls} = mockSynthesizeBatchedTexts.mock;
       expect(calls.length).toBe(3); // 1 voice batch per speed * 3 speeds
     });
 

@@ -2,12 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import QuotaBadge from '../QuotaBadge';
 
+import { useQuota } from '../../hooks/useQuota';
+
 // Mock useQuota hook
 vi.mock('../../hooks/useQuota', () => ({
   useQuota: vi.fn(),
 }));
-
-import { useQuota } from '../../hooks/useQuota';
 
 const mockUseQuota = useQuota as ReturnType<typeof vi.fn>;
 

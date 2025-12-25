@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
-import { ArrowLeft } from 'lucide-react';
 import { API_URL } from '../config';
 
 export default function LoginPage() {
@@ -187,9 +187,9 @@ export default function LoginPage() {
 
           {/* OAuth Divider */}
           <div className="my-6 flex items-center">
-            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="flex-1 border-t border-gray-300" />
             <span className="px-4 text-sm text-medium-brown">{isLogin ? t('auth:login.orContinueWith') : t('auth:signup.orContinueWith')}</span>
-            <div className="flex-1 border-t border-gray-300"></div>
+            <div className="flex-1 border-t border-gray-300" />
           </div>
 
           {/* Google OAuth Button */}

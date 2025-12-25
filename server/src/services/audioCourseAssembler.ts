@@ -1,11 +1,11 @@
-import { uploadFileToGCS } from './storageClient.js';
-import { LessonScriptUnit } from './lessonScriptGenerator.js';
-import { processBatches } from './batchedTTSClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
+import { processBatches } from './batchedTTSClient.js';
+import { LessonScriptUnit } from './lessonScriptGenerator.js';
+import { uploadFileToGCS } from './storageClient.js';
 
 // Configure ffmpeg/ffprobe paths
 try {

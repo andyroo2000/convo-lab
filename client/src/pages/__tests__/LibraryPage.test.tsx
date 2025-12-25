@@ -66,13 +66,11 @@ vi.mock('../../components/common/Pill', () => ({
 }));
 
 describe('LibraryPage', () => {
-  const renderLibraryPage = () => {
-    return render(
+  const renderLibraryPage = () => render(
       <BrowserRouter>
         <LibraryPage />
       </BrowserRouter>
     );
-  };
 
   describe('Mobile layout - Filter buttons', () => {
     it('should have padding on mobile for filter buttons', () => {

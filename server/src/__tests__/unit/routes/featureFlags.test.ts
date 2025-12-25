@@ -116,7 +116,7 @@ describe('Feature Flags Route Logic', () => {
       mockPrisma.featureFlag.create.mockRejectedValue(new Error('Unique constraint violation'));
 
       // Simulate route logic
-      let flags = await mockPrisma.featureFlag.findFirst();
+      const flags = await mockPrisma.featureFlag.findFirst();
       if (!flags) {
         await expect(
           mockPrisma.featureFlag.create({

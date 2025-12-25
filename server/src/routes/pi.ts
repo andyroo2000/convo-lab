@@ -111,13 +111,13 @@ router.post('/generate-session', requireAuth, requireEmailVerified, rateLimitGen
           audioUrlA: audioUrls[audioIndexA],
           audioUrlB: audioUrls[audioIndexB],
         };
-      } else {
+      } 
         const audioIndex = textsToSynthesize.findIndex(t => t.itemIndex === itemIndex && t.type === 'main');
         return {
           ...item,
           audioUrl: audioUrls[audioIndex],
         };
-      }
+      
     });
 
     console.log(`[PI] Audio generation complete: 1 TTS call (was ${textsToSynthesize.length})`);

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { groupUnitsIntoBatches, buildBatchSSML } from '../../../services/batchedTTSClient.js';
+import { LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
+
 // Create hoisted mocks
 const mockGetGoogleTTSBetaProvider = vi.hoisted(() => vi.fn());
 const mockGetPollyTTSProvider = vi.hoisted(() => vi.fn());
@@ -55,10 +59,6 @@ vi.mock('fluent-ffmpeg', () => ({
 vi.mock('fs', () => ({
   promises: mockFs,
 }));
-
-// Import after mocking
-import { groupUnitsIntoBatches, buildBatchSSML } from '../../../services/batchedTTSClient.js';
-import { LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
 
 describe('batchedTTSClient', () => {
   beforeEach(() => {

@@ -418,9 +418,7 @@ describe('Courses Route Logic', () => {
     });
 
     it('should validate duration parameters', () => {
-      const validateDuration = (duration: number) => {
-        return duration >= 5 && duration <= 60;
-      };
+      const validateDuration = (duration: number) => duration >= 5 && duration <= 60;
 
       expect(validateDuration(15)).toBe(true);
       expect(validateDuration(30)).toBe(true);

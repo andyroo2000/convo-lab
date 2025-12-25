@@ -1,22 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Create hoisted mocks
-const mockGenerateContent = vi.hoisted(() => vi.fn());
-
-// Mock the @google/generative-ai module with a proper class constructor
-vi.mock('@google/generative-ai', () => {
-  return {
-    GoogleGenerativeAI: class MockGoogleGenerativeAI {
-      constructor() {}
-      getGenerativeModel() {
-        return {
-          generateContent: mockGenerateContent,
-        };
-      }
-    },
-  };
-});
-
 // Import after mocking
 import {
   generatePISession,
@@ -29,6 +12,22 @@ import {
   PISession,
   PIItem,
 } from '../../../services/piGenerator.js';
+
+// Create hoisted mocks
+const mockGenerateContent = vi.hoisted(() => vi.fn());
+
+// Mock the @google/generative-ai module with a proper class constructor
+vi.mock('@google/generative-ai', () => ({
+    GoogleGenerativeAI: class MockGoogleGenerativeAI {
+      constructor() {}
+
+      getGenerativeModel() {
+        return {
+          generateContent: mockGenerateContent,
+        };
+      }
+    },
+  }));
 
 describe('piGenerator', () => {
   beforeEach(() => {

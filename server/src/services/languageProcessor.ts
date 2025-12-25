@@ -245,9 +245,7 @@ export function furiganaToRuby(furigana: string): string {
   // Match pattern: kanji[reading]
   const pattern = /([^[\]]+)\[([^\]]+)\]/g;
 
-  return furigana.replace(pattern, (match, kanji, reading) => {
-    return `<ruby>${kanji}<rt>${reading}</rt></ruby>`;
-  });
+  return furigana.replace(pattern, (match, kanji, reading) => `<ruby>${kanji}<rt>${reading}</rt></ruby>`);
 }
 
 /**

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { getCourseSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
+import { TTS_VOICES } from "@languageflow/shared/src/constants-new";
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
-import { getCourseSpeakerVoices } from '../../../../shared/src/voiceSelection';
-import { TTS_VOICES } from '../../../../shared/src/constants-new';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 export default function CourseGenerator() {

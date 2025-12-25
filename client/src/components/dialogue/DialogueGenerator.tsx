@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from "@languageflow/shared/src/constants-new";
+import { getRandomName } from "@languageflow/shared/src/nameConstants";
+import { getDialogueSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useAuth } from '../../contexts/AuthContext';
-import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '../../../../shared/src/constants-new';
-import { getRandomName } from '../../../../shared/src/nameConstants';
-import { getDialogueSpeakerVoices } from '../../../../shared/src/voiceSelection';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
 interface SpeakerFormData {
@@ -361,7 +361,7 @@ export default function DialogueGenerator() {
               {t('dialogue:generate.description', {
                 language: SUPPORTED_LANGUAGES[targetLanguage].name,
                 level: targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : 'beginner',
-                tone: tone
+                tone
               })}
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-2">

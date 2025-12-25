@@ -5,9 +5,7 @@ import { describe, it, expect } from 'vitest';
 
 describe('Admin Route Validation Logic', () => {
   describe('Invite Code Validation', () => {
-    const isValidCustomCode = (code: string): boolean => {
-      return /^[A-Za-z0-9]{6,20}$/.test(code);
-    };
+    const isValidCustomCode = (code: string): boolean => /^[A-Za-z0-9]{6,20}$/.test(code);
 
     it('should accept valid custom invite codes', () => {
       const validCodes = ['ABCDEF', 'abc123', 'INVITE2024', '12345678', 'a1b2c3d4e5f6g7h8i9j0'];
@@ -37,9 +35,7 @@ describe('Admin Route Validation Logic', () => {
   });
 
   describe('Avatar Filename Validation', () => {
-    const isValidAvatarFilename = (filename: string): boolean => {
-      return /^(ja|zh|es)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
-    };
+    const isValidAvatarFilename = (filename: string): boolean => /^(ja|zh|es)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
 
     it('should accept valid avatar filenames', () => {
       const validFilenames = [
@@ -97,9 +93,7 @@ describe('Admin Route Validation Logic', () => {
   });
 
   describe('Feature Flag Validation', () => {
-    const isValidBoolean = (val: any): boolean => {
-      return typeof val === 'boolean';
-    };
+    const isValidBoolean = (val: any): boolean => typeof val === 'boolean';
 
     it('should accept boolean values', () => {
       expect(isValidBoolean(true)).toBe(true);

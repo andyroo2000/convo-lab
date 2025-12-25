@@ -142,7 +142,7 @@ function planSingleLesson(
     type: 'late_srs',
     title: 'Review',
     targetDurationSeconds: 300,
-    coreItems: coreItems,
+    coreItems,
   });
   currentTime += 300;
 
@@ -176,7 +176,7 @@ function scheduleSRSDrills(
   sections: LessonSection[]
 ): DrillEvent[] {
   const drillEvents: DrillEvent[] = [];
-  let currentOffset = 0;
+  const currentOffset = 0;
 
   // Track when each item is introduced
   const itemIntroTimes = new Map<string, number>();

@@ -1,5 +1,5 @@
-import { useQuota } from '../hooks/useQuota';
 import { useTranslation } from 'react-i18next';
+import { useQuota } from '../hooks/useQuota';
 
 /**
  * Badge component that displays the user's remaining content generation quota

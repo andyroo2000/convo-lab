@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import Stripe from 'stripe';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import {
   createCheckoutSession,
@@ -9,7 +10,6 @@ import {
   handleSubscriptionDeleted,
   handleInvoicePaymentFailed
 } from '../services/stripeService.js';
-import Stripe from 'stripe';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 

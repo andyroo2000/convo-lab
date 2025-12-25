@@ -35,13 +35,11 @@ describe('NarrowListeningLibraryPage', () => {
     },
   ];
 
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <NarrowListeningLibraryPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
