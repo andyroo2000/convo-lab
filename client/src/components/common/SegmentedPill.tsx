@@ -26,7 +26,7 @@ const SEGMENT_COLORS: Record<ColorScheme, string> = {
   'pale-sky': 'bg-periwinkle text-white',
 };
 
-export default function SegmentedPill({
+const SegmentedPill = ({
   leftText,
   rightText,
   leftColor = 'indigo',
@@ -34,7 +34,7 @@ export default function SegmentedPill({
   uppercase = false,
   capitalize = false,
   className = '',
-}: SegmentedPillProps) {
+}: SegmentedPillProps) => {
   const leftColors = SEGMENT_COLORS[leftColor];
   const rightColors = SEGMENT_COLORS[rightColor];
 
@@ -60,4 +60,6 @@ export default function SegmentedPill({
       </div>
     </div>
   );
-}
+};
+
+export default SegmentedPill;

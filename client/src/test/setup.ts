@@ -1,15 +1,12 @@
-import { expect, afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+/* eslint-disable import/no-extraneous-dependencies */
+import { expect } from 'vitest';
 import * as matchers from '@testing-library/jest-dom/matchers';
 import '../i18n'; // Initialize i18n for tests
 
 // Extend Vitest's expect with jest-dom matchers
 expect.extend(matchers);
 
-// Cleanup after each test
-afterEach(() => {
-  cleanup();
-});
+// Note: cleanup() is now automatic in @testing-library/react v15+
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

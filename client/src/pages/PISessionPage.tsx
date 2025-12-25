@@ -56,7 +56,7 @@ const GRAMMAR_POINT_NAMES: Record<string, string> = {
   koto_da_vs_mono_da: '〜ことだ vs 〜ものだ',
 };
 
-export default function PISessionPage() {
+const PISessionPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const session = location.state?.session as PISession | undefined;
@@ -378,4 +378,6 @@ export default function PISessionPage() {
       </div>
     </div>
   );
-}
+};
+
+export default PISessionPage;

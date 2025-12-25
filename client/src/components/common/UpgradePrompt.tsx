@@ -9,7 +9,7 @@ interface UpgradePromptProps {
   quotaLimit?: number;
 }
 
-export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: UpgradePromptProps) {
+const UpgradePrompt = ({ onClose, quotaUsed, quotaLimit }: UpgradePromptProps) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -31,6 +31,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
         <div className="bg-gradient-to-r from-periwinkle to-dark-periwinkle p-6 text-white relative">
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               className="absolute top-4 right-4 text-white hover:text-gray-200 transition-colors"
               aria-label={t('upgradePrompt.buttons.close')}
@@ -79,12 +80,12 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 </ul>
               </div>
 
-              <button onClick={handleUpgrade} className="btn-primary w-full mb-3">
+              <button type="button" onClick={handleUpgrade} className="btn-primary w-full mb-3">
                 {t('upgradePrompt.buttons.upgrade')}
               </button>
 
               {onClose && (
-                <button onClick={onClose} className="btn-secondary w-full">
+                <button type="button" onClick={onClose} className="btn-secondary w-full">
                   {t('upgradePrompt.buttons.maybeLater')}
                 </button>
               )}
@@ -98,12 +99,16 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 <p className="text-sm text-medium-brown">{t('upgradePrompt.quotaResetInfo')}</p>
               </div>
 
-              <button onClick={handleViewBilling} className="btn-secondary w-full mb-3">
+              <button
+                type="button"
+                onClick={handleViewBilling}
+                className="btn-secondary w-full mb-3"
+              >
                 {t('upgradePrompt.buttons.viewBilling')}
               </button>
 
               {onClose && (
-                <button onClick={onClose} className="btn-secondary w-full">
+                <button type="button" onClick={onClose} className="btn-secondary w-full">
                   {t('upgradePrompt.buttons.close')}
                 </button>
               )}
@@ -113,4 +118,6 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
       </div>
     </div>
   );
-}
+};
+
+export default UpgradePrompt;

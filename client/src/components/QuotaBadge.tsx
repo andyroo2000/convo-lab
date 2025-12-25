@@ -5,7 +5,7 @@ import { useQuota } from '../hooks/useQuota';
  * Badge component that displays the user's remaining content generation quota
  * Only shows for non-admin users who have a quota limit
  */
-export default function QuotaBadge() {
+const QuotaBadge = () => {
   const { quotaInfo, loading } = useQuota();
   const { t } = useTranslation(['common']);
 
@@ -34,4 +34,6 @@ export default function QuotaBadge() {
       )}
     </div>
   );
-}
+};
+
+export default QuotaBadge;

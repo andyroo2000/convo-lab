@@ -181,7 +181,10 @@ describe('PricingPage', () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
       (global.fetch as any).mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(resolve, 1000))
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          })
       );
 
       renderWithRouter();

@@ -88,7 +88,7 @@ function renderPinyinRuby(characters: string, pinyin: string): string {
     if (/[\u4e00-\u9fff]/.test(char)) {
       const syllable = pinyinSyllables[syllableIndex] || '';
       result += `<ruby>${char}<rt>${syllable}</rt></ruby>`;
-      syllableIndex++;
+      syllableIndex += 1;
     } else {
       // Punctuation or other characters - no annotation
       result += char;
@@ -111,12 +111,7 @@ function renderBracketRuby(text: string, useToneNumbers: boolean = false): strin
   });
 }
 
-export default function ChineseText({
-  text,
-  metadata,
-  className = '',
-  showPinyin = true,
-}: ChineseTextProps) {
+const ChineseText = ({ text, metadata, className = '', showPinyin = true }: ChineseTextProps) => {
   const { user } = useAuth();
 
   // Determine which pinyin format to use based on user preference
@@ -158,4 +153,6 @@ export default function ChineseText({
       dangerouslySetInnerHTML={{ __html: htmlContent }}
     />
   );
-}
+};
+
+export default ChineseText;

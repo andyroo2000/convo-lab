@@ -202,7 +202,12 @@ describe('VerifyEmailPage', () => {
           ok: false,
           json: async () => ({ error: 'Token has expired' }),
         })
-        .mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 1000)));
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(resolve, 1000);
+            })
+        );
 
       renderWithRouter('/verify-email/expired-token');
 

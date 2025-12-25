@@ -6,9 +6,9 @@ export class AppError extends Error {
 
   isOperational: boolean;
 
-  metadata?: any;
+  metadata?: Record<string, unknown>;
 
-  constructor(message: string, statusCode: number = 500, metadata?: any) {
+  constructor(message: string, statusCode: number = 500, metadata?: Record<string, unknown>) {
     super(message);
     this.statusCode = statusCode;
     this.metadata = metadata;
@@ -19,9 +19,9 @@ export class AppError extends Error {
 
 export function errorHandler(
   err: Error | AppError,
-  req: Request,
+  _req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) {
   if (err instanceof AppError) {
     // Add rate limit headers for 429 errors

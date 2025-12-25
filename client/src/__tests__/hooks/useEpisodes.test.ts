@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
 import { useEpisodes } from '../../hooks/useEpisodes';
 
 // Mock the config
@@ -78,7 +78,9 @@ describe('useEpisodes', () => {
     it('should set loading state during request', async () => {
       mockFetch.mockImplementation(
         () =>
-          new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => ({}) }), 100))
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ ok: true, json: () => ({}) }), 100);
+          })
       );
 
       const { result } = renderHook(() => useEpisodes());

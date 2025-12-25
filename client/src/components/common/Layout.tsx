@@ -8,7 +8,7 @@ import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
 
-export default function Layout() {
+const Layout = () => {
   const { user, loading, logout } = useAuth();
   const { t } = useTranslation(['common']);
   const isDemo = useIsDemo();
@@ -174,4 +174,6 @@ export default function Layout() {
       </main>
     </div>
   );
-}
+};
+
+export default Layout;

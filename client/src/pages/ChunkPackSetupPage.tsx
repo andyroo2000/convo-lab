@@ -195,7 +195,7 @@ function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
   return Object.values(CHUNK_THEMES).filter((theme) => theme.level === level);
 }
 
-export default function ChunkPackSetupPage() {
+const ChunkPackSetupPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(['chunkPack']);
   const invalidateLibrary = useInvalidateLibrary();
@@ -416,4 +416,6 @@ export default function ChunkPackSetupPage() {
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
-}
+};
+
+export default ChunkPackSetupPage;

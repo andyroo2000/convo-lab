@@ -92,7 +92,9 @@ describe('UserMenu', () => {
       renderWithRouter(
         <div>
           <UserMenu {...defaultProps} />
-          <button data-testid="outside-button">Outside</button>
+          <button type="button" data-testid="outside-button">
+            Outside
+          </button>
         </div>
       );
 

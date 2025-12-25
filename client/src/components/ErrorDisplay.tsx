@@ -8,7 +8,7 @@ interface ErrorDisplayProps {
   description?: string;
 }
 
-export default function ErrorDisplay({ error, onRetry, title, description }: ErrorDisplayProps) {
+const ErrorDisplay = ({ error, onRetry, title, description }: ErrorDisplayProps) => {
   const { t } = useTranslation(['errors']);
   const errorMessage = typeof error === 'string' ? error : error.message;
 
@@ -76,11 +76,17 @@ export default function ErrorDisplay({ error, onRetry, title, description }: Err
         </p>
       )}
       {onRetry && (
-        <button onClick={onRetry} className="btn-primary inline-flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onRetry}
+          className="btn-primary inline-flex items-center gap-2"
+        >
           <RefreshCw className="w-4 h-4" />
           {t('errors:display.tryAgain')}
         </button>
       )}
     </div>
   );
-}
+};
+
+export default ErrorDisplay;

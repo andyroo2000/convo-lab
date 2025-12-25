@@ -27,7 +27,7 @@ function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): str
   return `${targetLanguage}-${gender}-${tone}.jpg`;
 }
 
-export default function PlaybackPage() {
+const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
   const { getEpisode, generateAudio, generateAllSpeedsAudio, pollJobStatus, loading } =
     useEpisodes();
@@ -675,4 +675,6 @@ export default function PlaybackPage() {
       />
     </div>
   );
-}
+};
+
+export default PlaybackPage;

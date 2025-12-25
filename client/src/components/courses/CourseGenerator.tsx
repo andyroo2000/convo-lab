@@ -9,7 +9,7 @@ import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 
-export default function CourseGenerator() {
+const CourseGenerator = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(['audioCourse']);
   const { user } = useAuth();
@@ -374,6 +374,7 @@ export default function CourseGenerator() {
             </ul>
           </div>
           <button
+            type="button"
             onClick={handleCreate}
             disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
@@ -393,4 +394,6 @@ export default function CourseGenerator() {
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
-}
+};
+
+export default CourseGenerator;

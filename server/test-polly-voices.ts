@@ -1,7 +1,9 @@
-import dotenv from 'dotenv';
-import { getPollyTTSProvider } from './src/services/ttsProviders/PollyTTSProvider.js';
 import { promises as fs } from 'fs';
 import path from 'path';
+
+import dotenv from 'dotenv';
+
+import { getPollyTTSProvider } from './src/services/ttsProviders/PollyTTSProvider.js';
 
 // Load environment variables from .env file
 dotenv.config();

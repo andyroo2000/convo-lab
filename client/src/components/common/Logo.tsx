@@ -6,7 +6,7 @@ interface LogoProps {
   className?: string;
 }
 
-export default function Logo({ size = 'medium', variant = 'light', className = '' }: LogoProps) {
+const Logo = ({ size = 'medium', variant = 'light', className = '' }: LogoProps) => {
   const sizeMap = {
     small: 'w-5 h-5',
     medium: 'w-6 h-6',
@@ -32,4 +32,6 @@ export default function Logo({ size = 'medium', variant = 'light', className = '
       <span className={`hidden sm:inline font-bold ${textSize} ${colorClass}`}>ConvoLab</span>
     </div>
   );
-}
+};
+
+export default Logo;

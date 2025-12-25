@@ -50,13 +50,13 @@ async function getCroppedImage(imageSrc: string, cropArea: Area): Promise<Blob> 
   });
 }
 
-export default function AvatarCropperModal({
+const AvatarCropperModal = ({
   isOpen,
   onClose,
   imageUrl,
   onSave,
   title = 'Crop Avatar',
-}: AvatarCropperModalProps) {
+}: AvatarCropperModalProps) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -196,4 +196,6 @@ export default function AvatarCropperModal({
       </div>
     </div>
   );
-}
+};
+
+export default AvatarCropperModal;

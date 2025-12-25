@@ -23,7 +23,7 @@ interface SpeakerFormData {
 // This constant is kept for backward compatibility with episode creation API
 const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 
-export default function DialogueGenerator() {
+const DialogueGenerator = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -407,6 +407,7 @@ export default function DialogueGenerator() {
             </ul>
           </div>
           <button
+            type="button"
             onClick={handleGenerate}
             disabled={loading || !sourceText.trim()}
             className="w-full sm:w-auto bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
@@ -427,4 +428,6 @@ export default function DialogueGenerator() {
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
-}
+};
+
+export default DialogueGenerator;

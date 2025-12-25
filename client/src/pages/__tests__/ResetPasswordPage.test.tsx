@@ -238,7 +238,12 @@ describe('ResetPasswordPage', () => {
           ok: true,
           json: async () => ({ valid: true, email: 'test@example.com' }),
         })
-        .mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 1000)));
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              setTimeout(resolve, 1000);
+            })
+        );
 
       renderWithRouter('/reset-password/valid-token');
 

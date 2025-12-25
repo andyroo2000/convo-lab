@@ -12,21 +12,17 @@ function getLanguageBgClass(language: string): string {
   return bgMap[language.toLowerCase()] || 'bg-periwinkle';
 }
 
-export default function LanguageLevelSidebar({
-  language,
-  level,
-  className = '',
-}: LanguageLevelSidebarProps) {
-  return (
-    <div
-      className={`w-12 flex-shrink-0 ${getLanguageBgClass(language)} flex flex-col items-center justify-center gap-1 py-3 px-1 ${className}`}
-    >
-      <span className="text-[10px] font-bold text-white uppercase tracking-wide text-center leading-tight">
-        {language}
-      </span>
-      <span className="text-[10px] font-bold text-white uppercase tracking-wide text-center leading-tight">
-        {level}
-      </span>
-    </div>
-  );
-}
+const LanguageLevelSidebar = ({ language, level, className = '' }: LanguageLevelSidebarProps) => (
+  <div
+    className={`w-12 flex-shrink-0 ${getLanguageBgClass(language)} flex flex-col items-center justify-center gap-1 py-3 px-1 ${className}`}
+  >
+    <span className="text-[10px] font-bold text-white uppercase tracking-wide text-center leading-tight">
+      {language}
+    </span>
+    <span className="text-[10px] font-bold text-white uppercase tracking-wide text-center leading-tight">
+      {level}
+    </span>
+  </div>
+);
+
+export default LanguageLevelSidebar;

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Home, ArrowLeft, Search } from 'lucide-react';
 import Logo from '../components/common/Logo';
 
-export default function NotFoundPage() {
+const NotFoundPage = () => {
   const { t } = useTranslation(['notFound']);
   const navigate = useNavigate();
 
@@ -78,4 +78,6 @@ export default function NotFoundPage() {
       </div>
     </div>
   );
-}
+};
+
+export default NotFoundPage;

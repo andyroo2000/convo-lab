@@ -29,10 +29,16 @@ class ErrorBoundary extends Component<Props, State> {
     this.setState({ hasError: false, error: null });
   };
 
-  render() {
-    const { t } = this.props;
+  // eslint-disable-next-line class-methods-use-this
+  handleGoToLibrary = () => {
+    window.location.href = '/app/library';
+  };
 
-    if (this.state.hasError) {
+  render() {
+    const { t, children } = this.props;
+    const { hasError, error } = this.state;
+
+    if (hasError) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -41,17 +47,19 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{t('errors:boundary.title')}</h1>
             <p className="text-gray-600 mb-6">
-              {this.state.error?.message || t('errors:boundary.defaultMessage')}
+              {error?.message || t('errors:boundary.defaultMessage')}
             </p>
             <div className="space-y-3">
               <button
+                type="button"
                 onClick={this.handleReset}
                 className="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
               >
                 {t('errors:boundary.tryAgain')}
               </button>
               <button
-                onClick={() => (window.location.href = '/app/library')}
+                type="button"
+                onClick={this.handleGoToLibrary}
                 className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 {t('errors:boundary.goToLibrary')}
@@ -62,7 +70,7 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
 

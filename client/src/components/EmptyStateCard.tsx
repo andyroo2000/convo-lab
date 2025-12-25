@@ -15,14 +15,14 @@ interface EmptyStateCardProps {
   };
 }
 
-export default function EmptyStateCard({
+const EmptyStateCard = ({
   icon: Icon,
   title,
   description,
   buttonText,
   route,
   colorTheme,
-}: EmptyStateCardProps) {
+}: EmptyStateCardProps) => {
   const navigate = useNavigate();
 
   return (
@@ -45,6 +45,7 @@ export default function EmptyStateCard({
 
         {/* CTA Button */}
         <button
+          type="button"
           onClick={() => navigate(route)}
           className={`px-6 py-3 ${colorTheme.button} text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2`}
         >
@@ -54,4 +55,6 @@ export default function EmptyStateCard({
       </div>
     </div>
   );
-}
+};
+
+export default EmptyStateCard;

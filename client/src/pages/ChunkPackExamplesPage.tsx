@@ -34,7 +34,7 @@ interface ChunkPack {
 
 type PlaybackSpeed = 0.7 | 0.85 | 1.0;
 
-export default function ChunkPackExamplesPage() {
+const ChunkPackExamplesPage = () => {
   const { packId } = useParams();
   const navigate = useNavigate();
   const { currentTime, audioRef, play, pause, isPlaying } = useAudioPlayer();
@@ -309,4 +309,6 @@ export default function ChunkPackExamplesPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ChunkPackExamplesPage;

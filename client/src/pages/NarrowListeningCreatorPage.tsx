@@ -7,7 +7,7 @@ import { useIsDemo } from '../hooks/useDemo';
 import { useAuth } from '../contexts/AuthContext';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 
-export default function NarrowListeningCreatorPage() {
+const NarrowListeningCreatorPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(['narrowListening']);
   const invalidateLibrary = useInvalidateLibrary();
@@ -320,4 +320,6 @@ export default function NarrowListeningCreatorPage() {
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
-}
+};
+
+export default NarrowListeningCreatorPage;

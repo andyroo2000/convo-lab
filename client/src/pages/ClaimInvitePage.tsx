@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import Logo from '../components/common/Logo';
 import { API_URL } from '../config';
 
-export default function ClaimInvitePage() {
+const ClaimInvitePage = () => {
   const { t } = useTranslation('auth');
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
@@ -120,4 +120,6 @@ export default function ClaimInvitePage() {
       </div>
     </div>
   );
-}
+};
+
+export default ClaimInvitePage;

@@ -6,7 +6,7 @@ import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export default function ResetPasswordPage() {
+const ResetPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
@@ -234,4 +234,6 @@ export default function ResetPasswordPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ResetPasswordPage;

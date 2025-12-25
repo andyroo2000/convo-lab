@@ -7,7 +7,7 @@ import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export default function VerifyEmailPage() {
+const VerifyEmailPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
   const { user, refreshUser } = useAuth();
@@ -205,4 +205,6 @@ export default function VerifyEmailPage() {
       </div>
     </div>
   );
-}
+};
+
+export default VerifyEmailPage;

@@ -49,21 +49,33 @@ async function streamToBuffer(
     const reader = stream.getReader();
     const chunks: Uint8Array[] = [];
 
-    while (true) {
+    // Read all chunks without await-in-loop by using a recursive approach
+    const readAllChunks = async (): Promise<void> => {
       const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-    }
+      if (!done) {
+        chunks.push(value);
+        await readAllChunks();
+      }
+    };
+    await readAllChunks();
 
     return Buffer.concat(chunks);
   }
 
   // Handle Node.js Readable stream
   if (stream instanceof Readable) {
+    // Use event-based approach to avoid await-in-loop
     const chunks: Buffer[] = [];
-    for await (const chunk of stream) {
+
+    stream.on('data', (chunk: Buffer | Uint8Array) => {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-    }
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      stream.on('end', resolve);
+      stream.on('error', reject);
+    });
+
     return Buffer.concat(chunks);
   }
 

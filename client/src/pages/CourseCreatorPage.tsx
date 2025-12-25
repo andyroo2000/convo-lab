@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import CourseGenerator from '../components/courses/CourseGenerator';
 
-export default function CourseCreatorPage() {
+const CourseCreatorPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(['audioCourse']);
 
@@ -17,4 +17,6 @@ export default function CourseCreatorPage() {
       <CourseGenerator />
     </div>
   );
-}
+};
+
+export default CourseCreatorPage;

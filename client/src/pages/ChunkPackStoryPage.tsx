@@ -31,7 +31,7 @@ interface Speaker {
   color: string;
 }
 
-export default function ChunkPackStoryPage() {
+const ChunkPackStoryPage = () => {
   const { packId } = useParams();
   const navigate = useNavigate();
   const { audioRef, currentTime, seek, play } = useAudioPlayer();
@@ -91,7 +91,7 @@ export default function ChunkPackStoryPage() {
                 name: speakerName,
                 color: speakerColors[colorIndex % speakerColors.length],
               });
-              colorIndex++;
+              colorIndex += 1;
             }
           }
         });
@@ -321,4 +321,6 @@ export default function ChunkPackStoryPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ChunkPackStoryPage;

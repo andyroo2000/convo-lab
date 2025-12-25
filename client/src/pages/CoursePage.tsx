@@ -5,7 +5,7 @@ import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
-export default function CoursePage() {
+const CoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
   const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
@@ -238,4 +238,6 @@ export default function CoursePage() {
       </div>
     </div>
   );
-}
+};
+
+export default CoursePage;

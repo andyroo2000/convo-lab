@@ -157,16 +157,14 @@ describe('useQuota', () => {
   });
 
   it('should clear error on successful refetch after error', async () => {
-    mockFetch
-      .mockResolvedValueOnce({ ok: false })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          unlimited: true,
-          quota: null,
-          cooldown: { active: false, remainingSeconds: 0 },
-        }),
-      });
+    mockFetch.mockResolvedValueOnce({ ok: false }).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        unlimited: true,
+        quota: null,
+        cooldown: { active: false, remainingSeconds: 0 },
+      }),
+    });
 
     const { result } = renderHook(() => useQuota());
 

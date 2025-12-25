@@ -5,7 +5,7 @@ import { Check } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL } from '../config';
 
-export default function PricingPage() {
+const PricingPage = () => {
   const { t } = useTranslation('pricing');
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -190,4 +190,6 @@ export default function PricingPage() {
       </div>
     </div>
   );
-}
+};
+
+export default PricingPage;
