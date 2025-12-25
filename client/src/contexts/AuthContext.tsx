@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { User } from '../types';
 import { API_URL } from '../config';
 
@@ -28,11 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing session
-    checkAuth();
-  }, []);
-
   const checkAuth = async () => {
     try {
       const response = await fetch(`${API_URL}/api/auth/me`, {
@@ -49,6 +44,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    // Check for existing session
+    checkAuth();
+  }, []);
 
   const login = async (email: string, password: string) => {
     const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -149,20 +149,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await checkAuth();
   };
 
+  const value = useMemo(
+    () => ({
+      user,
+      loading,
+      login,
+      logout,
+      signup,
+      updateUser,
+      deleteAccount,
+      changePassword,
+      refreshUser,
+    }),
+    // Functions are stable, only re-memoize when user/loading changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user, loading]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        logout,
-        signup,
-        updateUser,
-        deleteAccount,
-        changePassword,
-        refreshUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

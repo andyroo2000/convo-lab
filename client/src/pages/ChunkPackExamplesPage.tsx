@@ -76,17 +76,6 @@ const ChunkPackExamplesPage = () => {
 
   const currentAudioUrl = getCurrentAudioUrl(currentExample);
 
-  useEffect(() => {
-    fetchPack();
-  }, [packId]);
-
-  // Auto-select first example when pack loads
-  useEffect(() => {
-    if (pack && !selectedExampleId && allExamples.length > 0) {
-      setSelectedExampleId(allExamples[0].id);
-    }
-  }, [pack]);
-
   const fetchPack = async () => {
     try {
       const response = await fetch(`${API_URL}/api/chunk-packs/${packId}`, {
@@ -100,6 +89,17 @@ const ChunkPackExamplesPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPack();
+  }, [packId]);
+
+  // Auto-select first example when pack loads
+  useEffect(() => {
+    if (pack && !selectedExampleId && allExamples.length > 0) {
+      setSelectedExampleId(allExamples[0].id);
+    }
+  }, [pack]);
 
   // Auto-play when example changes (for sequential playback)
   useEffect(() => {

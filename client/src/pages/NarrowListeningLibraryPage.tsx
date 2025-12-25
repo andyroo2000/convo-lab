@@ -27,10 +27,6 @@ const NarrowListeningLibraryPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadPacks();
-  }, []);
-
   const loadPacks = async () => {
     setLoading(true);
     setError(null);
@@ -51,6 +47,10 @@ const NarrowListeningLibraryPage = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadPacks();
+  }, []);
 
   const handleDelete = async (packId: string, e: React.MouseEvent) => {
     e.preventDefault();

@@ -41,33 +41,6 @@ const ChunkPackStoryPage = () => {
   const [speakers, setSpeakers] = useState<Map<string, Speaker>>(new Map());
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-  useEffect(() => {
-    fetchStory();
-  }, [packId]);
-
-  // Auto-scroll to currently playing sentence
-  useEffect(() => {
-    if (!story?.segments) return;
-
-    const currentSegment = story.segments.find(
-      (segment) =>
-        segment.startTime !== undefined &&
-        segment.endTime !== undefined &&
-        currentTime * 1000 >= segment.startTime &&
-        currentTime * 1000 < segment.endTime
-    );
-
-    if (currentSegment) {
-      const element = sentenceRefs.current.get(currentSegment.id);
-      if (element) {
-        element.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }
-    }
-  }, [currentTime, story]);
-
   const fetchStory = async () => {
     try {
       const response = await fetch(`${API_URL}/api/chunk-packs/${packId}`, {
@@ -142,6 +115,33 @@ const ChunkPackStoryPage = () => {
       text: japaneseText,
     };
   };
+
+  useEffect(() => {
+    fetchStory();
+  }, [packId]);
+
+  // Auto-scroll to currently playing sentence
+  useEffect(() => {
+    if (!story?.segments) return;
+
+    const currentSegment = story.segments.find(
+      (segment) =>
+        segment.startTime !== undefined &&
+        segment.endTime !== undefined &&
+        currentTime * 1000 >= segment.startTime &&
+        currentTime * 1000 < segment.endTime
+    );
+
+    if (currentSegment) {
+      const element = sentenceRefs.current.get(currentSegment.id);
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }
+  }, [currentTime, story]);
 
   const hexToRgba = (hex: string, alpha: number) => {
     const r = parseInt(hex.slice(1, 3), 16);

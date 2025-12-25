@@ -70,6 +70,8 @@ const PISessionPage = () => {
   const audioRefA = useRef<HTMLAudioElement | null>(null);
   const audioRefB = useRef<HTMLAudioElement | null>(null);
 
+  const currentItem = session?.items[currentIndex];
+
   useEffect(() => {
     // Redirect if no session data
     if (!session) {
@@ -94,7 +96,6 @@ const PISessionPage = () => {
     return null;
   }
 
-  const currentItem = session.items[currentIndex];
   const progress = ((currentIndex + 1) / session.items.length) * 100;
 
   const handleChoiceSelect = (choiceId: string) => {

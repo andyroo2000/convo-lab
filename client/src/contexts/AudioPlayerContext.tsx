@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useMemo, ReactNode } from 'react';
 
 interface AudioPlayerContextType {
   audioUrl: string | null;
@@ -27,8 +27,13 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
     setSpeed(null);
   };
 
+  const value = useMemo(
+    () => ({ audioUrl, title, speed, setAudioInfo, clearAudio }),
+    [audioUrl, title, speed]
+  );
+
   return (
-    <AudioPlayerContext.Provider value={{ audioUrl, title, speed, setAudioInfo, clearAudio }}>
+    <AudioPlayerContext.Provider value={value}>
       {children}
     </AudioPlayerContext.Provider>
   );

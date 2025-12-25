@@ -144,10 +144,10 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
       tabIndex={-1}
       aria-label="Close modal"
     >
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
       <div
         className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col animate-slideUp"
         onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >

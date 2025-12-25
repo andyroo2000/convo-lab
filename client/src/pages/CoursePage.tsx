@@ -98,16 +98,14 @@ const CoursePage = () => {
               autoFocus
             />
           ) : (
-            <h1
-              className="text-3xl font-bold text-navy cursor-pointer hover:text-indigo-600 transition-colors"
+            <button
+              type="button"
+              className="text-3xl font-bold text-navy cursor-pointer hover:text-indigo-600 transition-colors text-left w-full"
               onClick={handleTitleEdit}
-              onKeyDown={(e) => e.key === 'Enter' && handleTitleEdit()}
-              role="button"
-              tabIndex={0}
               title="Click to edit"
             >
               {course.title}
-            </h1>
+            </button>
           )}
 
           {/* Editable Description */}
@@ -123,16 +121,14 @@ const CoursePage = () => {
               autoFocus
             />
           ) : (
-            <p
-              className="text-gray-600 mt-2 cursor-pointer hover:text-indigo-600 transition-colors"
+            <button
+              type="button"
+              className="text-gray-600 mt-2 cursor-pointer hover:text-indigo-600 transition-colors text-left w-full"
               onClick={handleDescriptionEdit}
-              onKeyDown={(e) => e.key === 'Enter' && handleDescriptionEdit()}
-              role="button"
-              tabIndex={0}
               title="Click to edit"
             >
               {course.description || 'Click to add description...'}
-            </p>
+            </button>
           )}
         </div>
       </div>

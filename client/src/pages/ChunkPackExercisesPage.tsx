@@ -25,10 +25,6 @@ const ChunkPackExercisesPage = () => {
   const [sessionComplete, setSessionComplete] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    fetchExercises();
-  }, [packId]);
-
   const fetchExercises = async () => {
     try {
       const response = await fetch(`${API_URL}/api/chunk-packs/${packId}`, {
@@ -40,6 +36,12 @@ const ChunkPackExercisesPage = () => {
       console.error('Failed to load exercises:', err);
     }
   };
+
+  const currentExercise = exercises[currentIndex];
+
+  useEffect(() => {
+    fetchExercises();
+  }, [packId]);
 
   const handleOptionSelect = (option: string) => {
     if (hasAnswered) return;
@@ -72,7 +74,6 @@ const ChunkPackExercisesPage = () => {
     );
   }
 
-  const currentExercise = exercises[currentIndex];
   const progress = ((currentIndex + 1) / exercises.length) * 100;
 
   if (sessionComplete) {

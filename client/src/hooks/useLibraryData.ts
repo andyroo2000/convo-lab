@@ -2,17 +2,6 @@ import { useInfiniteQuery, useMutation, useQueryClient, QueryClient } from '@tan
 import { Episode, Course } from '../types';
 import { API_URL } from '../config';
 
-// Invalidate library cache - call this after creating new content
-export function invalidateLibraryCache(queryClient: QueryClient) {
-  queryClient.invalidateQueries({ queryKey: libraryKeys.all });
-}
-
-// Hook version for components
-export function useInvalidateLibrary() {
-  const queryClient = useQueryClient();
-  return () => invalidateLibraryCache(queryClient);
-}
-
 // Library-specific types with _count instead of full relations
 export type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {
   _count?: {
@@ -60,6 +49,17 @@ export const libraryKeys = {
   narrowListening: () => [...libraryKeys.all, 'narrowListening'] as const,
   chunkPacks: () => [...libraryKeys.all, 'chunkPacks'] as const,
 };
+
+// Invalidate library cache - call this after creating new content
+export function invalidateLibraryCache(queryClient: QueryClient) {
+  queryClient.invalidateQueries({ queryKey: libraryKeys.all });
+}
+
+// Hook version for components
+export function useInvalidateLibrary() {
+  const queryClient = useQueryClient();
+  return () => invalidateLibraryCache(queryClient);
+}
 
 // Fetch functions with pagination support
 async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise<Episode[]> {
