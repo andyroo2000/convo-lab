@@ -211,25 +211,49 @@ ${getPriorityGuidance()}
 
 ## Complete Lint Fix Workflow
 
-### PHASE 1: Analysis & Categorization (Required - 10-30 turns)
+### PHASE 1: Create Progress Tracking Artifact (Required - 10-30 turns)
 
-1. Run: \`npm run lint 2>&1 | head -n 500\` (with timeout: 60000)
-2. Parse all errors by category:
-   - Testing Library violations (~240)
-   - TypeScript issues (~100)
-   - Accessibility issues (~80)
-   - Code quality issues (~100)
-   - Other issues (~50)
-3. Build priority list:
-   - Critical: Breaks build/CI
-   - High: Testing, accessibility, type safety
-   - Medium: Code quality, style
-   - Low: Warnings that don't affect functionality
-4. Report breakdown:
-   - Total errors by category
-   - Files affected
-   - Auto-fix vs manual review breakdown
-   - Estimated turn count per phase
+1. Run lint and save output:
+   \`npm run lint 2>&1 | tee /tmp/lint-output.txt | head -n 500\`
+
+2. Parse the output and create \`/tmp/lint-todo.json\`:
+   \`\`\`json
+   {
+     "createdAt": "ISO timestamp",
+     "totalErrors": 622,
+     "totalWarnings": 161,
+     "byCategory": {
+       "testing-library": { "count": 240, "files": ["src/__tests__/..."] },
+       "typescript-eslint": { "count": 100, "files": ["src/..."] },
+       "jsx-a11y": { "count": 80, "files": ["src/components/..."] },
+       "code-quality": { "count": 100, "files": ["src/..."] }
+     },
+     "files": [
+       {
+         "path": "src/components/Foo.tsx",
+         "errors": 12,
+         "warnings": 3,
+         "categories": ["testing-library", "jsx-a11y"],
+         "status": "pending"
+       }
+     ],
+     "progress": {
+       "fixed": 0,
+       "skipped": 0,
+       "remaining": 783
+     },
+     "skippedFiles": []
+   }
+   \`\`\`
+
+3. Report initial breakdown from the JSON file
+
+4. **Progress Tracking**: After every 20 fixes, update the JSON file:
+   - Change file \`status\` to "done" or "skipped"
+   - Update \`progress.fixed\` and \`progress.remaining\`
+   - Add skipped files to \`skippedFiles\` array with reason
+
+5. **Every 50 turns**, run: \`cat /tmp/lint-todo.json | jq '.progress'\` to report progress
 
 ### PHASE 2: Safe Auto-Fixes (50-150 turns)
 
@@ -237,21 +261,18 @@ ${getPriorityGuidance()}
 ${
   typeScriptOnly || !testsOnly && !a11yOnly
     ? `
+**Fix TypeScript violations using patterns from:**
+\`scripts/harness-guides/typescript-fixes.md\`
+
+Key fixes:
 - Fix @typescript-eslint/no-unused-vars by prefixing with _
 - Remove unused imports
 - Add missing return types (only obvious cases)
-- SKIP: @typescript-eslint/no-explicit-any (requires type analysis)
-
-Example:
-\`\`\`typescript
-// Before:
-const result = someFunc();
-// After:
-const _result = someFunc();
-\`\`\`
+- **SKIP**: @typescript-eslint/no-explicit-any (see guide for why)
 
 After every 20 fixes:
 - Run: npm run lint 2>&1 | grep "@typescript-eslint"
+- Update /tmp/lint-todo.json with progress
 - Verify error count decreased
 `
     : 'SKIP: Not in scope for focused mode'
@@ -261,20 +282,18 @@ After every 20 fixes:
 ${
   !testsOnly && !a11yOnly && !typeScriptOnly
     ? `
+**Fix React/JSX issues using patterns from:**
+\`scripts/harness-guides/accessibility-fixes.md\` (for button types)
+\`scripts/harness-guides/code-quality-fixes.md\` (for console statements)
+
+Key fixes:
 - Add type="button" to all <button> elements
 - Fix react-refresh/only-export-components by naming anonymous components
 - Handle no-console (use eslint-disable for intentional logging)
 
-Example:
-\`\`\`tsx
-// Before:
-<button onClick={handleClick}>
-// After:
-<button type="button" onClick={handleClick}>
-\`\`\`
-
 After every 20 fixes:
 - Run: npm run lint 2>&1 | grep "react/"
+- Update /tmp/lint-todo.json with progress
 - Verify error count decreased
 `
     : 'SKIP: Not in scope for focused mode'
@@ -285,13 +304,8 @@ ${
   !testsOnly && !a11yOnly && !typeScriptOnly
     ? `
 - Fix import/no-extraneous-dependencies in test files
-- Add eslint-disable comments for test-only imports
-
-Example:
-\`\`\`typescript
-/* eslint-disable import/no-extraneous-dependencies */
-import { render } from '@testing-library/react';
-\`\`\`
+- Add eslint-disable comments for test-only imports (with explanation)
+- Update /tmp/lint-todo.json when done
 `
     : 'SKIP: Not in scope for focused mode'
 }
@@ -308,67 +322,33 @@ ${
     ? `
 #### Strategy: REFACTOR (Preferred)
 
+**Use fix patterns from:** \`scripts/harness-guides/testing-library-fixes.md\`
+
 3A: Fix render-result-naming-convention (30-50 turns)
-- Rename \`htmlContent\` to \`view\` or destructure
+- See guide for render result naming patterns
 - Mechanical rename, safe
 
-Example:
-\`\`\`tsx
-// Before:
-const htmlContent = render(<Component />);
-// After:
-const { container } = render(<Component />);
-// OR:
-const view = render(<Component />);
-\`\`\`
-
 3B: Refactor High-Value Tests (70-150 turns)
-- Replace container.querySelector() with screen queries
+- Replace container.querySelector() with screen queries (see guide)
 - Fix no-node-access using within() or proper queries
 - Prioritize: component tests > hook tests > utility tests
-
-Example:
-\`\`\`tsx
-// Before:
-const { container } = render(<Component />);
-const main = container.querySelector('main');
-
-// After:
-render(<Component />);
-const main = screen.getByRole('main');
-\`\`\`
-
-For complex cases:
-\`\`\`tsx
-// Before:
-const element = container.querySelector('.custom-class');
-
-// After:
-const element = screen.getByTestId('custom-element');
-// or add a proper role/aria-label
-\`\`\`
 
 After each file:
 - Run: npm test -- <filename>
 - Verify all tests pass
 - Run: npm run lint <filename>
+- Update /tmp/lint-todo.json file status
 - Verify errors reduced
 `
     : `
 #### Strategy: ESLINT-DISABLE (Fast)
 
-Add targeted eslint-disable comments:
-\`\`\`tsx
-/* eslint-disable testing-library/no-container, testing-library/no-node-access */
-const { container } = render(<Component />);
-const element = container.querySelector('main');
-\`\`\`
+Add targeted eslint-disable comments with explanations.
+See \`scripts/harness-guides/testing-library-fixes.md\` for when to skip.
 
-Document WHY:
-\`\`\`tsx
-// Testing raw DOM structure for ruby/rt elements - no semantic alternative
-/* eslint-disable testing-library/no-container */
-\`\`\`
+After adding disables:
+- Update /tmp/lint-todo.json file status to "skipped"
+- Document reason in skippedFiles array
 `
 }
 
@@ -385,54 +365,33 @@ Skip files that:
 ${
   a11yOnly || (!testsOnly && !typeScriptOnly)
     ? `
+**Use fix patterns from:** \`scripts/harness-guides/accessibility-fixes.md\`
+
 #### 4A: Keyboard Accessibility (40-70 turns)
 
 Fix click-events-have-key-events and no-static-element-interactions:
-
-Option 1 (Preferred): Convert to button
-\`\`\`tsx
-// Before:
-<div onClick={handleClick}>Click me</div>
-
-// After:
-<button type="button" onClick={handleClick}>Click me</button>
-\`\`\`
-
-Option 2: Add keyboard handler
-\`\`\`tsx
-<div
-  onClick={handleClick}
-  onKeyDown={(e) => e.key === 'Enter' && handleClick()}
-  role="button"
-  tabIndex={0}
->
-  Click me
-</div>
-\`\`\`
+- See guide for button conversion patterns
+- See guide for keyboard handler patterns
 
 #### 4B: Form Accessibility (20-40 turns)
 
 Fix label-has-associated-control:
-\`\`\`tsx
-// Before:
-<label>Name</label>
-<input />
-
-// After:
-<label htmlFor="name">Name</label>
-<input id="name" />
-\`\`\`
+- See guide for label association patterns
+- See guide for alt text patterns
 
 #### 4C: ARIA Improvements (20-40 turns)
 
-- Validate all role attributes are valid
-- Add aria-label where needed
-- Fix aria-expanded, aria-checked usage
+- See guide for ARIA role validation
+- See guide for interactive element patterns
 
 Priority:
 1. Fix modal dialogs first (critical UX)
 2. Fix form controls second (accessibility compliance)
 3. Fix click handlers third (progressive enhancement)
+
+After every 20 fixes:
+- Update /tmp/lint-todo.json with progress
+- Run: npm run lint 2>&1 | grep "jsx-a11y"
 `
     : 'SKIP: Not in scope for focused mode'
 }
@@ -442,46 +401,28 @@ Priority:
 ${
   !testsOnly && !a11yOnly && !typeScriptOnly && priority !== 'critical'
     ? `
+**Use fix patterns from:** \`scripts/harness-guides/code-quality-fixes.md\`
+
 #### 5A: Logic Consistency (30-60 turns)
 
-Fix consistent-return:
-\`\`\`tsx
-// Before:
-const getColor = (type) => {
-  if (type === 'error') return 'red';
-  // implicit undefined
-};
-
-// After:
-const getColor = (type) => {
-  if (type === 'error') return 'red';
-  return 'gray'; // explicit default
-};
-\`\`\`
+- Fix consistent-return (see guide)
+- Fix no-param-reassign (see guide)
+- Fix default-param-last (see guide)
 
 #### 5B: Simplify Nested Ternaries (10-20 turns)
 
-\`\`\`tsx
-// Before:
-const color = type === 'error' ? 'red' : type === 'warning' ? 'yellow' : 'green';
+- See guide for ternary simplification patterns
+- See guide for readability improvements
 
-// After:
-const getColor = (type) => {
-  if (type === 'error') return 'red';
-  if (type === 'warning') return 'yellow';
-  return 'green';
-};
-\`\`\`
+#### 5C: Other Code Quality (10-20 turns)
 
-#### 5C: Loop Optimizations (10-20 turns)
+- See guide for const/let patterns
+- See guide for arrow function conversions
+- See guide for strict equality
 
-\`\`\`tsx
-// Before:
-for (const item of items) { ... }
-
-// After:
-items.forEach(item => { ... });
-\`\`\`
+After every 20 fixes:
+- Update /tmp/lint-todo.json with progress
+- Run: npm run lint 2>&1 | tail -n 100
 `
     : 'SKIP: Not in scope for focused mode or priority level'
 }
