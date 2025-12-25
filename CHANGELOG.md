@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[chore]** Autonomous lint fixing harness with resilience utilities - added lint-harness.ts for autonomously fixing ESLint errors and warnings (Testing Library, TypeScript, accessibility, code quality); includes progress-watchdog.js for timeout detection, resilient-harness-wrapper.js for automatic recovery from failures, and timeout-system-prompt.js for enhanced error handling; supports targeted fixing (tests-only, a11y-only, typescript-only) and priority levels (critical/high/medium/all)
 - **[test]** Minimum coverage thresholds enforced - added 80% coverage thresholds for lines, branches, functions, and statements across client and server workspaces; builds will fail if coverage drops below thresholds; ensures consistent code quality standards
 - **[chore]** Automatic linting on pre-commit with lint-staged - added lint-staged configuration to run ESLint and Prettier on staged files before commits; updated pre-commit hook to run linting before tests; ensures code quality and consistent formatting across all commits
 - **[chore]** Root TypeScript configuration and TTS provider types - added root-level tsconfig.json for workspace-wide TypeScript settings and type checking; created shared TTS provider types (TTSOptions, TTSProvider interface) for better type safety across Google and Polly TTS implementations
