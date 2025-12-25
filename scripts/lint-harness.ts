@@ -575,6 +575,10 @@ ${
 - Provide breakdown of auto-fix vs manual review
 `
     : `
+- **CRITICAL: Complete ALL phases in this single session - do NOT stop early**
+- **Do NOT create "Recommendations for Next Session" - just continue to the next phase**
+- **After completing one phase, IMMEDIATELY move to the next phase**
+- **Only stop when you hit the turn limit (${maxTurns}) or complete ALL phases**
 - Fix errors in priority order
 - Verify with npm run lint after every 20-30 fixes
 - Run npm run test:run after each phase
@@ -617,6 +621,21 @@ After each phase:
 2. Verify all tests pass
 3. If tests fail: investigate, fix, or revert
 4. Document any skipped items
+5. **IMMEDIATELY continue to the next phase - do NOT stop**
+
+## Session Completion Rules
+
+You are in AUTONOMOUS MODE. This means:
+- ✅ Continue through all phases automatically
+- ✅ Move from Phase 1 → 2 → 3 → 4 → 5 → 7 without stopping
+- ✅ Only create ONE commit at the very end (Phase 7)
+- ❌ Do NOT stop after completing a phase
+- ❌ Do NOT ask "should I continue?"
+- ❌ Do NOT create "Recommendations for Next Session"
+- ❌ Do NOT provide suggestions for follow-up work
+- ❌ Do NOT stop until all phases complete OR you hit turn limit
+
+If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue to the next phase instead.
 
 Begin Phase 1: Analysis & Categorization
   `.trim();
