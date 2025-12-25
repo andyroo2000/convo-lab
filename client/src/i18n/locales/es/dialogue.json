@@ -59,11 +59,11 @@
     "ready": "¿Listo para Generar?",
     "description": "La IA creará una conversación natural en {{language}} entre 2 hablantes con nombres y voces asignados aleatoriamente. Ambos hablantes usarán lenguaje {{tone}} de nivel {{level}}.",
     "features": {
+      "turns_one": "{{count}} turno de diálogo",
+      "turns_other": "{{count}} turnos de diálogo",
       "variations": "3 variaciones por oración",
       "translations": "Traducciones al inglés",
-      "complexity": "Complejidad lingüística ajustada al nivel",
-      "turns_one": "[NEEDS_TRANSLATION] {{count}} dialogue turn",
-      "turns_other": "[NEEDS_TRANSLATION] {{count}} dialogue turns"
+      "complexity": "Complejidad lingüística ajustada al nivel"
     },
     "button": "Generar Diálogo",
     "generating": "Generando..."

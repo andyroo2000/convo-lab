@@ -20,8 +20,8 @@
       "removeSuccess": "Avatar removed successfully!",
       "uploadError": "Failed to upload avatar. Please try again.",
       "removeError": "Failed to remove avatar",
-      "cropTitle": "[NEEDS_TRANSLATION] Crop Profile Picture",
-      "altText": "[NEEDS_TRANSLATION] Your avatar"
+      "cropTitle": "裁剪个人资料图片",
+      "altText": "您的头像"
     },
     "displayName": {
       "label": "Display Name",
@@ -32,14 +32,14 @@
     "saving": "Saving...",
     "cancelButton": "Cancel",
     "colors": {
-      "indigo": "[NEEDS_TRANSLATION] Indigo",
-      "teal": "[NEEDS_TRANSLATION] Teal",
-      "purple": "[NEEDS_TRANSLATION] Purple",
-      "pink": "[NEEDS_TRANSLATION] Pink",
-      "emerald": "[NEEDS_TRANSLATION] Emerald",
-      "amber": "[NEEDS_TRANSLATION] Amber",
-      "rose": "[NEEDS_TRANSLATION] Rose",
-      "cyan": "[NEEDS_TRANSLATION] Cyan"
+      "indigo": "靛蓝",
+      "teal": "青色",
+      "purple": "紫色",
+      "pink": "粉色",
+      "emerald": "翡翠绿",
+      "amber": "琥珀色",
+      "rose": "玫瑰色",
+      "cyan": "青绿色"
     }
   },
   "language": {
@@ -93,12 +93,12 @@
       "helper": "Choose how pinyin is displayed above Chinese characters"
     },
     "names": {
-      "en": "[NEEDS_TRANSLATION] English",
-      "ja": "[NEEDS_TRANSLATION] Japanese (日本語)",
-      "zh": "[NEEDS_TRANSLATION] Mandarin Chinese (中文)",
-      "es": "[NEEDS_TRANSLATION] Spanish (Español)",
-      "fr": "[NEEDS_TRANSLATION] French (Français)",
-      "ar": "[NEEDS_TRANSLATION] Arabic (العربية)"
+      "en": "英语",
+      "ja": "日语（日本語）",
+      "zh": "中文",
+      "es": "西班牙语（Español）",
+      "fr": "法语（Français）",
+      "ar": "阿拉伯语（العربية）"
     }
   },
   "security": {

@@ -25,21 +25,21 @@
   },
   "display": {
     "connection": {
-      "title": "[NEEDS_TRANSLATION] Connection Error",
-      "description": "[NEEDS_TRANSLATION] Check your internet connection and try again"
+      "title": "连接错误",
+      "description": "检查您的网络连接并重试"
     },
     "auth": {
-      "title": "[NEEDS_TRANSLATION] Authentication Error",
-      "description": "[NEEDS_TRANSLATION] Please log in again to continue"
+      "title": "认证错误",
+      "description": "请重新登录以继续"
     },
     "generation": {
-      "title": "[NEEDS_TRANSLATION] Generation Failed",
-      "description": "[NEEDS_TRANSLATION] Content generation failed. Please try again"
+      "title": "生成失败",
+      "description": "内容生成失败。请重试"
     },
     "generic": {
-      "title": "[NEEDS_TRANSLATION] Error",
-      "description": "[NEEDS_TRANSLATION] Something went wrong. Please try again"
+      "title": "错误",
+      "description": "出了点问题。请重试"
     },
-    "tryAgain": "[NEEDS_TRANSLATION] Try Again"
+    "tryAgain": "重试"
   }
 }

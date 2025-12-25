@@ -71,29 +71,29 @@
     "repeatMode": "Modo de repetición: {{mode}}"
   },
   "modal": {
-    "confirm": "[NEEDS_TRANSLATION] Confirm",
-    "cancel": "[NEEDS_TRANSLATION] Cancel",
-    "processing": "[NEEDS_TRANSLATION] Processing...",
-    "gotIt": "[NEEDS_TRANSLATION] Got it"
+    "confirm": "Confirmar",
+    "cancel": "Cancelar",
+    "processing": "Procesando...",
+    "gotIt": "Entendido"
   },
   "quota": {
-    "generationsLeft": "[NEEDS_TRANSLATION] {{remaining}}/{{limit}} generations left this week",
-    "lowQuota": "[NEEDS_TRANSLATION] Low quota",
-    "runningLow": "[NEEDS_TRANSLATION] Running low"
+    "generationsLeft": "{{remaining}}/{{limit}} generaciones restantes esta semana",
+    "lowQuota": "Cuota baja",
+    "runningLow": "Se está agotando"
   },
   "demo": {
-    "title": "[NEEDS_TRANSLATION] Demo Mode",
-    "description": "[NEEDS_TRANSLATION] You're exploring in demo mode, so content creation is disabled.",
-    "contactAdmin": "[NEEDS_TRANSLATION] Thanks for checking out the app! If you'd like full access, please contact the admin."
+    "title": "Modo Demo",
+    "description": "Estás explorando en modo demo, por lo que la creación de contenido está deshabilitada.",
+    "contactAdmin": "¡Gracias por probar la aplicación! Si deseas acceso completo, por favor contacta al administrador."
   },
   "impersonation": {
-    "viewingAs": "[NEEDS_TRANSLATION] Viewing as {{name}}",
-    "readOnly": "[NEEDS_TRANSLATION] Read-only",
-    "exitView": "[NEEDS_TRANSLATION] Exit View"
+    "viewingAs": "Viendo como {{name}}",
+    "readOnly": "Solo lectura",
+    "exitView": "Salir de la vista"
   },
   "status": {
-    "generating": "[NEEDS_TRANSLATION] Generating...",
-    "error": "[NEEDS_TRANSLATION] error"
+    "generating": "Generando...",
+    "error": "error"
   },
-  "loadingMore": "[NEEDS_TRANSLATION] Loading more..."
+  "loadingMore": "Cargando más..."
 }

@@ -20,8 +20,8 @@
       "removeSuccess": "アバターが正常に削除されました！",
       "uploadError": "アバターのアップロードに失敗しました。もう一度お試しください。",
       "removeError": "アバターの削除に失敗しました",
-      "cropTitle": "[NEEDS_TRANSLATION] Crop Profile Picture",
-      "altText": "[NEEDS_TRANSLATION] Your avatar"
+      "cropTitle": "プロフィール画像を切り抜く",
+      "altText": "あなたのアバター"
     },
     "displayName": {
       "label": "表示名",
@@ -32,14 +32,14 @@
     "saving": "保存中...",
     "cancelButton": "キャンセル",
     "colors": {
-      "indigo": "[NEEDS_TRANSLATION] Indigo",
-      "teal": "[NEEDS_TRANSLATION] Teal",
-      "purple": "[NEEDS_TRANSLATION] Purple",
-      "pink": "[NEEDS_TRANSLATION] Pink",
-      "emerald": "[NEEDS_TRANSLATION] Emerald",
-      "amber": "[NEEDS_TRANSLATION] Amber",
-      "rose": "[NEEDS_TRANSLATION] Rose",
-      "cyan": "[NEEDS_TRANSLATION] Cyan"
+      "indigo": "インディゴ",
+      "teal": "ティール",
+      "purple": "パープル",
+      "pink": "ピンク",
+      "emerald": "エメラルド",
+      "amber": "アンバー",
+      "rose": "ローズ",
+      "cyan": "シアン"
     }
   },
   "language": {
@@ -93,12 +93,12 @@
       "helper": "中国語の文字の上にピンインを表示する方法を選択"
     },
     "names": {
-      "en": "[NEEDS_TRANSLATION] English",
-      "ja": "[NEEDS_TRANSLATION] Japanese (日本語)",
-      "zh": "[NEEDS_TRANSLATION] Mandarin Chinese (中文)",
-      "es": "[NEEDS_TRANSLATION] Spanish (Español)",
-      "fr": "[NEEDS_TRANSLATION] French (Français)",
-      "ar": "[NEEDS_TRANSLATION] Arabic (العربية)"
+      "en": "英語",
+      "ja": "日本語",
+      "zh": "中国語（中文）",
+      "es": "スペイン語（Español）",
+      "fr": "フランス語（Français）",
+      "ar": "アラビア語（العربية）"
     }
   },
   "security": {

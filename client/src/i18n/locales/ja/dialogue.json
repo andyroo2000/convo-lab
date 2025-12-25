@@ -59,11 +59,11 @@
     "ready": "生成の準備ができましたか？",
     "description": "AIがランダムに割り当てられた名前と音声を持つ2人のスピーカー間の自然な{{language}}の会話を作成します。両スピーカーは{{level}}レベルの{{tone}}言語を使用します。",
     "features": {
+      "turns_one": "{{count}}ターンの対話",
+      "turns_other": "{{count}}ターンの対話",
       "variations": "文ごとに3つのバリエーション",
       "translations": "英語翻訳",
-      "complexity": "レベルに合わせた言語の複雑さ",
-      "turns_one": "[NEEDS_TRANSLATION] {{count}} dialogue turn",
-      "turns_other": "[NEEDS_TRANSLATION] {{count}} dialogue turns"
+      "complexity": "レベルに合わせた言語の複雑さ"
     },
     "button": "対話を生成",
     "generating": "生成中..."

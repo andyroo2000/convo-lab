@@ -23,7 +23,7 @@
     "deleting": "Deleting...",
     "success": "Deleted successfully",
     "error": "Failed to delete",
-    "alertError": "[NEEDS_TRANSLATION] Failed to delete {{type}}. Please try again."
+    "alertError": "Échec de la suppression de {{type}}. Veuillez réessayer."
   },
   "loading": "Loading your content...",
   "loadMore": "Load more",
@@ -34,33 +34,33 @@
   },
   "emptyStates": {
     "dialogue": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Dialogue",
-      "description": "[NEEDS_TRANSLATION] Generate comprehensible input dialogues at your level with natural conversations and audio",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "Créez Votre Premier Dialogue",
+      "description": "Générez des dialogues d'input compréhensible à votre niveau avec des conversations naturelles et audio",
+      "button": "Commencer"
     },
     "course": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Audio Course",
-      "description": "[NEEDS_TRANSLATION] Build guided audio courses with structured lessons and pronunciation practice",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "Créez Votre Premier Cours Audio",
+      "description": "Créez des cours audio guidés avec des leçons structurées et de la pratique de prononciation",
+      "button": "Commencer"
     },
     "narrowListening": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Narrow Listening Pack",
-      "description": "[NEEDS_TRANSLATION] Practice with story variations at your level for focused listening comprehension",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "Créez Votre Premier Pack d'Écoute Ciblée",
+      "description": "Pratiquez avec des variations d'histoires à votre niveau pour une compréhension orale ciblée",
+      "button": "Commencer"
     },
     "chunkPack": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Lexical Chunk Pack",
-      "description": "[NEEDS_TRANSLATION] Master high-frequency expressions with examples, stories, and interactive exercises",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "Créez Votre Premier Pack de Blocs Lexicaux",
+      "description": "Maîtrisez les expressions haute fréquence avec des exemples, histoires et exercices interactifs",
+      "button": "Commencer"
     },
     "all": {
-      "description": "[NEEDS_TRANSLATION] No content yet. Get started by creating your first learning material!",
-      "button": "[NEEDS_TRANSLATION] Browse All Options"
+      "description": "Pas encore de contenu. Commencez en créant votre premier matériel d'apprentissage !",
+      "button": "Parcourir Toutes les Options"
     }
   },
   "sidebar": {
-    "course": "[NEEDS_TRANSLATION] Audio\nCourse",
-    "narrowListening": "[NEEDS_TRANSLATION] Narrow\nListening",
-    "chunkPack": "[NEEDS_TRANSLATION] Chunk\nPack"
+    "course": "Cours\nAudio",
+    "narrowListening": "Écoute\nCiblée",
+    "chunkPack": "Pack de\nBlocs"
   }
 }

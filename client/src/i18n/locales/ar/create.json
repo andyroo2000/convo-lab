@@ -1,37 +1,37 @@
 {
-  "title": "Create",
-  "subtitle": "Choose a content type to create",
+  "title": "ماذا تريد أن تنشئ؟",
+  "subtitle": "اختر نوع النشاط للبدء",
   "types": {
     "dialogue": {
-      "title": "Dialogue",
-      "description": "Create a natural conversation between two speakers"
+      "title": "حوار",
+      "description": "إنشاء حوارات AI من قصصك الخاصة، معايرة لمستوى كفاءتك"
     },
     "course": {
-      "title": "Audio Course",
-      "description": "Create a Pimsleur-style audio lesson"
+      "title": "دورة صوتية",
+      "description": "دروس صوتية فقط مبنية من حواراتك—مثالية لتنقلاتك أو مشيك الصباحي"
     },
     "narrowListening": {
-      "title": "Narrow Listening",
-      "description": "Create focused listening practice on a specific topic"
+      "title": "الاستماع الضيق",
+      "description": "نفس القصة تُروى بخمس طرق مختلفة—استيعاب عميق للأنماط من خلال التكرار"
     },
     "processingInstruction": {
-      "title": "Processing Instruction",
-      "description": "Create grammar-focused learning activities"
+      "title": "قواعد",
+      "description": "تعلم القواعد من خلال مدخلات منظمة—أجب على أسئلة قائمة على المعنى"
     },
     "chunkPack": {
-      "title": "Lexical Chunk Pack",
-      "description": "Create vocabulary chunk practice sets"
+      "title": "حزمة كتل",
+      "description": "اكتساب عبارات كوحدات كاملة—تعلم كتل عالية التكرار من خلال الأمثلة"
     }
   },
   "buttons": {
-    "create": "Create",
-    "cancel": "Cancel",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish"
+    "create": "إنشاء",
+    "cancel": "إلغاء",
+    "back": "رجوع",
+    "next": "التالي",
+    "finish": "إنهاء"
   },
-  "creating": "Creating...",
-  "success": "Created successfully!",
-  "error": "Failed to create content",
-  "footer": "[NEEDS_TRANSLATION] Experiment, iterate, and discover what works for your learning style."
+  "footer": "جرب، وكرر، واكتشف ما يناسب أسلوب تعلمك.",
+  "creating": "جارٍ الإنشاء...",
+  "success": "تم الإنشاء بنجاح!",
+  "error": "فشل إنشاء المحتوى"
 }

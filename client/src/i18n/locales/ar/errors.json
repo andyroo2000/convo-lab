@@ -25,21 +25,21 @@
   },
   "display": {
     "connection": {
-      "title": "[NEEDS_TRANSLATION] Connection Error",
-      "description": "[NEEDS_TRANSLATION] Check your internet connection and try again"
+      "title": "خطأ في الاتصال",
+      "description": "تحقق من اتصالك بالإنترنت وحاول مرة أخرى"
     },
     "auth": {
-      "title": "[NEEDS_TRANSLATION] Authentication Error",
-      "description": "[NEEDS_TRANSLATION] Please log in again to continue"
+      "title": "خطأ في المصادقة",
+      "description": "يرجى تسجيل الدخول مرة أخرى للمتابعة"
     },
     "generation": {
-      "title": "[NEEDS_TRANSLATION] Generation Failed",
-      "description": "[NEEDS_TRANSLATION] Content generation failed. Please try again"
+      "title": "فشل الإنشاء",
+      "description": "فشل إنشاء المحتوى. يرجى المحاولة مرة أخرى"
     },
     "generic": {
-      "title": "[NEEDS_TRANSLATION] Error",
-      "description": "[NEEDS_TRANSLATION] Something went wrong. Please try again"
+      "title": "خطأ",
+      "description": "حدث خطأ ما. يرجى المحاولة مرة أخرى"
     },
-    "tryAgain": "[NEEDS_TRANSLATION] Try Again"
+    "tryAgain": "حاول مرة أخرى"
   }
 }

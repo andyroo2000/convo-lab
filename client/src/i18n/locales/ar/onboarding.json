@@ -1,22 +1,22 @@
 {
-  "welcome": "Welcome to ConvoLab!",
-  "subtitle": "Let's set up your learning preferences",
+  "welcome": "مرحباً بك في ConvoLab!",
+  "subtitle": "لنقم بإعداد تفضيلات التعلم الخاصة بك",
   "step1": {
-    "title": "What's your native language?",
-    "description": "This will be used for UI and translations"
+    "title": "ما هي لغتك الأم؟",
+    "description": "سيتم استخدامها للواجهة والترجمات"
   },
   "step2": {
-    "title": "What language do you want to learn?",
-    "description": "Choose your target study language"
+    "title": "ما اللغة التي تريد تعلمها؟",
+    "description": "اختر لغة الدراسة المستهدفة"
   },
   "step3": {
-    "title": "What's your proficiency level?",
-    "description": "Select your current skill level",
+    "title": "ما هو مستوى كفاءتك؟",
+    "description": "حدد مستوى مهارتك الحالي",
     "levels": {}
   },
   "buttons": {
-    "next": "Next",
-    "back": "Back",
-    "finish": "Get Started"
+    "next": "التالي",
+    "back": "رجوع",
+    "finish": "ابدأ"
   }
 }

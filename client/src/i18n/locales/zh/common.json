@@ -71,29 +71,29 @@
     "repeatMode": "重复模式: {{mode}}"
   },
   "modal": {
-    "confirm": "[NEEDS_TRANSLATION] Confirm",
-    "cancel": "[NEEDS_TRANSLATION] Cancel",
-    "processing": "[NEEDS_TRANSLATION] Processing...",
-    "gotIt": "[NEEDS_TRANSLATION] Got it"
+    "confirm": "确认",
+    "cancel": "取消",
+    "processing": "处理中...",
+    "gotIt": "知道了"
   },
   "quota": {
-    "generationsLeft": "[NEEDS_TRANSLATION] {{remaining}}/{{limit}} generations left this week",
-    "lowQuota": "[NEEDS_TRANSLATION] Low quota",
-    "runningLow": "[NEEDS_TRANSLATION] Running low"
+    "generationsLeft": "本周剩余生成次数：{{remaining}}/{{limit}}",
+    "lowQuota": "配额不足",
+    "runningLow": "配额即将用完"
   },
   "demo": {
-    "title": "[NEEDS_TRANSLATION] Demo Mode",
-    "description": "[NEEDS_TRANSLATION] You're exploring in demo mode, so content creation is disabled.",
-    "contactAdmin": "[NEEDS_TRANSLATION] Thanks for checking out the app! If you'd like full access, please contact the admin."
+    "title": "演示模式",
+    "description": "您正在演示模式下浏览，因此内容创建已被禁用。",
+    "contactAdmin": "感谢您试用本应用！如果您需要完整访问权限，请联系管理员。"
   },
   "impersonation": {
-    "viewingAs": "[NEEDS_TRANSLATION] Viewing as {{name}}",
-    "readOnly": "[NEEDS_TRANSLATION] Read-only",
-    "exitView": "[NEEDS_TRANSLATION] Exit View"
+    "viewingAs": "以{{name}}的身份查看",
+    "readOnly": "只读",
+    "exitView": "退出查看"
   },
   "status": {
-    "generating": "[NEEDS_TRANSLATION] Generating...",
-    "error": "[NEEDS_TRANSLATION] error"
+    "generating": "生成中...",
+    "error": "错误"
   },
-  "loadingMore": "[NEEDS_TRANSLATION] Loading more..."
+  "loadingMore": "加载更多..."
 }
