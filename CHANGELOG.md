@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[chore]** Make lint harness fully autonomous - added explicit instructions to continue through ALL phases without stopping; prevents harness from providing "Recommendations for Next Session" and instead automatically continues from Phase 1 through Phase 7; only stops when reaching turn limit or completing all phases
 - **[chore]** Increase harness max turns limit to 50000 - updated DEFAULT_MAX_TURNS across all autonomous harness scripts (accessibility, i18n, lint, maintenance, mobile, monitoring, perf, security, test) from varying limits (200-5000) to 50000 to allow more comprehensive automated fixes without hitting turn limits prematurely
 
 ### Added
