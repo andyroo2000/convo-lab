@@ -1,37 +1,37 @@
 {
-  "title": "Create",
-  "subtitle": "Choose a content type to create",
+  "title": "¿Qué quieres crear?",
+  "subtitle": "Elige un tipo de actividad para comenzar",
   "types": {
     "dialogue": {
-      "title": "Dialogue",
-      "description": "Create a natural conversation between two speakers"
+      "title": "Diálogo",
+      "description": "Genera diálogos de IA a partir de tus propias historias, calibrados a tu nivel de competencia"
     },
     "course": {
-      "title": "Audio Course",
-      "description": "Create a Pimsleur-style audio lesson"
+      "title": "Curso de Audio",
+      "description": "Lecciones solo de audio construidas desde tus diálogos—perfectas para tu traslado o caminata matutina"
     },
     "narrowListening": {
-      "title": "Narrow Listening",
-      "description": "Create focused listening practice on a specific topic"
+      "title": "Escucha Focalizada",
+      "description": "La misma historia contada de 5 maneras diferentes—internaliza profundamente los patrones a través de la repetición"
     },
     "processingInstruction": {
-      "title": "Processing Instruction",
-      "description": "Create grammar-focused learning activities"
+      "title": "Gramática",
+      "description": "Aprende gramática a través de input estructurado—responde preguntas basadas en el significado"
     },
     "chunkPack": {
-      "title": "Lexical Chunk Pack",
-      "description": "Create vocabulary chunk practice sets"
+      "title": "Paquete de Bloques",
+      "description": "Adquiere frases como unidades completas—aprende bloques de alta frecuencia a través de ejemplos"
     }
   },
   "buttons": {
-    "create": "Create",
-    "cancel": "Cancel",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish"
+    "create": "Crear",
+    "cancel": "Cancelar",
+    "back": "Atrás",
+    "next": "Siguiente",
+    "finish": "Finalizar"
   },
-  "creating": "Creating...",
-  "success": "Created successfully!",
-  "error": "Failed to create content",
-  "footer": "[NEEDS_TRANSLATION] Experiment, iterate, and discover what works for your learning style."
+  "footer": "Experimenta, itera y descubre qué funciona para tu estilo de aprendizaje.",
+  "creating": "Creando...",
+  "success": "¡Creado exitosamente!",
+  "error": "Error al crear contenido"
 }

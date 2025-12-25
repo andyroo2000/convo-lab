@@ -59,11 +59,11 @@
     "ready": "准备生成了吗？",
     "description": "AI将创建一个自然的{{language}}对话，由2个说话者进行，随机分配姓名和声音。两位说话者都将使用{{level}}级别的{{tone}}语言。",
     "features": {
+      "turns_one": "{{count}} 轮对话",
+      "turns_other": "{{count}} 轮对话",
       "variations": "每句3个变体",
       "translations": "英语翻译",
-      "complexity": "级别匹配的语言复杂度",
-      "turns_one": "[NEEDS_TRANSLATION] {{count}} dialogue turn",
-      "turns_other": "[NEEDS_TRANSLATION] {{count}} dialogue turns"
+      "complexity": "级别匹配的语言复杂度"
     },
     "button": "生成对话",
     "generating": "正在生成..."

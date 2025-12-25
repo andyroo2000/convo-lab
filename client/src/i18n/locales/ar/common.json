@@ -71,29 +71,29 @@
     "repeatMode": "وضع التكرار: {{mode}}"
   },
   "modal": {
-    "confirm": "[NEEDS_TRANSLATION] Confirm",
-    "cancel": "[NEEDS_TRANSLATION] Cancel",
-    "processing": "[NEEDS_TRANSLATION] Processing...",
-    "gotIt": "[NEEDS_TRANSLATION] Got it"
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "processing": "جارٍ المعالجة...",
+    "gotIt": "حسناً"
   },
   "quota": {
-    "generationsLeft": "[NEEDS_TRANSLATION] {{remaining}}/{{limit}} generations left this week",
-    "lowQuota": "[NEEDS_TRANSLATION] Low quota",
-    "runningLow": "[NEEDS_TRANSLATION] Running low"
+    "generationsLeft": "{{remaining}}/{{limit}} عملية إنشاء متبقية هذا الأسبوع",
+    "lowQuota": "حصة منخفضة",
+    "runningLow": "توشك على النفاد"
   },
   "demo": {
-    "title": "[NEEDS_TRANSLATION] Demo Mode",
-    "description": "[NEEDS_TRANSLATION] You're exploring in demo mode, so content creation is disabled.",
-    "contactAdmin": "[NEEDS_TRANSLATION] Thanks for checking out the app! If you'd like full access, please contact the admin."
+    "title": "الوضع التجريبي",
+    "description": "أنت تتصفح في الوضع التجريبي، لذا إنشاء المحتوى معطل.",
+    "contactAdmin": "شكراً لتجربة التطبيق! إذا كنت تريد الوصول الكامل، يرجى الاتصال بالمسؤول."
   },
   "impersonation": {
-    "viewingAs": "[NEEDS_TRANSLATION] Viewing as {{name}}",
-    "readOnly": "[NEEDS_TRANSLATION] Read-only",
-    "exitView": "[NEEDS_TRANSLATION] Exit View"
+    "viewingAs": "عرض كـ {{name}}",
+    "readOnly": "للقراءة فقط",
+    "exitView": "إنهاء العرض"
   },
   "status": {
-    "generating": "[NEEDS_TRANSLATION] Generating...",
-    "error": "[NEEDS_TRANSLATION] error"
+    "generating": "جارٍ الإنشاء...",
+    "error": "خطأ"
   },
-  "loadingMore": "[NEEDS_TRANSLATION] Loading more..."
+  "loadingMore": "جارٍ تحميل المزيد..."
 }

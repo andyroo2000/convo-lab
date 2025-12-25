@@ -1,37 +1,37 @@
 {
-  "title": "Create",
-  "subtitle": "Choose a content type to create",
+  "title": "您想创建什么？",
+  "subtitle": "选择活动类型开始",
   "types": {
     "dialogue": {
-      "title": "Dialogue",
-      "description": "Create a natural conversation between two speakers"
+      "title": "对话",
+      "description": "根据您自己的故事生成AI对话，根据您的熟练程度进行校准"
     },
     "course": {
-      "title": "Audio Course",
-      "description": "Create a Pimsleur-style audio lesson"
+      "title": "音频课程",
+      "description": "从您的对话构建的纯音频课程——非常适合您的通勤或晨间散步"
     },
     "narrowListening": {
-      "title": "Narrow Listening",
-      "description": "Create focused listening practice on a specific topic"
+      "title": "窄听",
+      "description": "同一个故事用5种不同方式讲述——通过重复深度内化模式"
     },
     "processingInstruction": {
-      "title": "Processing Instruction",
-      "description": "Create grammar-focused learning activities"
+      "title": "语法",
+      "description": "通过结构化输入学习语法——回答基于意义的问题"
     },
     "chunkPack": {
-      "title": "Lexical Chunk Pack",
-      "description": "Create vocabulary chunk practice sets"
+      "title": "词块包",
+      "description": "将短语作为完整单位习得——通过例句学习高频词块"
     }
   },
   "buttons": {
-    "create": "Create",
-    "cancel": "Cancel",
-    "back": "Back",
-    "next": "Next",
-    "finish": "Finish"
+    "create": "创建",
+    "cancel": "取消",
+    "back": "返回",
+    "next": "下一步",
+    "finish": "完成"
   },
-  "creating": "Creating...",
-  "success": "Created successfully!",
-  "error": "Failed to create content",
-  "footer": "[NEEDS_TRANSLATION] Experiment, iterate, and discover what works for your learning style."
+  "footer": "实验、迭代，发现适合您学习风格的方法。",
+  "creating": "创建中...",
+  "success": "创建成功！",
+  "error": "创建内容失败"
 }

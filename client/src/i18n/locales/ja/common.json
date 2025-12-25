@@ -71,29 +71,29 @@
     "repeatMode": "リピートモード: {{mode}}"
   },
   "modal": {
-    "confirm": "[NEEDS_TRANSLATION] Confirm",
-    "cancel": "[NEEDS_TRANSLATION] Cancel",
-    "processing": "[NEEDS_TRANSLATION] Processing...",
-    "gotIt": "[NEEDS_TRANSLATION] Got it"
+    "confirm": "確認",
+    "cancel": "キャンセル",
+    "processing": "処理中...",
+    "gotIt": "了解"
   },
   "quota": {
-    "generationsLeft": "[NEEDS_TRANSLATION] {{remaining}}/{{limit}} generations left this week",
-    "lowQuota": "[NEEDS_TRANSLATION] Low quota",
-    "runningLow": "[NEEDS_TRANSLATION] Running low"
+    "generationsLeft": "今週の残り生成回数：{{remaining}}/{{limit}}",
+    "lowQuota": "割当量が少ない",
+    "runningLow": "割当量が少なくなっています"
   },
   "demo": {
-    "title": "[NEEDS_TRANSLATION] Demo Mode",
-    "description": "[NEEDS_TRANSLATION] You're exploring in demo mode, so content creation is disabled.",
-    "contactAdmin": "[NEEDS_TRANSLATION] Thanks for checking out the app! If you'd like full access, please contact the admin."
+    "title": "デモモード",
+    "description": "デモモードで閲覧しているため、コンテンツの作成は無効になっています。",
+    "contactAdmin": "アプリをご覧いただきありがとうございます！フルアクセスをご希望の場合は、管理者にお問い合わせください。"
   },
   "impersonation": {
-    "viewingAs": "[NEEDS_TRANSLATION] Viewing as {{name}}",
-    "readOnly": "[NEEDS_TRANSLATION] Read-only",
-    "exitView": "[NEEDS_TRANSLATION] Exit View"
+    "viewingAs": "{{name}}として表示中",
+    "readOnly": "読み取り専用",
+    "exitView": "表示を終了"
   },
   "status": {
-    "generating": "[NEEDS_TRANSLATION] Generating...",
-    "error": "[NEEDS_TRANSLATION] error"
+    "generating": "生成中...",
+    "error": "エラー"
   },
-  "loadingMore": "[NEEDS_TRANSLATION] Loading more..."
+  "loadingMore": "さらに読み込み中..."
 }

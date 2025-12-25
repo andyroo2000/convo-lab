@@ -25,21 +25,21 @@
   },
   "display": {
     "connection": {
-      "title": "[NEEDS_TRANSLATION] Connection Error",
-      "description": "[NEEDS_TRANSLATION] Check your internet connection and try again"
+      "title": "Error de Conexión",
+      "description": "Verifica tu conexión a internet e intenta de nuevo"
     },
     "auth": {
-      "title": "[NEEDS_TRANSLATION] Authentication Error",
-      "description": "[NEEDS_TRANSLATION] Please log in again to continue"
+      "title": "Error de Autenticación",
+      "description": "Por favor inicia sesión de nuevo para continuar"
     },
     "generation": {
-      "title": "[NEEDS_TRANSLATION] Generation Failed",
-      "description": "[NEEDS_TRANSLATION] Content generation failed. Please try again"
+      "title": "Fallo en la Generación",
+      "description": "La generación de contenido falló. Por favor intenta de nuevo"
     },
     "generic": {
-      "title": "[NEEDS_TRANSLATION] Error",
-      "description": "[NEEDS_TRANSLATION] Something went wrong. Please try again"
+      "title": "Error",
+      "description": "Algo salió mal. Por favor intenta de nuevo"
     },
-    "tryAgain": "[NEEDS_TRANSLATION] Try Again"
+    "tryAgain": "Intentar de Nuevo"
   }
 }

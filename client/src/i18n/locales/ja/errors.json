@@ -25,21 +25,21 @@
   },
   "display": {
     "connection": {
-      "title": "[NEEDS_TRANSLATION] Connection Error",
-      "description": "[NEEDS_TRANSLATION] Check your internet connection and try again"
+      "title": "接続エラー",
+      "description": "インターネット接続を確認して、もう一度お試しください"
     },
     "auth": {
-      "title": "[NEEDS_TRANSLATION] Authentication Error",
-      "description": "[NEEDS_TRANSLATION] Please log in again to continue"
+      "title": "認証エラー",
+      "description": "続行するには再度ログインしてください"
     },
     "generation": {
-      "title": "[NEEDS_TRANSLATION] Generation Failed",
-      "description": "[NEEDS_TRANSLATION] Content generation failed. Please try again"
+      "title": "生成失敗",
+      "description": "コンテンツの生成に失敗しました。もう一度お試しください"
     },
     "generic": {
-      "title": "[NEEDS_TRANSLATION] Error",
-      "description": "[NEEDS_TRANSLATION] Something went wrong. Please try again"
+      "title": "エラー",
+      "description": "問題が発生しました。もう一度お試しください"
     },
-    "tryAgain": "[NEEDS_TRANSLATION] Try Again"
+    "tryAgain": "再試行"
   }
 }

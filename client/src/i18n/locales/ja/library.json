@@ -23,7 +23,7 @@
     "deleting": "削除中...",
     "success": "正常に削除されました",
     "error": "削除に失敗しました",
-    "alertError": "[NEEDS_TRANSLATION] Failed to delete {{type}}. Please try again."
+    "alertError": "{{type}}の削除に失敗しました。もう一度お試しください。"
   },
   "loading": "コンテンツを読み込み中...",
   "loadMore": "もっと読み込む",
@@ -34,33 +34,33 @@
   },
   "emptyStates": {
     "dialogue": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Dialogue",
-      "description": "[NEEDS_TRANSLATION] Generate comprehensible input dialogues at your level with natural conversations and audio",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "最初の対話を作成",
+      "description": "自然な会話と音声で、あなたのレベルに合った理解可能なインプット対話を生成",
+      "button": "始める"
     },
     "course": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Audio Course",
-      "description": "[NEEDS_TRANSLATION] Build guided audio courses with structured lessons and pronunciation practice",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "最初のオーディオコースを作成",
+      "description": "構造化されたレッスンと発音練習を含むガイド付きオーディオコースを構築",
+      "button": "始める"
     },
     "narrowListening": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Narrow Listening Pack",
-      "description": "[NEEDS_TRANSLATION] Practice with story variations at your level for focused listening comprehension",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "最初のナローリスニングパックを作成",
+      "description": "あなたのレベルのストーリーバリエーションで集中的なリスニング理解を練習",
+      "button": "始める"
     },
     "chunkPack": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Lexical Chunk Pack",
-      "description": "[NEEDS_TRANSLATION] Master high-frequency expressions with examples, stories, and interactive exercises",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "最初の語彙チャンクパックを作成",
+      "description": "例、ストーリー、インタラクティブな演習で高頻度表現をマスター",
+      "button": "始める"
     },
     "all": {
-      "description": "[NEEDS_TRANSLATION] No content yet. Get started by creating your first learning material!",
-      "button": "[NEEDS_TRANSLATION] Browse All Options"
+      "description": "まだコンテンツがありません。最初の学習教材を作成して始めましょう！",
+      "button": "すべてのオプションを見る"
     }
   },
   "sidebar": {
-    "course": "[NEEDS_TRANSLATION] Audio\nCourse",
-    "narrowListening": "[NEEDS_TRANSLATION] Narrow\nListening",
-    "chunkPack": "[NEEDS_TRANSLATION] Chunk\nPack"
+    "course": "オーディオ\nコース",
+    "narrowListening": "ナロー\nリスニング",
+    "chunkPack": "チャンク\nパック"
   }
 }

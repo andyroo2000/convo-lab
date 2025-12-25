@@ -23,7 +23,7 @@
     "deleting": "Deleting...",
     "success": "Deleted successfully",
     "error": "Failed to delete",
-    "alertError": "[NEEDS_TRANSLATION] Failed to delete {{type}}. Please try again."
+    "alertError": "删除{{type}}失败。请重试。"
   },
   "loading": "Loading your content...",
   "loadMore": "Load more",
@@ -34,33 +34,33 @@
   },
   "emptyStates": {
     "dialogue": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Dialogue",
-      "description": "[NEEDS_TRANSLATION] Generate comprehensible input dialogues at your level with natural conversations and audio",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "创建您的第一个对话",
+      "description": "在您的水平上生成可理解输入对话，配有自然对话和音频",
+      "button": "开始"
     },
     "course": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Audio Course",
-      "description": "[NEEDS_TRANSLATION] Build guided audio courses with structured lessons and pronunciation practice",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "创建您的第一个音频课程",
+      "description": "构建包含结构化课程和发音练习的引导式音频课程",
+      "button": "开始"
     },
     "narrowListening": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Narrow Listening Pack",
-      "description": "[NEEDS_TRANSLATION] Practice with story variations at your level for focused listening comprehension",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "创建您的第一个窄听包",
+      "description": "使用您水平的故事变体进行专注的听力理解练习",
+      "button": "开始"
     },
     "chunkPack": {
-      "title": "[NEEDS_TRANSLATION] Create Your First Lexical Chunk Pack",
-      "description": "[NEEDS_TRANSLATION] Master high-frequency expressions with examples, stories, and interactive exercises",
-      "button": "[NEEDS_TRANSLATION] Get Started"
+      "title": "创建您的第一个词汇块包",
+      "description": "通过示例、故事和互动练习掌握高频表达",
+      "button": "开始"
     },
     "all": {
-      "description": "[NEEDS_TRANSLATION] No content yet. Get started by creating your first learning material!",
-      "button": "[NEEDS_TRANSLATION] Browse All Options"
+      "description": "还没有内容。开始创建您的第一个学习材料！",
+      "button": "浏览所有选项"
     }
   },
   "sidebar": {
-    "course": "[NEEDS_TRANSLATION] Audio\nCourse",
-    "narrowListening": "[NEEDS_TRANSLATION] Narrow\nListening",
-    "chunkPack": "[NEEDS_TRANSLATION] Chunk\nPack"
+    "course": "音频\n课程",
+    "narrowListening": "窄听\n练习",
+    "chunkPack": "词汇块\n包"
   }
 }
