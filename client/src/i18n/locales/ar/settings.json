@@ -1,25 +1,25 @@
 {
-  "title": "[NEEDS_TRANSLATION] Settings",
-  "subtitle": "[NEEDS_TRANSLATION] Manage your account preferences",
+  "title": "الإعدادات",
+  "subtitle": "إدارة تفضيلات حسابك",
   "tabs": {
-    "profile": "[NEEDS_TRANSLATION] Profile",
-    "language": "[NEEDS_TRANSLATION] Language",
-    "security": "[NEEDS_TRANSLATION] Security",
-    "billing": "[NEEDS_TRANSLATION] Billing",
-    "danger": "[NEEDS_TRANSLATION] Danger Zone"
+    "profile": "الملف الشخصي",
+    "language": "اللغة",
+    "security": "الأمان",
+    "billing": "الفواتير",
+    "danger": "منطقة الخطر"
   },
   "profile": {
-    "title": "[NEEDS_TRANSLATION] Profile Settings",
+    "title": "إعدادات الملف الشخصي",
     "avatar": {
-      "label": "[NEEDS_TRANSLATION] Avatar",
-      "upload": "[NEEDS_TRANSLATION] Upload Avatar",
-      "change": "[NEEDS_TRANSLATION] Change Avatar",
-      "remove": "[NEEDS_TRANSLATION] Remove",
-      "helper": "[NEEDS_TRANSLATION] Upload a custom profile picture or use your initial as your avatar",
-      "uploadSuccess": "[NEEDS_TRANSLATION] Avatar updated successfully!",
-      "removeSuccess": "[NEEDS_TRANSLATION] Avatar removed successfully!",
-      "uploadError": "[NEEDS_TRANSLATION] Failed to upload avatar. Please try again.",
-      "removeError": "[NEEDS_TRANSLATION] Failed to remove avatar",
+      "label": "الصورة الرمزية",
+      "upload": "رفع صورة رمزية",
+      "change": "تغيير الصورة الرمزية",
+      "remove": "إزالة",
+      "helper": "قم برفع صورة ملف شخصي مخصصة أو استخدم الحرف الأول كصورة رمزية",
+      "uploadSuccess": "تم تحديث الصورة الرمزية بنجاح!",
+      "removeSuccess": "تم إزالة الصورة الرمزية بنجاح!",
+      "uploadError": "فشل رفع الصورة الرمزية. يرجى المحاولة مرة أخرى.",
+      "removeError": "فشل إزالة الصورة الرمزية",
       "cropTitle": "اقتصاص صورة الملف الشخصي",
       "altText": "صورتك الرمزية"
     },
@@ -34,16 +34,16 @@
       "cyan": "سماوي"
     },
     "displayName": {
-      "label": "[NEEDS_TRANSLATION] Display Name",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your display name",
-      "helper": "[NEEDS_TRANSLATION] This is the name that will be displayed throughout the app"
+      "label": "الاسم المعروض",
+      "placeholder": "أدخل اسمك المعروض",
+      "helper": "هذا هو الاسم الذي سيتم عرضه في جميع أنحاء التطبيق"
     },
-    "saveButton": "[NEEDS_TRANSLATION] Save Changes",
-    "saving": "[NEEDS_TRANSLATION] Saving...",
-    "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+    "saveButton": "حفظ التغييرات",
+    "saving": "جارٍ الحفظ...",
+    "cancelButton": "إلغاء"
   },
   "language": {
-    "title": "[NEEDS_TRANSLATION] Language Preferences",
+    "title": "تفضيلات اللغة",
     "names": {
       "en": "الإنجليزية",
       "ja": "اليابانية (日本語)",
@@ -53,132 +53,132 @@
       "ar": "العربية"
     },
     "study": {
-      "label": "[NEEDS_TRANSLATION] Study Language",
-      "helper": "[NEEDS_TRANSLATION] Your primary target language for learning"
+      "label": "لغة الدراسة",
+      "helper": "لغتك الهدف الرئيسية للتعلم"
     },
     "native": {
-      "label": "[NEEDS_TRANSLATION] Native Language",
-      "helper": "[NEEDS_TRANSLATION] Your first language, used for translations"
+      "label": "اللغة الأم",
+      "helper": "لغتك الأولى، المستخدمة للترجمات"
     },
     "proficiency": {
       "jlpt": {
-        "label": "[NEEDS_TRANSLATION] Current JLPT Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "n5": "[NEEDS_TRANSLATION] N5 (Beginner)",
-        "n4": "[NEEDS_TRANSLATION] N4 (Upper Beginner)",
-        "n3": "[NEEDS_TRANSLATION] N3 (Intermediate)",
-        "n2": "[NEEDS_TRANSLATION] N2 (Upper Intermediate)",
-        "n1": "[NEEDS_TRANSLATION] N1 (Advanced)"
+        "label": "مستوى JLPT الحالي",
+        "helper": "يساعدنا هذا في إنشاء محتوى بمستوى الصعوبة المناسب",
+        "n5": "N5 (مبتدئ)",
+        "n4": "N4 (مبتدئ متقدم)",
+        "n3": "N3 (متوسط)",
+        "n2": "N2 (متوسط متقدم)",
+        "n1": "N1 (متقدم)"
       },
       "hsk": {
-        "label": "[NEEDS_TRANSLATION] Current HSK Level",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "hsk1": "[NEEDS_TRANSLATION] HSK 1 (Beginner)",
-        "hsk2": "[NEEDS_TRANSLATION] HSK 2 (Upper Beginner)",
-        "hsk3": "[NEEDS_TRANSLATION] HSK 3 (Intermediate)",
-        "hsk4": "[NEEDS_TRANSLATION] HSK 4 (Upper Intermediate)",
-        "hsk5": "[NEEDS_TRANSLATION] HSK 5 (Advanced)",
-        "hsk6": "[NEEDS_TRANSLATION] HSK 6 (Mastery)"
+        "label": "مستوى HSK الحالي",
+        "helper": "يساعدنا هذا في إنشاء محتوى بمستوى الصعوبة المناسب",
+        "hsk1": "HSK 1 (مبتدئ)",
+        "hsk2": "HSK 2 (مبتدئ متقدم)",
+        "hsk3": "HSK 3 (متوسط)",
+        "hsk4": "HSK 4 (متوسط متقدم)",
+        "hsk5": "HSK 5 (متقدم)",
+        "hsk6": "HSK 6 (إتقان)"
       },
       "cefr": {
-        "spanish": "[NEEDS_TRANSLATION] Spanish Proficiency Level (CEFR)",
-        "french": "[NEEDS_TRANSLATION] French Proficiency Level (CEFR)",
-        "arabic": "[NEEDS_TRANSLATION] Arabic Proficiency Level (CEFR)",
-        "english": "[NEEDS_TRANSLATION] English Proficiency Level (CEFR)",
-        "helper": "[NEEDS_TRANSLATION] This helps us generate content at the right difficulty level",
-        "a1": "[NEEDS_TRANSLATION] A1 - Beginner",
-        "a2": "[NEEDS_TRANSLATION] A2 - Elementary",
-        "b1": "[NEEDS_TRANSLATION] B1 - Intermediate",
-        "b2": "[NEEDS_TRANSLATION] B2 - Upper Intermediate",
-        "c1": "[NEEDS_TRANSLATION] C1 - Advanced",
-        "c2": "[NEEDS_TRANSLATION] C2 - Mastery"
+        "spanish": "مستوى إتقان الإسبانية (CEFR)",
+        "french": "مستوى إتقان الفرنسية (CEFR)",
+        "arabic": "مستوى إتقان العربية (CEFR)",
+        "english": "مستوى إتقان الإنجليزية (CEFR)",
+        "helper": "يساعدنا هذا في إنشاء محتوى بمستوى الصعوبة المناسب",
+        "a1": "A1 - مبتدئ",
+        "a2": "A2 - ابتدائي",
+        "b1": "B1 - متوسط",
+        "b2": "B2 - متوسط متقدم",
+        "c1": "C1 - متقدم",
+        "c2": "C2 - إتقان"
       }
     },
     "pinyin": {
-      "label": "[NEEDS_TRANSLATION] Pinyin Display Format",
-      "toneMarks": "[NEEDS_TRANSLATION] Tone marks (nǐ hǎo)",
-      "toneNumbers": "[NEEDS_TRANSLATION] Tone numbers (ni3 hao3)",
-      "helper": "[NEEDS_TRANSLATION] Choose how pinyin is displayed above Chinese characters"
+      "label": "تنسيق عرض البينيين",
+      "toneMarks": "علامات النغمة (nǐ hǎo)",
+      "toneNumbers": "أرقام النغمة (ni3 hao3)",
+      "helper": "اختر كيفية عرض البينيين فوق الأحرف الصينية"
     }
   },
   "security": {
-    "title": "[NEEDS_TRANSLATION] Change Password",
+    "title": "تغيير كلمة المرور",
     "currentPassword": {
-      "label": "[NEEDS_TRANSLATION] Current Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your current password"
+      "label": "كلمة المرور الحالية",
+      "placeholder": "أدخل كلمة المرور الحالية"
     },
     "newPassword": {
-      "label": "[NEEDS_TRANSLATION] New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Enter your new password (min 8 characters)"
+      "label": "كلمة المرور الجديدة",
+      "placeholder": "أدخل كلمة المرور الجديدة (8 أحرف على الأقل)"
     },
     "confirmPassword": {
-      "label": "[NEEDS_TRANSLATION] Confirm New Password",
-      "placeholder": "[NEEDS_TRANSLATION] Confirm your new password"
+      "label": "تأكيد كلمة المرور الجديدة",
+      "placeholder": "أكد كلمة المرور الجديدة"
     },
-    "changeButton": "[NEEDS_TRANSLATION] Change Password",
-    "changing": "[NEEDS_TRANSLATION] Changing Password...",
-    "success": "[NEEDS_TRANSLATION] Password changed successfully!",
+    "changeButton": "تغيير كلمة المرور",
+    "changing": "جارٍ تغيير كلمة المرور...",
+    "success": "تم تغيير كلمة المرور بنجاح!",
     "errors": {
-      "required": "[NEEDS_TRANSLATION] All password fields are required",
-      "tooShort": "[NEEDS_TRANSLATION] New password must be at least 8 characters",
-      "mismatch": "[NEEDS_TRANSLATION] New passwords do not match"
+      "required": "جميع حقول كلمة المرور مطلوبة",
+      "tooShort": "يجب أن تكون كلمة المرور الجديدة 8 أحرف على الأقل",
+      "mismatch": "كلمات المرور الجديدة غير متطابقة"
     }
   },
   "billing": {
-    "title": "[NEEDS_TRANSLATION] Billing & Subscription",
-    "loading": "[NEEDS_TRANSLATION] Loading subscription info...",
+    "title": "الفواتير والاشتراك",
+    "loading": "جارٍ تحميل معلومات الاشتراك...",
     "currentPlan": {
-      "title": "[NEEDS_TRANSLATION] Current Plan",
-      "free": "[NEEDS_TRANSLATION] Free",
-      "pro": "[NEEDS_TRANSLATION] Pro",
-      "plan": "[NEEDS_TRANSLATION] Plan",
-      "freePrice": "[NEEDS_TRANSLATION] Free forever",
-      "proPrice": "[NEEDS_TRANSLATION] $7/month",
-      "limit": "[NEEDS_TRANSLATION] Weekly generation limit",
-      "generations": "[NEEDS_TRANSLATION] generations per week",
-      "cancelsOn": "[NEEDS_TRANSLATION] Cancels on",
-      "renewsOn": "[NEEDS_TRANSLATION] Renews on"
+      "title": "الخطة الحالية",
+      "free": "مجاني",
+      "pro": "احترافي",
+      "plan": "خطة",
+      "freePrice": "مجاني للأبد",
+      "proPrice": "$7/شهر",
+      "limit": "حد الإنشاء الأسبوعي",
+      "generations": "عمليات إنشاء في الأسبوع",
+      "cancelsOn": "يلغى في",
+      "renewsOn": "يتجدد في"
     },
     "actions": {
-      "upgrade": "[NEEDS_TRANSLATION] Upgrade to Pro ($7/month)",
-      "upgradeHelper": "[NEEDS_TRANSLATION] Get 30 generations per week and priority support",
-      "manage": "[NEEDS_TRANSLATION] Manage Subscription",
-      "manageHelper": "[NEEDS_TRANSLATION] Update payment method, view invoices, or cancel subscription"
+      "upgrade": "الترقية إلى احترافي ($7/شهر)",
+      "upgradeHelper": "احصل على 30 عملية إنشاء في الأسبوع ودعم ذو أولوية",
+      "manage": "إدارة الاشتراك",
+      "manageHelper": "تحديث طريقة الدفع أو عرض الفواتير أو إلغاء الاشتراك"
     },
     "comparison": {
-      "title": "[NEEDS_TRANSLATION] Need a different plan?",
-      "viewAll": "[NEEDS_TRANSLATION] View all plans →"
+      "title": "تحتاج إلى خطة مختلفة؟",
+      "viewAll": "عرض جميع الخطط ←"
     },
     "errors": {
-      "loadSubscription": "[NEEDS_TRANSLATION] Failed to load subscription information",
-      "createPortal": "[NEEDS_TRANSLATION] Failed to open billing portal"
+      "loadSubscription": "فشل تحميل معلومات الاشتراك",
+      "createPortal": "فشل فتح بوابة الفواتير"
     }
   },
   "danger": {
-    "title": "[NEEDS_TRANSLATION] Danger Zone",
+    "title": "منطقة الخطر",
     "deleteAccount": {
-      "title": "[NEEDS_TRANSLATION] Delete Account",
-      "warning": "[NEEDS_TRANSLATION] Once you delete your account, there is no going back. This will permanently delete:",
+      "title": "حذف الحساب",
+      "warning": "بمجرد حذف حسابك، لا يمكن التراجع. سيؤدي هذا إلى الحذف الدائم لـ:",
       "items": {
-        "dialogues": "[NEEDS_TRANSLATION] All your dialogues and episodes",
-        "courses": "[NEEDS_TRANSLATION] All your audio courses",
-        "narrowListening": "[NEEDS_TRANSLATION] All your narrow listening packs",
-        "chunkPacks": "[NEEDS_TRANSLATION] All your chunk packs",
-        "account": "[NEEDS_TRANSLATION] Your account information and settings"
+        "dialogues": "جميع حواراتك والحلقات",
+        "courses": "جميع دوراتك الصوتية",
+        "narrowListening": "جميع حزم الاستماع الضيق",
+        "chunkPacks": "جميع حزم القطع",
+        "account": "معلومات حسابك وإعداداتك"
       },
-      "button": "[NEEDS_TRANSLATION] Delete My Account",
-      "confirmTitle": "[NEEDS_TRANSLATION] Delete Account",
-      "confirmMessage": "[NEEDS_TRANSLATION] Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes, courses, narrow listening packs, and chunk packs.",
-      "confirmButton": "[NEEDS_TRANSLATION] Yes, Delete My Account",
-      "cancelButton": "[NEEDS_TRANSLATION] Cancel"
+      "button": "حذف حسابي",
+      "confirmTitle": "حذف الحساب",
+      "confirmMessage": "هل أنت متأكد تمامًا من رغبتك في حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء وسيؤدي إلى الحذف الدائم لجميع بياناتك بما في ذلك الحلقات والدورات وحزم الاستماع الضيق وحزم القطع.",
+      "confirmButton": "نعم، احذف حسابي",
+      "cancelButton": "إلغاء"
     }
   },
   "messages": {
-    "saved": "[NEEDS_TRANSLATION] Saved!",
-    "failedToSave": "[NEEDS_TRANSLATION] Failed to save",
-    "noChanges": "[NEEDS_TRANSLATION] No changes to save",
-    "saveSuccess": "[NEEDS_TRANSLATION] Settings saved successfully!",
-    "deleteSuccess": "[NEEDS_TRANSLATION] Account deleted successfully",
-    "deleteError": "[NEEDS_TRANSLATION] Failed to delete account"
+    "saved": "تم الحفظ!",
+    "failedToSave": "فشل الحفظ",
+    "noChanges": "لا توجد تغييرات للحفظ",
+    "saveSuccess": "تم حفظ الإعدادات بنجاح!",
+    "deleteSuccess": "تم حذف الحساب بنجاح",
+    "deleteError": "فشل حذف الحساب"
   }
 }
