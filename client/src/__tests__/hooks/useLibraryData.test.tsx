@@ -41,7 +41,10 @@ describe('useLibraryData', () => {
 
   describe('Initial Loading', () => {
     it('should show loading state initially', () => {
-      mockFetch.mockImplementation(() => new Promise(() => {})); // Never resolves
+      // Use a long-delayed promise instead of one that never resolves
+      mockFetch.mockImplementation(() =>
+        new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000))
+      );
 
       const { result } = renderHook(() => useLibraryData(), {
         wrapper: createWrapper(),
@@ -51,7 +54,10 @@ describe('useLibraryData', () => {
     });
 
     it('should initialize with empty arrays', () => {
-      mockFetch.mockImplementation(() => new Promise(() => {}));
+      // Use a long-delayed promise instead of one that never resolves
+      mockFetch.mockImplementation(() =>
+        new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000))
+      );
 
       const { result } = renderHook(() => useLibraryData(), {
         wrapper: createWrapper(),
@@ -77,7 +83,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/episodes?library=true',
+          'http://localhost:3001/api/episodes?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -95,7 +101,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/courses?library=true',
+          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
         );
       });
@@ -113,7 +119,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/narrow-listening?library=true',
+          'http://localhost:3001/api/narrow-listening?library=true&limit=20&offset=0',
           expect.any(Object)
         );
       });
@@ -131,7 +137,7 @@ describe('useLibraryData', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/chunk-packs?library=true',
+          'http://localhost:3001/api/chunk-packs?library=true&limit=20&offset=0',
           expect.any(Object)
         );
       });
