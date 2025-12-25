@@ -174,7 +174,6 @@ async function runMigration() {
     `;
 
     console.log('✅ Migration completed successfully!');
-
   } catch (error) {
     console.error('❌ Migration failed:', error);
     throw error;

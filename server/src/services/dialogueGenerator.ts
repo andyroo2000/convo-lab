@@ -58,7 +58,9 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        console.log(`[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES}: Generating dialogue with Gemini`);
+        console.log(
+          `[DIALOGUE] Attempt ${attempt}/${MAX_RETRIES}: Generating dialogue with Gemini`
+        );
 
         // Generate dialogue with Gemini
         const response = await generateWithGemini(prompt, systemInstruction);
@@ -76,7 +78,6 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
 
         console.log(`[DIALOGUE] Success on attempt ${attempt}`);
         break; // Success! Exit retry loop
-
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -87,16 +88,18 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
           console.error('[DIALOGUE] All retry attempts exhausted. Last error:', lastError.message);
         } else {
           // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-          const delayMs = 2**(attempt - 1) * 1000;
+          const delayMs = 2 ** (attempt - 1) * 1000;
           console.log(`[DIALOGUE] Retrying in ${delayMs}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       }
     }
 
     // If we exhausted all retries without success, throw the last error
     if (!dialogueData) {
-      throw new Error(`Failed to generate dialogue after ${MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`);
+      throw new Error(
+        `Failed to generate dialogue after ${MAX_RETRIES} attempts: ${lastError?.message || 'Unknown error'}`
+      );
     }
 
     // Create dialogue and sentences in database
@@ -145,7 +148,7 @@ function buildSystemInstruction(
   const languageName = getLanguageName(targetLanguage);
 
   // Strip furigana/pinyin from speaker names for cleaner prompts
-  const speakerNames = speakers.map(s => stripPhoneticNotation(s.name));
+  const speakerNames = speakers.map((s) => stripPhoneticNotation(s.name));
 
   return `You are a dialogue generation expert for language learning. Your task is to create natural, engaging conversations in ${languageName} based on user stories.
 
@@ -172,7 +175,7 @@ function buildDialoguePrompt(
   dialogueLength: number
 ): string {
   // Strip furigana/pinyin from speaker names for cleaner prompts
-  const speakerNames = speakers.map(s => stripPhoneticNotation(s.name));
+  const speakerNames = speakers.map((s) => stripPhoneticNotation(s.name));
 
   return `Based on this story/experience, create a natural dialogue:
 
@@ -249,9 +252,7 @@ async function createDialogueInDB(
   );
 
   // Map speaker names to IDs (using stripped names for matching)
-  const speakerMap = new Map(
-    speakerRecords.map(s => [stripPhoneticNotation(s.name), s.id])
-  );
+  const speakerMap = new Map(speakerRecords.map((s) => [stripPhoneticNotation(s.name), s.id]));
 
   // Batch process all sentence metadata in a single request
   const sentenceTexts = dialogueData.sentences.map((sent: any) => sent.text);
@@ -266,7 +267,9 @@ async function createDialogueInDB(
       const normalizedSpeakerName = stripPhoneticNotation(sent.speaker);
       const speakerId = speakerMap.get(normalizedSpeakerName);
       if (!speakerId) {
-        throw new Error(`Unknown speaker: ${sent.speaker} (normalized: ${normalizedSpeakerName}). Available speakers: ${Array.from(speakerMap.keys()).join(', ')}`);
+        throw new Error(
+          `Unknown speaker: ${sent.speaker} (normalized: ${normalizedSpeakerName}). Available speakers: ${Array.from(speakerMap.keys()).join(', ')}`
+        );
       }
 
       // Use pre-computed metadata from batch call

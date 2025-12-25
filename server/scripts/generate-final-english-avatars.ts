@@ -13,11 +13,13 @@ interface AvatarConfig {
 const FINAL_AVATARS: AvatarConfig[] = [
   {
     filename: 'en-male-polite.jpg',
-    prompt: 'Professional headshot portrait of a courteous American man in his late 20s, warm smile, smart casual attire, diverse ethnicity, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot, studio quality',
+    prompt:
+      'Professional headshot portrait of a courteous American man in his late 20s, warm smile, smart casual attire, diverse ethnicity, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot, studio quality',
   },
   {
     filename: 'en-male-formal.jpg',
-    prompt: 'Professional headshot portrait of a professional American businessman in his 30s, composed expression, formal business suit, diverse ethnicity, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot, executive style',
+    prompt:
+      'Professional headshot portrait of a professional American businessman in his 30s, composed expression, formal business suit, diverse ethnicity, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot, executive style',
   },
 ];
 
@@ -25,7 +27,7 @@ async function getAccessToken(): Promise<string> {
   try {
     const token = execSync('gcloud auth application-default print-access-token', {
       encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'ignore']
+      stdio: ['pipe', 'pipe', 'ignore'],
     }).trim();
     return token;
   } catch (error) {
@@ -40,21 +42,24 @@ async function generateImageWithVertexAI(prompt: string, accessToken: string): P
   const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/imagen-3.0-generate-001:predict`;
 
   const requestBody = {
-    instances: [{
-      prompt: prompt,
-    }],
+    instances: [
+      {
+        prompt: prompt,
+      },
+    ],
     parameters: {
       sampleCount: 1,
       aspectRatio: '1:1',
-      negativePrompt: 'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark, logo, hands',
+      negativePrompt:
+        'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark, logo, hands',
       personGeneration: 'allow_adult',
-    }
+    },
   };
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
@@ -106,7 +111,6 @@ async function generateAndSaveAvatar(config: AvatarConfig, accessToken: string):
     await fs.writeFile(filePath, croppedBuffer);
 
     console.log(`✓ Saved to: ${filePath}`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${config.filename}:`, error.message);
     throw error;
@@ -117,7 +121,7 @@ async function main() {
   console.log('Generating Final 2 English Avatars');
   console.log('===================================\n');
   console.log('Waiting 90 seconds for quota to reset...');
-  await new Promise(resolve => setTimeout(resolve, 90000));
+  await new Promise((resolve) => setTimeout(resolve, 90000));
 
   console.log('Getting access token...');
   const accessToken = await getAccessToken();
@@ -135,7 +139,7 @@ async function main() {
 
       if (config !== FINAL_AVATARS[FINAL_AVATARS.length - 1]) {
         console.log('\nWaiting 30 seconds before next generation...');
-        await new Promise(resolve => setTimeout(resolve, 30000));
+        await new Promise((resolve) => setTimeout(resolve, 30000));
       }
     } catch (error) {
       failCount++;

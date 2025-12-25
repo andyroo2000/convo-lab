@@ -58,15 +58,17 @@ describe('courseItemExtractor', () => {
         dialogue: null,
       };
 
-      await expect(extractCoreItems(episode as any))
-        .rejects.toThrow('Episode has no dialogue sentences');
+      await expect(extractCoreItems(episode as any)).rejects.toThrow(
+        'Episode has no dialogue sentences'
+      );
     });
 
     it('should throw error when episode has empty sentences', async () => {
       const episode = createMockEpisode([]);
 
-      await expect(extractCoreItems(episode as any))
-        .rejects.toThrow('Episode has no dialogue sentences');
+      await expect(extractCoreItems(episode as any)).rejects.toThrow(
+        'Episode has no dialogue sentences'
+      );
     });
 
     it('should extract core items from dialogue sentences', async () => {
@@ -81,12 +83,20 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock batch decomposition response
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: [
-          { phraseIndex: 0, components: [{ textL2: 'こんにちは', translation: 'Hello', order: 0 }] },
-          { phraseIndex: 1, components: [{ textL2: 'お元気ですか', translation: 'How are you?', order: 0 }] },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: [
+            {
+              phraseIndex: 0,
+              components: [{ textL2: 'こんにちは', translation: 'Hello', order: 0 }],
+            },
+            {
+              phraseIndex: 1,
+              components: [{ textL2: 'お元気ですか', translation: 'How are you?', order: 0 }],
+            },
+          ],
+        })
+      );
 
       const result = await extractCoreItems(episode as any);
 
@@ -103,12 +113,14 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock with enough components for all sentences
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: Array.from({ length: 8 }, (_, i) => ({
-          phraseIndex: i,
-          components: [{ textL2: `Japanese ${i}`, translation: `English ${i}`, order: 0 }],
-        })),
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: Array.from({ length: 8 }, (_, i) => ({
+            phraseIndex: i,
+            components: [{ textL2: `Japanese ${i}`, translation: `English ${i}`, order: 0 }],
+          })),
+        })
+      );
 
       const result = await extractCoreItems(episode as any, 8);
 
@@ -123,11 +135,16 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: [
-          { phraseIndex: 0, components: [{ textL2: '漢字', reading: 'かんじ', translation: 'Kanji', order: 0 }] },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: [
+            {
+              phraseIndex: 0,
+              components: [{ textL2: '漢字', reading: 'かんじ', translation: 'Kanji', order: 0 }],
+            },
+          ],
+        })
+      );
 
       const result = await extractCoreItems(episode as any);
 
@@ -145,11 +162,13 @@ describe('courseItemExtractor', () => {
         targetLanguage: 'zh',
       };
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: [
-          { phraseIndex: 0, components: [{ textL2: '你好', translation: 'Hello', order: 0 }] },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: [
+            { phraseIndex: 0, components: [{ textL2: '你好', translation: 'Hello', order: 0 }] },
+          ],
+        })
+      );
 
       const result = await extractCoreItems(episode as any);
 
@@ -164,18 +183,30 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: [
-          {
-            phraseIndex: 0,
-            components: [
-              { textL2: 'です', reading: 'です', translation: 'it is', order: 0 },
-              { textL2: '行きたいです', reading: 'いきたいです', translation: 'want to go', order: 1 },
-              { textL2: '東京に行きたいです', reading: 'とうきょうにいきたいです', translation: 'want to go to Tokyo', order: 2 },
-            ],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: [
+            {
+              phraseIndex: 0,
+              components: [
+                { textL2: 'です', reading: 'です', translation: 'it is', order: 0 },
+                {
+                  textL2: '行きたいです',
+                  reading: 'いきたいです',
+                  translation: 'want to go',
+                  order: 1,
+                },
+                {
+                  textL2: '東京に行きたいです',
+                  reading: 'とうきょうにいきたいです',
+                  translation: 'want to go to Tokyo',
+                  order: 2,
+                },
+              ],
+            },
+          ],
+        })
+      );
 
       const result = await extractCoreItems(episode as any);
 
@@ -208,17 +239,29 @@ describe('courseItemExtractor', () => {
       const sentences = [
         createMockSentence('s1', 'はい', 'Yes'), // Very short - lowest complexity
         createMockSentence('s2', 'いいえ', 'No'), // Very short
-        createMockSentence('s3', 'これはとても長い文章で複雑な表現が含まれています', 'This is a very long sentence'),
-        createMockSentence('s4', 'もっと長い文章でさらに複雑な内容が含まれていて読むのが難しい', 'Even longer sentence'),
+        createMockSentence(
+          's3',
+          'これはとても長い文章で複雑な表現が含まれています',
+          'This is a very long sentence'
+        ),
+        createMockSentence(
+          's4',
+          'もっと長い文章でさらに複雑な内容が含まれていて読むのが難しい',
+          'Even longer sentence'
+        ),
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: sentences.map((_, i) => ({
-          phraseIndex: i,
-          components: [{ textL2: sentences[i].text, translation: sentences[i].translation, order: 0 }],
-        })),
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: sentences.map((_, i) => ({
+            phraseIndex: i,
+            components: [
+              { textL2: sentences[i].text, translation: sentences[i].translation, order: 0 },
+            ],
+          })),
+        })
+      );
 
       const result = await extractCoreItems(episode as any, 2, 4);
 
@@ -228,7 +271,9 @@ describe('courseItemExtractor', () => {
       // If we have multiple items, the first should have lower or equal complexity than later ones
       // Since items are selected across complexity spectrum
       if (result.length > 1) {
-        expect(result[0].complexityScore).toBeLessThanOrEqual(result[result.length - 1].complexityScore);
+        expect(result[0].complexityScore).toBeLessThanOrEqual(
+          result[result.length - 1].complexityScore
+        );
       }
     });
 
@@ -240,12 +285,16 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: sentences.map((_, i) => ({
-          phraseIndex: i,
-          components: [{ textL2: sentences[i].text, translation: sentences[i].translation, order: 0 }],
-        })),
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: sentences.map((_, i) => ({
+            phraseIndex: i,
+            components: [
+              { textL2: sentences[i].text, translation: sentences[i].translation, order: 0 },
+            ],
+          })),
+        })
+      );
 
       const result = await extractCoreItems(episode as any, 1, 3);
 
@@ -253,8 +302,8 @@ describe('courseItemExtractor', () => {
       expect(result.length).toBeGreaterThan(0);
 
       // Find items and verify question has lower complexity
-      const questionItem = result.find(r => r.textL2.includes('？'));
-      const statementItem = result.find(r => r.textL2.includes('。'));
+      const questionItem = result.find((r) => r.textL2.includes('？'));
+      const statementItem = result.find((r) => r.textL2.includes('。'));
 
       if (questionItem && statementItem) {
         // Questions get -5 complexity bonus, so should be lower
@@ -276,12 +325,16 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        phrases: sentences.map((_, i) => ({
-          phraseIndex: i,
-          components: [{ textL2: sentences[i].text, translation: sentences[i].translation, order: 0 }],
-        })),
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          phrases: sentences.map((_, i) => ({
+            phraseIndex: i,
+            components: [
+              { textL2: sentences[i].text, translation: sentences[i].translation, order: 0 },
+            ],
+          })),
+        })
+      );
 
       const result = await extractCoreItems(episode as any, 1, 3);
 
@@ -290,8 +343,8 @@ describe('courseItemExtractor', () => {
 
       // Check that items with kanji have been scored appropriately
       // The kanji item '漢字文章です' has 4 kanji chars, adding +8 to complexity
-      const kanjiItem = result.find(r => r.textL2.includes('漢字'));
-      const kanaItem = result.find(r => r.textL2 === 'こんにちは');
+      const kanjiItem = result.find((r) => r.textL2.includes('漢字'));
+      const kanaItem = result.find((r) => r.textL2 === 'こんにちは');
 
       if (kanjiItem && kanaItem) {
         expect(kanjiItem.complexityScore).toBeGreaterThan(kanaItem.complexityScore);
@@ -307,8 +360,9 @@ describe('courseItemExtractor', () => {
         dialogue: null,
       };
 
-      await expect(extractDialogueExchanges(episode as any))
-        .rejects.toThrow('Episode has no dialogue sentences');
+      await expect(extractDialogueExchanges(episode as any)).rejects.toThrow(
+        'Episode has no dialogue sentences'
+      );
     });
 
     it('should extract dialogue exchanges with vocabulary', async () => {
@@ -318,12 +372,14 @@ describe('courseItemExtractor', () => {
       ];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          { sentenceIndex: 0, vocabulary: [{ word: 'こんにちは', translation: 'hello' }] },
-          { sentenceIndex: 1, vocabulary: [{ word: '元気', translation: 'well/healthy' }] },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            { sentenceIndex: 0, vocabulary: [{ word: 'こんにちは', translation: 'hello' }] },
+            { sentenceIndex: 1, vocabulary: [{ word: '元気', translation: 'well/healthy' }] },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchanges(episode as any);
 
@@ -334,16 +390,14 @@ describe('courseItemExtractor', () => {
     });
 
     it('should include speaker information', async () => {
-      const sentences = [
-        createMockSentence('s1', 'こんにちは', 'Hello'),
-      ];
+      const sentences = [createMockSentence('s1', 'こんにちは', 'Hello')];
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          { sentenceIndex: 0, vocabulary: [] },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [{ sentenceIndex: 0, vocabulary: [] }],
+        })
+      );
 
       const result = await extractDialogueExchanges(episode as any);
 
@@ -352,9 +406,7 @@ describe('courseItemExtractor', () => {
     });
 
     it('should handle vocabulary extraction failure gracefully', async () => {
-      const sentences = [
-        createMockSentence('s1', 'こんにちは', 'Hello'),
-      ];
+      const sentences = [createMockSentence('s1', 'こんにちは', 'Hello')];
       const episode = createMockEpisode(sentences);
 
       mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
@@ -372,12 +424,14 @@ describe('courseItemExtractor', () => {
       );
       const episode = createMockEpisode(sentences);
 
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: Array.from({ length: 26 }, (_, i) => ({
-          sentenceIndex: i,
-          vocabulary: [],
-        })),
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: Array.from({ length: 26 }, (_, i) => ({
+            sentenceIndex: i,
+            vocabulary: [],
+          })),
+        })
+      );
 
       const result = await extractDialogueExchanges(episode as any, 15); // 15 minute target
 
@@ -389,30 +443,37 @@ describe('courseItemExtractor', () => {
 
   describe('extractDialogueExchangesFromSourceText', () => {
     it('should generate dialogue from source text', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          {
-            order: 0,
-            speakerName: 'Kenji',
-            relationshipName: 'Your friend',
-            textL2: '北海道に行きましたか？',
-            translation: 'Did you go to Hokkaido?',
-            vocabulary: [
-              { word: '北海道', reading: 'ほっかいどう', translation: 'Hokkaido', jlptLevel: 'N4' },
-            ],
-          },
-          {
-            order: 1,
-            speakerName: 'You',
-            relationshipName: 'You',
-            textL2: 'はい、行きました！',
-            translation: 'Yes, I went!',
-            vocabulary: [
-              { word: '行きました', reading: 'いきました', translation: 'went', jlptLevel: 'N5' },
-            ],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              order: 0,
+              speakerName: 'Kenji',
+              relationshipName: 'Your friend',
+              textL2: '北海道に行きましたか？',
+              translation: 'Did you go to Hokkaido?',
+              vocabulary: [
+                {
+                  word: '北海道',
+                  reading: 'ほっかいどう',
+                  translation: 'Hokkaido',
+                  jlptLevel: 'N4',
+                },
+              ],
+            },
+            {
+              order: 1,
+              speakerName: 'You',
+              relationshipName: 'You',
+              textL2: 'はい、行きました！',
+              translation: 'Yes, I went!',
+              vocabulary: [
+                { word: '行きました', reading: 'いきました', translation: 'went', jlptLevel: 'N5' },
+              ],
+            },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchangesFromSourceText(
         'Two friends discussing a trip to Hokkaido',
@@ -429,20 +490,22 @@ describe('courseItemExtractor', () => {
     });
 
     it('should include JLPT level in vocabulary items', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          {
-            order: 0,
-            speakerName: 'Kenji',
-            relationshipName: 'Friend',
-            textL2: 'すごいですね',
-            translation: "That's amazing",
-            vocabulary: [
-              { word: 'すごい', reading: 'すごい', translation: 'amazing', jlptLevel: 'N4' },
-            ],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              order: 0,
+              speakerName: 'Kenji',
+              relationshipName: 'Friend',
+              textL2: 'すごいですね',
+              translation: "That's amazing",
+              vocabulary: [
+                { word: 'すごい', reading: 'すごい', translation: 'amazing', jlptLevel: 'N4' },
+              ],
+            },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchangesFromSourceText(
         'A conversation',
@@ -457,26 +520,28 @@ describe('courseItemExtractor', () => {
     });
 
     it('should assign voice IDs to speakers', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          {
-            order: 0,
-            speakerName: 'Kenji',
-            relationshipName: 'Friend',
-            textL2: 'こんにちは',
-            translation: 'Hello',
-            vocabulary: [],
-          },
-          {
-            order: 1,
-            speakerName: 'Yumi',
-            relationshipName: 'Colleague',
-            textL2: 'こんにちは',
-            translation: 'Hello',
-            vocabulary: [],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              order: 0,
+              speakerName: 'Kenji',
+              relationshipName: 'Friend',
+              textL2: 'こんにちは',
+              translation: 'Hello',
+              vocabulary: [],
+            },
+            {
+              order: 1,
+              speakerName: 'Yumi',
+              relationshipName: 'Colleague',
+              textL2: 'こんにちは',
+              translation: 'Hello',
+              vocabulary: [],
+            },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchangesFromSourceText(
         'A conversation',
@@ -492,18 +557,20 @@ describe('courseItemExtractor', () => {
     });
 
     it('should use provided speaker voice IDs', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          {
-            order: 0,
-            speakerName: 'Speaker1',
-            relationshipName: 'Friend',
-            textL2: 'テスト',
-            translation: 'Test',
-            vocabulary: [],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              order: 0,
+              speakerName: 'Speaker1',
+              relationshipName: 'Friend',
+              textL2: 'テスト',
+              translation: 'Test',
+              vocabulary: [],
+            },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchangesFromSourceText(
         'A conversation',
@@ -525,44 +592,38 @@ describe('courseItemExtractor', () => {
     it('should throw error on API failure', async () => {
       mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
 
-      await expect(extractDialogueExchangesFromSourceText(
-        'A conversation',
-        'Test',
-        'ja',
-        'en',
-        15
-      )).rejects.toThrow('Failed to generate dialogue exchanges');
+      await expect(
+        extractDialogueExchangesFromSourceText('A conversation', 'Test', 'ja', 'en', 15)
+      ).rejects.toThrow('Failed to generate dialogue exchanges');
     });
 
     it('should throw error on invalid response format', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        invalid: 'response',
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          invalid: 'response',
+        })
+      );
 
-      await expect(extractDialogueExchangesFromSourceText(
-        'A conversation',
-        'Test',
-        'ja',
-        'en',
-        15
-      )).rejects.toThrow('Invalid response format');
+      await expect(
+        extractDialogueExchangesFromSourceText('A conversation', 'Test', 'ja', 'en', 15)
+      ).rejects.toThrow('Invalid response format');
     });
 
     it('should clean romanization from vocabulary words', async () => {
-      mockGenerateWithGemini.mockResolvedValue(JSON.stringify({
-        exchanges: [
-          {
-            order: 0,
-            speakerName: 'Kenji',
-            relationshipName: 'Friend',
-            textL2: 'こんにちは',
-            translation: 'Hello',
-            vocabulary: [
-              { word: 'こんにちは (konnichiwa)', translation: 'hello' },
-            ],
-          },
-        ],
-      }));
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              order: 0,
+              speakerName: 'Kenji',
+              relationshipName: 'Friend',
+              textL2: 'こんにちは',
+              translation: 'Hello',
+              vocabulary: [{ word: 'こんにちは (konnichiwa)', translation: 'hello' }],
+            },
+          ],
+        })
+      );
 
       const result = await extractDialogueExchangesFromSourceText(
         'A conversation',
@@ -603,12 +664,16 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock needs to return components for all phrases that will be selected
-      mockGenerateWithGemini.mockResolvedValue(`\`\`\`json\n${  JSON.stringify({
-        phrases: Array.from({ length: 4 }, (_, i) => ({
-          phraseIndex: i,
-          components: [{ textL2: `Japanese ${i * 2}`, translation: `English ${i * 2}`, order: 0 }],
-        })),
-      })  }\n\`\`\``);
+      mockGenerateWithGemini.mockResolvedValue(
+        `\`\`\`json\n${JSON.stringify({
+          phrases: Array.from({ length: 4 }, (_, i) => ({
+            phraseIndex: i,
+            components: [
+              { textL2: `Japanese ${i * 2}`, translation: `English ${i * 2}`, order: 0 },
+            ],
+          })),
+        })}\n\`\`\``
+      );
 
       const result = await extractCoreItems(episode as any, 3, 5);
 

@@ -47,16 +47,23 @@ export default function ChunkPackExamplesPage() {
   const shouldAutoPlay = useRef(false);
 
   // Flatten all examples with their chunk info
-  const allExamples = pack?.chunks.flatMap(chunk =>
-    chunk.examples.map(ex => ({ ...ex, chunkForm: chunk.form, chunkTranslation: chunk.translation }))
-  ).filter(ex => ex.audioUrl) || [];
+  const allExamples =
+    pack?.chunks
+      .flatMap((chunk) =>
+        chunk.examples.map((ex) => ({
+          ...ex,
+          chunkForm: chunk.form,
+          chunkTranslation: chunk.translation,
+        }))
+      )
+      .filter((ex) => ex.audioUrl) || [];
 
   // Find currently selected example
-  const currentExampleIndex = allExamples.findIndex(ex => ex.id === selectedExampleId);
+  const currentExampleIndex = allExamples.findIndex((ex) => ex.id === selectedExampleId);
   const currentExample = currentExampleIndex >= 0 ? allExamples[currentExampleIndex] : null;
 
   // Get the audio URL for the current speed
-  const getCurrentAudioUrl = (example: typeof allExamples[0] | null): string | undefined => {
+  const getCurrentAudioUrl = (example: (typeof allExamples)[0] | null): string | undefined => {
     if (!example) return undefined;
 
     // Map speed to audio URL field
@@ -197,7 +204,9 @@ export default function ChunkPackExamplesPage() {
       <div className="bg-white border-b shadow-sm sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-center mb-2 sm:mb-3 relative">
-            <h1 className="text-base sm:text-lg font-semibold text-navy">Step 1: Examples with Audio</h1>
+            <h1 className="text-base sm:text-lg font-semibold text-navy">
+              Step 1: Examples with Audio
+            </h1>
           </div>
 
           {/* Speed Control */}
@@ -242,7 +251,7 @@ export default function ChunkPackExamplesPage() {
                 <div
                   className="sticky top-[140px] sm:top-[170px] z-[5] bg-white border-l-4 border-emerald-500 pl-3 sm:pl-4 py-2 sm:py-3 mb-3 sm:mb-4"
                   style={{
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                   }}
                 >
                   <h3 className="text-lg sm:text-xl font-bold text-navy mb-1">{chunk.form}</h3>
@@ -273,7 +282,9 @@ export default function ChunkPackExamplesPage() {
                         )}
 
                         <div>
-                          <p className="text-base sm:text-lg text-gray-900 mb-1">{example.sentence}</p>
+                          <p className="text-base sm:text-lg text-gray-900 mb-1">
+                            {example.sentence}
+                          </p>
                           <p className="text-sm text-gray-600">{example.english}</p>
                         </div>
                       </div>

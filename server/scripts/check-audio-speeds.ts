@@ -42,7 +42,9 @@ async function checkAudioSpeeds(episodeId?: string) {
     console.log(`Normal (1.0x):  ${episode.audioUrl_1_0 || 'NOT SET'}`);
 
     // Check if URLs are different
-    const urls = [episode.audioUrl_0_7, episode.audioUrl_0_85, episode.audioUrl_1_0].filter(Boolean);
+    const urls = [episode.audioUrl_0_7, episode.audioUrl_0_85, episode.audioUrl_1_0].filter(
+      Boolean
+    );
     const uniqueUrls = new Set(urls);
 
     console.log('\n--- URL Analysis ---');

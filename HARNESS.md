@@ -15,9 +15,11 @@ A **harness** is an autonomous Claude Code script that can run complex multi-ste
 ## Prerequisites
 
 ### 1. Claude Max Plan Subscription
+
 You need an active Claude Max Plan subscription to run harnesses.
 
 ### 2. OAuth Token Setup
+
 Generate and set your OAuth token (one-time setup):
 
 ```bash
@@ -32,6 +34,7 @@ source ~/.zshrc
 The OAuth token is already configured in your `~/.zshrc` and will persist across sessions.
 
 ### 3. Agent SDK Installation
+
 The Claude Agent SDK is already installed as a dev dependency:
 
 ```bash
@@ -46,6 +49,7 @@ npm install --save-dev @anthropic-ai/claude-agent-sdk
 Autonomously checks and fixes internationalization issues across all locale files.
 
 **What it does:**
+
 - ✅ Compares all 6 locales (ar, en, es, fr, ja, zh)
 - ✅ Finds missing translation keys
 - ✅ Validates JSON structure and formatting
@@ -64,6 +68,7 @@ npm run harness:i18n
 ```
 
 **Example output:**
+
 ```
 🌍 ConvoLab i18n Consistency Checker Harness
 ═══════════════════════════════════════════
@@ -79,6 +84,7 @@ npm run harness:i18n
 ```
 
 **Configuration:**
+
 - Max turns: 50 (configurable in script)
 - Permission mode: `acceptEdits` (auto-approves file edits)
 - Allowed tools: Read, Edit, Glob, Grep, Bash, Skill
@@ -86,6 +92,7 @@ npm run harness:i18n
 ## Usage Limits
 
 Harnesses use your Claude Max Plan subscription limits:
+
 - **Max Plan**: 225-900 messages per 5 hours (depending on tier)
 - Each harness run counts against this limit
 - Monitor your usage to avoid hitting rate limits
@@ -95,19 +102,20 @@ Harnesses use your Claude Max Plan subscription limits:
 To create a new harness for a different task:
 
 1. **Create a new script** in `scripts/`:
+
    ```typescript
    // scripts/my-harness.ts
-   import { query } from "@anthropic-ai/claude-agent-sdk";
+   import { query } from '@anthropic-ai/claude-agent-sdk';
 
    async function runMyHarness() {
      for await (const message of query({
-       prompt: "Your task description here",
+       prompt: 'Your task description here',
        options: {
          cwd: '/Users/andrewlandry/source/convo-lab',
          permissionMode: 'acceptEdits',
          maxTurns: 50,
-         allowedTools: ['Read', 'Edit', 'Bash']
-       }
+         allowedTools: ['Read', 'Edit', 'Bash'],
+       },
      })) {
        console.log(message);
      }
@@ -117,6 +125,7 @@ To create a new harness for a different task:
    ```
 
 2. **Add npm script** to `package.json`:
+
    ```json
    {
      "scripts": {
@@ -135,36 +144,44 @@ To create a new harness for a different task:
 Here are some useful harnesses you could create:
 
 ### Daily Maintenance Harness
+
 ```bash
 npm run harness:maintenance
 ```
+
 - Run all tests and fix failures
 - Check for TypeScript errors
 - Update CHANGELOG.md
 - Commit changes
 
 ### PR Review Harness
+
 ```bash
 npm run harness:review-pr 123
 ```
+
 - Review PR for security issues
 - Check test coverage
 - Verify performance impact
 - Comment on findings
 
 ### Security Audit Harness
+
 ```bash
 npm run harness:security
 ```
+
 - Scan for common vulnerabilities
 - Check dependency security
 - Review authentication flows
 - Generate security report
 
 ### Performance Check Harness
+
 ```bash
 npm run harness:performance
 ```
+
 - Profile API response times
 - Check database query efficiency
 - Identify N+1 queries
@@ -173,6 +190,7 @@ npm run harness:performance
 ## Scheduling Harnesses
 
 ### Option 1: Cron Jobs
+
 Run harnesses on a schedule using cron:
 
 ```bash
@@ -184,6 +202,7 @@ crontab -e
 ```
 
 ### Option 2: GitHub Actions
+
 Create `.github/workflows/harness.yml`:
 
 ```yaml
@@ -191,8 +210,8 @@ name: Daily i18n Check
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 2 AM daily
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 2 * * *' # 2 AM daily
+  workflow_dispatch: # Manual trigger
 
 jobs:
   i18n-check:
@@ -209,6 +228,7 @@ jobs:
 ```
 
 ### Option 3: Pre-commit Hook
+
 Run harnesses before commits:
 
 ```bash
@@ -219,25 +239,33 @@ npm run harness:i18n:dry-run
 ## Troubleshooting
 
 ### "OAuth authentication is currently not supported"
+
 **Solution**: Ensure `CLAUDE_CODE_OAUTH_TOKEN` is set:
+
 ```bash
 echo $CLAUDE_CODE_OAUTH_TOKEN
 ```
 
 ### "Module '@anthropic-ai/claude-agent-sdk' not found"
+
 **Solution**: Install the SDK:
+
 ```bash
 npm install --save-dev @anthropic-ai/claude-agent-sdk
 ```
 
 ### Harness hits max turns limit
+
 **Solution**: Increase `maxTurns` in the harness script:
+
 ```typescript
-maxTurns: 100  // Increase as needed
+maxTurns: 100; // Increase as needed
 ```
 
 ### Rate limit exceeded
+
 **Solution**:
+
 - Wait for your rate limit to reset (check every 5 hours)
 - Reduce harness frequency
 - Use dry-run mode more often
@@ -269,6 +297,7 @@ maxTurns: 100  // Increase as needed
 ## Support
 
 For questions or issues with harnesses:
+
 1. Check this documentation
 2. Review harness logs in terminal output
 3. Test with `--dry-run` mode first

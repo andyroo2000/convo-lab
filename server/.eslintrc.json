@@ -1,10 +1,5 @@
 {
-  "extends": [
-    "../.eslintrc.json",
-    "airbnb-base",
-    "airbnb-typescript/base",
-    "prettier"
-  ],
+  "extends": ["../.eslintrc.json", "airbnb-base", "airbnb-typescript/base", "prettier"],
   "env": {
     "node": true,
     "es2024": true
@@ -33,12 +28,7 @@
     "import/no-extraneous-dependencies": [
       "error",
       {
-        "devDependencies": [
-          "**/*.test.ts",
-          "**/__tests__/**",
-          "scripts/**",
-          "vitest.config.ts"
-        ]
+        "devDependencies": ["**/*.test.ts", "**/__tests__/**", "scripts/**", "vitest.config.ts"]
       }
     ],
     "no-console": "off",

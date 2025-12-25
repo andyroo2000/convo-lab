@@ -39,10 +39,10 @@ export async function generateChunkPack(
  */
 function removeFurigana(text: string): string {
   return text
-    .replace(/\[[^\]]+\]/g, '')      // Bracket notation: 買[か]い物[もの] -> 買い物
-    .replace(/（[^）]+）/g, '')      // Full-width parentheses
-    .replace(/\([^)]+\)/g, '')       // Half-width parentheses
-    .replace(/\s+/g, ' ')            // Clean up extra spaces
+    .replace(/\[[^\]]+\]/g, '') // Bracket notation: 買[か]い物[もの] -> 買い物
+    .replace(/（[^）]+）/g, '') // Full-width parentheses
+    .replace(/\([^)]+\)/g, '') // Half-width parentheses
+    .replace(/\s+/g, ' ') // Clean up extra spaces
     .trim();
 }
 
@@ -53,27 +53,27 @@ function cleanChunkPackFurigana(data: GeneratedChunkPack): GeneratedChunkPack {
   return {
     ...data,
     title: removeFurigana(data.title),
-    chunks: data.chunks.map(chunk => ({
+    chunks: data.chunks.map((chunk) => ({
       ...chunk,
       form: removeFurigana(chunk.form),
     })),
-    examples: data.examples.map(example => ({
+    examples: data.examples.map((example) => ({
       ...example,
       sentence: removeFurigana(example.sentence),
     })),
-    stories: data.stories.map(story => ({
+    stories: data.stories.map((story) => ({
       ...story,
       title: removeFurigana(story.title),
       storyText: removeFurigana(story.storyText),
-      segments: story.segments.map(segment => ({
+      segments: story.segments.map((segment) => ({
         ...segment,
         japaneseText: removeFurigana(segment.japaneseText),
       })),
     })),
-    exercises: data.exercises.map(exercise => ({
+    exercises: data.exercises.map((exercise) => ({
       ...exercise,
       prompt: removeFurigana(exercise.prompt),
-      options: exercise.options.map(opt => removeFurigana(opt)),
+      options: exercise.options.map((opt) => removeFurigana(opt)),
       correctOption: removeFurigana(exercise.correctOption),
     })),
   };

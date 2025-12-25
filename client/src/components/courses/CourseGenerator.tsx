@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getCourseSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
-import { TTS_VOICES } from "@languageflow/shared/src/constants-new";
+import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -88,7 +88,7 @@ export default function CourseGenerator() {
           l1VoiceId: selectedVoice,
           jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
           hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
-          cefrLevel: (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : undefined,
+          cefrLevel: targetLanguage === 'es' || targetLanguage === 'fr' ? cefrLevel : undefined,
           speaker1Gender: 'female',
           speaker2Gender: 'male',
           speaker1VoiceId,
@@ -125,7 +125,6 @@ export default function CourseGenerator() {
       setTimeout(() => {
         navigate('/app/library');
       }, 2000);
-
     } catch (err) {
       console.error('Course creation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to create course');
@@ -138,14 +137,24 @@ export default function CourseGenerator() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-coral p-12 shadow-sm text-center">
           <div className="w-20 h-20 bg-coral rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-10 h-10 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('audioCourse:complete.title')}</h2>
-          <p className="text-xl text-gray-600 mb-6">
-            {t('audioCourse:complete.description')}
-          </p>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">
+            {t('audioCourse:complete.title')}
+          </h2>
+          <p className="text-xl text-gray-600 mb-6">{t('audioCourse:complete.description')}</p>
         </div>
       </div>
     );
@@ -158,7 +167,9 @@ export default function CourseGenerator() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Course Details */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:courseDetails.title')}</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">
+          {t('audioCourse:courseDetails.title')}
+        </h2>
 
         <div className="space-y-6">
           <div>
@@ -188,13 +199,14 @@ export default function CourseGenerator() {
               {t('audioCourse:courseDetails.storyHelper')}
             </p>
           </div>
-
         </div>
       </div>
 
       {/* Voice Configuration */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:voiceConfig.title')}</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">
+          {t('audioCourse:voiceConfig.title')}
+        </h2>
 
         <div className="space-y-6">
           {/* Dialogue Voices */}
@@ -239,16 +251,16 @@ export default function CourseGenerator() {
                 </select>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-3">
-              {t('audioCourse:voiceConfig.voiceHelper')}
-            </p>
+            <p className="text-sm text-gray-500 mt-3">{t('audioCourse:voiceConfig.voiceHelper')}</p>
           </div>
         </div>
       </div>
 
       {/* Course Settings */}
       <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('audioCourse:courseSettings.title')}</h2>
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">
+          {t('audioCourse:courseSettings.title')}
+        </h2>
 
         <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-6' : ''}>
           {user?.role === 'admin' && (
@@ -346,7 +358,9 @@ export default function CourseGenerator() {
       <div className="bg-coral-light border-l-8 border-coral p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-2 sm:mb-3">{t('audioCourse:generate.ready')}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-2 sm:mb-3">
+              {t('audioCourse:generate.ready')}
+            </h3>
             <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
               {t('audioCourse:generate.description')}
             </p>
@@ -354,7 +368,9 @@ export default function CourseGenerator() {
               <li className="font-medium">• {t('audioCourse:generate.features.duration')}</li>
               <li className="font-medium">• {t('audioCourse:generate.features.narration')}</li>
               <li className="font-medium">• {t('audioCourse:generate.features.pauses')}</li>
-              <li className="font-medium">• {t('audioCourse:generate.features.level', { level: jlptLevel })}</li>
+              <li className="font-medium">
+                • {t('audioCourse:generate.features.level', { level: jlptLevel })}
+              </li>
             </ul>
           </div>
           <button
@@ -374,10 +390,7 @@ export default function CourseGenerator() {
       </div>
 
       {/* Demo Restriction Modal */}
-      <DemoRestrictionModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
+      <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

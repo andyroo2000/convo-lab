@@ -42,8 +42,11 @@ describe('useLibraryData', () => {
   describe('Initial Loading', () => {
     it('should show loading state initially', () => {
       // Use a long-delayed promise instead of one that never resolves
-      mockFetch.mockImplementation(() =>
-        new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000))
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000)
+          )
       );
 
       const { result } = renderHook(() => useLibraryData(), {
@@ -55,8 +58,11 @@ describe('useLibraryData', () => {
 
     it('should initialize with empty arrays', () => {
       // Use a long-delayed promise instead of one that never resolves
-      mockFetch.mockImplementation(() =>
-        new Promise((resolve) => setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000))
+      mockFetch.mockImplementation(
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000)
+          )
       );
 
       const { result } = renderHook(() => useLibraryData(), {

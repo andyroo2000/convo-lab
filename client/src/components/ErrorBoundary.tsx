@@ -51,7 +51,7 @@ class ErrorBoundary extends Component<Props, State> {
                 {t('errors:boundary.tryAgain')}
               </button>
               <button
-                onClick={() => window.location.href = '/app/library'}
+                onClick={() => (window.location.href = '/app/library')}
                 className="w-full bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
               >
                 {t('errors:boundary.goToLibrary')}

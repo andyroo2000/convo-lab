@@ -6,7 +6,7 @@ const redis = new IORedis({
   port: 6379,
   password: 'AYEeAAIncDIyMzc1ZGNjZDc0NGE0MjNlODIxNjllZTQyMzY3NTk4NnAyMzMwNTQ',
   maxRetriesPerRequest: null,
-  tls: {}
+  tls: {},
 });
 
 async function main() {
@@ -14,7 +14,13 @@ async function main() {
     const audioQueue = new Queue('audio-generation', { connection: redis });
 
     console.log('📊 Audio queue status:');
-    const counts = await audioQueue.getJobCounts('active', 'waiting', 'failed', 'delayed', 'completed');
+    const counts = await audioQueue.getJobCounts(
+      'active',
+      'waiting',
+      'failed',
+      'delayed',
+      'completed'
+    );
     console.log(`  Active: ${counts.active}`);
     console.log(`  Waiting: ${counts.waiting}`);
     console.log(`  Failed: ${counts.failed}`);
@@ -38,7 +44,6 @@ async function main() {
         }
       }
     }
-
   } catch (error) {
     console.error('Error:', error);
   } finally {

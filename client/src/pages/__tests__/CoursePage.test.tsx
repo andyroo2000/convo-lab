@@ -86,7 +86,8 @@ describe('CoursePage', () => {
     mockUpdateCourse.mockResolvedValue({});
   });
 
-  const renderPage = (courseId = 'course-123') => render(
+  const renderPage = (courseId = 'course-123') =>
+    render(
       <MemoryRouter initialEntries={[`/app/courses/${courseId}`]}>
         <Routes>
           <Route path="/app/courses/:courseId" element={<CoursePage />} />

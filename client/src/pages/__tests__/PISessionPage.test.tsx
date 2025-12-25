@@ -77,7 +77,8 @@ describe('PISessionPage', () => {
     global.HTMLAudioElement.prototype.pause = vi.fn();
   });
 
-  const renderWithSession = (session = mockSession) => render(
+  const renderWithSession = (session = mockSession) =>
+    render(
       <MemoryRouter initialEntries={[{ pathname: '/app/pi/session', state: { session } }]}>
         <Routes>
           <Route path="/app/pi/session" element={<PISessionPage />} />
@@ -85,7 +86,8 @@ describe('PISessionPage', () => {
       </MemoryRouter>
     );
 
-  const renderWithoutSession = () => render(
+  const renderWithoutSession = () =>
+    render(
       <MemoryRouter initialEntries={['/app/pi/session']}>
         <Routes>
           <Route path="/app/pi/session" element={<PISessionPage />} />
@@ -266,13 +268,16 @@ describe('PISessionPage', () => {
 
       fireEvent.click(choice);
 
-      const allButtons = screen.getAllByRole('button').filter(btn =>
-        btn.textContent?.includes('Tanaka') ||
-        btn.textContent?.includes('Suzuki') ||
-        btn.textContent?.includes('Yamada')
-      );
+      const allButtons = screen
+        .getAllByRole('button')
+        .filter(
+          (btn) =>
+            btn.textContent?.includes('Tanaka') ||
+            btn.textContent?.includes('Suzuki') ||
+            btn.textContent?.includes('Yamada')
+        );
 
-      allButtons.forEach(button => {
+      allButtons.forEach((button) => {
         expect(button).toBeDisabled();
       });
     });

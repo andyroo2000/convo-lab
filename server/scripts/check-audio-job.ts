@@ -19,9 +19,9 @@ async function checkAudioJob() {
         where: { id: jobId },
         include: {
           episode: {
-            select: { id: true, title: true }
-          }
-        }
+            select: { id: true, title: true },
+          },
+        },
       });
 
       if (!job) {
@@ -47,15 +47,20 @@ async function checkAudioJob() {
       take: 10,
       include: {
         episode: {
-          select: { id: true, title: true }
-        }
-      }
+          select: { id: true, title: true },
+        },
+      },
     });
 
     recentJobs.forEach((job) => {
-      const status = job.state === 'completed' ? '✅' :
-                     job.state === 'failed' ? '❌' :
-                     job.state === 'processing' ? '⏳' : '⏸️';
+      const status =
+        job.state === 'completed'
+          ? '✅'
+          : job.state === 'failed'
+            ? '❌'
+            : job.state === 'processing'
+              ? '⏳'
+              : '⏸️';
       console.log(`${status} Job #${job.id} - ${job.state} (${job.progress}%)`);
       console.log(`   Episode: ${job.episode?.title || 'N/A'}`);
       console.log(`   Created: ${job.createdAt.toISOString()}`);
@@ -68,7 +73,7 @@ async function checkAudioJob() {
     // Summary
     const counts = await prisma.audioGenerationJob.groupBy({
       by: ['state'],
-      _count: true
+      _count: true,
     });
 
     console.log('━'.repeat(60));
@@ -76,7 +81,6 @@ async function checkAudioJob() {
     counts.forEach((c) => {
       console.log(`   ${c.state}: ${c._count}`);
     });
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

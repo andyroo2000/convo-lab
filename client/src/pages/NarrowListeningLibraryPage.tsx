@@ -148,10 +148,7 @@ export default function NarrowListeningLibraryPage() {
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <p className="text-red-700">{error}</p>
-            <button
-              onClick={loadPacks}
-              className="btn-outline mt-4"
-            >
+            <button onClick={loadPacks} className="btn-outline mt-4">
               Try Again
             </button>
           </div>
@@ -160,9 +157,7 @@ export default function NarrowListeningLibraryPage() {
             <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-purple-600" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              No packs yet
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No packs yet</h3>
             <p className="text-gray-600 mb-6">
               Create your first narrow listening pack to start practicing with story variations
             </p>
@@ -200,17 +195,17 @@ export default function NarrowListeningLibraryPage() {
                 <div className="mb-3">{getStatusBadge(pack.status)}</div>
 
                 {/* Title */}
-                <h3 className="font-semibold text-gray-900 mb-2 pr-8">
-                  {pack.title}
-                </h3>
+                <h3 className="font-semibold text-gray-900 mb-2 pr-8">{pack.title}</h3>
 
                 {/* Meta */}
                 <div className="flex items-center gap-4 text-xs text-gray-600 mb-3">
-                  <span className={`px-2 py-1 rounded font-medium ${
-                    pack.targetLanguage === 'zh'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}>
+                  <span
+                    className={`px-2 py-1 rounded font-medium ${
+                      pack.targetLanguage === 'zh'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-blue-100 text-blue-800'
+                    }`}
+                  >
                     {pack.targetLanguage === 'zh' ? 'Chinese' : 'Japanese'}
                   </span>
                   <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded font-medium">
@@ -220,9 +215,7 @@ export default function NarrowListeningLibraryPage() {
                 </div>
 
                 {/* Topic Preview */}
-                <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-                  {pack.topic}
-                </p>
+                <p className="text-sm text-gray-600 line-clamp-2 mb-3">{pack.topic}</p>
 
                 {/* Created Date */}
                 <div className="flex items-center gap-1 text-xs text-gray-500">

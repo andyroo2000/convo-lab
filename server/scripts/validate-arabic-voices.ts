@@ -13,15 +13,17 @@ interface VoiceTestResult {
   engine?: string;
 }
 
-async function testPollyVoice(voiceId: string, languageCode: string): Promise<{ success: boolean; error?: string; audioSize?: number; engine?: string }> {
+async function testPollyVoice(
+  voiceId: string,
+  languageCode: string
+): Promise<{ success: boolean; error?: string; audioSize?: number; engine?: string }> {
   // Try neural first, then fall back to standard
   const engines = ['neural', 'standard'];
 
   for (const engine of engines) {
     try {
-      const testText = languageCode === 'arb'
-        ? 'مرحبا، هذا اختبار للصوت العربي'
-        : 'Hello, this is a voice test.';
+      const testText =
+        languageCode === 'arb' ? 'مرحبا، هذا اختبار للصوت العربي' : 'Hello, this is a voice test.';
 
       const command = new SynthesizeSpeechCommand({
         Text: testText,
@@ -96,15 +98,15 @@ async function validateArabicVoices() {
   console.log('Summary:');
   console.log('=====================================\n');
 
-  const successful = results.filter(r => r.success);
-  const failed = results.filter(r => !r.success);
+  const successful = results.filter((r) => r.success);
+  const failed = results.filter((r) => !r.success);
 
   console.log(`✅ Successful: ${successful.length}/${results.length}`);
   console.log(`❌ Failed: ${failed.length}/${results.length}\n`);
 
   if (successful.length > 0) {
     console.log('Working voices:');
-    successful.forEach(r => {
+    successful.forEach((r) => {
       console.log(`  • ${r.voiceId} (${r.gender}) - ${r.description}`);
       console.log(`    Engine: ${r.engine}, Size: ${r.audioSize} bytes`);
     });
@@ -113,17 +115,17 @@ async function validateArabicVoices() {
 
   if (failed.length > 0) {
     console.log('Failed voices:');
-    failed.forEach(r => {
+    failed.forEach((r) => {
       console.log(`  • ${r.voiceId} (${r.gender}): ${r.error}`);
     });
     console.log('');
   }
 
   // Check for Speech Marks support (neural voices only)
-  const neuralVoices = successful.filter(r => r.engine === 'neural');
+  const neuralVoices = successful.filter((r) => r.engine === 'neural');
   if (neuralVoices.length > 0) {
     console.log('ℹ️  Neural voices detected - these support Speech Marks for batched TTS');
-    console.log('   Voice IDs:', neuralVoices.map(r => r.voiceId).join(', '));
+    console.log('   Voice IDs:', neuralVoices.map((r) => r.voiceId).join(', '));
   } else {
     console.log('⚠️  No neural voices found - Speech Marks may not be supported');
   }

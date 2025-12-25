@@ -37,22 +37,22 @@ const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
 const PageLoader = () => (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center">
-        <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
-        <p className="text-gray-600">Loading...</p>
-      </div>
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
+      <p className="text-gray-600">Loading...</p>
     </div>
-  )
+  </div>
+);
 
 const App = () => (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <AuthProvider>
-          <LocaleProvider>
-            <AudioPlayerProvider>
-              <Suspense fallback={<PageLoader />}>
-                <Routes>
+  <ErrorBoundary>
+    <BrowserRouter>
+      <AuthProvider>
+        <LocaleProvider>
+          <AudioPlayerProvider>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/login" element={<LoginPage />} />
@@ -89,18 +89,21 @@ const App = () => (
                   <Route path="pi/session" element={<PISessionPage />} />
                   <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
                   <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-                  <Route path="chunk-packs/:packId/exercises" element={<ChunkPackExercisesPage />} />
+                  <Route
+                    path="chunk-packs/:packId/exercises"
+                    element={<ChunkPackExercisesPage />}
+                  />
                 </Route>
 
                 {/* 404 Catch-all Route */}
                 <Route path="*" element={<NotFoundPage />} />
-                </Routes>
-              </Suspense>
-            </AudioPlayerProvider>
-          </LocaleProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </ErrorBoundary>
-  )
+              </Routes>
+            </Suspense>
+          </AudioPlayerProvider>
+        </LocaleProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  </ErrorBoundary>
+);
 
 export default App;

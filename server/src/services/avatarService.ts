@@ -2,7 +2,7 @@ import sharp from 'sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { TTS_VOICES } from "@languageflow/shared/src/constants-new.js";
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { uploadToGCS } from './storageClient.js';
 import { prisma } from '../db/client.js';
 
@@ -19,10 +19,7 @@ interface CropArea {
 /**
  * Crops and resizes an image buffer to 256x256px
  */
-export async function cropAndResizeImage(
-  imageBuffer: Buffer,
-  cropArea: CropArea
-): Promise<Buffer> {
+export async function cropAndResizeImage(imageBuffer: Buffer, cropArea: CropArea): Promise<Buffer> {
   const image = sharp(imageBuffer);
   const metadata = await image.metadata();
 
@@ -191,11 +188,7 @@ export async function getSpeakerAvatarOriginalUrl(filename: string): Promise<str
  */
 export async function getAllSpeakerAvatars() {
   return prisma.speakerAvatar.findMany({
-    orderBy: [
-      { language: 'asc' },
-      { gender: 'asc' },
-      { tone: 'asc' },
-    ],
+    orderBy: [{ language: 'asc' }, { gender: 'asc' }, { tone: 'asc' }],
   });
 }
 
@@ -213,7 +206,7 @@ export async function getSpeakerAvatar(filename: string) {
  * Maps TTS language codes to avatar filename language codes (ISO 639-1)
  */
 const LANGUAGE_CODE_MAP: Record<string, string> = {
-  'cmn': 'zh', // Mandarin Chinese -> zh
+  cmn: 'zh', // Mandarin Chinese -> zh
   // Add other mappings as needed
 };
 
@@ -303,10 +296,7 @@ export async function findSpeakerAvatarUrl(
 /**
  * Get avatar URL for a speaker based on their voiceId and tone
  */
-export async function getAvatarUrlFromVoice(
-  voiceId: string,
-  tone: string
-): Promise<string | null> {
+export async function getAvatarUrlFromVoice(voiceId: string, tone: string): Promise<string | null> {
   const { language, gender } = parseVoiceId(voiceId);
   return findSpeakerAvatarUrl(language, gender, tone);
 }

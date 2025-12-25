@@ -219,14 +219,14 @@ describe('batchedTTSClient', () => {
 
       const ssml = buildBatchSSML(batch, 'polly');
 
-      expect(ssml).toBe('<speak><prosody rate="70%"><mark name="unit_0"/>Hello<mark name="unit_1"/>World</prosody></speak>');
+      expect(ssml).toBe(
+        '<speak><prosody rate="70%"><mark name="unit_0"/>Hello<mark name="unit_1"/>World</prosody></speak>'
+      );
     });
 
     it('should escape special characters in text', () => {
       const batch = createBatch({
-        units: [
-          { originalIndex: 0, markName: 'unit_0', text: '<hello> & "world"' },
-        ],
+        units: [{ originalIndex: 0, markName: 'unit_0', text: '<hello> & "world"' }],
       });
 
       const ssml = buildBatchSSML(batch, 'google');

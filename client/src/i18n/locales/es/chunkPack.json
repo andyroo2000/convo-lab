@@ -15,19 +15,28 @@
     "n3": "Intermedio"
   },
   "themes": {
-    "daily_routine": { "name": "Rutina Diaria", "description": "Expresiones esenciales para actividades diarias" },
+    "daily_routine": {
+      "name": "Rutina Diaria",
+      "description": "Expresiones esenciales para actividades diarias"
+    },
     "greetings": { "name": "Saludos y Cortesía", "description": "Expresiones sociales comunes" },
     "shopping": { "name": "Compras", "description": "Comprar cosas y preguntar sobre productos" },
     "family": { "name": "Familia", "description": "Hablar sobre familia y relaciones" },
     "school": { "name": "Escuela", "description": "Expresiones relacionadas con educación" },
-    "food": { "name": "Comida y Alimentación", "description": "Comidas y preferencias alimentarias" },
+    "food": {
+      "name": "Comida y Alimentación",
+      "description": "Comidas y preferencias alimentarias"
+    },
     "weather": { "name": "Clima", "description": "Hablar sobre el clima y las estaciones" },
     "hobbies": { "name": "Pasatiempos e Intereses", "description": "Actividades de ocio" },
     "health": { "name": "Salud y Cuerpo", "description": "Situaciones médicas y consejos" },
     "travel": { "name": "Viajes", "description": "Planificar viajes y navegar" },
     "opinions": { "name": "Opiniones", "description": "Expresar pensamientos e incertidumbre" },
     "plans": { "name": "Planes e Intenciones", "description": "Intenciones y decisiones futuras" },
-    "feelings": { "name": "Sentimientos y Emociones", "description": "Expresar estados emocionales" },
+    "feelings": {
+      "name": "Sentimientos y Emociones",
+      "description": "Expresar estados emocionales"
+    },
     "requests": { "name": "Solicitudes y Permisos", "description": "Pedir cosas cortésmente" },
     "advice": { "name": "Consejos y Sugerencias", "description": "Dar y recibir recomendaciones" },
     "experiences": { "name": "Experiencias", "description": "Hablar sobre lo que has hecho" },

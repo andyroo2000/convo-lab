@@ -59,7 +59,10 @@ test.describe('Admin Impersonation', () => {
 
       // Counts should be different (unless they happen to have same number)
       // More importantly, the items themselves should be different
-      const firstItemTitle = await page.locator('[data-testid="library-item"]').first().textContent();
+      const firstItemTitle = await page
+        .locator('[data-testid="library-item"]')
+        .first()
+        .textContent();
       expect(firstItemTitle).toBeTruthy();
     });
 
@@ -98,7 +101,10 @@ test.describe('Admin Impersonation', () => {
       await page.goto('/app/dialogues/new?viewAs=test-user-id');
 
       // Should show read-only error or redirect
-      const errorText = await page.locator('[data-testid="error-display"]').textContent({ timeout: 3000 }).catch(() => null);
+      const errorText = await page
+        .locator('[data-testid="error-display"]')
+        .textContent({ timeout: 3000 })
+        .catch(() => null);
 
       // Either shows error or create button is disabled
       const createButton = page.locator('button:has-text("Generate")').first();
@@ -205,15 +211,18 @@ test.describe('Admin Impersonation', () => {
       await page.goto('/app/library?viewAs=other-user-id');
 
       // Should see 403 error or be redirected
-      const errorText = await page.locator('[data-testid="error-display"]').textContent({ timeout: 5000 }).catch(() => null);
+      const errorText = await page
+        .locator('[data-testid="error-display"]')
+        .textContent({ timeout: 5000 })
+        .catch(() => null);
 
       const currentUrl = page.url();
 
       // Either shows unauthorized error or redirects without viewAs
       expect(
         errorText?.includes('Unauthorized') ||
-        errorText?.includes('403') ||
-        !currentUrl.includes('viewAs')
+          errorText?.includes('403') ||
+          !currentUrl.includes('viewAs')
       ).toBe(true);
     });
 

@@ -36,9 +36,7 @@ describe('JapaneseText', () => {
     };
 
     it('should show furigana by default', () => {
-      const { container } = render(
-        <JapaneseText text="買い物" metadata={metadataWithFurigana} />
-      );
+      const { container } = render(<JapaneseText text="買い物" metadata={metadataWithFurigana} />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -69,44 +67,34 @@ describe('JapaneseText', () => {
 
   describe('ruby tag generation', () => {
     it('should convert bracket notation to ruby tags', () => {
-      const { container } = render(
-        <JapaneseText text="買[か]い物[もの]" />
-      );
+      const { container } = render(<JapaneseText text="買[か]い物[もの]" />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should include rt elements with readings', () => {
-      const { container } = render(
-        <JapaneseText text="買[か]" />
-      );
+      const { container } = render(<JapaneseText text="買[か]" />);
       const rtElement = container.querySelector('rt');
       expect(rtElement).toBeInTheDocument();
       expect(rtElement?.textContent).toBe('か');
     });
 
     it('should handle single kanji with reading', () => {
-      const { container } = render(
-        <JapaneseText text="日[ひ]" />
-      );
+      const { container } = render(<JapaneseText text="日[ひ]" />);
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('日');
       expect(ruby?.textContent).toContain('ひ');
     });
 
     it('should handle multiple kanji in sequence', () => {
-      const { container } = render(
-        <JapaneseText text="東京[とうきょう]" />
-      );
+      const { container } = render(<JapaneseText text="東京[とうきょう]" />);
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('東京');
       expect(ruby?.textContent).toContain('とうきょう');
     });
 
     it('should preserve text between bracketed content', () => {
-      const { container } = render(
-        <JapaneseText text="買[か]い物[もの]です" />
-      );
+      const { container } = render(<JapaneseText text="買[か]い物[もの]です" />);
       // The 'い' and 'です' should be preserved
       expect(container.textContent).toContain('い');
       expect(container.textContent).toContain('です');
@@ -137,9 +125,7 @@ describe('JapaneseText', () => {
           kana: 'にほんご',
         },
       };
-      render(
-        <JapaneseText text="plain text" metadata={metadata} showFurigana={false} />
-      );
+      render(<JapaneseText text="plain text" metadata={metadata} showFurigana={false} />);
       expect(screen.getByText('日本語')).toBeInTheDocument();
     });
 
@@ -197,26 +183,20 @@ describe('JapaneseText', () => {
 
   describe('complex patterns', () => {
     it('should handle compound words', () => {
-      const { container } = render(
-        <JapaneseText text="日本語[にほんご]の授業[じゅぎょう]" />
-      );
+      const { container } = render(<JapaneseText text="日本語[にほんご]の授業[じゅぎょう]" />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should handle sentence with multiple bracketed readings', () => {
-      const { container } = render(
-        <JapaneseText text="私[わたし]は学生[がくせい]です" />
-      );
+      const { container } = render(<JapaneseText text="私[わたし]は学生[がくせい]です" />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
       expect(container.textContent).toContain('です');
     });
 
     it('should handle irregular readings', () => {
-      const { container } = render(
-        <JapaneseText text="今日[きょう]" />
-      );
+      const { container } = render(<JapaneseText text="今日[きょう]" />);
       const ruby = container.querySelector('ruby');
       const rt = container.querySelector('rt');
       expect(ruby?.textContent).toContain('今日');
@@ -224,9 +204,7 @@ describe('JapaneseText', () => {
     });
 
     it('should handle long compound kanji', () => {
-      const { container } = render(
-        <JapaneseText text="東京大学[とうきょうだいがく]" />
-      );
+      const { container } = render(<JapaneseText text="東京大学[とうきょうだいがく]" />);
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('東京大学');
     });
@@ -234,9 +212,7 @@ describe('JapaneseText', () => {
 
   describe('className handling', () => {
     it('should merge multiple classNames', () => {
-      const { container } = render(
-        <JapaneseText text="テスト" className="class1 class2" />
-      );
+      const { container } = render(<JapaneseText text="テスト" className="class1 class2" />);
       const element = container.querySelector('.japanese-text');
       expect(element).toHaveClass('class1');
       expect(element).toHaveClass('class2');
@@ -251,9 +227,7 @@ describe('JapaneseText', () => {
   describe('html sanitization', () => {
     it('should only allow ruby and rt tags', () => {
       // The component uses dangerouslySetInnerHTML but only generates ruby/rt
-      const { container } = render(
-        <JapaneseText text="日[ひ]本[ほん]" />
-      );
+      const { container } = render(<JapaneseText text="日[ひ]本[ほん]" />);
       // Verify only expected elements exist
       const allowedTags = container.querySelectorAll('ruby, rt, span');
       const allElements = container.querySelectorAll('*');

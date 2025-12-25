@@ -46,9 +46,7 @@ describe('requestLogger Middleware', () => {
     // Mock Date.now for consistent timing
     const startTime = 1000;
     const endTime = 1150;
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(startTime)
-      .mockReturnValueOnce(endTime);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(startTime).mockReturnValueOnce(endTime);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -62,9 +60,7 @@ describe('requestLogger Middleware', () => {
   it('should log correct method for POST requests', () => {
     mockReq.method = 'POST';
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1050);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1050);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -77,9 +73,7 @@ describe('requestLogger Middleware', () => {
   it('should log correct status code for error responses', () => {
     mockRes.statusCode = 500;
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1200);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1200);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -93,9 +87,7 @@ describe('requestLogger Middleware', () => {
     mockRes.statusCode = 404;
     mockReq.path = '/api/not-found';
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1010);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1010);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -108,18 +100,14 @@ describe('requestLogger Middleware', () => {
   it('should log correct path for nested routes', () => {
     mockReq.path = '/api/v1/users/123/episodes';
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1100);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1100);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
 
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      'GET /api/v1/users/123/episodes 200 - 100ms'
-    );
+    expect(consoleLogSpy).toHaveBeenCalledWith('GET /api/v1/users/123/episodes 200 - 100ms');
   });
 
   it('should handle different HTTP methods', () => {
@@ -138,16 +126,12 @@ describe('requestLogger Middleware', () => {
       const finishCallback = mockRes.on.mock.calls[0][1];
       finishCallback();
 
-      expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining(method)
-      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining(method));
     });
   });
 
   it('should calculate correct duration for fast requests', () => {
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1001);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1001);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -158,9 +142,7 @@ describe('requestLogger Middleware', () => {
   });
 
   it('should calculate correct duration for slow requests', () => {
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(11000); // 10 seconds later
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(11000); // 10 seconds later
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -174,9 +156,7 @@ describe('requestLogger Middleware', () => {
     mockReq.method = 'POST';
     mockRes.statusCode = 201;
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1075);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1075);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 
@@ -190,9 +170,7 @@ describe('requestLogger Middleware', () => {
     mockReq.method = 'DELETE';
     mockRes.statusCode = 204;
 
-    vi.spyOn(Date, 'now')
-      .mockReturnValueOnce(1000)
-      .mockReturnValueOnce(1025);
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1025);
 
     requestLogger(mockReq as Request, mockRes as Response, mockNext);
 

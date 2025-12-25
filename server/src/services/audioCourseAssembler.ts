@@ -34,9 +34,7 @@ export interface AssembledAudio {
  * Assemble a complete lesson audio file from script units
  * Synthesizes TTS for narration and L2 content, generates silence for pauses
  */
-export async function assembleLessonAudio(
-  options: AssembleAudioOptions
-): Promise<AssembledAudio> {
+export async function assembleLessonAudio(options: AssembleAudioOptions): Promise<AssembledAudio> {
   const { lessonId, scriptUnits, targetLanguage, nativeLanguage, onProgress } = options;
 
   console.log(`Assembling audio for lesson ${lessonId} with ${scriptUnits.length} units`);
@@ -153,7 +151,7 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
 
   // Create concat list file
   const listFile = path.join(tempDir, 'concat-list.txt');
-  const listContent = audioFiles.map(f => `file '${f}'`).join('\n');
+  const listContent = audioFiles.map((f) => `file '${f}'`).join('\n');
   await fs.writeFile(listFile, listContent);
 
   // Concatenate with ffmpeg

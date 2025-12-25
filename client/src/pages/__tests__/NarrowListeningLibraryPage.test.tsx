@@ -35,7 +35,8 @@ describe('NarrowListeningLibraryPage', () => {
     },
   ];
 
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <NarrowListeningLibraryPage />
       </BrowserRouter>
@@ -51,9 +52,7 @@ describe('NarrowListeningLibraryPage', () => {
 
   describe('loading state', () => {
     it('should show loading spinner initially', () => {
-      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
-        () => new Promise(() => {})
-      );
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
 
       const { container } = renderPage();
       const loader = container.querySelector('.animate-spin');
@@ -156,10 +155,7 @@ describe('NarrowListeningLibraryPage', () => {
     it('should render Error status for failed packs', async () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
-        json: () =>
-          Promise.resolve([
-            { ...mockPacks[0], status: 'error' },
-          ]),
+        json: () => Promise.resolve([{ ...mockPacks[0], status: 'error' }]),
       });
 
       renderPage();

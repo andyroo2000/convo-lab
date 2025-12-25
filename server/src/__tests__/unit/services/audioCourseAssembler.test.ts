@@ -11,7 +11,17 @@ const mockFfmpegChain = vi.hoisted(() => {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
 
   // Create all chain methods
-  ['input', 'inputOptions', 'audioCodec', 'audioBitrate', 'audioFrequency', 'audioChannels', 'output', 'on', 'run'].forEach(method => {
+  [
+    'input',
+    'inputOptions',
+    'audioCodec',
+    'audioBitrate',
+    'audioFrequency',
+    'audioChannels',
+    'output',
+    'on',
+    'run',
+  ].forEach((method) => {
     chain[method] = vi.fn();
     if (method !== 'run') {
       chain[method].mockReturnValue(chain);
@@ -78,9 +88,7 @@ describe('audioCourseAssembler', () => {
       [1, Buffer.from('l2-audio')],
       [4, Buffer.from('narration-audio')],
     ]),
-    pauseSegments: new Map([
-      [2, Buffer.from('pause-audio')],
-    ]),
+    pauseSegments: new Map([[2, Buffer.from('pause-audio')]]),
   };
 
   beforeEach(() => {
@@ -104,10 +112,9 @@ describe('audioCourseAssembler', () => {
         nativeLanguage: 'en',
       });
 
-      expect(mockFs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining('audio-assembly'),
-        { recursive: true }
-      );
+      expect(mockFs.mkdir).toHaveBeenCalledWith(expect.stringContaining('audio-assembly'), {
+        recursive: true,
+      });
     });
 
     it('should call processBatches with script units', async () => {
@@ -137,8 +144,8 @@ describe('audioCourseAssembler', () => {
 
       // 5 units total, 1 marker, so 4 audio files written (if segments exist)
       const writeFileCalls = mockFs.writeFile.mock.calls;
-      const audioFilesWritten = writeFileCalls.filter(call =>
-        typeof call[0] === 'string' && call[0].includes('segment-')
+      const audioFilesWritten = writeFileCalls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('segment-')
       );
 
       // Should write files for segments that have buffers (indices 0, 1, 4 for speech, 2 for pause)
@@ -227,26 +234,28 @@ describe('audioCourseAssembler', () => {
         nativeLanguage: 'en',
       });
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('audio-assembly'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('audio-assembly'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should cleanup temp directory on error', async () => {
       mockProcessBatches.mockRejectedValue(new Error('TTS failed'));
 
-      await expect(assembleLessonAudio({
-        lessonId: 'lesson-123',
-        scriptUnits: mockScriptUnits,
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-      })).rejects.toThrow('TTS failed');
+      await expect(
+        assembleLessonAudio({
+          lessonId: 'lesson-123',
+          scriptUnits: mockScriptUnits,
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+        })
+      ).rejects.toThrow('TTS failed');
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('audio-assembly'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('audio-assembly'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should call onProgress callback during processing', async () => {
@@ -304,12 +313,14 @@ describe('audioCourseAssembler', () => {
         { type: 'marker', label: 'End' },
       ];
 
-      await expect(assembleLessonAudio({
-        lessonId: 'lesson-123',
-        scriptUnits: markerOnlyUnits,
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-      })).rejects.toThrow('No audio files to concatenate');
+      await expect(
+        assembleLessonAudio({
+          lessonId: 'lesson-123',
+          scriptUnits: markerOnlyUnits,
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+        })
+      ).rejects.toThrow('No audio files to concatenate');
     });
   });
 });

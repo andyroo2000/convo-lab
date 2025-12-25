@@ -22,7 +22,8 @@ vi.mock('../../components/common/DemoRestrictionModal', () => ({
 global.fetch = vi.fn();
 
 describe('NarrowListeningCreatorPage', () => {
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <NarrowListeningCreatorPage />
       </BrowserRouter>
@@ -118,9 +119,7 @@ describe('NarrowListeningCreatorPage', () => {
   describe('topic input', () => {
     it('should render topic textarea', () => {
       renderPage();
-      expect(
-        screen.getByPlaceholderText(/Tanaka's weekend activities/)
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Tanaka's weekend activities/)).toBeInTheDocument();
     });
 
     it('should update topic when typing', () => {
@@ -137,9 +136,7 @@ describe('NarrowListeningCreatorPage', () => {
       const chineseButton = screen.getByText('Chinese').closest('button');
       fireEvent.click(chineseButton!);
 
-      expect(
-        screen.getByPlaceholderText(/Wang Wei's weekend activities/)
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/Wang Wei's weekend activities/)).toBeInTheDocument();
     });
 
     it('should show different placeholder for Spanish', () => {
@@ -147,9 +144,7 @@ describe('NarrowListeningCreatorPage', () => {
       const spanishButton = screen.getByText('Spanish').closest('button');
       fireEvent.click(spanishButton!);
 
-      expect(
-        screen.getByPlaceholderText(/María's weekend activities/)
-      ).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/María's weekend activities/)).toBeInTheDocument();
     });
   });
 
@@ -209,9 +204,7 @@ describe('NarrowListeningCreatorPage', () => {
 
     it('should mention furigana for Japanese', () => {
       renderPage();
-      expect(
-        screen.getByText(/Japanese text with furigana/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Japanese text with furigana/)).toBeInTheDocument();
     });
   });
 

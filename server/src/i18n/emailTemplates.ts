@@ -9,7 +9,7 @@ function getBaseStyles(isRTL: boolean) {
   return {
     direction: isRTL ? 'rtl' : 'ltr',
     textAlign: isRTL ? 'right' : 'left',
-    fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`
+    fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`,
   };
 }
 
@@ -22,7 +22,9 @@ function escapeHtml(unsafe: string): string {
     .replace(/'/g, '&#039;');
 }
 
-export function generateVerificationEmail(options: BaseEmailOptions & { verificationUrl: string }): string {
+export function generateVerificationEmail(
+  options: BaseEmailOptions & { verificationUrl: string }
+): string {
   const { locale, name, verificationUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -58,7 +60,9 @@ export function generateVerificationEmail(options: BaseEmailOptions & { verifica
   `;
 }
 
-export function generatePasswordResetEmail(options: BaseEmailOptions & { resetUrl: string }): string {
+export function generatePasswordResetEmail(
+  options: BaseEmailOptions & { resetUrl: string }
+): string {
   const { locale, name, resetUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -138,7 +142,9 @@ export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: strin
   `;
 }
 
-export function generatePasswordChangedEmail(options: BaseEmailOptions & { supportEmail: string }): string {
+export function generatePasswordChangedEmail(
+  options: BaseEmailOptions & { supportEmail: string }
+): string {
   const { locale, name, supportEmail } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -173,7 +179,9 @@ export function generatePasswordChangedEmail(options: BaseEmailOptions & { suppo
   `;
 }
 
-export function generateSubscriptionConfirmedEmail(options: BaseEmailOptions & { tier: string; weeklyLimit: number; appUrl: string }): string {
+export function generateSubscriptionConfirmedEmail(
+  options: BaseEmailOptions & { tier: string; weeklyLimit: number; appUrl: string }
+): string {
   const { locale, name, tier, weeklyLimit, appUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -218,7 +226,9 @@ export function generateSubscriptionConfirmedEmail(options: BaseEmailOptions & {
   `;
 }
 
-export function generatePaymentFailedEmail(options: BaseEmailOptions & { billingUrl: string; supportEmail: string }): string {
+export function generatePaymentFailedEmail(
+  options: BaseEmailOptions & { billingUrl: string; supportEmail: string }
+): string {
   const { locale, name, billingUrl, supportEmail } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -264,7 +274,9 @@ export function generatePaymentFailedEmail(options: BaseEmailOptions & { billing
   `;
 }
 
-export function generateSubscriptionCanceledEmail(options: BaseEmailOptions & { billingUrl: string }): string {
+export function generateSubscriptionCanceledEmail(
+  options: BaseEmailOptions & { billingUrl: string }
+): string {
   const { locale, name, billingUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -308,7 +320,15 @@ export function generateSubscriptionCanceledEmail(options: BaseEmailOptions & { 
   `;
 }
 
-export function generateQuotaWarningEmail(options: BaseEmailOptions & { used: number; limit: number; percentage: number; tier: string; pricingUrl: string }): string {
+export function generateQuotaWarningEmail(
+  options: BaseEmailOptions & {
+    used: number;
+    limit: number;
+    percentage: number;
+    tier: string;
+    pricingUrl: string;
+  }
+): string {
   const { locale, name, used, limit, percentage, tier, pricingUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
   const isRTL = locale === 'ar';
@@ -337,7 +357,9 @@ export function generateQuotaWarningEmail(options: BaseEmailOptions & { used: nu
             <p style="font-size: 14px; color: #666; margin-bottom: 0;">${t('quotaWarning.quotaReset')}</p>
           </div>
 
-          ${tier === 'free' ? `
+          ${
+            tier === 'free'
+              ? `
           <div style="background: #e7f3ff; border-${isRTL ? 'right' : 'left'}: 4px solid #667eea; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
             <p style="margin: 0; font-size: 16px;"><strong>${t('quotaWarning.upgradeTitle')}</strong></p>
             <p style="margin: 10px 0 0; font-size: 14px;">${t('quotaWarning.upgradeBody', { count: 30 })}</p>
@@ -346,7 +368,9 @@ export function generateQuotaWarningEmail(options: BaseEmailOptions & { used: nu
           <div style="text-align: center; margin: 30px 0;">
             <a href="${pricingUrl}" style="background: #667eea; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block; font-size: 16px;">${t('quotaWarning.button')}</a>
           </div>
-          ` : ''}
+          `
+              : ''
+          }
 
           <p style="font-size: 14px; color: #999; margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; text-align: ${styles.textAlign};">${t('quotaWarning.footer')}</p>
         </div>

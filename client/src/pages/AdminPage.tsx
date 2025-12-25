@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
-import { Users, Ticket, BarChart3, Search, Trash2, Copy, Plus, Check, Image, Settings, Eye } from 'lucide-react';
+import {
+  Users,
+  Ticket,
+  BarChart3,
+  Search,
+  Trash2,
+  Copy,
+  Plus,
+  Check,
+  Image,
+  Settings,
+  Eye,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
@@ -105,7 +117,9 @@ export default function AdminPage() {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
   const [cropperTitle, setCropperTitle] = useState('');
-  const [cropperSaveHandler, setCropperSaveHandler] = useState<((blob: Blob, cropArea: any) => Promise<void>) | null>(null);
+  const [cropperSaveHandler, setCropperSaveHandler] = useState<
+    ((blob: Blob, cropArea: any) => Promise<void>) | null
+  >(null);
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -147,18 +161,42 @@ export default function AdminPage() {
 
   // Speaker avatar filenames for initial upload (when no avatars in DB)
   const DEFAULT_SPEAKER_AVATARS = [
-    'en-female-casual.jpg', 'en-female-polite.jpg', 'en-female-formal.jpg',
-    'en-male-casual.jpg', 'en-male-polite.jpg', 'en-male-formal.jpg',
-    'ja-female-casual.jpg', 'ja-female-polite.jpg', 'ja-female-formal.jpg',
-    'ja-male-casual.jpg', 'ja-male-polite.jpg', 'ja-male-formal.jpg',
-    'zh-female-casual.jpg', 'zh-female-polite.jpg', 'zh-female-formal.jpg',
-    'zh-male-casual.jpg', 'zh-male-polite.jpg', 'zh-male-formal.jpg',
-    'es-female-casual.jpg', 'es-female-polite.jpg', 'es-female-formal.jpg',
-    'es-male-casual.jpg', 'es-male-polite.jpg', 'es-male-formal.jpg',
-    'fr-female-casual.jpg', 'fr-female-polite.jpg', 'fr-female-formal.jpg',
-    'fr-male-casual.jpg', 'fr-male-polite.jpg', 'fr-male-formal.jpg',
-    'ar-female-casual.jpg', 'ar-female-polite.jpg', 'ar-female-formal.jpg',
-    'ar-male-casual.jpg', 'ar-male-polite.jpg', 'ar-male-formal.jpg',
+    'en-female-casual.jpg',
+    'en-female-polite.jpg',
+    'en-female-formal.jpg',
+    'en-male-casual.jpg',
+    'en-male-polite.jpg',
+    'en-male-formal.jpg',
+    'ja-female-casual.jpg',
+    'ja-female-polite.jpg',
+    'ja-female-formal.jpg',
+    'ja-male-casual.jpg',
+    'ja-male-polite.jpg',
+    'ja-male-formal.jpg',
+    'zh-female-casual.jpg',
+    'zh-female-polite.jpg',
+    'zh-female-formal.jpg',
+    'zh-male-casual.jpg',
+    'zh-male-polite.jpg',
+    'zh-male-formal.jpg',
+    'es-female-casual.jpg',
+    'es-female-polite.jpg',
+    'es-female-formal.jpg',
+    'es-male-casual.jpg',
+    'es-male-polite.jpg',
+    'es-male-formal.jpg',
+    'fr-female-casual.jpg',
+    'fr-female-polite.jpg',
+    'fr-female-formal.jpg',
+    'fr-male-casual.jpg',
+    'fr-male-polite.jpg',
+    'fr-male-formal.jpg',
+    'ar-female-casual.jpg',
+    'ar-female-polite.jpg',
+    'ar-female-formal.jpg',
+    'ar-male-casual.jpg',
+    'ar-male-polite.jpg',
+    'ar-male-formal.jpg',
   ];
 
   // Redirect if not admin
@@ -189,9 +227,13 @@ export default function AdminPage() {
     if (tierFilter === 'all') {
       setFilteredUsers(users);
     } else if (tierFilter === 'canceled') {
-      setFilteredUsers(users.filter(u => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined));
+      setFilteredUsers(
+        users.filter(
+          (u) => u.subscriptionCanceledAt !== null && u.subscriptionCanceledAt !== undefined
+        )
+      );
     } else {
-      setFilteredUsers(users.filter(u => u.tier === tierFilter));
+      setFilteredUsers(users.filter((u) => u.tier === tierFilter));
     }
   }, [users, tierFilter]);
 
@@ -283,7 +325,10 @@ export default function AdminPage() {
     }
   };
 
-  const updateFeatureFlag = async (key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>, value: boolean) => {
+  const updateFeatureFlag = async (
+    key: keyof Omit<FeatureFlags, 'id' | 'updatedAt'>,
+    value: boolean
+  ) => {
     if (!featureFlags) return;
 
     // Optimistic update
@@ -311,7 +356,9 @@ export default function AdminPage() {
   };
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
-    if (!confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)) {
+    if (
+      !confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)
+    ) {
       return;
     }
 
@@ -371,7 +418,8 @@ export default function AdminPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -647,7 +695,11 @@ export default function AdminPage() {
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedUserId(u.id)}>
+                    <tr
+                      key={u.id}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => setSelectedUserId(u.id)}
+                    >
                       <td className="px-3 sm:px-6 py-4">
                         <div>
                           <div className="font-medium text-navy whitespace-nowrap">
@@ -662,10 +714,10 @@ export default function AdminPage() {
                             u.role === 'admin'
                               ? 'bg-purple-100 text-purple-800'
                               : u.role === 'moderator'
-                              ? 'bg-blue-100 text-blue-800'
-                              : u.role === 'demo'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-gray-100 text-gray-800'
+                                ? 'bg-blue-100 text-blue-800'
+                                : u.role === 'demo'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-gray-100 text-gray-800'
                           }`}
                         >
                           {u.role}
@@ -698,12 +750,12 @@ export default function AdminPage() {
                               u.stripeSubscriptionStatus === 'active'
                                 ? 'bg-green-100 text-green-800'
                                 : u.stripeSubscriptionStatus === 'past_due'
-                                ? 'bg-orange-100 text-orange-800'
-                                : u.stripeSubscriptionStatus === 'canceled'
-                                ? 'bg-red-100 text-red-800'
-                                : u.stripeSubscriptionStatus === 'trialing'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-gray-100 text-gray-800'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : u.stripeSubscriptionStatus === 'canceled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : u.stripeSubscriptionStatus === 'trialing'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-gray-100 text-gray-800'
                             }`}
                           >
                             {u.stripeSubscriptionStatus}
@@ -716,12 +768,19 @@ export default function AdminPage() {
                         {u.tier === 'pro' ? '30/week' : '5/week'}
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {u._count.episodes + u._count.courses + u._count.narrowListeningPacks + u._count.chunkPacks} items
+                        {u._count.episodes +
+                          u._count.courses +
+                          u._count.narrowListeningPacks +
+                          u._count.chunkPacks}{' '}
+                        items
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {formatDate(u.createdAt)}
                       </td>
-                      <td className="px-3 sm:px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                      <td
+                        className="px-3 sm:px-6 py-4 text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
@@ -763,7 +822,10 @@ export default function AdminPage() {
                 Create and manage invite codes for new users
               </p>
             </div>
-            <button onClick={handleCreateInviteCode} className="btn-primary flex items-center gap-2">
+            <button
+              onClick={handleCreateInviteCode}
+              className="btn-primary flex items-center gap-2"
+            >
               <Plus className="w-4 h-4" />
               Create Code
             </button>
@@ -798,9 +860,7 @@ export default function AdminPage() {
                     <tr key={code.id} className="hover:bg-gray-50">
                       <td className="px-3 sm:px-6 py-4">
                         <div className="flex items-center gap-2 whitespace-nowrap">
-                          <code className="font-mono font-semibold text-navy">
-                            {code.code}
-                          </code>
+                          <code className="font-mono font-semibold text-navy">{code.code}</code>
                           <button
                             onClick={() => handleCopyCode(code.code)}
                             className="text-gray-400 hover:text-indigo transition-colors"
@@ -923,7 +983,8 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm text-gray-600">
-                    Total: <span className="font-semibold text-navy">{stats.inviteCodes.total}</span>
+                    Total:{' '}
+                    <span className="font-semibold text-navy">{stats.inviteCodes.total}</span>
                   </p>
                   <p className="text-sm text-gray-600">
                     Used: <span className="font-semibold text-navy">{stats.inviteCodes.used}</span>
@@ -945,12 +1006,13 @@ export default function AdminPage() {
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Manage the 36 speaker avatar images used in dialogues and courses (6 languages × 6 avatars each)
+              Manage the 36 speaker avatar images used in dialogues and courses (6 languages × 6
+              avatars each)
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {DEFAULT_SPEAKER_AVATARS.map((filename) => {
-                const avatar = speakerAvatars.find(a => a.filename === filename);
+                const avatar = speakerAvatars.find((a) => a.filename === filename);
 
                 if (avatar) {
                   // Avatar exists - show it with manage buttons
@@ -962,11 +1024,15 @@ export default function AdminPage() {
                           alt={filename}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                            (e.target as HTMLImageElement).src =
+                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
                           }}
                         />
                       </div>
-                      <p className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
+                      <p
+                        className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
+                        title={filename}
+                      >
                         {formatAvatarTitle(filename)}
                       </p>
                       <div className="flex flex-col gap-2">
@@ -985,27 +1051,42 @@ export default function AdminPage() {
                       </div>
                     </div>
                   );
-                } 
-                  // Avatar missing - show upload placeholder
-                  return (
-                    <div key={filename} className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300">
-                      <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                        <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </div>
-                      <p className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium" title={filename}>
-                        {formatAvatarTitle(filename)}
-                      </p>
-                      <button
-                        onClick={() => handleUploadNewSpeaker(filename)}
-                        className="btn-primary text-xs sm:text-sm py-1 w-full"
+                }
+                // Avatar missing - show upload placeholder
+                return (
+                  <div
+                    key={filename}
+                    className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300"
+                  >
+                    <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                      <svg
+                        className="w-12 h-12 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        Upload
-                      </button>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
                     </div>
-                  );
-                
+                    <p
+                      className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
+                      title={filename}
+                    >
+                      {formatAvatarTitle(filename)}
+                    </p>
+                    <button
+                      onClick={() => handleUploadNewSpeaker(filename)}
+                      className="btn-primary text-xs sm:text-sm py-1 w-full"
+                    >
+                      Upload
+                    </button>
+                  </div>
+                );
               })}
             </div>
           </div>
@@ -1013,9 +1094,7 @@ export default function AdminPage() {
           {/* User Avatars Section */}
           <div>
             <h2 className="text-xl font-semibold text-navy mb-4">User Avatars</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Manage custom avatar images for users
-            </p>
+            <p className="text-sm text-gray-600 mb-6">Manage custom avatar images for users</p>
 
             {isLoading ? (
               <div className="text-center py-12 text-gray-500">Loading users...</div>
@@ -1055,16 +1134,27 @@ export default function AdminPage() {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className={`w-full h-full flex items-center justify-center text-white font-semibold ${
-                                u.avatarColor === 'indigo' ? 'bg-indigo-500' :
-                                u.avatarColor === 'teal' ? 'bg-teal-500' :
-                                u.avatarColor === 'purple' ? 'bg-purple-500' :
-                                u.avatarColor === 'pink' ? 'bg-pink-500' :
-                                u.avatarColor === 'emerald' ? 'bg-emerald-500' :
-                                u.avatarColor === 'amber' ? 'bg-amber-500' :
-                                u.avatarColor === 'rose' ? 'bg-rose-500' :
-                                u.avatarColor === 'cyan' ? 'bg-cyan-500' : 'bg-indigo-500'
-                              }`}>
+                              <div
+                                className={`w-full h-full flex items-center justify-center text-white font-semibold ${
+                                  u.avatarColor === 'indigo'
+                                    ? 'bg-indigo-500'
+                                    : u.avatarColor === 'teal'
+                                      ? 'bg-teal-500'
+                                      : u.avatarColor === 'purple'
+                                        ? 'bg-purple-500'
+                                        : u.avatarColor === 'pink'
+                                          ? 'bg-pink-500'
+                                          : u.avatarColor === 'emerald'
+                                            ? 'bg-emerald-500'
+                                            : u.avatarColor === 'amber'
+                                              ? 'bg-amber-500'
+                                              : u.avatarColor === 'rose'
+                                                ? 'bg-rose-500'
+                                                : u.avatarColor === 'cyan'
+                                                  ? 'bg-cyan-500'
+                                                  : 'bg-indigo-500'
+                                }`}
+                              >
                                 {(u.displayName || u.name).charAt(0).toUpperCase()}
                               </div>
                             )}
@@ -1089,13 +1179,17 @@ export default function AdminPage() {
                                       formData.append('image', file, `avatar.jpg`);
                                       formData.append('cropArea', JSON.stringify(cropArea));
 
-                                      const response = await fetch(`${API_URL}/api/admin/avatars/user/${u.id}/upload`, {
-                                        method: 'POST',
-                                        credentials: 'include',
-                                        body: formData,
-                                      });
+                                      const response = await fetch(
+                                        `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
+                                        {
+                                          method: 'POST',
+                                          credentials: 'include',
+                                          body: formData,
+                                        }
+                                      );
 
-                                      if (!response.ok) throw new Error('Failed to upload user avatar');
+                                      if (!response.ok)
+                                        throw new Error('Failed to upload user avatar');
 
                                       alert('User avatar updated successfully');
                                       setCropperOpen(false);
@@ -1103,7 +1197,11 @@ export default function AdminPage() {
                                       // Reload users to show updated avatar
                                       fetchUsers();
                                     } catch (err) {
-                                      alert(err instanceof Error ? err.message : 'Failed to upload user avatar');
+                                      alert(
+                                        err instanceof Error
+                                          ? err.message
+                                          : 'Failed to upload user avatar'
+                                      );
                                     }
                                   });
                                   setCropperOpen(true);
@@ -1135,7 +1233,8 @@ export default function AdminPage() {
         <div>
           <h2 className="text-xl font-semibold text-navy mb-2">Feature Visibility Settings</h2>
           <p className="text-sm text-gray-600 mb-6">
-            Control which content types are visible to non-admin users. Admins can always see all content types.
+            Control which content types are visible to non-admin users. Admins can always see all
+            content types.
           </p>
 
           {isLoading ? (
@@ -1146,7 +1245,9 @@ export default function AdminPage() {
                 {/* Dialogues Toggle */}
                 <div className="flex items-center justify-between py-4 border-b border-gray-200">
                   <div>
-                    <h3 className="text-base font-semibold text-navy">Comprehensible Input Dialogues</h3>
+                    <h3 className="text-base font-semibold text-navy">
+                      Comprehensible Input Dialogues
+                    </h3>
                     <p className="text-sm text-gray-600 mt-1">
                       AI-generated dialogues calibrated to user proficiency level
                     </p>
@@ -1193,7 +1294,9 @@ export default function AdminPage() {
                     <input
                       type="checkbox"
                       checked={featureFlags.narrowListeningEnabled}
-                      onChange={(e) => updateFeatureFlag('narrowListeningEnabled', e.target.checked)}
+                      onChange={(e) =>
+                        updateFeatureFlag('narrowListeningEnabled', e.target.checked)
+                      }
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
@@ -1203,7 +1306,9 @@ export default function AdminPage() {
                 {/* Processing Instruction Toggle */}
                 <div className="flex items-center justify-between py-4 border-b border-gray-200">
                   <div>
-                    <h3 className="text-base font-semibold text-navy">Processing Instruction Activities</h3>
+                    <h3 className="text-base font-semibold text-navy">
+                      Processing Instruction Activities
+                    </h3>
                     <p className="text-sm text-gray-600 mt-1">
                       Learn grammar through structured input—answer meaning-based questions
                     </p>
@@ -1212,7 +1317,9 @@ export default function AdminPage() {
                     <input
                       type="checkbox"
                       checked={featureFlags.processingInstructionEnabled}
-                      onChange={(e) => updateFeatureFlag('processingInstructionEnabled', e.target.checked)}
+                      onChange={(e) =>
+                        updateFeatureFlag('processingInstructionEnabled', e.target.checked)
+                      }
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
@@ -1241,7 +1348,8 @@ export default function AdminPage() {
 
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> These settings only affect non-admin users. As an admin, you will always see all content creation options.
+                  <strong>Note:</strong> These settings only affect non-admin users. As an admin,
+                  you will always see all content creation options.
                 </p>
               </div>
             </div>
@@ -1259,165 +1367,202 @@ export default function AdminPage() {
       />
 
       {/* Subscription Details Modal */}
-      {selectedUserId && (() => {
-        const selectedUser = users.find(u => u.id === selectedUserId);
-        if (!selectedUser) return null;
+      {selectedUserId &&
+        (() => {
+          const selectedUser = users.find((u) => u.id === selectedUserId);
+          if (!selectedUser) return null;
 
-        const formatDate = (dateString: string | undefined) => {
-          if (!dateString) return '-';
-          return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
-        };
+          const formatDate = (dateString: string | undefined) => {
+            if (!dateString) return '-';
+            return new Date(dateString).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            });
+          };
 
-        return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-navy">Subscription Details</h2>
-                  <button
-                    onClick={() => setSelectedUserId(null)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* User Info */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-navy mb-2">User Information</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="font-medium">Name:</span> {selectedUser.displayName || selectedUser.name}</p>
-                    <p><span className="font-medium">Email:</span> {selectedUser.email}</p>
-                    <p><span className="font-medium">Role:</span> {selectedUser.role}</p>
-                    <p><span className="font-medium">Tier:</span> {selectedUser.tier}</p>
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-navy">Subscription Details</h2>
+                    <button
+                      onClick={() => setSelectedUserId(null)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                </div>
 
-                {/* Subscription Details */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-navy mb-2">Subscription Details</h3>
-                  <div className="space-y-2 text-sm">
-                    {selectedUser.stripeCustomerId && (
+                  {/* User Info */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-semibold text-navy mb-2">User Information</h3>
+                    <div className="space-y-1 text-sm">
                       <p>
-                        <span className="font-medium">Stripe Customer ID:</span>{' '}
-                        <a
-                          href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo hover:text-dark-periwinkle"
-                        >
-                          {selectedUser.stripeCustomerId}
-                        </a>
+                        <span className="font-medium">Name:</span>{' '}
+                        {selectedUser.displayName || selectedUser.name}
                       </p>
-                    )}
-                    {selectedUser.stripeSubscriptionId && (
                       <p>
-                        <span className="font-medium">Subscription ID:</span>{' '}
-                        <a
-                          href={`https://dashboard.stripe.com/subscriptions/${selectedUser.stripeSubscriptionId}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-indigo hover:text-dark-periwinkle"
-                        >
-                          {selectedUser.stripeSubscriptionId}
-                        </a>
+                        <span className="font-medium">Email:</span> {selectedUser.email}
                       </p>
-                    )}
-                    {selectedUser.stripeSubscriptionStatus && (
                       <p>
-                        <span className="font-medium">Status:</span>{' '}
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          selectedUser.stripeSubscriptionStatus === 'active' ? 'bg-green-100 text-green-800' :
-                          selectedUser.stripeSubscriptionStatus === 'past_due' ? 'bg-orange-100 text-orange-800' :
-                          selectedUser.stripeSubscriptionStatus === 'canceled' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {selectedUser.stripeSubscriptionStatus}
-                        </span>
+                        <span className="font-medium">Role:</span> {selectedUser.role}
                       </p>
-                    )}
-                    <p><span className="font-medium">Started:</span> {formatDate(selectedUser.subscriptionStartedAt)}</p>
-                    <p><span className="font-medium">Current period ends:</span> {formatDate(selectedUser.subscriptionExpiresAt)}</p>
-                    <p><span className="font-medium">Canceled at:</span> {formatDate(selectedUser.subscriptionCanceledAt)}</p>
-                  </div>
-                </div>
-
-                {/* Test User Settings */}
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-semibold text-navy mb-2">Test User Settings</h3>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-700">
-                        Test users can access the $0.01/month test tier
+                      <p>
+                        <span className="font-medium">Tier:</span> {selectedUser.tier}
                       </p>
                     </div>
-                    <button
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(`${API_URL}/api/admin/users/${selectedUser.id}/test-user`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            credentials: 'include',
-                            body: JSON.stringify({ isTestUser: !selectedUser.isTestUser }),
-                          });
-                          if (!response.ok) throw new Error('Failed to update test user status');
+                  </div>
 
-                          showToast('Test user status updated', 'success');
-                          fetchUsers(); // Refresh user list
-                          setSelectedUserId(null); // Close modal
-                        } catch (err) {
-                          showToast(err instanceof Error ? err.message : 'Failed to update', 'error');
-                        }
-                      }}
-                      className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                        selectedUser.isTestUser
-                          ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
-                      }`}
+                  {/* Subscription Details */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-semibold text-navy mb-2">Subscription Details</h3>
+                    <div className="space-y-2 text-sm">
+                      {selectedUser.stripeCustomerId && (
+                        <p>
+                          <span className="font-medium">Stripe Customer ID:</span>{' '}
+                          <a
+                            href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo hover:text-dark-periwinkle"
+                          >
+                            {selectedUser.stripeCustomerId}
+                          </a>
+                        </p>
+                      )}
+                      {selectedUser.stripeSubscriptionId && (
+                        <p>
+                          <span className="font-medium">Subscription ID:</span>{' '}
+                          <a
+                            href={`https://dashboard.stripe.com/subscriptions/${selectedUser.stripeSubscriptionId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo hover:text-dark-periwinkle"
+                          >
+                            {selectedUser.stripeSubscriptionId}
+                          </a>
+                        </p>
+                      )}
+                      {selectedUser.stripeSubscriptionStatus && (
+                        <p>
+                          <span className="font-medium">Status:</span>{' '}
+                          <span
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              selectedUser.stripeSubscriptionStatus === 'active'
+                                ? 'bg-green-100 text-green-800'
+                                : selectedUser.stripeSubscriptionStatus === 'past_due'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : selectedUser.stripeSubscriptionStatus === 'canceled'
+                                    ? 'bg-red-100 text-red-800'
+                                    : 'bg-gray-100 text-gray-800'
+                            }`}
+                          >
+                            {selectedUser.stripeSubscriptionStatus}
+                          </span>
+                        </p>
+                      )}
+                      <p>
+                        <span className="font-medium">Started:</span>{' '}
+                        {formatDate(selectedUser.subscriptionStartedAt)}
+                      </p>
+                      <p>
+                        <span className="font-medium">Current period ends:</span>{' '}
+                        {formatDate(selectedUser.subscriptionExpiresAt)}
+                      </p>
+                      <p>
+                        <span className="font-medium">Canceled at:</span>{' '}
+                        {formatDate(selectedUser.subscriptionCanceledAt)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Test User Settings */}
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="font-semibold text-navy mb-2">Test User Settings</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-700">
+                          Test users can access the $0.01/month test tier
+                        </p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch(
+                              `${API_URL}/api/admin/users/${selectedUser.id}/test-user`,
+                              {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({ isTestUser: !selectedUser.isTestUser }),
+                              }
+                            );
+                            if (!response.ok) throw new Error('Failed to update test user status');
+
+                            showToast('Test user status updated', 'success');
+                            fetchUsers(); // Refresh user list
+                            setSelectedUserId(null); // Close modal
+                          } catch (err) {
+                            showToast(
+                              err instanceof Error ? err.message : 'Failed to update',
+                              'error'
+                            );
+                          }
+                        }}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          selectedUser.isTestUser
+                            ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                            : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                        }`}
+                      >
+                        {selectedUser.isTestUser ? 'Disable Test User' : 'Enable Test User'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Admin Actions */}
+                  <div className="flex gap-3">
+                    {selectedUser.stripeCustomerId && (
+                      <a
+                        href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="btn-primary flex items-center gap-2"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View in Stripe
+                      </a>
+                    )}
+                    <button
+                      onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}
+                      className="btn-secondary flex items-center gap-2"
                     >
-                      {selectedUser.isTestUser ? 'Disable Test User' : 'Enable Test User'}
+                      <Eye className="w-4 h-4" />
+                      Impersonate User
+                    </button>
+                    <button onClick={() => setSelectedUserId(null)} className="btn-secondary">
+                      Close
                     </button>
                   </div>
                 </div>
-
-                {/* Admin Actions */}
-                <div className="flex gap-3">
-                  {selectedUser.stripeCustomerId && (
-                    <a
-                      href={`https://dashboard.stripe.com/customers/${selectedUser.stripeCustomerId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-primary flex items-center gap-2"
-                    >
-                      <Eye className="w-4 h-4" />
-                      View in Stripe
-                    </a>
-                  )}
-                  <button
-                    onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}
-                    className="btn-secondary flex items-center gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Impersonate User
-                  </button>
-                  <button
-                    onClick={() => setSelectedUserId(null)}
-                    className="btn-secondary"
-                  >
-                    Close
-                  </button>
-                </div>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          );
+        })()}
 
       {/* Toast Notification */}
       <Toast

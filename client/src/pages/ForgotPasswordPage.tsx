@@ -69,9 +69,7 @@ export default function ForgotPasswordPage() {
                 <h2 className="text-2xl font-semibold text-dark-brown mb-2">
                   {t('auth:forgotPassword.title')}
                 </h2>
-                <p className="text-medium-brown text-sm">
-                  {t('auth:forgotPassword.description')}
-                </p>
+                <p className="text-medium-brown text-sm">{t('auth:forgotPassword.description')}</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,7 +106,10 @@ export default function ForgotPasswordPage() {
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-500">
                   {t('auth:forgotPassword.rememberPassword')}{' '}
-                  <Link to="/login" className="text-periwinkle hover:text-dark-periwinkle font-medium">
+                  <Link
+                    to="/login"
+                    className="text-periwinkle hover:text-dark-periwinkle font-medium"
+                  >
                     {t('auth:forgotPassword.loginLink')}
                   </Link>
                 </p>
@@ -123,9 +124,7 @@ export default function ForgotPasswordPage() {
               <p className="text-medium-brown mb-4">
                 {t('auth:forgotPassword.emailSent', { email })}
               </p>
-              <p className="text-sm text-gray-500 mb-6">
-                {t('auth:forgotPassword.expiryNotice')}
-              </p>
+              <p className="text-sm text-gray-500 mb-6">{t('auth:forgotPassword.expiryNotice')}</p>
               <Link to="/login" className="btn-primary inline-block">
                 {t('auth:forgotPassword.backToLogin')}
               </Link>
@@ -133,9 +132,7 @@ export default function ForgotPasswordPage() {
           )}
         </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          {t('common:footer')}
-        </p>
+        <p className="text-center text-sm text-gray-500 mt-6">{t('common:footer')}</p>
       </div>
     </div>
   );

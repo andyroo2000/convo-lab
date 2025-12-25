@@ -25,7 +25,8 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 describe('LandingPage', () => {
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <LandingPage />
       </BrowserRouter>

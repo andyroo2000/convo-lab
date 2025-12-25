@@ -31,12 +31,10 @@ async function createSimpleAvatar(bgColor: string, initial: string): Promise<Buf
     </svg>
   `;
 
-  return await sharp(Buffer.from(svg))
-    .jpeg({ quality: 90 })
-    .toBuffer();
+  return await sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
 }
 
-async function generateAndSaveAvatar(config: typeof AVATAR_CONFIGS[0]): Promise<void> {
+async function generateAndSaveAvatar(config: (typeof AVATAR_CONFIGS)[0]): Promise<void> {
   console.log(`\nGenerating: ${config.filename} (${config.name})`);
 
   try {
@@ -52,7 +50,6 @@ async function generateAndSaveAvatar(config: typeof AVATAR_CONFIGS[0]): Promise<
     await fs.writeFile(filePath, imageBuffer);
 
     console.log(`✓ Saved to: ${filePath}`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${config.filename}:`, error.message);
     throw error;

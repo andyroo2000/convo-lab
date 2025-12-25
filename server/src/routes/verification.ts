@@ -10,7 +10,7 @@ import {
   sendPasswordChangedEmail,
   verifyEmailToken,
   verifyPasswordResetToken,
-  markPasswordResetTokenUsed
+  markPasswordResetTokenUsed,
 } from '../services/emailService.js';
 import i18next from '../i18n/index.js';
 
@@ -25,8 +25,8 @@ router.post('/verification/send', requireAuth, async (req: AuthRequest, res, nex
         id: true,
         email: true,
         name: true,
-        emailVerified: true
-      }
+        emailVerified: true,
+      },
     });
 
     if (!user) {
@@ -60,7 +60,7 @@ router.get('/verification/:token', async (req, res, next) => {
     // Get user details
     const user = await prisma.user.findUnique({
       where: { id: result.userId },
-      select: { name: true, email: true }
+      select: { name: true, email: true },
     });
 
     if (user) {
@@ -70,7 +70,7 @@ router.get('/verification/:token', async (req, res, next) => {
 
     res.json({
       message: i18next.t('server:verification.emailVerified'),
-      email: result.email
+      email: result.email,
     });
   } catch (error) {
     next(error);
@@ -92,8 +92,8 @@ router.post('/password-reset/request', async (req, res, next) => {
       select: {
         id: true,
         email: true,
-        name: true
-      }
+        name: true,
+      },
     });
 
     // Always return success to prevent email enumeration
@@ -124,7 +124,7 @@ router.get('/password-reset/:token', async (req, res, next) => {
 
     res.json({
       valid: true,
-      email: result.email
+      email: result.email,
     });
   } catch (error) {
     next(error);
@@ -159,7 +159,7 @@ router.post('/password-reset/verify', async (req, res, next) => {
       // Update password
       await tx.user.update({
         where: { id: result.userId },
-        data: { password: hashedPassword }
+        data: { password: hashedPassword },
       });
 
       // Mark token as used
@@ -169,7 +169,7 @@ router.post('/password-reset/verify', async (req, res, next) => {
     // Get user details
     const user = await prisma.user.findUnique({
       where: { id: result.userId },
-      select: { name: true, email: true }
+      select: { name: true, email: true },
     });
 
     if (user) {

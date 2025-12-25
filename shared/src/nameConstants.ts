@@ -112,28 +112,28 @@ export const SPEAKER_NAMES = {
   },
   ar: {
     female: [
-      'فاطمة',      // Fatima
-      'نورة',       // Noura
-      'مريم',       // Maryam
-      'سارة',       // Sarah
-      'عائشة',      // Aisha
-      'ليلى',       // Layla
-      'زينب',       // Zainab
-      'هند',        // Hind
-      'لطيفة',      // Latifa
-      'منى',        // Muna
+      'فاطمة', // Fatima
+      'نورة', // Noura
+      'مريم', // Maryam
+      'سارة', // Sarah
+      'عائشة', // Aisha
+      'ليلى', // Layla
+      'زينب', // Zainab
+      'هند', // Hind
+      'لطيفة', // Latifa
+      'منى', // Muna
     ],
     male: [
-      'محمد',       // Mohammed
-      'أحمد',       // Ahmed
-      'عبدالله',    // Abdullah
-      'خالد',       // Khalid
-      'سالم',       // Salem
-      'عمر',        // Omar
-      'يوسف',       // Youssef
-      'حسن',        // Hassan
-      'علي',        // Ali
-      'راشد',       // Rashid
+      'محمد', // Mohammed
+      'أحمد', // Ahmed
+      'عبدالله', // Abdullah
+      'خالد', // Khalid
+      'سالم', // Salem
+      'عمر', // Omar
+      'يوسف', // Youssef
+      'حسن', // Hassan
+      'علي', // Ali
+      'راشد', // Rashid
     ],
   },
   en: {

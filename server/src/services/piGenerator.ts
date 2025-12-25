@@ -7,28 +7,28 @@ export type JLPTLevel = 'N5' | 'N4' | 'N3' | 'N2';
 // Grammar point types across all JLPT levels
 export type GrammarPointType =
   // N5
-  | 'ha_vs_ga'           // は vs が: Topic vs subject; basic identification & actor role
-  | 'ni_vs_de'           // に vs で: Location of existence vs location of action
-  | 'wo_vs_ga'           // を vs が: Object vs subject in trans/intrans alternations
-  | 'e_vs_ni'            // へ vs に: Destination nuance
-  | 'mada_vs_mou'        // まだ vs もう: Not yet vs already
+  | 'ha_vs_ga' // は vs が: Topic vs subject; basic identification & actor role
+  | 'ni_vs_de' // に vs で: Location of existence vs location of action
+  | 'wo_vs_ga' // を vs が: Object vs subject in trans/intrans alternations
+  | 'e_vs_ni' // へ vs に: Destination nuance
+  | 'mada_vs_mou' // まだ vs もう: Not yet vs already
   // N4
-  | 'kara_vs_node'       // 〜から vs 〜ので: Reason because vs explanatory because
-  | 'ni_vs_to'           // に vs と: Indirect object vs accompaniment vs quotation
-  | 'teiru_aspect'       // 〜ている: State vs ongoing action
-  | 'to_vs_tari'         // と vs たり: Complete list vs non-exhaustive list
-  | 'ha_vs_mo'           // は vs も: Contrastive topic vs inclusion
+  | 'kara_vs_node' // 〜から vs 〜ので: Reason because vs explanatory because
+  | 'ni_vs_to' // に vs と: Indirect object vs accompaniment vs quotation
+  | 'teiru_aspect' // 〜ている: State vs ongoing action
+  | 'to_vs_tari' // と vs たり: Complete list vs non-exhaustive list
+  | 'ha_vs_mo' // は vs も: Contrastive topic vs inclusion
   // N3
-  | 'passive_vs_active'  // Passive vs Active: Agent vs receiver role
-  | 'garu_vs_tai'        // がる vs たい: "Seems to feel" vs "I want"
+  | 'passive_vs_active' // Passive vs Active: Agent vs receiver role
+  | 'garu_vs_tai' // がる vs たい: "Seems to feel" vs "I want"
   | 'koto_ni_naru_vs_suru' // 〜ことになる vs 〜ことにする: External vs personal decision
-  | 'conditional_types'  // と vs ば vs たら: Conditional nuances
-  | 'zu_ni_vs_nai_de'    // ずに vs ないで: Without doing nuance
+  | 'conditional_types' // と vs ば vs たら: Conditional nuances
+  | 'zu_ni_vs_nai_de' // ずに vs ないで: Without doing nuance
   // N2
   | 'discourse_ha_vs_ga' // は vs が at discourse level: Contrastive vs new information
   | 'wake_vs_hazu_vs_chigainai' // 〜わけだ vs 〜はずだ vs 〜に違いない: Logical conclusion nuances
-  | 'causative_types'    // Causative vs Causative-passive: Who causes vs who suffers
-  | 'you_ni_vs_tame_ni'  // 〜ように vs 〜ために: Purpose vs goal/achievement
+  | 'causative_types' // Causative vs Causative-passive: Who causes vs who suffers
+  | 'you_ni_vs_tame_ni' // 〜ように vs 〜ために: Purpose vs goal/achievement
   | 'koto_da_vs_mono_da'; // 〜ことだ vs 〜ものだ: Advice vs reminiscence
 
 // Legacy task type (kept for backward compatibility with existing display logic)
@@ -69,29 +69,149 @@ export interface GrammarPointMetadata {
 
 export const GRAMMAR_POINTS: Record<GrammarPointType, GrammarPointMetadata> = {
   // N5
-  ha_vs_ga: { id: 'ha_vs_ga', name: 'は vs が', level: 'N5', category: 'particles', description: 'Topic vs subject; basic identification & actor role' },
-  ni_vs_de: { id: 'ni_vs_de', name: 'に vs で', level: 'N5', category: 'particles', description: 'Location of existence vs location of action' },
-  wo_vs_ga: { id: 'wo_vs_ga', name: 'を vs が', level: 'N5', category: 'particles', description: 'Object vs subject in transitive/intransitive alternations' },
-  e_vs_ni: { id: 'e_vs_ni', name: 'へ vs に', level: 'N5', category: 'particles', description: 'Destination nuance' },
-  mada_vs_mou: { id: 'mada_vs_mou', name: 'まだ vs もう', level: 'N5', category: 'aspect', description: 'Not yet vs already' },
+  ha_vs_ga: {
+    id: 'ha_vs_ga',
+    name: 'は vs が',
+    level: 'N5',
+    category: 'particles',
+    description: 'Topic vs subject; basic identification & actor role',
+  },
+  ni_vs_de: {
+    id: 'ni_vs_de',
+    name: 'に vs で',
+    level: 'N5',
+    category: 'particles',
+    description: 'Location of existence vs location of action',
+  },
+  wo_vs_ga: {
+    id: 'wo_vs_ga',
+    name: 'を vs が',
+    level: 'N5',
+    category: 'particles',
+    description: 'Object vs subject in transitive/intransitive alternations',
+  },
+  e_vs_ni: {
+    id: 'e_vs_ni',
+    name: 'へ vs に',
+    level: 'N5',
+    category: 'particles',
+    description: 'Destination nuance',
+  },
+  mada_vs_mou: {
+    id: 'mada_vs_mou',
+    name: 'まだ vs もう',
+    level: 'N5',
+    category: 'aspect',
+    description: 'Not yet vs already',
+  },
   // N4
-  kara_vs_node: { id: 'kara_vs_node', name: '〜から vs 〜ので', level: 'N4', category: 'conjunctions', description: 'Reason because vs explanatory because' },
-  ni_vs_to: { id: 'ni_vs_to', name: 'に vs と', level: 'N4', category: 'particles', description: 'Indirect object vs accompaniment vs quotation' },
-  teiru_aspect: { id: 'teiru_aspect', name: '〜ている', level: 'N4', category: 'aspect', description: 'State vs ongoing action' },
-  to_vs_tari: { id: 'to_vs_tari', name: 'と vs たり', level: 'N4', category: 'conjunctions', description: 'Complete list vs non-exhaustive list' },
-  ha_vs_mo: { id: 'ha_vs_mo', name: 'は vs も', level: 'N4', category: 'particles', description: 'Contrastive topic vs inclusion' },
+  kara_vs_node: {
+    id: 'kara_vs_node',
+    name: '〜から vs 〜ので',
+    level: 'N4',
+    category: 'conjunctions',
+    description: 'Reason because vs explanatory because',
+  },
+  ni_vs_to: {
+    id: 'ni_vs_to',
+    name: 'に vs と',
+    level: 'N4',
+    category: 'particles',
+    description: 'Indirect object vs accompaniment vs quotation',
+  },
+  teiru_aspect: {
+    id: 'teiru_aspect',
+    name: '〜ている',
+    level: 'N4',
+    category: 'aspect',
+    description: 'State vs ongoing action',
+  },
+  to_vs_tari: {
+    id: 'to_vs_tari',
+    name: 'と vs たり',
+    level: 'N4',
+    category: 'conjunctions',
+    description: 'Complete list vs non-exhaustive list',
+  },
+  ha_vs_mo: {
+    id: 'ha_vs_mo',
+    name: 'は vs も',
+    level: 'N4',
+    category: 'particles',
+    description: 'Contrastive topic vs inclusion',
+  },
   // N3
-  passive_vs_active: { id: 'passive_vs_active', name: 'Passive vs Active', level: 'N3', category: 'voice', description: 'Agent vs receiver role' },
-  garu_vs_tai: { id: 'garu_vs_tai', name: 'がる vs たい', level: 'N3', category: 'modality', description: 'Seems to feel vs I want' },
-  koto_ni_naru_vs_suru: { id: 'koto_ni_naru_vs_suru', name: '〜ことになる vs 〜ことにする', level: 'N3', category: 'modality', description: 'External decision vs personal decision' },
-  conditional_types: { id: 'conditional_types', name: 'と vs ば vs たら', level: 'N3', category: 'conditionals', description: 'Conditional nuances' },
-  zu_ni_vs_nai_de: { id: 'zu_ni_vs_nai_de', name: 'ずに vs ないで', level: 'N3', category: 'conjunctions', description: 'Without doing nuance' },
+  passive_vs_active: {
+    id: 'passive_vs_active',
+    name: 'Passive vs Active',
+    level: 'N3',
+    category: 'voice',
+    description: 'Agent vs receiver role',
+  },
+  garu_vs_tai: {
+    id: 'garu_vs_tai',
+    name: 'がる vs たい',
+    level: 'N3',
+    category: 'modality',
+    description: 'Seems to feel vs I want',
+  },
+  koto_ni_naru_vs_suru: {
+    id: 'koto_ni_naru_vs_suru',
+    name: '〜ことになる vs 〜ことにする',
+    level: 'N3',
+    category: 'modality',
+    description: 'External decision vs personal decision',
+  },
+  conditional_types: {
+    id: 'conditional_types',
+    name: 'と vs ば vs たら',
+    level: 'N3',
+    category: 'conditionals',
+    description: 'Conditional nuances',
+  },
+  zu_ni_vs_nai_de: {
+    id: 'zu_ni_vs_nai_de',
+    name: 'ずに vs ないで',
+    level: 'N3',
+    category: 'conjunctions',
+    description: 'Without doing nuance',
+  },
   // N2
-  discourse_ha_vs_ga: { id: 'discourse_ha_vs_ga', name: 'は vs が (discourse)', level: 'N2', category: 'particles', description: 'Contrastive vs new information at discourse level' },
-  wake_vs_hazu_vs_chigainai: { id: 'wake_vs_hazu_vs_chigainai', name: '〜わけだ vs 〜はずだ vs 〜に違いない', level: 'N2', category: 'modality', description: 'Logical conclusion nuances' },
-  causative_types: { id: 'causative_types', name: 'Causative vs Causative-passive', level: 'N2', category: 'voice', description: 'Who causes vs who suffers' },
-  you_ni_vs_tame_ni: { id: 'you_ni_vs_tame_ni', name: '〜ように vs 〜ために', level: 'N2', category: 'modality', description: 'Purpose vs goal/achievement' },
-  koto_da_vs_mono_da: { id: 'koto_da_vs_mono_da', name: '〜ことだ vs 〜ものだ', level: 'N2', category: 'modality', description: 'Advice vs reminiscence' },
+  discourse_ha_vs_ga: {
+    id: 'discourse_ha_vs_ga',
+    name: 'は vs が (discourse)',
+    level: 'N2',
+    category: 'particles',
+    description: 'Contrastive vs new information at discourse level',
+  },
+  wake_vs_hazu_vs_chigainai: {
+    id: 'wake_vs_hazu_vs_chigainai',
+    name: '〜わけだ vs 〜はずだ vs 〜に違いない',
+    level: 'N2',
+    category: 'modality',
+    description: 'Logical conclusion nuances',
+  },
+  causative_types: {
+    id: 'causative_types',
+    name: 'Causative vs Causative-passive',
+    level: 'N2',
+    category: 'voice',
+    description: 'Who causes vs who suffers',
+  },
+  you_ni_vs_tame_ni: {
+    id: 'you_ni_vs_tame_ni',
+    name: '〜ように vs 〜ために',
+    level: 'N2',
+    category: 'modality',
+    description: 'Purpose vs goal/achievement',
+  },
+  koto_da_vs_mono_da: {
+    id: 'koto_da_vs_mono_da',
+    name: '〜ことだ vs 〜ものだ',
+    level: 'N2',
+    category: 'modality',
+    description: 'Advice vs reminiscence',
+  },
 };
 
 /**
@@ -128,7 +248,11 @@ export async function generatePISession(
   }
 }
 
-function buildPIPrompt(jlptLevel: JLPTLevel, itemCount: number, grammarPoint: GrammarPointType): string {
+function buildPIPrompt(
+  jlptLevel: JLPTLevel,
+  itemCount: number,
+  grammarPoint: GrammarPointType
+): string {
   const vocabularyConstraints = getVocabularyConstraints(jlptLevel);
   const grammarGuidance = getGrammarPointGuidance(grammarPoint, jlptLevel);
   const grammarMetadata = GRAMMAR_POINTS[grammarPoint];
@@ -236,7 +360,7 @@ function getGrammarPointGuidance(grammarPoint: GrammarPointType, jlptLevel: JLPT
   switch (grammarPoint) {
     // === N5 GRAMMAR POINTS ===
     case 'ha_vs_ga':
-      return `${getTaskTypeGuidance(jlptLevel)  }\n\n${  getMinimalPairExamples(jlptLevel)}`;
+      return `${getTaskTypeGuidance(jlptLevel)}\n\n${getMinimalPairExamples(jlptLevel)}`;
 
     case 'ni_vs_de':
       return `CONTRAST TO TEST: に (location of existence) vs で (location of action)
@@ -541,7 +665,7 @@ REQUIRED STRUCTURE:
 
     default:
       // Fallback to basic は vs が guidance
-      return `${getTaskTypeGuidance(jlptLevel)  }\n\n${  getMinimalPairExamples(jlptLevel)}`;
+      return `${getTaskTypeGuidance(jlptLevel)}\n\n${getMinimalPairExamples(jlptLevel)}`;
   }
 }
 
@@ -715,8 +839,8 @@ B. Frame-setting vs Focused Subject:
  */
 export function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
   return Object.values(GRAMMAR_POINTS)
-    .filter(gp => gp.level === level)
-    .map(gp => gp.id);
+    .filter((gp) => gp.level === level)
+    .map((gp) => gp.id);
 }
 
 /**
@@ -729,7 +853,10 @@ export function getGrammarPointMetadata(grammarPoint: GrammarPointType): Grammar
 /**
  * Validate that a grammar point is appropriate for a JLPT level
  */
-export function isGrammarPointValidForLevel(grammarPoint: GrammarPointType, level: JLPTLevel): boolean {
+export function isGrammarPointValidForLevel(
+  grammarPoint: GrammarPointType,
+  level: JLPTLevel
+): boolean {
   const metadata = GRAMMAR_POINTS[grammarPoint];
   return metadata.level === level;
 }

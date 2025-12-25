@@ -11,7 +11,13 @@ interface AudioPlayerProps {
   onEnded?: () => void;
 }
 
-export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepeatModeChange, onEnded }: AudioPlayerProps) {
+export default function AudioPlayer({
+  src,
+  audioRef,
+  repeatMode = 'off',
+  onRepeatModeChange,
+  onEnded,
+}: AudioPlayerProps) {
   const { t } = useTranslation('common');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -21,10 +27,13 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
   const progressBarRef = useRef<HTMLDivElement>(null);
 
   // Combined ref callback that updates both our local ref and parent's ref
-  const combinedRef = useCallback((element: HTMLAudioElement | null) => {
-    audioElementRef.current = element;
-    audioRef(element);
-  }, [audioRef]);
+  const combinedRef = useCallback(
+    (element: HTMLAudioElement | null) => {
+      audioElementRef.current = element;
+      audioRef(element);
+    },
+    [audioRef]
+  );
 
   // Set up event listeners when audio element is available
   useEffect(() => {
@@ -128,10 +137,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
 
   return (
     <div className="flex items-center gap-3 w-full">
-      <audio
-        ref={combinedRef}
-        src={src}
-      />
+      <audio ref={combinedRef} src={src} />
 
       {/* Play/Pause Button */}
       <button
@@ -168,10 +174,7 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
         data-testid="audio-progress-bar"
       >
         {/* Progress Fill */}
-        <div
-          className="h-full bg-indigo rounded-full relative"
-          style={{ width: `${progress}%` }}
-        >
+        <div className="h-full bg-indigo rounded-full relative" style={{ width: `${progress}%` }}>
           {/* Playhead */}
           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-indigo rounded-full border-2 border-white shadow-md" />
         </div>
@@ -196,16 +199,40 @@ export default function AudioPlayer({ src, audioRef, repeatMode = 'off', onRepea
         >
           {repeatMode === 'one' ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              <text x="12" y="16" fontSize="8" fill="currentColor" textAnchor="middle" fontWeight="bold">1</text>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+              <text
+                x="12"
+                y="16"
+                fontSize="8"
+                fill="currentColor"
+                textAnchor="middle"
+                fontWeight="bold"
+              >
+                1
+              </text>
             </svg>
           ) : repeatMode === 'all' ? (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           ) : (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
             </svg>
           )}
         </button>

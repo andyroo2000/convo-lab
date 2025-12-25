@@ -5,12 +5,14 @@ Follow these steps to get ConvoLab running with Docker Compose.
 ## ☐ Step 1: Get Google Cloud Credentials
 
 ### 1.1 Get Gemini API Key
+
 1. Visit https://aistudio.google.com/app/apikey
 2. Sign in with your Google account
 3. Click "Create API Key"
 4. Copy the key
 
 ### 1.2 Create Google Cloud Service Account
+
 1. Go to https://console.cloud.google.com
 2. Select your project (or create a new one)
 3. Go to "IAM & Admin" > "Service Accounts"
@@ -24,6 +26,7 @@ Follow these steps to get ConvoLab running with Docker Compose.
 9. Save it as `server/gcloud-key.json`
 
 ### 1.3 Create Storage Bucket
+
 ```bash
 # Install Google Cloud SDK if not already installed
 # brew install google-cloud-sdk
@@ -44,11 +47,13 @@ gsutil iam ch allUsers:objectViewer gs://languageflow-storage-YOUR-PROJECT-ID
 ## ☐ Step 2: Configure Environment
 
 ### 2.1 Edit `.env` in project root
+
 ```bash
 nano .env
 ```
 
 Update these values:
+
 ```env
 GEMINI_API_KEY=YOUR_ACTUAL_API_KEY
 GOOGLE_CLOUD_PROJECT=your-project-id
@@ -56,6 +61,7 @@ GCS_BUCKET_NAME=languageflow-storage-your-project-id
 ```
 
 ### 2.2 Verify `server/gcloud-key.json` exists
+
 ```bash
 ls -la server/gcloud-key.json
 ```
@@ -65,6 +71,7 @@ Should show the JSON file. If not, go back to step 1.2.
 ## ☐ Step 3: Install Docker
 
 If you don't have Docker Desktop:
+
 ```bash
 # macOS
 brew install --cask docker
@@ -84,6 +91,7 @@ docker-compose up
 ```
 
 You should see:
+
 - ✅ postgres: healthy
 - ✅ redis: healthy
 - ✅ server: starting
@@ -110,6 +118,7 @@ Prisma Studio will open at http://localhost:5555 - you should see empty tables.
 ## ☐ Step 6: Access the Application
 
 Open your browser:
+
 - **Frontend**: http://localhost:5173
 - **Backend API**: http://localhost:3001/health
 - **Prisma Studio**: http://localhost:5555
@@ -132,6 +141,7 @@ If you see the Library page, everything is working!
 ## 🐛 Troubleshooting
 
 ### "Cannot connect to Docker daemon"
+
 ```bash
 # Make sure Docker Desktop is running
 open -a Docker
@@ -140,6 +150,7 @@ open -a Docker
 ```
 
 ### "Port 5432 already in use"
+
 ```bash
 # Stop local PostgreSQL
 brew services stop postgresql@15
@@ -148,12 +159,14 @@ brew services stop postgresql@15
 ```
 
 ### "Port 6379 already in use"
+
 ```bash
 # Stop local Redis
 brew services stop redis
 ```
 
 ### "server exited with code 1"
+
 ```bash
 # Check server logs
 docker-compose logs server
@@ -165,6 +178,7 @@ docker-compose logs server
 ```
 
 ### "Database connection failed"
+
 ```bash
 # Wait for postgres to be healthy
 docker-compose ps
@@ -177,6 +191,7 @@ docker-compose restart postgres
 ```
 
 ### Still having issues?
+
 ```bash
 # Stop everything
 docker-compose down

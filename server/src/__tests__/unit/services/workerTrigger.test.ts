@@ -8,12 +8,12 @@ const mockGetClient = vi.fn();
 const mockGetProjectId = vi.fn();
 
 vi.mock('google-auth-library', () => ({
-    GoogleAuth: class {
-      getClient = mockGetClient;
+  GoogleAuth: class {
+    getClient = mockGetClient;
 
-      getProjectId = mockGetProjectId;
-    }
-  }));
+    getProjectId = mockGetProjectId;
+  },
+}));
 
 describe('Worker Trigger Service - Unit Tests', () => {
   const originalEnv = process.env;
@@ -24,7 +24,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
     // Default mock implementations
     mockGetClient.mockResolvedValue({
-      request: mockRequest
+      request: mockRequest,
     });
     mockGetProjectId.mockResolvedValue('test-project');
     mockRequest.mockResolvedValue({ data: { status: 'success' } });
@@ -78,7 +78,9 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      expect(warnSpy).toHaveBeenCalledWith('⚠️  WORKER_JOB_NAME not set, cannot trigger worker job');
+      expect(warnSpy).toHaveBeenCalledWith(
+        '⚠️  WORKER_JOB_NAME not set, cannot trigger worker job'
+      );
       expect(mockGetClient).not.toHaveBeenCalled();
 
       warnSpy.mockRestore();
@@ -112,7 +114,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       expect(mockRequest).toHaveBeenCalledWith({
         url: 'https://us-central1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/test-project/jobs/test-worker-job:run',
-        method: 'POST'
+        method: 'POST',
       });
     });
 
@@ -123,7 +125,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       expect(mockRequest).toHaveBeenCalledWith({
         url: 'https://europe-west1-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/test-project/jobs/test-worker-job:run',
-        method: 'POST'
+        method: 'POST',
       });
     });
 
@@ -192,10 +194,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to trigger worker job:',
-        'Job not found'
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to trigger worker job:', 'Job not found');
 
       errorSpy.mockRestore();
     });
@@ -207,10 +206,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to trigger worker job:',
-        'Network timeout'
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to trigger worker job:', 'Network timeout');
 
       errorSpy.mockRestore();
     });
@@ -244,10 +240,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to trigger worker job:',
-        'Permission denied'
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to trigger worker job:', 'Permission denied');
 
       errorSpy.mockRestore();
     });
@@ -273,7 +266,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         expect.objectContaining({
           method: 'POST',
-          url: expect.stringContaining('us-central1')
+          url: expect.stringContaining('us-central1'),
         })
       );
     });
@@ -284,7 +277,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      const {url} = mockRequest.mock.calls[0][0];
+      const { url } = mockRequest.mock.calls[0][0];
       expect(url).toContain('worker-job-v2:run');
     });
   });

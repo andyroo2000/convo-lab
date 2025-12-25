@@ -32,7 +32,9 @@ interface PollySpeechMark {
 /**
  * Convert a stream to buffer
  */
-async function streamToBuffer(stream: Readable | ReadableStream<any> | Blob | undefined): Promise<Buffer> {
+async function streamToBuffer(
+  stream: Readable | ReadableStream<any> | Blob | undefined
+): Promise<Buffer> {
   if (!stream) {
     return Buffer.alloc(0);
   }
@@ -106,11 +108,7 @@ export class PollyTTSProvider {
   async synthesizeSpeechWithTimepoints(
     options: TTSBatchOptions
   ): Promise<SynthesizeWithTimepointsResult> {
-    const {
-      ssml,
-      voiceId,
-      speed = 1.0,
-    } = options;
+    const { ssml, voiceId, speed = 1.0 } = options;
 
     console.log(`[TTS POLLY] Synthesizing with timepoints: voice=${voiceId}, speed=${speed}`);
     console.log(`[TTS POLLY] SSML preview: ${ssml.substring(0, 200)}...`);
@@ -161,9 +159,9 @@ export class PollyTTSProvider {
       const marksText = marksBuffer.toString('utf-8');
       const speechMarks: PollySpeechMark[] = marksText
         .split('\n')
-        .filter(line => line.trim())
-        .map(line => JSON.parse(line))
-        .filter(mark => mark.type === 'ssml'); // Only SSML marks
+        .filter((line) => line.trim())
+        .map((line) => JSON.parse(line))
+        .filter((mark) => mark.type === 'ssml'); // Only SSML marks
 
       console.log(`[TTS POLLY] Got ${speechMarks.length} speech marks`);
 
@@ -171,14 +169,14 @@ export class PollyTTSProvider {
       if (speechMarks.length === 0) {
         throw new Error(
           'Polly Speech Marks API did not return any SSML marks. ' +
-          'Ensure SSML contains <mark> tags.'
+            'Ensure SSML contains <mark> tags.'
         );
       }
 
       // Convert to Google-compatible format
-      const timepoints = speechMarks.map(mark => ({
-        markName: mark.value,          // "text_0", "text_1", etc.
-        timeSeconds: mark.time / 1000,  // Convert ms to seconds
+      const timepoints = speechMarks.map((mark) => ({
+        markName: mark.value, // "text_0", "text_1", etc.
+        timeSeconds: mark.time / 1000, // Convert ms to seconds
       }));
 
       console.log(`[TTS POLLY] Converted ${timepoints.length} timepoints`);

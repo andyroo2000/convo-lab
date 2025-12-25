@@ -35,7 +35,7 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
   // Get user tier and role
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { tier: true, role: true }
+    select: { tier: true, role: true },
   });
 
   if (!user) {
@@ -50,7 +50,7 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
       limit: 0,
       remaining: 0,
       resetsAt: getNextWeekStart(),
-      unlimited: true
+      unlimited: true,
     };
   }
 
@@ -61,8 +61,8 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
   const count = await prisma.generationLog.count({
     where: {
       userId,
-      createdAt: { gte: weekStart }
-    }
+      createdAt: { gte: weekStart },
+    },
   });
 
   const remaining = limit - count;
@@ -73,7 +73,7 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
     used: count,
     limit,
     remaining: Math.max(0, remaining),
-    resetsAt
+    resetsAt,
   };
 }
 
@@ -87,7 +87,7 @@ export async function logGeneration(
   contentId?: string
 ): Promise<void> {
   await prisma.generationLog.create({
-    data: { userId, contentType, contentId }
+    data: { userId, contentType, contentId },
   });
 }
 
@@ -107,7 +107,7 @@ export async function checkCooldown(userId: string): Promise<{
 
     return {
       active: ttl > 0,
-      remainingSeconds: Math.max(0, ttl)
+      remainingSeconds: Math.max(0, ttl),
     };
   } finally {
     redis.disconnect();

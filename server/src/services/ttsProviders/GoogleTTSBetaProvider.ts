@@ -1,8 +1,8 @@
 import { v1beta1, protos } from '@google-cloud/text-to-speech';
 
 // v1beta1 TimepointType enum value for SSML marks
-const {TimepointType} = protos.google.cloud.texttospeech.v1beta1.SynthesizeSpeechRequest;
-const {SSML_MARK} = TimepointType;
+const { TimepointType } = protos.google.cloud.texttospeech.v1beta1.SynthesizeSpeechRequest;
+const { SSML_MARK } = TimepointType;
 
 /**
  * Result from synthesize with timepoints
@@ -54,13 +54,7 @@ export class GoogleTTSBetaProvider {
   async synthesizeSpeechWithTimepoints(
     options: TTSBatchOptions
   ): Promise<SynthesizeWithTimepointsResult> {
-    const {
-      ssml,
-      voiceId,
-      languageCode,
-      speed = 1.0,
-      pitch = 0,
-    } = options;
+    const { ssml, voiceId, languageCode, speed = 1.0, pitch = 0 } = options;
 
     // Convert Hz pitch to semitones (same as GoogleTTSProvider)
     const pitchSemitones = pitch / 3.0;
@@ -94,16 +88,18 @@ export class GoogleTTSBetaProvider {
       }
 
       // Extract timepoints from response
-      const timepoints = (response.timepoints || []).map((tp: { markName?: string | null; timeSeconds?: number | null }) => ({
-        markName: tp.markName || '',
-        timeSeconds: tp.timeSeconds || 0,
-      }));
+      const timepoints = (response.timepoints || []).map(
+        (tp: { markName?: string | null; timeSeconds?: number | null }) => ({
+          markName: tp.markName || '',
+          timeSeconds: tp.timeSeconds || 0,
+        })
+      );
 
       // Validate we got timepoints back
       if (timepoints.length === 0) {
         throw new Error(
           'v1beta1 API did not return timepoints. ' +
-          'Ensure SSML contains <mark> tags and enableTimePointing is set correctly.'
+            'Ensure SSML contains <mark> tags and enableTimePointing is set correctly.'
         );
       }
 

@@ -42,8 +42,14 @@ describe('useAudioPlayer', () => {
       result.current.audioRef(mockAudioElement as HTMLAudioElement);
     });
 
-    expect(mockAudioElement.addEventListener).toHaveBeenCalledWith('timeupdate', expect.any(Function));
-    expect(mockAudioElement.addEventListener).toHaveBeenCalledWith('loadedmetadata', expect.any(Function));
+    expect(mockAudioElement.addEventListener).toHaveBeenCalledWith(
+      'timeupdate',
+      expect.any(Function)
+    );
+    expect(mockAudioElement.addEventListener).toHaveBeenCalledWith(
+      'loadedmetadata',
+      expect.any(Function)
+    );
     expect(mockAudioElement.addEventListener).toHaveBeenCalledWith('play', expect.any(Function));
     expect(mockAudioElement.addEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
     expect(mockAudioElement.addEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
@@ -62,11 +68,23 @@ describe('useAudioPlayer', () => {
       result.current.audioRef(null);
     });
 
-    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith('timeupdate', expect.any(Function));
-    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith('loadedmetadata', expect.any(Function));
+    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith(
+      'timeupdate',
+      expect.any(Function)
+    );
+    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith(
+      'loadedmetadata',
+      expect.any(Function)
+    );
     expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith('play', expect.any(Function));
-    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith('pause', expect.any(Function));
-    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith('ended', expect.any(Function));
+    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith(
+      'pause',
+      expect.any(Function)
+    );
+    expect(mockAudioElement.removeEventListener).toHaveBeenCalledWith(
+      'ended',
+      expect.any(Function)
+    );
   });
 
   it('should call play on the audio element', () => {

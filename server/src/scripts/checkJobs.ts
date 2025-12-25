@@ -29,7 +29,10 @@ async function checkJobs() {
 
   if (stuckCourse) {
     console.log('Course status:', stuckCourse.status);
-    console.log('Has active job:', activeJobs.some(j => j.data.courseId === stuckCourse.id));
+    console.log(
+      'Has active job:',
+      activeJobs.some((j) => j.data.courseId === stuckCourse.id)
+    );
   }
 
   await prisma.$disconnect();

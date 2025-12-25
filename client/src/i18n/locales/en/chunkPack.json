@@ -15,7 +15,10 @@
     "n3": "Intermediate"
   },
   "themes": {
-    "daily_routine": { "name": "Daily Routine", "description": "Essential expressions for daily activities" },
+    "daily_routine": {
+      "name": "Daily Routine",
+      "description": "Essential expressions for daily activities"
+    },
     "greetings": { "name": "Greetings & Politeness", "description": "Common social expressions" },
     "shopping": { "name": "Shopping", "description": "Buying things and asking about products" },
     "family": { "name": "Family", "description": "Talking about family and relationships" },
@@ -29,10 +32,16 @@
     "plans": { "name": "Plans & Intentions", "description": "Future intentions and decisions" },
     "feelings": { "name": "Feelings & Emotions", "description": "Expressing emotional states" },
     "requests": { "name": "Requests & Permissions", "description": "Politely asking for things" },
-    "advice": { "name": "Advice & Suggestions", "description": "Giving and receiving recommendations" },
+    "advice": {
+      "name": "Advice & Suggestions",
+      "description": "Giving and receiving recommendations"
+    },
     "experiences": { "name": "Experiences", "description": "Talking about what you've done" },
     "work": { "name": "Work & Professional", "description": "Workplace language" },
-    "social_life": { "name": "Social Life", "description": "Social expectations and relationships" },
+    "social_life": {
+      "name": "Social Life",
+      "description": "Social expectations and relationships"
+    },
     "habits": { "name": "Habits & Routines", "description": "Describing regular behaviors" },
     "expectations": { "name": "Expectations", "description": "What should or will happen" },
     "comparisons": { "name": "Comparisons", "description": "Contrasting and comparing" },

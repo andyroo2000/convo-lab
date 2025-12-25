@@ -38,7 +38,9 @@ describe('ImpersonationBanner', () => {
   });
 
   it('should display Eye icon', () => {
-    const { container } = render(<ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />);
+    const { container } = render(
+      <ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />
+    );
 
     // Eye icon is from lucide-react
     const svg = container.querySelector('svg');
@@ -46,7 +48,9 @@ describe('ImpersonationBanner', () => {
   });
 
   it('should use amber background color', () => {
-    const { container } = render(<ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />);
+    const { container } = render(
+      <ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />
+    );
 
     const banner = container.querySelector('.bg-amber-500');
     expect(banner).toBeTruthy();

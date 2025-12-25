@@ -56,14 +56,14 @@ async function checkVoices() {
           const variant = match[1] || match[2];
           const isJapanese = speaker.voiceId.startsWith('ja-JP');
           if (isJapanese) {
-            const gender = (variant === 'A' || variant === 'B') ? 'female' : 'male';
+            const gender = variant === 'A' || variant === 'B' ? 'female' : 'male';
             console.log(`   Gender (from voice): ${gender} (Wavenet/Neural2 ${variant})`);
           }
         }
       });
 
       // Check if voices are the same
-      const voiceIds = episode.dialogue.speakers.map(s => s.voiceId);
+      const voiceIds = episode.dialogue.speakers.map((s) => s.voiceId);
       if (voiceIds.length > 1 && new Set(voiceIds).size === 1) {
         console.log('\n⚠️  WARNING: All speakers have THE SAME voice ID!');
       } else if (voiceIds.length > 1) {
@@ -74,12 +74,11 @@ async function checkVoices() {
     if (episode.dialogue?.sentences && episode.dialogue.sentences.length > 0) {
       console.log('\n📝 Sample sentences:');
       episode.dialogue.sentences.slice(0, 3).forEach((s, i) => {
-        const speaker = episode.dialogue?.speakers.find(sp => sp.id === s.speakerId);
+        const speaker = episode.dialogue?.speakers.find((sp) => sp.id === s.speakerId);
         console.log(`\n${i + 1}. "${s.text.substring(0, 50)}..."`);
         console.log(`   Speaker: ${speaker?.name || 'Unknown'} (${speaker?.voiceId || 'N/A'})`);
       });
     }
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

@@ -7,7 +7,7 @@ async function upgradeToPro() {
     data: {
       tier: 'pro',
       // We'll fill in Stripe IDs manually from Stripe dashboard if needed
-    }
+    },
   });
 
   console.log(`✅ Upgraded ${user.email} to Pro tier`);

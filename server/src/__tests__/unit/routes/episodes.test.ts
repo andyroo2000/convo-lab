@@ -113,8 +113,9 @@ describe('Episodes Route Logic', () => {
 
     it('should support pagination with limit and offset', () => {
       // Test pagination parsing logic
-      const parseLimit = (limitStr: string | undefined) => limitStr ? parseInt(limitStr, 10) : 50;
-      const parseOffset = (offsetStr: string | undefined) => offsetStr ? parseInt(offsetStr, 10) : 0;
+      const parseLimit = (limitStr: string | undefined) => (limitStr ? parseInt(limitStr, 10) : 50);
+      const parseOffset = (offsetStr: string | undefined) =>
+        offsetStr ? parseInt(offsetStr, 10) : 0;
 
       expect(parseLimit('25')).toBe(25);
       expect(parseLimit(undefined)).toBe(50);
@@ -140,7 +141,7 @@ describe('Episodes Route Logic', () => {
         select: expect.any(Object),
         orderBy: { updatedAt: 'desc' },
         take: 50, // Default
-        skip: 0,  // Default
+        skip: 0, // Default
       });
 
       expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
@@ -159,8 +160,8 @@ describe('Episodes Route Logic', () => {
         },
         select: expect.any(Object),
         orderBy: { updatedAt: 'desc' },
-        take: 20,  // Custom limit
-        skip: 40,  // Custom offset
+        take: 20, // Custom limit
+        skip: 40, // Custom offset
       });
 
       expect(mockPrisma.episode.findMany).toHaveBeenCalledWith(
@@ -233,7 +234,8 @@ describe('Episodes Route Logic', () => {
         skip: 20,
       });
 
-      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(1,
+      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(
+        1,
         expect.objectContaining({
           skip: 20,
         })
@@ -248,7 +250,8 @@ describe('Episodes Route Logic', () => {
         skip: 40,
       });
 
-      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(2,
+      expect(mockPrisma.episode.findMany).toHaveBeenNthCalledWith(
+        2,
         expect.objectContaining({
           skip: 40,
         })
@@ -371,12 +374,14 @@ describe('Episodes Route Logic', () => {
 
       expect(validateCreateEpisode({})).toBe('Missing required fields');
       expect(validateCreateEpisode({ title: 'Test' })).toBe('Missing required fields');
-      expect(validateCreateEpisode({
-        title: 'Test',
-        sourceText: 'Source',
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-      })).toBeNull();
+      expect(
+        validateCreateEpisode({
+          title: 'Test',
+          sourceText: 'Source',
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
+        })
+      ).toBeNull();
     });
 
     it('should create episode with correct default values', async () => {

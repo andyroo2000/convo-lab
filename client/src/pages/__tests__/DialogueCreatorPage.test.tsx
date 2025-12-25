@@ -10,7 +10,8 @@ vi.mock('../../components/dialogue/DialogueGenerator', () => ({
 }));
 
 describe('DialogueCreatorPage', () => {
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <DialogueCreatorPage />
       </BrowserRouter>
@@ -23,7 +24,9 @@ describe('DialogueCreatorPage', () => {
 
   it('should render page description', () => {
     renderPage();
-    expect(screen.getByText('Generate AI dialogues calibrated to your proficiency level')).toBeInTheDocument();
+    expect(
+      screen.getByText('Generate AI dialogues calibrated to your proficiency level')
+    ).toBeInTheDocument();
   });
 
   it('should render DialogueGenerator component', () => {

@@ -53,9 +53,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
         <div className="p-6">
           {user?.tier === 'free' ? (
             <>
-              <p className="text-dark-brown mb-6">
-                {t('upgradePrompt.limitReached')}
-              </p>
+              <p className="text-dark-brown mb-6">{t('upgradePrompt.limitReached')}</p>
 
               <div className="bg-periwinkle-light border-2 border-periwinkle rounded-lg p-6 mb-6">
                 <h3 className="text-xl font-bold text-dark-brown mb-4">
@@ -64,9 +62,7 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 <ul className="space-y-3 mb-4">
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">
-                      {t('upgradePrompt.proPlan.features.0')}
-                    </span>
+                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.0')}</span>
                   </li>
                   <li className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
@@ -83,49 +79,31 @@ export default function UpgradePrompt({ onClose, quotaUsed, quotaLimit }: Upgrad
                 </ul>
               </div>
 
-              <button
-                onClick={handleUpgrade}
-                className="btn-primary w-full mb-3"
-              >
+              <button onClick={handleUpgrade} className="btn-primary w-full mb-3">
                 {t('upgradePrompt.buttons.upgrade')}
               </button>
 
               {onClose && (
-                <button
-                  onClick={onClose}
-                  className="btn-secondary w-full"
-                >
+                <button onClick={onClose} className="btn-secondary w-full">
                   {t('upgradePrompt.buttons.maybeLater')}
                 </button>
               )}
             </>
           ) : (
             <>
-              <p className="text-dark-brown mb-6">
-                {t('upgradePrompt.resetInfo')}
-              </p>
+              <p className="text-dark-brown mb-6">{t('upgradePrompt.resetInfo')}</p>
 
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-                <p className="text-sm text-medium-brown mb-2">
-                  {t('upgradePrompt.proQuotaInfo')}
-                </p>
-                <p className="text-sm text-medium-brown">
-                  {t('upgradePrompt.quotaResetInfo')}
-                </p>
+                <p className="text-sm text-medium-brown mb-2">{t('upgradePrompt.proQuotaInfo')}</p>
+                <p className="text-sm text-medium-brown">{t('upgradePrompt.quotaResetInfo')}</p>
               </div>
 
-              <button
-                onClick={handleViewBilling}
-                className="btn-secondary w-full mb-3"
-              >
+              <button onClick={handleViewBilling} className="btn-secondary w-full mb-3">
                 {t('upgradePrompt.buttons.viewBilling')}
               </button>
 
               {onClose && (
-                <button
-                  onClick={onClose}
-                  className="btn-secondary w-full"
-                >
+                <button onClick={onClose} className="btn-secondary w-full">
                   {t('upgradePrompt.buttons.close')}
                 </button>
               )}

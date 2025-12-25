@@ -93,7 +93,6 @@ async function seedDemoUser() {
       console.log('⚠️  No admin user found. Demo user will see empty library.');
       console.log('   Create content with an admin account first.');
     }
-
   } catch (error) {
     console.error('❌ Failed to seed demo user:', error);
     process.exit(1);

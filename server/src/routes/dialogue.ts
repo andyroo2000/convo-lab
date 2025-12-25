@@ -14,39 +14,43 @@ const router = Router();
 router.use(requireAuth);
 
 // Generate dialogue for an episode (rate limited and blocked for demo users)
-router.post('/generate', requireEmailVerified, rateLimitGeneration, blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
+router.post(
+  '/generate',
+  requireEmailVerified,
+  rateLimitGeneration,
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
 
-    if (!episodeId || !speakers || !Array.isArray(speakers)) {
-      throw new AppError(i18next.t('server:content.missingFields'), 400);
+      if (!episodeId || !speakers || !Array.isArray(speakers)) {
+        throw new AppError(i18next.t('server:content.missingFields'), 400);
+      }
+
+      // Add job to queue
+      const job = await dialogueQueue.add('generate-dialogue', {
+        userId: req.userId,
+        episodeId,
+        speakers,
+        variationCount,
+        dialogueLength,
+      });
+
+      // Log the generation for quota tracking
+      await logGeneration(req.userId!, 'dialogue', episodeId);
+
+      // Trigger Cloud Run Job to process the queue
+      triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+      res.json({
+        jobId: job.id,
+        message: i18next.t('server:content.generationStarted', { type: 'Dialogue' }),
+      });
+    } catch (error) {
+      next(error);
     }
-
-    // Add job to queue
-    const job = await dialogueQueue.add('generate-dialogue', {
-      userId: req.userId,
-      episodeId,
-      speakers,
-      variationCount,
-      dialogueLength,
-    });
-
-    // Log the generation for quota tracking
-    await logGeneration(req.userId!, 'dialogue', episodeId);
-
-    // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
-
-    res.json({
-      jobId: job.id,
-      message: i18next.t('server:content.generationStarted', { type: 'Dialogue' }),
-    });
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 // Get job status
 router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
@@ -58,7 +62,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     }
 
     const state = await job.getState();
-    const {progress} = job;
+    const { progress } = job;
 
     res.json({
       id: job.id,

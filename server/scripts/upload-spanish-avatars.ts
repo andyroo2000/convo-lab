@@ -55,7 +55,6 @@ async function uploadLocalAvatar(filename: string): Promise<void> {
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       console.error(`✗ File not found: ${filename}`);
@@ -93,7 +92,7 @@ async function main() {
 
   if (missingFiles.length > 0) {
     console.log(`\n⚠️  Missing files (${missingFiles.length}):`);
-    missingFiles.forEach(f => console.log(`   - ${f}`));
+    missingFiles.forEach((f) => console.log(`   - ${f}`));
     console.log(`\nTo generate these files, use the prompts provided and save them to:`);
     console.log(`${AVATARS_DIR}/`);
   }

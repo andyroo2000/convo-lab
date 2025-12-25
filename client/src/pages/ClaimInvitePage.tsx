@@ -63,16 +63,15 @@ export default function ClaimInvitePage() {
         </div>
 
         <div className="card">
-          <h2 className="text-2xl font-bold text-dark-brown mb-2">
-            {t('claimInvite.title')}
-          </h2>
-          <p className="text-medium-brown mb-6">
-            {t('claimInvite.description')}
-          </p>
+          <h2 className="text-2xl font-bold text-dark-brown mb-2">{t('claimInvite.title')}</h2>
+          <p className="text-medium-brown mb-6">{t('claimInvite.description')}</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="inviteCode" className="block text-sm font-medium text-dark-brown mb-1">
+              <label
+                htmlFor="inviteCode"
+                className="block text-sm font-medium text-dark-brown mb-1"
+              >
                 {t('claimInvite.codeLabel')}
               </label>
               <input

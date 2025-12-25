@@ -23,13 +23,13 @@ class MockAudioElement {
 
   removeEventListener(event: string, callback: Function) {
     if (this.eventListeners[event]) {
-      this.eventListeners[event] = this.eventListeners[event].filter(cb => cb !== callback);
+      this.eventListeners[event] = this.eventListeners[event].filter((cb) => cb !== callback);
     }
   }
 
   dispatchEvent(event: string) {
     if (this.eventListeners[event]) {
-      this.eventListeners[event].forEach(cb => cb());
+      this.eventListeners[event].forEach((cb) => cb());
     }
   }
 
@@ -99,13 +99,8 @@ describe('AudioPlayer', () => {
     global.cancelAnimationFrame = originalCAF;
   });
 
-  const renderAudioPlayer = (props: Partial<React.ComponentProps<typeof AudioPlayer>> = {}) => render(
-      <AudioPlayer
-        src="https://example.com/audio.mp3"
-        audioRef={mockAudioRef}
-        {...props}
-      />
-    );
+  const renderAudioPlayer = (props: Partial<React.ComponentProps<typeof AudioPlayer>> = {}) =>
+    render(<AudioPlayer src="https://example.com/audio.mp3" audioRef={mockAudioRef} {...props} />);
 
   describe('rendering', () => {
     it('should render play/pause button', () => {

@@ -7,7 +7,7 @@ async function main() {
   const stuckEpisodes = await prisma.episode.findMany({
     where: {
       status: 'error',
-      title: 'Generating dialogue...'
+      title: 'Generating dialogue...',
     },
     include: {
       dialogue: {
@@ -15,12 +15,12 @@ async function main() {
           sentences: {
             take: 1,
             orderBy: {
-              order: 'asc'
-            }
-          }
-        }
-      }
-    }
+              order: 'asc',
+            },
+          },
+        },
+      },
+    },
   });
 
   console.log(`\nFound ${stuckEpisodes.length} stuck episodes\n`);
@@ -45,8 +45,8 @@ async function main() {
         where: { id: episode.id },
         data: {
           status: 'ready',
-          title: newTitle
-        }
+          title: newTitle,
+        },
       });
 
       console.log(`  ✅ Fixed\n`);
@@ -59,7 +59,7 @@ async function main() {
 }
 
 main()
-  .catch(e => {
+  .catch((e) => {
     console.error(e);
     process.exit(1);
   })

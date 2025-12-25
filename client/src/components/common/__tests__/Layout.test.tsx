@@ -38,11 +38,15 @@ vi.mock('../../onboarding/OnboardingModal', () => ({
 }));
 
 describe('Layout', () => {
-  const renderLayout = (initialPath: string) => render(
+  const renderLayout = (initialPath: string) =>
+    render(
       <BrowserRouter>
         <Routes>
           <Route path="*" element={<Layout />}>
-            <Route path="app/library" element={<div data-testid="library-page">Library Page</div>} />
+            <Route
+              path="app/library"
+              element={<div data-testid="library-page">Library Page</div>}
+            />
             <Route path="app/create" element={<div data-testid="create-page">Create Page</div>} />
             <Route path="app/other" element={<div data-testid="other-page">Other Page</div>} />
           </Route>
@@ -96,7 +100,9 @@ describe('Layout', () => {
       const { container } = renderLayout('/app/library');
 
       // Desktop navigation
-      const desktopLibraryLink = container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]');
+      const desktopLibraryLink = container.querySelector(
+        '.hidden.sm\\:ml-6 a[href="/app/library"]'
+      );
       expect(desktopLibraryLink).toHaveClass('bg-white', 'text-strawberry');
     });
 

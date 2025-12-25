@@ -182,23 +182,26 @@ describe('Dialogue Route Logic', () => {
 
   describe('Speaker Validation', () => {
     it('should validate speaker structure', () => {
-      const validateSpeaker = (speaker: any): boolean => (
-          typeof speaker.name === 'string' &&
-          typeof speaker.voiceId === 'string' &&
-          typeof speaker.proficiency === 'string' &&
-          typeof speaker.tone === 'string'
-        );
+      const validateSpeaker = (speaker: any): boolean =>
+        typeof speaker.name === 'string' &&
+        typeof speaker.voiceId === 'string' &&
+        typeof speaker.proficiency === 'string' &&
+        typeof speaker.tone === 'string';
 
-      expect(validateSpeaker({
-        name: '田中',
-        voiceId: 'ja-JP-Neural2-B',
-        proficiency: 'native',
-        tone: 'casual',
-      })).toBe(true);
+      expect(
+        validateSpeaker({
+          name: '田中',
+          voiceId: 'ja-JP-Neural2-B',
+          proficiency: 'native',
+          tone: 'casual',
+        })
+      ).toBe(true);
 
-      expect(validateSpeaker({
-        name: '田中',
-      })).toBe(false);
+      expect(
+        validateSpeaker({
+          name: '田中',
+        })
+      ).toBe(false);
     });
 
     it('should validate proficiency levels', () => {
@@ -221,18 +224,24 @@ describe('Dialogue Route Logic', () => {
     it('should recognize all valid job states', () => {
       const validStates = ['waiting', 'active', 'completed', 'failed', 'delayed', 'paused'];
 
-      validStates.forEach(state => {
-        expect(['waiting', 'active', 'completed', 'failed', 'delayed', 'paused'].includes(state)).toBe(true);
+      validStates.forEach((state) => {
+        expect(
+          ['waiting', 'active', 'completed', 'failed', 'delayed', 'paused'].includes(state)
+        ).toBe(true);
       });
     });
 
     it('should map job state to response status', () => {
       const mapStateToStatus = (state: string) => {
         switch (state) {
-          case 'completed': return 'success';
-          case 'failed': return 'error';
-          case 'active': return 'processing';
-          default: return 'pending';
+          case 'completed':
+            return 'success';
+          case 'failed':
+            return 'error';
+          case 'active':
+            return 'processing';
+          default:
+            return 'pending';
         }
       };
 

@@ -16,6 +16,7 @@ npm run backfill:metadata
 ```
 
 **Prerequisites:**
+
 - Furigana service running on port 8000 (for Japanese)
 - Pinyin service running on port 8001 (for Chinese)
 
@@ -24,11 +25,13 @@ npm run backfill:metadata
 ### Option 1: SSH into Cloud Run instance (Recommended)
 
 1. **Connect to Cloud Run instance:**
+
    ```bash
    gcloud run services proxy convo-lab --port=8080
    ```
 
 2. **In another terminal, exec into the container:**
+
    ```bash
    # Find the running container
    CONTAINER_ID=$(docker ps | grep convo-lab | awk '{print $1}')
@@ -46,6 +49,7 @@ npm run backfill:metadata
 ### Option 2: Deploy a one-off job
 
 1. **Create a custom Dockerfile for the migration:**
+
    ```dockerfile
    FROM node:20-alpine
    WORKDIR /app
@@ -66,6 +70,7 @@ npm run backfill:metadata
    ```
 
 2. **Deploy as Cloud Run Job:**
+
    ```bash
    gcloud run jobs create backfill-metadata \
      --image gcr.io/YOUR_PROJECT/backfill-metadata \
@@ -80,12 +85,14 @@ npm run backfill:metadata
 ⚠️ **Use with caution** - This connects your local machine to the production database.
 
 1. **Set production DATABASE_URL in your local .env:**
+
    ```bash
    # Get the production DATABASE_URL from Cloud Run
    gcloud run services describe convo-lab --format='value(spec.template.spec.containers[0].env[?name=="DATABASE_URL"].value)'
    ```
 
 2. **Make sure language services are accessible:**
+
    ```bash
    # Either:
    # - Run language services locally

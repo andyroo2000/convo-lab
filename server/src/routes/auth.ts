@@ -232,7 +232,16 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
 // Update user profile
 router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
   try {
-    const { displayName, avatarColor, avatarUrl, preferredStudyLanguage, preferredNativeLanguage, pinyinDisplayMode, proficiencyLevel, onboardingCompleted } = req.body;
+    const {
+      displayName,
+      avatarColor,
+      avatarUrl,
+      preferredStudyLanguage,
+      preferredNativeLanguage,
+      pinyinDisplayMode,
+      proficiencyLevel,
+      onboardingCompleted,
+    } = req.body;
 
     // Validate avatarColor if provided
     const validColors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
@@ -250,8 +259,11 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Validate that study and native languages are different
-    if (preferredStudyLanguage && preferredNativeLanguage &&
-        preferredStudyLanguage === preferredNativeLanguage) {
+    if (
+      preferredStudyLanguage &&
+      preferredNativeLanguage &&
+      preferredStudyLanguage === preferredNativeLanguage
+    ) {
       throw new AppError('Study language and native language must be different', 400);
     }
 
@@ -263,9 +275,23 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
 
     // Validate proficiency level if provided
     const validProficiencyLevels = [
-      'N5', 'N4', 'N3', 'N2', 'N1',        // JLPT (Japanese)
-      'HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6',  // HSK (Chinese)
-      'A1', 'A2', 'B1', 'B2', 'C1', 'C2',  // CEFR (Spanish/European languages)
+      'N5',
+      'N4',
+      'N3',
+      'N2',
+      'N1', // JLPT (Japanese)
+      'HSK1',
+      'HSK2',
+      'HSK3',
+      'HSK4',
+      'HSK5',
+      'HSK6', // HSK (Chinese)
+      'A1',
+      'A2',
+      'B1',
+      'B2',
+      'C1',
+      'C2', // CEFR (Spanish/European languages)
     ];
     if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
       throw new AppError('Invalid proficiency level', 400);
@@ -276,8 +302,10 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     if (displayName !== undefined) updateData.displayName = displayName;
     if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-    if (preferredStudyLanguage !== undefined) updateData.preferredStudyLanguage = preferredStudyLanguage;
-    if (preferredNativeLanguage !== undefined) updateData.preferredNativeLanguage = preferredNativeLanguage;
+    if (preferredStudyLanguage !== undefined)
+      updateData.preferredStudyLanguage = preferredStudyLanguage;
+    if (preferredNativeLanguage !== undefined)
+      updateData.preferredNativeLanguage = preferredNativeLanguage;
     if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;
     if (proficiencyLevel !== undefined) updateData.proficiencyLevel = proficiencyLevel;
     if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
@@ -380,7 +408,7 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.userId },
-      select: { role: true }
+      select: { role: true },
     });
 
     // Admins get unlimited
@@ -388,7 +416,7 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
       return res.json({
         unlimited: true,
         quota: null,
-        cooldown: { active: false, remainingSeconds: 0 }
+        cooldown: { active: false, remainingSeconds: 0 },
       });
     }
 
@@ -398,7 +426,7 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
     res.json({
       unlimited: false,
       quota: status,
-      cooldown
+      cooldown,
     });
   } catch (error) {
     next(error);
@@ -406,22 +434,26 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
 });
 
 // Google OAuth - Initiate
-router.get('/google',
+router.get(
+  '/google',
   passport.authenticate('google', {
     scope: ['profile', 'email'],
-    session: false
+    session: false,
   })
 );
 
 // Google OAuth - Callback
-router.get('/google/callback',
+router.get(
+  '/google/callback',
   passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
   async (req, res) => {
     try {
       const user = req.user as any;
 
       if (!user) {
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+        return res.redirect(
+          `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`
+        );
       }
 
       // If this is an existing user (not newly created via OAuth), skip invite code check
@@ -443,7 +475,7 @@ router.get('/google/callback',
 
       // For new OAuth users, check if they have an invite code
       const inviteCode = await prisma.inviteCode.findFirst({
-        where: { usedBy: user.id }
+        where: { usedBy: user.id },
       });
 
       // If new user doesn't have an invite code, redirect to claim invite page

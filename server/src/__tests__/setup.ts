@@ -12,10 +12,10 @@ i18next.init({
       server: {
         errors: {
           internal: 'Internal server error',
-          authRequired: 'Authentication required'
+          authRequired: 'Authentication required',
         },
         auth: {
-          userNotFound: 'User not found'
+          userNotFound: 'User not found',
         },
         verification: {
           emailAlreadyVerified: 'Email already verified',
@@ -23,21 +23,24 @@ i18next.init({
           tokenInvalid: 'Invalid or expired verification token',
           emailVerified: 'Email verified successfully',
           emailRequired: 'Email is required',
-          passwordResetSent: 'If an account exists with that email, a password reset link has been sent',
+          passwordResetSent:
+            'If an account exists with that email, a password reset link has been sent',
           tokenAndPasswordRequired: 'Token and new password are required',
           passwordTooShort: 'Password must be at least 8 characters',
           passwordResetTokenInvalid: 'Invalid or expired password reset token',
-          passwordResetSuccess: 'Password reset successfully'
+          passwordResetSuccess: 'Password reset successfully',
         },
         validation: {
           jlptLevel: 'Invalid JLPT level. Must be N5, N4, N3, or N2.',
           itemCount: 'Invalid item count. Must be 10 or 15.',
           grammarPoint: 'Invalid grammar point.',
-          grammarPointMismatch: 'Grammar point "{{point}}" is for {{expected}} level, but you selected {{actual}}.'
+          grammarPointMismatch:
+            'Grammar point "{{point}}" is for {{expected}} level, but you selected {{actual}}.',
         },
         rateLimit: {
           cooldown: 'Please wait {{seconds}} seconds before generating more content.',
-          quotaExceeded: "Weekly quota exceeded. You've used {{used}} of {{limit}} content generations this week."
+          quotaExceeded:
+            "Weekly quota exceeded. You've used {{used}} of {{limit}} content generations this week.",
         },
         billing: {
           priceIdRequired: 'Price ID is required',
@@ -49,14 +52,14 @@ i18next.init({
           noSignature: 'No signature provided',
           webhookSecretMissing: 'Webhook secret not configured',
           signatureVerificationFailed: 'Signature verification failed',
-          webhookProcessingFailed: 'Failed to process webhook'
-        }
-      }
-    }
+          webhookProcessingFailed: 'Failed to process webhook',
+        },
+      },
+    },
   },
   interpolation: {
-    escapeValue: false
-  }
+    escapeValue: false,
+  },
 });
 
 // Mock environment variables

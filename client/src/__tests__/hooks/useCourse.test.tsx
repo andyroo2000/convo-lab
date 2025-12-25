@@ -158,7 +158,7 @@ describe('useCourse', () => {
       });
 
       // Wait a bit and verify no status endpoint calls
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const statusCalls = mockFetch.mock.calls.filter((call: string[]) =>
         call[0].includes('/status')

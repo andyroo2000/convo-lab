@@ -76,9 +76,7 @@ test.describe('Email Verification Flow', () => {
 
       // Should show success message
       await expect(page.locator('text=/Email Verified!/i')).toBeVisible({ timeout: 5000 });
-      await expect(
-        page.locator('text=/successfully verified/i')
-      ).toBeVisible();
+      await expect(page.locator('text=/successfully verified/i')).toBeVisible();
 
       // Should redirect to library after 3 seconds
       await page.waitForURL(/\/library/, { timeout: 5000 });
@@ -92,9 +90,7 @@ test.describe('Email Verification Flow', () => {
 
       // Should show error message
       await expect(page.locator('text=/Verification Failed/i')).toBeVisible({ timeout: 5000 });
-      await expect(
-        page.locator('text=/Invalid or expired/i')
-      ).toBeVisible();
+      await expect(page.locator('text=/Invalid or expired/i')).toBeVisible();
     });
 
     test('should show error for expired verification token', async ({ page, request }) => {
@@ -155,9 +151,7 @@ test.describe('Email Verification Flow', () => {
       await resendButton.click();
 
       // Should show success message
-      await expect(
-        page.locator('text=/Verification email sent!/i')
-      ).toBeVisible({ timeout: 3000 });
+      await expect(page.locator('text=/Verification email sent!/i')).toBeVisible({ timeout: 3000 });
     });
 
     test('should show error if resending to already verified email', async ({ page, request }) => {
@@ -207,7 +201,10 @@ test.describe('Email Verification Flow', () => {
   });
 
   test.describe('Email Verification Reminder', () => {
-    test('should show verification reminder in settings for unverified users', async ({ page, request }) => {
+    test('should show verification reminder in settings for unverified users', async ({
+      page,
+      request,
+    }) => {
       // Create unverified user
       const testEmail = `test-reminder-${Date.now()}@example.com`;
       const signupResponse = await request.post(`${API_URL}/api/auth/signup`, {
@@ -270,7 +267,10 @@ test.describe('Email Verification Flow', () => {
   });
 
   test.describe('Edge Cases', () => {
-    test('should handle multiple verification attempts with same token', async ({ page, request }) => {
+    test('should handle multiple verification attempts with same token', async ({
+      page,
+      request,
+    }) => {
       // Create user
       const signupResponse = await request.post(`${API_URL}/api/auth/signup`, {
         data: {

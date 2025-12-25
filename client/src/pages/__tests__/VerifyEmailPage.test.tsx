@@ -56,7 +56,9 @@ describe('VerifyEmailPage', () => {
       renderWithRouter('/verify-email/test-token-123');
 
       expect(screen.getByText('Verifying your email...')).toBeInTheDocument();
-      expect(screen.getByText('Please wait while we verify your email address.')).toBeInTheDocument();
+      expect(
+        screen.getByText('Please wait while we verify your email address.')
+      ).toBeInTheDocument();
     });
 
     it('should successfully verify valid token', async () => {
@@ -74,10 +76,9 @@ describe('VerifyEmailPage', () => {
       expect(screen.getByText(/Your email has been successfully verified/)).toBeInTheDocument();
       expect(screen.getByText(/Redirecting to your library/)).toBeInTheDocument();
 
-      expect(global.fetch).toHaveBeenCalledWith(
-        `${API_URL}/api/verification/valid-token`,
-        { credentials: 'include' }
-      );
+      expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/verification/valid-token`, {
+        credentials: 'include',
+      });
 
       expect(mockRefreshUser).toHaveBeenCalled();
     });
@@ -189,13 +190,10 @@ describe('VerifyEmailPage', () => {
         expect(screen.getByText('Verification email sent! Check your inbox.')).toBeInTheDocument();
       });
 
-      expect(global.fetch).toHaveBeenLastCalledWith(
-        `${API_URL}/api/verification/send`,
-        {
-          method: 'POST',
-          credentials: 'include',
-        }
-      );
+      expect(global.fetch).toHaveBeenLastCalledWith(`${API_URL}/api/verification/send`, {
+        method: 'POST',
+        credentials: 'include',
+      });
     });
 
     it('should show sending state while resending email', async () => {
@@ -204,7 +202,7 @@ describe('VerifyEmailPage', () => {
           ok: false,
           json: async () => ({ error: 'Token has expired' }),
         })
-        .mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 1000)));
+        .mockImplementationOnce(() => new Promise((resolve) => setTimeout(resolve, 1000)));
 
       renderWithRouter('/verify-email/expired-token');
 

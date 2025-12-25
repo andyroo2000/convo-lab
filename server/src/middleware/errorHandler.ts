@@ -30,12 +30,12 @@ export function errorHandler(
         res.set({
           'X-RateLimit-Limit': err.metadata.quota.limit.toString(),
           'X-RateLimit-Remaining': err.metadata.quota.remaining.toString(),
-          'X-RateLimit-Reset': err.metadata.quota.resetsAt.toISOString()
+          'X-RateLimit-Reset': err.metadata.quota.resetsAt.toISOString(),
         });
       }
       if (err.metadata.cooldown) {
         res.set({
-          'Retry-After': err.metadata.cooldown.remainingSeconds.toString()
+          'Retry-After': err.metadata.cooldown.remainingSeconds.toString(),
         });
       }
     }
@@ -44,7 +44,7 @@ export function errorHandler(
       error: {
         message: err.message,
         statusCode: err.statusCode,
-        ...(err.metadata && err.metadata)
+        ...(err.metadata && err.metadata),
       },
     });
   }
@@ -54,9 +54,8 @@ export function errorHandler(
 
   return res.status(500).json({
     error: {
-      message: process.env.NODE_ENV === 'production'
-        ? i18next.t('server:errors.internal')
-        : err.message,
+      message:
+        process.env.NODE_ENV === 'production' ? i18next.t('server:errors.internal') : err.message,
       statusCode: 500,
     },
   });

@@ -10,6 +10,7 @@
 Our current architecture runs 6 BullMQ workers continuously in the main Cloud Run service, polling Redis every 5 seconds when idle. This results in approximately **100,000 Redis commands per day**, which significantly exceeds the Upstash free tier limit of 10,000 commands/day.
 
 ### Current Cost Impact
+
 - **Redis (Upstash):** ~$10-15/month on pay-as-you-go
 - **Cloud Run:** Workers consume CPU/memory even when no jobs are pending
 - **Scalability:** All 6 workers must scale together with the API service
@@ -36,6 +37,7 @@ Our current architecture runs 6 BullMQ workers continuously in the main Cloud Ru
 ```
 
 **Workers running 24/7:**
+
 1. `audioWorker` - Audio generation
 2. `dialogueWorker` - Dialogue generation
 3. `imageWorker` - Image generation
@@ -44,6 +46,7 @@ Our current architecture runs 6 BullMQ workers continuously in the main Cloud Ru
 6. `chunkPackWorker` - Chunk packs
 
 **Polling calculation:**
+
 - 6 workers × 12 polls/minute (every 5 sec) = 72 polls/minute
 - 72 × 60 × 24 = **103,680 polls/day**
 - Each poll = 1-2 Redis commands
@@ -112,6 +115,7 @@ Split the application into two independent Cloud Run services:
 ### Phase 1: Create Worker Service
 
 1. **Create new entry point:** `server/src/worker.ts`
+
    ```typescript
    import { audioWorker } from './jobs/audioQueue.js';
    import { dialogueWorker } from './jobs/dialogueQueue.js';
@@ -161,6 +165,7 @@ Split the application into two independent Cloud Run services:
 **Option A: HTTP Wake Endpoint**
 
 Add to `server/src/worker.ts`:
+
 ```typescript
 import express from 'express';
 
@@ -178,11 +183,12 @@ app.listen(PORT, () => {
 ```
 
 Modify API routes to call wake endpoint after adding jobs:
+
 ```typescript
 await jobQueue.add('generate-dialogue', data);
 
 // Wake worker service (non-blocking)
-fetch(process.env.WORKER_SERVICE_URL + '/wake').catch(err =>
+fetch(process.env.WORKER_SERVICE_URL + '/wake').catch((err) =>
   console.error('Failed to wake workers:', err)
 );
 ```
@@ -190,6 +196,7 @@ fetch(process.env.WORKER_SERVICE_URL + '/wake').catch(err =>
 **Option B: Cloud Scheduler**
 
 Create scheduler job:
+
 ```bash
 gcloud scheduler jobs create http check-jobs \
   --schedule="*/5 * * * *" \
@@ -207,6 +214,7 @@ gcloud scheduler jobs create http check-jobs \
 ## Benefits
 
 ### Cost Savings
+
 - **Redis:** 95%+ reduction (100K → <5K commands/day)
   - Workers only poll when actually running (1-2 hours/day instead of 24/7)
   - Could fit within free tier with scheduler-based wake
@@ -216,12 +224,14 @@ gcloud scheduler jobs create http check-jobs \
 - **Estimated monthly savings:** $10-15/month (Redis) + $5-10/month (Cloud Run) = **$15-25/month**
 
 ### Operational Benefits
+
 - **Independent scaling:** API and workers scale based on different needs
 - **Resource isolation:** Heavy jobs don't impact API responsiveness
 - **Better monitoring:** Separate logs/metrics for API vs workers
 - **Easier debugging:** Worker issues don't bring down API
 
 ### Development Benefits
+
 - **Same codebase:** No code duplication, just different entry points
 - **Easy to revert:** Can switch back to monolithic if needed
 - **Gradual migration:** Can run both simultaneously during transition
@@ -229,16 +239,19 @@ gcloud scheduler jobs create http check-jobs \
 ## Trade-offs
 
 ### Complexity
+
 - **+1 Cloud Run service** to manage
 - **Deploy coordination:** Need to deploy both services for some changes
 - **Configuration:** Additional environment variables for service URLs
 
 ### Job Latency
+
 - **Startup time:** Workers may take 10-30 seconds to start from zero
 - **Scheduler delay:** With scheduler-only wake, up to 5-minute delay
 - **Mitigation:** Use HTTP wake for immediate jobs, scheduler as backup
 
 ### Development Workflow
+
 - **Local testing:** Need to run both API and worker processes locally
 - **Docker Compose:** May need to update for two services
 
@@ -254,7 +267,9 @@ gcloud scheduler jobs create http check-jobs \
 6. **Monitor cost reduction**
 
 ### Rollback Plan
+
 If issues arise:
+
 1. Re-enable workers in API service
 2. Scale worker service to zero
 3. Investigate and fix
@@ -270,11 +285,13 @@ If issues arise:
 ## Cost-Benefit Analysis
 
 **Current Monthly Costs:**
+
 - Redis (Upstash): ~$15
 - Cloud Run (always-on workers): ~$10
 - **Total:** ~$25/month
 
 **Projected Monthly Costs:**
+
 - Redis (minimal polling): $0 (free tier)
 - Cloud Run (scale-to-zero workers): ~$3
 - Cloud Scheduler: $0.10
@@ -285,6 +302,7 @@ If issues arise:
 ## Alternative Considered
 
 **Single General-Purpose Worker:**
+
 - Consolidate 6 workers into 1 worker handling all job types
 - Reduces polling by 83% (6 workers → 1 worker)
 - **Pros:** Simpler to implement, no new service
@@ -294,6 +312,7 @@ If issues arise:
 ## Decision
 
 **Recommended:** Implement separate worker service when:
+
 - App structure stabilizes
 - Development velocity slows
 - Cost optimization becomes priority

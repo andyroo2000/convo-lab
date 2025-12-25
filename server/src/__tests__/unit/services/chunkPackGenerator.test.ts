@@ -13,10 +13,10 @@ const mockGetGenerativeModel = vi.hoisted(() =>
 );
 
 vi.mock('@google/generative-ai', () => ({
-    GoogleGenerativeAI: class {
-      getGenerativeModel = mockGetGenerativeModel;
-    },
-  }));
+  GoogleGenerativeAI: class {
+    getGenerativeModel = mockGetGenerativeModel;
+  },
+}));
 
 describe('chunkPackGenerator', () => {
   const mockChunkPackResponse: GeneratedChunkPack = {
@@ -57,8 +57,7 @@ describe('chunkPackGenerator', () => {
       {
         title: '朝[あさ]のルーティン',
         type: 'narrative',
-        storyText:
-          '毎朝[まいあさ]、6時[じ]に起[お]きています。コーヒーを飲[の]んでください。',
+        storyText: '毎朝[まいあさ]、6時[じ]に起[お]きています。コーヒーを飲[の]んでください。',
         english: 'Every morning, I wake up at 6 AM. Please drink coffee.',
         segments: [
           {
@@ -287,9 +286,36 @@ describe('chunkPackGenerator', () => {
   });
 
   describe('different themes', () => {
-    const n5Themes = ['daily_routine', 'greetings', 'shopping', 'family', 'school', 'food', 'weather', 'hobbies'];
-    const n4Themes = ['health', 'travel', 'opinions', 'plans', 'feelings', 'requests', 'advice', 'experiences'];
-    const n3Themes = ['work', 'social_life', 'habits', 'expectations', 'comparisons', 'reasoning', 'preferences', 'goals'];
+    const n5Themes = [
+      'daily_routine',
+      'greetings',
+      'shopping',
+      'family',
+      'school',
+      'food',
+      'weather',
+      'hobbies',
+    ];
+    const n4Themes = [
+      'health',
+      'travel',
+      'opinions',
+      'plans',
+      'feelings',
+      'requests',
+      'advice',
+      'experiences',
+    ];
+    const n3Themes = [
+      'work',
+      'social_life',
+      'habits',
+      'expectations',
+      'comparisons',
+      'reasoning',
+      'preferences',
+      'goals',
+    ];
 
     n5Themes.forEach((theme) => {
       it(`should include theme-specific content for N5 ${theme}`, async () => {

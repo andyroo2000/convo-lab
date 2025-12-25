@@ -14,11 +14,7 @@ vi.mock('react-router-dom', async () => {
 });
 
 function renderWithRouter(component: React.ReactElement) {
-  return render(
-    <BrowserRouter>
-      {component}
-    </BrowserRouter>
-  );
+  return render(<BrowserRouter>{component}</BrowserRouter>);
 }
 
 describe('UserMenu', () => {
@@ -47,12 +43,7 @@ describe('UserMenu', () => {
     });
 
     it('should display avatar image when avatarUrl is provided', () => {
-      renderWithRouter(
-        <UserMenu
-          {...defaultProps}
-          avatarUrl="https://example.com/avatar.png"
-        />
-      );
+      renderWithRouter(<UserMenu {...defaultProps} avatarUrl="https://example.com/avatar.png" />);
 
       const img = screen.getByAltText('John Doe');
       expect(img).toBeInTheDocument();
@@ -200,10 +191,8 @@ describe('UserMenu', () => {
     it('should accept different avatar colors', () => {
       const colors = ['indigo', 'teal', 'purple', 'pink', 'emerald', 'amber', 'rose', 'cyan'];
 
-      colors.forEach(color => {
-        const { unmount } = renderWithRouter(
-          <UserMenu {...defaultProps} avatarColor={color} />
-        );
+      colors.forEach((color) => {
+        const { unmount } = renderWithRouter(<UserMenu {...defaultProps} avatarColor={color} />);
 
         // Should render without errors
         expect(screen.getByTestId('user-menu-button')).toBeInTheDocument();

@@ -88,7 +88,10 @@ describe('Narrow Listening Route Logic', () => {
             id: 'v-1',
             variationType: 'PAST_CASUAL',
             segments: [
-              { targetText: '昨日カフェに行った。', englishTranslation: 'I went to a cafe yesterday.' },
+              {
+                targetText: '昨日カフェに行った。',
+                englishTranslation: 'I went to a cafe yesterday.',
+              },
             ],
             audioUrl: 'https://storage.example.com/audio.mp3',
           },
@@ -128,12 +131,16 @@ describe('Narrow Listening Route Logic', () => {
 
       expect(validateGeneratePack({})).toBe('topic is required');
       expect(validateGeneratePack({ topic: 'Test' })).toBe('targetLanguage is required');
-      expect(validateGeneratePack({ topic: 'Test', targetLanguage: 'ja' })).toBe('proficiencyLevel is required');
-      expect(validateGeneratePack({
-        topic: 'Test',
-        targetLanguage: 'ja',
-        proficiencyLevel: 'N4',
-      })).toBeNull();
+      expect(validateGeneratePack({ topic: 'Test', targetLanguage: 'ja' })).toBe(
+        'proficiencyLevel is required'
+      );
+      expect(
+        validateGeneratePack({
+          topic: 'Test',
+          targetLanguage: 'ja',
+          proficiencyLevel: 'N4',
+        })
+      ).toBeNull();
     });
 
     it('should queue narrow listening generation job', async () => {
@@ -240,11 +247,15 @@ describe('Narrow Listening Route Logic', () => {
     it('should map language to proficiency system', () => {
       const getProficiencySystem = (lang: string) => {
         switch (lang) {
-          case 'ja': return 'JLPT';
-          case 'zh': return 'HSK';
+          case 'ja':
+            return 'JLPT';
+          case 'zh':
+            return 'HSK';
           case 'es':
-          case 'fr': return 'CEFR';
-          default: return 'CEFR';
+          case 'fr':
+            return 'CEFR';
+          default:
+            return 'CEFR';
         }
       };
 

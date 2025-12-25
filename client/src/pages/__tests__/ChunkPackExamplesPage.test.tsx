@@ -85,7 +85,8 @@ describe('ChunkPackExamplesPage', () => {
     ],
   };
 
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <ChunkPackExamplesPage />
       </BrowserRouter>

@@ -8,11 +8,7 @@ import i18next from '../i18n/index.js';
  * Middleware to require email verification for content generation
  * Admins bypass this check
  */
-export async function requireEmailVerified(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) {
+export async function requireEmailVerified(req: AuthRequest, res: Response, next: NextFunction) {
   try {
     if (!req.userId) {
       throw new AppError(i18next.t('server:errors.authRequired'), 401);
@@ -34,10 +30,7 @@ export async function requireEmailVerified(
 
     // Check if email is verified
     if (!user.emailVerified) {
-      throw new AppError(
-        i18next.t('server:emailVerificationRequired'),
-        403
-      );
+      throw new AppError(i18next.t('server:emailVerificationRequired'), 403);
     }
 
     next();

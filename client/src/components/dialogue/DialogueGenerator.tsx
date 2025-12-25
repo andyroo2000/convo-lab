@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from "@languageflow/shared/src/constants-new";
-import { getRandomName } from "@languageflow/shared/src/nameConstants";
-import { getDialogueSpeakerVoices } from "@languageflow/shared/src/voiceSelection";
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '@languageflow/shared/src/constants-new';
+import { getRandomName } from '@languageflow/shared/src/nameConstants';
+import { getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -28,7 +28,15 @@ export default function DialogueGenerator() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isDemo = useIsDemo();
-  const { createEpisode, generateDialogue, generateAllSpeedsAudio, getEpisode, pollJobStatus, loading, error } = useEpisodes();
+  const {
+    createEpisode,
+    generateDialogue,
+    generateAllSpeedsAudio,
+    getEpisode,
+    pollJobStatus,
+    loading,
+    error,
+  } = useEpisodes();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
 
@@ -65,13 +73,15 @@ export default function DialogueGenerator() {
   // Re-initialize speakers when target language changes
   useEffect(() => {
     const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
-    setSpeakers(speakerVoices.map((speaker, index) => ({
-      name: getRandomName(targetLanguage, speaker.gender as 'male' | 'female'),
-      voiceId: speaker.voiceId,
-      proficiency: 'intermediate' as ProficiencyLevel,
-      tone,
-      color: DEFAULT_SPEAKER_COLORS[index],
-    })));
+    setSpeakers(
+      speakerVoices.map((speaker, index) => ({
+        name: getRandomName(targetLanguage, speaker.gender as 'male' | 'female'),
+        voiceId: speaker.voiceId,
+        proficiency: 'intermediate' as ProficiencyLevel,
+        tone,
+        color: DEFAULT_SPEAKER_COLORS[index],
+      }))
+    );
   }, [targetLanguage, tone]);
 
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
@@ -122,7 +132,15 @@ export default function DialogueGenerator() {
     }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
 
     return () => clearInterval(pollInterval);
-  }, [jobId, step, generatedEpisodeId, pollJobStatus, getEpisode, generateAllSpeedsAudio, navigate]);
+  }, [
+    jobId,
+    step,
+    generatedEpisodeId,
+    pollJobStatus,
+    getEpisode,
+    generateAllSpeedsAudio,
+    navigate,
+  ]);
 
   const handleGenerate = async () => {
     // Block demo users from generating content
@@ -145,9 +163,8 @@ export default function DialogueGenerator() {
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language
-      const proficiencyLevel = targetLanguage === 'ja' ? jlptLevel
-        : targetLanguage === 'zh' ? hskLevel
-        : cefrLevel;
+      const proficiencyLevel =
+        targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel;
 
       // Step 1: Create episode with placeholder title
       const episode = await createEpisode({
@@ -155,7 +172,7 @@ export default function DialogueGenerator() {
         sourceText,
         targetLanguage,
         nativeLanguage,
-        speakers: speakers.map(s => ({
+        speakers: speakers.map((s) => ({
           name: s.name,
           voiceId: s.voiceId,
           proficiency: proficiencyLevel,
@@ -170,7 +187,7 @@ export default function DialogueGenerator() {
       // Step 2: Generate dialogue
       const { jobId } = await generateDialogue(
         episode.id,
-        speakers.map(s => ({
+        speakers.map((s) => ({
           id: '', // Will be assigned by backend
           name: s.name,
           voiceId: s.voiceId,
@@ -186,7 +203,6 @@ export default function DialogueGenerator() {
       setJobId(jobId);
 
       // The useEffect hook will now poll for completion
-
     } catch (err) {
       console.error('Failed to generate dialogue:', err);
       setStep('input');
@@ -198,10 +214,10 @@ export default function DialogueGenerator() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
           <div className="loading-spinner w-16 h-16 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-8" />
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('dialogue:generating.title')}</h2>
-          <p className="text-xl text-gray-600">
-            {t('dialogue:generating.description')}
-          </p>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">
+            {t('dialogue:generating.title')}
+          </h2>
+          <p className="text-xl text-gray-600">{t('dialogue:generating.description')}</p>
           {error && (
             <div className="mt-8 p-6 bg-red-50 border-l-4 border-red-500 text-red-700 text-lg font-medium">
               {error}
@@ -217,14 +233,24 @@ export default function DialogueGenerator() {
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
           <div className="w-20 h-20 bg-periwinkle rounded-full flex items-center justify-center mx-auto mb-8">
-            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            <svg
+              className="w-10 h-10 text-white"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={3}
+                d="M5 13l4 4L19 7"
+              />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">{t('dialogue:complete.title')}</h2>
-          <p className="text-xl text-gray-600 mb-6">
-            {t('dialogue:complete.redirecting')}
-          </p>
+          <h2 className="text-3xl font-bold text-dark-brown mb-3">
+            {t('dialogue:complete.title')}
+          </h2>
+          <p className="text-xl text-gray-600 mb-6">{t('dialogue:complete.redirecting')}</p>
         </div>
       </div>
     );
@@ -248,9 +274,7 @@ export default function DialogueGenerator() {
               placeholder={t('dialogue:form.storyPlaceholder')}
               data-testid="dialogue-input-source-text"
             />
-            <p className="text-sm text-gray-500 mt-2">
-              {t('dialogue:form.storyHelper')}
-            </p>
+            <p className="text-sm text-gray-500 mt-2">{t('dialogue:form.storyHelper')}</p>
           </div>
 
           <div className="space-y-6">
@@ -356,16 +380,27 @@ export default function DialogueGenerator() {
       <div className="bg-periwinkle-light border-l-8 border-periwinkle p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">{t('dialogue:generate.ready')}</h3>
+            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">
+              {t('dialogue:generate.ready')}
+            </h3>
             <p className="text-sm sm:text-base text-gray-700 mb-4">
               {t('dialogue:generate.description', {
                 language: SUPPORTED_LANGUAGES[targetLanguage].name,
-                level: targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : 'beginner',
-                tone
+                level:
+                  targetLanguage === 'ja'
+                    ? jlptLevel
+                    : targetLanguage === 'zh'
+                      ? hskLevel
+                      : targetLanguage === 'es' || targetLanguage === 'fr'
+                        ? cefrLevel
+                        : 'beginner',
+                tone,
               })}
             </p>
             <ul className="text-sm sm:text-base text-gray-700 space-y-2">
-              <li className="font-medium">• {t('dialogue:generate.features.turns', { count: dialogueLength })}</li>
+              <li className="font-medium">
+                • {t('dialogue:generate.features.turns', { count: dialogueLength })}
+              </li>
               <li className="font-medium">• {t('dialogue:generate.features.variations')}</li>
               <li className="font-medium">• {t('dialogue:generate.features.translations')}</li>
               <li className="font-medium">• {t('dialogue:generate.features.complexity')}</li>
@@ -389,10 +424,7 @@ export default function DialogueGenerator() {
       </div>
 
       {/* Demo Restriction Modal */}
-      <DemoRestrictionModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
+      <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

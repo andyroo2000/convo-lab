@@ -13,6 +13,7 @@ npm install
 ```
 
 This will install:
+
 - `vitest` - Modern test runner built for Vite
 - `@testing-library/react` - React component testing utilities
 - `@testing-library/jest-dom` - Custom matchers for DOM assertions
@@ -36,6 +37,7 @@ npm run test:ui
 ### Test Structure
 
 Tests are located next to the components they test:
+
 - `client/src/components/common/__tests__/Layout.test.tsx`
 - `client/src/pages/__tests__/LibraryPage.test.tsx`
 - `client/src/pages/__tests__/CreatePage.test.tsx`
@@ -45,12 +47,14 @@ Tests are located next to the components they test:
 The current test suite covers:
 
 #### Layout Component
+
 - Full-width mobile layout for library and create pages
 - Standard padding for other pages
 - Navigation rendering and active states
 - Layout structure (nav, main, user menu, logo)
 
 #### LibraryPage Component
+
 - Mobile padding on filter buttons
 - Mobile padding on empty states
 - Full-width cards (no padding on card container)
@@ -59,6 +63,7 @@ The current test suite covers:
 - Responsive design classes
 
 #### CreatePage Component
+
 - Mobile padding on title section
 - Mobile padding on footer text
 - Full-width cards (no padding on card container)
@@ -94,6 +99,7 @@ When running Claude Code locally, you can grant permission when prompted, or upd
 ### Security Note
 
 Be cautious when enabling automated package installation:
+
 - Review package.json changes before allowing installation
 - Consider using `npm ci` instead of `npm install` for more reproducible builds
 - Monitor for unexpected dependency additions

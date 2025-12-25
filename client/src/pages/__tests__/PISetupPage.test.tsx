@@ -29,7 +29,8 @@ describe('PISetupPage', () => {
     global.fetch = vi.fn();
   });
 
-  const renderPage = () => render(
+  const renderPage = () =>
+    render(
       <BrowserRouter>
         <PISetupPage />
       </BrowserRouter>

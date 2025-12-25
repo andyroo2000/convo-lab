@@ -361,11 +361,7 @@ describe('Usage Tracker Service', () => {
       await setCooldown(userId);
 
       expect(mockCreateRedisConnection).toHaveBeenCalled();
-      expect(mockRedisClient.setex).toHaveBeenCalledWith(
-        'cooldown:generation:user-123',
-        30,
-        '1'
-      );
+      expect(mockRedisClient.setex).toHaveBeenCalledWith('cooldown:generation:user-123', 30, '1');
       expect(mockRedisClient.disconnect).toHaveBeenCalled();
     });
 
@@ -408,11 +404,7 @@ describe('Usage Tracker Service', () => {
 
       await setCooldown('user-456');
 
-      expect(mockRedisClient.setex).toHaveBeenCalledWith(
-        'cooldown:generation:user-456',
-        30,
-        '1'
-      );
+      expect(mockRedisClient.setex).toHaveBeenCalledWith('cooldown:generation:user-456', 30, '1');
     });
   });
 

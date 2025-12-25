@@ -56,7 +56,7 @@ export default function NarrowListeningCreatorPage() {
           targetLanguage,
           jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
           hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
-          cefrLevel: (targetLanguage === 'es' || targetLanguage === 'fr') ? cefrLevel : undefined,
+          cefrLevel: targetLanguage === 'es' || targetLanguage === 'fr' ? cefrLevel : undefined,
           versionCount,
           grammarFocus: grammarFocus.trim() || undefined,
         }),
@@ -118,7 +118,6 @@ export default function NarrowListeningCreatorPage() {
           setIsGenerating(false);
         }
       }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
-
     } catch (err) {
       console.error('Generation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to generate pack');
@@ -129,14 +128,18 @@ export default function NarrowListeningCreatorPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 pb-6 border-b-4 border-strawberry">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('narrowListening:pageTitle')}</h1>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">
+          {t('narrowListening:pageTitle')}
+        </h1>
         <p className="text-xl text-gray-600">{t('narrowListening:pageSubtitle')}</p>
       </div>
 
       {/* Main Content */}
       <div className="max-w-4xl mx-auto">
         <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('narrowListening:form.yourStory')}</h2>
+          <h2 className="text-2xl font-bold text-dark-brown mb-6">
+            {t('narrowListening:form.yourStory')}
+          </h2>
 
           {/* Form */}
           <div className="space-y-6">
@@ -153,16 +156,21 @@ export default function NarrowListeningCreatorPage() {
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-strawberry focus:outline-none text-base disabled:bg-gray-100 resize-none h-32"
                 rows={3}
               />
-              <p className="text-sm text-gray-500 mt-2">
-                {t('narrowListening:form.topicHelper')}
-              </p>
+              <p className="text-sm text-gray-500 mt-2">{t('narrowListening:form.topicHelper')}</p>
             </div>
 
             {/* Proficiency Level */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-base font-bold text-dark-brown mb-2">
-                  {t(targetLanguage === 'ja' ? 'narrowListening:form.targetJLPT' : targetLanguage === 'zh' ? 'narrowListening:form.targetHSK' : 'narrowListening:form.targetCEFR')} <span className="text-strawberry">*</span>
+                  {t(
+                    targetLanguage === 'ja'
+                      ? 'narrowListening:form.targetJLPT'
+                      : targetLanguage === 'zh'
+                        ? 'narrowListening:form.targetHSK'
+                        : 'narrowListening:form.targetCEFR'
+                  )}{' '}
+                  <span className="text-strawberry">*</span>
                 </label>
                 {targetLanguage === 'ja' ? (
                   <select
@@ -250,7 +258,9 @@ export default function NarrowListeningCreatorPage() {
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <p className="text-sm text-gray-700 mt-2 font-medium">{t('narrowListening:progress.complete', { progress: Math.round(progress) })}</p>
+                <p className="text-sm text-gray-700 mt-2 font-medium">
+                  {t('narrowListening:progress.complete', { progress: Math.round(progress) })}
+                </p>
               </div>
             )}
 
@@ -266,7 +276,12 @@ export default function NarrowListeningCreatorPage() {
                 <li className="font-medium">• {t('narrowListening:info.features.versions')}</li>
                 <li className="font-medium">• {t('narrowListening:info.features.slowAudio')}</li>
                 <li className="font-medium">• {t('narrowListening:info.features.normalAudio')}</li>
-                <li className="font-medium">• {t(`narrowListening:info.features.text${targetLanguage === 'ja' ? 'Ja' : targetLanguage === 'zh' ? 'Zh' : targetLanguage === 'es' ? 'Es' : 'Fr'}`)}</li>
+                <li className="font-medium">
+                  •{' '}
+                  {t(
+                    `narrowListening:info.features.text${targetLanguage === 'ja' ? 'Ja' : targetLanguage === 'zh' ? 'Zh' : targetLanguage === 'es' ? 'Es' : 'Fr'}`
+                  )}
+                </li>
               </ul>
             </div>
           </div>
@@ -302,10 +317,7 @@ export default function NarrowListeningCreatorPage() {
       </div>
 
       {/* Demo Restriction Modal */}
-      <DemoRestrictionModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
+      <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

@@ -49,7 +49,9 @@ describe('PricingPage', () => {
       renderWithRouter();
 
       expect(screen.getByRole('heading', { name: /Choose Your Plan/ })).toBeInTheDocument();
-      expect(screen.getByText(/Start creating immersive language learning content/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Start creating immersive language learning content/)
+      ).toBeInTheDocument();
     });
 
     it('should render both pricing tiers', () => {
@@ -106,7 +108,7 @@ describe('PricingPage', () => {
       renderWithRouter();
 
       const currentPlanButtons = screen.getAllByRole('button', { name: /Current Plan/ });
-      currentPlanButtons.forEach(button => {
+      currentPlanButtons.forEach((button) => {
         expect(button).toBeDisabled();
       });
     });
@@ -179,7 +181,7 @@ describe('PricingPage', () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
       (global.fetch as any).mockImplementationOnce(
-        () => new Promise(resolve => setTimeout(resolve, 1000))
+        () => new Promise((resolve) => setTimeout(resolve, 1000))
       );
 
       renderWithRouter();

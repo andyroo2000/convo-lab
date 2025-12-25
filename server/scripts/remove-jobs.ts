@@ -35,7 +35,6 @@ async function removeJobs() {
     }
 
     console.log('✅ Done!');
-
   } catch (error) {
     console.error('❌ Error:', error);
   } finally {

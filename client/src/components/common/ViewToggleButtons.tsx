@@ -25,7 +25,11 @@ export default function ViewToggleButtons({
             ? 'bg-periwinkle text-white shadow-md'
             : 'text-navy hover:bg-periwinkle-light'
         }`}
-        title={showReadings ? `Hide ${readingsLabel.toLowerCase()}` : `Show ${readingsLabel.toLowerCase()}`}
+        title={
+          showReadings
+            ? `Hide ${readingsLabel.toLowerCase()}`
+            : `Show ${readingsLabel.toLowerCase()}`
+        }
         data-testid="playback-toggle-readings"
       >
         {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
@@ -36,9 +40,7 @@ export default function ViewToggleButtons({
       <button
         onClick={onToggleTranslations}
         className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-bold transition-colors ${
-          showTranslations
-            ? 'bg-coral text-white shadow-md'
-            : 'text-navy hover:bg-coral-light'
+          showTranslations ? 'bg-coral text-white shadow-md' : 'text-navy hover:bg-coral-light'
         }`}
         title={showTranslations ? 'Hide English' : 'Show English'}
         data-testid="playback-toggle-translations"

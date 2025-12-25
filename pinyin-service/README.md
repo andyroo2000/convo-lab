@@ -21,6 +21,7 @@ The service will start on `http://localhost:8001`
 Convert Chinese text to pinyin in both formats.
 
 **Request:**
+
 ```json
 {
   "text": "你好"
@@ -28,6 +29,7 @@ Convert Chinese text to pinyin in both formats.
 ```
 
 **Response:**
+
 ```json
 {
   "characters": "你好",

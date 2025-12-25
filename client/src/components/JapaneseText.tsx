@@ -35,12 +35,17 @@ function stripFurigana(text: string): string {
   return text.replace(rubyPattern, '$1');
 }
 
-export default function JapaneseText({ text, metadata, className = '', showFurigana = true }: JapaneseTextProps) {
+export default function JapaneseText({
+  text,
+  metadata,
+  className = '',
+  showFurigana = true,
+}: JapaneseTextProps) {
   // If showFurigana is false, use plain kanji text without readings
   // Otherwise use furigana from metadata if available
   const displayText = showFurigana
-    ? (metadata?.japanese?.furigana || text)
-    : (metadata?.japanese?.kanji || stripFurigana(text));
+    ? metadata?.japanese?.furigana || text
+    : metadata?.japanese?.kanji || stripFurigana(text);
 
   const htmlContent = showFurigana ? renderRuby(displayText) : displayText;
 

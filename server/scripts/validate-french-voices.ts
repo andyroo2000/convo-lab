@@ -13,15 +13,19 @@ interface VoiceTestResult {
   engine?: string;
 }
 
-async function testPollyVoice(voiceId: string, languageCode: string): Promise<{ success: boolean; error?: string; audioSize?: number; engine?: string }> {
+async function testPollyVoice(
+  voiceId: string,
+  languageCode: string
+): Promise<{ success: boolean; error?: string; audioSize?: number; engine?: string }> {
   // Try neural first, then fall back to standard
   const engines = ['neural', 'standard'];
 
   for (const engine of engines) {
     try {
-      const testText = languageCode === 'fr-FR'
-        ? 'Bonjour, je suis un test de la voix française.'
-        : 'Hello, this is a voice test.';
+      const testText =
+        languageCode === 'fr-FR'
+          ? 'Bonjour, je suis un test de la voix française.'
+          : 'Hello, this is a voice test.';
 
       const command = new SynthesizeSpeechCommand({
         Text: testText,
@@ -92,7 +96,9 @@ async function validateFrenchVoices() {
 
     if (testResult.success) {
       const engineBadge = testResult.engine === 'neural' ? '🎯' : '⚠️ ';
-      console.log(`  ✅ SUCCESS - Generated ${(testResult.audioSize! / 1024).toFixed(1)}KB of audio [${engineBadge} ${testResult.engine?.toUpperCase()}]`);
+      console.log(
+        `  ✅ SUCCESS - Generated ${(testResult.audioSize! / 1024).toFixed(1)}KB of audio [${engineBadge} ${testResult.engine?.toUpperCase()}]`
+      );
       successCount++;
     } else {
       console.log(`  ❌ FAILED - ${testResult.error}`);
@@ -102,7 +108,7 @@ async function validateFrenchVoices() {
     console.log('');
 
     // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
   console.log('=====================================');
@@ -113,21 +119,23 @@ async function validateFrenchVoices() {
 
   if (failCount > 0) {
     console.log('❌ Failed Voices:');
-    results.filter(r => !r.success).forEach(r => {
-      console.log(`  - ${r.voiceId} (${r.gender}): ${r.error}`);
-    });
+    results
+      .filter((r) => !r.success)
+      .forEach((r) => {
+        console.log(`  - ${r.voiceId} (${r.gender}): ${r.error}`);
+      });
     console.log('');
   }
 
-  const neuralVoices = results.filter(r => r.success && r.engine === 'neural');
-  const standardVoices = results.filter(r => r.success && r.engine === 'standard');
+  const neuralVoices = results.filter((r) => r.success && r.engine === 'neural');
+  const standardVoices = results.filter((r) => r.success && r.engine === 'standard');
 
   console.log(`\n🎯 Neural Voices (support Speech Marks for batching): ${neuralVoices.length}`);
-  neuralVoices.forEach(v => console.log(`  - ${v.voiceId} (${v.gender})`));
+  neuralVoices.forEach((v) => console.log(`  - ${v.voiceId} (${v.gender})`));
 
   if (standardVoices.length > 0) {
     console.log(`\n⚠️  Standard Voices (NO Speech Marks support): ${standardVoices.length}`);
-    standardVoices.forEach(v => console.log(`  - ${v.voiceId} (${v.gender})`));
+    standardVoices.forEach((v) => console.log(`  - ${v.voiceId} (${v.gender})`));
   }
 
   if (successCount === results.length) {
@@ -138,7 +146,7 @@ async function validateFrenchVoices() {
   }
 }
 
-validateFrenchVoices().catch(error => {
+validateFrenchVoices().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

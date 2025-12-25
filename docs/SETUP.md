@@ -26,6 +26,7 @@ This will install dependencies for all workspaces (client, server, shared).
 ### 2. Google Cloud Setup
 
 #### Create Service Account
+
 1. Go to Google Cloud Console
 2. Create a new service account
 3. Grant permissions:
@@ -35,11 +36,13 @@ This will install dependencies for all workspaces (client, server, shared).
 4. Download JSON key and save as `server/gcloud-key.json`
 
 #### Get Gemini API Key
+
 1. Go to https://aistudio.google.com/app/apikey
 2. Create API key
 3. Save for `.env` file
 
 #### Create Storage Bucket
+
 ```bash
 gsutil mb -l us-central1 gs://languageflow-storage-[YOUR-PROJECT-ID]
 gsutil iam ch allUsers:objectViewer gs://languageflow-storage-[YOUR-PROJECT-ID]
@@ -48,6 +51,7 @@ gsutil iam ch allUsers:objectViewer gs://languageflow-storage-[YOUR-PROJECT-ID]
 ### 3. Database Setup
 
 #### Option A: Local PostgreSQL
+
 ```bash
 # Install PostgreSQL (macOS)
 brew install postgresql@15
@@ -58,11 +62,13 @@ createdb languageflow
 ```
 
 #### Option B: Docker PostgreSQL
+
 See Docker Compose setup below.
 
 ### 4. Redis Setup
 
 #### Option A: Local Redis
+
 ```bash
 # Install Redis (macOS)
 brew install redis
@@ -70,6 +76,7 @@ brew services start redis
 ```
 
 #### Option B: Docker Redis
+
 See Docker Compose setup below.
 
 ### 5. Environment Configuration
@@ -81,6 +88,7 @@ cp server/.env.example server/.env
 ```
 
 Edit `server/.env`:
+
 ```env
 NODE_ENV=development
 PORT=3001
@@ -125,21 +133,25 @@ npx prisma migrate dev --name init
 ### 7. Start Development Servers
 
 #### Terminal 1 - Server
+
 ```bash
 npm run dev:server
 ```
 
 #### Terminal 2 - Client
+
 ```bash
 npm run dev:client
 ```
 
 Or run both:
+
 ```bash
 npm run dev
 ```
 
 Access:
+
 - Client: http://localhost:5173
 - Server: http://localhost:3001
 - Server health: http://localhost:3001/health
@@ -149,6 +161,7 @@ Access:
 ### 1. Create .env file
 
 Create `.env` in project root:
+
 ```env
 GEMINI_API_KEY=your-key
 GOOGLE_CLOUD_PROJECT=your-project-id
@@ -166,6 +179,7 @@ docker-compose up
 ```
 
 This starts:
+
 - PostgreSQL (port 5432)
 - Redis (port 6379)
 - Server (port 3001)
@@ -253,6 +267,7 @@ gcloud run deploy languageflow-client \
 ## Troubleshooting
 
 ### Prisma Client Generation Issues
+
 ```bash
 cd server
 rm -rf node_modules/.prisma
@@ -260,6 +275,7 @@ npx prisma generate
 ```
 
 ### Port Already in Use
+
 ```bash
 # Find process using port 3001
 lsof -ti:3001 | xargs kill
@@ -269,11 +285,13 @@ lsof -ti:5173 | xargs kill
 ```
 
 ### Google Cloud Authentication
+
 ```bash
 export GOOGLE_APPLICATION_CREDENTIALS=/path/to/gcloud-key.json
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Check PostgreSQL is running
 pg_isready
@@ -285,6 +303,7 @@ psql -l | grep languageflow
 ## Next Steps
 
 See:
+
 - [Architecture Documentation](./ARCHITECTURE.md)
 - [API Documentation](./API.md)
 - [Development Guide](./DEVELOPMENT.md)

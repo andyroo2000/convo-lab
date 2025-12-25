@@ -33,13 +33,7 @@ describe('ConfirmModal', () => {
   });
 
   it('should render custom button labels', () => {
-    render(
-      <ConfirmModal
-        {...defaultProps}
-        cancelLabel="No, go back"
-        confirmLabel="Yes, delete"
-      />
-    );
+    render(<ConfirmModal {...defaultProps} cancelLabel="No, go back" confirmLabel="Yes, delete" />);
 
     expect(screen.getByText('No, go back')).toBeTruthy();
     expect(screen.getByText('Yes, delete')).toBeTruthy();

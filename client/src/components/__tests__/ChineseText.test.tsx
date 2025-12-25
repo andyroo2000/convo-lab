@@ -55,9 +55,7 @@ describe('ChineseText', () => {
     };
 
     it('should show pinyin by default', () => {
-      const { container } = render(
-        <ChineseText text="你好" metadata={metadataWithPinyin} />
-      );
+      const { container } = render(<ChineseText text="你好" metadata={metadataWithPinyin} />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -79,9 +77,7 @@ describe('ChineseText', () => {
     });
 
     it('should display plain text when pinyin is hidden', () => {
-      render(
-        <ChineseText text="你好" metadata={metadataWithPinyin} showPinyin={false} />
-      );
+      render(<ChineseText text="你好" metadata={metadataWithPinyin} showPinyin={false} />);
       expect(screen.getByText('你好')).toBeInTheDocument();
     });
   });
@@ -96,25 +92,19 @@ describe('ChineseText', () => {
     };
 
     it('should create ruby elements for each character', () => {
-      const { container } = render(
-        <ChineseText text="中国" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="中国" metadata={metadata} />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should include rt elements with pinyin', () => {
-      const { container } = render(
-        <ChineseText text="中国" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="中国" metadata={metadata} />);
       const rtElements = container.querySelectorAll('rt');
       expect(rtElements.length).toBe(2);
     });
 
     it('should use tone marks by default', () => {
-      const { container } = render(
-        <ChineseText text="中国" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="中国" metadata={metadata} />);
       expect(container.innerHTML).toContain('zhōng');
     });
   });
@@ -133,9 +123,7 @@ describe('ChineseText', () => {
     };
 
     it('should display tone numbers when user preference is toneNumbers', () => {
-      const { container } = render(
-        <ChineseText text="你好" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="你好" metadata={metadata} />);
       expect(container.innerHTML).toContain('ni3');
       expect(container.innerHTML).toContain('hao3');
     });
@@ -143,33 +131,25 @@ describe('ChineseText', () => {
 
   describe('bracket notation parsing', () => {
     it('should parse bracket notation for speaker names', () => {
-      const { container } = render(
-        <ChineseText text="张[zhāng]" />
-      );
+      const { container } = render(<ChineseText text="张[zhāng]" />);
       const rubyElement = container.querySelector('ruby');
       expect(rubyElement).toBeInTheDocument();
     });
 
     it('should create ruby for each bracketed character', () => {
-      const { container } = render(
-        <ChineseText text="张[zhāng]军[jūn]" />
-      );
+      const { container } = render(<ChineseText text="张[zhāng]军[jūn]" />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should strip bracket notation when pinyin is hidden', () => {
-      render(
-        <ChineseText text="张[zhāng]军[jūn]" showPinyin={false} />
-      );
+      render(<ChineseText text="张[zhāng]军[jūn]" showPinyin={false} />);
       expect(screen.getByText('张军')).toBeInTheDocument();
     });
 
     it('should convert tone marks to numbers in bracket notation when mode is toneNumbers', () => {
       mockUser.pinyinDisplayMode = 'toneNumbers';
-      const { container } = render(
-        <ChineseText text="张[zhāng]" />
-      );
+      const { container } = render(<ChineseText text="张[zhāng]" />);
       expect(container.innerHTML).toContain('zhang1');
     });
   });
@@ -180,37 +160,27 @@ describe('ChineseText', () => {
     });
 
     it('should convert first tone (ā → a1)', () => {
-      const { container } = render(
-        <ChineseText text="妈[mā]" />
-      );
+      const { container } = render(<ChineseText text="妈[mā]" />);
       expect(container.innerHTML).toContain('ma1');
     });
 
     it('should convert second tone (á → a2)', () => {
-      const { container } = render(
-        <ChineseText text="麻[má]" />
-      );
+      const { container } = render(<ChineseText text="麻[má]" />);
       expect(container.innerHTML).toContain('ma2');
     });
 
     it('should convert third tone (ǎ → a3)', () => {
-      const { container } = render(
-        <ChineseText text="马[mǎ]" />
-      );
+      const { container } = render(<ChineseText text="马[mǎ]" />);
       expect(container.innerHTML).toContain('ma3');
     });
 
     it('should convert fourth tone (à → a4)', () => {
-      const { container } = render(
-        <ChineseText text="骂[mà]" />
-      );
+      const { container } = render(<ChineseText text="骂[mà]" />);
       expect(container.innerHTML).toContain('ma4');
     });
 
     it('should handle ü with tones', () => {
-      const { container } = render(
-        <ChineseText text="女[nǚ]" />
-      );
+      const { container } = render(<ChineseText text="女[nǚ]" />);
       // ǚ should become ü3
       expect(container.innerHTML).toContain('ü3') || expect(container.innerHTML).toContain('ü');
     });
@@ -225,9 +195,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'zhong1 wen2',
         },
       };
-      const { container } = render(
-        <ChineseText text="other text" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="other text" metadata={metadata} />);
       expect(container.textContent).toContain('中');
       expect(container.textContent).toContain('文');
     });
@@ -257,9 +225,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'ni3 hao3',
         },
       };
-      const { container } = render(
-        <ChineseText text="你好！" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="你好！" metadata={metadata} />);
       // Punctuation should be preserved without ruby
       expect(container.textContent).toContain('！');
     });
@@ -279,9 +245,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'ge4',
         },
       };
-      const { container } = render(
-        <ChineseText text="123个" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="123个" metadata={metadata} />);
       expect(container.textContent).toContain('123');
     });
 
@@ -308,9 +272,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'zhong1 hua2 ren2 min2 gong4 he2 guo2',
         },
       };
-      const { container } = render(
-        <ChineseText text="中华人民共和国" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="中华人民共和国" metadata={metadata} />);
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(7); // 7 characters
     });
@@ -323,9 +285,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'ni3 hao3 shi4 jie4',
         },
       };
-      const { container } = render(
-        <ChineseText text="你好，世界！" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="你好，世界！" metadata={metadata} />);
       // Should have ruby for 你好世界 (4 characters)
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(4);
@@ -337,9 +297,7 @@ describe('ChineseText', () => {
 
   describe('className handling', () => {
     it('should merge multiple classNames', () => {
-      const { container } = render(
-        <ChineseText text="测试" className="class1 class2" />
-      );
+      const { container } = render(<ChineseText text="测试" className="class1 class2" />);
       const element = container.querySelector('.chinese-text');
       expect(element).toHaveClass('class1');
       expect(element).toHaveClass('class2');
@@ -361,9 +319,7 @@ describe('ChineseText', () => {
           pinyinToneNumbers: 'ni3 hao3',
         },
       };
-      const { container } = render(
-        <ChineseText text="你好" metadata={metadata} />
-      );
+      const { container } = render(<ChineseText text="你好" metadata={metadata} />);
       // Default is toneMarks
       expect(container.innerHTML).toContain('nǐ');
     });

@@ -4,7 +4,7 @@ import {
   sendPasswordResetEmail,
   verifyEmailToken,
   verifyPasswordResetToken,
-  markPasswordResetTokenUsed
+  markPasswordResetTokenUsed,
 } from '../../../services/emailService.js';
 import { mockPrisma } from '../../setup.js';
 
@@ -12,18 +12,18 @@ import { mockPrisma } from '../../setup.js';
 vi.mock('resend', () => ({
   Resend: vi.fn(() => ({
     emails: {
-      send: vi.fn().mockResolvedValue({ id: 'email-123' })
-    }
-  }))
+      send: vi.fn().mockResolvedValue({ id: 'email-123' }),
+    },
+  })),
 }));
 
 // Mock crypto for deterministic testing
 vi.mock('crypto', () => ({
   default: {
     randomBytes: vi.fn(() => ({
-      toString: vi.fn(() => 'a'.repeat(64)) // 32 bytes = 64 hex chars
-    }))
-  }
+      toString: vi.fn(() => 'a'.repeat(64)), // 32 bytes = 64 hex chars
+    })),
+  },
 }));
 
 describe('Email Service - Token Security Tests', () => {
@@ -93,7 +93,7 @@ describe('Email Service - Token Security Tests', () => {
         token: 'expired-token',
         userId: mockUserId,
         expiresAt: expiredTime,
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       mockPrisma.emailVerificationToken.delete.mockResolvedValue({});
@@ -104,7 +104,7 @@ describe('Email Service - Token Security Tests', () => {
 
       // Verify token was deleted
       expect(mockPrisma.emailVerificationToken.delete).toHaveBeenCalledWith({
-        where: { token: 'expired-token' }
+        where: { token: 'expired-token' },
       });
     });
 
@@ -116,7 +116,7 @@ describe('Email Service - Token Security Tests', () => {
         token: 'valid-token',
         userId: mockUserId,
         expiresAt: validTime,
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -126,7 +126,7 @@ describe('Email Service - Token Security Tests', () => {
 
       expect(result).toEqual({
         userId: mockUserId,
-        email: mockEmail
+        email: mockEmail,
       });
 
       // Verify user was marked as verified
@@ -134,13 +134,13 @@ describe('Email Service - Token Security Tests', () => {
         where: { id: mockUserId },
         data: {
           emailVerified: true,
-          emailVerifiedAt: expect.any(Date)
-        }
+          emailVerifiedAt: expect.any(Date),
+        },
       });
 
       // Verify token was deleted after use
       expect(mockPrisma.emailVerificationToken.delete).toHaveBeenCalledWith({
-        where: { token: 'valid-token' }
+        where: { token: 'valid-token' },
       });
     });
 
@@ -164,7 +164,7 @@ describe('Email Service - Token Security Tests', () => {
         userId: mockUserId,
         expiresAt: expiredTime,
         usedAt: null,
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       mockPrisma.passwordResetToken.delete.mockResolvedValue({});
@@ -175,7 +175,7 @@ describe('Email Service - Token Security Tests', () => {
 
       // Verify token was deleted
       expect(mockPrisma.passwordResetToken.delete).toHaveBeenCalledWith({
-        where: { token: 'expired-reset-token' }
+        where: { token: 'expired-reset-token' },
       });
     });
 
@@ -188,14 +188,14 @@ describe('Email Service - Token Security Tests', () => {
         userId: mockUserId,
         expiresAt: validTime,
         usedAt: null,
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       const result = await verifyPasswordResetToken('valid-reset-token');
 
       expect(result).toEqual({
         userId: mockUserId,
-        email: mockEmail
+        email: mockEmail,
       });
     });
   });
@@ -208,7 +208,7 @@ describe('Email Service - Token Security Tests', () => {
         token: 'one-time-token',
         userId: mockUserId,
         expiresAt: validTime,
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       mockPrisma.user.update.mockResolvedValue({});
@@ -220,7 +220,7 @@ describe('Email Service - Token Security Tests', () => {
 
       // Verify token deletion was called
       expect(mockPrisma.emailVerificationToken.delete).toHaveBeenCalledWith({
-        where: { token: 'one-time-token' }
+        where: { token: 'one-time-token' },
       });
 
       // Second use - token no longer exists
@@ -238,7 +238,7 @@ describe('Email Service - Token Security Tests', () => {
         userId: mockUserId,
         expiresAt: validTime,
         usedAt: usedTime, // Already used
-        user: { email: mockEmail }
+        user: { email: mockEmail },
       });
 
       const result = await verifyPasswordResetToken('used-reset-token');
@@ -253,7 +253,7 @@ describe('Email Service - Token Security Tests', () => {
 
       expect(mockPrisma.passwordResetToken.update).toHaveBeenCalledWith({
         where: { token: 'reset-token' },
-        data: { usedAt: expect.any(Date) }
+        data: { usedAt: expect.any(Date) },
       });
     });
   });
@@ -267,7 +267,7 @@ describe('Email Service - Token Security Tests', () => {
 
       // Verify old tokens were deleted first
       expect(mockPrisma.emailVerificationToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: mockUserId }
+        where: { userId: mockUserId },
       });
 
       // Then new token was created
@@ -287,7 +287,7 @@ describe('Email Service - Token Security Tests', () => {
 
       // Verify old tokens were deleted first
       expect(mockPrisma.passwordResetToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: mockUserId }
+        where: { userId: mockUserId },
       });
 
       // Then new token was created
@@ -344,7 +344,7 @@ describe('Email Service - Token Security Tests', () => {
       // Prisma's parameterized queries prevent SQL injection
       expect(mockPrisma.emailVerificationToken.findUnique).toHaveBeenCalledWith({
         where: { token: sqlInjection },
-        include: { user: true }
+        include: { user: true },
       });
     });
   });
@@ -356,11 +356,14 @@ describe('Email Service - Token Security Tests', () => {
 
       // Mock Resend to fail
       const resendMock = await import('resend');
-      vi.mocked(resendMock.Resend).mockImplementation(() => ({
-        emails: {
-          send: vi.fn().mockRejectedValue(new Error('Email service down'))
-        }
-      } as any));
+      vi.mocked(resendMock.Resend).mockImplementation(
+        () =>
+          ({
+            emails: {
+              send: vi.fn().mockRejectedValue(new Error('Email service down')),
+            },
+          }) as any
+      );
 
       // In dev mode, should not throw (logs to console instead)
       await expect(sendVerificationEmail(mockUserId, mockEmail, mockName)).resolves.not.toThrow();
@@ -386,7 +389,7 @@ describe('Email Service - Token Security Tests', () => {
       await Promise.all([
         sendVerificationEmail(mockUserId, mockEmail, mockName),
         sendVerificationEmail(mockUserId, mockEmail, mockName),
-        sendVerificationEmail(mockUserId, mockEmail, mockName)
+        sendVerificationEmail(mockUserId, mockEmail, mockName),
       ]);
 
       // Should delete old tokens each time

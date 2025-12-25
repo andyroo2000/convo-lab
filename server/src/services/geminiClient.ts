@@ -19,7 +19,7 @@ async function waitForRateLimit() {
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
     const waitTime = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
     console.log(`Rate limiting: waiting ${waitTime}ms before next Gemini call`);
-    await new Promise(resolve => setTimeout(resolve, waitTime));
+    await new Promise((resolve) => setTimeout(resolve, waitTime));
   }
 
   lastRequestTime = Date.now();
@@ -40,7 +40,7 @@ export async function generateWithGemini(
     });
 
     const result = await generativeModel.generateContent(prompt);
-    const {response} = result;
+    const { response } = result;
     return response.text();
   } catch (error) {
     console.error('Gemini API error:', error);
@@ -60,7 +60,7 @@ export async function generateWithGeminiChat(
     });
 
     const chat = generativeModel.startChat({
-      history: messages.map(msg => ({
+      history: messages.map((msg) => ({
         role: msg.role,
         parts: [{ text: msg.parts }],
       })),

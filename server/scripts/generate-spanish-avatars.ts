@@ -25,14 +25,20 @@ interface AvatarConfig {
 
 const SPANISH_PROMPTS = {
   female: {
-    casual: 'Professional headshot portrait of a friendly young Spanish woman in her 20s, warm smile, modern casual clothing, Mediterranean features, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
-    polite: 'Professional headshot portrait of a polite Spanish woman in her late 20s, gentle smile, business casual attire, Mediterranean features, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
-    formal: 'Professional headshot portrait of a professional Spanish woman in her 30s, subtle smile, formal business attire, Mediterranean features, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
+    casual:
+      'Professional headshot portrait of a friendly young Spanish woman in her 20s, warm smile, modern casual clothing, Mediterranean features, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
+    polite:
+      'Professional headshot portrait of a polite Spanish woman in her late 20s, gentle smile, business casual attire, Mediterranean features, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
+    formal:
+      'Professional headshot portrait of a professional Spanish woman in her 30s, subtle smile, formal business attire, Mediterranean features, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
   },
   male: {
-    casual: 'Professional headshot portrait of a friendly young Spanish man in his 20s, relaxed smile, casual modern clothing, Mediterranean features, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
-    polite: 'Professional headshot portrait of a courteous Spanish man in his late 20s, warm smile, smart casual attire, Mediterranean features, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
-    formal: 'Professional headshot portrait of a professional Spanish businessman in his 30s, composed expression, formal business suit, Mediterranean features, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
+    casual:
+      'Professional headshot portrait of a friendly young Spanish man in his 20s, relaxed smile, casual modern clothing, Mediterranean features, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
+    polite:
+      'Professional headshot portrait of a courteous Spanish man in his late 20s, warm smile, smart casual attire, Mediterranean features, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
+    formal:
+      'Professional headshot portrait of a professional Spanish businessman in his 30s, composed expression, formal business suit, Mediterranean features, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
   },
 };
 
@@ -51,22 +57,25 @@ async function generateAvatar(config: AvatarConfig): Promise<void> {
     const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/imagen-3.0-generate-001:predict`;
 
     const requestBody = {
-      instances: [{
-        prompt: prompt,
-      }],
+      instances: [
+        {
+          prompt: prompt,
+        },
+      ],
       parameters: {
         sampleCount: 1,
         aspectRatio: '1:1',
-        negativePrompt: 'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
+        negativePrompt:
+          'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
         personGeneration: 'allow_adult',
         safetySetting: 'block_some',
-      }
+      },
     };
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -125,7 +134,6 @@ async function generateAvatar(config: AvatarConfig): Promise<void> {
 
     const stats = await fs.stat(avatarPath);
     console.log(`✓ Generated ${outputFilename} (${(stats.size / 1024).toFixed(1)}KB)`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${outputFilename}:`, error.message);
     throw error;
@@ -149,7 +157,7 @@ async function main() {
     try {
       await generateAvatar(config);
       // Wait between requests to avoid rate limiting
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     } catch (error) {
       console.error(`Skipping ${config.outputFilename} due to error`);
     }

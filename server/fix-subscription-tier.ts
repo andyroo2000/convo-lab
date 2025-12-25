@@ -11,7 +11,7 @@ async function fixSubscriptionTier() {
 
   const user = await prisma.user.findUnique({
     where: { stripeCustomerId },
-    select: { id: true, email: true, tier: true }
+    select: { id: true, email: true, tier: true },
   });
 
   if (!user) {
@@ -32,8 +32,8 @@ async function fixSubscriptionTier() {
       stripePriceId: priceId,
       subscriptionStartedAt: new Date(1766524131 * 1000),
       subscriptionExpiresAt: new Date(1769202531 * 1000),
-      subscriptionCanceledAt: null
-    }
+      subscriptionCanceledAt: null,
+    },
   });
 
   console.log(`✅ User tier updated to pro!`);

@@ -136,7 +136,9 @@ describe('audioGenerator', () => {
 
     mockSynthesizeSpeech.mockResolvedValue(Buffer.from('audio data'));
     // Mock to return the same number of buffers as texts passed in
-    mockSynthesizeBatchedTexts.mockImplementation(async (texts: string[]) => texts.map((_, i) => Buffer.from(`audio ${i}`)));
+    mockSynthesizeBatchedTexts.mockImplementation(async (texts: string[]) =>
+      texts.map((_, i) => Buffer.from(`audio ${i}`))
+    );
     mockUploadAudio.mockResolvedValue('https://storage.example.com/audio.mp3');
     mockCreateSSMLWithPauses.mockImplementation((text) => `<speak>${text}</speak>`);
   });
@@ -145,19 +147,23 @@ describe('audioGenerator', () => {
     it('should throw error if dialogue not found', async () => {
       mockPrisma.dialogue.findUnique.mockResolvedValue(null);
 
-      await expect(generateEpisodeAudio({
-        episodeId: 'episode-123',
-        dialogueId: 'nonexistent',
-      })).rejects.toThrow('Dialogue not found');
+      await expect(
+        generateEpisodeAudio({
+          episodeId: 'episode-123',
+          dialogueId: 'nonexistent',
+        })
+      ).rejects.toThrow('Dialogue not found');
     });
 
     it('should throw error if episode not found', async () => {
       mockPrisma.episode.findUnique.mockResolvedValue(null);
 
-      await expect(generateEpisodeAudio({
-        episodeId: 'nonexistent',
-        dialogueId: 'dialogue-123',
-      })).rejects.toThrow('Episode not found');
+      await expect(
+        generateEpisodeAudio({
+          episodeId: 'nonexistent',
+          dialogueId: 'dialogue-123',
+        })
+      ).rejects.toThrow('Episode not found');
     });
 
     it('should synthesize speech for each sentence', async () => {
@@ -175,7 +181,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].voiceId).toBe('ja-JP-Neural2-B');
       expect(calls[1][0].voiceId).toBe('ja-JP-Neural2-C');
     });
@@ -187,7 +193,7 @@ describe('audioGenerator', () => {
         speed: 'slow',
       });
 
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(0.7);
     });
 
@@ -197,7 +203,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(0.85);
     });
 
@@ -208,7 +214,7 @@ describe('audioGenerator', () => {
         speed: 'normal',
       });
 
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].speed).toBe(1.0);
     });
 
@@ -220,7 +226,7 @@ describe('audioGenerator', () => {
       });
 
       expect(mockCreateSSMLWithPauses).toHaveBeenCalled();
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].useSSML).toBe(true);
     });
 
@@ -280,7 +286,7 @@ describe('audioGenerator', () => {
         dialogueId: 'dialogue-123',
       });
 
-      const {calls} = mockSynthesizeSpeech.mock;
+      const { calls } = mockSynthesizeSpeech.mock;
       expect(calls[0][0].languageCode).toBe('ja-JP');
     });
   });
@@ -290,7 +296,7 @@ describe('audioGenerator', () => {
       const result = await generateAllSpeedsAudio('episode-123', 'dialogue-123');
 
       expect(result).toHaveLength(3);
-      expect(result.map(r => r.speed)).toEqual(['slow', 'medium', 'normal']);
+      expect(result.map((r) => r.speed)).toEqual(['slow', 'medium', 'normal']);
     });
 
     it('should use batched TTS for each speed', async () => {
@@ -304,7 +310,7 @@ describe('audioGenerator', () => {
       await generateAllSpeedsAudio('episode-123', 'dialogue-123');
 
       const updateCalls = mockPrisma.episode.update.mock.calls;
-      const fields = updateCalls.flatMap(call => Object.keys(call[0].data));
+      const fields = updateCalls.flatMap((call) => Object.keys(call[0].data));
 
       expect(fields).toContain('audioUrl_0_7');
       expect(fields).toContain('audioUrl_0_85');
@@ -324,9 +330,24 @@ describe('audioGenerator', () => {
       mockPrisma.dialogue.findUnique.mockResolvedValue({
         ...mockDialogue,
         sentences: [
-          { id: 'sentence-1', text: 'Hello', order: 0, speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' } },
-          { id: 'sentence-2', text: 'World', order: 1, speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' } },
-          { id: 'sentence-3', text: 'Test', order: 2, speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' } },
+          {
+            id: 'sentence-1',
+            text: 'Hello',
+            order: 0,
+            speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' },
+          },
+          {
+            id: 'sentence-2',
+            text: 'World',
+            order: 1,
+            speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' },
+          },
+          {
+            id: 'sentence-3',
+            text: 'Test',
+            order: 2,
+            speaker: { id: 'speaker-1', voiceId: 'ja-JP-Neural2-B' },
+          },
         ],
       });
 
@@ -334,22 +355,24 @@ describe('audioGenerator', () => {
 
       // With 1 voice and 3 sentences, should have 1 batch call per speed = 3 total
       // (Not 3 sentences * 3 speeds = 9 individual calls)
-      const {calls} = mockSynthesizeBatchedTexts.mock;
+      const { calls } = mockSynthesizeBatchedTexts.mock;
       expect(calls.length).toBe(3); // 1 voice batch per speed * 3 speeds
     });
 
     it('should throw error if dialogue not found', async () => {
       mockPrisma.dialogue.findUnique.mockResolvedValue(null);
 
-      await expect(generateAllSpeedsAudio('episode-123', 'nonexistent'))
-        .rejects.toThrow('Dialogue not found');
+      await expect(generateAllSpeedsAudio('episode-123', 'nonexistent')).rejects.toThrow(
+        'Dialogue not found'
+      );
     });
 
     it('should throw error if episode not found', async () => {
       mockPrisma.episode.findUnique.mockResolvedValue(null);
 
-      await expect(generateAllSpeedsAudio('nonexistent', 'dialogue-123'))
-        .rejects.toThrow('Episode not found');
+      await expect(generateAllSpeedsAudio('nonexistent', 'dialogue-123')).rejects.toThrow(
+        'Episode not found'
+      );
     });
   });
 

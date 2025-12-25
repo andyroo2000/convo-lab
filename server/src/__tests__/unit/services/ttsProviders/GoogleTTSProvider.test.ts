@@ -192,7 +192,9 @@ describe('GoogleTTSProvider', () => {
           text: 'Hello',
           voiceId: 'en-US-Neural2-A',
         })
-      ).rejects.toThrow('Failed to synthesize speech with Google Cloud TTS: API rate limit exceeded');
+      ).rejects.toThrow(
+        'Failed to synthesize speech with Google Cloud TTS: API rate limit exceeded'
+      );
     });
 
     it('should handle non-Error exceptions', async () => {

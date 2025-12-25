@@ -13,13 +13,29 @@ type ItemCount = 10 | 15;
 // Grammar point types (must match backend)
 type GrammarPointType =
   // N5
-  | 'ha_vs_ga' | 'ni_vs_de' | 'wo_vs_ga' | 'e_vs_ni' | 'mada_vs_mou'
+  | 'ha_vs_ga'
+  | 'ni_vs_de'
+  | 'wo_vs_ga'
+  | 'e_vs_ni'
+  | 'mada_vs_mou'
   // N4
-  | 'kara_vs_node' | 'ni_vs_to' | 'teiru_aspect' | 'to_vs_tari' | 'ha_vs_mo'
+  | 'kara_vs_node'
+  | 'ni_vs_to'
+  | 'teiru_aspect'
+  | 'to_vs_tari'
+  | 'ha_vs_mo'
   // N3
-  | 'passive_vs_active' | 'garu_vs_tai' | 'koto_ni_naru_vs_suru' | 'conditional_types' | 'zu_ni_vs_nai_de'
+  | 'passive_vs_active'
+  | 'garu_vs_tai'
+  | 'koto_ni_naru_vs_suru'
+  | 'conditional_types'
+  | 'zu_ni_vs_nai_de'
   // N2
-  | 'discourse_ha_vs_ga' | 'wake_vs_hazu_vs_chigainai' | 'causative_types' | 'you_ni_vs_tame_ni' | 'koto_da_vs_mono_da';
+  | 'discourse_ha_vs_ga'
+  | 'wake_vs_hazu_vs_chigainai'
+  | 'causative_types'
+  | 'you_ni_vs_tame_ni'
+  | 'koto_da_vs_mono_da';
 
 interface GrammarPointMetadata {
   id: GrammarPointType;
@@ -32,36 +48,156 @@ interface GrammarPointMetadata {
 // Grammar points metadata (matches backend GRAMMAR_POINTS)
 const GRAMMAR_POINTS: Record<GrammarPointType, GrammarPointMetadata> = {
   // N5
-  ha_vs_ga: { id: 'ha_vs_ga', name: 'は vs が', level: 'N5', category: 'particles', description: 'Topic vs subject' },
-  ni_vs_de: { id: 'ni_vs_de', name: 'に vs で', level: 'N5', category: 'particles', description: 'Location types' },
-  wo_vs_ga: { id: 'wo_vs_ga', name: 'を vs が', level: 'N5', category: 'particles', description: 'Trans/intrans' },
-  e_vs_ni: { id: 'e_vs_ni', name: 'へ vs に', level: 'N5', category: 'particles', description: 'Direction' },
-  mada_vs_mou: { id: 'mada_vs_mou', name: 'まだ vs もう', level: 'N5', category: 'aspect', description: 'Completion' },
+  ha_vs_ga: {
+    id: 'ha_vs_ga',
+    name: 'は vs が',
+    level: 'N5',
+    category: 'particles',
+    description: 'Topic vs subject',
+  },
+  ni_vs_de: {
+    id: 'ni_vs_de',
+    name: 'に vs で',
+    level: 'N5',
+    category: 'particles',
+    description: 'Location types',
+  },
+  wo_vs_ga: {
+    id: 'wo_vs_ga',
+    name: 'を vs が',
+    level: 'N5',
+    category: 'particles',
+    description: 'Trans/intrans',
+  },
+  e_vs_ni: {
+    id: 'e_vs_ni',
+    name: 'へ vs に',
+    level: 'N5',
+    category: 'particles',
+    description: 'Direction',
+  },
+  mada_vs_mou: {
+    id: 'mada_vs_mou',
+    name: 'まだ vs もう',
+    level: 'N5',
+    category: 'aspect',
+    description: 'Completion',
+  },
   // N4
-  kara_vs_node: { id: 'kara_vs_node', name: '〜から vs 〜ので', level: 'N4', category: 'conjunctions', description: 'Reason types' },
-  ni_vs_to: { id: 'ni_vs_to', name: 'に vs と', level: 'N4', category: 'particles', description: 'Indirect object vs accompaniment' },
-  teiru_aspect: { id: 'teiru_aspect', name: '〜ている', level: 'N4', category: 'aspect', description: 'State vs action' },
-  to_vs_tari: { id: 'to_vs_tari', name: 'と vs たり', level: 'N4', category: 'conjunctions', description: 'List types' },
-  ha_vs_mo: { id: 'ha_vs_mo', name: 'は vs も', level: 'N4', category: 'particles', description: 'Contrast vs inclusion' },
+  kara_vs_node: {
+    id: 'kara_vs_node',
+    name: '〜から vs 〜ので',
+    level: 'N4',
+    category: 'conjunctions',
+    description: 'Reason types',
+  },
+  ni_vs_to: {
+    id: 'ni_vs_to',
+    name: 'に vs と',
+    level: 'N4',
+    category: 'particles',
+    description: 'Indirect object vs accompaniment',
+  },
+  teiru_aspect: {
+    id: 'teiru_aspect',
+    name: '〜ている',
+    level: 'N4',
+    category: 'aspect',
+    description: 'State vs action',
+  },
+  to_vs_tari: {
+    id: 'to_vs_tari',
+    name: 'と vs たり',
+    level: 'N4',
+    category: 'conjunctions',
+    description: 'List types',
+  },
+  ha_vs_mo: {
+    id: 'ha_vs_mo',
+    name: 'は vs も',
+    level: 'N4',
+    category: 'particles',
+    description: 'Contrast vs inclusion',
+  },
   // N3
-  passive_vs_active: { id: 'passive_vs_active', name: 'Passive vs Active', level: 'N3', category: 'voice', description: 'Receiver vs agent' },
-  garu_vs_tai: { id: 'garu_vs_tai', name: 'がる vs たい', level: 'N3', category: 'modality', description: 'Observed vs self desire' },
-  koto_ni_naru_vs_suru: { id: 'koto_ni_naru_vs_suru', name: '〜ことになる vs 〜ことにする', level: 'N3', category: 'modality', description: 'External vs personal decision' },
-  conditional_types: { id: 'conditional_types', name: 'と vs ば vs たら', level: 'N3', category: 'conditionals', description: 'Conditional nuances' },
-  zu_ni_vs_nai_de: { id: 'zu_ni_vs_nai_de', name: 'ずに vs ないで', level: 'N3', category: 'conjunctions', description: 'Without doing' },
+  passive_vs_active: {
+    id: 'passive_vs_active',
+    name: 'Passive vs Active',
+    level: 'N3',
+    category: 'voice',
+    description: 'Receiver vs agent',
+  },
+  garu_vs_tai: {
+    id: 'garu_vs_tai',
+    name: 'がる vs たい',
+    level: 'N3',
+    category: 'modality',
+    description: 'Observed vs self desire',
+  },
+  koto_ni_naru_vs_suru: {
+    id: 'koto_ni_naru_vs_suru',
+    name: '〜ことになる vs 〜ことにする',
+    level: 'N3',
+    category: 'modality',
+    description: 'External vs personal decision',
+  },
+  conditional_types: {
+    id: 'conditional_types',
+    name: 'と vs ば vs たら',
+    level: 'N3',
+    category: 'conditionals',
+    description: 'Conditional nuances',
+  },
+  zu_ni_vs_nai_de: {
+    id: 'zu_ni_vs_nai_de',
+    name: 'ずに vs ないで',
+    level: 'N3',
+    category: 'conjunctions',
+    description: 'Without doing',
+  },
   // N2
-  discourse_ha_vs_ga: { id: 'discourse_ha_vs_ga', name: 'は vs が (discourse)', level: 'N2', category: 'particles', description: 'Discourse-level contrast' },
-  wake_vs_hazu_vs_chigainai: { id: 'wake_vs_hazu_vs_chigainai', name: '〜わけだ vs 〜はずだ vs 〜に違いない', level: 'N2', category: 'modality', description: 'Conclusion types' },
-  causative_types: { id: 'causative_types', name: 'Causative vs Causative-passive', level: 'N2', category: 'voice', description: 'Cause vs suffer' },
-  you_ni_vs_tame_ni: { id: 'you_ni_vs_tame_ni', name: '〜ように vs 〜ために', level: 'N2', category: 'modality', description: 'Purpose types' },
-  koto_da_vs_mono_da: { id: 'koto_da_vs_mono_da', name: '〜ことだ vs 〜ものだ', level: 'N2', category: 'modality', description: 'Advice vs reminiscence' },
+  discourse_ha_vs_ga: {
+    id: 'discourse_ha_vs_ga',
+    name: 'は vs が (discourse)',
+    level: 'N2',
+    category: 'particles',
+    description: 'Discourse-level contrast',
+  },
+  wake_vs_hazu_vs_chigainai: {
+    id: 'wake_vs_hazu_vs_chigainai',
+    name: '〜わけだ vs 〜はずだ vs 〜に違いない',
+    level: 'N2',
+    category: 'modality',
+    description: 'Conclusion types',
+  },
+  causative_types: {
+    id: 'causative_types',
+    name: 'Causative vs Causative-passive',
+    level: 'N2',
+    category: 'voice',
+    description: 'Cause vs suffer',
+  },
+  you_ni_vs_tame_ni: {
+    id: 'you_ni_vs_tame_ni',
+    name: '〜ように vs 〜ために',
+    level: 'N2',
+    category: 'modality',
+    description: 'Purpose types',
+  },
+  koto_da_vs_mono_da: {
+    id: 'koto_da_vs_mono_da',
+    name: '〜ことだ vs 〜ものだ',
+    level: 'N2',
+    category: 'modality',
+    description: 'Advice vs reminiscence',
+  },
 };
 
 // Get grammar points for a specific level
 function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
   return Object.values(GRAMMAR_POINTS)
-    .filter(gp => gp.level === level)
-    .map(gp => gp.id);
+    .filter((gp) => gp.level === level)
+    .map((gp) => gp.id);
 }
 
 export default function PISetupPage() {
@@ -133,7 +269,9 @@ export default function PISetupPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8 pb-6 border-b-4 border-keylime">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('processingInstruction:pageTitle')}</h1>
+        <h1 className="text-5xl font-bold text-dark-brown mb-3">
+          {t('processingInstruction:pageTitle')}
+        </h1>
         <p className="text-xl text-gray-600">{t('processingInstruction:pageSubtitle')}</p>
       </div>
 
@@ -142,7 +280,9 @@ export default function PISetupPage() {
         <div className="bg-white border-l-8 border-keylime p-8 shadow-sm">
           {/* Description */}
           <div className="bg-keylime-light border-l-4 border-keylime p-6 mb-8">
-            <h2 className="text-xl font-bold text-dark-brown mb-3">{t('processingInstruction:what.title')}</h2>
+            <h2 className="text-xl font-bold text-dark-brown mb-3">
+              {t('processingInstruction:what.title')}
+            </h2>
             <p className="text-lg text-gray-700 leading-relaxed">
               {t('processingInstruction:what.description')}
             </p>
@@ -194,7 +334,11 @@ export default function PISetupPage() {
                       }`}
                     >
                       <div className="font-bold text-base sm:text-lg">{gp.name}</div>
-                      <div className={`text-xs sm:text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}>{t(`processingInstruction:grammarPoints.${gpId}`)}</div>
+                      <div
+                        className={`text-xs sm:text-sm mt-1 ${grammarPoint === gpId ? 'text-white opacity-90' : 'text-gray-600'}`}
+                      >
+                        {t(`processingInstruction:grammarPoints.${gpId}`)}
+                      </div>
                     </button>
                   );
                 })}
@@ -257,18 +401,13 @@ export default function PISetupPage() {
 
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
-            <p>
-              {t('processingInstruction:tip')}
-            </p>
+            <p>{t('processingInstruction:tip')}</p>
           </div>
         </div>
       </div>
 
       {/* Demo Restriction Modal */}
-      <DemoRestrictionModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
+      <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

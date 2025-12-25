@@ -87,7 +87,7 @@ async function processChunkPackGeneration(job: any) {
       const exampleData = generated.examples[i];
 
       // Find the chunk this example belongs to
-      const chunk = chunks.find(c => c.form === exampleData.chunkForm);
+      const chunk = chunks.find((c) => c.form === exampleData.chunkForm);
       if (!chunk) {
         console.warn(`Could not find chunk for example: ${exampleData.chunkForm}`);
         continue;

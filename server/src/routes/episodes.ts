@@ -27,8 +27,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
         where: {
           userId: queryUserId,
           dialogue: {
-            isNot: null
-          }
+            isNot: null,
+          },
         },
         select: {
           id: true,
@@ -43,10 +43,10 @@ router.get('/', async (req: AuthRequest, res, next) => {
               speakers: {
                 select: {
                   proficiency: true,
-                }
-              }
-            }
-          }
+                },
+              },
+            },
+          },
         },
         orderBy: { updatedAt: 'desc' },
         take: limit,
@@ -62,8 +62,8 @@ router.get('/', async (req: AuthRequest, res, next) => {
       where: {
         userId: queryUserId,
         dialogue: {
-          isNot: null
-        }
+          isNot: null,
+        },
       },
       include: {
         dialogue: {

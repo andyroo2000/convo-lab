@@ -5,44 +5,46 @@ import '../../../jobs/audioQueue.js';
 
 // Hoisted mocks for capturing worker processor and events
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
-const workerEventHandlers = vi.hoisted(() => new Map<string, Map<string, (...args: unknown[]) => void>>());
+const workerEventHandlers = vi.hoisted(
+  () => new Map<string, Map<string, (...args: unknown[]) => void>>()
+);
 const mockGenerateEpisodeAudio = vi.hoisted(() => vi.fn());
 const mockGenerateAllSpeedsAudio = vi.hoisted(() => vi.fn());
 
 // Mock BullMQ
 vi.mock('bullmq', () => ({
-    Queue: class MockQueue {
-      name: string;
+  Queue: class MockQueue {
+    name: string;
 
-      constructor(name: string) {
-        this.name = name;
-      }
+    constructor(name: string) {
+      this.name = name;
+    }
 
-      add = vi.fn();
+    add = vi.fn();
 
-      getJob = vi.fn();
+    getJob = vi.fn();
 
-      close = vi.fn();
-    },
-    Worker: class MockWorker {
-      name: string;
+    close = vi.fn();
+  },
+  Worker: class MockWorker {
+    name: string;
 
-      private eventHandlers = new Map<string, (...args: unknown[]) => void>();
+    private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-      constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
-        this.name = name;
-        workerProcessors.set(name, processor);
-        workerEventHandlers.set(name, this.eventHandlers);
-      }
+    constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
+      this.name = name;
+      workerProcessors.set(name, processor);
+      workerEventHandlers.set(name, this.eventHandlers);
+    }
 
-      on(event: string, handler: (...args: unknown[]) => void): this {
-        this.eventHandlers.set(event, handler);
-        return this;
-      }
+    on(event: string, handler: (...args: unknown[]) => void): this {
+      this.eventHandlers.set(event, handler);
+      return this;
+    }
 
-      close = vi.fn();
-    },
-  }));
+    close = vi.fn();
+  },
+}));
 
 // Mock Redis config
 vi.mock('../../../config/redis.js', () => ({
@@ -57,12 +59,14 @@ vi.mock('../../../services/audioGenerator.js', () => ({
 }));
 
 // Helper to create mock job
-const createMockJob = (overrides: Partial<{
-  id: string;
-  name: string;
-  data: Record<string, unknown>;
-  updateProgress: ReturnType<typeof vi.fn>;
-}> = {}) => ({
+const createMockJob = (
+  overrides: Partial<{
+    id: string;
+    name: string;
+    data: Record<string, unknown>;
+    updateProgress: ReturnType<typeof vi.fn>;
+  }> = {}
+) => ({
   id: 'test-job-123',
   name: 'default',
   data: {},
@@ -194,7 +198,10 @@ describe('audioQueue', () => {
       });
 
       await expect(processor(job)).rejects.toThrow('API error');
-      expect(consoleSpy).toHaveBeenCalledWith('Multi-speed audio generation failed:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Multi-speed audio generation failed:',
+        expect.any(Error)
+      );
       consoleSpy.mockRestore();
     });
   });

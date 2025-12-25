@@ -11,11 +11,32 @@ type JLPTLevel = 'N5' | 'N4' | 'N3';
 
 type ChunkPackTheme =
   // N5
-  | 'daily_routine' | 'greetings' | 'shopping' | 'family' | 'school' | 'food' | 'weather' | 'hobbies'
+  | 'daily_routine'
+  | 'greetings'
+  | 'shopping'
+  | 'family'
+  | 'school'
+  | 'food'
+  | 'weather'
+  | 'hobbies'
   // N4
-  | 'health' | 'travel' | 'opinions' | 'plans' | 'feelings' | 'requests' | 'advice' | 'experiences'
+  | 'health'
+  | 'travel'
+  | 'opinions'
+  | 'plans'
+  | 'feelings'
+  | 'requests'
+  | 'advice'
+  | 'experiences'
   // N3
-  | 'work' | 'social_life' | 'habits' | 'expectations' | 'comparisons' | 'reasoning' | 'preferences' | 'goals';
+  | 'work'
+  | 'social_life'
+  | 'habits'
+  | 'expectations'
+  | 'comparisons'
+  | 'reasoning'
+  | 'preferences'
+  | 'goals';
 
 interface ThemeMetadata {
   id: ChunkPackTheme;
@@ -27,36 +48,151 @@ interface ThemeMetadata {
 // Theme metadata (matches backend CHUNK_THEMES)
 const CHUNK_THEMES: Record<ChunkPackTheme, ThemeMetadata> = {
   // N5
-  daily_routine: { id: 'daily_routine', name: 'Daily Routine', level: 'N5', description: 'Essential expressions for daily activities' },
-  greetings: { id: 'greetings', name: 'Greetings & Politeness', level: 'N5', description: 'Common social expressions' },
-  shopping: { id: 'shopping', name: 'Shopping', level: 'N5', description: 'Buying things and asking about products' },
-  family: { id: 'family', name: 'Family', level: 'N5', description: 'Talking about family and relationships' },
-  school: { id: 'school', name: 'School', level: 'N5', description: 'Education-related expressions' },
-  food: { id: 'food', name: 'Food & Eating', level: 'N5', description: 'Meals and food preferences' },
-  weather: { id: 'weather', name: 'Weather', level: 'N5', description: 'Talking about weather and seasons' },
-  hobbies: { id: 'hobbies', name: 'Hobbies & Interests', level: 'N5', description: 'Leisure activities' },
+  daily_routine: {
+    id: 'daily_routine',
+    name: 'Daily Routine',
+    level: 'N5',
+    description: 'Essential expressions for daily activities',
+  },
+  greetings: {
+    id: 'greetings',
+    name: 'Greetings & Politeness',
+    level: 'N5',
+    description: 'Common social expressions',
+  },
+  shopping: {
+    id: 'shopping',
+    name: 'Shopping',
+    level: 'N5',
+    description: 'Buying things and asking about products',
+  },
+  family: {
+    id: 'family',
+    name: 'Family',
+    level: 'N5',
+    description: 'Talking about family and relationships',
+  },
+  school: {
+    id: 'school',
+    name: 'School',
+    level: 'N5',
+    description: 'Education-related expressions',
+  },
+  food: {
+    id: 'food',
+    name: 'Food & Eating',
+    level: 'N5',
+    description: 'Meals and food preferences',
+  },
+  weather: {
+    id: 'weather',
+    name: 'Weather',
+    level: 'N5',
+    description: 'Talking about weather and seasons',
+  },
+  hobbies: {
+    id: 'hobbies',
+    name: 'Hobbies & Interests',
+    level: 'N5',
+    description: 'Leisure activities',
+  },
   // N4
-  health: { id: 'health', name: 'Health & Body', level: 'N4', description: 'Medical situations and advice' },
-  travel: { id: 'travel', name: 'Travel', level: 'N4', description: 'Planning trips and navigating' },
-  opinions: { id: 'opinions', name: 'Opinions', level: 'N4', description: 'Expressing thoughts and uncertainty' },
-  plans: { id: 'plans', name: 'Plans & Intentions', level: 'N4', description: 'Future intentions and decisions' },
-  feelings: { id: 'feelings', name: 'Feelings & Emotions', level: 'N4', description: 'Expressing emotional states' },
-  requests: { id: 'requests', name: 'Requests & Permissions', level: 'N4', description: 'Politely asking for things' },
-  advice: { id: 'advice', name: 'Advice & Suggestions', level: 'N4', description: 'Giving and receiving recommendations' },
-  experiences: { id: 'experiences', name: 'Experiences', level: 'N4', description: 'Talking about what you\'ve done' },
+  health: {
+    id: 'health',
+    name: 'Health & Body',
+    level: 'N4',
+    description: 'Medical situations and advice',
+  },
+  travel: {
+    id: 'travel',
+    name: 'Travel',
+    level: 'N4',
+    description: 'Planning trips and navigating',
+  },
+  opinions: {
+    id: 'opinions',
+    name: 'Opinions',
+    level: 'N4',
+    description: 'Expressing thoughts and uncertainty',
+  },
+  plans: {
+    id: 'plans',
+    name: 'Plans & Intentions',
+    level: 'N4',
+    description: 'Future intentions and decisions',
+  },
+  feelings: {
+    id: 'feelings',
+    name: 'Feelings & Emotions',
+    level: 'N4',
+    description: 'Expressing emotional states',
+  },
+  requests: {
+    id: 'requests',
+    name: 'Requests & Permissions',
+    level: 'N4',
+    description: 'Politely asking for things',
+  },
+  advice: {
+    id: 'advice',
+    name: 'Advice & Suggestions',
+    level: 'N4',
+    description: 'Giving and receiving recommendations',
+  },
+  experiences: {
+    id: 'experiences',
+    name: 'Experiences',
+    level: 'N4',
+    description: "Talking about what you've done",
+  },
   // N3
   work: { id: 'work', name: 'Work & Professional', level: 'N3', description: 'Workplace language' },
-  social_life: { id: 'social_life', name: 'Social Life', level: 'N3', description: 'Social expectations and relationships' },
-  habits: { id: 'habits', name: 'Habits & Routines', level: 'N3', description: 'Describing regular behaviors' },
-  expectations: { id: 'expectations', name: 'Expectations', level: 'N3', description: 'What should or will happen' },
-  comparisons: { id: 'comparisons', name: 'Comparisons', level: 'N3', description: 'Contrasting and comparing' },
-  reasoning: { id: 'reasoning', name: 'Reasoning', level: 'N3', description: 'Explaining causes and reasons' },
-  preferences: { id: 'preferences', name: 'Preferences', level: 'N3', description: 'Expressing likes and choices' },
-  goals: { id: 'goals', name: 'Goals & Purposes', level: 'N3', description: 'Expressing aims and objectives' },
+  social_life: {
+    id: 'social_life',
+    name: 'Social Life',
+    level: 'N3',
+    description: 'Social expectations and relationships',
+  },
+  habits: {
+    id: 'habits',
+    name: 'Habits & Routines',
+    level: 'N3',
+    description: 'Describing regular behaviors',
+  },
+  expectations: {
+    id: 'expectations',
+    name: 'Expectations',
+    level: 'N3',
+    description: 'What should or will happen',
+  },
+  comparisons: {
+    id: 'comparisons',
+    name: 'Comparisons',
+    level: 'N3',
+    description: 'Contrasting and comparing',
+  },
+  reasoning: {
+    id: 'reasoning',
+    name: 'Reasoning',
+    level: 'N3',
+    description: 'Explaining causes and reasons',
+  },
+  preferences: {
+    id: 'preferences',
+    name: 'Preferences',
+    level: 'N3',
+    description: 'Expressing likes and choices',
+  },
+  goals: {
+    id: 'goals',
+    name: 'Goals & Purposes',
+    level: 'N3',
+    description: 'Expressing aims and objectives',
+  },
 };
 
 function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
-  return Object.values(CHUNK_THEMES).filter(theme => theme.level === level);
+  return Object.values(CHUNK_THEMES).filter((theme) => theme.level === level);
 }
 
 export default function ChunkPackSetupPage() {
@@ -210,8 +346,12 @@ export default function ChunkPackSetupPage() {
                         : 'border-gray-200 bg-white text-gray-700 hover:border-yellow hover:bg-yellow-light'
                     } disabled:opacity-50`}
                   >
-                    <div className="font-bold text-sm sm:text-base">{t(`chunkPack:themes.${themeData.id}.name`)}</div>
-                    <div className="text-xs sm:text-sm mt-1 text-gray-600">{t(`chunkPack:themes.${themeData.id}.description`)}</div>
+                    <div className="font-bold text-sm sm:text-base">
+                      {t(`chunkPack:themes.${themeData.id}.name`)}
+                    </div>
+                    <div className="text-xs sm:text-sm mt-1 text-gray-600">
+                      {t(`chunkPack:themes.${themeData.id}.description`)}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -229,7 +369,9 @@ export default function ChunkPackSetupPage() {
           {isGenerating && (
             <div className="mt-6">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-700">{t('chunkPack:progress.generating')}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  {t('chunkPack:progress.generating')}
+                </span>
                 <span className="text-sm text-gray-500">{progress}%</span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -238,9 +380,7 @@ export default function ChunkPackSetupPage() {
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <p className="text-sm text-gray-500 mt-2">
-                {t('chunkPack:progress.tip')}
-              </p>
+              <p className="text-sm text-gray-500 mt-2">{t('chunkPack:progress.tip')}</p>
             </div>
           )}
 
@@ -267,18 +407,13 @@ export default function ChunkPackSetupPage() {
 
           {/* Info Footer */}
           <div className="mt-6 pt-6 border-t text-center text-sm text-gray-500">
-            <p>
-              {t('chunkPack:tip')}
-            </p>
+            <p>{t('chunkPack:tip')}</p>
           </div>
         </div>
       </div>
 
       {/* Demo Restriction Modal */}
-      <DemoRestrictionModal
-        isOpen={showDemoModal}
-        onClose={() => setShowDemoModal(false)}
-      />
+      <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
 }

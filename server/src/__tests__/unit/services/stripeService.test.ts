@@ -165,17 +165,17 @@ describe('Stripe Service', () => {
         stripeCustomerId: null,
       });
 
-      await expect(
-        stripeService.createCustomerPortalSession('user-123')
-      ).rejects.toThrow('No Stripe customer found');
+      await expect(stripeService.createCustomerPortalSession('user-123')).rejects.toThrow(
+        'No Stripe customer found'
+      );
     });
 
     it('should throw error if user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        stripeService.createCustomerPortalSession('nonexistent-user')
-      ).rejects.toThrow('No Stripe customer found');
+      await expect(stripeService.createCustomerPortalSession('nonexistent-user')).rejects.toThrow(
+        'No Stripe customer found'
+      );
     });
   });
 
@@ -532,9 +532,9 @@ describe('Stripe Service', () => {
     it('should throw error if user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(
-        stripeService.getSubscriptionStatus('nonexistent-user')
-      ).rejects.toThrow('User not found');
+      await expect(stripeService.getSubscriptionStatus('nonexistent-user')).rejects.toThrow(
+        'User not found'
+      );
     });
   });
 });

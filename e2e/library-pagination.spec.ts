@@ -48,8 +48,14 @@ test.describe('Library Pagination', () => {
       await waitForLoadingComplete(page);
 
       // Get timestamps of first two items
-      const firstItemDate = await page.locator('[data-testid="library-item"]').nth(0).getAttribute('data-updated-at');
-      const secondItemDate = await page.locator('[data-testid="library-item"]').nth(1).getAttribute('data-updated-at');
+      const firstItemDate = await page
+        .locator('[data-testid="library-item"]')
+        .nth(0)
+        .getAttribute('data-updated-at');
+      const secondItemDate = await page
+        .locator('[data-testid="library-item"]')
+        .nth(1)
+        .getAttribute('data-updated-at');
 
       if (firstItemDate && secondItemDate) {
         const firstDate = new Date(firstItemDate);
@@ -105,18 +111,18 @@ test.describe('Library Pagination', () => {
       await waitForLoadingComplete(page);
 
       // Get IDs of initial items
-      const initialIds = await page.locator('[data-testid="library-item"]').evaluateAll(
-        items => items.map(item => item.getAttribute('data-item-id'))
-      );
+      const initialIds = await page
+        .locator('[data-testid="library-item"]')
+        .evaluateAll((items) => items.map((item) => item.getAttribute('data-item-id')));
 
       // Scroll to load more
       await scrollToBottom(page);
       await page.waitForTimeout(2000);
 
       // Get all IDs after loading more
-      const allIds = await page.locator('[data-testid="library-item"]').evaluateAll(
-        items => items.map(item => item.getAttribute('data-item-id'))
-      );
+      const allIds = await page
+        .locator('[data-testid="library-item"]')
+        .evaluateAll((items) => items.map((item) => item.getAttribute('data-item-id')));
 
       // Check for duplicates
       const uniqueIds = new Set(allIds);
@@ -180,9 +186,11 @@ test.describe('Library Pagination', () => {
       expect(itemCount).toBeGreaterThan(0);
 
       // All items should be dialogues
-      const allAreDialogues = await page.locator('[data-testid="library-item"]').evaluateAll(
-        items => items.every(item => item.getAttribute('data-content-type') === 'dialogue')
-      );
+      const allAreDialogues = await page
+        .locator('[data-testid="library-item"]')
+        .evaluateAll((items) =>
+          items.every((item) => item.getAttribute('data-content-type') === 'dialogue')
+        );
       expect(allAreDialogues).toBe(true);
     });
 
@@ -197,9 +205,11 @@ test.describe('Library Pagination', () => {
 
       if (itemCount > 0) {
         // All items should be courses
-        const allAreCourses = await page.locator('[data-testid="library-item"]').evaluateAll(
-          items => items.every(item => item.getAttribute('data-content-type') === 'course')
-        );
+        const allAreCourses = await page
+          .locator('[data-testid="library-item"]')
+          .evaluateAll((items) =>
+            items.every((item) => item.getAttribute('data-content-type') === 'course')
+          );
         expect(allAreCourses).toBe(true);
       }
     });
@@ -215,9 +225,11 @@ test.describe('Library Pagination', () => {
 
       if (itemCount > 0) {
         // All items should be narrow listening
-        const allAreNarrowListening = await page.locator('[data-testid="library-item"]').evaluateAll(
-          items => items.every(item => item.getAttribute('data-content-type') === 'narrowListening')
-        );
+        const allAreNarrowListening = await page
+          .locator('[data-testid="library-item"]')
+          .evaluateAll((items) =>
+            items.every((item) => item.getAttribute('data-content-type') === 'narrowListening')
+          );
         expect(allAreNarrowListening).toBe(true);
       }
     });
@@ -250,7 +262,7 @@ test.describe('Library Pagination', () => {
 
       // Monitor network requests
       const requests: string[] = [];
-      page.on('request', request => {
+      page.on('request', (request) => {
         const url = request.url();
         if (url.includes('/api/')) {
           requests.push(url);
@@ -261,7 +273,7 @@ test.describe('Library Pagination', () => {
       await waitForLoadingComplete(page);
 
       // Should have made request with library=true
-      const libraryRequest = requests.find(url => url.includes('library=true'));
+      const libraryRequest = requests.find((url) => url.includes('library=true'));
       expect(libraryRequest).toBeTruthy();
     });
 
@@ -269,7 +281,7 @@ test.describe('Library Pagination', () => {
       await loginAsUser(page);
 
       const requests: string[] = [];
-      page.on('request', request => {
+      page.on('request', (request) => {
         const url = request.url();
         if (url.includes('/api/')) {
           requests.push(url);
@@ -280,7 +292,9 @@ test.describe('Library Pagination', () => {
       await waitForLoadingComplete(page);
 
       // First request should have limit=20&offset=0
-      const firstRequest = requests.find(url => url.includes('limit=') && url.includes('offset='));
+      const firstRequest = requests.find(
+        (url) => url.includes('limit=') && url.includes('offset=')
+      );
       expect(firstRequest).toBeTruthy();
       expect(firstRequest).toContain('limit=20');
       expect(firstRequest).toContain('offset=0');
@@ -290,7 +304,7 @@ test.describe('Library Pagination', () => {
       await loginAsUser(page);
 
       const requests: string[] = [];
-      page.on('request', request => {
+      page.on('request', (request) => {
         const url = request.url();
         if (url.includes('/api/')) {
           requests.push(url);
@@ -306,10 +320,9 @@ test.describe('Library Pagination', () => {
       await page.waitForTimeout(1000);
 
       // Should have made request without library=true (full data)
-      const fullDataRequest = requests.find(url =>
-        url.includes('/api/') &&
-        !url.includes('library=true') &&
-        url.includes('/dialogues/') // or courses, etc.
+      const fullDataRequest = requests.find(
+        (url) =>
+          url.includes('/api/') && !url.includes('library=true') && url.includes('/dialogues/') // or courses, etc.
       );
       expect(fullDataRequest).toBeTruthy();
     });

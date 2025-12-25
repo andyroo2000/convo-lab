@@ -6,10 +6,10 @@
  */
 
 export interface ProgressWatchdogConfig {
-  timeoutMs: number;           // No progress for this long = stuck (default: 120000ms)
+  timeoutMs: number; // No progress for this long = stuck (default: 120000ms)
   warningThresholdMs?: number; // Warn at specified ms before timeout (optional)
-  onWarning?: () => void;      // Callback when warning triggers
-  onTimeout: () => void;       // Callback when timeout triggers
+  onWarning?: () => void; // Callback when warning triggers
+  onTimeout: () => void; // Callback when timeout triggers
 }
 
 export class ProgressWatchdog {

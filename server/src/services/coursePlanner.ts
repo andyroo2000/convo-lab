@@ -9,8 +9,16 @@ export interface DrillEvent {
 }
 
 export interface LessonSection {
-  type: 'intro' | 'core_intro' | 'early_srs' | 'phrase_construction' |
-        'dialogue_integration' | 'qa' | 'roleplay' | 'late_srs' | 'outro';
+  type:
+    | 'intro'
+    | 'core_intro'
+    | 'early_srs'
+    | 'phrase_construction'
+    | 'dialogue_integration'
+    | 'qa'
+    | 'roleplay'
+    | 'late_srs'
+    | 'outro';
   title: string;
   targetDurationSeconds: number;
   coreItems?: CoreItem[]; // Items featured in this section
@@ -171,10 +179,7 @@ function planSingleLesson(
  * Schedule SRS drill events for core items across the lesson
  * Each item gets drilled at intervals: +5s, +15s, +45s, +2min, +5min
  */
-function scheduleSRSDrills(
-  coreItems: CoreItem[],
-  sections: LessonSection[]
-): DrillEvent[] {
+function scheduleSRSDrills(coreItems: CoreItem[], sections: LessonSection[]): DrillEvent[] {
   const drillEvents: DrillEvent[] = [];
   const currentOffset = 0;
 
@@ -182,11 +187,11 @@ function scheduleSRSDrills(
   const itemIntroTimes = new Map<string, number>();
 
   // Calculate intro time for each item (during core_intro section)
-  const coreIntroSection = sections.find(s => s.type === 'core_intro');
+  const coreIntroSection = sections.find((s) => s.type === 'core_intro');
   if (coreIntroSection && coreIntroSection.coreItems) {
     coreIntroSection.coreItems.forEach((item, index) => {
       // Each item gets ~90 seconds during intro
-      const introTime = sections[0].targetDurationSeconds + (index * 90);
+      const introTime = sections[0].targetDurationSeconds + index * 90;
       itemIntroTimes.set(item.id, introTime);
     });
   }
@@ -240,7 +245,9 @@ function splitIntoMultipleLessons(
   // Estimate items per lesson based on duration
   const estimatedDurationPerItem = 180; // ~3 minutes per core item (rough estimate)
   const lessonOverheadSeconds = 600; // Intro + outro + transitions
-  const itemsPerLesson = Math.floor((maxDurationSeconds - lessonOverheadSeconds) / estimatedDurationPerItem);
+  const itemsPerLesson = Math.floor(
+    (maxDurationSeconds - lessonOverheadSeconds) / estimatedDurationPerItem
+  );
 
   const lessons: LessonPlan[] = [];
   let lessonNumber = 1;

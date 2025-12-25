@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { TTS_VOICES, getSpeakerColor } from "@languageflow/shared/src/constants-new";
+import { TTS_VOICES, getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
@@ -17,7 +17,7 @@ import { API_URL } from '../config';
 function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): string {
   // Determine gender from voiceId by looking it up in TTS_VOICES
   const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  const voiceInfo = languageVoices.find(v => v.id === speaker.voiceId);
+  const voiceInfo = languageVoices.find((v) => v.id === speaker.voiceId);
   const gender = voiceInfo?.gender || 'male'; // Fallback to male if not found
 
   // Map tone to our avatar naming convention
@@ -29,7 +29,8 @@ function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): str
 
 export default function PlaybackPage() {
   const { episodeId } = useParams<{ episodeId: string }>();
-  const { getEpisode, generateAudio, generateAllSpeedsAudio, pollJobStatus, loading } = useEpisodes();
+  const { getEpisode, generateAudio, generateAllSpeedsAudio, pollJobStatus, loading } =
+    useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
   const [episode, setEpisode] = useState<Episode | null>(null);
@@ -105,7 +106,11 @@ export default function PlaybackPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input or textarea
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT') {
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT'
+      ) {
         return;
       }
 
@@ -126,45 +131,49 @@ export default function PlaybackPage() {
 
         if (!episode?.dialogue?.sentences || episode.dialogue.sentences.length === 0) return;
 
-        const {sentences} = episode.dialogue;
+        const { sentences } = episode.dialogue;
         const currentTimeMs = currentTime * 1000;
 
         // Helper function to get effective start time for current speed
         const getEffectiveStartTime = (sentence: any) => {
-          const startTime = speedKey === 'slow' ? sentence.startTime_0_7
-            : speedKey === 'medium' ? sentence.startTime_0_85
-            : sentence.startTime_1_0;
+          const startTime =
+            speedKey === 'slow'
+              ? sentence.startTime_0_7
+              : speedKey === 'medium'
+                ? sentence.startTime_0_85
+                : sentence.startTime_1_0;
           return startTime !== undefined ? startTime : sentence.startTime;
         };
 
         // Helper function to get effective end time for current speed
         const getEffectiveEndTime = (sentence: any) => {
-          const endTime = speedKey === 'slow' ? sentence.endTime_0_7
-            : speedKey === 'medium' ? sentence.endTime_0_85
-            : sentence.endTime_1_0;
+          const endTime =
+            speedKey === 'slow'
+              ? sentence.endTime_0_7
+              : speedKey === 'medium'
+                ? sentence.endTime_0_85
+                : sentence.endTime_1_0;
           return endTime !== undefined ? endTime : sentence.endTime;
         };
 
         // Find current sentence index
-        let currentIndex = sentences.findIndex(
-          (sentence) => {
-            const start = getEffectiveStartTime(sentence);
-            const end = getEffectiveEndTime(sentence);
-            return start !== undefined &&
-              end !== undefined &&
-              currentTimeMs >= start &&
-              currentTimeMs < end;
-          }
-        );
+        let currentIndex = sentences.findIndex((sentence) => {
+          const start = getEffectiveStartTime(sentence);
+          const end = getEffectiveEndTime(sentence);
+          return (
+            start !== undefined &&
+            end !== undefined &&
+            currentTimeMs >= start &&
+            currentTimeMs < end
+          );
+        });
 
         // If not in a sentence, find the closest one before current time
         if (currentIndex === -1) {
-          currentIndex = sentences.findIndex(
-            (sentence) => {
-              const start = getEffectiveStartTime(sentence);
-              return start !== undefined && currentTimeMs < start;
-            }
-          );
+          currentIndex = sentences.findIndex((sentence) => {
+            const start = getEffectiveStartTime(sentence);
+            return start !== undefined && currentTimeMs < start;
+          });
           // If we're before all sentences, start at 0, else use previous sentence
           currentIndex = currentIndex === -1 ? sentences.length - 1 : Math.max(0, currentIndex - 1);
         }
@@ -210,26 +219,32 @@ export default function PlaybackPage() {
   useEffect(() => {
     if (!episode?.dialogue?.sentences) return;
 
-    const currentSentence = episode.dialogue.sentences.find(
-      (sentence) => {
-        // Get timing for current speed
-        const startTime = speedKey === 'slow' ? sentence.startTime_0_7
-          : speedKey === 'medium' ? sentence.startTime_0_85
-          : sentence.startTime_1_0;
-        const endTime = speedKey === 'slow' ? sentence.endTime_0_7
-          : speedKey === 'medium' ? sentence.endTime_0_85
-          : sentence.endTime_1_0;
+    const currentSentence = episode.dialogue.sentences.find((sentence) => {
+      // Get timing for current speed
+      const startTime =
+        speedKey === 'slow'
+          ? sentence.startTime_0_7
+          : speedKey === 'medium'
+            ? sentence.startTime_0_85
+            : sentence.startTime_1_0;
+      const endTime =
+        speedKey === 'slow'
+          ? sentence.endTime_0_7
+          : speedKey === 'medium'
+            ? sentence.endTime_0_85
+            : sentence.endTime_1_0;
 
-        // Fallback to legacy timing
-        const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-        const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
+      // Fallback to legacy timing
+      const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
+      const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
 
-        return effectiveStartTime !== undefined &&
-          effectiveEndTime !== undefined &&
-          currentTime * 1000 >= effectiveStartTime &&
-          currentTime * 1000 < effectiveEndTime;
-      }
-    );
+      return (
+        effectiveStartTime !== undefined &&
+        effectiveEndTime !== undefined &&
+        currentTime * 1000 >= effectiveStartTime &&
+        currentTime * 1000 < effectiveEndTime
+      );
+    });
 
     if (currentSentence) {
       const element = sentenceRefs.current.get(currentSentence.id);
@@ -246,11 +261,14 @@ export default function PlaybackPage() {
   }, [currentTime, episode, selectedSpeed]);
 
   // Cleanup polling interval on unmount
-  useEffect(() => () => {
+  useEffect(
+    () => () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
-    }, []);
+    },
+    []
+  );
 
   const loadEpisode = async (bustCache = false) => {
     if (!episodeId) return;
@@ -264,9 +282,12 @@ export default function PlaybackPage() {
 
   const seekToSentence = (sentence: Sentence) => {
     // Get timing for current speed
-    const startTime = speedKey === 'slow' ? sentence.startTime_0_7
-      : speedKey === 'medium' ? sentence.startTime_0_85
-      : sentence.startTime_1_0;
+    const startTime =
+      speedKey === 'slow'
+        ? sentence.startTime_0_7
+        : speedKey === 'medium'
+          ? sentence.startTime_0_85
+          : sentence.startTime_1_0;
 
     // Fallback to legacy timing if multi-speed timing not available
     const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
@@ -364,7 +385,6 @@ export default function PlaybackPage() {
     }
   };
 
-
   if (loading) {
     return (
       <div className="max-w-6xl mx-auto">
@@ -386,22 +406,25 @@ export default function PlaybackPage() {
     );
   }
 
-  const {dialogue} = episode;
+  const { dialogue } = episode;
   const speakers = dialogue?.speakers || [];
   const sentences = dialogue?.sentences || [];
 
   // Create speaker map for quick lookup
-  const speakerMap = new Map(speakers.map(s => [s.id, s]));
+  const speakerMap = new Map(speakers.map((s) => [s.id, s]));
 
   // Create speaker index map for color assignment
   const speakerIndexMap = new Map(speakers.map((s, index) => [s.id, index]));
 
   // Get current audio URL based on selected speed
-  const currentAudioUrl = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
-    ? (speedKey === 'slow' ? episode.audioUrl_0_7
-      : speedKey === 'medium' ? episode.audioUrl_0_85
-      : episode.audioUrl_1_0)
-    : episode.audioUrl; // Fallback to legacy for old episodes
+  const currentAudioUrl =
+    episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
+      ? speedKey === 'slow'
+        ? episode.audioUrl_0_7
+        : speedKey === 'medium'
+          ? episode.audioUrl_0_85
+          : episode.audioUrl_1_0
+      : episode.audioUrl; // Fallback to legacy for old episodes
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -413,7 +436,9 @@ export default function PlaybackPage() {
             {/* Mobile layout: Stack everything vertically */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
               <div className="flex-1">
-                <h1 className="text-xl sm:text-3xl font-bold text-dark-brown mb-2">{episode.title}</h1>
+                <h1 className="text-xl sm:text-3xl font-bold text-dark-brown mb-2">
+                  {episode.title}
+                </h1>
 
                 {/* Segmented Pill: Proficiency Level + Tone */}
                 <div className="inline-flex items-center text-xs sm:text-sm font-medium overflow-hidden rounded-md shadow-sm">
@@ -427,7 +452,7 @@ export default function PlaybackPage() {
                     className="pl-2 sm:pl-3 pr-3 sm:pr-4 py-1 sm:py-1.5 bg-strawberry text-white capitalize relative"
                     style={{
                       clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
-                      marginLeft: '-8px'
+                      marginLeft: '-8px',
                     }}
                   >
                     <span className="ml-2">{speakers[0]?.tone}</span>
@@ -464,39 +489,35 @@ export default function PlaybackPage() {
         {/* Progress Banner (shown during generation) */}
         {isGeneratingAudio && (
           <div className="bg-yellow border-b border-periwinkle">
-          <div className="flex items-center gap-4 p-4">
-            <div className="flex-shrink-0">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-dark-brown mb-1">
-                Generating audio at all speeds...
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 bg-white/30 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-strawberry h-2 transition-all duration-300 ease-out"
-                    style={{ width: `${generationProgress}%` }}
-                  />
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex-shrink-0">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-dark-brown mb-1">
+                  Generating audio at all speeds...
+                </p>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 bg-white/30 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-strawberry h-2 transition-all duration-300 ease-out"
+                      style={{ width: `${generationProgress}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-semibold text-periwinkle-dark min-w-[3rem] text-right">
+                    {generationProgress}%
+                  </span>
                 </div>
-                <span className="text-sm font-semibold text-periwinkle-dark min-w-[3rem] text-right">
-                  {generationProgress}%
-                </span>
               </div>
             </div>
           </div>
-        </div>
         )}
 
         {/* Audio Player (shown when not generating) */}
         {!isGeneratingAudio && currentAudioUrl && (
           <div className="bg-yellow border-b border-gray-200">
             <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
-              <AudioPlayer
-                src={currentAudioUrl}
-                audioRef={audioRef}
-                key={currentAudioUrl}
-              />
+              <AudioPlayer src={currentAudioUrl} audioRef={audioRef} key={currentAudioUrl} />
             </div>
           </div>
         )}
@@ -506,134 +527,142 @@ export default function PlaybackPage() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="space-y-3">
           {sentences.map((sentence, index) => {
-          const speaker = speakerMap.get(sentence.speakerId);
-          if (!speaker) return null;
+            const speaker = speakerMap.get(sentence.speakerId);
+            if (!speaker) return null;
 
-          // Get speaker color based on index (runtime assignment)
-          const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
-          const speakerColor = getSpeakerColor(speakerIndex);
+            // Get speaker color based on index (runtime assignment)
+            const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
+            const speakerColor = getSpeakerColor(speakerIndex);
 
-          // Get timing for current speed
-          const startTime = speedKey === 'slow' ? sentence.startTime_0_7
-            : speedKey === 'medium' ? sentence.startTime_0_85
-            : sentence.startTime_1_0;
-          const endTime = speedKey === 'slow' ? sentence.endTime_0_7
-            : speedKey === 'medium' ? sentence.endTime_0_85
-            : sentence.endTime_1_0;
+            // Get timing for current speed
+            const startTime =
+              speedKey === 'slow'
+                ? sentence.startTime_0_7
+                : speedKey === 'medium'
+                  ? sentence.startTime_0_85
+                  : sentence.startTime_1_0;
+            const endTime =
+              speedKey === 'slow'
+                ? sentence.endTime_0_7
+                : speedKey === 'medium'
+                  ? sentence.endTime_0_85
+                  : sentence.endTime_1_0;
 
-          // Fallback to legacy timing if multi-speed timing not available
-          const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-          const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
+            // Fallback to legacy timing if multi-speed timing not available
+            const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
+            const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
 
-          // Check if this sentence is currently being spoken
-          const isCurrentlySpeaking =
-            effectiveStartTime !== undefined &&
-            effectiveEndTime !== undefined &&
-            currentTime * 1000 >= effectiveStartTime &&
-            currentTime * 1000 < effectiveEndTime;
+            // Check if this sentence is currently being spoken
+            const isCurrentlySpeaking =
+              effectiveStartTime !== undefined &&
+              effectiveEndTime !== undefined &&
+              currentTime * 1000 >= effectiveStartTime &&
+              currentTime * 1000 < effectiveEndTime;
 
-          // Convert hex color to rgba with opacity
-          const hexToRgba = (hex: string, alpha: number) => {
-            const r = parseInt(hex.slice(1, 3), 16);
-            const g = parseInt(hex.slice(3, 5), 16);
-            const b = parseInt(hex.slice(5, 7), 16);
-            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-          };
+            // Convert hex color to rgba with opacity
+            const hexToRgba = (hex: string, alpha: number) => {
+              const r = parseInt(hex.slice(1, 3), 16);
+              const g = parseInt(hex.slice(3, 5), 16);
+              const b = parseInt(hex.slice(5, 7), 16);
+              return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            };
 
-          return (
-            <div
-              key={sentence.id}
-              ref={(el) => {
-                if (el) sentenceRefs.current.set(sentence.id, el);
-                else sentenceRefs.current.delete(sentence.id);
-              }}
-              className={`card hover:shadow-md transition-all duration-300 cursor-pointer ${
-                isCurrentlySpeaking ? 'shadow-lg' : ''
-              }`}
-              style={{
-                backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.25 : 0.15),
-                borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speakerColor}`,
-                borderRight: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-                borderTop: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-                borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-              }}
-              onClick={() => seekToSentence(sentence)}
-              data-testid={`playback-sentence-${sentence.id}`}
-            >
-              <div className="flex gap-3 sm:gap-8">
-                {/* Speaker Avatar - Smaller on mobile */}
-                <div
-                  className="w-20 sm:w-40 flex-shrink-0 flex flex-col items-center justify-center gap-1 sm:gap-2 pl-2 sm:pl-4 pr-3 sm:pr-6 pt-3 sm:pt-6 pb-2 sm:pb-3 -my-6 -ml-6"
-                  style={{
-                    backgroundColor: speakerColor,
-                    opacity: 0.9
-                  }}
-                >
-                  <div className="w-12 h-12 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-white">
-                    <img
-                      src={speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)}
-                      alt={speaker.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to placeholder on error
-                        (e.target as HTMLImageElement).src = '/placeholder-avatar.jpg';
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
-                    {episode.targetLanguage === 'zh' ? (
-                      <ChineseText text={speaker.name} showPinyin={showReadings} />
-                    ) : episode.targetLanguage === 'ja' ? (
-                      <JapaneseText text={speaker.name} showFurigana={showReadings} />
-                    ) : (
-                      // Spanish and other languages: plain text
-                      <span>{speaker.name}</span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Japanese Text and Translation - Stack on mobile, side by side on desktop */}
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 flex-1">
-                  {/* Target Language Text - Flexible Column */}
-                  <div className={showTranslations ? "flex-1 sm:pr-6" : "w-full"}>
-                    <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
+            return (
+              <div
+                key={sentence.id}
+                ref={(el) => {
+                  if (el) sentenceRefs.current.set(sentence.id, el);
+                  else sentenceRefs.current.delete(sentence.id);
+                }}
+                className={`card hover:shadow-md transition-all duration-300 cursor-pointer ${
+                  isCurrentlySpeaking ? 'shadow-lg' : ''
+                }`}
+                style={{
+                  backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.25 : 0.15),
+                  borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speakerColor}`,
+                  borderRight: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
+                  borderTop: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
+                  borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
+                }}
+                onClick={() => seekToSentence(sentence)}
+                data-testid={`playback-sentence-${sentence.id}`}
+              >
+                <div className="flex gap-3 sm:gap-8">
+                  {/* Speaker Avatar - Smaller on mobile */}
+                  <div
+                    className="w-20 sm:w-40 flex-shrink-0 flex flex-col items-center justify-center gap-1 sm:gap-2 pl-2 sm:pl-4 pr-3 sm:pr-6 pt-3 sm:pt-6 pb-2 sm:pb-3 -my-6 -ml-6"
+                    style={{
+                      backgroundColor: speakerColor,
+                      opacity: 0.9,
+                    }}
+                  >
+                    <div className="w-12 h-12 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-white">
+                      <img
+                        src={
+                          speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)
+                        }
+                        alt={speaker.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to placeholder on error
+                          (e.target as HTMLImageElement).src = '/placeholder-avatar.jpg';
+                        }}
+                      />
+                    </div>
+                    <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
                       {episode.targetLanguage === 'zh' ? (
-                        <ChineseText
-                          text={sentence.text}
-                          metadata={sentence.metadata}
-                          showPinyin={showReadings}
-                        />
+                        <ChineseText text={speaker.name} showPinyin={showReadings} />
                       ) : episode.targetLanguage === 'ja' ? (
-                        <JapaneseText
-                          text={sentence.text}
-                          metadata={sentence.metadata}
-                          showFurigana={showReadings}
-                        />
+                        <JapaneseText text={speaker.name} showFurigana={showReadings} />
                       ) : (
                         // Spanish and other languages: plain text
-                        <span className="text-xl sm:text-2xl">{sentence.text}</span>
+                        <span>{speaker.name}</span>
                       )}
-                    </p>
+                    </span>
                   </div>
 
-                  {/* Translation - Right Column on desktop, below on mobile (conditionally rendered) */}
-                  {showTranslations && (
-                    <div
-                      className="flex-1 pt-3 sm:pt-0 sm:pl-6 sm:border-l"
-                      style={{
-                        borderColor: `${hexToRgba(speakerColor, 0.3)}`
-                      }}
-                    >
-                      <p className="text-sm sm:text-base text-gray-600 italic">
-                        {sentence.translation}
+                  {/* Japanese Text and Translation - Stack on mobile, side by side on desktop */}
+                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 flex-1">
+                    {/* Target Language Text - Flexible Column */}
+                    <div className={showTranslations ? 'flex-1 sm:pr-6' : 'w-full'}>
+                      <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
+                        {episode.targetLanguage === 'zh' ? (
+                          <ChineseText
+                            text={sentence.text}
+                            metadata={sentence.metadata}
+                            showPinyin={showReadings}
+                          />
+                        ) : episode.targetLanguage === 'ja' ? (
+                          <JapaneseText
+                            text={sentence.text}
+                            metadata={sentence.metadata}
+                            showFurigana={showReadings}
+                          />
+                        ) : (
+                          // Spanish and other languages: plain text
+                          <span className="text-xl sm:text-2xl">{sentence.text}</span>
+                        )}
                       </p>
                     </div>
-                  )}
+
+                    {/* Translation - Right Column on desktop, below on mobile (conditionally rendered) */}
+                    {showTranslations && (
+                      <div
+                        className="flex-1 pt-3 sm:pt-0 sm:pl-6 sm:border-l"
+                        style={{
+                          borderColor: `${hexToRgba(speakerColor, 0.3)}`,
+                        }}
+                      >
+                        <p className="text-sm sm:text-base text-gray-600 italic">
+                          {sentence.translation}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       </div>
 

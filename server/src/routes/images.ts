@@ -27,9 +27,7 @@ router.post('/generate', async (req: AuthRequest, res, next) => {
     });
 
     // Trigger Cloud Run Job to process the queue
-    triggerWorkerJob().catch(err =>
-      console.error('Worker trigger failed:', err)
-    );
+    triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
 
     res.json({
       jobId: job.id,

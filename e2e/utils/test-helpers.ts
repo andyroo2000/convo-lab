@@ -27,8 +27,14 @@ export async function loginAsAdmin(page: Page): Promise<void> {
  */
 export async function loginAsUser(page: Page, email?: string, password?: string): Promise<void> {
   await page.goto('/login');
-  await page.fill('input[type="email"]', email || process.env.TEST_USER_EMAIL || 'test@convolab.test');
-  await page.fill('input[type="password"]', password || process.env.TEST_USER_PASSWORD || 'test123');
+  await page.fill(
+    'input[type="email"]',
+    email || process.env.TEST_USER_EMAIL || 'test@convolab.test'
+  );
+  await page.fill(
+    'input[type="password"]',
+    password || process.env.TEST_USER_PASSWORD || 'test123'
+  );
   await page.click('button[type="submit"]');
   await page.waitForURL('/app/library', { timeout: 10000 });
 }
@@ -72,9 +78,11 @@ export async function scrollToBottom(page: Page): Promise<void> {
  * Wait for loading spinner to disappear
  */
 export async function waitForLoadingComplete(page: Page): Promise<void> {
-  await page.waitForSelector('[data-testid="loading-spinner"]', { state: 'hidden', timeout: 10000 }).catch(() => {
-    // Spinner might not be present at all, which is fine
-  });
+  await page
+    .waitForSelector('[data-testid="loading-spinner"]', { state: 'hidden', timeout: 10000 })
+    .catch(() => {
+      // Spinner might not be present at all, which is fine
+    });
 }
 
 /**
@@ -88,7 +96,10 @@ export async function getLibraryItemCount(page: Page): Promise<number> {
 /**
  * Navigate to a specific tab in the library
  */
-export async function navigateToTab(page: Page, tabName: 'Dialogues' | 'Courses' | 'Narrow Listening'): Promise<void> {
+export async function navigateToTab(
+  page: Page,
+  tabName: 'Dialogues' | 'Courses' | 'Narrow Listening'
+): Promise<void> {
   await page.click(`button:has-text("${tabName}")`);
   await waitForLoadingComplete(page);
 }
@@ -122,7 +133,9 @@ export async function isImpersonationBannerVisible(page: Page): Promise<boolean>
 /**
  * Get impersonated user info from banner
  */
-export async function getImpersonatedUserInfo(page: Page): Promise<{ name: string; email: string } | null> {
+export async function getImpersonatedUserInfo(
+  page: Page
+): Promise<{ name: string; email: string } | null> {
   try {
     const banner = page.locator('[data-testid="impersonation-banner"]').first();
     const text = await banner.textContent();
@@ -164,7 +177,7 @@ export async function generateDialogue(page: Page): Promise<void> {
  * Wait for specific amount of time (use sparingly)
  */
 export async function wait(ms: number): Promise<void> {
-  await new Promise(resolve => setTimeout(resolve, ms));
+  await new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**

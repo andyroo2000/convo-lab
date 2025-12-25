@@ -142,7 +142,7 @@ describe('Date Utils - Week Boundary Handling', () => {
         new Date('2025-01-12T00:00:00Z'), // Sunday
       ];
 
-      dates.forEach(date => {
+      dates.forEach((date) => {
         const weekStart = getWeekStart(date);
         const nextWeekStart = getNextWeekStart(date);
 

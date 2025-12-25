@@ -16,7 +16,17 @@ const mockFfprobe = vi.hoisted(() => vi.fn());
 const mockFfmpegChain = vi.hoisted(() => {
   const chain: Record<string, ReturnType<typeof vi.fn>> = {};
 
-  ['input', 'inputOptions', 'audioCodec', 'audioBitrate', 'audioFrequency', 'audioChannels', 'output', 'on', 'run'].forEach(method => {
+  [
+    'input',
+    'inputOptions',
+    'audioCodec',
+    'audioBitrate',
+    'audioFrequency',
+    'audioChannels',
+    'output',
+    'on',
+    'run',
+  ].forEach((method) => {
     chain[method] = vi.fn();
     if (method !== 'run') {
       chain[method].mockReturnValue(chain);
@@ -115,7 +125,7 @@ describe('narrowListeningAudioGenerator', () => {
       const assignments = assignVoicesToSegments(5, singleVoice);
 
       expect(assignments).toHaveLength(5);
-      expect(assignments.every(v => v === 'only-voice')).toBe(true);
+      expect(assignments.every((v) => v === 'only-voice')).toBe(true);
     });
 
     it('should use round-robin when only one gender available', () => {
@@ -139,7 +149,7 @@ describe('narrowListeningAudioGenerator', () => {
 
       expect(assignments).toHaveLength(4);
       // Verify alternation pattern - genders should alternate
-      const genders = assignments.map(id => mockVoices.find(v => v.id === id)?.gender);
+      const genders = assignments.map((id) => mockVoices.find((v) => v.id === id)?.gender);
       expect(genders[0]).not.toEqual(genders[1]);
       expect(genders[1]).not.toEqual(genders[2]);
       expect(genders[2]).not.toEqual(genders[3]);
@@ -160,8 +170,8 @@ describe('narrowListeningAudioGenerator', () => {
 
       expect(assignments).toHaveLength(20);
       // All assignments should be valid voice IDs
-      const validIds = mockVoices.map(v => v.id);
-      assignments.forEach(id => {
+      const validIds = mockVoices.map((v) => v.id);
+      assignments.forEach((id) => {
         expect(validIds).toContain(id);
       });
     });
@@ -196,19 +206,11 @@ describe('narrowListeningAudioGenerator', () => {
         .mockResolvedValueOnce([Buffer.from('audio-2')])
         .mockResolvedValueOnce([Buffer.from('audio-3')]);
 
-      await generateNarrowListeningAudio(
-        'pack-123',
-        mockSegments,
-        voiceAssignments,
-        1.0,
-        0,
-        'ja'
-      );
+      await generateNarrowListeningAudio('pack-123', mockSegments, voiceAssignments, 1.0, 0, 'ja');
 
-      expect(mockFs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining('nl-audio-'),
-        { recursive: true }
-      );
+      expect(mockFs.mkdir).toHaveBeenCalledWith(expect.stringContaining('nl-audio-'), {
+        recursive: true,
+      });
     });
 
     it('should batch TTS calls by voice', async () => {
@@ -220,14 +222,7 @@ describe('narrowListeningAudioGenerator', () => {
         Buffer.from('audio-3'),
       ]);
 
-      await generateNarrowListeningAudio(
-        'pack-123',
-        mockSegments,
-        sameVoice,
-        1.0,
-        0,
-        'ja'
-      );
+      await generateNarrowListeningAudio('pack-123', mockSegments, sameVoice, 1.0, 0, 'ja');
 
       // Should make single batch call with all texts
       expect(mockSynthesizeBatchedTexts).toHaveBeenCalledTimes(1);
@@ -248,14 +243,7 @@ describe('narrowListeningAudioGenerator', () => {
         .mockResolvedValueOnce([Buffer.from('audio-2')])
         .mockResolvedValueOnce([Buffer.from('audio-3')]);
 
-      await generateNarrowListeningAudio(
-        'pack-123',
-        mockSegments,
-        voiceAssignments,
-        1.0,
-        0,
-        'ja'
-      );
+      await generateNarrowListeningAudio('pack-123', mockSegments, voiceAssignments, 1.0, 0, 'ja');
 
       // Should make 3 separate batch calls (one per unique voice)
       expect(mockSynthesizeBatchedTexts).toHaveBeenCalledTimes(3);
@@ -494,9 +482,7 @@ describe('narrowListeningAudioGenerator', () => {
     });
 
     it('should handle segments without reading', async () => {
-      const segmentNoReading: SegmentData[] = [
-        { text: 'Test', translation: 'Test translation' },
-      ];
+      const segmentNoReading: SegmentData[] = [{ text: 'Test', translation: 'Test translation' }];
       mockSynthesizeBatchedTexts.mockResolvedValue([Buffer.from('audio')]);
 
       const result = await generateNarrowListeningAudio(
@@ -523,10 +509,10 @@ describe('narrowListeningAudioGenerator', () => {
         'ja'
       );
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('nl-audio-'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-audio-'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should cleanup temp directory on error', async () => {
@@ -543,10 +529,10 @@ describe('narrowListeningAudioGenerator', () => {
         )
       ).rejects.toThrow('TTS failed');
 
-      expect(mockFs.rm).toHaveBeenCalledWith(
-        expect.stringContaining('nl-audio-'),
-        { recursive: true, force: true }
-      );
+      expect(mockFs.rm).toHaveBeenCalledWith(expect.stringContaining('nl-audio-'), {
+        recursive: true,
+        force: true,
+      });
     });
 
     it('should return single file without concatenation', async () => {
@@ -564,7 +550,7 @@ describe('narrowListeningAudioGenerator', () => {
       // With single segment, no concat list should be written
       // (the implementation returns early before concatenation)
       const concatCalls = mockFs.writeFile.mock.calls.filter(
-        call => typeof call[0] === 'string' && call[0].includes('concat-list')
+        (call) => typeof call[0] === 'string' && call[0].includes('concat-list')
       );
       // Single file should still write concat list but ffmpeg should detect single file
       expect(mockUploadFileToGCS).toHaveBeenCalled();

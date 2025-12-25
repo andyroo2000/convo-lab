@@ -26,7 +26,11 @@ export function useFeatureFlags() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
 
-  const { data: flags, isLoading, error } = useQuery({
+  const {
+    data: flags,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['featureFlags'],
     queryFn: fetchFeatureFlags,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes

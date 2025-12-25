@@ -193,12 +193,15 @@ describe('avatarService', () => {
   describe('uploadSpeakerAvatar', () => {
     it('should upload cropped and original versions to GCS', async () => {
       const croppedUrl = 'https://storage.example.com/avatars/speakers/ja-female-casual.jpg';
-      const originalUrl = 'https://storage.example.com/avatars/speakers/original-ja-female-casual.jpg';
-      mockUploadToGCS
-        .mockResolvedValueOnce(croppedUrl)
-        .mockResolvedValueOnce(originalUrl);
+      const originalUrl =
+        'https://storage.example.com/avatars/speakers/original-ja-female-casual.jpg';
+      mockUploadToGCS.mockResolvedValueOnce(croppedUrl).mockResolvedValueOnce(originalUrl);
 
-      const result = await uploadSpeakerAvatar('ja-female-casual.jpg', mockImageBuffer, mockCropArea);
+      const result = await uploadSpeakerAvatar(
+        'ja-female-casual.jpg',
+        mockImageBuffer,
+        mockCropArea
+      );
 
       expect(mockUploadToGCS).toHaveBeenCalledTimes(2);
       expect(mockUploadToGCS).toHaveBeenNthCalledWith(1, {
@@ -248,9 +251,7 @@ describe('avatarService', () => {
 
       const croppedUrl = 'https://storage.example.com/new-cropped.jpg';
       const originalUrl = 'https://storage.example.com/new-original.jpg';
-      mockUploadToGCS
-        .mockResolvedValueOnce(croppedUrl)
-        .mockResolvedValueOnce(originalUrl);
+      mockUploadToGCS.mockResolvedValueOnce(croppedUrl).mockResolvedValueOnce(originalUrl);
 
       const result = await recropSpeakerAvatar('ja-female-casual.jpg', mockCropArea);
 
@@ -319,11 +320,7 @@ describe('avatarService', () => {
       const result = await getAllSpeakerAvatars();
 
       expect(mockPrisma.speakerAvatar.findMany).toHaveBeenCalledWith({
-        orderBy: [
-          { language: 'asc' },
-          { gender: 'asc' },
-          { tone: 'asc' },
-        ],
+        orderBy: [{ language: 'asc' }, { gender: 'asc' }, { tone: 'asc' }],
       });
       expect(result).toEqual(mockAvatars);
     });

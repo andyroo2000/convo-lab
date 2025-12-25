@@ -19,7 +19,7 @@
  *   npm run harness:accessibility -- --wcag-aa         # Only WCAG AA compliance
  */
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
 import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 
@@ -27,8 +27,8 @@ interface AccessibilityHarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
-  wcagAA?: boolean;  // Only focus on WCAG AA compliance
-  watchdogTimeout?: number;  // Progress watchdog timeout in ms
+  wcagAA?: boolean; // Only focus on WCAG AA compliance
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
   disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
@@ -41,7 +41,7 @@ async function runAccessibilityHarness(options: AccessibilityHarnessOptions = {}
     verbose = true,
     wcagAA = false,
     watchdogTimeout,
-    disableWatchdog = false
+    disableWatchdog = false,
   } = options;
 
   console.log('♿ ConvoLab Accessibility Audit Harness');
@@ -65,7 +65,9 @@ You are running an autonomous accessibility audit harness for ConvoLab.
 
 ## Your Mission
 
-${wcagAA ? `
+${
+  wcagAA
+    ? `
 ### WCAG AA Compliance Only
 
 Focus exclusively on WCAG 2.1 Level AA compliance:
@@ -75,7 +77,8 @@ Focus exclusively on WCAG 2.1 Level AA compliance:
 4. Check ARIA attributes
 5. Test with screen reader compatibility in mind
 6. Fix issues and commit with /commit
-` : `
+`
+    : `
 ## Complete Accessibility Audit Workflow
 
 ### PHASE 1: Semantic HTML Review
@@ -217,19 +220,24 @@ Focus exclusively on WCAG 2.1 Level AA compliance:
 4. Fix mobile accessibility issues
 
 ### PHASE 9: Report & Fix
-${dryRun ? `
+${
+  dryRun
+    ? `
 - List all accessibility issues found
 - Categorize by WCAG level (A, AA, AAA)
 - Prioritize by user impact
 - Provide fix recommendations
 - No changes made
-` : `
+`
+    : `
 - Fix critical accessibility issues (WCAG A/AA)
 - Document WCAG AAA issues for future work
 - Update CHANGELOG.md with accessibility improvements
 - Use /commit with detailed accessibility update message
-`}
-`}
+`
+}
+`
+}
 
 ## Accessibility Testing Guidelines
 
@@ -281,19 +289,23 @@ ${dryRun ? `
 
 ## Important Guidelines
 
-${dryRun ? `
+${
+  dryRun
+    ? `
 - DO NOT make any changes
 - Only analyze and report
 - Categorize issues by WCAG level
 - Prioritize by user impact
 - Provide fix recommendations
-` : `
+`
+    : `
 - Fix WCAG A and AA issues first
 - Test keyboard navigation after changes
 - Verify color contrast with tools
 - Document complex accessibility decisions
 - Use /commit once at the end with accessibility update
-`}
+`
+}
 
 - Follow WCAG 2.1 guidelines
 - Prioritize user impact
@@ -307,7 +319,7 @@ Begin your accessibility audit now.
     {
       harnessName: 'accessibility',
       watchdogTimeoutMs: watchdogTimeout,
-      disableWatchdog
+      disableWatchdog,
     },
     async (context) => {
       const startTime = Date.now();
@@ -328,8 +340,8 @@ Begin your accessibility audit now.
               : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
             systemPrompt: enhanceSystemPrompt(`You are an accessibility expert auditing ConvoLab.
 Follow WCAG 2.1 guidelines. Prioritize WCAG A and AA compliance.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix accessibility issues and use /commit when done.'}`)
-          }
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix accessibility issues and use /commit when done.'}`),
+          },
         })) {
           messageCount++;
 
@@ -338,7 +350,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix accessibil
 
           // Show progress
           const now = Date.now();
-          if (messageCount % 10 === 0 || (now - lastProgressUpdate) > 30000) {
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
             const progress = ((messageCount / maxTurns) * 100).toFixed(1);
             console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
             lastProgressUpdate = now;
@@ -349,47 +361,48 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix accessibil
             context.logCheckpoint(messageCount, startTime, lastMessage);
           }
 
-      // Log messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Log messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+        const durationMin = (durationMs / 60000).toFixed(1);
+        const durationHr = (durationMs / 3600000).toFixed(2);
+
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ Accessibility Audit Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
         }
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
-        }
-      }
-    }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-    const durationMin = (durationMs / 60000).toFixed(1);
-    const durationHr = (durationMs / 3600000).toFixed(2);
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Accessibility Audit Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
-    console.log(`📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`);
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
-    }
-
       } catch (error) {
         console.error('\n❌ Accessibility audit failed with error:');
         console.error(error);
@@ -403,7 +416,7 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix accessibil
 const args = process.argv.slice(2);
 
 let customMaxTurns = DEFAULT_MAX_TURNS;
-const maxTurnsIndex = args.findIndex(arg => arg === '--max-turns');
+const maxTurnsIndex = args.findIndex((arg) => arg === '--max-turns');
 if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   customMaxTurns = parseInt(args[maxTurnsIndex + 1], 10);
   if (isNaN(customMaxTurns)) {
@@ -413,7 +426,7 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
 }
 
 let customWatchdogTimeout: number | undefined;
-const watchdogTimeoutIndex = args.findIndex(arg => arg === '--watchdog-timeout');
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
 if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
   customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
   if (isNaN(customWatchdogTimeout)) {
@@ -428,11 +441,11 @@ const options: AccessibilityHarnessOptions = {
   wcagAA: args.includes('--wcag-aa'),
   maxTurns: customMaxTurns,
   watchdogTimeout: customWatchdogTimeout,
-  disableWatchdog: args.includes('--disable-watchdog')
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness
-runAccessibilityHarness(options).catch(error => {
+runAccessibilityHarness(options).catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });

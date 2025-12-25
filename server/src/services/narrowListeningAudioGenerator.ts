@@ -84,14 +84,16 @@ export function assignVoicesToSegments(
   }
 
   // 1. Separate voices by gender
-  const femaleVoices = availableVoices.filter(v => v.gender === 'female');
-  const maleVoices = availableVoices.filter(v => v.gender === 'male');
+  const femaleVoices = availableVoices.filter((v) => v.gender === 'female');
+  const maleVoices = availableVoices.filter((v) => v.gender === 'male');
 
   // Edge case: only one gender available
   if (femaleVoices.length === 0 || maleVoices.length === 0) {
     // Use round-robin on available voices
     const voices = availableVoices;
-    return Array(segmentCount).fill(null).map((_, i) => voices[i % voices.length].id);
+    return Array(segmentCount)
+      .fill(null)
+      .map((_, i) => voices[i % voices.length].id);
   }
 
   // 2. Create rotators for each gender group
@@ -218,13 +220,11 @@ export async function generateNarrowListeningAudio(
     // Generate audio for each voice group in parallel
     const voiceAudioPromises = Array.from(voiceGroups.entries()).map(
       async ([voiceId, groupSegments]) => {
-        console.log(
-          `  [NL] Voice ${voiceId}: generating ${groupSegments.length} segments...`
-        );
+        console.log(`  [NL] Voice ${voiceId}: generating ${groupSegments.length} segments...`);
 
         // Batch TTS call for this voice
         const audioBuffers = await synthesizeBatchedTexts(
-          groupSegments.map(s => s.text),
+          groupSegments.map((s) => s.text),
           {
             voiceId,
             languageCode,
@@ -381,7 +381,7 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
 
   // Create concat list file
   const listFile = path.join(tempDir, 'concat-list.txt');
-  const listContent = audioFiles.map(f => `file '${f}'`).join('\n');
+  const listContent = audioFiles.map((f) => `file '${f}'`).join('\n');
   await fs.writeFile(listFile, listContent);
 
   // Concatenate with ffmpeg

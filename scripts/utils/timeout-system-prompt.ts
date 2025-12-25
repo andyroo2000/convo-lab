@@ -45,11 +45,9 @@ Skip hung/timeout tests rather than blocking overall progress.
 /**
  * Enhance a base system prompt with timeout guidelines and optional phase tracking
  */
-export function enhanceSystemPrompt(
-  basePrompt: string,
-  phases?: string[]
-): string {
-  const phaseGuidance = phases ? `
+export function enhanceSystemPrompt(basePrompt: string, phases?: string[]): string {
+  const phaseGuidance = phases
+    ? `
 
 ## Workflow Phases
 
@@ -64,7 +62,8 @@ If you receive a TIMEOUT DETECTED message:
 - Log it as skipped/problematic
 - Move to the next phase
 - Do NOT retry the timed-out phase
-` : '';
+`
+    : '';
 
   return `${basePrompt}\n\n${TIMEOUT_GUIDELINES}${phaseGuidance}`;
 }

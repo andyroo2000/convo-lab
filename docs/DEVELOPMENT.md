@@ -5,12 +5,14 @@ This guide covers the development workflow for ConvoLab, including git workflows
 ## Development Environment
 
 ### Prerequisites
+
 - See [SETUP.md](./SETUP.md) for installation instructions
 - Git configured with your name and email
 - GitHub CLI (`gh`) installed and authenticated
 - Familiarity with TypeScript and React
 
 ### Project Structure
+
 ```
 convo-lab/
 ├── client/          # React frontend (Vite)
@@ -24,6 +26,7 @@ convo-lab/
 ## Git Workflow
 
 ### Branching Strategy
+
 We use a simple main-based workflow with feature branches:
 
 - `main` - Production-ready code, always deployable
@@ -68,12 +71,14 @@ We use the `/commit` slash command for consistent, well-documented commits:
 ```
 
 The `/commit` command will:
+
 - Analyze your changes
 - Generate a conventional commit message
 - Update the CHANGELOG.md
 - Push to GitHub automatically
 
 **Conventional Commit Prefixes:**
+
 - `feat:` - New feature
 - `fix:` - Bug fix
 - `refactor:` - Code restructuring
@@ -92,6 +97,7 @@ Use the `/pr` command to create well-formatted pull requests:
 ```
 
 The `/pr` command will:
+
 - Analyze all commits in your branch
 - Generate a comprehensive PR description
 - Create test plan checklist
@@ -99,6 +105,7 @@ The `/pr` command will:
 - Return the PR URL
 
 **PR Description Format:**
+
 ```markdown
 ## Summary
 
@@ -129,6 +136,7 @@ Worktrees allow you to work on multiple branches simultaneously without switchin
 ### Available Commands
 
 #### `/new-worktree [branch-name]`
+
 Create a new worktree for parallel development.
 
 ```bash
@@ -136,11 +144,13 @@ Create a new worktree for parallel development.
 ```
 
 This creates:
+
 - New directory: `../convo-lab-worktrees/feature/dashboard-redesign`
 - New branch checked out
 - Independent working directory
 
 #### `/list-worktrees`
+
 See all active worktrees.
 
 ```bash
@@ -148,6 +158,7 @@ See all active worktrees.
 ```
 
 Output:
+
 ```
 main                     (main worktree)
 feature/dashboard        ../convo-lab-worktrees/feature/dashboard
@@ -155,6 +166,7 @@ fix/login-bug           ../convo-lab-worktrees/fix/login-bug
 ```
 
 #### `/switch-worktree`
+
 Switch between worktrees interactively.
 
 ```bash
@@ -162,6 +174,7 @@ Switch between worktrees interactively.
 ```
 
 #### `/delete-worktree [branch-name]`
+
 Delete a specific worktree with smart merge detection.
 
 ```bash
@@ -169,12 +182,14 @@ Delete a specific worktree with smart merge detection.
 ```
 
 Features:
+
 - Automatically detects if branch is merged
 - No confirmation needed for merged branches
 - Prompts for unmerged branches
 - Cleans up local and remote branches
 
 #### `/prune-worktrees`
+
 Automatically clean up all merged worktrees at once.
 
 ```bash
@@ -182,17 +197,20 @@ Automatically clean up all merged worktrees at once.
 ```
 
 This command:
+
 - Fetches latest from origin
 - Finds all merged branches via GitHub API
 - Deletes merged worktrees and branches automatically
 - Shows summary of what was cleaned up
 
 **When to use:**
+
 - After PRs are merged
 - Periodic cleanup to keep workspace tidy
 - Before starting new work
 
 #### `/merge-worktree`
+
 Merge worktree changes back to main.
 
 ```bash
@@ -202,17 +220,20 @@ Merge worktree changes back to main.
 ### Worktree Best Practices
 
 **When to Use Worktrees:**
+
 - Working on multiple features simultaneously
 - Need to quickly switch contexts
 - Testing different approaches in parallel
 - Maintaining long-running feature branches
 
 **When NOT to Use Worktrees:**
+
 - Simple bug fixes (use regular branches)
 - Sequential work on single feature
 - Quick experiments
 
 **Cleanup Workflow:**
+
 ```bash
 # After your PR is merged, clean up automatically
 /prune-worktrees
@@ -270,21 +291,24 @@ npm run test
 ## Testing Guidelines
 
 ### Unit Tests
+
 - Test individual functions and components
 - Mock external dependencies
 - Aim for >80% coverage
 
 ### Integration Tests
+
 - Test API endpoints
 - Test database operations
 - Use test database
 
 ### E2E Tests (Playwright)
+
 We use `data-testid` attributes for reliable E2E testing:
 
 ```tsx
 // In components:
-<button data-testid="auth-button-login">Login</button>
+<button data-testid="auth-button-login">Login</button>;
 
 // In tests:
 await page.click('[data-testid="auth-button-login"]');
@@ -293,18 +317,21 @@ await page.click('[data-testid="auth-button-login"]');
 ## Code Style
 
 ### TypeScript
+
 - Use strict mode
 - Define interfaces for all data structures
 - Avoid `any`, use `unknown` if needed
 - Use type inference where obvious
 
 ### React
+
 - Functional components only
 - Use hooks appropriately
 - Keep components small and focused
 - Extract reusable logic to custom hooks
 
 ### Naming Conventions
+
 - Components: `PascalCase`
 - Files: `PascalCase.tsx` for components, `camelCase.ts` for utilities
 - Functions: `camelCase`
@@ -314,6 +341,7 @@ await page.click('[data-testid="auth-button-login"]');
 ## Debugging
 
 ### Server Debugging
+
 ```bash
 # Enable debug logs
 DEBUG=* npm run dev:server
@@ -323,11 +351,13 @@ tail -f server/logs/app.log
 ```
 
 ### Client Debugging
+
 - Use React DevTools
 - Check browser console
 - Use Network tab for API calls
 
 ### Database Debugging
+
 ```bash
 # View data
 npx prisma studio
@@ -388,18 +418,23 @@ npx prisma migrate dev --name add_user_avatar
 ## Deployment
 
 ### Staging
+
 Pushes to `main` automatically deploy to staging:
+
 ```
 https://convo-lab-staging.run.app
 ```
 
 ### Production
+
 Use the deployment script:
+
 ```bash
 ./deploy.sh
 ```
 
 Or manually:
+
 ```bash
 gcloud builds submit --config cloudbuild.yaml
 ```
@@ -407,6 +442,7 @@ gcloud builds submit --config cloudbuild.yaml
 ## Troubleshooting
 
 ### "Module not found" errors
+
 ```bash
 # Clean install
 rm -rf node_modules package-lock.json
@@ -414,18 +450,21 @@ npm install
 ```
 
 ### Prisma client out of sync
+
 ```bash
 cd server
 npx prisma generate
 ```
 
 ### Port conflicts
+
 ```bash
 # Kill process on port
 lsof -ti:3001 | xargs kill
 ```
 
 ### Git worktree issues
+
 ```bash
 # List all worktrees
 git worktree list

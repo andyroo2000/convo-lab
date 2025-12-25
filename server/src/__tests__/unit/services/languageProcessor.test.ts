@@ -228,9 +228,7 @@ describe('languageProcessor', () => {
 
       const result = await processJapaneseBatch(['テスト']);
 
-      expect(result).toEqual([
-        { kanji: 'テスト', kana: 'テスト', furigana: 'テスト' },
-      ]);
+      expect(result).toEqual([{ kanji: 'テスト', kana: 'テスト', furigana: 'テスト' }]);
     });
   });
 
@@ -284,9 +282,7 @@ describe('languageProcessor', () => {
     });
 
     it('should process Japanese batch and wrap in metadata', async () => {
-      const mockResponse = [
-        { kanji: '漢字', kana: 'かんじ', furigana: '漢[かん]字[じ]' },
-      ];
+      const mockResponse = [{ kanji: '漢字', kana: 'かんじ', furigana: '漢[かん]字[じ]' }];
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve(mockResponse),
@@ -311,7 +307,9 @@ describe('languageProcessor', () => {
       const result = await processLanguageTextBatch(['你好'], 'zh');
 
       expect(result).toEqual([
-        { chinese: { characters: '你好', pinyinToneMarks: 'nǐ hǎo', pinyinToneNumbers: 'ni3 hao3' } },
+        {
+          chinese: { characters: '你好', pinyinToneMarks: 'nǐ hǎo', pinyinToneNumbers: 'ni3 hao3' },
+        },
       ]);
     });
 
@@ -342,7 +340,9 @@ describe('languageProcessor', () => {
       // so hiragana between kanji gets included in the next ruby tag
       const result = furiganaToRuby('私[わたし]の名[な]前[まえ]');
 
-      expect(result).toBe('<ruby>私<rt>わたし</rt></ruby><ruby>の名<rt>な</rt></ruby><ruby>前<rt>まえ</rt></ruby>');
+      expect(result).toBe(
+        '<ruby>私<rt>わたし</rt></ruby><ruby>の名<rt>な</rt></ruby><ruby>前<rt>まえ</rt></ruby>'
+      );
     });
 
     it('should return plain text unchanged', () => {

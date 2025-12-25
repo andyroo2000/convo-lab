@@ -22,6 +22,7 @@ npm run generate:avatars
 ## Output
 
 Avatars are saved to:
+
 - **Cropped avatars**: `server/public/avatars/` (256×256, optimized)
 - **Original images**: `server/public/avatars/original/` (full resolution)
 
@@ -30,6 +31,7 @@ Avatars are saved to:
 Avatars are named using the pattern: `{language}-{gender}-{tone}.jpg`
 
 Examples:
+
 - `ja-female-casual.jpg` - Japanese female, casual tone
 - `zh-male-formal.jpg` - Chinese male, formal tone
 
@@ -88,14 +90,17 @@ Generating all 12 avatars will cost approximately $0.24 USD.
 ## Troubleshooting
 
 ### "No images generated" error
+
 - Check that Vertex AI API is enabled in your Google Cloud project
 - Verify your Google Cloud credentials are properly configured
 
 ### Images are too zoomed in/out
+
 - Adjust the `cropHeight` percentage (see Customization section)
 - Modify the prompts to request "upper body shot" or "full torso"
 
 ### File sizes too large
+
 - Reduce the JPEG quality (currently 85%)
 - Reduce output dimensions (currently 256×256)
 
@@ -104,7 +109,11 @@ Generating all 12 avatars will cost approximately $0.24 USD.
 To use these avatars in your application, you can map speakers to avatar URLs:
 
 ```typescript
-function getSpeakerAvatarUrl(language: 'ja' | 'zh', gender: 'male' | 'female', tone: 'casual' | 'polite' | 'formal') {
+function getSpeakerAvatarUrl(
+  language: 'ja' | 'zh',
+  gender: 'male' | 'female',
+  tone: 'casual' | 'polite' | 'formal'
+) {
   return `/avatars/${language}-${gender}-${tone}.jpg`;
 }
 ```

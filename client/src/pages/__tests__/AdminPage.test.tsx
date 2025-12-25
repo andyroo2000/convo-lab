@@ -5,7 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import AdminPage from '../AdminPage';
 
 const mockNavigate = vi.fn();
-const mockUser = vi.hoisted(() => ({ value: { id: 'admin-1', email: 'admin@test.com', role: 'admin' } }));
+const mockUser = vi.hoisted(() => ({
+  value: { id: 'admin-1', email: 'admin@test.com', role: 'admin' },
+}));
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -28,7 +30,11 @@ vi.mock('../../components/admin/AvatarCropperModal', () => ({
 
 vi.mock('../../components/common/Toast', () => ({
   default: ({ visible, message, type }: { visible: boolean; message: string; type: string }) =>
-    visible ? <div data-testid="toast" data-type={type}>{message}</div> : null,
+    visible ? (
+      <div data-testid="toast" data-type={type}>
+        {message}
+      </div>
+    ) : null,
 }));
 
 // Mock clipboard API
@@ -132,7 +138,8 @@ describe('AdminPage', () => {
     (global.confirm as any).mockReturnValue(true);
   });
 
-  const renderPage = (tab = 'users') => render(
+  const renderPage = (tab = 'users') =>
+    render(
       <MemoryRouter initialEntries={[`/app/admin/${tab}`]}>
         <Routes>
           <Route path="/app/admin/:tab?" element={<AdminPage />} />
@@ -277,7 +284,7 @@ describe('AdminPage', () => {
       await waitFor(async () => {
         // Find delete buttons by title attribute
         const deleteButtons = document.querySelectorAll('button');
-        const trashButtons = Array.from(deleteButtons).filter(btn => {
+        const trashButtons = Array.from(deleteButtons).filter((btn) => {
           const svg = btn.querySelector('svg.lucide-trash-2');
           return svg !== null;
         });
@@ -403,7 +410,7 @@ describe('AdminPage', () => {
       await waitFor(async () => {
         // Find delete buttons - they have Trash2 icon
         const deleteButtons = document.querySelectorAll('button');
-        const trashButtons = Array.from(deleteButtons).filter(btn => {
+        const trashButtons = Array.from(deleteButtons).filter((btn) => {
           const svg = btn.querySelector('svg.lucide-trash-2');
           return svg !== null;
         });
@@ -546,7 +553,8 @@ describe('AdminPage', () => {
       await waitFor(async () => {
         const toggles = screen.getAllByRole('checkbox');
         const narrowListeningToggle = toggles.find(
-          (toggle) => !toggle.getAttribute('checked') && toggle.getAttribute('aria-label')?.includes('narrow')
+          (toggle) =>
+            !toggle.getAttribute('checked') && toggle.getAttribute('aria-label')?.includes('narrow')
         );
 
         if (narrowListeningToggle) {

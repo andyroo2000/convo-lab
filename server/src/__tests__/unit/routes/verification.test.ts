@@ -74,9 +74,7 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendVerificationEmail.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .post('/api/verification/send')
-        .expect(200);
+      const response = await request(app).post('/api/verification/send').expect(200);
 
       expect(response.body).toEqual({ message: 'Verification email sent' });
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
@@ -89,9 +87,7 @@ describe('Verification Routes', () => {
     it('should reject if user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const response = await request(app)
-        .post('/api/verification/send')
-        .expect(404);
+      const response = await request(app).post('/api/verification/send').expect(404);
 
       expect(response.body.error.message).toBe('User not found');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
@@ -107,9 +103,7 @@ describe('Verification Routes', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const response = await request(app)
-        .post('/api/verification/send')
-        .expect(400);
+      const response = await request(app).post('/api/verification/send').expect(400);
 
       expect(response.body.error.message).toBe('Email already verified');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
@@ -132,27 +126,20 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendWelcomeEmail.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .get('/api/verification/valid-token')
-        .expect(200);
+      const response = await request(app).get('/api/verification/valid-token').expect(200);
 
       expect(response.body).toEqual({
         message: 'Email verified successfully',
         email: 'test@example.com',
       });
       expect(mockEmailService.verifyEmailToken).toHaveBeenCalledWith('valid-token');
-      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
-        mockUser.email,
-        mockUser.name
-      );
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(mockUser.email, mockUser.name);
     });
 
     it('should reject invalid token', async () => {
       mockEmailService.verifyEmailToken.mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/api/verification/invalid-token')
-        .expect(400);
+      const response = await request(app).get('/api/verification/invalid-token').expect(400);
 
       expect(response.body.error.message).toBe('Invalid or expired verification token');
       expect(mockEmailService.sendWelcomeEmail).not.toHaveBeenCalled();
@@ -161,9 +148,7 @@ describe('Verification Routes', () => {
     it('should handle expired token', async () => {
       mockEmailService.verifyEmailToken.mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/api/verification/expired-token')
-        .expect(400);
+      const response = await request(app).get('/api/verification/expired-token').expect(400);
 
       expect(response.body.error.message).toBe('Invalid or expired verification token');
     });
@@ -210,10 +195,7 @@ describe('Verification Routes', () => {
     });
 
     it('should reject request without email', async () => {
-      const response = await request(app)
-        .post('/api/password-reset/request')
-        .send({})
-        .expect(400);
+      const response = await request(app).post('/api/password-reset/request').send({}).expect(400);
 
       expect(response.body.error.message).toBe('Email is required');
     });
@@ -228,9 +210,7 @@ describe('Verification Routes', () => {
 
       mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
 
-      const response = await request(app)
-        .get('/api/password-reset/valid-token')
-        .expect(200);
+      const response = await request(app).get('/api/password-reset/valid-token').expect(200);
 
       expect(response.body).toEqual({
         valid: true,
@@ -241,9 +221,7 @@ describe('Verification Routes', () => {
     it('should reject invalid password reset token', async () => {
       mockEmailService.verifyPasswordResetToken.mockResolvedValue(null);
 
-      const response = await request(app)
-        .get('/api/password-reset/invalid-token')
-        .expect(400);
+      const response = await request(app).get('/api/password-reset/invalid-token').expect(400);
 
       expect(response.body.error.message).toBe('Invalid or expired password reset token');
     });

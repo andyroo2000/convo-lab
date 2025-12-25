@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
-import { getSpeakerColor } from "@languageflow/shared/src/constants-new";
+import { getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 
@@ -49,10 +49,11 @@ export default function ChunkPackStoryPage() {
     if (!story?.segments) return;
 
     const currentSegment = story.segments.find(
-      (segment) => segment.startTime !== undefined &&
-          segment.endTime !== undefined &&
-          currentTime * 1000 >= segment.startTime &&
-          currentTime * 1000 < segment.endTime
+      (segment) =>
+        segment.startTime !== undefined &&
+        segment.endTime !== undefined &&
+        currentTime * 1000 >= segment.startTime &&
+        currentTime * 1000 < segment.endTime
     );
 
     if (currentSegment) {
@@ -169,8 +170,12 @@ export default function ChunkPackStoryPage() {
         </div>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
           <div className="bg-white rounded-lg p-6 sm:p-12 text-center shadow-sm">
-            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">Story generation is not yet implemented for this pack.</p>
-            <p className="text-xs sm:text-sm text-gray-500">You can proceed to the exercises step.</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-3 sm:mb-4">
+              Story generation is not yet implemented for this pack.
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500">
+              You can proceed to the exercises step.
+            </p>
             <button
               onClick={() => navigate(`/app/chunk-packs/${packId}/exercises`)}
               className="mt-4 sm:mt-6 btn-primary"
@@ -189,7 +194,10 @@ export default function ChunkPackStoryPage() {
       <div className="bg-white border-b shadow-sm sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <button onClick={() => navigate(`/app/chunk-packs/${packId}/examples`)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+            <button
+              onClick={() => navigate(`/app/chunk-packs/${packId}/examples`)}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
               <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="text-xs sm:text-sm">Back</span>
             </button>
@@ -217,9 +225,7 @@ export default function ChunkPackStoryPage() {
                     className="w-3 h-3 sm:w-4 sm:h-4 rounded-full"
                     style={{ backgroundColor: getSpeakerColor(index) }}
                   />
-                  <span className="text-xs sm:text-sm font-medium text-navy">
-                    {speaker.name}
-                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-navy">{speaker.name}</span>
                 </div>
               ))}
             </div>
@@ -231,11 +237,7 @@ export default function ChunkPackStoryPage() {
       {story.audioUrl && (
         <div className="sticky top-[140px] sm:top-[180px] z-10 max-w-4xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
           <div className="card bg-white shadow-lg py-2 sm:py-3 px-3 sm:px-4">
-            <AudioPlayer
-              src={story.audioUrl}
-              audioRef={audioRef}
-              key={story.audioUrl}
-            />
+            <AudioPlayer src={story.audioUrl} audioRef={audioRef} key={story.audioUrl} />
           </div>
         </div>
       )}

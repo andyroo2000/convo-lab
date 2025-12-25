@@ -5,7 +5,9 @@ import '../../../jobs/courseQueue.js';
 
 // Hoisted mocks for capturing worker processor and events
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
-const workerEventHandlers = vi.hoisted(() => new Map<string, Map<string, (...args: unknown[]) => void>>());
+const workerEventHandlers = vi.hoisted(
+  () => new Map<string, Map<string, (...args: unknown[]) => void>>()
+);
 const mockExtractDialogueExchangesFromSourceText = vi.hoisted(() => vi.fn());
 const mockGenerateConversationalLessonScript = vi.hoisted(() => vi.fn());
 const mockAssembleLessonAudio = vi.hoisted(() => vi.fn());
@@ -21,38 +23,38 @@ const mockPrisma = vi.hoisted(() => ({
 
 // Mock BullMQ
 vi.mock('bullmq', () => ({
-    Queue: class MockQueue {
-      name: string;
+  Queue: class MockQueue {
+    name: string;
 
-      constructor(name: string) {
-        this.name = name;
-      }
+    constructor(name: string) {
+      this.name = name;
+    }
 
-      add = vi.fn();
+    add = vi.fn();
 
-      getJob = vi.fn();
+    getJob = vi.fn();
 
-      close = vi.fn();
-    },
-    Worker: class MockWorker {
-      name: string;
+    close = vi.fn();
+  },
+  Worker: class MockWorker {
+    name: string;
 
-      private eventHandlers = new Map<string, (...args: unknown[]) => void>();
+    private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
-      constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
-        this.name = name;
-        workerProcessors.set(name, processor);
-        workerEventHandlers.set(name, this.eventHandlers);
-      }
+    constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
+      this.name = name;
+      workerProcessors.set(name, processor);
+      workerEventHandlers.set(name, this.eventHandlers);
+    }
 
-      on(event: string, handler: (...args: unknown[]) => void): this {
-        this.eventHandlers.set(event, handler);
-        return this;
-      }
+    on(event: string, handler: (...args: unknown[]) => void): this {
+      this.eventHandlers.set(event, handler);
+      return this;
+    }
 
-      close = vi.fn();
-    },
-  }));
+    close = vi.fn();
+  },
+}));
 
 // Mock Redis config
 vi.mock('../../../config/redis.js', () => ({
@@ -89,12 +91,14 @@ vi.mock('../../../services/audioCourseAssembler.js', () => ({
 }));
 
 // Helper to create mock job
-const createMockJob = (overrides: Partial<{
-  id: string;
-  name: string;
-  data: Record<string, unknown>;
-  updateProgress: ReturnType<typeof vi.fn>;
-}> = {}) => ({
+const createMockJob = (
+  overrides: Partial<{
+    id: string;
+    name: string;
+    data: Record<string, unknown>;
+    updateProgress: ReturnType<typeof vi.fn>;
+  }> = {}
+) => ({
   id: 'test-job-123',
   name: 'default',
   data: {},
@@ -150,18 +154,14 @@ describe('courseQueue', () => {
       speakerVoiceId: 'ja-JP-Neural2-B',
       textL2: 'こんにちは',
       translationL1: 'Hello',
-      vocabularyItems: [
-        { textL2: 'こんにちは', readingL2: 'こんにちは', translationL1: 'hello' },
-      ],
+      vocabularyItems: [{ textL2: 'こんにちは', readingL2: 'こんにちは', translationL1: 'hello' }],
     },
     {
       speakerName: 'Yamada',
       speakerVoiceId: 'ja-JP-Neural2-C',
       textL2: 'お元気ですか',
       translationL1: 'How are you?',
-      vocabularyItems: [
-        { textL2: '元気', readingL2: 'げんき', translationL1: 'health/energy' },
-      ],
+      vocabularyItems: [{ textL2: '元気', readingL2: 'げんき', translationL1: 'health/energy' }],
     },
   ];
 
@@ -366,10 +366,12 @@ describe('courseQueue', () => {
 
       expect(mockGenerateConversationalLessonScript).not.toHaveBeenCalled();
       expect(mockAssembleLessonAudio).not.toHaveBeenCalled();
-      expect(result).toEqual(expect.objectContaining({
-        courseId: 'course-123',
-        vocabularyItemCount: 0,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          courseId: 'course-123',
+          vocabularyItemCount: 0,
+        })
+      );
     });
 
     it('should handle course with no vocabulary items', async () => {
@@ -472,7 +474,9 @@ describe('courseQueue', () => {
     });
 
     it('should log error and rethrow on failure', async () => {
-      mockGenerateConversationalLessonScript.mockRejectedValue(new Error('Script generation failed'));
+      mockGenerateConversationalLessonScript.mockRejectedValue(
+        new Error('Script generation failed')
+      );
 
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const processor = workerProcessors.get('course-generation')!;

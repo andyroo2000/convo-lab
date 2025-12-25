@@ -24,9 +24,7 @@ export default function ImpersonationBanner({
             <span className="font-medium">
               {t('common:impersonation.viewingAs', { name: impersonatedUser.name })}
             </span>
-            <span className="text-amber-100">
-              ({impersonatedUser.email})
-            </span>
+            <span className="text-amber-100">({impersonatedUser.email})</span>
             <span className="px-2 py-0.5 bg-amber-600 text-amber-100 text-xs rounded-full">
               {t('common:impersonation.readOnly')}
             </span>

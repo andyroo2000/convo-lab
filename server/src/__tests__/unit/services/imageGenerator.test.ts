@@ -68,19 +68,23 @@ describe('imageGenerator', () => {
     it('should throw error if dialogue not found', async () => {
       mockPrisma.dialogue.findUnique.mockResolvedValue(null);
 
-      await expect(generateDialogueImages({
-        episodeId: 'episode-456',
-        dialogueId: 'nonexistent',
-      })).rejects.toThrow('Dialogue not found');
+      await expect(
+        generateDialogueImages({
+          episodeId: 'episode-456',
+          dialogueId: 'nonexistent',
+        })
+      ).rejects.toThrow('Dialogue not found');
     });
 
     it('should throw error if episode not found', async () => {
       mockPrisma.episode.findUnique.mockResolvedValue(null);
 
-      await expect(generateDialogueImages({
-        episodeId: 'nonexistent',
-        dialogueId: 'dialogue-123',
-      })).rejects.toThrow('Episode not found');
+      await expect(
+        generateDialogueImages({
+          episodeId: 'nonexistent',
+          dialogueId: 'dialogue-123',
+        })
+      ).rejects.toThrow('Episode not found');
     });
 
     it('should use default imageCount of 3', async () => {
@@ -107,9 +111,7 @@ describe('imageGenerator', () => {
     it('should skip empty sections', async () => {
       mockPrisma.dialogue.findUnique.mockResolvedValue({
         ...mockDialogue,
-        sentences: [
-          { id: 'sent-1', text: 'こんにちは', order: 0 },
-        ],
+        sentences: [{ id: 'sent-1', text: 'こんにちは', order: 0 }],
       });
 
       await generateDialogueImages({

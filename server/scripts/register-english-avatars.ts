@@ -9,7 +9,7 @@ const ENGLISH_AVATARS = [
   { filename: 'en-male-formal.jpg', language: 'en', gender: 'male', tone: 'formal' },
 ];
 
-async function registerAvatar(config: typeof ENGLISH_AVATARS[0]) {
+async function registerAvatar(config: (typeof ENGLISH_AVATARS)[0]) {
   console.log(`Registering: ${config.filename}`);
 
   try {

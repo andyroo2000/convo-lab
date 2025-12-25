@@ -8,21 +8,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Added
+
 - **[chore]** Comprehensive ESLint configuration and formatting tools - added project-wide ESLint configuration with React, accessibility (jsx-a11y), and testing plugins (testing-library, vitest); created workspace-specific .eslintrc.json files for client, server, and shared; added Prettier configuration for consistent code formatting; added npm scripts for lint:fix, format, and format:check; applied automated fixes across 144+ files including arrow function conversions, self-closing JSX tags, import ordering, boolean prop simplification, and test utility hoisting; created 6 autonomous test harness scripts (accessibility, maintenance, mobile, monitoring, perf, security) for ongoing quality improvements
 - **[test]** Autonomous test harness for comprehensive test improvement - added test-harness.ts script using Claude Agent SDK to autonomously improve test coverage by running tests, fixing failures, auditing coverage gaps, identifying missing test cases, writing new tests, and verifying everything passes; includes multiple run modes (full/fix-only/coverage-only/dry-run), configurable target coverage and max turns, progress tracking with periodic updates, and follows project testing patterns (Vitest, React Testing Library)
 - **[i18n]** Complete translations for settings and UserMenu component - completed full translations for settings.json in Arabic, Spanish, French, and Chinese (replacing all [NEEDS_TRANSLATION] markers with proper natural translations); added i18n support to UserMenu component for Admin, Settings, and Logout menu items; created i18n-harness tool for automated translation consistency checking with npm scripts for easy validation
 
+### Changed
+
+- **[style]** Applied ESLint and Prettier formatting across entire codebase - automated formatting applied to 324 files across client, server, shared, scripts, and documentation; standardized indentation to 2 spaces, consistent spacing, import ordering, and code style conformance to project ESLint configuration
+
 ### Fixed
+
 - **[i18n]** Translation consistency across all locales - fixed 309 missing translation keys and removed 21 obsolete keys across Arabic, Spanish, French, Japanese, and Chinese locales; added missing translations for modal dialogs, quota badges, demo mode, impersonation banners, error displays, library empty states, sidebar navigation, and settings color options; all translations now structurally consistent with English source files (keys marked with [NEEDS_TRANSLATION] prefix for future localization)
 
 ### Added
+
 - **[feat]** Complete client and server i18n implementation - comprehensive internationalization for all user-facing text across both client and server; all UI components, pages, error messages, and server responses now use translation keys from centralized JSON locale files; created server.json with 89 translation keys covering auth errors, verification flows, rate limiting, validation, content management, and billing; updated all client components (ErrorDisplay, ImpersonationBanner, QuotaBadge, ConfirmModal, DemoRestrictionModal, LibraryPage, SettingsPage) and server routes (auth, billing, verification, audio, chunkPacks, courses, dialogue, episodes, images, narrowListening, pi) to use localized messages; establishes foundation for multi-language support throughout application
 
 ### Fixed
+
 - **[test]** Stripe-related server test failures - fixed all 3 failing Stripe test files by correcting Stripe constructor mock using class syntax, adding missing requireAdmin export to roleAuth middleware mock, fixing error response assertions to check error.message, and fixing date serialization in subscription status test; all 1200 server tests now pass
 - **[test]** DialogueGenerator i18n test failures - fixed all 16 failing tests by initializing i18n in test setup, creating custom render utility with I18nextProvider wrapper, fixing pluralization format in translation files, and removing outdated language selector tests; all 47 DialogueGenerator tests now pass
 
 ### Added
+
 - **[feat]** Server-side i18n email templates - added i18next integration to server with email templates in 6 languages (English, Japanese, Chinese, Spanish, French, Arabic); refactored email service to use localized templates for all transactional emails including verification, password reset, welcome, subscription confirmations, and payment notifications
 - **[feat]** Husky pre-commit hooks - automated test execution before commits to ensure code quality; includes 906 lines of new unit tests for Redis configuration, admin security, and worker trigger service
 - **[i18n]** Pricing page translations - added complete pricing page content across all 6 supported languages with feature descriptions, CTAs, and tier comparisons
@@ -51,9 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** User model fields: emailVerified, googleId, tier, Stripe subscription tracking
 
 ### Removed
+
 - **[feat]** Hebrew language support - removed Hebrew from all type definitions, constants, TTS voices, and database with migration to clean up existing Hebrew references
 
 ### Fixed
+
 - **[fix]** Stripe subscription metadata propagation - added subscription_data.metadata to checkout sessions to ensure userId is tracked for webhook handlers
 - **[fix]** Auth endpoints missing tier field - updated all auth responses (login, signup, /me, update) to include tier for proper frontend display
 - **[fix]** ClaimInvitePage redirect causing blank page - changed to full page reload instead of client-side navigation for auth context sync
@@ -63,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[fix]** Production content generation errors - added missing GenerationLog database migration that was causing "table does not exist" errors when creating Arabic dialogues and other content
 
 ### Added
+
 - **[test]** Comprehensive test coverage for authentication and billing features (4,809 lines of test code) - adds 13 new test files covering email verification, password reset, Stripe billing, subscription management, upgrade prompts, and e2e flows to ensure reliability of payment and user authentication workflows
   - Backend unit tests: verification routes (send/verify/resend), password reset routes (request/verify/reset), billing/Stripe routes (checkout/portal/webhooks), Stripe service (subscriptions/payments/webhooks), email service (all email types + token verification), admin subscription management endpoints
   - Frontend unit tests: VerifyEmailPage (verification flow, resend, states), PricingPage (tier display, checkout flow, errors), ForgotPasswordPage (form validation, success/error states), ResetPasswordPage (token validation, password requirements, security), UpgradePrompt (free/pro tiers, navigation)
@@ -82,7 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** QuotaBadge component - displays remaining generations with color-coded warnings (blue → orange → red as quota depletes)
 - **[feat]** useQuota hook - fetches and manages user quota information with refetch functionality
 - **[feat]** Admin quota exemption - admin users bypass all rate limits and have unlimited content generation
-- **[feat]** Rate limit error responses - 429 errors include detailed quota/cooldown information and standard rate limit headers (X-RateLimit-*, Retry-After)
+- **[feat]** Rate limit error responses - 429 errors include detailed quota/cooldown information and standard rate limit headers (X-RateLimit-\*, Retry-After)
 - **[feat]** Infinite scroll pagination for library page - loads content incrementally (20 items per page) for better performance with large libraries
 - **[feat]** Admin impersonation mode - click eye icon in admin users table to view any user's library in read-only mode for QA purposes
 - **[feat]** AdminAuditLog database model - tracks all admin impersonation events with timestamp, IP address, and user agent for compliance
@@ -110,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[deploy]** Worker job deployment configuration with dedicated Cloud Run Job for background processing
 
 ### Changed
+
 - **[refactor]** Library data fetching refactored to use React Query's useInfiniteQuery for pagination support
 - **[refactor]** Global React Query configuration updated with smart retry logic - skips 4xx client errors, retries 5xx server errors up to 2 times with exponential backoff
 - **[refactor]** All library content routes (episodes, courses, narrow listening, chunk packs) now support viewAs query parameter for admin impersonation
@@ -125,6 +138,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[refactor]** Voice gender is now defined only in TTS_VOICES configuration (single source of truth) - removed duplicate hardcoded gender map from avatarService to prevent future mismatches
 
 ### Fixed
+
 - **[fix]** Arabic missing from study language selector in settings page - users can now properly select Arabic as their target language for learning
 - **[fix]** French avatar uploads blocked by validation regex and file size limit - added 'fr' language code to speaker avatar filename validation and increased upload limit from 5MB to 10MB
 - **[fix]** Corrected French TTS voice names for AWS Polly compatibility (Léa → Lea)
@@ -146,6 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed audio generation failures due to missing AWS credentials
 
 ### Added
+
 - **[test]** Expanded test coverage with 17 new test files and 280+ new tests
   - Client components: Logo, Pill, SegmentedPill, ViewToggleButtons
   - Client pages: ChunkPackSetupPage, ChunkPackExamplesPage, ChunkPackStoryPage, NarrowListeningCreatorPage, NarrowListeningLibraryPage, LandingPage, NotFoundPage
@@ -155,6 +170,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Total coverage: Server 874 tests, Client 711 tests (1,585 total)
 
 ### Fixed
+
 - **[fix]** PlaybackPage speedKey initialization error causing test failures
   - Moved speedKey calculation before useEffect hooks that reference it
   - Fixed variable access in early return scenarios (loading/missing episode)
@@ -162,6 +178,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added window.scrollTo and Element.scrollIntoView mocks for jsdom compatibility
 
 ### Added
+
 - **[test]** Comprehensive tests for job queues and audio generators (161 new tests)
   - Job queue tests: dialogueQueue, audioQueue, imageQueue, courseQueue, chunkPackQueue, narrowListeningQueue
   - Service tests: audioCourseAssembler, narrowListeningAudioGenerator, chunkPackAudioGenerator, imageGenerator, conversationalLessonScriptGenerator, conversationalCourseScriptGenerator
@@ -185,12 +202,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[ci]** Claude Code GitHub integration for automated test running via @claude mentions
 
 ### Fixed
+
 - **[fix]** CEFR proficiency levels now display in library view for Spanish content (commit: 36a160c)
   - Fixed library view not showing proficiency levels for Spanish narrow listening packs, courses, and chunk packs
   - Updated 6 locations to include cefrLevel in proficiency level checks
   - Added cefrLevel field to TypeScript interfaces for proper type safety
 
 ### Added
+
 - **[feat]** CEFR proficiency level support for Spanish dialogues (commit: ccad672)
   - Added proper CEFR (A1-C2) level selection for Spanish language dialogues
   - Spanish dialogues now use appropriate European proficiency scale instead of HSK
@@ -236,6 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cost neutral: same total character count = same TTS cost
 
 ### Fixed
+
 - **[fix]** Spanish dialogue avatar assignment and module import issues (commit: 7e77bad)
   - Fixed broken avatar assignment where both male and female Spanish speakers showed the same avatar
   - Updated 8 files to import from constants-new.js instead of outdated constants.js
@@ -259,6 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added hskLevel field to library endpoint response for Chinese course support
 
 ### Added
+
 - **[feat]** Language-specific colors for pills and sidebars (commit: 9fbf2d6)
   - Japanese uses periwinkle (JA), Chinese uses keylime (ZH)
   - Applied to both LanguageLevelPill and LanguageLevelSidebar components
@@ -273,11 +294,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Demo credentials: demo.user@test.com / convo-demo-2025
 
 ### Fixed
+
 - **[fix]** Chinese speaker avatars not loading (commit: 778d3d9)
   - Added language code mapping from 'cmn' (TTS voice ID) to 'zh' (avatar filename)
   - Fixes avatar lookup for Chinese dialogues
 
 ### Added
+
 - **[feat]** Chinese pinyin tone format conversion for speaker names (commit: 7194823)
   - Converts tone marks (zhāng) to tone numbers (zhang1) based on user preference
   - Speaker names now respect user's `pinyinDisplayMode` setting
@@ -291,16 +314,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Randomizes which speaker gets which gender
 
 ### Changed
+
 - **[chore]** Pinyin service dependencies auto-installed in start.sh (commit: 7194823)
 - **[refactor]** TTS services updated for Neural2 voices and batching (commit: 7194823)
 
 ### Fixed
+
 - **[fix]** Voice assignment type mismatch in DialogueGenerator (commit: a014800)
   - `getDialogueSpeakerVoices()` now returns full voice objects with id, voiceId, gender, and description
   - Previously returned only string IDs causing undefined voiceId and fallback "Speaker M" names
   - Fixes TTS voice assignment for newly created dialogues
 
 ### Added
+
 - **[perf]** React Query integration for LibraryPage with automatic caching and request deduplication
   - Created `useLibraryData` hook with parallel queries for episodes, courses, narrow listening, and chunk packs
   - 5-minute staleTime prevents redundant API calls on navigation
@@ -329,6 +355,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Ensures new content appears immediately in library view
 
 ### Changed
+
 - Initial changelog setup with /commit slash command
 - Comprehensive data-testid attributes across all components for Playwright E2E testing (commit: da7b820)
 - /pr slash command for automated pull request creation with generated descriptions (commit: ee40f3b)
@@ -383,6 +410,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Smaller footer text and padding on mobile
 
 ### Changed
+
 - **[style]** Increased font sizes across Processing Instruction and Lexical Chunk Pack setup pages (commit: 58fb851)
   - Description headings increased from base to xl
   - Body text and section labels increased for better readability
@@ -430,6 +458,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Changed Processing Instruction from periwinkle to keylime to avoid conflict with Dialogues
 
 ### Fixed
+
 - **[fix]** Critical mobile viewport fixes for playback and content pages (commit: 25ae7f0)
   - ChunkPackExamplesPage: Removed back button from first page, fixed sticky positioning and scroll calculations for mobile
   - PlaybackPage: Complete mobile redesign with vertical stacking, smaller avatars (48px vs 96px), and responsive text sizing
@@ -518,6 +547,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2025-11-23]
 
 ### Changed
+
 - Improved voice selection and audio speed playback (commit: 11a8567)
 - Fixed audio generation bugs and voice gender mapping (commit: a281d92)
 - Fixed quick-check-prod script for production (commit: c0cc37a)

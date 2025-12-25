@@ -8,10 +8,10 @@ interface EmptyStateCardProps {
   buttonText: string;
   route: string;
   colorTheme: {
-    bg: string;      // e.g., 'bg-indigo-100'
-    text: string;    // e.g., 'text-indigo-600'
-    border: string;  // e.g., 'border-indigo-200'
-    button: string;  // e.g., 'bg-indigo-600 hover:bg-indigo-700'
+    bg: string; // e.g., 'bg-indigo-100'
+    text: string; // e.g., 'text-indigo-600'
+    border: string; // e.g., 'border-indigo-200'
+    button: string; // e.g., 'bg-indigo-600 hover:bg-indigo-700'
   };
 }
 
@@ -27,7 +27,9 @@ export default function EmptyStateCard({
 
   return (
     <div className="max-w-md mx-auto py-12">
-      <div className={`text-center space-y-6 p-8 rounded-2xl border-2 ${colorTheme.border} ${colorTheme.bg}`}>
+      <div
+        className={`text-center space-y-6 p-8 rounded-2xl border-2 ${colorTheme.border} ${colorTheme.bg}`}
+      >
         {/* Icon */}
         <div className="flex justify-center">
           <div className={`p-4 rounded-full ${colorTheme.bg} border-2 ${colorTheme.border}`}>
@@ -37,12 +39,8 @@ export default function EmptyStateCard({
 
         {/* Text Content */}
         <div className="space-y-2">
-          <h3 className={`text-xl font-semibold ${colorTheme.text}`}>
-            {title}
-          </h3>
-          <p className="text-gray-600">
-            {description}
-          </p>
+          <h3 className={`text-xl font-semibold ${colorTheme.text}`}>{title}</h3>
+          <p className="text-gray-600">{description}</p>
         </div>
 
         {/* CTA Button */}

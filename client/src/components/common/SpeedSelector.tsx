@@ -1,6 +1,15 @@
 import { Loader } from 'lucide-react';
 
-export type SpeedValue = '0.7x' | '0.85x' | '1.0x' | 'slow' | 'medium' | 'normal' | 0.7 | 0.85 | 1.0;
+export type SpeedValue =
+  | '0.7x'
+  | '0.85x'
+  | '1.0x'
+  | 'slow'
+  | 'medium'
+  | 'normal'
+  | 0.7
+  | 0.85
+  | 1.0;
 
 interface SpeedOption {
   value: SpeedValue;
@@ -61,18 +70,17 @@ export default function SpeedSelector({
       {SPEED_OPTIONS.map((option) => {
         const isSelected = normalizedSelected === option.value;
         const isLoading = loading && normalizedLoading === option.value;
-        const buttonLabel = showLabels
-          ? `${option.label} (${option.value})`
-          : option.value;
+        const buttonLabel = showLabels ? `${option.label} (${option.value})` : option.value;
 
         return (
           <button
             key={option.value}
             onClick={() => onSpeedChange(option.value as SpeedValue)}
             disabled={disabled}
-            className={`px-4 py-1.5 rounded text-sm font-bold transition-colors flex items-center gap-1 ${
-              getSpeedClasses(option, isSelected)
-            } ${disabled ? 'disabled:opacity-50' : ''}`}
+            className={`px-4 py-1.5 rounded text-sm font-bold transition-colors flex items-center gap-1 ${getSpeedClasses(
+              option,
+              isSelected
+            )} ${disabled ? 'disabled:opacity-50' : ''}`}
             data-testid={`playback-speed-${option.label.toLowerCase()}`}
           >
             {isLoading && <Loader className="w-3 h-3 animate-spin" />}

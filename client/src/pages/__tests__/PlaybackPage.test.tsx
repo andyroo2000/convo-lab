@@ -216,7 +216,8 @@ describe('PlaybackPage', () => {
     vi.clearAllMocks();
   });
 
-  const renderPlaybackPage = (episodeId = 'episode-123') => render(
+  const renderPlaybackPage = (episodeId = 'episode-123') =>
+    render(
       <MemoryRouter initialEntries={[`/playback/${episodeId}`]}>
         <Routes>
           <Route path="/playback/:episodeId" element={<PlaybackPage />} />
@@ -402,8 +403,8 @@ describe('PlaybackPage', () => {
       await waitFor(() => {
         // Speaker names should be in the DOM (田中 and 鈴木)
         expect(document.body.textContent).toContain('田中');
-      })
-      expect(document.body.textContent).toContain('鈴木');;
+      });
+      expect(document.body.textContent).toContain('鈴木');
     });
   });
 

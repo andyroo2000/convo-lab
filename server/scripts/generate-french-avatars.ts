@@ -20,27 +20,33 @@ interface AvatarConfig {
 const FRENCH_AVATARS: AvatarConfig[] = [
   {
     filename: 'fr-female-casual.jpg',
-    prompt: 'Professional headshot portrait of a friendly young French woman in her 20s, warm smile, modern casual clothing, diverse features representing modern France, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a friendly young French woman in her 20s, warm smile, modern casual clothing, diverse features representing modern France, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
   },
   {
     filename: 'fr-female-polite.jpg',
-    prompt: 'Professional headshot portrait of a polite French woman in her late 20s, gentle smile, business casual attire, diverse features representing modern France, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a polite French woman in her late 20s, gentle smile, business casual attire, diverse features representing modern France, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
   },
   {
     filename: 'fr-female-formal.jpg',
-    prompt: 'Professional headshot portrait of a professional French woman in her 30s, subtle smile, formal business attire, diverse features representing modern France, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a professional French woman in her 30s, subtle smile, formal business attire, diverse features representing modern France, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
   },
   {
     filename: 'fr-male-casual.jpg',
-    prompt: 'Professional headshot portrait of a friendly young French man in his 20s, relaxed smile, casual modern clothing, diverse features representing modern France, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a friendly young French man in his 20s, relaxed smile, casual modern clothing, diverse features representing modern France, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
   },
   {
     filename: 'fr-male-polite.jpg',
-    prompt: 'Professional headshot portrait of a courteous French man in his late 20s, warm smile, smart casual attire, diverse features representing modern France, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a courteous French man in his late 20s, warm smile, smart casual attire, diverse features representing modern France, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
   },
   {
     filename: 'fr-male-formal.jpg',
-    prompt: 'Professional headshot portrait of a professional French businessman in his 30s, composed expression, formal business suit, diverse features representing modern France, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
+    prompt:
+      'Professional headshot portrait of a professional French businessman in his 30s, composed expression, formal business suit, diverse features representing modern France, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
   },
 ];
 
@@ -49,22 +55,25 @@ async function generateImageWithImagen(prompt: string): Promise<Buffer> {
   const endpoint = `https://${LOCATION}-aiplatform.googleapis.com/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/imagen-3.0-generate-001:predict`;
 
   const requestBody = {
-    instances: [{
-      prompt: prompt,
-    }],
+    instances: [
+      {
+        prompt: prompt,
+      },
+    ],
     parameters: {
       sampleCount: 1,
       aspectRatio: '1:1',
-      negativePrompt: 'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
+      negativePrompt:
+        'blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark',
       personGeneration: 'allow_adult',
       safetySetting: 'block_some',
-    }
+    },
   };
 
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody),
@@ -120,7 +129,6 @@ async function generateAndUploadAvatar(config: AvatarConfig): Promise<void> {
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-
   } catch (error: any) {
     console.error(`✗ Failed to generate ${config.filename}:`, error.message);
     throw error;
@@ -143,7 +151,7 @@ async function main() {
       // Wait between requests to avoid rate limiting
       if (config !== FRENCH_AVATARS[FRENCH_AVATARS.length - 1]) {
         console.log('\nWaiting 3 seconds before next generation...');
-        await new Promise(resolve => setTimeout(resolve, 3000));
+        await new Promise((resolve) => setTimeout(resolve, 3000));
       }
     } catch (error) {
       failCount++;
