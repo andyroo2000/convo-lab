@@ -33,8 +33,8 @@ const PricingPage = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Failed to create checkout session');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to create checkout session');
       }
 
       const { url } = await response.json();

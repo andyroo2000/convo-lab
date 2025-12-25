@@ -63,8 +63,8 @@ const NarrowListeningCreatorPage = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to start generation');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to start generation');
       }
 
       const { jobId, packId } = await response.json();

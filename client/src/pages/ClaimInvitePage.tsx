@@ -34,8 +34,8 @@ const ClaimInvitePage = () => {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || error.message || 'Failed to claim invite');
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || errorData.message || 'Failed to claim invite');
       }
 
       // Successfully claimed invite, reload page to update auth context

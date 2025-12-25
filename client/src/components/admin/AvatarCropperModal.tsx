@@ -109,8 +109,8 @@ const AvatarCropperModal = ({
     };
   }, [isOpen, imageUrl]);
 
-  const onCropComplete = useCallback((croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
+  const onCropComplete = useCallback((croppedArea: Area, pixels: Area) => {
+    setCroppedAreaPixels(pixels);
   }, []);
 
   const handleSave = async () => {

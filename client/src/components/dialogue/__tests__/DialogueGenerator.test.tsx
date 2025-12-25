@@ -762,7 +762,7 @@ describe('DialogueGenerator - Demo User', () => {
     // This test verifies the demo modal behavior
     // In a real test, we'd need to re-import with different mock
     // For now, we're testing the component structure includes the modal
-    const { container } = render(
+    const { container: _container } = render(
       <MemoryRouter>
         <DialogueGenerator />
       </MemoryRouter>
