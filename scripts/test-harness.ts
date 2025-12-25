@@ -239,6 +239,10 @@ ${
 - Provide recommendations
 `
     : `
+- **CRITICAL: Complete ALL phases in this single session - do NOT stop early**
+- **Do NOT create "Recommendations for Next Session" - just continue working**
+- **After completing one task, IMMEDIATELY move to the next task**
+- **Only stop when you hit the turn limit (${maxTurns}) or complete ALL work**
 - Fix tests before writing new ones
 - Follow existing test patterns exactly
 - Use proper mocking (vi.mock, vi.hoisted)
@@ -253,6 +257,20 @@ ${
 - Be thorough but efficient
 - Track progress clearly
 ${!dryRun ? '- Only use /commit once at the end with all changes' : ''}
+
+## Session Completion Rules
+
+You are in AUTONOMOUS MODE. This means:
+- ✅ Continue working automatically until all tests pass and coverage is met
+- ✅ Move from fixing failures → improving coverage → writing new tests without stopping
+- ✅ Only create ONE commit at the very end
+- ❌ Do NOT stop after completing a phase
+- ❌ Do NOT ask "should I continue?"
+- ❌ Do NOT create "Recommendations for Next Session"
+- ❌ Do NOT provide suggestions for follow-up work
+- ❌ Do NOT stop until all work complete OR you hit turn limit
+
+If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue working instead.
 
 Begin your analysis now.
   `.trim();

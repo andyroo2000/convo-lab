@@ -360,6 +360,20 @@ ${
 - Prioritize user experience
 ${!dryRun ? '- Only use /commit once at the end with all fixes' : ''}
 
+## Session Completion Rules
+
+You are in AUTONOMOUS MODE. This means:
+- ✅ Complete ALL mobile optimization tasks automatically without stopping
+- ✅ Move from Phase 1 → 2 → 3 → ... → 10 without asking
+- ✅ Only create ONE commit at the very end
+- ❌ Do NOT stop after completing a phase
+- ❌ Do NOT ask "should I continue?"
+- ❌ Do NOT create "Recommendations for Next Session"
+- ❌ Do NOT provide suggestions for follow-up work
+- ❌ Do NOT stop until all work complete OR you hit turn limit
+
+If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue working instead.
+
 Begin your mobile audit now.
   `.trim();
 

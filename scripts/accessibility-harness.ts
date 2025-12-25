@@ -299,6 +299,10 @@ ${
 - Provide fix recommendations
 `
     : `
+- **CRITICAL: Complete ALL accessibility fixes in this single session - do NOT stop early**
+- **Do NOT create "Recommendations for Next Session" - just continue fixing**
+- **After fixing one category, IMMEDIATELY move to the next category**
+- **Only stop when you hit the turn limit (${maxTurns}) or complete ALL fixes**
 - Fix WCAG A and AA issues first
 - Test keyboard navigation after changes
 - Verify color contrast with tools
@@ -311,6 +315,20 @@ ${
 - Prioritize user impact
 - Test with keyboard navigation
 ${!dryRun ? '- Only use /commit once at the end with all fixes' : ''}
+
+## Session Completion Rules
+
+You are in AUTONOMOUS MODE. This means:
+- ✅ Continue fixing all accessibility issues automatically
+- ✅ Move from WCAG A → AA → AAA issues without stopping
+- ✅ Only create ONE commit at the very end
+- ❌ Do NOT stop after completing a category
+- ❌ Do NOT ask "should I continue?"
+- ❌ Do NOT create "Recommendations for Next Session"
+- ❌ Do NOT provide suggestions for follow-up work
+- ❌ Do NOT stop until all fixes complete OR you hit turn limit
+
+If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue fixing instead.
 
 Begin your accessibility audit now.
   `.trim();
