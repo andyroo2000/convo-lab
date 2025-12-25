@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access */
+// Complex playback page testing with audio elements requires direct node access
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -46,7 +48,7 @@ vi.mock('../../hooks/useSpeakerAvatars', () => ({
 
 // Mock the AudioPlayer component
 vi.mock('../../components/AudioPlayer', () => ({
-  default: ({ src, audioRef }: { src: string; audioRef: any }) => (
+  default: ({ src }: { src: string; audioRef: any }) => (
     <div data-testid="mock-audio-player" data-src={src}>
       Mock Audio Player
     </div>
@@ -366,9 +368,9 @@ describe('PlaybackPage', () => {
     it('should call seek when clicking a sentence', async () => {
       renderPlaybackPage();
 
-      fireEvent.click(_sentence);
+      fireEvent.click(sentence);
       await waitFor(() => {
-        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
+        const sentence = screen.getByTestId('playback-sentence-sentence-1');
       });
 
       // seek should be called with the start time in seconds
@@ -378,9 +380,9 @@ describe('PlaybackPage', () => {
     it('should call play when clicking sentence if not playing', async () => {
       renderPlaybackPage();
 
-      fireEvent.click(_sentence);
+      fireEvent.click(sentence);
       await waitFor(() => {
-        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
+        const sentence = screen.getByTestId('playback-sentence-sentence-1');
       });
 
       expect(mockPlay).toHaveBeenCalled();

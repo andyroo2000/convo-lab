@@ -155,6 +155,7 @@ const PricingPage = () => {
 
               <ul className="space-y-3 mb-8">
                 {tier.features.map((feature, index) => (
+                  // eslint-disable-next-line react/no-array-index-key
                   <li key={index} className="flex items-start">
                     <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
                     <span className="text-dark-brown">{feature}</span>
@@ -162,7 +163,7 @@ const PricingPage = () => {
                 ))}
               </ul>
 
-              <button
+              <button type="button"
                 onClick={tier.ctaAction}
                 disabled={tier.ctaDisabled || loading}
                 className={`btn-primary w-full ${

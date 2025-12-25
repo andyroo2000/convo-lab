@@ -3,9 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   User,
-  Settings,
   Trash2,
-  ArrowLeft,
   Lock,
   Languages,
   Camera,
@@ -125,7 +123,7 @@ const SettingsPage = () => {
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+  const _showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
     setToastMessage(message);
     setToastType(type);
     setToastVisible(true);
@@ -474,7 +472,7 @@ const SettingsPage = () => {
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
-        <button
+        <button type="button"
           onClick={() => navigate('/app/settings/profile')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'profile'
@@ -488,7 +486,7 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.profile')}</span>
           </div>
         </button>
-        <button
+        <button type="button"
           onClick={() => navigate('/app/settings/language')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'language'
@@ -502,7 +500,7 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.language')}</span>
           </div>
         </button>
-        <button
+        <button type="button"
           onClick={() => navigate('/app/settings/security')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'security'
@@ -516,7 +514,7 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.security')}</span>
           </div>
         </button>
-        <button
+        <button type="button"
           onClick={() => navigate('/app/settings/billing')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'billing'
@@ -530,7 +528,7 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.billing')}</span>
           </div>
         </button>
-        <button
+        <button type="button"
           onClick={() => navigate('/app/settings/danger')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'danger'
@@ -568,9 +566,9 @@ const SettingsPage = () => {
 
             {/* Avatar */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
+              <p className="block text-sm font-medium text-gray-700 mb-3">
                 {t('settings:profile.avatar.label')}
-              </label>
+              </p>
               <div className="flex items-center gap-4">
                 {/* Current Avatar Preview */}
                 {user?.avatarUrl ? (
@@ -594,8 +592,7 @@ const SettingsPage = () => {
                 )}
 
                 {/* Upload Button */}
-                <button
-                  type="button"
+                <button type="button"
                   onClick={handleAvatarUpload}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
                   data-testid="settings-button-upload-avatar"
@@ -607,8 +604,7 @@ const SettingsPage = () => {
                 </button>
 
                 {user?.avatarUrl && (
-                  <button
-                    type="button"
+                  <button type="button"
                     onClick={async () => {
                       try {
                         await updateUser({ avatarUrl: null });
@@ -630,10 +626,11 @@ const SettingsPage = () => {
 
             {/* Display Name Section */}
             <div className="mb-8">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-display-name" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:profile.displayName.label')}
               </label>
               <input
+                id="settings-display-name"
                 type="text"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 placeholder={t('settings:profile.displayName.placeholder')}
@@ -649,7 +646,7 @@ const SettingsPage = () => {
 
             {/* Save/Cancel Buttons */}
             <div className="flex gap-3 pt-4 border-t">
-              <button
+              <button type="button"
                 onClick={handleSave}
                 disabled={!hasChanges() || isSaving}
                 className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -657,7 +654,7 @@ const SettingsPage = () => {
               >
                 {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
               </button>
-              <button
+              <button type="button"
                 onClick={handleCancel}
                 disabled={!hasChanges() || isSaving}
                 className="px-8 py-3 border-2 border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
@@ -680,10 +677,11 @@ const SettingsPage = () => {
 
             {/* Study Language */}
             <div className="mb-6">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-study-language" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:language.study.label')}
               </label>
               <select
+                id="settings-study-language"
                 value={preferredStudyLanguage}
                 onChange={(e) => handleStudyLanguageChange(e.target.value as LanguageCode)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -722,10 +720,11 @@ const SettingsPage = () => {
 
             {/* Native Language */}
             <div className="mb-6">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-native-language" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:language.native.label')}
               </label>
               <select
+                id="settings-native-language"
                 value={preferredNativeLanguage}
                 onChange={(e) => handleNativeLanguageChange(e.target.value as LanguageCode)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -765,10 +764,11 @@ const SettingsPage = () => {
             {/* Proficiency Level */}
             {preferredStudyLanguage === 'ja' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-jlpt-level" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.jlpt.label')}
                 </label>
                 <select
+                  id="settings-jlpt-level"
                   value={jlptLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -797,10 +797,11 @@ const SettingsPage = () => {
 
             {preferredStudyLanguage === 'zh' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-hsk-level" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.hsk.label')}
                 </label>
                 <select
+                  id="settings-hsk-level"
                   value={hskLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -831,10 +832,11 @@ const SettingsPage = () => {
             {/* Spanish - CEFR Levels */}
             {preferredStudyLanguage === 'es' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-cefr-level-es" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.cefr.spanish')}
                 </label>
                 <select
+                  id="settings-cefr-level-es"
                   value={cefrLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -865,10 +867,11 @@ const SettingsPage = () => {
             {/* French - CEFR Levels */}
             {preferredStudyLanguage === 'fr' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-cefr-level-fr" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.cefr.french')}
                 </label>
                 <select
+                  id="settings-cefr-level-fr"
                   value={cefrLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -899,10 +902,11 @@ const SettingsPage = () => {
             {/* Arabic - CEFR Levels */}
             {preferredStudyLanguage === 'ar' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-cefr-level-ar" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.cefr.arabic')}
                 </label>
                 <select
+                  id="settings-cefr-level-ar"
                   value={cefrLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -933,10 +937,11 @@ const SettingsPage = () => {
             {/* English - CEFR Levels */}
             {preferredStudyLanguage === 'en' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <label htmlFor="settings-cefr-level-en" className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.proficiency.cefr.english')}
                 </label>
                 <select
+                  id="settings-cefr-level-en"
                   value={cefrLevel}
                   onChange={(e) => handleProficiencyLevelChange(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -967,12 +972,13 @@ const SettingsPage = () => {
             {/* Pinyin Display Mode (only shown when study language is Chinese) */}
             {preferredStudyLanguage === 'zh' && (
               <div className="mb-6">
-                <label className="block text-base font-bold text-dark-brown mb-3">
+                <p className="block text-base font-bold text-dark-brown mb-3">
                   {t('settings:language.pinyin.label')}
-                </label>
+                </p>
                 <div className="flex gap-4">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label htmlFor="pinyin-tone-marks" className="flex items-center gap-2 cursor-pointer">
                     <input
+                      id="pinyin-tone-marks"
                       type="radio"
                       name="pinyinMode"
                       value="toneMarks"
@@ -987,8 +993,9 @@ const SettingsPage = () => {
                       {t('settings:language.pinyin.toneMarks')}
                     </span>
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label htmlFor="pinyin-tone-numbers" className="flex items-center gap-2 cursor-pointer">
                     <input
+                      id="pinyin-tone-numbers"
                       type="radio"
                       name="pinyinMode"
                       value="toneNumbers"
@@ -1044,10 +1051,11 @@ const SettingsPage = () => {
 
             {/* Current Password */}
             <div className="mb-4">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-current-password" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:security.currentPassword.label')}
               </label>
               <input
+                id="settings-current-password"
                 type="password"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 placeholder={t('settings:security.currentPassword.placeholder')}
@@ -1060,10 +1068,11 @@ const SettingsPage = () => {
 
             {/* New Password */}
             <div className="mb-4">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-new-password" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:security.newPassword.label')}
               </label>
               <input
+                id="settings-new-password"
                 type="password"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 placeholder={t('settings:security.newPassword.placeholder')}
@@ -1076,10 +1085,11 @@ const SettingsPage = () => {
 
             {/* Confirm New Password */}
             <div className="mb-6">
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="settings-confirm-password" className="block text-base font-bold text-dark-brown mb-3">
                 {t('settings:security.confirmPassword.label')}
               </label>
               <input
+                id="settings-confirm-password"
                 type="password"
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 placeholder={t('settings:security.confirmPassword.placeholder')}
@@ -1092,7 +1102,7 @@ const SettingsPage = () => {
 
             {/* Change Password Button */}
             <div className="pt-4 border-t">
-              <button
+              <button type="button"
                 onClick={handleChangePassword}
                 disabled={isChangingPassword}
                 className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1187,7 +1197,7 @@ const SettingsPage = () => {
                 <div className="space-y-4">
                   {user?.tier === 'free' ? (
                     <div>
-                      <button onClick={handleUpgradeToPro} className="btn-primary w-full">
+                      <button type="button" onClick={handleUpgradeToPro} className="btn-primary w-full">
                         {t('settings:billing.actions.upgrade')}
                       </button>
                       <p className="text-sm text-medium-brown mt-2 text-center">
@@ -1196,7 +1206,7 @@ const SettingsPage = () => {
                     </div>
                   ) : (
                     <div>
-                      <button
+                      <button type="button"
                         onClick={handleManageSubscription}
                         disabled={loadingSubscription}
                         className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1217,7 +1227,7 @@ const SettingsPage = () => {
                   <h3 className="text-lg font-semibold text-dark-brown mb-4">
                     {t('settings:billing.comparison.title')}
                   </h3>
-                  <button
+                  <button type="button"
                     onClick={() => navigate('/pricing')}
                     className="text-periwinkle hover:text-dark-periwinkle font-medium"
                   >
@@ -1254,7 +1264,7 @@ const SettingsPage = () => {
                     <li>{t('settings:danger.deleteAccount.items.chunkPacks')}</li>
                     <li>{t('settings:danger.deleteAccount.items.account')}</li>
                   </ul>
-                  <button
+                  <button type="button"
                     onClick={() => setShowDeleteModal(true)}
                     className="px-6 py-3 bg-strawberry text-white rounded-lg hover:bg-strawberry-dark transition-colors font-bold"
                     data-testid="settings-button-delete-account"

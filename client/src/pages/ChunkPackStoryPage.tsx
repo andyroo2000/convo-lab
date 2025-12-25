@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -177,6 +178,7 @@ const ChunkPackStoryPage = () => {
               You can proceed to the exercises step.
             </p>
             <button
+              type="button"
               onClick={() => navigate(`/app/chunk-packs/${packId}/exercises`)}
               className="mt-4 sm:mt-6 btn-primary"
             >
@@ -195,6 +197,7 @@ const ChunkPackStoryPage = () => {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <button
+              type="button"
               onClick={() => navigate(`/app/chunk-packs/${packId}/examples`)}
               className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
             >
@@ -209,6 +212,7 @@ const ChunkPackStoryPage = () => {
           <div className="mb-3 sm:mb-4">
             <h2 className="text-xl sm:text-2xl font-bold text-navy mb-2 sm:mb-3">{story.title}</h2>
             <button
+              type="button"
               onClick={() => setShowEnglish(!showEnglish)}
               className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm font-medium"
             >
@@ -275,6 +279,9 @@ const ChunkPackStoryPage = () => {
                   borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
                 }}
                 onClick={() => seekToSegment(segment)}
+                onKeyDown={(e) => e.key === 'Enter' && seekToSegment(segment)}
+                role="button"
+                tabIndex={0}
               >
                 <div className="space-y-2 sm:space-y-3">
                   {/* Header */}
@@ -311,6 +318,7 @@ const ChunkPackStoryPage = () => {
         {/* Next Button */}
         <div className="card bg-white shadow-xl">
           <button
+            type="button"
             onClick={() => navigate(`/app/chunk-packs/${packId}/exercises`)}
             className="w-full btn-primary flex items-center justify-center gap-2"
           >

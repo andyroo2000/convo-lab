@@ -305,12 +305,13 @@ const ChunkPackSetupPage = () => {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label htmlFor="chunk-pack-level-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 {t('chunkPack:setup.selectLevel')}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+              <div id="chunk-pack-level-selection" className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3" role="group" aria-label={t('chunkPack:setup.selectLevel')}>
                 {(['N5', 'N4', 'N3'] as JLPTLevel[]).map((level) => (
                   <button
+                    type="button"
                     key={level}
                     onClick={() => setJlptLevel(level)}
                     disabled={isGenerating}
@@ -331,12 +332,13 @@ const ChunkPackSetupPage = () => {
 
             {/* Theme Selection */}
             <div>
-              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label htmlFor="chunk-pack-theme-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 {t('chunkPack:setup.selectTheme')}
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2">
+              <div id="chunk-pack-theme-selection" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2" role="group" aria-label={t('chunkPack:setup.selectTheme')}>
                 {availableThemes.map((themeData) => (
                   <button
+                    type="button"
                     key={themeData.id}
                     onClick={() => setTheme(themeData.id)}
                     disabled={isGenerating}
@@ -387,6 +389,7 @@ const ChunkPackSetupPage = () => {
           {/* Start Button */}
           <div className="mt-8">
             <button
+              type="button"
               onClick={handleStartGeneration}
               disabled={isGenerating}
               className="w-full bg-yellow hover:bg-yellow-dark text-dark-brown font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"

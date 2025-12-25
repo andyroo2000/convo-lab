@@ -110,7 +110,7 @@ const AdminPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [isSavingFlags, setIsSavingFlags] = useState(false);
+  const [_isSavingFlags, _setIsSavingFlags] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   // Avatar cropper state
@@ -356,6 +356,7 @@ const AdminPage = () => {
   };
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
+    // eslint-disable-next-line no-restricted-globals
     if (
       !confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)
     ) {
@@ -373,6 +374,7 @@ const AdminPage = () => {
       }
       fetchUsers();
     } catch (err) {
+      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
@@ -388,11 +390,13 @@ const AdminPage = () => {
       if (!response.ok) throw new Error('Failed to create invite code');
       fetchInviteCodes();
     } catch (err) {
+      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to create invite code');
     }
   };
 
   const handleDeleteInviteCode = async (codeId: string, code: string) => {
+    // eslint-disable-next-line no-alert, no-restricted-globals
     if (!confirm(`Are you sure you want to delete invite code ${code}?`)) {
       return;
     }
@@ -408,6 +412,7 @@ const AdminPage = () => {
       }
       fetchInviteCodes();
     } catch (err) {
+      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to delete invite code');
     }
   };
@@ -599,6 +604,7 @@ const AdminPage = () => {
           {/* Tier Filter Buttons */}
           <div className="flex gap-2 mb-4">
             <button
+              type="button"
               onClick={() => setTierFilter('all')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 tierFilter === 'all'
@@ -609,6 +615,7 @@ const AdminPage = () => {
               All Users
             </button>
             <button
+              type="button"
               onClick={() => setTierFilter('free')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 tierFilter === 'free'
@@ -619,6 +626,7 @@ const AdminPage = () => {
               Free Tier
             </button>
             <button
+              type="button"
               onClick={() => setTierFilter('pro')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 tierFilter === 'pro'
@@ -629,6 +637,7 @@ const AdminPage = () => {
               Pro Tier
             </button>
             <button
+              type="button"
               onClick={() => setTierFilter('canceled')}
               className={`px-4 py-2 rounded-lg font-medium transition-colors ${
                 tierFilter === 'canceled'
@@ -652,7 +661,7 @@ const AdminPage = () => {
                 className="input pl-10"
               />
             </div>
-            <button onClick={fetchUsers} className="btn-primary">
+            <button type="button" onClick={fetchUsers} className="btn-primary">
               Search
             </button>
           </div>
@@ -783,6 +792,7 @@ const AdminPage = () => {
                       >
                         <div className="flex items-center justify-end gap-2">
                           <button
+                            type="button"
                             onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
                             className="text-indigo-600 hover:text-indigo-800 transition-colors"
                             title={`View as ${u.displayName || u.name}`}
@@ -791,6 +801,7 @@ const AdminPage = () => {
                           </button>
                           {u.role !== 'admin' && u.id !== user.id && (
                             <button
+                              type="button"
                               onClick={() => handleDeleteUser(u.id, u.email)}
                               className="text-red-600 hover:text-red-800 transition-colors"
                             >
@@ -823,6 +834,7 @@ const AdminPage = () => {
               </p>
             </div>
             <button
+              type="button"
               onClick={handleCreateInviteCode}
               className="btn-primary flex items-center gap-2"
             >
@@ -862,6 +874,7 @@ const AdminPage = () => {
                         <div className="flex items-center gap-2 whitespace-nowrap">
                           <code className="font-mono font-semibold text-navy">{code.code}</code>
                           <button
+                            type="button"
                             onClick={() => handleCopyCode(code.code)}
                             className="text-gray-400 hover:text-indigo transition-colors"
                             title="Copy code"
@@ -901,6 +914,7 @@ const AdminPage = () => {
                       <td className="px-3 sm:px-6 py-4 text-right">
                         {!code.usedBy && (
                           <button
+                            type="button"
                             onClick={() => handleDeleteInviteCode(code.id, code.code)}
                             className="text-red-600 hover:text-red-800 transition-colors"
                           >
@@ -1037,12 +1051,14 @@ const AdminPage = () => {
                       </p>
                       <div className="flex flex-col gap-2">
                         <button
+                          type="button"
                           onClick={() => handleRecropSpeaker(filename)}
                           className="btn-secondary text-xs sm:text-sm py-1"
                         >
                           Re-crop
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleUploadNewSpeaker(filename)}
                           className="btn-primary text-xs sm:text-sm py-1"
                         >
@@ -1080,6 +1096,7 @@ const AdminPage = () => {
                       {formatAvatarTitle(filename)}
                     </p>
                     <button
+                      type="button"
                       onClick={() => handleUploadNewSpeaker(filename)}
                       className="btn-primary text-xs sm:text-sm py-1 w-full"
                     >
@@ -1162,6 +1179,7 @@ const AdminPage = () => {
                         </td>
                         <td className="px-3 sm:px-6 py-4 text-right">
                           <button
+                            type="button"
                             onClick={() => {
                               const input = document.createElement('input');
                               input.type = 'file';
@@ -1191,12 +1209,14 @@ const AdminPage = () => {
                                       if (!response.ok)
                                         throw new Error('Failed to upload user avatar');
 
+                                      // eslint-disable-next-line no-alert
                                       alert('User avatar updated successfully');
                                       setCropperOpen(false);
 
                                       // Reload users to show updated avatar
                                       fetchUsers();
                                     } catch (err) {
+                                      // eslint-disable-next-line no-alert
                                       alert(
                                         err instanceof Error
                                           ? err.message
@@ -1252,12 +1272,14 @@ const AdminPage = () => {
                       AI-generated dialogues calibrated to user proficiency level
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label htmlFor="toggle-dialogues" className="relative inline-flex items-center cursor-pointer">
                     <input
+                      id="toggle-dialogues"
                       type="checkbox"
                       checked={featureFlags.dialoguesEnabled}
                       onChange={(e) => updateFeatureFlag('dialoguesEnabled', e.target.checked)}
                       className="sr-only peer"
+                      aria-label="Toggle AI-Generated Dialogues"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
@@ -1271,12 +1293,14 @@ const AdminPage = () => {
                       Audio-only lessons built from dialogues—perfect for commutes
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label htmlFor="toggle-audio-course" className="relative inline-flex items-center cursor-pointer">
                     <input
+                      id="toggle-audio-course"
                       type="checkbox"
                       checked={featureFlags.audioCourseEnabled}
                       onChange={(e) => updateFeatureFlag('audioCourseEnabled', e.target.checked)}
                       className="sr-only peer"
+                      aria-label="Toggle Guided Audio Course"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
@@ -1290,14 +1314,16 @@ const AdminPage = () => {
                       The same story told 5 different ways—deeply internalize patterns
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label htmlFor="toggle-narrow-listening" className="relative inline-flex items-center cursor-pointer">
                     <input
+                      id="toggle-narrow-listening"
                       type="checkbox"
                       checked={featureFlags.narrowListeningEnabled}
                       onChange={(e) =>
                         updateFeatureFlag('narrowListeningEnabled', e.target.checked)
                       }
                       className="sr-only peer"
+                      aria-label="Toggle Narrow Listening Packs"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
@@ -1313,14 +1339,16 @@ const AdminPage = () => {
                       Learn grammar through structured input—answer meaning-based questions
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label htmlFor="toggle-processing-instruction" className="relative inline-flex items-center cursor-pointer">
                     <input
+                      id="toggle-processing-instruction"
                       type="checkbox"
                       checked={featureFlags.processingInstructionEnabled}
                       onChange={(e) =>
                         updateFeatureFlag('processingInstructionEnabled', e.target.checked)
                       }
                       className="sr-only peer"
+                      aria-label="Toggle Processing Instruction Activities"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
@@ -1334,12 +1362,14 @@ const AdminPage = () => {
                       Acquire phrases as complete units—learn high-frequency chunks
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label htmlFor="toggle-lexical-chunks" className="relative inline-flex items-center cursor-pointer">
                     <input
+                      id="toggle-lexical-chunks"
                       type="checkbox"
                       checked={featureFlags.lexicalChunksEnabled}
                       onChange={(e) => updateFeatureFlag('lexicalChunksEnabled', e.target.checked)}
                       className="sr-only peer"
+                      aria-label="Toggle Lexical Chunk Packs"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
@@ -1388,6 +1418,7 @@ const AdminPage = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-2xl font-bold text-navy">Subscription Details</h2>
                     <button
+                      type="button"
                       onClick={() => setSelectedUserId(null)}
                       className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
@@ -1500,6 +1531,7 @@ const AdminPage = () => {
                         </p>
                       </div>
                       <button
+                        type="button"
                         onClick={async () => {
                           try {
                             const response = await fetch(
@@ -1548,13 +1580,14 @@ const AdminPage = () => {
                       </a>
                     )}
                     <button
+                      type="button"
                       onClick={() => navigate(`/app/library?viewAs=${selectedUser.id}`)}
                       className="btn-secondary flex items-center gap-2"
                     >
                       <Eye className="w-4 h-4" />
                       Impersonate User
                     </button>
-                    <button onClick={() => setSelectedUserId(null)} className="btn-secondary">
+                    <button type="button" onClick={() => setSelectedUserId(null)} className="btn-secondary">
                       Close
                     </button>
                   </div>

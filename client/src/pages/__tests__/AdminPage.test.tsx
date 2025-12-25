@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access */
+// Complex admin page testing with tables and forms requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -24,7 +26,7 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 vi.mock('../../components/admin/AvatarCropperModal', () => ({
-  default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
+  default: ({ isOpen }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? <div data-testid="avatar-cropper-modal">Avatar Cropper Modal</div> : null,
 }));
 

@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access */
+// Testing button groups and active states requires direct node access
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ViewToggleButtons from '../ViewToggleButtons';
@@ -143,7 +145,7 @@ describe('ViewToggleButtons', () => {
 
   describe('icons', () => {
     it('should render Eye icon when readings are shown', () => {
-      const { container } = render(<ViewToggleButtons {...defaultProps} showReadings />);
+      render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       const svg = readingsButton.querySelector('svg');
@@ -151,7 +153,7 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should render EyeOff icon when readings are hidden', () => {
-      const { container } = render(<ViewToggleButtons {...defaultProps} showReadings={false} />);
+      render(<ViewToggleButtons {...defaultProps} showReadings={false} />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       const svg = readingsButton.querySelector('svg');

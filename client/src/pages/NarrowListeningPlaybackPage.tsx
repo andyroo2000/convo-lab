@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Loader, Zap } from 'lucide-react';
+import { Loader, Zap } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import JapaneseText from '../components/JapaneseText';
@@ -66,7 +66,7 @@ const NarrowListeningPlaybackPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generatingSpeed, setGeneratingSpeed] = useState(false);
-  const [generationJobId, setGenerationJobId] = useState<string | null>(null);
+  const [_generationJobId, setGenerationJobId] = useState<string | null>(null);
   const [generationProgress, setGenerationProgress] = useState<number>(0);
   const [repeatMode, setRepeatMode] = useState<RepeatMode>('all');
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -109,6 +109,7 @@ const NarrowListeningPlaybackPage = () => {
         if (audio) {
           audio.play().catch((err) => {
             // Ignore auto-play errors (browser restrictions)
+            // eslint-disable-next-line no-console
             console.log('Auto-play prevented:', err);
           });
         }
@@ -367,7 +368,7 @@ const NarrowListeningPlaybackPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <p className="text-red-700">{error || 'Pack not found'}</p>
-          <button onClick={() => navigate('/app/narrow-listening')} className="btn-outline mt-4">
+          <button type="button" onClick={() => navigate('/app/narrow-listening')} className="btn-outline mt-4">
             Back to Library
           </button>
         </div>
@@ -558,7 +559,7 @@ const NarrowListeningPlaybackPage = () => {
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Story Variations</h3>
               <div className="space-y-2">
                 {pack.versions.map((version) => (
-                  <button
+                  <button type="button"
                     key={version.id}
                     onClick={() => handleVersionSelect(version.id)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
@@ -588,7 +589,7 @@ const NarrowListeningPlaybackPage = () => {
                 {/* Story Text */}
                 <div className="space-y-6">
                   <h4 className="text-sm font-semibold text-gray-900">Story Text</h4>
-                  {selectedVersion.segments.map((segment, idx) => {
+                  {selectedVersion.segments.map((segment, _idx) => {
                     // Calculate if this segment is currently speaking
                     const startTime =
                       selectedSpeed === '0.7x'

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES, getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
@@ -29,7 +30,7 @@ function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): str
 
 const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
-  const { getEpisode, generateAudio, generateAllSpeedsAudio, pollJobStatus, loading } =
+  const { getEpisode, generateAudio: _generateAudio, generateAllSpeedsAudio, pollJobStatus: _pollJobStatus, loading } =
     useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
@@ -90,6 +91,7 @@ const PlaybackPage = () => {
     const hasAllSpeeds = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0;
 
     if (!hasAllSpeeds && !isGeneratingAudio) {
+      // eslint-disable-next-line no-console
       console.log('Missing audio speeds, generating all speeds...');
       lastProcessedEpisodeRef.current = episode.id;
 
@@ -526,7 +528,7 @@ const PlaybackPage = () => {
       {/* Dialogue */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="space-y-3">
-          {sentences.map((sentence, index) => {
+          {sentences.map((sentence, _index) => {
             const speaker = speakerMap.get(sentence.speakerId);
             if (!speaker) return null;
 
@@ -585,6 +587,9 @@ const PlaybackPage = () => {
                   borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
                 }}
                 onClick={() => seekToSentence(sentence)}
+                onKeyDown={(e) => e.key === 'Enter' && seekToSentence(sentence)}
+                role="button"
+                tabIndex={0}
                 data-testid={`playback-sentence-${sentence.id}`}
               >
                 <div className="flex gap-3 sm:gap-8">

@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access, testing-library/no-container */
+// Testing SVG logos requires direct node access to verify paths, viewBox, and other SVG attributes
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import Logo from '../Logo';

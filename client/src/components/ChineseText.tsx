@@ -134,23 +134,29 @@ const ChineseText = ({ text, metadata, className = '', showPinyin = true }: Chin
   if (!metadata?.chinese || !pinyin) {
     if (text.includes('[')) {
       const useToneNumbers = pinyinDisplayMode === 'toneNumbers';
-      const htmlContent = renderBracketRuby(text, useToneNumbers);
+      // eslint-disable-next-line testing-library/render-result-naming-convention
+      const htmlString = renderBracketRuby(text, useToneNumbers);
       return (
         <span
           className={`chinese-text ${className}`}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          // Intentional: Rendering pinyin ruby HTML from trusted source (parsed bracket notation)
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: htmlString }}
         />
       );
     }
     return <span className={`chinese-text ${className}`}>{text}</span>;
   }
 
-  const htmlContent = renderPinyinRuby(characters, pinyin);
+  // eslint-disable-next-line testing-library/render-result-naming-convention
+  const htmlString = renderPinyinRuby(characters, pinyin);
 
   return (
     <span
       className={`chinese-text ${className}`}
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
+      // Intentional: Rendering pinyin ruby HTML from trusted source (metadata)
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: htmlString }}
     />
   );
 };

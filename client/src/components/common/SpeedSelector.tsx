@@ -49,7 +49,7 @@ const SpeedSelector = ({
   loading = false,
   loadingSpeed,
   showLabels = true,
-  variant = 'keylime',
+  variant: _variant = 'keylime',
   className = '',
 }: SpeedSelectorProps) => {
   const normalizedSelected = normalizeSpeed(selectedSpeed);

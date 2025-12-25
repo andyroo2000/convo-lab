@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access, testing-library/no-container */
+// Complex library page testing with dynamic content requires direct node access
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';

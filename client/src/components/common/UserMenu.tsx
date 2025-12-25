@@ -1,13 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { User, Settings, LogOut, ChevronDown, Shield } from 'lucide-react';
+import { Settings, LogOut, Shield } from 'lucide-react';
 
 interface UserMenuProps {
   userName: string;
   avatarColor?: string;
   avatarUrl?: string;
-  role: 'user' | 'moderator' | 'admin' | 'demo';
+  userRole: 'user' | 'moderator' | 'admin' | 'demo';
   onLogout: () => void;
 }
 
@@ -26,7 +26,7 @@ const UserMenu = ({
   userName,
   avatarColor = 'indigo',
   avatarUrl,
-  role,
+  userRole,
   onLogout,
 }: UserMenuProps) => {
   const { t } = useTranslation('common');
@@ -34,7 +34,7 @@ const UserMenu = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
-  const colorScheme = AVATAR_COLOR_MAP[avatarColor] || AVATAR_COLOR_MAP.indigo;
+  const _colorScheme = AVATAR_COLOR_MAP[avatarColor] || AVATAR_COLOR_MAP.indigo;
   const userInitial = userName.charAt(0).toUpperCase();
 
   // Close dropdown when clicking outside
@@ -60,6 +60,7 @@ const UserMenu = ({
         document.removeEventListener('keydown', handleEscKey);
       };
     }
+    return undefined;
   }, [isOpen]);
 
   return (
@@ -90,7 +91,7 @@ const UserMenu = ({
         >
           <div className="py-1">
             {/* Admin (only for admins) */}
-            {role === 'admin' && (
+            {userRole === 'admin' && (
               <button
                 type="button"
                 onClick={() => {

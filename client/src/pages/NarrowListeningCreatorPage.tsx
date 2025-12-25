@@ -68,6 +68,7 @@ const NarrowListeningCreatorPage = () => {
       }
 
       const { jobId, packId } = await response.json();
+      // eslint-disable-next-line no-console
       console.log(`Generation started: jobId=${jobId}, packId=${packId}`);
 
       // Poll for progress
@@ -100,6 +101,7 @@ const NarrowListeningCreatorPage = () => {
           // Check if completed
           if (status.state === 'completed') {
             clearInterval(pollInterval);
+            // eslint-disable-next-line no-console
             console.log('Generation complete!', status.result);
             // Invalidate library cache so new pack shows up
             invalidateLibrary();
@@ -145,10 +147,11 @@ const NarrowListeningCreatorPage = () => {
           <div className="space-y-6">
             {/* Topic */}
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-3">
+              <label htmlFor="narrow-listening-topic" className="block text-base font-bold text-dark-brown mb-3">
                 {t('narrowListening:form.whatAbout')} <span className="text-strawberry">*</span>
               </label>
               <textarea
+                id="narrow-listening-topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 disabled={isGenerating}
@@ -162,7 +165,7 @@ const NarrowListeningCreatorPage = () => {
             {/* Proficiency Level */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label htmlFor="narrow-listening-level" className="block text-base font-bold text-dark-brown mb-2">
                   {t(
                     targetLanguage === 'ja'
                       ? 'narrowListening:form.targetJLPT'
@@ -174,6 +177,7 @@ const NarrowListeningCreatorPage = () => {
                 </label>
                 {targetLanguage === 'ja' ? (
                   <select
+                    id="narrow-listening-level"
                     value={jlptLevel}
                     onChange={(e) => setJlptLevel(e.target.value)}
                     disabled={isGenerating}
@@ -187,6 +191,7 @@ const NarrowListeningCreatorPage = () => {
                   </select>
                 ) : targetLanguage === 'zh' ? (
                   <select
+                    id="narrow-listening-level"
                     value={hskLevel}
                     onChange={(e) => setHskLevel(e.target.value)}
                     disabled={isGenerating}
@@ -201,6 +206,7 @@ const NarrowListeningCreatorPage = () => {
                   </select>
                 ) : (
                   <select
+                    id="narrow-listening-level"
                     value={cefrLevel}
                     onChange={(e) => setCefrLevel(e.target.value)}
                     disabled={isGenerating}
@@ -221,10 +227,11 @@ const NarrowListeningCreatorPage = () => {
 
               {/* Grammar Focus (Optional) */}
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label htmlFor="narrow-listening-grammar" className="block text-base font-bold text-dark-brown mb-2">
                   {t('narrowListening:form.grammarFocus')}
                 </label>
                 <input
+                  id="narrow-listening-grammar"
                   type="text"
                   value={grammarFocus}
                   onChange={(e) => setGrammarFocus(e.target.value)}
@@ -288,14 +295,14 @@ const NarrowListeningCreatorPage = () => {
 
           {/* Actions */}
           <div className="flex gap-4 mt-8">
-            <button
+            <button type="button"
               onClick={() => navigate('/app/create')}
               disabled={isGenerating}
               className="px-8 py-4 border-2 border-gray-300 rounded-lg font-bold text-base text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
             >
               {t('narrowListening:actions.cancel')}
             </button>
-            <button
+            <button type="button"
               onClick={handleGenerate}
               disabled={isGenerating || !topic.trim()}
               className="flex-1 bg-strawberry hover:bg-strawberry-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"

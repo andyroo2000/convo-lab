@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '@languageflow/shared/src/constants-new';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
@@ -90,7 +93,7 @@ const DialogueGenerator = () => {
 
   // Poll job status when generating
   useEffect(() => {
-    if (!jobId || step !== 'generating') return;
+    if (!jobId || step !== 'generating') return undefined;
 
     const pollInterval = setInterval(async () => {
       const status = await pollJobStatus(jobId);
@@ -127,6 +130,7 @@ const DialogueGenerator = () => {
       } else if (status === 'failed') {
         clearInterval(pollInterval);
         setStep('input');
+        // eslint-disable-next-line no-alert
         alert(t('dialogue:alerts.generationFailed'));
       }
     }, 5000); // Poll every 5 seconds (reduced from 2s to minimize Redis usage)
@@ -150,11 +154,13 @@ const DialogueGenerator = () => {
     }
 
     if (!sourceText.trim()) {
+      // eslint-disable-next-line no-alert
       alert(t('dialogue:alerts.fillRequired'));
       return;
     }
 
     if (speakers.length < 2) {
+      // eslint-disable-next-line no-alert
       alert(t('dialogue:alerts.twoSpeakers'));
       return;
     }
@@ -264,10 +270,14 @@ const DialogueGenerator = () => {
 
         <div className="space-y-6">
           <div>
-            <label className="block text-base font-bold text-dark-brown mb-3">
+            <label
+              htmlFor="dialogue-source-text"
+              className="block text-base font-bold text-dark-brown mb-3"
+            >
               {t('dialogue:form.whatToTalkAbout')} *
             </label>
             <textarea
+              id="dialogue-source-text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-40"
@@ -279,12 +289,16 @@ const DialogueGenerator = () => {
 
           <div className="space-y-6">
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="dialogue-length"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('dialogue:form.conversationLength')}
               </label>
               <select
+                id="dialogue-length"
                 value={dialogueLength}
-                onChange={(e) => setDialogueLength(parseInt(e.target.value))}
+                onChange={(e) => setDialogueLength(parseInt(e.target.value, 10))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
                 data-testid="dialogue-select-length"
               >
@@ -297,10 +311,14 @@ const DialogueGenerator = () => {
 
             {targetLanguage === 'ja' && (
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label
+                  htmlFor="dialogue-jlpt-level"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
                   {t('dialogue:form.targetJLPT')}
                 </label>
                 <select
+                  id="dialogue-jlpt-level"
                   value={jlptLevel}
                   onChange={(e) => setJlptLevel(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -317,10 +335,14 @@ const DialogueGenerator = () => {
 
             {targetLanguage === 'zh' && (
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label
+                  htmlFor="dialogue-hsk-level"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
                   {t('dialogue:form.targetHSK')}
                 </label>
                 <select
+                  id="dialogue-hsk-level"
                   value={hskLevel}
                   onChange={(e) => setHskLevel(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -338,10 +360,14 @@ const DialogueGenerator = () => {
 
             {(targetLanguage === 'es' || targetLanguage === 'fr') && (
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label
+                  htmlFor="dialogue-cefr-level"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
                   {t('dialogue:form.targetCEFR')}
                 </label>
                 <select
+                  id="dialogue-cefr-level"
                   value={cefrLevel}
                   onChange={(e) => setCefrLevel(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
@@ -358,10 +384,14 @@ const DialogueGenerator = () => {
             )}
 
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="dialogue-tone"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('dialogue:form.tone')}
               </label>
               <select
+                id="dialogue-tone"
                 value={tone}
                 onChange={(e) => setTone(e.target.value as ToneStyle)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"

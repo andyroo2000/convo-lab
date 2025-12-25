@@ -46,6 +46,7 @@ const OnboardingModal = () => {
       });
     } catch (error) {
       console.error('Failed to complete onboarding:', error);
+      // eslint-disable-next-line no-alert
       alert('Failed to save preferences. Please try again.');
       setIsSubmitting(false);
     }

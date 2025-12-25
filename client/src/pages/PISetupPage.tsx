@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Sparkles, Loader } from 'lucide-react';
+import { Sparkles, Loader } from 'lucide-react';
 
 import { API_URL } from '../config';
 import { useIsDemo } from '../hooks/useDemo';
@@ -292,12 +292,12 @@ const PISetupPage = () => {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label htmlFor="jlpt-level-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 {t('processingInstruction:setup.selectLevel')}
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <div id="jlpt-level-selection" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3" role="group" aria-label={t('processingInstruction:setup.selectLevel')}>
                 {(['N5', 'N4', 'N3', 'N2'] as JLPTLevel[]).map((level) => (
-                  <button
+                  <button type="button"
                     key={level}
                     onClick={() => setJlptLevel(level)}
                     className={`px-4 sm:px-6 py-3 sm:py-4 rounded-lg border-2 font-bold transition-all ${
@@ -317,14 +317,14 @@ const PISetupPage = () => {
 
             {/* Grammar Point Selection */}
             <div>
-              <label className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label htmlFor="grammar-point-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
                 {t('processingInstruction:setup.selectGrammar')}
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2">
+              <div id="grammar-point-selection" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2" role="group" aria-label={t('processingInstruction:setup.selectGrammar')}>
                 {availableGrammarPoints.map((gpId) => {
                   const gp = GRAMMAR_POINTS[gpId];
                   return (
-                    <button
+                    <button type="button"
                       key={gpId}
                       onClick={() => setGrammarPoint(gpId)}
                       className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all ${
@@ -347,12 +347,12 @@ const PISetupPage = () => {
 
             {/* Item Count Selection */}
             <div>
-              <label className="block text-lg font-bold text-dark-brown mb-4">
+              <label htmlFor="item-count-selection" className="block text-lg font-bold text-dark-brown mb-4">
                 {t('processingInstruction:setup.itemCount')}
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div id="item-count-selection" className="grid grid-cols-2 gap-3" role="group" aria-label={t('processingInstruction:setup.itemCount')}>
                 {([10, 15] as ItemCount[]).map((count) => (
-                  <button
+                  <button type="button"
                     key={count}
                     onClick={() => setItemCount(count)}
                     className={`px-6 py-4 rounded-lg border-2 font-medium transition-all ${
@@ -380,7 +380,7 @@ const PISetupPage = () => {
 
           {/* Start Button */}
           <div className="mt-8">
-            <button
+            <button type="button"
               onClick={handleStartSession}
               disabled={isGenerating}
               className="w-full bg-keylime hover:bg-keylime-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"

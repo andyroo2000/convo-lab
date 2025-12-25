@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access, testing-library/no-container */
+// Complex layout structure testing requires direct node access for navigation and content areas
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
@@ -38,7 +40,7 @@ vi.mock('../../onboarding/OnboardingModal', () => ({
 }));
 
 describe('Layout', () => {
-  const renderLayout = (initialPath: string) =>
+  const renderLayout = (_initialPath: string) =>
     render(
       <BrowserRouter>
         <Routes>

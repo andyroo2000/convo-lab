@@ -18,7 +18,7 @@ const LandingPage = () => {
             <Logo size="medium" variant="dark" />
             <div className="flex items-center gap-2 sm:gap-3">
               {user ? (
-                <button
+                <button type="button"
                   onClick={() => navigate('/app/library')}
                   className="px-4 sm:px-6 py-2 sm:py-2.5 bg-coral text-white rounded-full font-semibold hover:bg-coral-dark transition-all text-sm sm:text-base"
                   data-testid="landing-header-button-go-to-app"
@@ -27,14 +27,14 @@ const LandingPage = () => {
                 </button>
               ) : (
                 <>
-                  <button
+                  <button type="button"
                     onClick={() => navigate('/login')}
                     className="hidden sm:block px-6 py-2.5 border-2 border-dark-brown text-dark-brown rounded-full font-semibold hover:bg-dark-brown hover:text-cream transition-all"
                     data-testid="landing-header-button-signin"
                   >
                     {t('landing:header.signIn')}
                   </button>
-                  <button
+                  <button type="button"
                     onClick={() => navigate('/login')}
                     className="px-4 sm:px-6 py-2 sm:py-2.5 bg-coral text-white rounded-full font-semibold hover:bg-coral-dark transition-all text-sm sm:text-base"
                     data-testid="landing-header-button-get-started"
@@ -70,7 +70,7 @@ const LandingPage = () => {
 
             <div className="flex items-center justify-center gap-4">
               {user ? (
-                <button
+                <button type="button"
                   onClick={() => navigate('/app/library')}
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-strawberry text-white rounded-full font-bold text-base sm:text-lg hover:bg-strawberry-dark transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   data-testid="landing-hero-button-go-to-app"
@@ -78,7 +78,7 @@ const LandingPage = () => {
                   {t('landing:hero.goToApp')}
                 </button>
               ) : (
-                <button
+                <button type="button"
                   onClick={() => navigate('/login')}
                   className="px-8 sm:px-10 py-3 sm:py-4 bg-strawberry text-white rounded-full font-bold text-base sm:text-lg hover:bg-strawberry-dark transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                   data-testid="landing-hero-button-start"
@@ -155,7 +155,7 @@ const LandingPage = () => {
             <p className="text-lg sm:text-2xl mb-8 sm:mb-10 text-periwinkle-light font-normal">
               {t('landing:cta.description')}
             </p>
-            <button
+            <button type="button"
               onClick={() => navigate(user ? '/app/library' : '/login')}
               className="px-8 sm:px-10 py-3 sm:py-4 bg-yellow text-dark-brown rounded-full font-bold text-base sm:text-lg hover:bg-yellow-dark transition-all transform hover:-translate-y-0.5 shadow-xl"
               data-testid={user ? 'landing-cta-button-go-to-app' : 'landing-cta-button-start'}

@@ -128,7 +128,7 @@ const NarrowListeningLibraryPage = () => {
                 </p>
               </div>
             </div>
-            <button
+            <button type="button"
               onClick={() => navigate('/app/narrow-listening/create')}
               className="btn-primary flex items-center gap-2"
             >
@@ -148,7 +148,7 @@ const NarrowListeningLibraryPage = () => {
         ) : error ? (
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <p className="text-red-700">{error}</p>
-            <button onClick={loadPacks} className="btn-outline mt-4">
+            <button type="button" onClick={loadPacks} className="btn-outline mt-4">
               Try Again
             </button>
           </div>
@@ -161,7 +161,7 @@ const NarrowListeningLibraryPage = () => {
             <p className="text-gray-600 mb-6">
               Create your first narrow listening pack to start practicing with story variations
             </p>
-            <button
+            <button type="button"
               onClick={() => navigate('/app/narrow-listening/create')}
               className="btn-primary inline-flex items-center gap-2"
             >
@@ -178,7 +178,7 @@ const NarrowListeningLibraryPage = () => {
                 className="bg-white border rounded-lg p-6 hover:shadow-md transition-shadow relative group"
               >
                 {/* Delete Button */}
-                <button
+                <button type="button"
                   onClick={(e) => handleDelete(pack.id, e)}
                   disabled={deletingId === pack.id}
                   className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"

@@ -21,6 +21,7 @@ const CreatePage = () => {
         {/* Dialogue Content Type */}
         {isFeatureEnabled('dialoguesEnabled') && (
           <button
+            type="button"
             onClick={() => navigate('/app/create/dialogue')}
             className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-dialogues"
@@ -45,6 +46,7 @@ const CreatePage = () => {
         {/* Course Content Type */}
         {isFeatureEnabled('audioCourseEnabled') && (
           <button
+            type="button"
             onClick={() => navigate('/app/create/audio-course')}
             className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-audio-course"
@@ -71,6 +73,7 @@ const CreatePage = () => {
         {/* Narrow Listening Content Type */}
         {isFeatureEnabled('narrowListeningEnabled') && (
           <button
+            type="button"
             onClick={() => navigate('/app/create/narrow-listening')}
             className="w-full flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-narrow-listening"
@@ -97,6 +100,7 @@ const CreatePage = () => {
         {/* Processing Instruction Mode */}
         {isFeatureEnabled('processingInstructionEnabled') && (
           <button
+            type="button"
             onClick={() => navigate('/app/create/processing-instruction')}
             className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-processing-instruction"
@@ -121,6 +125,7 @@ const CreatePage = () => {
         {/* Lexical Chunk Packs */}
         {isFeatureEnabled('lexicalChunksEnabled') && (
           <button
+            type="button"
             onClick={() => navigate('/app/create/lexical-chunk-pack')}
             className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-lexical-chunks"

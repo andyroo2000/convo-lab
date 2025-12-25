@@ -121,7 +121,7 @@ describe('ErrorDisplay', () => {
   });
 
   it('should display error message in monospace font', () => {
-    const { container } = render(<ErrorDisplay error="Error code: 500" />);
+    render(<ErrorDisplay error="Error code: 500" />);
 
     const errorMessage = screen.getByText('Error code: 500');
     expect(errorMessage.className).toContain('font-mono');

@@ -15,6 +15,7 @@ const Toast = ({ message, type = 'info', isVisible, onClose, duration = 4000 }: 
       const timer = setTimeout(onClose, duration);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [isVisible, duration, onClose]);
 
   if (!isVisible) return null;

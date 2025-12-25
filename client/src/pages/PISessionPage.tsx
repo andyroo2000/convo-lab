@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Volume2, CheckCircle, XCircle, ArrowRight, RotateCcw } from 'lucide-react';
 
-import { API_URL } from '../config';
 
 interface PIChoice {
   id: string;
@@ -83,6 +82,7 @@ const PISessionPage = () => {
     if (currentItem && currentItem.audioUrl) {
       setTimeout(() => {
         audioRef.current?.play().catch((error) => {
+          // eslint-disable-next-line no-console
           console.log('Auto-play prevented by browser:', error);
           // Don't show alert for auto-play failures, just log it
         });
@@ -135,6 +135,7 @@ const PISessionPage = () => {
       audio.play().catch((error) => {
         console.error('Error playing audio:', error);
         // Retry after user interaction
+        // eslint-disable-next-line no-alert
         alert('Audio playback failed. Please try clicking the button again.');
       });
     }
@@ -163,7 +164,7 @@ const PISessionPage = () => {
               </div>
             )}
             <h1 className="text-3xl font-bold text-navy mb-2">Session Complete!</h1>
-            <p className="text-gray-600">You've finished all {session.items.length} items</p>
+            <p className="text-gray-600">You&apos;ve finished all {session.items.length} items</p>
           </div>
 
           <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg p-8 mb-8">
@@ -176,7 +177,7 @@ const PISessionPage = () => {
           <div className="space-y-4 mb-8">
             {accuracy >= 90 && (
               <p className="text-green-700 font-medium">
-                🎉 Excellent work! You're processing は and が very well!
+                🎉 Excellent work! You&apos;re processing は and が very well!
               </p>
             )}
             {accuracy >= 70 && accuracy < 90 && (
@@ -192,10 +193,10 @@ const PISessionPage = () => {
           </div>
 
           <div className="flex gap-3">
-            <button onClick={handleRestart} className="flex-1 btn-outline">
+            <button type="button" onClick={handleRestart} className="flex-1 btn-outline">
               New Session
             </button>
-            <button onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
+            <button type="button" onClick={() => navigate('/app/create')} className="flex-1 btn-primary">
               Back to Create
             </button>
           </div>
@@ -248,7 +249,7 @@ const PISessionPage = () => {
               // For meaning_match type, show two audio buttons
               <div className="space-y-3">
                 <div className="flex items-center gap-4 p-4 bg-indigo-50 rounded-lg">
-                  <button
+                  <button type="button"
                     onClick={() => handlePlayAudio('A')}
                     className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                   >
@@ -260,7 +261,7 @@ const PISessionPage = () => {
                   </span>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-lg">
-                  <button
+                  <button type="button"
                     onClick={() => handlePlayAudio('B')}
                     className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
@@ -276,6 +277,7 @@ const PISessionPage = () => {
                   src={currentItem.audioUrlA || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio A:', e)}
+                  // eslint-disable-next-line no-console
                   onLoadedData={() => console.log('Audio A loaded:', currentItem.audioUrlA)}
                 />
                 <audio
@@ -283,13 +285,14 @@ const PISessionPage = () => {
                   src={currentItem.audioUrlB || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio B:', e)}
+                  // eslint-disable-next-line no-console
                   onLoadedData={() => console.log('Audio B loaded:', currentItem.audioUrlB)}
                 />
               </div>
             ) : (
               // For other types, show single audio button
               <div className="flex items-center gap-4 p-4 bg-indigo-50 rounded-lg">
-                <button
+                <button type="button"
                   onClick={() => handlePlayAudio()}
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                 >
@@ -304,6 +307,7 @@ const PISessionPage = () => {
                   src={currentItem.audioUrl || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio:', e, currentItem.audioUrl)}
+                  // eslint-disable-next-line no-console
                   onLoadedData={() => console.log('Audio loaded:', currentItem.audioUrl)}
                 />
               </div>
@@ -317,7 +321,7 @@ const PISessionPage = () => {
               const showResult = hasAnswered && isSelected;
 
               return (
-                <button
+                <button type="button"
                   key={choice.id}
                   onClick={() => handleChoiceSelect(choice.id)}
                   disabled={hasAnswered}
@@ -360,7 +364,7 @@ const PISessionPage = () => {
 
           {/* Next Button */}
           {hasAnswered && (
-            <button
+            <button type="button"
               onClick={handleNext}
               className="w-full btn-primary flex items-center justify-center gap-2"
             >

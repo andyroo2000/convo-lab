@@ -38,7 +38,7 @@ const AudioPlayer = ({
   // Set up event listeners when audio element is available
   useEffect(() => {
     const element = audioElementRef.current;
-    if (!element) return;
+    if (!element) return undefined;
 
     const updateDuration = () => setDuration(element.duration);
     const handlePlay = () => setIsPlaying(true);

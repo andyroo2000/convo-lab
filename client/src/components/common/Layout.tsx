@@ -1,6 +1,7 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic } from 'lucide-react';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
@@ -160,7 +161,7 @@ const Layout = () => {
                 userName={user.displayName || user.name}
                 avatarColor={user.avatarColor}
                 avatarUrl={user.avatarUrl}
-                role={user.role}
+                userRole={user.role}
                 onLogout={handleLogout}
               />
             </div>

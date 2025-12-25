@@ -20,7 +20,7 @@ function renderWithRouter(component: React.ReactElement) {
 describe('UserMenu', () => {
   const defaultProps = {
     userName: 'John Doe',
-    role: 'user' as const,
+    userRole: 'user' as const,
     onLogout: vi.fn(),
   };
 
@@ -149,7 +149,7 @@ describe('UserMenu', () => {
 
   describe('Admin Menu Item', () => {
     it('should show admin link for admin users', () => {
-      renderWithRouter(<UserMenu {...defaultProps} role="admin" />);
+      renderWithRouter(<UserMenu {...defaultProps} userRole="admin" />);
 
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
@@ -157,7 +157,7 @@ describe('UserMenu', () => {
     });
 
     it('should not show admin link for regular users', () => {
-      renderWithRouter(<UserMenu {...defaultProps} role="user" />);
+      renderWithRouter(<UserMenu {...defaultProps} userRole="user" />);
 
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
@@ -165,7 +165,7 @@ describe('UserMenu', () => {
     });
 
     it('should not show admin link for demo users', () => {
-      renderWithRouter(<UserMenu {...defaultProps} role="demo" />);
+      renderWithRouter(<UserMenu {...defaultProps} userRole="demo" />);
 
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
@@ -173,7 +173,7 @@ describe('UserMenu', () => {
     });
 
     it('should navigate to admin page', () => {
-      renderWithRouter(<UserMenu {...defaultProps} role="admin" />);
+      renderWithRouter(<UserMenu {...defaultProps} userRole="admin" />);
 
       fireEvent.click(screen.getByTestId('user-menu-button'));
       fireEvent.click(screen.getByTestId('user-menu-item-admin'));

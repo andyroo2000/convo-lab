@@ -47,12 +47,14 @@ const JapaneseText = ({
     ? metadata?.japanese?.furigana || text
     : metadata?.japanese?.kanji || stripFurigana(text);
 
-  const htmlContent = showFurigana ? renderRuby(displayText) : displayText;
+  const htmlString = showFurigana ? renderRuby(displayText) : displayText;
 
   return (
     <span
       className={`japanese-text ${className}`}
-      dangerouslySetInnerHTML={{ __html: htmlContent }}
+      // Intentional: Rendering furigana ruby HTML from trusted source (metadata or bracket notation)
+      // eslint-disable-next-line react/no-danger
+      dangerouslySetInnerHTML={{ __html: htmlString }}
     />
   );
 };

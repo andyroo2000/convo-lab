@@ -1,3 +1,5 @@
+/* eslint-disable testing-library/no-node-access, testing-library/no-container */
+// Complex DOM structure testing requires direct node access for checking SVG paths and pill segments
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import SegmentedPill from '../SegmentedPill';

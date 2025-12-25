@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
+// eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,7 +32,7 @@ const CourseGenerator = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
-  const [generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
+  const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
 
   // Initialize from user preferences
   useEffect(() => {
@@ -160,7 +162,7 @@ const CourseGenerator = () => {
     );
   }
 
-  const nativeVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const _nativeVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
@@ -173,10 +175,14 @@ const CourseGenerator = () => {
 
         <div className="space-y-6">
           <div>
-            <label className="block text-base font-bold text-dark-brown mb-3">
+            <label
+              htmlFor="course-generator-title"
+              className="block text-base font-bold text-dark-brown mb-3"
+            >
               {t('audioCourse:courseDetails.courseTitle')} *
             </label>
             <input
+              id="course-generator-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -186,10 +192,14 @@ const CourseGenerator = () => {
           </div>
 
           <div>
-            <label className="block text-base font-bold text-dark-brown mb-3">
+            <label
+              htmlFor="course-generator-story"
+              className="block text-base font-bold text-dark-brown mb-3"
+            >
               {t('audioCourse:courseDetails.yourStory')} *
             </label>
             <textarea
+              id="course-generator-story"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
               className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base h-40"
@@ -217,10 +227,14 @@ const CourseGenerator = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {/* Speaker 1 */}
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label
+                  htmlFor="generator-speaker1-voice"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
                   {t('audioCourse:voiceConfig.speaker1')}
                 </label>
                 <select
+                  id="generator-speaker1-voice"
                   value={speaker1VoiceId}
                   onChange={(e) => setSpeaker1VoiceId(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
@@ -235,10 +249,14 @@ const CourseGenerator = () => {
 
               {/* Speaker 2 */}
               <div>
-                <label className="block text-base font-bold text-dark-brown mb-2">
+                <label
+                  htmlFor="generator-speaker2-voice"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
                   {t('audioCourse:voiceConfig.speaker2')}
                 </label>
                 <select
+                  id="generator-speaker2-voice"
                   value={speaker2VoiceId}
                   onChange={(e) => setSpeaker2VoiceId(e.target.value)}
                   className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
@@ -265,12 +283,16 @@ const CourseGenerator = () => {
         <div className={user?.role === 'admin' ? 'grid grid-cols-2 gap-6' : ''}>
           {user?.role === 'admin' && (
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="generator-max-duration"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('audioCourse:courseSettings.maxDuration')}
               </label>
               <select
+                id="generator-max-duration"
                 value={maxDuration}
-                onChange={(e) => setMaxDuration(parseInt(e.target.value))}
+                onChange={(e) => setMaxDuration(parseInt(e.target.value, 10))}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
                 <option value={10}>{t('audioCourse:courseSettings.durationOptions.10')}</option>
@@ -286,10 +308,14 @@ const CourseGenerator = () => {
 
           {targetLanguage === 'ja' && (
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="generator-jlpt-level"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('audioCourse:courseSettings.targetJLPT')}
               </label>
               <select
+                id="generator-jlpt-level"
                 value={jlptLevel}
                 onChange={(e) => setJlptLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
@@ -308,10 +334,14 @@ const CourseGenerator = () => {
 
           {targetLanguage === 'zh' && (
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="generator-hsk-level"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('audioCourse:courseSettings.targetHSK')}
               </label>
               <select
+                id="generator-hsk-level"
                 value={hskLevel}
                 onChange={(e) => setHskLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
@@ -331,10 +361,14 @@ const CourseGenerator = () => {
 
           {(targetLanguage === 'es' || targetLanguage === 'fr') && (
             <div>
-              <label className="block text-base font-bold text-dark-brown mb-2">
+              <label
+                htmlFor="generator-cefr-level"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
                 {t('audioCourse:courseSettings.targetCEFR')}
               </label>
               <select
+                id="generator-cefr-level"
                 value={cefrLevel}
                 onChange={(e) => setCefrLevel(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
