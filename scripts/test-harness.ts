@@ -19,6 +19,7 @@
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { formatDuration } from './utils/format-duration.js';
 
 interface TestHarnessOptions {
   dryRun?: boolean;
@@ -333,14 +334,12 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and
 
     const endTime = Date.now();
     const durationMs = endTime - startTime;
-    const durationMin = (durationMs / 60000).toFixed(1);
-    const durationHr = (durationMs / 3600000).toFixed(2);
 
     console.log('\n\n═══════════════════════════════════════════');
     console.log('✅ Harness Complete');
     console.log('═══════════════════════════════════════════\n');
     console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
+    console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
     console.log(
       `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
     );

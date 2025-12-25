@@ -25,6 +25,7 @@
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
 import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
+import { formatDuration } from './utils/format-duration.js';
 
 interface SecurityHarnessOptions {
   dryRun?: boolean;
@@ -383,14 +384,12 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix vulnerabil
 
         const endTime = Date.now();
         const durationMs = endTime - startTime;
-        const durationMin = (durationMs / 60000).toFixed(1);
-        const durationHr = (durationMs / 3600000).toFixed(2);
 
         console.log('\n\n═══════════════════════════════════════════');
         console.log('✅ Security Audit Complete');
         console.log('═══════════════════════════════════════════\n');
         console.log(`📊 Total messages: ${messageCount}`);
-        console.log(`⏱️  Duration: ${durationMin} minutes (${durationHr} hours)`);
+        console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
         console.log(
           `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
         );
