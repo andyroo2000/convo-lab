@@ -467,7 +467,7 @@ export default function LibraryPage() {
                   )}
                 </Link>
               );
-            } else if (item.type === 'course') {
+            } if (item.type === 'course') {
               const course = item.data as LibraryCourse;
 
               return (
@@ -536,7 +536,7 @@ export default function LibraryPage() {
                   )}
                 </Link>
               );
-            } else if (item.type === 'narrowListening') {
+            } if (item.type === 'narrowListening') {
               const pack = item.data as NarrowListeningPack;
 
               return (
@@ -599,7 +599,7 @@ export default function LibraryPage() {
                   />
                 </Link>
               );
-            } else if (item.type === 'chunkPack') {
+            } if (item.type === 'chunkPack') {
               const pack = item.data as ChunkPack;
 
               return (

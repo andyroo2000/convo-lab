@@ -1,12 +1,12 @@
-import { prisma } from '../db/client.js';
-import { synthesizeSpeech, createSSMLWithPauses, createSSMLSlow } from './ttsClient.js';
-import { synthesizeBatchedTexts } from './batchedTTSClient.js';
-import { uploadAudio } from './storageClient.js';
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
+import { uploadAudio } from './storageClient.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
+import { synthesizeSpeech, createSSMLWithPauses, createSSMLSlow } from './ttsClient.js';
+import { prisma } from '../db/client.js';
 
 // Configure ffmpeg/ffprobe paths
 try {
@@ -87,10 +87,10 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 
   for (let i = 0; i < dialogue.sentences.length; i++) {
     const sentence = dialogue.sentences[i];
-    const speaker = sentence.speaker;
+    const {speaker} = sentence;
 
     // Prepare text (with SSML if needed)
-    let text = sentence.text;
+    let {text} = sentence;
     const useSSML = pauseMode;
 
     if (pauseMode) {
@@ -354,7 +354,7 @@ async function generateSingleSpeedAudio(
 
   for (let j = 0; j < dialogue.sentences.length; j++) {
     const sentence = dialogue.sentences[j];
-    const voiceId = sentence.speaker.voiceId;
+    const {voiceId} = sentence.speaker;
 
     if (!voiceGroups.has(voiceId)) {
       voiceGroups.set(voiceId, []);

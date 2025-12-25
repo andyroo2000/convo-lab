@@ -35,7 +35,7 @@ describe('ErrorBoundary', () => {
   it('should catch rendering errors and display error UI', () => {
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -45,7 +45,7 @@ describe('ErrorBoundary', () => {
   it('should display error message from caught error', () => {
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -55,7 +55,7 @@ describe('ErrorBoundary', () => {
   it('should display AlertTriangle icon', () => {
     const { container } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -67,7 +67,7 @@ describe('ErrorBoundary', () => {
   it('should show "Try Again" button', () => {
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -78,7 +78,7 @@ describe('ErrorBoundary', () => {
   it('should show "Go to Library" button', () => {
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -89,7 +89,7 @@ describe('ErrorBoundary', () => {
   it('should reset error state when "Try Again" clicked', () => {
     const { container } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -118,7 +118,7 @@ describe('ErrorBoundary', () => {
 
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -134,7 +134,7 @@ describe('ErrorBoundary', () => {
   it('should log error to console on catch', () => {
     render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 
@@ -148,7 +148,7 @@ describe('ErrorBoundary', () => {
   it('should display fallback UI with correct styling', () => {
     const { container } = render(
       <ErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <ThrowError shouldThrow />
       </ErrorBoundary>
     );
 

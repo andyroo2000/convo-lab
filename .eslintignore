@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+
+# Coverage
+coverage
+*.lcov
+
+# Prisma generated files
+**/prisma/generated
+**/node_modules/.prisma
+
+# Config files that use CommonJS
+*.config.js
+*.config.cjs
+
+# Logs
+*.log
+
+# Public assets
+public
+**/public
+
+# Database
+*.db
+*.sqlite
+
+# Playwright
+playwright-report
+test-results
+
+# Vite cache
+**/.vite
+
+# Generated files
+**/generated

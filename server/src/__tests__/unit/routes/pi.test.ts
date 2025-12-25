@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
+// Import after mocking
+import piRouter from '../../../routes/pi.js';
+
 // Create hoisted mocks
 const mockGeneratePISession = vi.hoisted(() => vi.fn());
 const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
@@ -84,9 +87,6 @@ vi.mock('../../../services/batchedTTSClient.js', () => ({
 vi.mock('../../../services/storageClient.js', () => ({
   uploadToGCS: mockUploadToGCS,
 }));
-
-// Import after mocking
-import piRouter from '../../../routes/pi.js';
 
 describe('PI Routes', () => {
   let app: express.Application;

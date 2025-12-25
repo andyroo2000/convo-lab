@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
+import ChineseText from '../ChineseText';
+
 // Mock useAuth hook
 const mockUser = {
   id: 'user-123',
@@ -13,8 +15,6 @@ vi.mock('../../contexts/AuthContext', () => ({
     user: mockUser,
   }),
 }));
-
-import ChineseText from '../ChineseText';
 
 describe('ChineseText', () => {
   beforeEach(() => {
@@ -64,7 +64,7 @@ describe('ChineseText', () => {
 
     it('should show pinyin when showPinyin is true', () => {
       const { container } = render(
-        <ChineseText text="你好" metadata={metadataWithPinyin} showPinyin={true} />
+        <ChineseText text="你好" metadata={metadataWithPinyin} showPinyin />
       );
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);

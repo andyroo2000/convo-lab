@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Build outputs
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+
+# Coverage
+coverage
+*.lcov
+
+# Prisma generated files
+**/prisma/generated
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode
+.idea
+
+# Public assets (pre-built)
+public/avatars
+client/public/avatars
+
+# Database
+*.db
+*.sqlite
+
+# Playwright
+playwright-report
+test-results
+
+# Temporary files
+*.tmp
+*.temp

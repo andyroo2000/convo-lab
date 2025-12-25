@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useAuth } from './AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from './AuthContext';
 import type { LanguageCode } from '../types';
 
 interface LocaleContextType {
@@ -11,7 +11,7 @@ interface LocaleContextType {
 
 const LocaleContext = createContext<LocaleContextType | undefined>(undefined);
 
-export function LocaleProvider({ children }: { children: React.ReactNode }) {
+export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const [locale, setLocale] = useState<LanguageCode>('en');

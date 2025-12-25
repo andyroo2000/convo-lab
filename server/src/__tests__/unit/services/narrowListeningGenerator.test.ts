@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateNarrowListeningPack, StoryPack } from '../../../services/narrowListeningGenerator.js';
+
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 
@@ -14,9 +17,6 @@ vi.mock('../../../../../shared/src/constants-new.js', () => ({
     es: { name: 'Spanish', code: 'es' },
   },
 }));
-
-// Import after mocking
-import { generateNarrowListeningPack, StoryPack } from '../../../services/narrowListeningGenerator.js';
 
 describe('narrowListeningGenerator', () => {
   const mockStoryPack: StoryPack = {
@@ -123,7 +123,7 @@ describe('narrowListeningGenerator', () => {
     });
 
     it('should strip markdown code fences from response', async () => {
-      mockGenerateWithGemini.mockResolvedValue('```json\n' + JSON.stringify(mockStoryPack) + '\n```');
+      mockGenerateWithGemini.mockResolvedValue(`\`\`\`json\n${  JSON.stringify(mockStoryPack)  }\n\`\`\``);
 
       const result = await generateNarrowListeningPack(
         'Test topic',

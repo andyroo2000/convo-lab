@@ -2,21 +2,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
+import CourseCreatorPage from '../CourseCreatorPage';
+
 // Mock CourseGenerator component
 vi.mock('../../components/courses/CourseGenerator', () => ({
   default: () => <div data-testid="course-generator">Course Generator Component</div>,
 }));
 
-import CourseCreatorPage from '../CourseCreatorPage';
-
 describe('CourseCreatorPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <CourseCreatorPage />
       </BrowserRouter>
     );
-  };
 
   it('should render page title', () => {
     renderPage();

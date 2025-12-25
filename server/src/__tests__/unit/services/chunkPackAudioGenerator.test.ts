@@ -1,5 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import {
+  generateExampleAudio,
+  generateStoryAudio,
+  generateExerciseAudio,
+} from '../../../services/chunkPackAudioGenerator.js';
+import type { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../../../types/chunkPack.js';
+
 // Hoisted mocks
 const mockGenerateSilence = vi.hoisted(() => vi.fn());
 const mockSynthesizeBatchedTexts = vi.hoisted(() => vi.fn());
@@ -85,14 +93,6 @@ vi.mock('../../../../../shared/src/constants-new.js', () => ({
   },
 }));
 
-// Import after mocking
-import {
-  generateExampleAudio,
-  generateStoryAudio,
-  generateExerciseAudio,
-} from '../../../services/chunkPackAudioGenerator.js';
-import type { ChunkExampleData, ChunkStorySegmentData, ChunkExerciseData } from '../../../types/chunkPack.js';
-
 describe('chunkPackAudioGenerator', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -137,7 +137,7 @@ describe('chunkPackAudioGenerator', () => {
       expect(mockSynthesizeBatchedTexts).toHaveBeenCalledTimes(6);
 
       // Check each speed
-      const calls = mockSynthesizeBatchedTexts.mock.calls;
+      const {calls} = mockSynthesizeBatchedTexts.mock;
       const speeds = calls.map((call: unknown[]) => (call[1] as { speed: number }).speed);
       expect(speeds).toContain(0.7);
       expect(speeds).toContain(0.85);

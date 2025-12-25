@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Loader } from 'lucide-react';
+import { getSpeakerColor } from "@languageflow/shared/src/constants-new";
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
-import { getSpeakerColor } from '../../../shared/src/constants-new';
 
 import { API_URL } from '../config';
 
@@ -49,12 +49,10 @@ export default function ChunkPackStoryPage() {
     if (!story?.segments) return;
 
     const currentSegment = story.segments.find(
-      (segment) => {
-        return segment.startTime !== undefined &&
+      (segment) => segment.startTime !== undefined &&
           segment.endTime !== undefined &&
           currentTime * 1000 >= segment.startTime &&
-          currentTime * 1000 < segment.endTime;
-      }
+          currentTime * 1000 < segment.endTime
     );
 
     if (currentSegment) {

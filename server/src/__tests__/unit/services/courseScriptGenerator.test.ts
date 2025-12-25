@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateCourseScript, LessonScriptUnit, GeneratedScript } from '../../../services/courseScriptGenerator.js';
+import { LessonPlan, LessonSection, DrillEvent } from '../../../services/coursePlanner.js';
+import { CoreItem } from '../../../services/courseItemExtractor.js';
+
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 
@@ -7,11 +12,6 @@ const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 vi.mock('../../../services/geminiClient.js', () => ({
   generateWithGemini: mockGenerateWithGemini,
 }));
-
-// Import after mocking
-import { generateCourseScript, LessonScriptUnit, GeneratedScript } from '../../../services/courseScriptGenerator.js';
-import { LessonPlan, LessonSection, DrillEvent } from '../../../services/coursePlanner.js';
-import { CoreItem } from '../../../services/courseItemExtractor.js';
 
 describe('courseScriptGenerator', () => {
   const mockContext = {

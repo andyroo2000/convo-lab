@@ -70,13 +70,11 @@ describe('ChunkPackStoryPage', () => {
     ],
   };
 
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <ChunkPackStoryPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -165,9 +163,9 @@ describe('ChunkPackStoryPage', () => {
     it('should toggle to Hide English when clicked', async () => {
       renderPage();
 
+      fireEvent.click(toggleButton);
       await waitFor(() => {
         const toggleButton = screen.getByText('Show English');
-        fireEvent.click(toggleButton);
       });
 
       expect(screen.getByText('Hide English')).toBeInTheDocument();
@@ -176,9 +174,9 @@ describe('ChunkPackStoryPage', () => {
     it('should show English translations when toggled on', async () => {
       renderPage();
 
+      fireEvent.click(toggleButton);
       await waitFor(() => {
         const toggleButton = screen.getByText('Show English');
-        fireEvent.click(toggleButton);
       });
 
       expect(screen.getByText('Good morning!')).toBeInTheDocument();

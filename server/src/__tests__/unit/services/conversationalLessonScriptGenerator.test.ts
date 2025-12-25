@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateConversationalLessonScript } from '../../../services/conversationalLessonScriptGenerator.js';
+import type { DialogueExchange, VocabularyItem } from '../../../services/courseItemExtractor.js';
+
 // Hoisted mock
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 
@@ -7,10 +11,6 @@ const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 vi.mock('../../../services/geminiClient.js', () => ({
   generateWithGemini: mockGenerateWithGemini,
 }));
-
-// Import after mocking
-import { generateConversationalLessonScript } from '../../../services/conversationalLessonScriptGenerator.js';
-import type { DialogueExchange, VocabularyItem } from '../../../services/courseItemExtractor.js';
 
 describe('conversationalLessonScriptGenerator', () => {
   const mockContext = {

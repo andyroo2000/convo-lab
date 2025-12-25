@@ -12,7 +12,7 @@ describe('Toast', () => {
   });
 
   it('should render message when visible', () => {
-    render(<Toast message="Test message" isVisible={true} onClose={vi.fn()} />);
+    render(<Toast message="Test message" isVisible onClose={vi.fn()} />);
 
     expect(screen.getByText('Test message')).toBeTruthy();
   });
@@ -24,21 +24,21 @@ describe('Toast', () => {
   });
 
   it('should render success variant with correct styling', () => {
-    render(<Toast message="Success!" type="success" isVisible={true} onClose={vi.fn()} />);
+    render(<Toast message="Success!" type="success" isVisible onClose={vi.fn()} />);
 
     const toast = screen.getByText('Success!').closest('div');
     expect(toast?.className).toContain('bg-green-50');
   });
 
   it('should render error variant with correct styling', () => {
-    render(<Toast message="Error!" type="error" isVisible={true} onClose={vi.fn()} />);
+    render(<Toast message="Error!" type="error" isVisible onClose={vi.fn()} />);
 
     const toast = screen.getByText('Error!').closest('div');
     expect(toast?.className).toContain('bg-red-50');
   });
 
   it('should render info variant by default', () => {
-    render(<Toast message="Info" isVisible={true} onClose={vi.fn()} />);
+    render(<Toast message="Info" isVisible onClose={vi.fn()} />);
 
     const toast = screen.getByText('Info').closest('div');
     expect(toast?.className).toContain('bg-blue-50');
@@ -46,7 +46,7 @@ describe('Toast', () => {
 
   it('should call onClose after duration', () => {
     const onClose = vi.fn();
-    render(<Toast message="Test" isVisible={true} onClose={onClose} duration={3000} />);
+    render(<Toast message="Test" isVisible onClose={onClose} duration={3000} />);
 
     expect(onClose).not.toHaveBeenCalled();
 
@@ -59,7 +59,7 @@ describe('Toast', () => {
 
   it('should use default duration of 4000ms', () => {
     const onClose = vi.fn();
-    render(<Toast message="Test" isVisible={true} onClose={onClose} />);
+    render(<Toast message="Test" isVisible onClose={onClose} />);
 
     act(() => {
       vi.advanceTimersByTime(3999);

@@ -1,5 +1,5 @@
+import { SUPPORTED_LANGUAGES } from "@languageflow/shared/src/constants-new.js";
 import { generateWithGemini } from './geminiClient.js';
-import { SUPPORTED_LANGUAGES } from '../../../shared/src/constants-new.js';
 
 export interface StorySegment {
   targetText: string;
@@ -71,7 +71,7 @@ function getVariationTypes(targetLanguage: string): string {
 - FUTURE_POLITE: Future/intention forms (つもり、予定)
 - PARTICLE_FOCUS: Emphasize は vs が、に vs で contrasts
 - FORMALITY_CONTRAST: Mix of casual and formal speech`;
-  } else if (targetLanguage === 'zh') {
+  } if (targetLanguage === 'zh') {
     return `Example variation types for Chinese:
 - ASPECT_MARKERS: Variations using 了/过/着 aspect markers
 - MEASURE_WORDS: Different classifier/measure word usage
@@ -88,7 +88,7 @@ function getVariationTypes(targetLanguage: string): string {
 function getLanguageConstraints(targetLanguage: string): string {
   if (targetLanguage === 'ja') {
     return '- Do NOT use furigana or romaji. Use standard Japanese orthography and natural punctuation.';
-  } else if (targetLanguage === 'zh') {
+  } if (targetLanguage === 'zh') {
     return '- Use simplified Chinese characters. Do NOT include pinyin. Use natural Chinese punctuation (。！？).';
   }
   return '';

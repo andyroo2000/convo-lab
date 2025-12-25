@@ -2,21 +2,19 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
+import DialogueCreatorPage from '../DialogueCreatorPage';
+
 // Mock DialogueGenerator component
 vi.mock('../../components/dialogue/DialogueGenerator', () => ({
   default: () => <div data-testid="dialogue-generator">Dialogue Generator Component</div>,
 }));
 
-import DialogueCreatorPage from '../DialogueCreatorPage';
-
 describe('DialogueCreatorPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <DialogueCreatorPage />
       </BrowserRouter>
     );
-  };
 
   it('should render page title', () => {
     renderPage();

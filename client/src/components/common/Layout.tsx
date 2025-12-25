@@ -1,12 +1,12 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useIsDemo } from '../../hooks/useDemo';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic } from 'lucide-react';
+import { LANGUAGE_ABBREVIATIONS } from "@languageflow/shared/src/constants-new";
+import { useAuth } from '../../contexts/AuthContext';
+import { useIsDemo } from '../../hooks/useDemo';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
-import { LANGUAGE_ABBREVIATIONS } from '../../../../shared/src/constants-new';
 
 export default function Layout() {
   const { user, loading, logout } = useAuth();

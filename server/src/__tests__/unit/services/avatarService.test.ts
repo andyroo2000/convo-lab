@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import {
+  cropAndResizeImage,
+  uploadUserAvatar,
+  uploadSpeakerAvatar,
+  recropSpeakerAvatar,
+  getSpeakerAvatarOriginalUrl,
+  getAllSpeakerAvatars,
+  getSpeakerAvatar,
+  parseVoiceIdForGender,
+  findSpeakerAvatarUrl,
+  getAvatarUrlFromVoice,
+} from '../../../services/avatarService.js';
+
 // Create hoisted mocks
 const mockSharp = vi.hoisted(() => {
   const mockInstance = {
@@ -87,20 +101,6 @@ vi.mock('../../../../../shared/src/constants-new.js', () => ({
     },
   },
 }));
-
-// Import after mocking
-import {
-  cropAndResizeImage,
-  uploadUserAvatar,
-  uploadSpeakerAvatar,
-  recropSpeakerAvatar,
-  getSpeakerAvatarOriginalUrl,
-  getAllSpeakerAvatars,
-  getSpeakerAvatar,
-  parseVoiceIdForGender,
-  findSpeakerAvatarUrl,
-  getAvatarUrlFromVoice,
-} from '../../../services/avatarService.js';
 
 describe('avatarService', () => {
   const mockImageBuffer = Buffer.from('mock image data');

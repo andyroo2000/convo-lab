@@ -25,13 +25,11 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 describe('LandingPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <LandingPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();

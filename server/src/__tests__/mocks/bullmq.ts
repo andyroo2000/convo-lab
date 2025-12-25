@@ -32,8 +32,11 @@ export const mockQueueClose = vi.fn();
 // Mock Queue class - use actual class for proper constructor behavior
 export class MockQueue {
   name: string;
+
   add = mockQueueAdd;
+
   getJob = mockQueueGetJob;
+
   close = mockQueueClose;
 
   constructor(name: string, _options?: unknown) {
@@ -44,7 +47,9 @@ export class MockQueue {
 // Mock Worker class that captures processor and event handlers
 export class MockWorker {
   name: string;
+
   close = vi.fn();
+
   private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
   constructor(name: string, processor: WorkerProcessor, _options?: unknown) {
@@ -60,9 +65,7 @@ export class MockWorker {
 }
 
 // Helper to get the captured processor for a queue
-export const getWorkerProcessor = (queueName: string): WorkerProcessor | undefined => {
-  return workerProcessors.get(queueName);
-};
+export const getWorkerProcessor = (queueName: string): WorkerProcessor | undefined => workerProcessors.get(queueName);
 
 // Helper to trigger event handlers
 export const triggerWorkerEvent = (queueName: string, event: string, ...args: unknown[]): void => {

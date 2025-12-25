@@ -108,7 +108,7 @@ export async function handleSubscriptionCreated(
   subscription: Stripe.Subscription
 ): Promise<void> {
   const customerId = subscription.customer as string;
-  const userId = subscription.metadata.userId;
+  const {userId} = subscription.metadata;
 
   if (!userId) {
     console.error('No userId in subscription metadata');
@@ -163,7 +163,7 @@ export async function handleSubscriptionCreated(
 export async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription
 ): Promise<void> {
-  const userId = subscription.metadata.userId;
+  const {userId} = subscription.metadata;
 
   if (!userId) {
     // Try to find user by customer ID
@@ -204,7 +204,7 @@ export async function handleSubscriptionUpdated(
 export async function handleSubscriptionDeleted(
   subscription: Stripe.Subscription
 ): Promise<void> {
-  const userId = subscription.metadata.userId;
+  const {userId} = subscription.metadata;
 
   if (!userId) {
     // Try to find user by customer ID

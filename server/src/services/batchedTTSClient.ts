@@ -1,10 +1,10 @@
+import ffmpeg from 'fluent-ffmpeg';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { getGoogleTTSBetaProvider, SynthesizeWithTimepointsResult } from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 import { generateSilence } from './ttsClient.js';
-import ffmpeg from 'fluent-ffmpeg';
-import { promises as fs } from 'fs';
-import path from 'path';
 
 /**
  * Detect TTS provider from voice ID format
@@ -91,7 +91,7 @@ export function groupUnitsIntoBatches(
     }
 
     // Get batch key properties
-    const voiceId = unit.voiceId;
+    const {voiceId} = unit;
     const speed = unit.type === 'L2' ? (unit.speed || 1.0) : 1.0;
     const pitch = unit.pitch || 0;
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;

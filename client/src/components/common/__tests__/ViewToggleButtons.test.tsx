@@ -64,7 +64,7 @@ describe('ViewToggleButtons', () => {
 
   describe('active state styling', () => {
     it('should show active styling when showReadings is true', () => {
-      render(<ViewToggleButtons {...defaultProps} showReadings={true} />);
+      render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       expect(readingsButton).toHaveClass('bg-periwinkle', 'text-white', 'shadow-md');
@@ -79,7 +79,7 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should show active styling when showTranslations is true', () => {
-      render(<ViewToggleButtons {...defaultProps} showTranslations={true} />);
+      render(<ViewToggleButtons {...defaultProps} showTranslations />);
 
       const translationsButton = screen.getByTestId('playback-toggle-translations');
       expect(translationsButton).toHaveClass('bg-coral', 'text-white', 'shadow-md');
@@ -94,7 +94,7 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should show both active when both are true', () => {
-      render(<ViewToggleButtons {...defaultProps} showReadings={true} showTranslations={true} />);
+      render(<ViewToggleButtons {...defaultProps} showReadings showTranslations />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       const translationsButton = screen.getByTestId('playback-toggle-translations');
@@ -106,7 +106,7 @@ describe('ViewToggleButtons', () => {
 
   describe('accessibility', () => {
     it('should have correct title when readings are shown', () => {
-      render(<ViewToggleButtons {...defaultProps} showReadings={true} />);
+      render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       expect(readingsButton).toHaveAttribute('title', 'Hide furigana');
@@ -120,7 +120,7 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should have correct title when translations are shown', () => {
-      render(<ViewToggleButtons {...defaultProps} showTranslations={true} />);
+      render(<ViewToggleButtons {...defaultProps} showTranslations />);
 
       const translationsButton = screen.getByTestId('playback-toggle-translations');
       expect(translationsButton).toHaveAttribute('title', 'Hide English');
@@ -134,7 +134,7 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should use custom label in title', () => {
-      render(<ViewToggleButtons {...defaultProps} readingsLabel="Pinyin" showReadings={true} />);
+      render(<ViewToggleButtons {...defaultProps} readingsLabel="Pinyin" showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       expect(readingsButton).toHaveAttribute('title', 'Hide pinyin');
@@ -143,7 +143,7 @@ describe('ViewToggleButtons', () => {
 
   describe('icons', () => {
     it('should render Eye icon when readings are shown', () => {
-      const { container } = render(<ViewToggleButtons {...defaultProps} showReadings={true} />);
+      const { container } = render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       const svg = readingsButton.querySelector('svg');

@@ -182,14 +182,12 @@ describe('Dialogue Route Logic', () => {
 
   describe('Speaker Validation', () => {
     it('should validate speaker structure', () => {
-      const validateSpeaker = (speaker: any): boolean => {
-        return (
+      const validateSpeaker = (speaker: any): boolean => (
           typeof speaker.name === 'string' &&
           typeof speaker.voiceId === 'string' &&
           typeof speaker.proficiency === 'string' &&
           typeof speaker.tone === 'string'
         );
-      };
 
       expect(validateSpeaker({
         name: '田中',

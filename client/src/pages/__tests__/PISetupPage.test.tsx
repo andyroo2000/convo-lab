@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
+import PISetupPage from '../PISetupPage';
+
 const mockNavigate = vi.fn();
 
 vi.mock('react-router-dom', async () => {
@@ -21,21 +23,17 @@ vi.mock('../../components/common/DemoRestrictionModal', () => ({
     isOpen ? <div data-testid="demo-modal">Demo Modal</div> : null,
 }));
 
-import PISetupPage from '../PISetupPage';
-
 describe('PISetupPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     global.fetch = vi.fn();
   });
 
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <PISetupPage />
       </BrowserRouter>
     );
-  };
 
   it('should render page title', () => {
     renderPage();

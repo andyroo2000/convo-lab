@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { X, Zap, Check } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface UpgradePromptProps {
   onClose?: () => void;

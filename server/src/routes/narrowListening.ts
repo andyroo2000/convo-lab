@@ -248,8 +248,8 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
     }
 
     const state = await job.getState();
-    const progress = job.progress;
-    const returnvalue = job.returnvalue;
+    const {progress} = job;
+    const {returnvalue} = job;
 
     res.json({
       state,

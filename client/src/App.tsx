@@ -36,19 +36,16 @@ const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
-function PageLoader() {
-  return (
+const PageLoader = () => (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
         <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
         <p className="text-gray-600">Loading...</p>
       </div>
     </div>
-  );
-}
+  )
 
-function App() {
-  return (
+const App = () => (
     <ErrorBoundary>
       <BrowserRouter>
         <AuthProvider>
@@ -104,7 +101,6 @@ function App() {
         </AuthProvider>
       </BrowserRouter>
     </ErrorBoundary>
-  );
-}
+  )
 
 export default App;

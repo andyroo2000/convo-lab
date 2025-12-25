@@ -38,8 +38,7 @@ vi.mock('../../onboarding/OnboardingModal', () => ({
 }));
 
 describe('Layout', () => {
-  const renderLayout = (initialPath: string) => {
-    return render(
+  const renderLayout = (initialPath: string) => render(
       <BrowserRouter>
         <Routes>
           <Route path="*" element={<Layout />}>
@@ -50,7 +49,6 @@ describe('Layout', () => {
         </Routes>
       </BrowserRouter>
     );
-  };
 
   describe('Full-width mobile pages', () => {
     it('should remove horizontal padding on mobile for library page', () => {

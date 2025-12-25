@@ -8,18 +8,18 @@ import {
 } from '../../../services/stripeService.js';
 import { mockPrisma } from '../../setup.js';
 
+import {
+  sendSubscriptionConfirmedEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionCanceledEmail
+} from '../../../services/emailService.js';
+
 // Mock email service
 vi.mock('../../../services/emailService.js', () => ({
   sendSubscriptionConfirmedEmail: vi.fn(),
   sendPaymentFailedEmail: vi.fn(),
   sendSubscriptionCanceledEmail: vi.fn()
 }));
-
-import {
-  sendSubscriptionConfirmedEmail,
-  sendPaymentFailedEmail,
-  sendSubscriptionCanceledEmail
-} from '../../../services/emailService.js';
 
 describe('Stripe Webhook Handlers - Integration Tests', () => {
   const mockUserId = 'user-123';

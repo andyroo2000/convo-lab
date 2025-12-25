@@ -17,7 +17,7 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         // Check if user already exists with this Google ID
-        let user = await prisma.user.findUnique({
+        const user = await prisma.user.findUnique({
           where: { googleId: profile.id },
         });
 

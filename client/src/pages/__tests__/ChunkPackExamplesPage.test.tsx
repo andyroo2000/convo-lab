@@ -85,13 +85,11 @@ describe('ChunkPackExamplesPage', () => {
     ],
   };
 
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <ChunkPackExamplesPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();

@@ -40,7 +40,7 @@ export async function generateWithGemini(
     });
 
     const result = await generativeModel.generateContent(prompt);
-    const response = result.response;
+    const {response} = result;
     return response.text();
   } catch (error) {
     console.error('Gemini API error:', error);

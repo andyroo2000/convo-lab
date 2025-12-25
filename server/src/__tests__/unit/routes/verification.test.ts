@@ -262,9 +262,7 @@ describe('Verification Routes', () => {
       };
 
       mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        return callback(mockPrisma);
-      });
+      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
       mockPrisma.user.update.mockResolvedValue(mockUser);
       mockEmailService.markPasswordResetTokenUsed.mockResolvedValue(undefined);
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
@@ -344,9 +342,7 @@ describe('Verification Routes', () => {
       };
 
       mockEmailService.verifyPasswordResetToken.mockResolvedValue(mockTokenResult);
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        return callback(mockPrisma);
-      });
+      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
       mockPrisma.user.update.mockResolvedValue(mockUser);
       mockEmailService.markPasswordResetTokenUsed.mockResolvedValue(undefined);
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);

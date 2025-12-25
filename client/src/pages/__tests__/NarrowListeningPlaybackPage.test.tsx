@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import NarrowListeningPlaybackPage from '../NarrowListeningPlaybackPage';
+
 // Mock navigate
 const mockNavigate = vi.fn();
 
@@ -73,8 +75,6 @@ Object.defineProperty(window, 'scrollTo', {
   writable: true,
   value: vi.fn(),
 });
-
-import NarrowListeningPlaybackPage from '../NarrowListeningPlaybackPage';
 
 const mockPack = {
   id: 'pack-123',
@@ -173,15 +173,13 @@ describe('NarrowListeningPlaybackPage', () => {
     vi.clearAllTimers();
   });
 
-  const renderPage = (packId = 'pack-123') => {
-    return render(
+  const renderPage = (packId = 'pack-123') => render(
       <MemoryRouter initialEntries={[`/app/narrow-listening/${packId}`]}>
         <Routes>
           <Route path="/app/narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('loading state', () => {
     it('should show loading spinner while fetching pack', () => {

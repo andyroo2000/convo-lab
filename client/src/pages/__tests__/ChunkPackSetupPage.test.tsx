@@ -22,13 +22,11 @@ vi.mock('../../components/common/DemoRestrictionModal', () => ({
 }));
 
 describe('ChunkPackSetupPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <ChunkPackSetupPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();

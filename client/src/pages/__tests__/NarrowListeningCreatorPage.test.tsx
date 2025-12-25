@@ -22,13 +22,11 @@ vi.mock('../../components/common/DemoRestrictionModal', () => ({
 global.fetch = vi.fn();
 
 describe('NarrowListeningCreatorPage', () => {
-  const renderPage = () => {
-    return render(
+  const renderPage = () => render(
       <BrowserRouter>
         <NarrowListeningCreatorPage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     vi.clearAllMocks();

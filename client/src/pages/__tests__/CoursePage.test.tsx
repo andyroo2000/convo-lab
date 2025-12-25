@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
+import CoursePage from '../CoursePage';
+import type { Course } from '../../types';
+
 // Use vi.hoisted for mock functions
 const mockUpdateCourse = vi.hoisted(() => vi.fn());
 const mockUseCourse = vi.hoisted(() => vi.fn());
@@ -23,9 +26,6 @@ vi.mock('../../components/AudioPlayer', () => ({
     </div>
   ),
 }));
-
-import CoursePage from '../CoursePage';
-import type { Course } from '../../types';
 
 const mockCourse: Course = {
   id: 'course-123',
@@ -86,15 +86,13 @@ describe('CoursePage', () => {
     mockUpdateCourse.mockResolvedValue({});
   });
 
-  const renderPage = (courseId = 'course-123') => {
-    return render(
+  const renderPage = (courseId = 'course-123') => render(
       <MemoryRouter initialEntries={[`/app/courses/${courseId}`]}>
         <Routes>
           <Route path="/app/courses/:courseId" element={<CoursePage />} />
         </Routes>
       </MemoryRouter>
     );
-  };
 
   describe('loading state', () => {
     it('should show loading spinner while fetching course', () => {

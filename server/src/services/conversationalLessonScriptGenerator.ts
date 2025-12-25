@@ -502,9 +502,7 @@ function normalizeNarratorText(text: string): string {
 
   // Add commas around " or " when it appears in quoted text for natural pauses
   // Example: "In or at" becomes "In, or at,"
-  normalized = normalized.replace(/"([^"]+)\s+or\s+([^"]+)"/g, (match, before, after) => {
-    return `"${before.trim()}, or ${after.trim()},"`;
-  });
+  normalized = normalized.replace(/"([^"]+)\s+or\s+([^"]+)"/g, (match, before, after) => `"${before.trim()}, or ${after.trim()},"`);
 
   // Add comma before " is:" at the end of phrases for natural pause
   // Example: "In, or at," is: (creates rhythm: "In, or at, <pause> is:")

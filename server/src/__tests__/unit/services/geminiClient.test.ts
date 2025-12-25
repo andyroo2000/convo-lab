@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateWithGemini, generateWithGeminiChat } from '../../../services/geminiClient.js';
+
 // Create hoisted mocks that will be available during module initialization
 const { mockGenerateContent, mockStartChat, mockGetGenerativeModel } = vi.hoisted(() => {
   const mockGenerateContent = vi.fn();
@@ -16,9 +19,6 @@ vi.mock('@google/generative-ai', () => ({
     getGenerativeModel = mockGetGenerativeModel;
   },
 }));
-
-// Import after mocking
-import { generateWithGemini, generateWithGeminiChat } from '../../../services/geminiClient.js';
 
 describe('generateWithGemini', () => {
   beforeEach(() => {

@@ -3,7 +3,9 @@ import i18next from '../i18n/index.js';
 
 export class AppError extends Error {
   statusCode: number;
+
   isOperational: boolean;
+
   metadata?: any;
 
   constructor(message: string, statusCode: number = 500, metadata?: any) {

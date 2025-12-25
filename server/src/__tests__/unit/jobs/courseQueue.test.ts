@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import '../../../jobs/courseQueue.js';
+
 // Hoisted mocks for capturing worker processor and events
 const workerProcessors = vi.hoisted(() => new Map<string, (job: unknown) => Promise<unknown>>());
 const workerEventHandlers = vi.hoisted(() => new Map<string, Map<string, (...args: unknown[]) => void>>());
@@ -17,19 +20,23 @@ const mockPrisma = vi.hoisted(() => ({
 }));
 
 // Mock BullMQ
-vi.mock('bullmq', () => {
-  return {
+vi.mock('bullmq', () => ({
     Queue: class MockQueue {
       name: string;
+
       constructor(name: string) {
         this.name = name;
       }
+
       add = vi.fn();
+
       getJob = vi.fn();
+
       close = vi.fn();
     },
     Worker: class MockWorker {
       name: string;
+
       private eventHandlers = new Map<string, (...args: unknown[]) => void>();
 
       constructor(name: string, processor: (job: unknown) => Promise<unknown>) {
@@ -45,8 +52,7 @@ vi.mock('bullmq', () => {
 
       close = vi.fn();
     },
-  };
-});
+  }));
 
 // Mock Redis config
 vi.mock('../../../config/redis.js', () => ({
@@ -81,9 +87,6 @@ vi.mock('../../../services/conversationalLessonScriptGenerator.js', () => ({
 vi.mock('../../../services/audioCourseAssembler.js', () => ({
   assembleLessonAudio: mockAssembleLessonAudio,
 }));
-
-// Import after mocking
-import '../../../jobs/courseQueue.js';
 
 // Helper to create mock job
 const createMockJob = (overrides: Partial<{

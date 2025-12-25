@@ -232,7 +232,7 @@ export default function NarrowListeningPlaybackPage() {
           }
 
           const data = await response.json();
-          const jobId = data.jobId;
+          const {jobId} = data;
           setGenerationJobId(jobId);
 
           // Clear any existing interval
@@ -294,13 +294,11 @@ export default function NarrowListeningPlaybackPage() {
   };
 
   // Cleanup interval on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(() => () => {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
       }
-    };
-  }, []);
+    }, []);
 
   const handleVersionSelect = (versionId: string) => {
     setSelectedVersionId(versionId);
@@ -419,7 +417,7 @@ export default function NarrowListeningPlaybackPage() {
                     disabled={generatingSpeed}
                     loading={generatingSpeed}
                     loadingSpeed={selectedSpeed}
-                    showLabels={true}
+                    showLabels
                   />
                 </div>
               )}
@@ -477,7 +475,7 @@ export default function NarrowListeningPlaybackPage() {
                     disabled={generatingSpeed}
                     loading={generatingSpeed}
                     loadingSpeed={selectedSpeed}
-                    showLabels={true}
+                    showLabels
                   />
                 </div>
               )}

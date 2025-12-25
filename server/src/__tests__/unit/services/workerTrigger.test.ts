@@ -1,20 +1,19 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+import { triggerWorkerJob } from '../../../services/workerTrigger.js';
+
 // Mock Google Auth - must be before imports
 const mockRequest = vi.fn();
 const mockGetClient = vi.fn();
 const mockGetProjectId = vi.fn();
 
-vi.mock('google-auth-library', () => {
-  return {
+vi.mock('google-auth-library', () => ({
     GoogleAuth: class {
       getClient = mockGetClient;
+
       getProjectId = mockGetProjectId;
     }
-  };
-});
-
-import { triggerWorkerJob } from '../../../services/workerTrigger.js';
+  }));
 
 describe('Worker Trigger Service - Unit Tests', () => {
   const originalEnv = process.env;
@@ -285,7 +284,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
 
       await triggerWorkerJob();
 
-      const url = mockRequest.mock.calls[0][0].url;
+      const {url} = mockRequest.mock.calls[0][0];
       expect(url).toContain('worker-job-v2:run');
     });
   });

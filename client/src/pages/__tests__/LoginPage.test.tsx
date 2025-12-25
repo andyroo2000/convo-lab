@@ -151,8 +151,8 @@ describe('LoginPage', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Loading...');
-        expect(screen.getByTestId('auth-submit-button')).toBeDisabled();
-      });
+      })
+      expect(screen.getByTestId('auth-submit-button')).toBeDisabled();;
     });
 
     it('should show error message on login failure', async () => {

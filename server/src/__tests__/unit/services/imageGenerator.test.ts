@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Import after mocking
+import { generateDialogueImages } from '../../../services/imageGenerator.js';
+
 // Hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 const mockUploadImage = vi.hoisted(() => vi.fn());
@@ -27,9 +30,6 @@ vi.mock('../../../services/geminiClient.js', () => ({
 vi.mock('../../../services/storageClient.js', () => ({
   uploadImage: mockUploadImage,
 }));
-
-// Import after mocking
-import { generateDialogueImages } from '../../../services/imageGenerator.js';
 
 describe('imageGenerator', () => {
   const mockDialogue = {

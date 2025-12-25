@@ -104,7 +104,7 @@ function planSingleLesson(coreItems: CoreItem[], episodeTitle: string, lessonNum
   sections.push({ type: 'roleplay', title: 'Roleplay', targetDurationSeconds: 240 });
   currentTime += 240;
 
-  sections.push({ type: 'late_srs', title: 'Late SRS Review', targetDurationSeconds: 300, coreItems: coreItems });
+  sections.push({ type: 'late_srs', title: 'Late SRS Review', targetDurationSeconds: 300, coreItems });
   currentTime += 300;
 
   sections.push({ type: 'outro', title: 'Outro', targetDurationSeconds: 60 });
@@ -143,7 +143,7 @@ function scheduleDrills(coreItems: CoreItem[], lessonDuration: number): DrillEve
 
 function splitIntoMultipleLessons(coreItems: CoreItem[], episodeTitle: string, maxDurationSeconds: number): CoursePlan {
   const lessons: LessonPlan[] = [];
-  let remainingItems = [...coreItems];
+  const remainingItems = [...coreItems];
   let lessonNumber = 1;
 
   while (remainingItems.length > 0) {
@@ -163,8 +163,7 @@ function estimateLessonDuration(lesson: LessonPlan): number {
 
 describe('lessonPlanner', () => {
   // Helper to create mock core items
-  const createCoreItems = (count: number): CoreItem[] => {
-    return Array.from({ length: count }, (_, i) => ({
+  const createCoreItems = (count: number): CoreItem[] => Array.from({ length: count }, (_, i) => ({
       id: `item-${i}`,
       textL2: `Target ${i}`,
       readingL2: `Reading ${i}`,
@@ -174,7 +173,6 @@ describe('lessonPlanner', () => {
       sourceSentenceId: `sentence-${i}`,
       order: i,
     }));
-  };
 
   describe('planCourse', () => {
     it('should create a single lesson for small item count', () => {

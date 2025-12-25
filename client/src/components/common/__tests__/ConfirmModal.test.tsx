@@ -72,7 +72,7 @@ describe('ConfirmModal', () => {
   });
 
   it('should show loading state when isLoading is true', () => {
-    render(<ConfirmModal {...defaultProps} isLoading={true} />);
+    render(<ConfirmModal {...defaultProps} isLoading />);
 
     // Confirm button shows "Processing..." and is disabled during loading
     const confirmButton = screen.getByTestId('modal-button-confirm');

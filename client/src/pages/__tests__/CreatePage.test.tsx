@@ -30,13 +30,11 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 }));
 
 describe('CreatePage', () => {
-  const renderCreatePage = () => {
-    return render(
+  const renderCreatePage = () => render(
       <BrowserRouter>
         <CreatePage />
       </BrowserRouter>
     );
-  };
 
   beforeEach(() => {
     mockNavigate.mockClear();

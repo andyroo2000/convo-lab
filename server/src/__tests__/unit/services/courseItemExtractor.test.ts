@@ -1,12 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Create hoisted mocks
-const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
-
-vi.mock('../../../services/geminiClient.js', () => ({
-  generateWithGemini: mockGenerateWithGemini,
-}));
-
 // Import after mocking
 import {
   extractCoreItems,
@@ -16,6 +9,13 @@ import {
   CoreItem,
   DialogueExchange,
 } from '../../../services/courseItemExtractor.js';
+
+// Create hoisted mocks
+const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+
+vi.mock('../../../services/geminiClient.js', () => ({
+  generateWithGemini: mockGenerateWithGemini,
+}));
 
 describe('courseItemExtractor', () => {
   beforeEach(() => {
@@ -603,12 +603,12 @@ describe('courseItemExtractor', () => {
       const episode = createMockEpisode(sentences);
 
       // Mock needs to return components for all phrases that will be selected
-      mockGenerateWithGemini.mockResolvedValue('```json\n' + JSON.stringify({
+      mockGenerateWithGemini.mockResolvedValue(`\`\`\`json\n${  JSON.stringify({
         phrases: Array.from({ length: 4 }, (_, i) => ({
           phraseIndex: i,
           components: [{ textL2: `Japanese ${i * 2}`, translation: `English ${i * 2}`, order: 0 }],
         })),
-      }) + '\n```');
+      })  }\n\`\`\``);
 
       const result = await extractCoreItems(episode as any, 3, 5);
 
