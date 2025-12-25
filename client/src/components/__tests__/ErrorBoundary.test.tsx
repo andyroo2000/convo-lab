@@ -12,9 +12,13 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 
 describe('ErrorBoundary', () => {
   // Suppress console.error for these tests
-  const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
-  afterAll(() => {
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
     consoleErrorSpy.mockRestore();
   });
 
@@ -105,6 +109,9 @@ describe('ErrorBoundary', () => {
   });
 
   it('should navigate to library when "Go to Library" clicked', () => {
+    // Save original location
+    const originalLocation = window.location;
+
     // Mock window.location.href
     delete (window as any).location;
     window.location = { href: '' } as any;
@@ -119,6 +126,9 @@ describe('ErrorBoundary', () => {
     fireEvent.click(goToLibraryButton);
 
     expect(window.location.href).toBe('/app/library');
+
+    // Restore original location
+    window.location = originalLocation;
   });
 
   it('should log error to console on catch', () => {
@@ -162,6 +172,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('An unexpected error occurred')).toBeTruthy();
+    // When error has no message, it falls back to the translation key
+    expect(screen.getByText('boundary.defaultMessage')).toBeTruthy();
   });
 });

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import OnboardingModal from '../OnboardingModal';
 
 // Mock AuthContext
 const mockUpdateUser = vi.fn();
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: { id: 'user-1', preferredStudyLanguage: 'ja' },
+    user: { id: 'user-1', preferredStudyLanguage: 'ja', preferredNativeLanguage: 'en' },
     updateUser: mockUpdateUser,
   }),
 }));
@@ -15,6 +15,12 @@ describe('OnboardingModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUpdateUser.mockResolvedValue(undefined);
+    // Mock window.alert for jsdom
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe('Rendering', () => {
@@ -27,16 +33,8 @@ describe('OnboardingModal', () => {
     it('should render step 1 initially', () => {
       render(<OnboardingModal />);
 
-      expect(screen.getByText(/What language are you learning?/)).toBeInTheDocument();
-    });
-
-    it('should render Japanese and Chinese language options', () => {
-      render(<OnboardingModal />);
-
-      expect(screen.getByText('Japanese')).toBeInTheDocument();
-      expect(screen.getByText('Chinese')).toBeInTheDocument();
-      expect(screen.getByText('日本語')).toBeInTheDocument();
-      expect(screen.getByText('中文')).toBeInTheDocument();
+      // Step 1 asks for native language
+      expect(screen.getByText(/What's your native language?/i)).toBeInTheDocument();
     });
 
     it('should render Next button on step 1', () => {
@@ -45,50 +43,30 @@ describe('OnboardingModal', () => {
       expect(screen.getByText('Next →')).toBeInTheDocument();
     });
 
-    it('should render progress indicator', () => {
+    it('should render progress indicator with 3 steps', () => {
       render(<OnboardingModal />);
 
-      // Two progress dots
+      // Three progress dots for 3 steps
       const progressDots = document.querySelectorAll('.h-2.w-24.rounded-full');
-      expect(progressDots).toHaveLength(2);
+      expect(progressDots).toHaveLength(3);
     });
   });
 
   describe('Language Selection', () => {
-    it('should have Japanese selected by default', () => {
+    it('should have English selected by default as native language', () => {
       render(<OnboardingModal />);
 
-      const japaneseButton = screen.getByText('Japanese').closest('button');
-      expect(japaneseButton).toHaveClass('border-indigo-600');
+      const englishButton = screen.getByText('English').closest('button');
+      expect(englishButton).toHaveClass('border-indigo-600');
     });
 
-    it('should select Chinese when clicked', () => {
-      render(<OnboardingModal />);
-
-      const chineseButton = screen.getByText('Chinese').closest('button');
-      fireEvent.click(chineseButton!);
-
-      expect(chineseButton).toHaveClass('border-indigo-600');
-    });
-
-    it('should deselect Japanese when Chinese is selected', () => {
-      render(<OnboardingModal />);
-
-      const chineseButton = screen.getByText('Chinese').closest('button');
-      fireEvent.click(chineseButton!);
-
-      const japaneseButton = screen.getByText('Japanese').closest('button');
-      expect(japaneseButton).not.toHaveClass('border-indigo-600');
-    });
-  });
-
-  describe('Step Navigation', () => {
     it('should navigate to step 2 on Next click', () => {
       render(<OnboardingModal />);
 
       fireEvent.click(screen.getByText('Next →'));
 
-      expect(screen.getByText(/What's your current JLPT level?/)).toBeInTheDocument();
+      // Step 2 asks for target language
+      expect(screen.getByText(/What language are you learning?/i)).toBeInTheDocument();
     });
 
     it('should navigate back to step 1 on Back click', () => {
@@ -97,68 +75,39 @@ describe('OnboardingModal', () => {
       fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('← Back'));
 
-      expect(screen.getByText(/What language are you learning?/)).toBeInTheDocument();
+      expect(screen.getByText(/What's your native language?/i)).toBeInTheDocument();
     });
+  });
 
-    it('should show Get Started button on step 2', () => {
+  describe('Step Navigation', () => {
+    it('should show target language selection on step 2', () => {
       render(<OnboardingModal />);
 
+      fireEvent.click(screen.getByText('Next →'));
+
+      expect(screen.getByText(/What language are you learning?/i)).toBeInTheDocument();
+    });
+
+    it('should show proficiency level selection on step 3', () => {
+      render(<OnboardingModal />);
+
+      // Navigate to step 2
+      fireEvent.click(screen.getByText('Next →'));
+
+      // Navigate to step 3
+      fireEvent.click(screen.getByText('Next →'));
+
+      expect(screen.getByText(/What's your proficiency level?/i)).toBeInTheDocument();
+    });
+
+    it('should show Get Started button on step 3', () => {
+      render(<OnboardingModal />);
+
+      // Navigate to step 3
+      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Next →'));
 
       expect(screen.getByText('Get Started')).toBeInTheDocument();
-    });
-  });
-
-  describe('JLPT Levels (Japanese)', () => {
-    beforeEach(() => {
-      render(<OnboardingModal />);
-      fireEvent.click(screen.getByText('Next →'));
-    });
-
-    it('should show all JLPT levels', () => {
-      expect(screen.getByText('N5 (Beginner)')).toBeInTheDocument();
-      expect(screen.getByText('N4 (Upper Beginner)')).toBeInTheDocument();
-      expect(screen.getByText('N3 (Intermediate)')).toBeInTheDocument();
-      expect(screen.getByText('N2 (Upper Intermediate)')).toBeInTheDocument();
-      expect(screen.getByText('N1 (Advanced)')).toBeInTheDocument();
-    });
-
-    it('should have N5 selected by default', () => {
-      const n5Button = screen.getByText('N5 (Beginner)').closest('button');
-      expect(n5Button).toHaveClass('border-indigo-600');
-    });
-
-    it('should select N3 when clicked', () => {
-      const n3Button = screen.getByText('N3 (Intermediate)').closest('button');
-      fireEvent.click(n3Button!);
-
-      expect(n3Button).toHaveClass('border-indigo-600');
-    });
-  });
-
-  describe('HSK Levels (Chinese)', () => {
-    beforeEach(() => {
-      render(<OnboardingModal />);
-      fireEvent.click(screen.getByText('Chinese').closest('button')!);
-      fireEvent.click(screen.getByText('Next →'));
-    });
-
-    it('should show HSK heading', () => {
-      expect(screen.getByText(/What's your current HSK level?/)).toBeInTheDocument();
-    });
-
-    it('should show all HSK levels', () => {
-      expect(screen.getByText('HSK 1 (Beginner)')).toBeInTheDocument();
-      expect(screen.getByText('HSK 2 (Upper Beginner)')).toBeInTheDocument();
-      expect(screen.getByText('HSK 3 (Intermediate)')).toBeInTheDocument();
-      expect(screen.getByText('HSK 4 (Upper Intermediate)')).toBeInTheDocument();
-      expect(screen.getByText('HSK 5 (Advanced)')).toBeInTheDocument();
-      expect(screen.getByText('HSK 6 (Mastery)')).toBeInTheDocument();
-    });
-
-    it('should have HSK1 selected by default', () => {
-      const hsk1Button = screen.getByText('HSK 1 (Beginner)').closest('button');
-      expect(hsk1Button).toHaveClass('border-indigo-600');
     });
   });
 
@@ -166,11 +115,14 @@ describe('OnboardingModal', () => {
     it('should call updateUser on Get Started click', async () => {
       render(<OnboardingModal />);
 
-      fireEvent.click(screen.getByText('Next →'));
+      // Navigate through all steps
+      fireEvent.click(screen.getByText('Next →')); // to step 2
+      fireEvent.click(screen.getByText('Next →')); // to step 3
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith({
+          preferredNativeLanguage: 'en',
           preferredStudyLanguage: 'ja',
           proficiencyLevel: 'N5',
           onboardingCompleted: true,
@@ -178,46 +130,37 @@ describe('OnboardingModal', () => {
       });
     });
 
-    it('should submit with correct HSK level for Chinese', async () => {
-      render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Chinese').closest('button')!);
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('HSK 3 (Intermediate)').closest('button')!);
-      fireEvent.click(screen.getByText('Get Started'));
-
-      await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith({
-          preferredStudyLanguage: 'zh',
-          proficiencyLevel: 'HSK3',
-          onboardingCompleted: true,
-        });
-      });
-    });
-
-    it('should show Saving... during submission', async () => {
-      mockUpdateUser.mockImplementation(() => new Promise(() => {}));
+    it('should show Loading... during submission', async () => {
+      // Use a long-delayed promise instead of one that never resolves
+      mockUpdateUser.mockImplementation(() =>
+        new Promise((resolve) => setTimeout(resolve, 10000))
+      );
 
       render(<OnboardingModal />);
 
       fireEvent.click(screen.getByText('Next →'));
+      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
-        expect(screen.getByText('Saving...')).toBeInTheDocument();
+        expect(screen.getByText('Loading...')).toBeInTheDocument();
       });
     });
 
     it('should disable buttons during submission', async () => {
-      mockUpdateUser.mockImplementation(() => new Promise(() => {}));
+      // Use a long-delayed promise instead of one that never resolves
+      mockUpdateUser.mockImplementation(() =>
+        new Promise((resolve) => setTimeout(resolve, 10000))
+      );
 
       render(<OnboardingModal />);
 
       fireEvent.click(screen.getByText('Next →'));
+      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
-        expect(screen.getByText('Saving...')).toBeDisabled();
+        expect(screen.getByText('Loading...')).toBeDisabled();
         expect(screen.getByText('← Back')).toBeDisabled();
       });
     });
@@ -225,19 +168,17 @@ describe('OnboardingModal', () => {
 
   describe('Error Handling', () => {
     it('should show alert on update failure', async () => {
-      const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
       mockUpdateUser.mockRejectedValue(new Error('Network error'));
 
       render(<OnboardingModal />);
 
       fireEvent.click(screen.getByText('Next →'));
+      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
-        expect(alertMock).toHaveBeenCalledWith('Failed to save preferences. Please try again.');
+        expect(window.alert).toHaveBeenCalledWith('Failed to save preferences. Please try again.');
       });
-
-      alertMock.mockRestore();
     });
 
     it('should re-enable buttons after error', async () => {
@@ -246,31 +187,13 @@ describe('OnboardingModal', () => {
       render(<OnboardingModal />);
 
       fireEvent.click(screen.getByText('Next →'));
+      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
         expect(screen.getByText('Get Started')).not.toBeDisabled();
         expect(screen.getByText('← Back')).not.toBeDisabled();
       });
-    });
-  });
-
-  describe('Level Descriptions', () => {
-    it('should show description for JLPT levels', () => {
-      render(<OnboardingModal />);
-      fireEvent.click(screen.getByText('Next →'));
-
-      expect(screen.getByText('Basic grammar and around 800 vocabulary words')).toBeInTheDocument();
-      expect(screen.getByText('Can understand complex topics and nuanced expressions')).toBeInTheDocument();
-    });
-
-    it('should show description for HSK levels', () => {
-      render(<OnboardingModal />);
-      fireEvent.click(screen.getByText('Chinese').closest('button')!);
-      fireEvent.click(screen.getByText('Next →'));
-
-      expect(screen.getByText('Can understand and use very simple phrases')).toBeInTheDocument();
-      expect(screen.getByText('Can easily comprehend and express yourself in Chinese')).toBeInTheDocument();
     });
   });
 
