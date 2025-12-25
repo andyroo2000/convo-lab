@@ -446,8 +446,8 @@ const AdminPage = () => {
         await handleSaveSpeakerRecrop(filename, cropArea);
       });
       setCropperOpen(true);
-    } catch (error) {
-      console.error('Failed to open cropper:', error);
+    } catch (cropError) {
+      console.error('Failed to open cropper:', cropError);
       showToast('Failed to load original image', 'error');
     }
   };
@@ -1402,7 +1402,7 @@ const AdminPage = () => {
           const selectedUser = users.find((u) => u.id === selectedUserId);
           if (!selectedUser) return null;
 
-          const formatDate = (dateString: string | undefined) => {
+          const formatSubscriptionDate = (dateString: string | undefined) => {
             if (!dateString) return '-';
             return new Date(dateString).toLocaleDateString('en-US', {
               year: 'numeric',
@@ -1508,15 +1508,15 @@ const AdminPage = () => {
                       )}
                       <p>
                         <span className="font-medium">Started:</span>{' '}
-                        {formatDate(selectedUser.subscriptionStartedAt)}
+                        {formatSubscriptionDate(selectedUser.subscriptionStartedAt)}
                       </p>
                       <p>
                         <span className="font-medium">Current period ends:</span>{' '}
-                        {formatDate(selectedUser.subscriptionExpiresAt)}
+                        {formatSubscriptionDate(selectedUser.subscriptionExpiresAt)}
                       </p>
                       <p>
                         <span className="font-medium">Canceled at:</span>{' '}
-                        {formatDate(selectedUser.subscriptionCanceledAt)}
+                        {formatSubscriptionDate(selectedUser.subscriptionCanceledAt)}
                       </p>
                     </div>
                   </div>

@@ -255,7 +255,7 @@ describe('AdminPage', () => {
 
       fireEvent.click(searchButton);
       await waitFor(async () => {
-        const searchButton = screen.getByText('Search');
+        const _searchButton = screen.getByText('Search');
 
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/api/admin/users'),
@@ -368,7 +368,7 @@ describe('AdminPage', () => {
 
       fireEvent.click(createButton);
       await waitFor(async () => {
-        const createButton = screen.getByText('Create Code');
+        const _createButton = screen.getByText('Create Code');
 
         await waitFor(() => {
           expect(global.fetch).toHaveBeenCalledWith(
@@ -384,7 +384,7 @@ describe('AdminPage', () => {
 
       fireEvent.click(copyButtons[0]);
       await waitFor(async () => {
-        const copyButtons = screen.getAllByTitle('Copy code');
+        const _copyButtons = screen.getAllByTitle('Copy code');
 
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD1234');
       });

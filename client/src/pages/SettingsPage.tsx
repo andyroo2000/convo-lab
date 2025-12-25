@@ -413,8 +413,8 @@ const SettingsPage = () => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          const dataUrl = e.target?.result as string;
+        reader.onload = (readerEvent) => {
+          const dataUrl = readerEvent.target?.result as string;
           setCropperImageUrl(dataUrl);
           setCropperOpen(true);
         };
@@ -452,8 +452,8 @@ const SettingsPage = () => {
 
       setSuccess(t('settings:profile.avatar.uploadSuccess'));
       setTimeout(() => setSuccess(null), 3000);
-    } catch (error) {
-      console.error('Failed to upload avatar:', error);
+    } catch (uploadError) {
+      console.error('Failed to upload avatar:', uploadError);
       setError(t('settings:profile.avatar.uploadError'));
     }
   };
@@ -610,7 +610,7 @@ const SettingsPage = () => {
                         await updateUser({ avatarUrl: null });
                         setSuccess(t('settings:profile.avatar.removeSuccess'));
                         setTimeout(() => setSuccess(null), 3000);
-                      } catch (error) {
+                      } catch (removeError) {
                         setError(t('settings:profile.avatar.removeError'));
                       }
                     }}

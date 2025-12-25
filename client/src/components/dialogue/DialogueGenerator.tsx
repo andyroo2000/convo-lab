@@ -111,8 +111,8 @@ const DialogueGenerator = () => {
               // Trigger multi-speed audio generation
               await generateAllSpeedsAudio(generatedEpisodeId, episode.dialogue.id);
             }
-          } catch (error) {
-            console.error('Failed to trigger audio generation:', error);
+          } catch (audioError) {
+            console.error('Failed to trigger audio generation:', audioError);
           }
         }
 
@@ -191,7 +191,7 @@ const DialogueGenerator = () => {
       setGeneratedEpisodeId(episode.id);
 
       // Step 2: Generate dialogue
-      const { jobId } = await generateDialogue(
+      const { jobId: generationJobId } = await generateDialogue(
         episode.id,
         speakers.map((s) => ({
           id: '', // Will be assigned by backend
@@ -206,7 +206,7 @@ const DialogueGenerator = () => {
       );
 
       // Save job ID for polling
-      setJobId(jobId);
+      setJobId(generationJobId);
 
       // The useEffect hook will now poll for completion
     } catch (err) {

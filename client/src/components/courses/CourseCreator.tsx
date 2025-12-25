@@ -102,8 +102,8 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
       });
 
       if (!createResponse.ok) {
-        const error = await createResponse.json();
-        throw new Error(error.message || 'Failed to create course');
+        const errorData = await createResponse.json();
+        throw new Error(errorData.message || 'Failed to create course');
       }
 
       const course = await createResponse.json();
@@ -116,8 +116,8 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
       });
 
       if (!generateResponse.ok) {
-        const error = await generateResponse.json();
-        throw new Error(error.message || 'Failed to start course generation');
+        const errorData = await generateResponse.json();
+        throw new Error(errorData.message || 'Failed to start course generation');
       }
 
       // Success!

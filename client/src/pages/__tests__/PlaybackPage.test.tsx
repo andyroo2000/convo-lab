@@ -370,7 +370,7 @@ describe('PlaybackPage', () => {
 
       fireEvent.click(sentence);
       await waitFor(() => {
-        const sentence = screen.getByTestId('playback-sentence-sentence-1');
+        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
       });
 
       // seek should be called with the start time in seconds
@@ -382,7 +382,7 @@ describe('PlaybackPage', () => {
 
       fireEvent.click(sentence);
       await waitFor(() => {
-        const sentence = screen.getByTestId('playback-sentence-sentence-1');
+        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
       });
 
       expect(mockPlay).toHaveBeenCalled();
