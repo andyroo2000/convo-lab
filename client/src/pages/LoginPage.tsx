@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 import { API_URL } from '../config';
 
-export default function LoginPage() {
+const LoginPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -240,4 +240,6 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

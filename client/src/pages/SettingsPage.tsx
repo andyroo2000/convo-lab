@@ -20,7 +20,7 @@ import { API_URL } from '../config';
 
 type Tab = 'profile' | 'language' | 'security' | 'billing' | 'danger';
 
-export default function SettingsPage() {
+const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
   const navigate = useNavigate();
@@ -1299,4 +1299,6 @@ export default function SettingsPage() {
       />
     </div>
   );
-}
+};
+
+export default SettingsPage;

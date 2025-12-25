@@ -1,5 +1,5 @@
-import { prisma } from './src/db/client.js';
 import crypto from 'crypto';
+import { prisma } from './src/db/client.js';
 
 async function createInvite() {
   const code = crypto.randomBytes(4).toString('hex').toUpperCase();

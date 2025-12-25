@@ -44,9 +44,9 @@ describe('useLibraryData', () => {
       // Use a long-delayed promise instead of one that never resolves
       mockFetch.mockImplementation(
         () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000)
-          )
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000);
+          })
       );
 
       const { result } = renderHook(() => useLibraryData(), {
@@ -60,9 +60,9 @@ describe('useLibraryData', () => {
       // Use a long-delayed promise instead of one that never resolves
       mockFetch.mockImplementation(
         () =>
-          new Promise((resolve) =>
-            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000)
-          )
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ ok: true, json: () => Promise.resolve([]) }), 10000);
+          })
       );
 
       const { result } = renderHook(() => useLibraryData(), {
@@ -360,10 +360,12 @@ describe('useLibraryData', () => {
         cefrLevel: null,
         status: 'ready',
         createdAt: '2024-01-01',
+
         _count: { versions: 3 },
       };
 
       expect(pack.id).toBe('pack-1');
+      // eslint-disable-next-line no-underscore-dangle
       expect(pack._count.versions).toBe(3);
     });
 
@@ -378,10 +380,13 @@ describe('useLibraryData', () => {
         cefrLevel: null,
         status: 'ready',
         createdAt: '2024-01-01',
+
         _count: { examples: 10, stories: 2, exercises: 5 },
       };
 
+      // eslint-disable-next-line no-underscore-dangle
       expect(pack._count.examples).toBe(10);
+      // eslint-disable-next-line no-underscore-dangle
       expect(pack._count.stories).toBe(2);
     });
   });

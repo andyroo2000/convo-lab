@@ -11,13 +11,13 @@ interface AudioPlayerProps {
   onEnded?: () => void;
 }
 
-export default function AudioPlayer({
+const AudioPlayer = ({
   src,
   audioRef,
   repeatMode = 'off',
   onRepeatModeChange,
   onEnded,
-}: AudioPlayerProps) {
+}: AudioPlayerProps) => {
   const { t } = useTranslation('common');
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -119,7 +119,7 @@ export default function AudioPlayer({
   };
 
   const formatTime = (seconds: number) => {
-    if (isNaN(seconds)) return '0:00';
+    if (Number.isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -141,6 +141,7 @@ export default function AudioPlayer({
 
       {/* Play/Pause Button */}
       <button
+        type="button"
         onClick={togglePlayPause}
         className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
         aria-label={isPlaying ? t('aria.pause') : t('aria.play')}
@@ -165,8 +166,15 @@ export default function AudioPlayer({
       {/* Progress Bar */}
       <div
         ref={progressBarRef}
+        role="button"
+        tabIndex={0}
         className="flex-1 h-2 bg-gray-200 rounded-full cursor-pointer relative group"
         onClick={handleProgressClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleProgressClick(e as unknown as React.MouseEvent<HTMLDivElement>);
+          }
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -188,6 +196,7 @@ export default function AudioPlayer({
       {/* Repeat Button */}
       {onRepeatModeChange && (
         <button
+          type="button"
           onClick={toggleRepeatMode}
           className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
             repeatMode !== 'off'
@@ -197,46 +206,56 @@ export default function AudioPlayer({
           aria-label={t('aria.repeatMode', { mode: repeatMode })}
           data-testid="audio-button-repeat"
         >
-          {repeatMode === 'one' ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-              <text
-                x="12"
-                y="16"
-                fontSize="8"
-                fill="currentColor"
-                textAnchor="middle"
-                fontWeight="bold"
-              >
-                1
-              </text>
-            </svg>
-          ) : repeatMode === 'all' ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-          )}
+          {(() => {
+            if (repeatMode === 'one') {
+              return (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                  <text
+                    x="12"
+                    y="16"
+                    fontSize="8"
+                    fill="currentColor"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    1
+                  </text>
+                </svg>
+              );
+            }
+            if (repeatMode === 'all') {
+              return (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              );
+            }
+            return (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+            );
+          })()}
         </button>
       )}
     </div>
   );
-}
+};
+
+export default AudioPlayer;

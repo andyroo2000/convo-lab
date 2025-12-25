@@ -14,7 +14,7 @@ interface ChunkExercise {
   audioUrl?: string;
 }
 
-export default function ChunkPackExercisesPage() {
+const ChunkPackExercisesPage = () => {
   const { packId } = useParams();
   const navigate = useNavigate();
   const [exercises, setExercises] = useState<ChunkExercise[]>([]);
@@ -202,4 +202,6 @@ export default function ChunkPackExercisesPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ChunkPackExercisesPage;

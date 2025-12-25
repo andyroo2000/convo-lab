@@ -42,7 +42,7 @@ function normalizeSpeed(speed: SpeedValue): string {
   return speed;
 }
 
-export default function SpeedSelector({
+const SpeedSelector = ({
   selectedSpeed,
   onSpeedChange,
   disabled = false,
@@ -51,7 +51,7 @@ export default function SpeedSelector({
   showLabels = true,
   variant = 'keylime',
   className = '',
-}: SpeedSelectorProps) {
+}: SpeedSelectorProps) => {
   const normalizedSelected = normalizeSpeed(selectedSpeed);
   const normalizedLoading = loadingSpeed ? normalizeSpeed(loadingSpeed) : null;
 
@@ -74,6 +74,7 @@ export default function SpeedSelector({
 
         return (
           <button
+            type="button"
             key={option.value}
             onClick={() => onSpeedChange(option.value as SpeedValue)}
             disabled={disabled}
@@ -90,4 +91,6 @@ export default function SpeedSelector({
       })}
     </div>
   );
-}
+};
+
+export default SpeedSelector;

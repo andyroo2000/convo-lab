@@ -85,7 +85,7 @@ const COLOR_SCHEMES: Record<ColorScheme, Record<Intensity, { bg: string; text: s
   },
 };
 
-export default function Pill({
+const Pill = ({
   children,
   color = 'gray',
   intensity = 'light',
@@ -96,7 +96,7 @@ export default function Pill({
   icon,
   iconPosition = 'left',
   className = '',
-}: PillProps) {
+}: PillProps) => {
   const colors = COLOR_SCHEMES[color][intensity];
 
   // Base styles
@@ -127,4 +127,6 @@ export default function Pill({
       {icon && iconPosition === 'right' && icon}
     </span>
   );
-}
+};
+
+export default Pill;

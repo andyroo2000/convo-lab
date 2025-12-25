@@ -20,7 +20,7 @@ interface NarrowListeningPack {
   }>;
 }
 
-export default function NarrowListeningLibraryPage() {
+const NarrowListeningLibraryPage = () => {
   const navigate = useNavigate();
   const [packs, setPacks] = useState<NarrowListeningPack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,4 +229,6 @@ export default function NarrowListeningLibraryPage() {
       </div>
     </div>
   );
-}
+};
+
+export default NarrowListeningLibraryPage;

@@ -6,7 +6,7 @@ import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-export default function ForgotPasswordPage() {
+const ForgotPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -136,4 +136,6 @@ export default function ForgotPasswordPage() {
       </div>
     </div>
   );
-}
+};
+
+export default ForgotPasswordPage;

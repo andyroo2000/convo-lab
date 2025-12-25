@@ -10,19 +10,22 @@ describe('JapaneseText', () => {
     });
 
     it('should apply japanese-text class', () => {
-      const { container } = render(<JapaneseText text="テスト" />);
-      expect(container.querySelector('.japanese-text')).toBeInTheDocument();
+      render(<JapaneseText text="テスト" />);
+      const element = screen.getByText('テスト');
+      expect(element).toHaveClass('japanese-text');
     });
 
     it('should apply custom className', () => {
-      const { container } = render(<JapaneseText text="テスト" className="custom-class" />);
-      const element = container.querySelector('.japanese-text');
+      render(<JapaneseText text="テスト" className="custom-class" />);
+      const element = screen.getByText('テスト');
+      expect(element).toHaveClass('japanese-text');
       expect(element).toHaveClass('custom-class');
     });
 
     it('should render as span element', () => {
-      const { container } = render(<JapaneseText text="テスト" />);
-      expect(container.querySelector('span.japanese-text')).toBeInTheDocument();
+      render(<JapaneseText text="テスト" />);
+      const element = screen.getByText('テスト');
+      expect(element.tagName).toBe('SPAN');
     });
   });
 
@@ -37,6 +40,8 @@ describe('JapaneseText', () => {
 
     it('should show furigana by default', () => {
       const { container } = render(<JapaneseText text="買い物" metadata={metadataWithFurigana} />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -45,6 +50,8 @@ describe('JapaneseText', () => {
       const { container } = render(
         <JapaneseText text="買い物" metadata={metadataWithFurigana} showFurigana />
       );
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -53,6 +60,8 @@ describe('JapaneseText', () => {
       const { container } = render(
         <JapaneseText text="買い物" metadata={metadataWithFurigana} showFurigana={false} />
       );
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(0);
     });
@@ -68,12 +77,16 @@ describe('JapaneseText', () => {
   describe('ruby tag generation', () => {
     it('should convert bracket notation to ruby tags', () => {
       const { container } = render(<JapaneseText text="買[か]い物[もの]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should include rt elements with readings', () => {
       const { container } = render(<JapaneseText text="買[か]" />);
+      // For checking rt elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rtElement = container.querySelector('rt');
       expect(rtElement).toBeInTheDocument();
       expect(rtElement?.textContent).toBe('か');
@@ -81,6 +94,8 @@ describe('JapaneseText', () => {
 
     it('should handle single kanji with reading', () => {
       const { container } = render(<JapaneseText text="日[ひ]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('日');
       expect(ruby?.textContent).toContain('ひ');
@@ -88,6 +103,8 @@ describe('JapaneseText', () => {
 
     it('should handle multiple kanji in sequence', () => {
       const { container } = render(<JapaneseText text="東京[とうきょう]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('東京');
       expect(ruby?.textContent).toContain('とうきょう');
@@ -95,7 +112,7 @@ describe('JapaneseText', () => {
 
     it('should preserve text between bracketed content', () => {
       const { container } = render(<JapaneseText text="買[か]い物[もの]です" />);
-      // The 'い' and 'です' should be preserved
+      // The 'い' and 'です' should be preserved - textContent is safe to use
       expect(container.textContent).toContain('い');
       expect(container.textContent).toContain('です');
     });
@@ -113,6 +130,8 @@ describe('JapaneseText', () => {
       const { container } = render(
         <JapaneseText text="plain text" metadata={metadata} showFurigana />
       );
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const ruby = container.querySelector('ruby');
       expect(ruby).toBeInTheDocument();
     });
@@ -143,6 +162,8 @@ describe('JapaneseText', () => {
   describe('edge cases', () => {
     it('should handle empty text', () => {
       const { container } = render(<JapaneseText text="" />);
+      // For checking class on empty element, we need container
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       expect(container.querySelector('.japanese-text')).toBeInTheDocument();
       expect(container.textContent).toBe('');
     });
@@ -155,6 +176,8 @@ describe('JapaneseText', () => {
     it('should handle text with no readings', () => {
       const { container } = render(<JapaneseText text="漢字のみ" />);
       // No ruby elements because no bracket notation
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(0);
       expect(container.textContent).toBe('漢字のみ');
@@ -184,12 +207,16 @@ describe('JapaneseText', () => {
   describe('complex patterns', () => {
     it('should handle compound words', () => {
       const { container } = render(<JapaneseText text="日本語[にほんご]の授業[じゅぎょう]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should handle sentence with multiple bracketed readings', () => {
       const { container } = render(<JapaneseText text="私[わたし]は学生[がくせい]です" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
       expect(container.textContent).toContain('です');
@@ -197,7 +224,10 @@ describe('JapaneseText', () => {
 
     it('should handle irregular readings', () => {
       const { container } = render(<JapaneseText text="今日[きょう]" />);
+      // For checking ruby/rt elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const ruby = container.querySelector('ruby');
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rt = container.querySelector('rt');
       expect(ruby?.textContent).toContain('今日');
       expect(rt?.textContent).toBe('きょう');
@@ -205,6 +235,8 @@ describe('JapaneseText', () => {
 
     it('should handle long compound kanji', () => {
       const { container } = render(<JapaneseText text="東京大学[とうきょうだいがく]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const ruby = container.querySelector('ruby');
       expect(ruby?.textContent).toContain('東京大学');
     });
@@ -212,15 +244,16 @@ describe('JapaneseText', () => {
 
   describe('className handling', () => {
     it('should merge multiple classNames', () => {
-      const { container } = render(<JapaneseText text="テスト" className="class1 class2" />);
-      const element = container.querySelector('.japanese-text');
+      render(<JapaneseText text="テスト" className="class1 class2" />);
+      const element = screen.getByText('テスト');
       expect(element).toHaveClass('class1');
       expect(element).toHaveClass('class2');
     });
 
     it('should handle empty className', () => {
-      const { container } = render(<JapaneseText text="テスト" className="" />);
-      expect(container.querySelector('.japanese-text')).toBeInTheDocument();
+      render(<JapaneseText text="テスト" className="" />);
+      const element = screen.getByText('テスト');
+      expect(element).toHaveClass('japanese-text');
     });
   });
 
@@ -229,7 +262,10 @@ describe('JapaneseText', () => {
       // The component uses dangerouslySetInnerHTML but only generates ruby/rt
       const { container } = render(<JapaneseText text="日[ひ]本[ほん]" />);
       // Verify only expected elements exist
+      // For checking element types, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const allowedTags = container.querySelectorAll('ruby, rt, span');
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const allElements = container.querySelectorAll('*');
       expect(allowedTags.length).toBe(allElements.length);
     });

@@ -29,19 +29,22 @@ describe('ChineseText', () => {
     });
 
     it('should apply chinese-text class', () => {
-      const { container } = render(<ChineseText text="测试" />);
-      expect(container.querySelector('.chinese-text')).toBeInTheDocument();
+      render(<ChineseText text="测试" />);
+      const element = screen.getByText('测试');
+      expect(element).toHaveClass('chinese-text');
     });
 
     it('should apply custom className', () => {
-      const { container } = render(<ChineseText text="测试" className="custom-class" />);
-      const element = container.querySelector('.chinese-text');
+      render(<ChineseText text="测试" className="custom-class" />);
+      const element = screen.getByText('测试');
+      expect(element).toHaveClass('chinese-text');
       expect(element).toHaveClass('custom-class');
     });
 
     it('should render as span element', () => {
-      const { container } = render(<ChineseText text="测试" />);
-      expect(container.querySelector('span.chinese-text')).toBeInTheDocument();
+      render(<ChineseText text="测试" />);
+      const element = screen.getByText('测试');
+      expect(element.tagName).toBe('SPAN');
     });
   });
 
@@ -56,6 +59,8 @@ describe('ChineseText', () => {
 
     it('should show pinyin by default', () => {
       const { container } = render(<ChineseText text="你好" metadata={metadataWithPinyin} />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -64,6 +69,8 @@ describe('ChineseText', () => {
       const { container } = render(
         <ChineseText text="你好" metadata={metadataWithPinyin} showPinyin />
       );
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBeGreaterThan(0);
     });
@@ -72,6 +79,8 @@ describe('ChineseText', () => {
       const { container } = render(
         <ChineseText text="你好" metadata={metadataWithPinyin} showPinyin={false} />
       );
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(0);
     });
@@ -93,18 +102,24 @@ describe('ChineseText', () => {
 
     it('should create ruby elements for each character', () => {
       const { container } = render(<ChineseText text="中国" metadata={metadata} />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
 
     it('should include rt elements with pinyin', () => {
       const { container } = render(<ChineseText text="中国" metadata={metadata} />);
+      // For checking rt elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rtElements = container.querySelectorAll('rt');
       expect(rtElements.length).toBe(2);
     });
 
     it('should use tone marks by default', () => {
       const { container } = render(<ChineseText text="中国" metadata={metadata} />);
+      // Need to check innerHTML to verify tone marks are rendered
+
       expect(container.innerHTML).toContain('zhōng');
     });
   });
@@ -124,7 +139,10 @@ describe('ChineseText', () => {
 
     it('should display tone numbers when user preference is toneNumbers', () => {
       const { container } = render(<ChineseText text="你好" metadata={metadata} />);
+      // Need to check innerHTML to verify tone numbers are rendered
+
       expect(container.innerHTML).toContain('ni3');
+
       expect(container.innerHTML).toContain('hao3');
     });
   });
@@ -132,12 +150,16 @@ describe('ChineseText', () => {
   describe('bracket notation parsing', () => {
     it('should parse bracket notation for speaker names', () => {
       const { container } = render(<ChineseText text="张[zhāng]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElement = container.querySelector('ruby');
       expect(rubyElement).toBeInTheDocument();
     });
 
     it('should create ruby for each bracketed character', () => {
       const { container } = render(<ChineseText text="张[zhāng]军[jūn]" />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(2);
     });
@@ -150,6 +172,8 @@ describe('ChineseText', () => {
     it('should convert tone marks to numbers in bracket notation when mode is toneNumbers', () => {
       mockUser.pinyinDisplayMode = 'toneNumbers';
       const { container } = render(<ChineseText text="张[zhāng]" />);
+      // Need to check innerHTML to verify tone number conversion
+
       expect(container.innerHTML).toContain('zhang1');
     });
   });
@@ -161,28 +185,39 @@ describe('ChineseText', () => {
 
     it('should convert first tone (ā → a1)', () => {
       const { container } = render(<ChineseText text="妈[mā]" />);
+      // Need to check innerHTML to verify tone conversion
+
       expect(container.innerHTML).toContain('ma1');
     });
 
     it('should convert second tone (á → a2)', () => {
       const { container } = render(<ChineseText text="麻[má]" />);
+      // Need to check innerHTML to verify tone conversion
+
       expect(container.innerHTML).toContain('ma2');
     });
 
     it('should convert third tone (ǎ → a3)', () => {
       const { container } = render(<ChineseText text="马[mǎ]" />);
+      // Need to check innerHTML to verify tone conversion
+
       expect(container.innerHTML).toContain('ma3');
     });
 
     it('should convert fourth tone (à → a4)', () => {
       const { container } = render(<ChineseText text="骂[mà]" />);
+      // Need to check innerHTML to verify tone conversion
+
       expect(container.innerHTML).toContain('ma4');
     });
 
     it('should handle ü with tones', () => {
       const { container } = render(<ChineseText text="女[nǚ]" />);
       // ǚ should become ü3
-      expect(container.innerHTML).toContain('ü3') || expect(container.innerHTML).toContain('ü');
+      // Need to check innerHTML to verify ü handling
+
+      const html = container.innerHTML;
+      expect(html.includes('ü3') || html.includes('ü')).toBeTruthy();
     });
   });
 
@@ -214,6 +249,8 @@ describe('ChineseText', () => {
   describe('edge cases', () => {
     it('should handle empty text', () => {
       const { container } = render(<ChineseText text="" />);
+      // For checking class on empty element, we need container
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       expect(container.querySelector('.chinese-text')).toBeInTheDocument();
     });
 
@@ -273,6 +310,8 @@ describe('ChineseText', () => {
         },
       };
       const { container } = render(<ChineseText text="中华人民共和国" metadata={metadata} />);
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(7); // 7 characters
     });
@@ -287,9 +326,11 @@ describe('ChineseText', () => {
       };
       const { container } = render(<ChineseText text="你好，世界！" metadata={metadata} />);
       // Should have ruby for 你好世界 (4 characters)
+      // For checking ruby elements, we need container as there's no better semantic query
+      // eslint-disable-next-line testing-library/no-container, testing-library/no-node-access
       const rubyElements = container.querySelectorAll('ruby');
       expect(rubyElements.length).toBe(4);
-      // Punctuation preserved
+      // Punctuation preserved - textContent is safe to use
       expect(container.textContent).toContain('，');
       expect(container.textContent).toContain('！');
     });
@@ -297,15 +338,16 @@ describe('ChineseText', () => {
 
   describe('className handling', () => {
     it('should merge multiple classNames', () => {
-      const { container } = render(<ChineseText text="测试" className="class1 class2" />);
-      const element = container.querySelector('.chinese-text');
+      render(<ChineseText text="测试" className="class1 class2" />);
+      const element = screen.getByText('测试');
       expect(element).toHaveClass('class1');
       expect(element).toHaveClass('class2');
     });
 
     it('should handle empty className', () => {
-      const { container } = render(<ChineseText text="测试" className="" />);
-      expect(container.querySelector('.chinese-text')).toBeInTheDocument();
+      render(<ChineseText text="测试" className="" />);
+      const element = screen.getByText('测试');
+      expect(element).toHaveClass('chinese-text');
     });
   });
 
@@ -320,7 +362,8 @@ describe('ChineseText', () => {
         },
       };
       const { container } = render(<ChineseText text="你好" metadata={metadata} />);
-      // Default is toneMarks
+      // Default is toneMarks - need to check innerHTML to verify
+
       expect(container.innerHTML).toContain('nǐ');
     });
   });

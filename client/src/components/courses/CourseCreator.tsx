@@ -11,12 +11,7 @@ interface CourseCreatorProps {
   onCourseCreated: (courseId: string) => void;
 }
 
-export default function CourseCreator({
-  isOpen,
-  episode,
-  onClose,
-  onCourseCreated,
-}: CourseCreatorProps) {
+const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCreatorProps) => {
   const { t } = useTranslation('audioCourse');
   const [title, setTitle] = useState('');
   const [maxDuration, setMaxDuration] = useState(30);
@@ -157,6 +152,7 @@ export default function CourseCreator({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
             disabled={isCreating}
             className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
@@ -318,10 +314,16 @@ export default function CourseCreator({
 
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg flex-shrink-0">
-          <button onClick={onClose} disabled={isCreating} className="btn-outline flex-1">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isCreating}
+            className="btn-outline flex-1"
+          >
             {t('creator.cancel')}
           </button>
           <button
+            type="button"
             onClick={handleCreate}
             disabled={isCreating || !title.trim() || !selectedVoice}
             className="flex-1 px-4 py-2 bg-navy text-white rounded-lg font-medium hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -339,4 +341,6 @@ export default function CourseCreator({
       </div>
     </div>
   );
-}
+};
+
+export default CourseCreator;

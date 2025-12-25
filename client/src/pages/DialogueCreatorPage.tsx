@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 
-export default function DialogueCreatorPage() {
+const DialogueCreatorPage = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
 
@@ -17,4 +17,6 @@ export default function DialogueCreatorPage() {
       <DialogueGenerator />
     </div>
   );
-}
+};
+
+export default DialogueCreatorPage;

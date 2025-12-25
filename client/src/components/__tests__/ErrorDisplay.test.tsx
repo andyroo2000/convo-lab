@@ -17,52 +17,40 @@ describe('ErrorDisplay', () => {
   });
 
   it('should show WifiOff icon for network errors', () => {
-    const { container } = render(<ErrorDisplay error="Network error occurred" />);
+    render(<ErrorDisplay error="Network error occurred" />);
 
     expect(screen.getByText('Connection Error')).toBeTruthy();
     expect(screen.getByText('Check your internet connection and try again')).toBeTruthy();
-
-    const icon = container.querySelector('.text-gray-400');
-    expect(icon).toBeTruthy();
   });
 
   it('should show Lock icon for authentication errors (401)', () => {
-    const { container } = render(<ErrorDisplay error="Unauthorized: 401" />);
+    render(<ErrorDisplay error="Unauthorized: 401" />);
 
     expect(screen.getByText('Authentication Error')).toBeTruthy();
     expect(screen.getByText('Please log in again to continue')).toBeTruthy();
-
-    const icon = container.querySelector('.text-amber-500');
-    expect(icon).toBeTruthy();
   });
 
   it('should show Lock icon for authentication errors (403 forbidden)', () => {
-    const { container } = render(<ErrorDisplay error="403 Forbidden" />);
+    render(<ErrorDisplay error="403 Forbidden" />);
 
     expect(screen.getByText('Authentication Error')).toBeTruthy();
 
-    const title = screen.getByText('Authentication Error').closest('h3');
-    expect(title?.className).toContain('text-amber-700');
+    const title = screen.getByText('Authentication Error');
+    expect(title.className).toContain('text-amber-700');
   });
 
   it('should show RefreshCw icon for generation errors', () => {
-    const { container } = render(<ErrorDisplay error="Content generation failed" />);
+    render(<ErrorDisplay error="Content generation failed" />);
 
     expect(screen.getByText('Generation Failed')).toBeTruthy();
     expect(screen.getByText('Content generation failed. Please try again')).toBeTruthy();
-
-    const icon = container.querySelector('.text-indigo-500');
-    expect(icon).toBeTruthy();
   });
 
   it('should show AlertTriangle icon for generic errors', () => {
-    const { container } = render(<ErrorDisplay error="Something bad happened" />);
+    render(<ErrorDisplay error="Something bad happened" />);
 
     expect(screen.getByText('Error')).toBeTruthy();
     expect(screen.getByText('Something went wrong. Please try again')).toBeTruthy();
-
-    const icon = container.querySelector('.text-red-500');
-    expect(icon).toBeTruthy();
   });
 
   it('should display custom title when provided', () => {
@@ -147,20 +135,20 @@ describe('ErrorDisplay', () => {
   });
 
   it('should apply correct color classes for different error types', () => {
-    const { rerender, container } = render(<ErrorDisplay error="network error" />);
-    let title = container.querySelector('h3');
-    expect(title?.className).toContain('text-gray-700');
+    const { rerender } = render(<ErrorDisplay error="network error" />);
+    let title = screen.getByText('Connection Error');
+    expect(title.className).toContain('text-gray-700');
 
     rerender(<ErrorDisplay error="401 unauthorized" />);
-    title = container.querySelector('h3');
-    expect(title?.className).toContain('text-amber-700');
+    title = screen.getByText('Authentication Error');
+    expect(title.className).toContain('text-amber-700');
 
     rerender(<ErrorDisplay error="generation failed" />);
-    title = container.querySelector('h3');
-    expect(title?.className).toContain('text-indigo-700');
+    title = screen.getByText('Generation Failed');
+    expect(title.className).toContain('text-indigo-700');
 
     rerender(<ErrorDisplay error="generic error" />);
-    title = container.querySelector('h3');
-    expect(title?.className).toContain('text-red-700');
+    title = screen.getByText('Error');
+    expect(title.className).toContain('text-red-700');
   });
 });

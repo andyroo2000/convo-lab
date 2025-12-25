@@ -1,5 +1,6 @@
+/* eslint-disable testing-library/no-node-access */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AudioPlayer, { RepeatMode } from '../AudioPlayer';
 
 // Mock HTMLAudioElement
@@ -12,16 +13,16 @@ class MockAudioElement {
 
   paused = true;
 
-  private eventListeners: Record<string, Function[]> = {};
+  private eventListeners: Record<string, (() => void)[]> = {};
 
-  addEventListener(event: string, callback: Function) {
+  addEventListener(event: string, callback: () => void) {
     if (!this.eventListeners[event]) {
       this.eventListeners[event] = [];
     }
     this.eventListeners[event].push(callback);
   }
 
-  removeEventListener(event: string, callback: Function) {
+  removeEventListener(event: string, callback: () => void) {
     if (this.eventListeners[event]) {
       this.eventListeners[event] = this.eventListeners[event].filter((cb) => cb !== callback);
     }
@@ -86,7 +87,7 @@ describe('AudioPlayer', () => {
 
     let rafId = 0;
     global.requestAnimationFrame = vi.fn((callback) => {
-      rafId++;
+      rafId += 1;
       setTimeout(() => callback(performance.now()), 16);
       return rafId;
     });
@@ -130,8 +131,10 @@ describe('AudioPlayer', () => {
     });
 
     it('should render audio element with correct src', () => {
-      renderAudioPlayer({ src: 'https://test.com/audio.mp3' });
-      const audio = document.querySelector('audio');
+      const { container } = renderAudioPlayer({ src: 'https://test.com/audio.mp3' });
+      // Audio element needs to be queried from the DOM
+      // eslint-disable-next-line testing-library/no-container
+      const audio = container.querySelector('audio');
       expect(audio).toHaveAttribute('src', 'https://test.com/audio.mp3');
     });
   });
@@ -330,6 +333,8 @@ describe('AudioPlayer', () => {
     it('should render play icon SVG when paused', () => {
       renderAudioPlayer();
       const button = screen.getByTestId('audio-button-play-pause');
+      // Need to check for SVG child element
+
       const svg = button.querySelector('svg');
       expect(svg).toBeInTheDocument();
     });
@@ -337,6 +342,8 @@ describe('AudioPlayer', () => {
     it('should render repeat icon SVG', () => {
       renderAudioPlayer({ onRepeatModeChange: mockOnRepeatModeChange });
       const button = screen.getByTestId('audio-button-repeat');
+      // Need to check for SVG child element
+
       const svg = button.querySelector('svg');
       expect(svg).toBeInTheDocument();
     });
@@ -344,8 +351,10 @@ describe('AudioPlayer', () => {
 
   describe('progress calculation', () => {
     it('should show 0% progress initially', () => {
-      renderAudioPlayer();
-      const progressFill = document.querySelector('.bg-indigo.rounded-full.relative');
+      const { container } = renderAudioPlayer();
+      // Need to check progress bar styling directly
+      // eslint-disable-next-line testing-library/no-container
+      const progressFill = container.querySelector('.bg-indigo.rounded-full.relative');
       if (progressFill) {
         expect(progressFill.getAttribute('style')).toContain('width: 0%');
       }
@@ -410,16 +419,20 @@ describe('AudioPlayer', () => {
 
   describe('playhead element', () => {
     it('should render playhead element inside progress bar', () => {
-      renderAudioPlayer();
-      const playhead = document.querySelector('.border-white.shadow-md');
+      const { container } = renderAudioPlayer();
+      // Need to check playhead styling directly
+      // eslint-disable-next-line testing-library/no-container
+      const playhead = container.querySelector('.border-white.shadow-md');
       expect(playhead).toBeInTheDocument();
     });
   });
 
   describe('tabular-nums class for time', () => {
     it('should have tabular-nums class on time displays', () => {
-      renderAudioPlayer();
-      const timeElements = document.querySelectorAll('.tabular-nums');
+      const { container } = renderAudioPlayer();
+      // Need to check time display styling directly
+      // eslint-disable-next-line testing-library/no-container
+      const timeElements = container.querySelectorAll('.tabular-nums');
       expect(timeElements.length).toBeGreaterThan(0);
     });
   });

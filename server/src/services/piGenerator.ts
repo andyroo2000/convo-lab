@@ -703,7 +703,7 @@ function getVocabularyConstraints(jlptLevel: JLPTLevel): string {
   return constraints[jlptLevel];
 }
 
-function getTaskTypeGuidance(jlptLevel: JLPTLevel): string {
+function getTaskTypeGuidance(_jlptLevel: JLPTLevel): string {
   return `1. WHO_DID_IT (Actor Identification):
    - CRITICAL: The MAIN SENTENCE must have が marking which person did the action
    - The person marked by が MUST appear in the main Japanese sentence

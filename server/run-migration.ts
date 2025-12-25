@@ -47,8 +47,8 @@ async function runMigration() {
         ALTER TABLE "User"
         ADD CONSTRAINT "User_googleId_key" UNIQUE ("googleId")
       `;
-    } catch (e: any) {
-      if (!e.message.includes('already exists')) throw e;
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.message.includes('already exists'))) throw e;
       console.log('  - googleId constraint already exists');
     }
 
@@ -57,8 +57,8 @@ async function runMigration() {
         ALTER TABLE "User"
         ADD CONSTRAINT "User_stripeCustomerId_key" UNIQUE ("stripeCustomerId")
       `;
-    } catch (e: any) {
-      if (!e.message.includes('already exists')) throw e;
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.message.includes('already exists'))) throw e;
       console.log('  - stripeCustomerId constraint already exists');
     }
 
@@ -67,8 +67,8 @@ async function runMigration() {
         ALTER TABLE "User"
         ADD CONSTRAINT "User_stripeSubscriptionId_key" UNIQUE ("stripeSubscriptionId")
       `;
-    } catch (e: any) {
-      if (!e.message.includes('already exists')) throw e;
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.message.includes('already exists'))) throw e;
       console.log('  - stripeSubscriptionId constraint already exists');
     }
 
@@ -158,8 +158,8 @@ async function runMigration() {
         ALTER TABLE "oauth_accounts"
         ADD CONSTRAINT "oauth_accounts_provider_providerId_key" UNIQUE ("provider", "providerId")
       `;
-    } catch (e: any) {
-      if (!e.message.includes('already exists')) throw e;
+    } catch (e: unknown) {
+      if (!(e instanceof Error && e.message.includes('already exists'))) throw e;
       console.log('  - provider/providerId constraint already exists');
     }
 

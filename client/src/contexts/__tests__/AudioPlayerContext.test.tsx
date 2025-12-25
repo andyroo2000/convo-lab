@@ -1,3 +1,4 @@
+/* eslint-disable testing-library/no-node-access */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, act, renderHook } from '@testing-library/react';
 import { ReactNode } from 'react';
@@ -12,12 +13,13 @@ const TestComponent = () => {
       <span data-testid="title">{title || 'null'}</span>
       <span data-testid="speed">{speed || 'null'}</span>
       <button
+        type="button"
         onClick={() => setAudioInfo('test.mp3', 'Test Song', 'medium')}
         data-testid="set-audio"
       >
         Set Audio
       </button>
-      <button onClick={clearAudio} data-testid="clear-audio">
+      <button type="button" onClick={clearAudio} data-testid="clear-audio">
         Clear Audio
       </button>
     </div>

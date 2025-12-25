@@ -23,7 +23,7 @@ import { API_URL } from '../config';
 
 type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
 
-export default function LibraryPage() {
+const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
   const [searchParams, setSearchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
@@ -775,4 +775,6 @@ export default function LibraryPage() {
       />
     </div>
   );
-}
+};
+
+export default LibraryPage;

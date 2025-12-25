@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
-import React from 'react';
 import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import { createWrapper } from './test-utils';
 

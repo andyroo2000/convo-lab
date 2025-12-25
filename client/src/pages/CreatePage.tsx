@@ -4,7 +4,7 @@ import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-rea
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import QuotaBadge from '../components/QuotaBadge';
 
-export default function CreatePage() {
+const CreatePage = () => {
   const { t } = useTranslation(['create']);
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatureFlags();
@@ -148,4 +148,6 @@ export default function CreatePage() {
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>
     </div>
   );
-}
+};
+
+export default CreatePage;

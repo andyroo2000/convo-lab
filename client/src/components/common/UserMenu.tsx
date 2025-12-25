@@ -22,13 +22,13 @@ const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
   cyan: { bg: 'bg-cyan-100', text: 'text-cyan-600' },
 };
 
-export default function UserMenu({
+const UserMenu = ({
   userName,
   avatarColor = 'indigo',
   avatarUrl,
   role,
   onLogout,
-}: UserMenuProps) {
+}: UserMenuProps) => {
   const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -66,6 +66,7 @@ export default function UserMenu({
     <div className="relative" ref={menuRef}>
       {/* User Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 p-1 text-sm font-bold text-white hover:bg-white/20 transition-colors rounded-lg"
         data-testid="user-menu-button"
@@ -91,6 +92,7 @@ export default function UserMenu({
             {/* Admin (only for admins) */}
             {role === 'admin' && (
               <button
+                type="button"
                 onClick={() => {
                   setIsOpen(false);
                   navigate('/app/admin');
@@ -105,6 +107,7 @@ export default function UserMenu({
 
             {/* Settings */}
             <button
+              type="button"
               onClick={() => {
                 setIsOpen(false);
                 navigate('/app/settings');
@@ -121,6 +124,7 @@ export default function UserMenu({
 
             {/* Logout */}
             <button
+              type="button"
               onClick={() => {
                 setIsOpen(false);
                 onLogout();
@@ -136,4 +140,6 @@ export default function UserMenu({
       )}
     </div>
   );
-}
+};
+
+export default UserMenu;

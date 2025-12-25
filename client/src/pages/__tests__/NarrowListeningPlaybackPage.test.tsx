@@ -31,7 +31,9 @@ vi.mock('../../hooks/useAudioPlayer', () => ({
 vi.mock('../../components/AudioPlayer', () => ({
   default: ({ src, onEnded, repeatMode }: any) => (
     <div data-testid="mock-audio-player" data-src={src} data-repeat-mode={repeatMode}>
-      <button onClick={onEnded}>End Audio</button>
+      <button type="button" onClick={onEnded}>
+        End Audio
+      </button>
     </div>
   ),
 }));
@@ -49,6 +51,7 @@ vi.mock('../../components/common/SpeedSelector', () => ({
     <div data-testid="speed-selector">
       {['0.7x', '0.85x', '1.0x'].map((speed) => (
         <button
+          type="button"
           key={speed}
           onClick={() => onSpeedChange(speed)}
           disabled={disabled}
@@ -70,8 +73,12 @@ vi.mock('../../components/common/ViewToggleButtons', () => ({
     readingsLabel,
   }: any) => (
     <div data-testid="view-toggle-buttons">
-      <button onClick={onToggleReadings}>{readingsLabel}</button>
-      <button onClick={onToggleTranslations}>English</button>
+      <button type="button" onClick={onToggleReadings}>
+        {readingsLabel}
+      </button>
+      <button type="button" onClick={onToggleTranslations}>
+        English
+      </button>
     </div>
   ),
 }));

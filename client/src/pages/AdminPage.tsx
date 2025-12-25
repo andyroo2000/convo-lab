@@ -94,7 +94,7 @@ interface FeatureFlags {
   updatedAt: string;
 }
 
-export default function AdminPage() {
+const AdminPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { tab } = useParams<{ tab?: string }>();
@@ -1573,4 +1573,6 @@ export default function AdminPage() {
       />
     </div>
   );
-}
+};
+
+export default AdminPage;

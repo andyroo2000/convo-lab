@@ -51,7 +51,7 @@ interface NarrowListeningPack {
 
 type Speed = '0.7x' | '0.85x' | '1.0x';
 
-export default function NarrowListeningPlaybackPage() {
+const NarrowListeningPlaybackPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { currentTime, isPlaying, audioRef } = useAudioPlayer();
@@ -677,4 +677,6 @@ export default function NarrowListeningPlaybackPage() {
       </div>
     </div>
   );
-}
+};
+
+export default NarrowListeningPlaybackPage;

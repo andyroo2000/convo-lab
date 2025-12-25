@@ -21,8 +21,8 @@ vi.mock('../../../config/redis.js', () => ({
 
 describe('Quota System Race Conditions - Integration Tests', () => {
   const mockUserId = 'user-123';
-  const weekStart = getWeekStart();
-  const nextWeekStart = getNextWeekStart();
+  const _weekStart = getWeekStart();
+  const _nextWeekStart = getNextWeekStart();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -330,7 +330,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should handle generation at week boundary (Sunday 23:59:59 UTC)', async () => {
       // Create a date at Sunday 23:59:59 UTC
       const sunday = new Date('2025-01-05T23:59:59Z'); // Sunday
-      const mondayStart = getWeekStart(sunday); // Should be Monday 2024-12-30
+      const _mondayStart = getWeekStart(sunday); // Should be Monday 2024-12-30
 
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
@@ -350,10 +350,10 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
     it('should handle generation at Monday 00:00:00 UTC (week start)', async () => {
       const monday = new Date('2025-01-06T00:00:00Z'); // Monday
-      const mondayStart = getWeekStart(monday);
+      const _mondayStart = getWeekStart(monday);
 
       // Week start should be same as input
-      expect(mondayStart.toISOString()).toBe(monday.toISOString());
+      expect(_mondayStart.toISOString()).toBe(monday.toISOString());
     });
 
     it('should reset quota count on new week', async () => {

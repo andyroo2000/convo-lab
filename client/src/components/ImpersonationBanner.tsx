@@ -9,10 +9,7 @@ interface ImpersonationBannerProps {
   onExit: () => void;
 }
 
-export default function ImpersonationBanner({
-  impersonatedUser,
-  onExit,
-}: ImpersonationBannerProps) {
+const ImpersonationBanner = ({ impersonatedUser, onExit }: ImpersonationBannerProps) => {
   const { t } = useTranslation(['common']);
 
   return (
@@ -31,6 +28,7 @@ export default function ImpersonationBanner({
           </div>
         </div>
         <button
+          type="button"
           onClick={onExit}
           className="flex items-center gap-2 px-3 py-1.5 bg-white text-amber-600 rounded-md hover:bg-amber-50 transition-colors font-medium"
         >
@@ -40,4 +38,6 @@ export default function ImpersonationBanner({
       </div>
     </div>
   );
-}
+};
+
+export default ImpersonationBanner;

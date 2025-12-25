@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useCourse, courseKeys } from '../../hooks/useCourse';
-import { createWrapper, createTestQueryClient } from './test-utils';
+import { createWrapper } from './test-utils';
 
 // Mock the config
 vi.mock('../../config', () => ({
@@ -158,7 +158,9 @@ describe('useCourse', () => {
       });
 
       // Wait a bit and verify no status endpoint calls
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 100);
+      });
 
       const statusCalls = mockFetch.mock.calls.filter((call: string[]) =>
         call[0].includes('/status')

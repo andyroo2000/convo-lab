@@ -44,3 +44,7 @@ test-results
 
 # Generated files
 **/generated
+**/*.d.ts
+**/*.js.map
+# Compiled TypeScript in shared package
+shared/src/**/*.js

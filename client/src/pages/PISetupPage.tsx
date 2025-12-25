@@ -200,7 +200,7 @@ function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
     .map((gp) => gp.id);
 }
 
-export default function PISetupPage() {
+const PISetupPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation(['processingInstruction']);
   const isDemo = useIsDemo();
@@ -410,4 +410,6 @@ export default function PISetupPage() {
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
     </div>
   );
-}
+};
+
+export default PISetupPage;

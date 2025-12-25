@@ -14,7 +14,7 @@ interface ConfirmModalProps {
   variant?: 'danger' | 'warning';
 }
 
-export default function ConfirmModal({
+const ConfirmModal = ({
   isOpen,
   title,
   message,
@@ -24,7 +24,7 @@ export default function ConfirmModal({
   onCancel,
   isLoading = false,
   variant = 'danger',
-}: ConfirmModalProps) {
+}: ConfirmModalProps) => {
   const { t } = useTranslation(['common']);
 
   const defaultConfirmLabel = confirmLabel || t('common:modal.confirm');
@@ -64,6 +64,7 @@ export default function ConfirmModal({
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-bold text-navy">{title}</h2>
           <button
+            type="button"
             onClick={onCancel}
             disabled={isLoading}
             className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
@@ -81,6 +82,7 @@ export default function ConfirmModal({
         {/* Footer */}
         <div className="flex gap-3 p-6 border-t bg-gray-50 rounded-b-lg">
           <button
+            type="button"
             onClick={onCancel}
             disabled={isLoading}
             className="btn-outline flex-1"
@@ -89,6 +91,7 @@ export default function ConfirmModal({
             {defaultCancelLabel}
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             disabled={isLoading}
             className={`flex-1 px-4 py-2 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
@@ -104,4 +107,6 @@ export default function ConfirmModal({
       </div>
     </div>
   );
-}
+};
+
+export default ConfirmModal;

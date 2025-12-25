@@ -199,7 +199,7 @@ export function useEpisodes() {
       const MAX_RETRIES = 3;
       const RETRY_DELAYS = [1000, 2000, 4000]; // Exponential backoff: 1s, 2s, 4s
 
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
         try {
           const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
             credentials: 'include',

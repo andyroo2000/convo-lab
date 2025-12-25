@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { LanguageCode } from '../../types';
 
-export default function OnboardingModal() {
+const OnboardingModal = () => {
   const { user, updateUser } = useAuth();
   const { t } = useTranslation(['onboarding', 'common']);
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -85,6 +85,7 @@ export default function OnboardingModal() {
 
             <div className="grid grid-cols-2 gap-4">
               <button
+                type="button"
                 onClick={() => setNativeLanguage('en')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'en'
@@ -99,6 +100,7 @@ export default function OnboardingModal() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setNativeLanguage('ja')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'ja'
@@ -114,6 +116,7 @@ export default function OnboardingModal() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setNativeLanguage('zh')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'zh'
@@ -129,6 +132,7 @@ export default function OnboardingModal() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setNativeLanguage('es')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'es'
@@ -144,6 +148,7 @@ export default function OnboardingModal() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setNativeLanguage('fr')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'fr'
@@ -159,6 +164,7 @@ export default function OnboardingModal() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setNativeLanguage('ar')}
                 className={`p-6 rounded-xl border-2 transition-all ${
                   nativeLanguage === 'ar'
@@ -175,7 +181,7 @@ export default function OnboardingModal() {
             </div>
 
             <div className="flex justify-end mt-8">
-              <button onClick={() => setStep(2)} className="btn-primary px-8 py-3">
+              <button type="button" onClick={() => setStep(2)} className="btn-primary px-8 py-3">
                 {t('onboarding:buttons.next')}
               </button>
             </div>
@@ -195,6 +201,7 @@ export default function OnboardingModal() {
             <div className="grid grid-cols-2 gap-4">
               {nativeLanguage !== 'en' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('en')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'en'
@@ -211,6 +218,7 @@ export default function OnboardingModal() {
 
               {nativeLanguage !== 'ja' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('ja')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'ja'
@@ -228,6 +236,7 @@ export default function OnboardingModal() {
 
               {nativeLanguage !== 'zh' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('zh')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'zh'
@@ -245,6 +254,7 @@ export default function OnboardingModal() {
 
               {nativeLanguage !== 'es' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('es')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'es'
@@ -262,6 +272,7 @@ export default function OnboardingModal() {
 
               {nativeLanguage !== 'fr' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('fr')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'fr'
@@ -279,6 +290,7 @@ export default function OnboardingModal() {
 
               {nativeLanguage !== 'ar' && (
                 <button
+                  type="button"
                   onClick={() => setTargetLanguage('ar')}
                   className={`p-6 rounded-xl border-2 transition-all ${
                     targetLanguage === 'ar'
@@ -296,10 +308,10 @@ export default function OnboardingModal() {
             </div>
 
             <div className="flex justify-between mt-8">
-              <button onClick={() => setStep(1)} className="btn-outline px-8 py-3">
+              <button type="button" onClick={() => setStep(1)} className="btn-outline px-8 py-3">
                 {t('onboarding:buttons.back')}
               </button>
-              <button onClick={() => setStep(3)} className="btn-primary px-8 py-3">
+              <button type="button" onClick={() => setStep(3)} className="btn-primary px-8 py-3">
                 {t('onboarding:buttons.next')}
               </button>
             </div>
@@ -319,6 +331,7 @@ export default function OnboardingModal() {
             {targetLanguage === 'ja' && (
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={() => setJlptLevel('N5')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     jlptLevel === 'N5'
@@ -333,6 +346,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setJlptLevel('N4')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     jlptLevel === 'N4'
@@ -347,6 +361,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setJlptLevel('N3')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     jlptLevel === 'N3'
@@ -361,6 +376,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setJlptLevel('N2')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     jlptLevel === 'N2'
@@ -375,6 +391,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setJlptLevel('N1')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     jlptLevel === 'N1'
@@ -393,6 +410,7 @@ export default function OnboardingModal() {
             {targetLanguage === 'zh' && (
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK1')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK1'
@@ -407,6 +425,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK2')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK2'
@@ -419,6 +438,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK3')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK3'
@@ -431,6 +451,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK4')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK4'
@@ -445,6 +466,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK5')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK5'
@@ -459,6 +481,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setHskLevel('HSK6')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     hskLevel === 'HSK6'
@@ -480,6 +503,7 @@ export default function OnboardingModal() {
               targetLanguage === 'ar') && (
               <div className="space-y-3">
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('A1')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'A1'
@@ -494,6 +518,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('A2')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'A2'
@@ -506,6 +531,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('B1')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'B1'
@@ -520,6 +546,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('B2')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'B2'
@@ -532,6 +559,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('C1')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'C1'
@@ -544,6 +572,7 @@ export default function OnboardingModal() {
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => setCefrLevel('C2')}
                   className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
                     cefrLevel === 'C2'
@@ -561,6 +590,7 @@ export default function OnboardingModal() {
 
             <div className="flex justify-between mt-8">
               <button
+                type="button"
                 onClick={() => setStep(2)}
                 className="btn-outline px-8 py-3"
                 disabled={isSubmitting}
@@ -568,6 +598,7 @@ export default function OnboardingModal() {
                 {t('onboarding:buttons.back')}
               </button>
               <button
+                type="button"
                 onClick={handleComplete}
                 disabled={isSubmitting}
                 className="btn-primary px-8 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -580,4 +611,6 @@ export default function OnboardingModal() {
       </div>
     </div>
   );
-}
+};
+
+export default OnboardingModal;

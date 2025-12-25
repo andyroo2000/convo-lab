@@ -9,13 +9,7 @@ interface ToastProps {
   duration?: number;
 }
 
-export default function Toast({
-  message,
-  type = 'info',
-  isVisible,
-  onClose,
-  duration = 4000,
-}: ToastProps) {
+const Toast = ({ message, type = 'info', isVisible, onClose, duration = 4000 }: ToastProps) => {
   useEffect(() => {
     if (isVisible && duration > 0) {
       const timer = setTimeout(onClose, duration);
@@ -51,6 +45,7 @@ export default function Toast({
         {icons[type]}
         <p className={`text-sm font-medium ${textColors[type]}`}>{message}</p>
         <button
+          type="button"
           onClick={onClose}
           className="ml-2 text-gray-400 hover:text-gray-600 transition-colors"
         >
@@ -59,4 +54,6 @@ export default function Toast({
       </div>
     </div>
   );
-}
+};
+
+export default Toast;

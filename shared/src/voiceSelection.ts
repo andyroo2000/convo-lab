@@ -102,8 +102,8 @@ export function getLanguageCodeFromVoiceId(voiceId: string): string {
   }
 
   // For Polly, look up in voice config
-  for (const [lang, config] of Object.entries(TTS_VOICES)) {
-    const voice = config.voices.find((v: any) => v.id === voiceId);
+  for (const [, config] of Object.entries(TTS_VOICES)) {
+    const voice = config.voices.find((v: { id: string }) => v.id === voiceId);
     if (voice) return config.languageCode;
   }
 

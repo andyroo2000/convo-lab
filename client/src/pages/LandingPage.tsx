@@ -4,7 +4,7 @@ import { MessageSquare, BookOpen, Target, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 
-export default function LandingPage() {
+const LandingPage = () => {
   const { t } = useTranslation(['landing', 'common']);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -177,4 +177,6 @@ export default function LandingPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LandingPage;

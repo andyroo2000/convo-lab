@@ -89,7 +89,7 @@ vi.mock('../../common/DemoRestrictionModal', () => ({
   default: ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) =>
     isOpen ? (
       <div data-testid="demo-restriction-modal">
-        <button onClick={onClose} data-testid="close-demo-modal">
+        <button type="button" onClick={onClose} data-testid="close-demo-modal">
           Close
         </button>
       </div>
