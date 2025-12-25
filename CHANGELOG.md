@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[chore]** Allow context hook exports in react-refresh ESLint rule - configured `react-refresh/only-export-components` to explicitly allow `useAuth`, `useLocale`, and `useAudioPlayerContext` exports; these are intentional patterns for context files where the hook and provider are exported together; reduces ESLint warnings from 127 to 124
 - **[chore]** Human-readable duration formatting for all harnesses - replaced technical duration format (e.g., "12.5 minutes (0.21 hours)") with natural language format (e.g., "12 minutes and 30 seconds" or "1 hour and 22 minutes") across all 9 harness scripts; added formatDuration utility function to scripts/utils/format-duration.ts for consistent formatting
 - **[chore]** Make all harnesses fully autonomous - added explicit "Session Completion Rules" instructions to all 9 harness scripts (accessibility, i18n, lint, maintenance, mobile, monitoring, perf, security, test) to continue through ALL phases without stopping; prevents harnesses from providing "Recommendations for Next Session" and instead automatically continues through all phases; only stops when reaching turn limit or completing all work
 - **[chore]** Increase harness max turns limit to 50000 - updated DEFAULT_MAX_TURNS across all autonomous harness scripts (accessibility, i18n, lint, maintenance, mobile, monitoring, perf, security, test) from varying limits (200-5000) to 50000 to allow more comprehensive automated fixes without hitting turn limits prematurely

@@ -38,7 +38,13 @@
     "react/react-in-jsx-scope": "off",
     "react/prop-types": "off",
     "react/require-default-props": "off",
-    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }],
+    "react-refresh/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true,
+        "allowExportNames": ["useAuth", "useLocale", "useAudioPlayerContext"]
+      }
+    ],
     "react/jsx-props-no-spreading": "off",
     "react/function-component-definition": [
       "error",
