@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+
 import i18next from '../i18n/index.js';
 
 export class AppError extends Error {
@@ -26,16 +27,20 @@ export function errorHandler(
   if (err instanceof AppError) {
     // Add rate limit headers for 429 errors
     if (err.statusCode === 429 && err.metadata) {
-      if (err.metadata.quota) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const quota = err.metadata.quota as any;
+      if (quota) {
         res.set({
-          'X-RateLimit-Limit': err.metadata.quota.limit.toString(),
-          'X-RateLimit-Remaining': err.metadata.quota.remaining.toString(),
-          'X-RateLimit-Reset': err.metadata.quota.resetsAt.toISOString(),
+          'X-RateLimit-Limit': quota.limit.toString(),
+          'X-RateLimit-Remaining': quota.remaining.toString(),
+          'X-RateLimit-Reset': quota.resetsAt.toISOString(),
         });
       }
-      if (err.metadata.cooldown) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const cooldown = err.metadata.cooldown as any;
+      if (cooldown) {
         res.set({
-          'Retry-After': err.metadata.cooldown.remainingSeconds.toString(),
+          'Retry-After': cooldown.remainingSeconds.toString(),
         });
       }
     }
