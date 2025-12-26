@@ -274,7 +274,8 @@ export async function generateNarrowListeningAudio(
       console.log(`[NL] Using cached silence buffer: ${silenceDuration}ms`);
     } else {
       // Generate silence buffer (backward compatibility)
-      const silenceBuffer = await generateSilence(0.8);
+      // 2 seconds pause between sentences for better comprehension
+      const silenceBuffer = await generateSilence(2.0);
       reusableSilencePath = path.join(tempDir, 'silence-reusable.mp3');
       await fs.writeFile(reusableSilencePath, silenceBuffer);
       silenceDuration = await getAudioDurationFromFile(reusableSilencePath);

@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Improved narrow listening audio pacing and keyboard navigation - increased pause between sentences from 0.8s to 2s for better comprehension; added 3-second pause between sections (story variations) during auto-play; added left/right arrow keyboard navigation to jump between sentences (left arrow goes to beginning of current sentence, or previous sentence if already at beginning; right arrow goes to beginning of next sentence)
+
 - **[test]** Expanded server test coverage to 71% branches (+1.21%) - added 40 comprehensive unit tests across 7 files including new emailTemplates.test.ts (35 tests for i18n email templates with XSS prevention) and admin.simple.test.ts (33 tests for admin routes); expanded errorHandler.test.ts (+9 tests for rate limit headers and metadata), ttsClient.test.ts (+11 tests for speech synthesis), geminiClient.test.ts (+5 tests for model parameters), roleAuth.test.ts (+2 tests for authentication), and courseQueue.test.ts (+1 test for audio progress); achieved 100% branch coverage on errorHandler.ts, roleAuth.ts, and geminiClient.ts; all 147 tests passing with comprehensive mocking of Prisma, Stripe, Gemini AI, and TTS providers
 - **[chore]** Mobile optimization guide files for harnesses - created comprehensive guides in scripts/harness-guides/ for mobile development: pwa-checklist.md (complete PWA implementation guide with manifest, service worker, and offline support templates), responsive-patterns.md (Tailwind responsive design patterns and common fixes), and touch-target-fixes.md (touch target sizing guidelines and fix patterns); integrated guide references into mobile harness prompt
 
