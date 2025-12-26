@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -146,6 +147,13 @@ const DialogueGenerator = () => {
     navigate,
   ]);
 
+  // Helper function to get proficiency level based on target language
+  const getProficiencyLevel = () => {
+    if (targetLanguage === 'ja') return jlptLevel;
+    if (targetLanguage === 'zh') return hskLevel;
+    return cefrLevel;
+  };
+
   const handleGenerate = async () => {
     // Block demo users from generating content
     if (isDemo) {
@@ -169,8 +177,7 @@ const DialogueGenerator = () => {
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language
-      const proficiencyLevel =
-        targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel;
+      const proficiencyLevel = getProficiencyLevel();
 
       // Step 1: Create episode with placeholder title
       const episode = await createEpisode({
@@ -181,7 +188,7 @@ const DialogueGenerator = () => {
         speakers: speakers.map((s) => ({
           name: s.name,
           voiceId: s.voiceId,
-          proficiency: proficiencyLevel,
+          proficiency: proficiencyLevel as ProficiencyLevel,
           tone: s.tone,
           color: s.color,
         })),
@@ -197,7 +204,7 @@ const DialogueGenerator = () => {
           id: '', // Will be assigned by backend
           name: s.name,
           voiceId: s.voiceId,
-          proficiency: proficiencyLevel,
+          proficiency: proficiencyLevel as ProficiencyLevel,
           tone: s.tone,
           color: s.color,
         })),
@@ -416,14 +423,7 @@ const DialogueGenerator = () => {
             <p className="text-sm sm:text-base text-gray-700 mb-4">
               {t('dialogue:generate.description', {
                 language: SUPPORTED_LANGUAGES[targetLanguage].name,
-                level:
-                  targetLanguage === 'ja'
-                    ? jlptLevel
-                    : targetLanguage === 'zh'
-                      ? hskLevel
-                      : targetLanguage === 'es' || targetLanguage === 'fr'
-                        ? cefrLevel
-                        : 'beginner',
+                level: getProficiencyLevel() || 'beginner',
                 tone,
               })}
             </p>

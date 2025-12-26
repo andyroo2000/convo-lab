@@ -29,8 +29,8 @@ const SEGMENT_COLORS: Record<ColorScheme, string> = {
 const SegmentedPill = ({
   leftText,
   rightText,
-  leftColor = 'indigo',
-  rightColor = 'purple',
+  leftColor = 'periwinkle',
+  rightColor = 'coral',
   uppercase = false,
   capitalize = false,
   className = '',
@@ -38,8 +38,20 @@ const SegmentedPill = ({
   const leftColors = SEGMENT_COLORS[leftColor];
   const rightColors = SEGMENT_COLORS[rightColor];
 
-  const leftTextTransform = uppercase ? 'uppercase tracking-wide' : capitalize ? 'capitalize' : '';
-  const rightTextTransform = capitalize ? 'capitalize' : uppercase ? 'uppercase tracking-wide' : '';
+  // Determine text transformation based on props
+  let leftTextTransform = '';
+  if (uppercase) {
+    leftTextTransform = 'uppercase tracking-wide';
+  } else if (capitalize) {
+    leftTextTransform = 'capitalize';
+  }
+
+  let rightTextTransform = '';
+  if (capitalize) {
+    rightTextTransform = 'capitalize';
+  } else if (uppercase) {
+    rightTextTransform = 'uppercase tracking-wide';
+  }
 
   return (
     <div

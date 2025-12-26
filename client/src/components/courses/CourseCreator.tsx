@@ -3,6 +3,8 @@ import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 
 interface CourseCreatorProps {
@@ -190,7 +192,10 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
           {/* Narrator Voice Selection */}
           <div>
-            <label htmlFor="narrator-voice" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="narrator-voice"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               {t('creator.narratorLabel', { language: episode.nativeLanguage.toUpperCase() })}
             </label>
             <select
@@ -200,7 +205,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
-              {availableVoices.map((voice) => (
+              {availableVoices.map((voice: { id: string; description: string; gender: string }) => (
                 <option key={voice.id} value={voice.id}>
                   {voice.description} ({voice.gender})
                 </option>
@@ -219,7 +224,10 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
             <div className="grid grid-cols-2 gap-4">
               {/* Speaker 1 Voice */}
               <div>
-                <label htmlFor="speaker1-voice" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="speaker1-voice"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   {t('voiceConfig.speaker1')}
                 </label>
                 <select
@@ -231,7 +239,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                 >
                   {(
                     TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
-                  ).map((voice) => (
+                  ).map((voice: { id: string; description: string; gender: string }) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
                     </option>
@@ -241,7 +249,10 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
               {/* Speaker 2 Voice */}
               <div>
-                <label htmlFor="speaker2-voice" className="block text-sm font-medium text-gray-700 mb-2">
+                <label
+                  htmlFor="speaker2-voice"
+                  className="block text-sm font-medium text-gray-700 mb-2"
+                >
                   {t('voiceConfig.speaker2')}
                 </label>
                 <select
@@ -253,7 +264,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                 >
                   {(
                     TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
-                  ).map((voice) => (
+                  ).map((voice: { id: string; description: string; gender: string }) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
                     </option>
