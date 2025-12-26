@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import NarrowListeningPlaybackPage from '../NarrowListeningPlaybackPage';
@@ -29,7 +29,15 @@ vi.mock('../../hooks/useAudioPlayer', () => ({
 }));
 
 vi.mock('../../components/AudioPlayer', () => ({
-  default: ({ src, onEnded, repeatMode }: any) => (
+  default: ({
+    src,
+    onEnded,
+    repeatMode,
+  }: {
+    src: string;
+    onEnded: () => void;
+    repeatMode: string;
+  }) => (
     <div data-testid="mock-audio-player" data-src={src} data-repeat-mode={repeatMode}>
       <button type="button" onClick={onEnded}>
         End Audio
@@ -47,7 +55,15 @@ vi.mock('../../components/ChineseText', () => ({
 }));
 
 vi.mock('../../components/common/SpeedSelector', () => ({
-  default: ({ selectedSpeed, onSpeedChange, disabled }: any) => (
+  default: ({
+    selectedSpeed,
+    onSpeedChange,
+    disabled,
+  }: {
+    selectedSpeed: string;
+    onSpeedChange: (speed: string) => void;
+    disabled: boolean;
+  }) => (
     <div data-testid="speed-selector">
       {['0.7x', '0.85x', '1.0x'].map((speed) => (
         <button
@@ -71,7 +87,13 @@ vi.mock('../../components/common/ViewToggleButtons', () => ({
     onToggleReadings,
     onToggleTranslations,
     readingsLabel,
-  }: any) => (
+  }: {
+    showReadings: boolean;
+    showTranslations: boolean;
+    onToggleReadings: () => void;
+    onToggleTranslations: () => void;
+    readingsLabel: string;
+  }) => (
     <div data-testid="view-toggle-buttons">
       <button type="button" onClick={onToggleReadings}>
         {readingsLabel}
@@ -231,4 +253,163 @@ describe('NarrowListeningPlaybackPage', () => {
   // audio URL calculation -> UI rendering), which causes test timeouts.
 
   // Note: Responsive design tests skipped due to async rendering complexity
+
+  describe('keyboard navigation', () => {
+    // Helper to create a mock audio element with configurable currentTime
+    const createMockAudio = (initialTime: number) => {
+      const mockAudio = {
+        src: 'https://example.com/v1-0.85.mp3',
+        currentTime: initialTime,
+        paused: true,
+        play: vi.fn().mockResolvedValue(undefined),
+        pause: vi.fn(),
+      };
+      return mockAudio;
+    };
+
+    let originalQuerySelectorAll: typeof document.querySelectorAll;
+    let mockAudio: ReturnType<typeof createMockAudio>;
+
+    beforeEach(() => {
+      // Save original - we need direct DOM access here to mock audio element queries
+      // eslint-disable-next-line testing-library/no-node-access
+      originalQuerySelectorAll = document.querySelectorAll.bind(document);
+      mockAudio = createMockAudio(0);
+
+      // Override querySelectorAll to return our mock for audio elements
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelectorAll = vi.fn((selector: string) => {
+        if (selector === 'audio') {
+          return [mockAudio] as unknown as NodeListOf<Element>;
+        }
+        return originalQuerySelectorAll(selector);
+      }) as typeof document.querySelectorAll;
+    });
+
+    afterEach(() => {
+      // Restore original
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelectorAll = originalQuerySelectorAll;
+    });
+
+    it('should toggle play/pause with space bar', async () => {
+      renderPage();
+
+      // Wait for component to load (multiple Daily Routine due to responsive design)
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate space bar press
+      fireEvent.keyDown(window, { code: 'Space' });
+
+      expect(mockAudio.play).toHaveBeenCalled();
+    });
+
+    it('should not trigger keyboard controls when typing in input', async () => {
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Create a mock input and dispatch keydown from it
+      const input = document.createElement('input');
+      document.body.appendChild(input);
+
+      fireEvent.keyDown(input, { code: 'Space' });
+
+      // play should not be called since we're in an input
+      expect(mockAudio.play).not.toHaveBeenCalled();
+
+      document.body.removeChild(input);
+    });
+
+    it('should navigate to next segment with right arrow', async () => {
+      // Set up audio at the start of segment 1
+      mockAudio.currentTime = 0.5; // 500ms into first segment (0.85x speed)
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate right arrow press
+      fireEvent.keyDown(window, { code: 'ArrowRight' });
+
+      // Should navigate to start of second segment (1500ms = 1.5s for 0.85x speed)
+      expect(mockAudio.currentTime).toBe(1.5);
+    });
+
+    it('should restart current segment with left arrow when past threshold', async () => {
+      // Set up audio 700ms into first segment (past the 500ms threshold)
+      mockAudio.currentTime = 0.7; // 700ms into first segment
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate left arrow press
+      fireEvent.keyDown(window, { code: 'ArrowLeft' });
+
+      // Should go back to start of current segment (0ms = 0s)
+      expect(mockAudio.currentTime).toBe(0);
+    });
+
+    it('should go to previous segment with left arrow when near start', async () => {
+      // Set up audio 300ms into second segment (before the 500ms threshold)
+      // Second segment starts at 1500ms for 0.85x speed
+      mockAudio.currentTime = 1.8; // 1800ms = 300ms into second segment
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate left arrow press
+      fireEvent.keyDown(window, { code: 'ArrowLeft' });
+
+      // Should go to start of first segment (0ms = 0s)
+      expect(mockAudio.currentTime).toBe(0);
+    });
+
+    it('should stay at first segment beginning when pressing left at start', async () => {
+      // Set up audio at very beginning
+      mockAudio.currentTime = 0.1; // 100ms into first segment
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate left arrow press
+      fireEvent.keyDown(window, { code: 'ArrowLeft' });
+
+      // Should stay at start of first segment
+      expect(mockAudio.currentTime).toBe(0);
+    });
+
+    it('should not navigate past last segment with right arrow', async () => {
+      // Set up audio in the last segment
+      // Second segment for 0.85x: startTime 1500ms, endTime 3000ms
+      mockAudio.currentTime = 2.0; // 2000ms - in second segment
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Daily Routine').length).toBeGreaterThan(0);
+      });
+
+      // Simulate right arrow press
+      fireEvent.keyDown(window, { code: 'ArrowRight' });
+
+      // Should not change (no next segment)
+      expect(mockAudio.currentTime).toBe(2.0);
+    });
+  });
 });
