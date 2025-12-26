@@ -96,13 +96,17 @@ const NarrowListeningPlaybackPage = () => {
 
   // Calculate selected version and audio URL
   const selectedVersion = pack?.versions.find((v) => v.id === selectedVersionId);
-  const currentAudioUrl = selectedVersion
-    ? selectedSpeed === '0.7x'
-      ? selectedVersion.audioUrl_0_7
-      : selectedSpeed === '0.85x'
-        ? selectedVersion.audioUrl_0_85
-        : selectedVersion.audioUrl_1_0
-    : null;
+
+  let currentAudioUrl: string | null = null;
+  if (selectedVersion) {
+    if (selectedSpeed === '0.7x') {
+      currentAudioUrl = selectedVersion.audioUrl_0_7;
+    } else if (selectedSpeed === '0.85x') {
+      currentAudioUrl = selectedVersion.audioUrl_0_85;
+    } else {
+      currentAudioUrl = selectedVersion.audioUrl_1_0;
+    }
+  }
 
   const loadPack = async () => {
     try {
@@ -122,6 +126,7 @@ const NarrowListeningPlaybackPage = () => {
 
   useEffect(() => {
     loadPack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Auto-select first version when pack loads
@@ -198,8 +203,12 @@ const NarrowListeningPlaybackPage = () => {
           const startTime = getTimingForSpeed(segments[i], 'startTime', selectedSpeed);
           const endTime = getTimingForSpeed(segments[i], 'endTime', selectedSpeed);
 
-          if (startTime !== null && endTime !== null &&
-              currentTimeMs >= startTime && currentTimeMs < endTime) {
+          if (
+            startTime !== null &&
+            endTime !== null &&
+            currentTimeMs >= startTime &&
+            currentTimeMs < endTime
+          ) {
             currentSegmentIndex = i;
             break;
           }
@@ -230,10 +239,17 @@ const NarrowListeningPlaybackPage = () => {
 
           // If we're more than RESTART_THRESHOLD_MS into the segment, go to its start
           // Otherwise, go to the previous segment
-          if (currentStartTime !== null && currentTimeMs > currentStartTime + RESTART_THRESHOLD_MS) {
+          if (
+            currentStartTime !== null &&
+            currentTimeMs > currentStartTime + RESTART_THRESHOLD_MS
+          ) {
             audio.currentTime = currentStartTime / 1000;
           } else if (currentSegmentIndex > 0) {
-            const prevStartTime = getTimingForSpeed(segments[currentSegmentIndex - 1], 'startTime', selectedSpeed);
+            const prevStartTime = getTimingForSpeed(
+              segments[currentSegmentIndex - 1],
+              'startTime',
+              selectedSpeed
+            );
             if (prevStartTime !== null) {
               audio.currentTime = prevStartTime / 1000;
             }
@@ -243,7 +259,11 @@ const NarrowListeningPlaybackPage = () => {
           }
         } else if (currentSegmentIndex < segments.length - 1) {
           // Right arrow: Go to beginning of next segment
-          const nextStartTime = getTimingForSpeed(segments[currentSegmentIndex + 1], 'startTime', selectedSpeed);
+          const nextStartTime = getTimingForSpeed(
+            segments[currentSegmentIndex + 1],
+            'startTime',
+            selectedSpeed
+          );
           if (nextStartTime !== null) {
             audio.currentTime = nextStartTime / 1000;
           }
@@ -290,13 +310,19 @@ const NarrowListeningPlaybackPage = () => {
 
     // Check if we need to generate audio for any speed that's missing
     if (pack) {
-      const audioUrlField =
-        newSpeed === '0.7x'
-          ? 'audioUrl_0_7'
-          : newSpeed === '0.85x'
-            ? 'audioUrl_0_85'
-            : 'audioUrl_1_0';
-      const speedValue = newSpeed === '0.7x' ? 0.7 : newSpeed === '0.85x' ? 0.85 : 1.0;
+      let audioUrlField: 'audioUrl_0_7' | 'audioUrl_0_85' | 'audioUrl_1_0';
+      let speedValue: number;
+
+      if (newSpeed === '0.7x') {
+        audioUrlField = 'audioUrl_0_7';
+        speedValue = 0.7;
+      } else if (newSpeed === '0.85x') {
+        audioUrlField = 'audioUrl_0_85';
+        speedValue = 0.85;
+      } else {
+        audioUrlField = 'audioUrl_1_0';
+        speedValue = 1.0;
+      }
       const allVersionsHaveSpeed = pack.versions.every((v) => v[audioUrlField]);
 
       if (!allVersionsHaveSpeed) {
@@ -398,7 +424,7 @@ const NarrowListeningPlaybackPage = () => {
 
     // If repeat mode is 'one', replay the current variation
     if (repeatMode === 'one') {
-      const audio = audioRef as any;
+      const audio = audioRef as React.MutableRefObject<HTMLAudioElement | null>;
       if (audio && audio.current) {
         audio.current.currentTime = 0;
         audio.current.play();
@@ -435,7 +461,11 @@ const NarrowListeningPlaybackPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
           <p className="text-red-700">{error || 'Pack not found'}</p>
-          <button type="button" onClick={() => navigate('/app/narrow-listening')} className="btn-outline mt-4">
+          <button
+            type="button"
+            onClick={() => navigate('/app/narrow-listening')}
+            className="btn-outline mt-4"
+          >
             Back to Library
           </button>
         </div>
@@ -626,7 +656,8 @@ const NarrowListeningPlaybackPage = () => {
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Story Variations</h3>
               <div className="space-y-2">
                 {pack.versions.map((version) => (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={version.id}
                     onClick={() => handleVersionSelect(version.id)}
                     className={`w-full text-left p-4 rounded-lg border-2 transition-colors ${
