@@ -51,6 +51,29 @@ interface NarrowListeningPack {
 
 type Speed = '0.7x' | '0.85x' | '1.0x';
 
+// Time threshold (in ms) for arrow key navigation:
+// If more than this time has elapsed in current segment, left arrow restarts it.
+// Otherwise, left arrow goes to previous segment.
+const RESTART_THRESHOLD_MS = 500;
+
+// Pause duration (in ms) between story sections/variations for comprehension
+const SECTION_PAUSE_MS = 3000;
+
+// Helper to get timing values based on speed
+const getTimingForSpeed = (
+  segment: StorySegment,
+  field: 'startTime' | 'endTime',
+  speed: Speed
+): number | null => {
+  if (speed === '0.7x') {
+    return field === 'startTime' ? segment.startTime_0_7 : segment.endTime_0_7;
+  }
+  if (speed === '0.85x') {
+    return field === 'startTime' ? segment.startTime_0_85 : segment.endTime_0_85;
+  }
+  return field === 'startTime' ? segment.startTime_1_0 : segment.endTime_1_0;
+};
+
 const NarrowListeningPlaybackPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -109,32 +132,29 @@ const NarrowListeningPlaybackPage = () => {
   }, [pack, selectedVersionId]);
 
   // Auto-play when version changes (for sequential playback)
-  // 3-second pause between sections for better comprehension
+  // Uses SECTION_PAUSE_MS pause between sections for better comprehension
   useEffect(() => {
     if (!currentAudioUrl || !shouldAutoPlay.current) {
       shouldAutoPlay.current = false;
-      return;
+      return undefined;
     }
 
-    // Get the audio element from the ref
-    const getAudioElement = () => {
-      // The audioRef callback stores the element, we need to access it
-      // We'll use a 3-second delay between sections (versions) for better comprehension
-      setTimeout(() => {
-        const audioElements = document.querySelectorAll('audio');
-        const audio = Array.from(audioElements).find((el) => el.src === currentAudioUrl);
-        if (audio) {
-          audio.play().catch((err) => {
-            // Ignore auto-play errors (browser restrictions)
-            // eslint-disable-next-line no-console
-            console.log('Auto-play prevented:', err);
-          });
-        }
-        shouldAutoPlay.current = false;
-      }, 3000); // 3-second pause between sections
-    };
+    // Schedule auto-play after section pause
+    const timeoutId = setTimeout(() => {
+      const audioElements = document.querySelectorAll('audio');
+      const audio = Array.from(audioElements).find((el) => el.src === currentAudioUrl);
+      if (audio) {
+        audio.play().catch((err) => {
+          // Ignore auto-play errors (browser restrictions)
+          // eslint-disable-next-line no-console
+          console.log('Auto-play prevented:', err);
+        });
+      }
+      shouldAutoPlay.current = false;
+    }, SECTION_PAUSE_MS);
 
-    getAudioElement();
+    // Cleanup timeout on unmount or when dependencies change
+    return () => clearTimeout(timeoutId);
   }, [selectedVersionId, currentAudioUrl]);
 
   // Keyboard controls: Space bar to play/pause, Left/Right arrows for segment navigation
@@ -170,23 +190,13 @@ const NarrowListeningPlaybackPage = () => {
         e.preventDefault();
 
         const currentTimeMs = audio.currentTime * 1000;
-        const segments = selectedVersion.segments;
+        const { segments } = selectedVersion;
 
         // Find current segment index based on timing
         let currentSegmentIndex = -1;
-        for (let i = 0; i < segments.length; i++) {
-          const startTime =
-            selectedSpeed === '0.7x'
-              ? segments[i].startTime_0_7
-              : selectedSpeed === '0.85x'
-                ? segments[i].startTime_0_85
-                : segments[i].startTime_1_0;
-          const endTime =
-            selectedSpeed === '0.7x'
-              ? segments[i].endTime_0_7
-              : selectedSpeed === '0.85x'
-                ? segments[i].endTime_0_85
-                : segments[i].endTime_1_0;
+        for (let i = 0; i < segments.length; i += 1) {
+          const startTime = getTimingForSpeed(segments[i], 'startTime', selectedSpeed);
+          const endTime = getTimingForSpeed(segments[i], 'endTime', selectedSpeed);
 
           if (startTime !== null && endTime !== null &&
               currentTimeMs >= startTime && currentTimeMs < endTime) {
@@ -197,13 +207,8 @@ const NarrowListeningPlaybackPage = () => {
 
         // If between segments (in a pause), find nearest segment
         if (currentSegmentIndex === -1) {
-          for (let i = 0; i < segments.length; i++) {
-            const startTime =
-              selectedSpeed === '0.7x'
-                ? segments[i].startTime_0_7
-                : selectedSpeed === '0.85x'
-                  ? segments[i].startTime_0_85
-                  : segments[i].startTime_1_0;
+          for (let i = 0; i < segments.length; i += 1) {
+            const startTime = getTimingForSpeed(segments[i], 'startTime', selectedSpeed);
 
             if (startTime !== null && currentTimeMs < startTime) {
               currentSegmentIndex = i - 1;
@@ -219,24 +224,16 @@ const NarrowListeningPlaybackPage = () => {
         if (e.code === 'ArrowLeft') {
           // Left arrow: Go to beginning of current segment, or previous segment if already at beginning
           const currentSegment = segments[currentSegmentIndex];
-          const currentStartTime =
-            selectedSpeed === '0.7x'
-              ? currentSegment?.startTime_0_7
-              : selectedSpeed === '0.85x'
-                ? currentSegment?.startTime_0_85
-                : currentSegment?.startTime_1_0;
+          const currentStartTime = currentSegment
+            ? getTimingForSpeed(currentSegment, 'startTime', selectedSpeed)
+            : null;
 
-          // If we're more than 500ms into the segment, go to its start
+          // If we're more than RESTART_THRESHOLD_MS into the segment, go to its start
           // Otherwise, go to the previous segment
-          if (currentStartTime !== null && currentTimeMs > currentStartTime + 500) {
+          if (currentStartTime !== null && currentTimeMs > currentStartTime + RESTART_THRESHOLD_MS) {
             audio.currentTime = currentStartTime / 1000;
           } else if (currentSegmentIndex > 0) {
-            const prevStartTime =
-              selectedSpeed === '0.7x'
-                ? segments[currentSegmentIndex - 1].startTime_0_7
-                : selectedSpeed === '0.85x'
-                  ? segments[currentSegmentIndex - 1].startTime_0_85
-                  : segments[currentSegmentIndex - 1].startTime_1_0;
+            const prevStartTime = getTimingForSpeed(segments[currentSegmentIndex - 1], 'startTime', selectedSpeed);
             if (prevStartTime !== null) {
               audio.currentTime = prevStartTime / 1000;
             }
@@ -244,18 +241,11 @@ const NarrowListeningPlaybackPage = () => {
             // At first segment, just go to its beginning
             audio.currentTime = currentStartTime / 1000;
           }
-        } else {
+        } else if (currentSegmentIndex < segments.length - 1) {
           // Right arrow: Go to beginning of next segment
-          if (currentSegmentIndex < segments.length - 1) {
-            const nextStartTime =
-              selectedSpeed === '0.7x'
-                ? segments[currentSegmentIndex + 1].startTime_0_7
-                : selectedSpeed === '0.85x'
-                  ? segments[currentSegmentIndex + 1].startTime_0_85
-                  : segments[currentSegmentIndex + 1].startTime_1_0;
-            if (nextStartTime !== null) {
-              audio.currentTime = nextStartTime / 1000;
-            }
+          const nextStartTime = getTimingForSpeed(segments[currentSegmentIndex + 1], 'startTime', selectedSpeed);
+          if (nextStartTime !== null) {
+            audio.currentTime = nextStartTime / 1000;
           }
         }
       }
@@ -270,18 +260,8 @@ const NarrowListeningPlaybackPage = () => {
     if (!selectedVersion || !isPlaying) return;
 
     const currentSegment = selectedVersion.segments.find((segment) => {
-      const startTime =
-        selectedSpeed === '0.7x'
-          ? segment.startTime_0_7
-          : selectedSpeed === '0.85x'
-            ? segment.startTime_0_85
-            : segment.startTime_1_0;
-      const endTime =
-        selectedSpeed === '0.7x'
-          ? segment.endTime_0_7
-          : selectedSpeed === '0.85x'
-            ? segment.endTime_0_85
-            : segment.endTime_1_0;
+      const startTime = getTimingForSpeed(segment, 'startTime', selectedSpeed);
+      const endTime = getTimingForSpeed(segment, 'endTime', selectedSpeed);
 
       return (
         startTime !== null &&
@@ -678,18 +658,8 @@ const NarrowListeningPlaybackPage = () => {
                   <h4 className="text-sm font-semibold text-gray-900">Story Text</h4>
                   {selectedVersion.segments.map((segment, _idx) => {
                     // Calculate if this segment is currently speaking
-                    const startTime =
-                      selectedSpeed === '0.7x'
-                        ? segment.startTime_0_7
-                        : selectedSpeed === '0.85x'
-                          ? segment.startTime_0_85
-                          : segment.startTime_1_0;
-                    const endTime =
-                      selectedSpeed === '0.7x'
-                        ? segment.endTime_0_7
-                        : selectedSpeed === '0.85x'
-                          ? segment.endTime_0_85
-                          : segment.endTime_1_0;
+                    const startTime = getTimingForSpeed(segment, 'startTime', selectedSpeed);
+                    const endTime = getTimingForSpeed(segment, 'endTime', selectedSpeed);
 
                     const isCurrentlySpeaking =
                       startTime !== null &&
