@@ -16,9 +16,13 @@
  *   npm run harness:test -- --coverage-only        # Coverage audit only
  *   npm run harness:test -- --target-coverage 90   # Custom coverage target
  *   npm run harness:test -- --max-turns 1000       # Custom max turns
+ *   npm run harness:test -- --watchdog-timeout 300000  # Custom watchdog timeout
+ *   npm run harness:test -- --disable-watchdog     # Disable watchdog for debugging
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
+import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 import { formatDuration } from './utils/format-duration.js';
 
 interface TestHarnessOptions {
@@ -28,6 +32,8 @@ interface TestHarnessOptions {
   fixOnly?: boolean; // Only fix existing failures, no new tests
   coverageOnly?: boolean; // Only audit and write tests, don't fix
   targetCoverage?: number; // Target coverage % (default: 80)
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
+  disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
 const DEFAULT_MAX_TURNS = 50000;
@@ -41,6 +47,8 @@ async function runTestHarness(options: TestHarnessOptions = {}) {
     fixOnly = false,
     coverageOnly = false,
     targetCoverage = DEFAULT_TARGET_COVERAGE,
+    watchdogTimeout,
+    disableWatchdog = false,
   } = options;
 
   console.log('🧪 ConvoLab Test Harness');
@@ -53,8 +61,12 @@ async function runTestHarness(options: TestHarnessOptions = {}) {
   console.log(`⚙️  Max turns: ${maxTurns}`);
   console.log(`📊 Target coverage: ${targetCoverage}%`);
   console.log(
-    `🎯 Mode: ${fixOnly ? 'Fix failures only' : coverageOnly ? 'Coverage audit only' : 'Full test improvement'}\n`
+    `🎯 Mode: ${fixOnly ? 'Fix failures only' : coverageOnly ? 'Coverage audit only' : 'Full test improvement'}`
   );
+  if (!disableWatchdog) {
+    console.log(`⏱️  Watchdog timeout: ${watchdogTimeout || 240000}ms`);
+  }
+  console.log();
 
   if (maxTurns > 200) {
     console.log('⚠️  WARNING: Large run detected');
@@ -149,7 +161,23 @@ For each missing test case:
 4. Verify no regressions
 5. Check coverage improved: npm run test:coverage
 
-### PHASE 6: Commit
+### PHASE 6: Lint Test Files
+Before committing, ensure test files pass linting:
+1. Run: npm run lint -- --fix
+2. This auto-fixes most issues (unused imports, formatting)
+3. Fix any remaining lint errors in test files
+4. Verify: npm run lint (should pass)
+
+### PHASE 7: Commit
+
+**Pre-Commit Hook Awareness:**
+When you commit, the pre-commit hook will:
+- Run lint-staged (lints staged files) - should pass since we fixed linting
+- Run server tests if server files changed
+- Fail the commit if either fails
+
+Ensure your changes pass these checks before committing.
+
 1. Update CHANGELOG.md with summary
 2. Use /commit with detailed message
 `
@@ -276,82 +304,99 @@ If you find yourself thinking "let me stop here and suggest next steps", STOP TH
 Begin your analysis now.
   `.trim();
 
-  const startTime = Date.now();
+  await runResilientHarness(
+    {
+      harnessName: 'test',
+      watchdogTimeoutMs: watchdogTimeout || 240000, // 4 minutes default for test harness
+      disableWatchdog,
+    },
+    async (context) => {
+      const startTime = Date.now();
 
-  try {
-    let messageCount = 0;
-    let lastMessage = '';
-    let lastProgressUpdate = Date.now();
+      try {
+        let messageCount = 0;
+        let lastMessage = '';
+        let lastProgressUpdate = Date.now();
 
-    for await (const message of query({
-      prompt,
-      options: {
-        cwd: '/Users/andrewlandry/source/convo-lab',
-        permissionMode: dryRun ? 'default' : 'acceptEdits',
-        maxTurns,
-        allowedTools: dryRun
-          ? ['Read', 'Glob', 'Grep', 'Bash']
-          : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
-        systemPrompt: `You are a test engineering expert maintaining ConvoLab.
+        for await (const message of query({
+          prompt,
+          options: {
+            cwd: '/Users/andrewlandry/source/convo-lab',
+            permissionMode: dryRun ? 'default' : 'acceptEdits',
+            maxTurns,
+            allowedTools: dryRun
+              ? ['Read', 'Glob', 'Grep', 'Bash']
+              : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
+            systemPrompt: enhanceSystemPrompt(`You are a test engineering expert maintaining ConvoLab.
 Follow the project's testing patterns exactly.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and write tests. Use /commit when done.'}`,
-      },
-    })) {
-      messageCount++;
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and write tests. Use /commit when done.'}`),
+          },
+        })) {
+          messageCount++;
 
-      // Show progress
-      const now = Date.now();
-      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
-        const progress = ((messageCount / maxTurns) * 100).toFixed(1);
-        console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
-        lastProgressUpdate = now;
-      }
+          // Record progress for watchdog
+          context.recordProgress();
 
-      // Log messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Show progress
+          const now = Date.now();
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
+            const progress = ((messageCount / maxTurns) * 100).toFixed(1);
+            console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
+            lastProgressUpdate = now;
+          }
+
+          // Checkpoint logging every 50 messages
+          if (messageCount % 50 === 0) {
+            context.logCheckpoint(messageCount, startTime, lastMessage);
+          }
+
+          // Log messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ Test Harness Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
         }
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
-        }
+      } catch (error) {
+        console.error('\n❌ Harness failed with error:');
+        console.error(error);
+        process.exit(1);
       }
     }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Harness Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
-    console.log(
-      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
-    );
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
-    }
-  } catch (error) {
-    console.error('\n❌ Harness failed with error:');
-    console.error(error);
-    process.exit(1);
-  }
+  );
 }
 
 // Parse command line arguments
@@ -379,6 +424,17 @@ if (targetCoverageIndex !== -1 && args[targetCoverageIndex + 1]) {
   }
 }
 
+// Check for --watchdog-timeout argument
+let customWatchdogTimeout: number | undefined;
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
+if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
+  customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
+  if (isNaN(customWatchdogTimeout)) {
+    console.error('Invalid --watchdog-timeout value. Using default.');
+    customWatchdogTimeout = undefined;
+  }
+}
+
 const options: TestHarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
@@ -386,6 +442,8 @@ const options: TestHarnessOptions = {
   coverageOnly: args.includes('--coverage-only'),
   maxTurns: customMaxTurns,
   targetCoverage: customTargetCoverage,
+  watchdogTimeout: customWatchdogTimeout,
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness

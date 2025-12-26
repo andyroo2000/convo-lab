@@ -16,9 +16,14 @@
  *   npm run harness:monitoring -- --dry-run            # Report only, no changes
  *   npm run harness:monitoring -- --max-turns 300      # Custom max turns
  *   npm run harness:monitoring -- --logging-only       # Only review logging
+ *   npm run harness:monitoring -- --critical-only      # Only critical phases (logging, errors, health)
+ *   npm run harness:monitoring -- --watchdog-timeout 300000  # Custom watchdog timeout
+ *   npm run harness:monitoring -- --disable-watchdog   # Disable watchdog for debugging
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
+import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 import { formatDuration } from './utils/format-duration.js';
 
 interface MonitoringHarnessOptions {
@@ -26,6 +31,9 @@ interface MonitoringHarnessOptions {
   maxTurns?: number;
   verbose?: boolean;
   loggingOnly?: boolean; // Only focus on logging infrastructure
+  criticalOnly?: boolean; // Only critical phases (logging, error tracking, health checks)
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
+  disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
 const DEFAULT_MAX_TURNS = 50000;
@@ -36,6 +44,9 @@ async function runMonitoringHarness(options: MonitoringHarnessOptions = {}) {
     maxTurns = DEFAULT_MAX_TURNS,
     verbose = true,
     loggingOnly = false,
+    criticalOnly = false,
+    watchdogTimeout,
+    disableWatchdog = false,
   } = options;
 
   console.log('📊 ConvoLab Monitoring & Observability Harness');
@@ -46,9 +57,16 @@ async function runMonitoringHarness(options: MonitoringHarnessOptions = {}) {
   }
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
-  console.log(
-    `🎯 Mode: ${loggingOnly ? 'Logging infrastructure only' : 'Full monitoring setup'}\n`
-  );
+  const modeDesc = loggingOnly
+    ? 'Logging infrastructure only'
+    : criticalOnly
+      ? 'Critical phases only (logging, errors, health)'
+      : 'Full monitoring setup';
+  console.log(`🎯 Mode: ${modeDesc}`);
+  if (!disableWatchdog) {
+    console.log(`⏱️  Watchdog timeout: ${watchdogTimeout || 300000}ms`);
+  }
+  console.log();
 
   console.log('Starting monitoring audit...\n');
 
@@ -70,8 +88,65 @@ ${
 6. Set up log rotation if needed
 7. Commit with /commit
 `
-    : `
+    : criticalOnly
+      ? `
+## Critical Monitoring Phases Only
+
+Focus on the 3 most critical monitoring areas. Skip performance, metrics, tracing, alerting, and docs.
+
+### PRIORITY 1: Logging Infrastructure
+1. Review current logging setup:
+   - Check if logging library is in use (Winston, Pino, etc.)
+   - Review log configuration and output format
+   - Verify log levels are used appropriately
+2. Check logging coverage:
+   - API endpoints log requests/responses
+   - Errors are logged with context
+   - Important business events are logged
+3. Security considerations:
+   - No passwords/API keys in logs
+   - No PII unless necessary
+   - Sanitize sensitive data
+4. Implement improvements if needed
+
+### PRIORITY 2: Error Tracking
+1. Review error handling:
+   - Check how errors are caught
+   - Verify errors are logged with context
+   - Check for proper HTTP status codes
+2. Set up error tracking:
+   - Error boundaries in React
+   - Global error handlers
+   - Unhandled promise rejection tracking
+3. Error context collection:
+   - Include stack traces
+   - Include user/request context
+4. Implement improvements if needed
+
+### PRIORITY 3: Health Checks
+1. Implement health check endpoints:
+   - /health - basic liveness check
+   - /health/ready - readiness check
+2. Check dependencies:
+   - Database connectivity
+   - Redis connectivity
+   - External API availability
+3. Expose basic health metrics:
+   - Uptime
+   - Memory usage
+4. Implement improvements if needed
+
+### FINAL: Commit
+1. Update CHANGELOG.md with monitoring improvements
+2. Use /commit with detailed message
+`
+      : `
 ## Complete Monitoring & Observability Workflow
+
+**Phase Priority Order:**
+- Priority 1 (Critical): Logging, Error Tracking, Health Checks
+- Priority 2 (Important): Performance Monitoring, Metrics Collection
+- Priority 3 (Nice-to-have): Distributed Tracing, Alerting, Documentation
 
 ### PHASE 1: Logging Infrastructure
 1. Review current logging setup:
@@ -352,6 +427,17 @@ ${
 - Document thoroughly
 ${!dryRun ? '- Only use /commit once at the end with all monitoring improvements' : ''}
 
+${!dryRun ? `
+## Pre-Commit Hook Awareness
+
+When you commit, the pre-commit hook will:
+- Run lint-staged (lints staged files)
+- Run server tests if server files changed
+- Fail the commit if either fails
+
+Ensure your changes pass linting before committing.
+` : ''}
+
 ## Session Completion Rules
 
 You are in AUTONOMOUS MODE. This means:
@@ -369,82 +455,99 @@ If you find yourself thinking "let me stop here and suggest next steps", STOP TH
 Begin your monitoring audit now.
   `.trim();
 
-  const startTime = Date.now();
+  await runResilientHarness(
+    {
+      harnessName: 'monitoring',
+      watchdogTimeoutMs: watchdogTimeout || 300000, // 5 minutes default for monitoring
+      disableWatchdog,
+    },
+    async (context) => {
+      const startTime = Date.now();
 
-  try {
-    let messageCount = 0;
-    let lastMessage = '';
-    let lastProgressUpdate = Date.now();
+      try {
+        let messageCount = 0;
+        let lastMessage = '';
+        let lastProgressUpdate = Date.now();
 
-    for await (const message of query({
-      prompt,
-      options: {
-        cwd: '/Users/andrewlandry/source/convo-lab',
-        permissionMode: dryRun ? 'default' : 'acceptEdits',
-        maxTurns,
-        allowedTools: dryRun
-          ? ['Read', 'Glob', 'Grep', 'Bash']
-          : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
-        systemPrompt: `You are a monitoring and observability expert for ConvoLab.
+        for await (const message of query({
+          prompt,
+          options: {
+            cwd: '/Users/andrewlandry/source/convo-lab',
+            permissionMode: dryRun ? 'default' : 'acceptEdits',
+            maxTurns,
+            allowedTools: dryRun
+              ? ['Read', 'Glob', 'Grep', 'Bash']
+              : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
+            systemPrompt: enhanceSystemPrompt(`You are a monitoring and observability expert for ConvoLab.
 Focus on actionable monitoring. Avoid alert fatigue.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitoring and use /commit when done.'}`,
-      },
-    })) {
-      messageCount++;
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Set up monitoring and use /commit when done.'}`),
+          },
+        })) {
+          messageCount++;
 
-      // Show progress
-      const now = Date.now();
-      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
-        const progress = ((messageCount / maxTurns) * 100).toFixed(1);
-        console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
-        lastProgressUpdate = now;
-      }
+          // Record progress for watchdog
+          context.recordProgress();
 
-      // Log messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Show progress
+          const now = Date.now();
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
+            const progress = ((messageCount / maxTurns) * 100).toFixed(1);
+            console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
+            lastProgressUpdate = now;
+          }
+
+          // Checkpoint logging every 50 messages
+          if (messageCount % 50 === 0) {
+            context.logCheckpoint(messageCount, startTime, lastMessage);
+          }
+
+          // Log messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ Monitoring Setup Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
         }
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
-        }
+      } catch (error) {
+        console.error('\n❌ Monitoring setup failed with error:');
+        console.error(error);
+        process.exit(1);
       }
     }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Monitoring Setup Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
-    console.log(
-      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
-    );
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply changes, run without --dry-run flag.');
-    }
-  } catch (error) {
-    console.error('\n❌ Monitoring setup failed with error:');
-    console.error(error);
-    process.exit(1);
-  }
+  );
 }
 
 // Parse command line arguments
@@ -460,11 +563,25 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   }
 }
 
+// Check for --watchdog-timeout argument
+let customWatchdogTimeout: number | undefined;
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
+if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
+  customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
+  if (isNaN(customWatchdogTimeout)) {
+    console.error('Invalid --watchdog-timeout value. Using default.');
+    customWatchdogTimeout = undefined;
+  }
+}
+
 const options: MonitoringHarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
   loggingOnly: args.includes('--logging-only'),
+  criticalOnly: args.includes('--critical-only'),
   maxTurns: customMaxTurns,
+  watchdogTimeout: customWatchdogTimeout,
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness
