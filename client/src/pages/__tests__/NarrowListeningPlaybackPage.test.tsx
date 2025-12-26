@@ -29,7 +29,15 @@ vi.mock('../../hooks/useAudioPlayer', () => ({
 }));
 
 vi.mock('../../components/AudioPlayer', () => ({
-  default: ({ src, onEnded, repeatMode }: any) => (
+  default: ({
+    src,
+    onEnded,
+    repeatMode,
+  }: {
+    src: string;
+    onEnded: () => void;
+    repeatMode: string;
+  }) => (
     <div data-testid="mock-audio-player" data-src={src} data-repeat-mode={repeatMode}>
       <button type="button" onClick={onEnded}>
         End Audio
@@ -47,7 +55,15 @@ vi.mock('../../components/ChineseText', () => ({
 }));
 
 vi.mock('../../components/common/SpeedSelector', () => ({
-  default: ({ selectedSpeed, onSpeedChange, disabled }: any) => (
+  default: ({
+    selectedSpeed,
+    onSpeedChange,
+    disabled,
+  }: {
+    selectedSpeed: string;
+    onSpeedChange: (speed: string) => void;
+    disabled: boolean;
+  }) => (
     <div data-testid="speed-selector">
       {['0.7x', '0.85x', '1.0x'].map((speed) => (
         <button
@@ -71,7 +87,13 @@ vi.mock('../../components/common/ViewToggleButtons', () => ({
     onToggleReadings,
     onToggleTranslations,
     readingsLabel,
-  }: any) => (
+  }: {
+    showReadings: boolean;
+    showTranslations: boolean;
+    onToggleReadings: () => void;
+    onToggleTranslations: () => void;
+    readingsLabel: string;
+  }) => (
     <div data-testid="view-toggle-buttons">
       <button type="button" onClick={onToggleReadings}>
         {readingsLabel}
