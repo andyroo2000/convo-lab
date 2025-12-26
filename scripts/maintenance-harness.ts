@@ -68,22 +68,30 @@ You are running an autonomous maintenance harness for ConvoLab.
 ${
   quick
     ? `
-### Quick Maintenance Mode (Tests + Types + Build Only)
+### Quick Maintenance Mode (Tests + Types + Lint + Build)
 
 1. Run tests: npm run test:run
 2. Fix trivial test failures
 3. Report complex failures for manual review
 4. Run type check: npm run type-check
 5. Fix TypeScript errors
-6. Run build: npm run build
-7. Fix build errors
-8. Report success summary
-9. Commit with /commit if fixes were made
+6. Run linting:
+   - First: npm run lint -- --fix (auto-fix)
+   - Then: Fix remaining lint errors manually
+7. Run build: npm run build
+8. Fix build errors
+9. Report success summary
+10. Commit with /commit if fixes were made
 
-Note: Quick mode skips dependency health, code quality, git health, documentation, accessibility, monitoring, and mobile checks. Use full mode for comprehensive maintenance.
+Note: Quick mode skips dependency health, git health, documentation, accessibility, monitoring, and mobile checks. Use full mode for comprehensive maintenance.
 `
     : `
 ## Complete Daily Maintenance Workflow
+
+**Phase Order is Critical:**
+Tests → Types → Linting → Build → Dependencies → Git/Docs/Other → Commit
+
+This order ensures linting is clean BEFORE build, which prevents pre-commit hook failures.
 
 ### PHASE 1: Run All Tests
 1. Run: npm run test:run
@@ -107,7 +115,26 @@ Note: Quick mode skips dependency health, code quality, git health, documentatio
 4. Re-run type-check until clean
 5. Report type check results
 
-### PHASE 3: Build Verification
+### PHASE 3: Code Quality (Linting)
+1. Run auto-fix FIRST:
+   - Run: npm run lint -- --fix
+   - This will auto-fix most issues (unused imports, formatting, etc.)
+2. Check remaining issues:
+   - Run: npm run lint
+   - Parse lint errors and warnings
+3. Fix remaining issues manually:
+   - Read files with lint errors
+   - Fix simple issues (nested ternaries, etc.)
+   - Add eslint-disable comments for acceptable warnings
+   - Document complex issues for review
+4. Verify linting passes:
+   - Run: npm run lint
+   - Ensure no errors remain
+5. Report code quality results
+
+IMPORTANT: Linting must be clean before build, because the pre-commit hook will fail if there are lint errors.
+
+### PHASE 4: Build Verification
 1. Run: npm run build
 2. Parse build output
 3. For each build error:
@@ -118,7 +145,9 @@ Note: Quick mode skips dependency health, code quality, git health, documentatio
 5. Check build output sizes
 6. Report build results
 
-### PHASE 4: Dependency Health
+Note: The build also type-checks, so if Phase 2 passed, build should pass too.
+
+### PHASE 5: Dependency Health
 1. Check for outdated dependencies:
    - Run: npm outdated
    - Identify packages needing updates
@@ -132,23 +161,6 @@ Note: Quick mode skips dependency health, code quality, git health, documentatio
    - Document major updates for review
    - Check for breaking changes
 4. Report dependency health
-
-### PHASE 5: Code Quality
-1. Run linter:
-   - Run: npm run lint
-   - Parse lint errors and warnings
-2. Fix auto-fixable issues:
-   - Run: npm run lint -- --fix
-   - Report what was auto-fixed
-3. Review remaining lint errors:
-   - Read files with lint errors
-   - Fix simple issues
-   - Document complex issues for review
-4. Check for dead code:
-   - Unused imports
-   - Unused variables
-   - Unreachable code
-5. Report code quality results
 
 ### PHASE 6: Git Health
 1. Check for uncommitted changes:
@@ -231,6 +243,11 @@ Note: Quick mode skips dependency health, code quality, git health, documentatio
    - Suggest running full mobile harness if needed
 
 ### PHASE 11: Summary & Commit
+
+IMPORTANT: The pre-commit hook will run when you commit:
+- It runs lint-staged (lints staged files) - should pass since we already fixed linting
+- It runs server tests ONLY if server files were changed
+- If pre-commit fails, the commit will be rejected
 ${
   dryRun
     ? `
@@ -260,8 +277,11 @@ ${
 ### Type Error Strategy
 - Fix obvious type errors (missing types, wrong types)
 - Add proper types where missing
+- For TS6133 (unused variable) warnings: Use eslint-disable or remove variables
+- Don't spend too much time on test file type errors - focus on source code
 - Document complex type issues
 - Avoid using \`any\` unless necessary
+- Note: The build phase also type-checks, so focus on fixing errors that block the build
 
 ### Build Error Strategy
 - Fix import errors
@@ -276,10 +296,13 @@ ${
 - Check breaking changes before updating
 
 ### Linting Strategy
-- Use auto-fix when available
-- Fix simple style issues
-- Document complex lint issues
-- Don't change code logic to fix lint
+- **ALWAYS run auto-fix first**: npm run lint -- --fix
+- Auto-fix will handle most issues (unused imports, formatting, simple fixes)
+- Then fix remaining issues manually
+- Add eslint-disable comments for acceptable warnings (nested ternaries, etc.)
+- Document complex lint issues that require architectural changes
+- Don't change code logic to fix lint warnings
+- Ensure linting is 100% clean before proceeding to build phase
 
 ## Important Guidelines
 
@@ -301,7 +324,9 @@ ${
 }
 
 - Be thorough but efficient
-- Prioritize high-impact issues
+- Prioritize high-impact issues (build blockers > test failures > warnings)
+- Use auto-fix tools aggressively (npm run lint -- --fix)
+- Don't manually fix hundreds of warnings - use eslint-disable instead
 - Track progress clearly
 ${!dryRun ? '- Only use /commit once at the end with all fixes' : ''}
 
