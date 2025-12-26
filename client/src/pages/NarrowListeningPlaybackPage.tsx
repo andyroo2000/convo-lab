@@ -109,6 +109,7 @@ const NarrowListeningPlaybackPage = () => {
   }, [pack, selectedVersionId]);
 
   // Auto-play when version changes (for sequential playback)
+  // 3-second pause between sections for better comprehension
   useEffect(() => {
     if (!currentAudioUrl || !shouldAutoPlay.current) {
       shouldAutoPlay.current = false;
@@ -118,7 +119,7 @@ const NarrowListeningPlaybackPage = () => {
     // Get the audio element from the ref
     const getAudioElement = () => {
       // The audioRef callback stores the element, we need to access it
-      // We'll use a small delay to ensure the audio element is ready
+      // We'll use a 3-second delay between sections (versions) for better comprehension
       setTimeout(() => {
         const audioElements = document.querySelectorAll('audio');
         const audio = Array.from(audioElements).find((el) => el.src === currentAudioUrl);
@@ -130,18 +131,15 @@ const NarrowListeningPlaybackPage = () => {
           });
         }
         shouldAutoPlay.current = false;
-      }, 100);
+      }, 3000); // 3-second pause between sections
     };
 
     getAudioElement();
   }, [selectedVersionId, currentAudioUrl]);
 
-  // Keyboard controls: Space bar to play/pause
+  // Keyboard controls: Space bar to play/pause, Left/Right arrows for segment navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle space bar
-      if (e.code !== 'Space') return;
-
       // Don't trigger if user is typing in an input or textarea
       const target = e.target as HTMLElement;
       if (
@@ -152,24 +150,120 @@ const NarrowListeningPlaybackPage = () => {
         return;
       }
 
-      // Prevent default scroll behavior
-      e.preventDefault();
-
-      // Toggle play/pause on the audio element
       const audioElements = document.querySelectorAll('audio');
       const audio = audioElements[0] as HTMLAudioElement;
-      if (audio) {
+      if (!audio) return;
+
+      // Space bar: Toggle play/pause
+      if (e.code === 'Space') {
+        e.preventDefault();
         if (audio.paused) {
           audio.play();
         } else {
           audio.pause();
+        }
+        return;
+      }
+
+      // Left/Right arrow: Navigate between segments
+      if ((e.code === 'ArrowLeft' || e.code === 'ArrowRight') && selectedVersion) {
+        e.preventDefault();
+
+        const currentTimeMs = audio.currentTime * 1000;
+        const segments = selectedVersion.segments;
+
+        // Find current segment index based on timing
+        let currentSegmentIndex = -1;
+        for (let i = 0; i < segments.length; i++) {
+          const startTime =
+            selectedSpeed === '0.7x'
+              ? segments[i].startTime_0_7
+              : selectedSpeed === '0.85x'
+                ? segments[i].startTime_0_85
+                : segments[i].startTime_1_0;
+          const endTime =
+            selectedSpeed === '0.7x'
+              ? segments[i].endTime_0_7
+              : selectedSpeed === '0.85x'
+                ? segments[i].endTime_0_85
+                : segments[i].endTime_1_0;
+
+          if (startTime !== null && endTime !== null &&
+              currentTimeMs >= startTime && currentTimeMs < endTime) {
+            currentSegmentIndex = i;
+            break;
+          }
+        }
+
+        // If between segments (in a pause), find nearest segment
+        if (currentSegmentIndex === -1) {
+          for (let i = 0; i < segments.length; i++) {
+            const startTime =
+              selectedSpeed === '0.7x'
+                ? segments[i].startTime_0_7
+                : selectedSpeed === '0.85x'
+                  ? segments[i].startTime_0_85
+                  : segments[i].startTime_1_0;
+
+            if (startTime !== null && currentTimeMs < startTime) {
+              currentSegmentIndex = i - 1;
+              break;
+            }
+          }
+          // If we're past all segments, we're at the last one
+          if (currentSegmentIndex === -1) {
+            currentSegmentIndex = segments.length - 1;
+          }
+        }
+
+        if (e.code === 'ArrowLeft') {
+          // Left arrow: Go to beginning of current segment, or previous segment if already at beginning
+          const currentSegment = segments[currentSegmentIndex];
+          const currentStartTime =
+            selectedSpeed === '0.7x'
+              ? currentSegment?.startTime_0_7
+              : selectedSpeed === '0.85x'
+                ? currentSegment?.startTime_0_85
+                : currentSegment?.startTime_1_0;
+
+          // If we're more than 500ms into the segment, go to its start
+          // Otherwise, go to the previous segment
+          if (currentStartTime !== null && currentTimeMs > currentStartTime + 500) {
+            audio.currentTime = currentStartTime / 1000;
+          } else if (currentSegmentIndex > 0) {
+            const prevStartTime =
+              selectedSpeed === '0.7x'
+                ? segments[currentSegmentIndex - 1].startTime_0_7
+                : selectedSpeed === '0.85x'
+                  ? segments[currentSegmentIndex - 1].startTime_0_85
+                  : segments[currentSegmentIndex - 1].startTime_1_0;
+            if (prevStartTime !== null) {
+              audio.currentTime = prevStartTime / 1000;
+            }
+          } else if (currentStartTime !== null) {
+            // At first segment, just go to its beginning
+            audio.currentTime = currentStartTime / 1000;
+          }
+        } else {
+          // Right arrow: Go to beginning of next segment
+          if (currentSegmentIndex < segments.length - 1) {
+            const nextStartTime =
+              selectedSpeed === '0.7x'
+                ? segments[currentSegmentIndex + 1].startTime_0_7
+                : selectedSpeed === '0.85x'
+                  ? segments[currentSegmentIndex + 1].startTime_0_85
+                  : segments[currentSegmentIndex + 1].startTime_1_0;
+            if (nextStartTime !== null) {
+              audio.currentTime = nextStartTime / 1000;
+            }
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [selectedVersion, selectedSpeed]);
 
   // Auto-scroll to current segment
   useEffect(() => {
