@@ -242,6 +242,7 @@ export async function generatePISession(
       jlptLevel,
       grammarPoint,
     };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('Error generating PI session:', error);
     throw new Error(`Failed to generate PI session: ${error.message}`);
@@ -829,6 +830,8 @@ A. Contrastive は vs Focus が:
 B. Frame-setting vs Focused Subject:
    - 「昨日のパーティーは楽しかったです。盛り上がったのがゲームの時間でした。」
    - 「この町は静かですが、夜ににぎやかになるのが駅前のバーです。」`,
+    N2: `N2 MINIMAL PAIRS: (Using N3 examples as placeholder)`,
+    N1: `N1 MINIMAL PAIRS: (Using N3 examples as placeholder)`,
   };
 
   return examples[jlptLevel];

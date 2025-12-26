@@ -62,6 +62,7 @@ describe('useEpisodes', () => {
           sourceText: 'Hello world',
           targetLanguage: 'ja',
           nativeLanguage: 'en',
+          speakers: [],
         });
       });
 
@@ -93,6 +94,7 @@ describe('useEpisodes', () => {
           sourceText: 'Text',
           targetLanguage: 'ja',
           nativeLanguage: 'en',
+          speakers: [],
         });
       });
 
@@ -114,6 +116,7 @@ describe('useEpisodes', () => {
             sourceText: 'Text',
             targetLanguage: 'ja',
             nativeLanguage: 'en',
+            speakers: [],
           });
         } catch {
           // Expected to throw
@@ -134,10 +137,17 @@ describe('useEpisodes', () => {
 
       const { result } = renderHook(() => useEpisodes());
       const speakers = [
-        { name: '田中', voiceId: 'ja-voice-1', proficiency: 'native', tone: 'casual' },
+        {
+          id: 'speaker-1',
+          name: '田中',
+          voiceId: 'ja-voice-1',
+          proficiency: 'native' as const,
+          tone: 'casual' as const,
+        },
       ];
 
-      let response: { jobId: string } | null = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let response: any = null;
       await act(async () => {
         response = await result.current.generateDialogue('ep-123', speakers, 3, 6);
       });
@@ -377,6 +387,7 @@ describe('useEpisodes', () => {
             sourceText: 'Text',
             targetLanguage: 'ja',
             nativeLanguage: 'en',
+            speakers: [],
           });
         } catch {
           // Expected
@@ -398,6 +409,7 @@ describe('useEpisodes', () => {
             sourceText: 'Text',
             targetLanguage: 'ja',
             nativeLanguage: 'en',
+            speakers: [],
           });
         } catch {
           // Expected
