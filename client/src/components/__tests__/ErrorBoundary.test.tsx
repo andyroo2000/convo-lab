@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ErrorBoundary from '../ErrorBoundary';
 
@@ -12,7 +12,8 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 
 describe('ErrorBoundary', () => {
   // Suppress console.error for these tests
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn<any, any>>;
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -112,8 +113,10 @@ describe('ErrorBoundary', () => {
     const originalLocation = window.location;
 
     // Mock window.location.href
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (window as any).location;
-    window.location = { href: '' } as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).location = { href: '' };
 
     render(
       <ErrorBoundary>

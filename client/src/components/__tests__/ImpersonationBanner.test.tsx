@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-node-access */
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ImpersonationBanner from '../ImpersonationBanner';
 
@@ -39,18 +39,14 @@ describe('ImpersonationBanner', () => {
   });
 
   it('should display Eye icon', () => {
-    render(
-      <ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />
-    );
+    render(<ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />);
 
     // Eye icon is from lucide-react - verify banner content is visible
     expect(screen.getByText(/viewing as/i)).toBeInTheDocument();
   });
 
   it('should use amber background color', () => {
-    render(
-      <ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />
-    );
+    render(<ImpersonationBanner impersonatedUser={mockUser} onExit={mockOnExit} />);
 
     // Verify banner is rendered with proper content
     expect(screen.getByText(/viewing as/i)).toBeInTheDocument();

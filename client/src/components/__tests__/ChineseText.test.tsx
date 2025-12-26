@@ -4,10 +4,14 @@ import { render, screen } from '@testing-library/react';
 import ChineseText from '../ChineseText';
 
 // Mock useAuth hook
-const mockUser = {
+const mockUser: {
+  id: string;
+  email: string;
+  pinyinDisplayMode: 'toneMarks' | 'toneNumbers';
+} = {
   id: 'user-123',
   email: 'test@example.com',
-  pinyinDisplayMode: 'toneMarks' as const,
+  pinyinDisplayMode: 'toneMarks',
 };
 
 vi.mock('../../contexts/AuthContext', () => ({

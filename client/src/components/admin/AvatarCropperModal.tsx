@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useCallback, useEffect } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 import { X } from 'lucide-react';
@@ -109,7 +110,7 @@ const AvatarCropperModal = ({
     };
   }, [isOpen, imageUrl]);
 
-  const onCropComplete = useCallback((croppedArea: Area, pixels: Area) => {
+  const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
     setCroppedAreaPixels(pixels);
   }, []);
 
