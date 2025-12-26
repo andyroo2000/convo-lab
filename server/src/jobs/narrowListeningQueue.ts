@@ -68,11 +68,12 @@ async function processNarrowListeningGeneration(job: any) {
       `Using ${availableVoices.length} voices for ${targetLanguage}: ${availableVoices.map((v) => v.id).join(', ')}`
     );
 
-    // Generate shared 800ms silence buffer (cached across all versions in this pack)
+    // Generate shared 2-second silence buffer (cached across all versions in this pack)
+    // 2 seconds pause between sentences for better comprehension
     const tempDir = path.join(os.tmpdir(), `nl-silence-${Date.now()}`);
     await fs.mkdir(tempDir, { recursive: true });
     const sharedSilencePath = path.join(tempDir, 'shared-silence.mp3');
-    const silenceBuffer = await generateSilence(0.8);
+    const silenceBuffer = await generateSilence(2.0);
     await fs.writeFile(sharedSilencePath, silenceBuffer);
     console.log(`[NL] Generated shared silence buffer: ${sharedSilencePath}`);
 
@@ -293,11 +294,12 @@ async function processOnDemandSpeedGeneration(job: any) {
     const { targetLanguage } = pack;
     const progressPerVersion = 100 / pack.versions.length;
 
-    // Generate shared 800ms silence buffer (cached across all versions)
+    // Generate shared 2-second silence buffer (cached across all versions)
+    // 2 seconds pause between sentences for better comprehension
     const tempDir = path.join(os.tmpdir(), `nl-silence-ondemand-${Date.now()}`);
     await fs.mkdir(tempDir, { recursive: true });
     const sharedSilencePath = path.join(tempDir, 'shared-silence.mp3');
-    const silenceBuffer = await generateSilence(0.8);
+    const silenceBuffer = await generateSilence(2.0);
     await fs.writeFile(sharedSilencePath, silenceBuffer);
     console.log(`[NL] Generated shared silence buffer for on-demand generation`);
 
