@@ -14,21 +14,33 @@
  *   npm run harness:i18n -- --dry-run              # Report only, no fixes
  *   npm run harness:i18n -- --max-turns 1000       # Custom max turns
  *   npm run harness:i18n -- --quiet                # Minimal output
+ *   npm run harness:i18n -- --watchdog-timeout 300000  # Custom watchdog timeout
+ *   npm run harness:i18n -- --disable-watchdog     # Disable watchdog for debugging
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
+import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 import { formatDuration } from './utils/format-duration.js';
 
 interface HarnessOptions {
   dryRun?: boolean;
   maxTurns?: number;
   verbose?: boolean;
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
+  disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
 const DEFAULT_MAX_TURNS = 50000; // High limit for comprehensive i18n fixes across all locales
 
 async function runI18nHarness(options: HarnessOptions = {}) {
-  const { dryRun = false, maxTurns = DEFAULT_MAX_TURNS, verbose = true } = options;
+  const {
+    dryRun = false,
+    maxTurns = DEFAULT_MAX_TURNS,
+    verbose = true,
+    watchdogTimeout,
+    disableWatchdog = false,
+  } = options;
 
   console.log('🌍 ConvoLab i18n Consistency Checker Harness');
   console.log('═══════════════════════════════════════════\n');
@@ -40,6 +52,9 @@ async function runI18nHarness(options: HarnessOptions = {}) {
   }
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
+  if (!disableWatchdog) {
+    console.log(`⏱️  Watchdog timeout: ${watchdogTimeout || 300000}ms`);
+  }
 
   if (maxTurns > 100) {
     console.log('\n⚠️  WARNING: Large run detected');
@@ -135,6 +150,27 @@ ${
 `
 }
 
+## Progress Tracking
+
+Create /tmp/i18n-progress.json to track your work:
+\`\`\`json
+{
+  "startedAt": "ISO timestamp",
+  "currentFile": 1,
+  "totalFiles": 15,
+  "localesComplete": {
+    "audioCourse.json": ["en", "ar", "es", "fr", "ja", "zh"],
+    "auth.json": []
+  },
+  "issuesFound": 0,
+  "issuesFixed": 0,
+  "filesComplete": 0
+}
+\`\`\`
+
+Update this file after completing each locale. Report progress every 5 files:
+\`cat /tmp/i18n-progress.json | jq '.'\`
+
 ## Your Workflow - MANDATORY STEPS
 
 1. **Process files sequentially** - Go through files 1-15 in order
@@ -142,7 +178,7 @@ ${
 3. **Read systematically** - Read en/[file], then ar/[file], es/[file], fr/[file], ja/[file], zh/[file]
 4. **Deep scan** - Check EVERY string value for English text
 5. **${dryRun ? 'Report' : 'Fix'}** - ${dryRun ? 'Report all issues found' : 'Translate all English text immediately'}
-6. **Track progress** - After each file, state "Completed X of 15 files"
+6. **Track progress** - After each file, update /tmp/i18n-progress.json and state "Completed X of 15 files"
 7. **Verify completion** - At the end, confirm all 15 files were processed
 ${!dryRun ? '8. **Commit once** - Use /commit once at the very end with all changes' : ''}
 
@@ -158,6 +194,15 @@ ${!dryRun ? '- Only use /commit once at the end with all changes' : ''}
 - At the end, provide a summary showing all 15 files were processed and all English text was translated
 
 ${!dryRun ? `
+## Pre-Commit Hook Awareness
+
+When you commit, the pre-commit hook will:
+- Run lint-staged (lints staged files)
+- Run server tests if server files changed
+- Fail the commit if either fails
+
+JSON files should pass linting if properly formatted (2-space indent, no trailing commas).
+
 ## Session Completion Rules
 
 You are in AUTONOMOUS MODE. This means:
@@ -176,85 +221,102 @@ If you find yourself thinking "let me stop here and suggest next steps", STOP TH
 Begin with file 1: audioCourse.json
   `.trim();
 
-  const startTime = Date.now();
+  await runResilientHarness(
+    {
+      harnessName: 'i18n',
+      watchdogTimeoutMs: watchdogTimeout || 300000, // 5 minutes default for i18n (lots of file reads)
+      disableWatchdog,
+    },
+    async (context) => {
+      const startTime = Date.now();
 
-  try {
-    let messageCount = 0;
-    let lastMessage = '';
-    let lastProgressUpdate = Date.now();
+      try {
+        let messageCount = 0;
+        let lastMessage = '';
+        let lastProgressUpdate = Date.now();
 
-    for await (const message of query({
-      prompt,
-      options: {
-        cwd: '/Users/andrewlandry/source/convo-lab',
-        permissionMode: dryRun ? 'default' : 'acceptEdits',
-        maxTurns,
-        allowedTools: dryRun
-          ? ['Read', 'Glob', 'Grep']
-          : ['Read', 'Edit', 'Glob', 'Grep', 'Bash', 'Skill'],
-        systemPrompt: `You are an i18n expert maintaining ConvoLab's translations.
+        for await (const message of query({
+          prompt,
+          options: {
+            cwd: '/Users/andrewlandry/source/convo-lab',
+            permissionMode: dryRun ? 'default' : 'acceptEdits',
+            maxTurns,
+            allowedTools: dryRun
+              ? ['Read', 'Glob', 'Grep', 'Bash']
+              : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
+            systemPrompt: enhanceSystemPrompt(`You are an i18n expert maintaining ConvoLab's translations.
 Follow the project's CLAUDE.md guidelines. Be thorough but efficient.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and use /commit when done.'}`,
-      },
-    })) {
-      messageCount++;
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix issues and use /commit when done.'}`),
+          },
+        })) {
+          messageCount++;
 
-      // Show progress every 10 turns or every 30 seconds
-      const now = Date.now();
-      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
-        const progress = ((messageCount / maxTurns) * 100).toFixed(1);
-        console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
-        lastProgressUpdate = now;
-      }
+          // Record progress for watchdog
+          context.recordProgress();
 
-      // Log assistant messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Show progress every 10 turns or every 30 seconds
+          const now = Date.now();
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
+            const progress = ((messageCount / maxTurns) * 100).toFixed(1);
+            console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
+            lastProgressUpdate = now;
+          }
+
+          // Checkpoint logging every 50 messages
+          if (messageCount % 50 === 0) {
+            context.logCheckpoint(messageCount, startTime, lastMessage);
+          }
+
+          // Log assistant messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          // Log results
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+
+            // Store last result
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      // Log results
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
-        }
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
 
-        // Store last result
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ i18n Harness Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
         }
+      } catch (error) {
+        console.error('\n❌ Harness failed with error:');
+        console.error(error);
+        process.exit(1);
       }
     }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Harness Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
-    console.log(
-      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
-    );
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply fixes, run without --dry-run flag.');
-    }
-  } catch (error) {
-    console.error('\n❌ Harness failed with error:');
-    console.error(error);
-    process.exit(1);
-  }
+  );
 }
 
 // Parse command line arguments
@@ -271,10 +333,23 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   }
 }
 
+// Check for --watchdog-timeout argument
+let customWatchdogTimeout: number | undefined;
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
+if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
+  customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
+  if (isNaN(customWatchdogTimeout)) {
+    console.error('Invalid --watchdog-timeout value. Using default.');
+    customWatchdogTimeout = undefined;
+  }
+}
+
 const options: HarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
   maxTurns: customMaxTurns,
+  watchdogTimeout: customWatchdogTimeout,
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness

@@ -16,9 +16,18 @@
  *   npm run harness:mobile -- --dry-run                # Report only, no changes
  *   npm run harness:mobile -- --max-turns 300          # Custom max turns
  *   npm run harness:mobile -- --responsive-only        # Only check responsiveness
+ *   npm run harness:mobile -- --watchdog-timeout 300000  # Custom watchdog timeout
+ *   npm run harness:mobile -- --disable-watchdog       # Disable watchdog for debugging
+ *
+ * Guide files for common fix patterns:
+ *   - scripts/harness-guides/responsive-patterns.md
+ *   - scripts/harness-guides/pwa-checklist.md
+ *   - scripts/harness-guides/touch-target-fixes.md
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { runResilientHarness } from './utils/resilient-harness-wrapper.js';
+import { enhanceSystemPrompt } from './utils/timeout-system-prompt.js';
 import { formatDuration } from './utils/format-duration.js';
 
 interface MobileHarnessOptions {
@@ -26,6 +35,8 @@ interface MobileHarnessOptions {
   maxTurns?: number;
   verbose?: boolean;
   responsiveOnly?: boolean; // Only focus on responsive design
+  watchdogTimeout?: number; // Progress watchdog timeout in ms
+  disableWatchdog?: boolean; // Disable watchdog entirely
 }
 
 const DEFAULT_MAX_TURNS = 50000;
@@ -36,6 +47,8 @@ async function runMobileHarness(options: MobileHarnessOptions = {}) {
     maxTurns = DEFAULT_MAX_TURNS,
     verbose = true,
     responsiveOnly = false,
+    watchdogTimeout,
+    disableWatchdog = false,
   } = options;
 
   console.log('📱 ConvoLab Mobile Optimization Harness');
@@ -47,8 +60,12 @@ async function runMobileHarness(options: MobileHarnessOptions = {}) {
 
   console.log(`⚙️  Max turns: ${maxTurns}`);
   console.log(
-    `🎯 Mode: ${responsiveOnly ? 'Responsive design only' : 'Full mobile optimization'}\n`
+    `🎯 Mode: ${responsiveOnly ? 'Responsive design only' : 'Full mobile optimization'}`
   );
+  if (!disableWatchdog) {
+    console.log(`⏱️  Watchdog timeout: ${watchdogTimeout || 240000}ms`);
+  }
+  console.log();
 
   console.log('Starting mobile audit...\n');
 
@@ -361,6 +378,24 @@ ${
 - Prioritize user experience
 ${!dryRun ? '- Only use /commit once at the end with all fixes' : ''}
 
+## Guide Files
+
+For common fix patterns, read these guide files:
+- scripts/harness-guides/responsive-patterns.md - Tailwind breakpoint patterns
+- scripts/harness-guides/pwa-checklist.md - PWA manifest and service worker templates
+- scripts/harness-guides/touch-target-fixes.md - Common touch target fix patterns
+
+${!dryRun ? `
+## Pre-Commit Hook Awareness
+
+When you commit, the pre-commit hook will:
+- Run lint-staged (lints staged files)
+- Run server tests if server files changed
+- Fail the commit if either fails
+
+Ensure your CSS/TSX changes pass linting before committing.
+` : ''}
+
 ## Session Completion Rules
 
 You are in AUTONOMOUS MODE. This means:
@@ -378,82 +413,99 @@ If you find yourself thinking "let me stop here and suggest next steps", STOP TH
 Begin your mobile audit now.
   `.trim();
 
-  const startTime = Date.now();
+  await runResilientHarness(
+    {
+      harnessName: 'mobile',
+      watchdogTimeoutMs: watchdogTimeout || 240000, // 4 minutes default for mobile
+      disableWatchdog,
+    },
+    async (context) => {
+      const startTime = Date.now();
 
-  try {
-    let messageCount = 0;
-    let lastMessage = '';
-    let lastProgressUpdate = Date.now();
+      try {
+        let messageCount = 0;
+        let lastMessage = '';
+        let lastProgressUpdate = Date.now();
 
-    for await (const message of query({
-      prompt,
-      options: {
-        cwd: '/Users/andrewlandry/source/convo-lab',
-        permissionMode: dryRun ? 'default' : 'acceptEdits',
-        maxTurns,
-        allowedTools: dryRun
-          ? ['Read', 'Glob', 'Grep', 'Bash']
-          : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
-        systemPrompt: `You are a mobile optimization expert for ConvoLab.
+        for await (const message of query({
+          prompt,
+          options: {
+            cwd: '/Users/andrewlandry/source/convo-lab',
+            permissionMode: dryRun ? 'default' : 'acceptEdits',
+            maxTurns,
+            allowedTools: dryRun
+              ? ['Read', 'Glob', 'Grep', 'Bash']
+              : ['Read', 'Edit', 'Write', 'Glob', 'Grep', 'Bash', 'Skill'],
+            systemPrompt: enhanceSystemPrompt(`You are a mobile optimization expert for ConvoLab.
 Follow mobile-first principles. Prioritize user experience.
-${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for mobile and use /commit when done.'}`,
-      },
-    })) {
-      messageCount++;
+${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Optimize for mobile and use /commit when done.'}`),
+          },
+        })) {
+          messageCount++;
 
-      // Show progress
-      const now = Date.now();
-      if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
-        const progress = ((messageCount / maxTurns) * 100).toFixed(1);
-        console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
-        lastProgressUpdate = now;
-      }
+          // Record progress for watchdog
+          context.recordProgress();
 
-      // Log messages
-      if (message.type === 'assistant' && message.message?.content) {
-        for (const block of message.message.content) {
-          if ('text' in block && block.text) {
-            lastMessage = block.text;
-            if (verbose) {
-              console.log(`\n💬 Claude: ${block.text}`);
+          // Show progress
+          const now = Date.now();
+          if (messageCount % 10 === 0 || now - lastProgressUpdate > 30000) {
+            const progress = ((messageCount / maxTurns) * 100).toFixed(1);
+            console.log(`\n📊 Progress: ${messageCount}/${maxTurns} turns (${progress}%)`);
+            lastProgressUpdate = now;
+          }
+
+          // Checkpoint logging every 50 messages
+          if (messageCount % 50 === 0) {
+            context.logCheckpoint(messageCount, startTime, lastMessage);
+          }
+
+          // Log messages
+          if (message.type === 'assistant' && message.message?.content) {
+            for (const block of message.message.content) {
+              if ('text' in block && block.text) {
+                lastMessage = block.text;
+                if (verbose) {
+                  console.log(`\n💬 Claude: ${block.text}`);
+                }
+              }
+              if ('tool_use' in block && verbose) {
+                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              }
             }
           }
-          if ('tool_use' in block && verbose) {
-            console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+
+          if (message.type === 'result') {
+            if (verbose) {
+              console.log(`\n✓ Result: ${message.subtype}`);
+            }
+            if (message.subtype === 'success') {
+              lastMessage = 'Harness completed successfully';
+            }
           }
         }
-      }
 
-      if (message.type === 'result') {
-        if (verbose) {
-          console.log(`\n✓ Result: ${message.subtype}`);
+        const endTime = Date.now();
+        const durationMs = endTime - startTime;
+
+        console.log('\n\n═══════════════════════════════════════════');
+        console.log('✅ Mobile Optimization Complete');
+        console.log('═══════════════════════════════════════════\n');
+        console.log(`📊 Total messages: ${messageCount}`);
+        console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
+        console.log(
+          `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
+        );
+
+        if (dryRun) {
+          console.log('\n💡 This was a dry run. To apply optimizations, run without --dry-run flag.');
         }
-        if (message.subtype === 'success') {
-          lastMessage = 'Harness completed successfully';
-        }
+      } catch (error) {
+        console.error('\n❌ Mobile optimization failed with error:');
+        console.error(error);
+        process.exit(1);
       }
     }
-
-    const endTime = Date.now();
-    const durationMs = endTime - startTime;
-
-    console.log('\n\n═══════════════════════════════════════════');
-    console.log('✅ Mobile Optimization Complete');
-    console.log('═══════════════════════════════════════════\n');
-    console.log(`📊 Total messages: ${messageCount}`);
-    console.log(`⏱️  Duration: ${formatDuration(durationMs)}`);
-    console.log(
-      `📝 Final status: ${lastMessage.substring(0, 100)}${lastMessage.length > 100 ? '...' : ''}`
-    );
-
-    if (dryRun) {
-      console.log('\n💡 This was a dry run. To apply optimizations, run without --dry-run flag.');
-    }
-  } catch (error) {
-    console.error('\n❌ Mobile optimization failed with error:');
-    console.error(error);
-    process.exit(1);
-  }
+  );
 }
 
 // Parse command line arguments
@@ -469,11 +521,24 @@ if (maxTurnsIndex !== -1 && args[maxTurnsIndex + 1]) {
   }
 }
 
+// Check for --watchdog-timeout argument
+let customWatchdogTimeout: number | undefined;
+const watchdogTimeoutIndex = args.findIndex((arg) => arg === '--watchdog-timeout');
+if (watchdogTimeoutIndex !== -1 && args[watchdogTimeoutIndex + 1]) {
+  customWatchdogTimeout = parseInt(args[watchdogTimeoutIndex + 1], 10);
+  if (isNaN(customWatchdogTimeout)) {
+    console.error('Invalid --watchdog-timeout value. Using default.');
+    customWatchdogTimeout = undefined;
+  }
+}
+
 const options: MobileHarnessOptions = {
   dryRun: args.includes('--dry-run'),
   verbose: !args.includes('--quiet'),
   responsiveOnly: args.includes('--responsive-only'),
   maxTurns: customMaxTurns,
+  watchdogTimeout: customWatchdogTimeout,
+  disableWatchdog: args.includes('--disable-watchdog'),
 };
 
 // Run the harness
