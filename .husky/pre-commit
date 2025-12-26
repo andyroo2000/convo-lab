@@ -1,5 +1,10 @@
 echo "🔍 Running linting on staged files..."
 npx lint-staged
 
-echo "🧪 Running tests before commit..."
-cd server && npm run test:run
+# Only run tests if server files were changed
+if git diff --cached --name-only | grep -q "^server/"; then
+  echo "🧪 Running server tests (server files changed)..."
+  cd server && npm run test:run
+else
+  echo "⏭️  Skipping server tests (no server files changed)"
+fi
