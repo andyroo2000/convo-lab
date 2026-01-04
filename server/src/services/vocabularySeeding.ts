@@ -17,7 +17,24 @@ interface VocabularyData {
   vocabulary: VocabularyWord[];
 }
 
+// Grammar point interface
+interface GrammarPoint {
+  pattern: string;
+  meaning: string;
+  usage: string;
+  example: string;
+  exampleTranslation: string;
+}
+
+interface GrammarData {
+  language: string;
+  level: string;
+  framework: 'JLPT' | 'HSK' | 'CEFR';
+  grammarPoints: GrammarPoint[];
+}
+
 const vocabularyCache = new Map<string, VocabularyWord[]>();
+const grammarCache = new Map<string, GrammarPoint[]>();
 
 // Map proficiency levels to file names
 const LEVEL_FILE_MAP: Record<string, Record<string, string>> = {
@@ -125,4 +142,53 @@ export function getProficiencyFramework(language: string): string {
     ar: 'CEFR',
   };
   return frameworks[language] || 'proficiency level';
+}
+
+// ===== Grammar Seeding Functions =====
+
+export async function getGrammarForLevel(
+  language: string,
+  level: string
+): Promise<GrammarPoint[]> {
+  const cacheKey = `${language}:${level}`;
+  if (grammarCache.has(cacheKey)) {
+    return grammarCache.get(cacheKey)!;
+  }
+
+  const fileName = LEVEL_FILE_MAP[language]?.[level];
+  if (!fileName) {
+    console.warn(`No grammar file mapping for ${language}:${level}`);
+    return [];
+  }
+
+  try {
+    const filePath = join(__dirname, '../data/grammar', language, `${fileName}.json`);
+    const data: GrammarData = JSON.parse(await readFile(filePath, 'utf-8'));
+    grammarCache.set(cacheKey, data.grammarPoints);
+    return data.grammarPoints;
+  } catch (error) {
+    console.warn(`Failed to load grammar for ${language}:${level}:`, error);
+    return [];
+  }
+}
+
+export async function sampleGrammar(
+  language: string,
+  level: string,
+  count: number = 5
+): Promise<GrammarPoint[]> {
+  const allGrammar = await getGrammarForLevel(language, level);
+  if (allGrammar.length === 0) return [];
+
+  // Random sampling
+  const shuffled = [...allGrammar].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, allGrammar.length));
+}
+
+export function formatGrammarForPrompt(grammarPoints: GrammarPoint[]): string {
+  if (grammarPoints.length === 0) return '';
+
+  return grammarPoints
+    .map((g) => `- ${g.pattern} (${g.meaning}): ${g.example} (${g.exampleTranslation})`)
+    .join('\n');
 }

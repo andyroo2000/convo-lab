@@ -1,0 +1,217 @@
+{
+  "language": "ja",
+  "level": "N5",
+  "framework": "JLPT",
+  "grammarPoints": [
+    {
+      "pattern": "～ます",
+      "meaning": "polite present/future verb form",
+      "usage": "Verb stem + ます",
+      "example": "食べます",
+      "exampleTranslation": "eat / will eat"
+    },
+    {
+      "pattern": "～ません",
+      "meaning": "polite negative present/future",
+      "usage": "Verb stem + ません",
+      "example": "食べません",
+      "exampleTranslation": "don't eat / won't eat"
+    },
+    {
+      "pattern": "～ました",
+      "meaning": "polite past tense",
+      "usage": "Verb stem + ました",
+      "example": "食べました",
+      "exampleTranslation": "ate"
+    },
+    {
+      "pattern": "～ませんでした",
+      "meaning": "polite negative past",
+      "usage": "Verb stem + ませんでした",
+      "example": "食べませんでした",
+      "exampleTranslation": "didn't eat"
+    },
+    {
+      "pattern": "～です",
+      "meaning": "polite copula (is/am/are)",
+      "usage": "Noun/な-adjective + です",
+      "example": "学生です",
+      "exampleTranslation": "am a student"
+    },
+    {
+      "pattern": "～でした",
+      "meaning": "polite copula past (was/were)",
+      "usage": "Noun/な-adjective + でした",
+      "example": "学生でした",
+      "exampleTranslation": "was a student"
+    },
+    {
+      "pattern": "～い",
+      "meaning": "い-adjective present",
+      "usage": "い-adjective + い",
+      "example": "おいしい",
+      "exampleTranslation": "is delicious"
+    },
+    {
+      "pattern": "～かった",
+      "meaning": "い-adjective past",
+      "usage": "い-adjective stem + かった",
+      "example": "おいしかった",
+      "exampleTranslation": "was delicious"
+    },
+    {
+      "pattern": "～くない",
+      "meaning": "い-adjective negative",
+      "usage": "い-adjective stem + くない",
+      "example": "おいしくない",
+      "exampleTranslation": "is not delicious"
+    },
+    {
+      "pattern": "～な",
+      "meaning": "な-adjective modifier",
+      "usage": "な-adjective + な + noun",
+      "example": "きれいな花",
+      "exampleTranslation": "beautiful flower"
+    },
+    {
+      "pattern": "～が",
+      "meaning": "subject particle",
+      "usage": "Subject + が + predicate",
+      "example": "猫がいます",
+      "exampleTranslation": "there is a cat"
+    },
+    {
+      "pattern": "～を",
+      "meaning": "direct object particle",
+      "usage": "Object + を + verb",
+      "example": "本を読みます",
+      "exampleTranslation": "read a book"
+    },
+    {
+      "pattern": "～に",
+      "meaning": "location/time/indirect object particle",
+      "usage": "Location/time + に",
+      "example": "学校に行きます",
+      "exampleTranslation": "go to school"
+    },
+    {
+      "pattern": "～で",
+      "meaning": "location of action/means particle",
+      "usage": "Location/means + で",
+      "example": "車で行きます",
+      "exampleTranslation": "go by car"
+    },
+    {
+      "pattern": "～へ",
+      "meaning": "direction particle",
+      "usage": "Direction + へ",
+      "example": "東京へ行きます",
+      "exampleTranslation": "go to Tokyo"
+    },
+    {
+      "pattern": "～と",
+      "meaning": "and/with particle",
+      "usage": "Noun + と + noun or person + と",
+      "example": "友達と行きます",
+      "exampleTranslation": "go with a friend"
+    },
+    {
+      "pattern": "～から",
+      "meaning": "from (starting point)",
+      "usage": "Starting point + から",
+      "example": "9時から",
+      "exampleTranslation": "from 9 o'clock"
+    },
+    {
+      "pattern": "～まで",
+      "meaning": "until/to (ending point)",
+      "usage": "Ending point + まで",
+      "example": "5時まで",
+      "exampleTranslation": "until 5 o'clock"
+    },
+    {
+      "pattern": "～か",
+      "meaning": "question particle",
+      "usage": "Sentence + か",
+      "example": "これは本ですか",
+      "exampleTranslation": "Is this a book?"
+    },
+    {
+      "pattern": "～ね",
+      "meaning": "confirmation/agreement particle",
+      "usage": "Sentence + ね",
+      "example": "いい天気ですね",
+      "exampleTranslation": "Nice weather, isn't it?"
+    },
+    {
+      "pattern": "～よ",
+      "meaning": "emphasis particle",
+      "usage": "Sentence + よ",
+      "example": "おいしいですよ",
+      "exampleTranslation": "It's delicious! (emphatic)"
+    },
+    {
+      "pattern": "～てください",
+      "meaning": "please do",
+      "usage": "Verb te-form + ください",
+      "example": "待ってください",
+      "exampleTranslation": "please wait"
+    },
+    {
+      "pattern": "～ましょう",
+      "meaning": "let's",
+      "usage": "Verb stem + ましょう",
+      "example": "行きましょう",
+      "exampleTranslation": "let's go"
+    },
+    {
+      "pattern": "～たい",
+      "meaning": "want to do",
+      "usage": "Verb stem + たい",
+      "example": "食べたい",
+      "exampleTranslation": "want to eat"
+    },
+    {
+      "pattern": "～ている",
+      "meaning": "progressive/continuous action",
+      "usage": "Verb te-form + いる",
+      "example": "食べています",
+      "exampleTranslation": "am eating"
+    },
+    {
+      "pattern": "～ないでください",
+      "meaning": "please don't",
+      "usage": "Verb ない-form + でください",
+      "example": "行かないでください",
+      "exampleTranslation": "please don't go"
+    },
+    {
+      "pattern": "～の",
+      "meaning": "possessive/modifier particle",
+      "usage": "Noun + の + noun",
+      "example": "私の本",
+      "exampleTranslation": "my book"
+    },
+    {
+      "pattern": "どこ/どれ/だれ/なに/いつ",
+      "meaning": "question words",
+      "usage": "Question word + か/ですか",
+      "example": "どこですか",
+      "exampleTranslation": "where is it?"
+    },
+    {
+      "pattern": "～があります/います",
+      "meaning": "there is/are (existence)",
+      "usage": "Thing/person + が + あります/います",
+      "example": "猫がいます",
+      "exampleTranslation": "there is a cat"
+    },
+    {
+      "pattern": "～も",
+      "meaning": "also/too particle",
+      "usage": "Noun + も",
+      "example": "私も学生です",
+      "exampleTranslation": "I am also a student"
+    }
+  ]
+}
