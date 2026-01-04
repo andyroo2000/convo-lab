@@ -60,12 +60,16 @@ npm run harness:lang-seeds
 
 This will:
 
-1. Generate vocabulary and grammar for all 4 languages
-2. Create 48 JSON files total (24 vocabulary + 24 grammar)
-3. Save each file as it's generated (incremental progress)
-4. Process all files autonomously without stopping
+1. Search GitHub for comprehensive, community-vetted datasets for each language
+2. Generate vocabulary and grammar for all 4 languages
+3. Create 48 JSON files total (24 vocabulary + 24 grammar)
+4. Save each file as it's generated (incremental progress)
+5. Commit all changes to GitHub with `/commit`
+6. Deploy to production with `./deploy.sh`
 
 **Estimated time:** 2-4 hours for all languages (agent works through files sequentially)
+
+**Note:** The harness will automatically commit and deploy when complete - no manual intervention needed!
 
 ### Run for Specific Language
 

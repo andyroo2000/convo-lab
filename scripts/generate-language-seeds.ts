@@ -114,7 +114,7 @@ async function runLanguageSeedsHarness(options: HarnessOptions = {}) {
         cwd: '/Users/andrewlandry/source/convo-lab',
         permissionMode: 'acceptEdits',
         maxTurns,
-        allowedTools: ['Read', 'Write', 'Glob', 'Grep', 'Bash', 'WebSearch', 'WebFetch'],
+        allowedTools: ['Read', 'Write', 'Glob', 'Grep', 'Bash', 'WebSearch', 'WebFetch', 'Skill'],
         systemPrompt: `You are a language education expert and curriculum designer with deep knowledge of language proficiency frameworks (HSK, CEFR). You excel at creating comprehensive, level-appropriate vocabulary and grammar lists for language learners.
 
 Your task is to generate seed data files for ConvoLab's language learning system.
@@ -282,6 +282,15 @@ You are in AUTONOMOUS MODE:
 - ❌ Do NOT create recommendations for next session
 
 If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue to the next file instead.
+
+## Final Steps - After ALL Files Complete
+
+Once you have successfully created all ${tasks.length} files:
+
+1. **Commit and push to GitHub**: Use the \`/commit\` skill to commit all changes with a descriptive message
+2. **Deploy**: Run \`./deploy.sh\` to deploy the updated seed data to production
+
+Do NOT skip these final steps. The deployment is critical to make the new language data available to users.
 
 Begin with file 1.
 `;
