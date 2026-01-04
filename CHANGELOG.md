@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Language seed harness and massive Japanese data expansion from GitHub sources - created autonomous language seed generation harness using Claude Agent SDK supporting Chinese (HSK 1-6), Spanish/French/Arabic (CEFR A1-C2); massively expanded Japanese vocabulary (N5: 30→718 words, N4: 50→666, N3: ~100→2,136, N2: ~150→1,905, N1: ~200→2,693) and grammar (N5: 30→173 patterns, N4: 30→159, N3: 30→167, N2: 30→234, N1: 30→300) by sourcing comprehensive GitHub datasets; added scripts/generate-language-seeds.ts harness, scripts/README-language-seeds.md documentation, progress tracking, npm run scripts, and initial Chinese HSK1 vocabulary/grammar files; follows successful pattern of using community-vetted GitHub datasets for comprehensive language resources
+
+### Added
+
 - **[feat]** Grammar pattern seeding for JLPT levels - created comprehensive grammar point files for all JLPT levels (N5-N1, 30 patterns each) with usage examples and translations; extended vocabularySeeding service with grammar functions (sampleGrammar, formatGrammarForPrompt); integrated grammar seeding into dialogue generation (samples 5 patterns, suggests using 2-3 naturally); improves level-appropriate grammar structure usage and pedagogical alignment with JLPT standards
 - **[feat]** Improved narrow listening audio pacing and keyboard navigation - increased pause between sentences from 0.8s to 2s for better comprehension; added 3-second pause between sections (story variations) during auto-play; added left/right arrow keyboard navigation to jump between sentences (left arrow goes to beginning of current sentence, or previous sentence if already at beginning; right arrow goes to beginning of next sentence)
 - **[build]** Added tsc-alias for TypeScript path alias resolution - installed tsc-alias to resolve path aliases (@languageflow/shared) in compiled output; added --ignore-scripts flag to npm install in Dockerfile to avoid postinstall issues; added npm rebuild in production stage for native dependencies; updated build command to run tsc-alias after TypeScript compilation
