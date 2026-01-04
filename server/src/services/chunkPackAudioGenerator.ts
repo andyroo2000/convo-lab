@@ -396,7 +396,9 @@ async function getAudioDurationFromFile(filePath: string): Promise<number> {
       if (err) {
         reject(err);
       } else {
-        const durationSeconds = metadata.format.duration || 0;
+        // Ensure duration is always a number (ffprobe can sometimes return string)
+        const duration = metadata.format.duration;
+        const durationSeconds = typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
         resolve(Math.round(durationSeconds * 1000)); // Convert to milliseconds
       }
     });

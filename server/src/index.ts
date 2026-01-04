@@ -22,6 +22,7 @@ import piRoutes from './routes/pi.js';
 import chunkPackRoutes from './routes/chunkPacks.js';
 import adminRoutes from './routes/admin.js';
 import featureFlagRoutes from './routes/featureFlags.js';
+import srsRoutes from './routes/srs.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
 
@@ -112,6 +113,7 @@ app.use('/api/pi', piRoutes);
 app.use('/api/chunk-packs', chunkPackRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
+app.use('/api/srs', srsRoutes);
 
 // Serve client static files in production
 if (process.env.NODE_ENV === 'production') {

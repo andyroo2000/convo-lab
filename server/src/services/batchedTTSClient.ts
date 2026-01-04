@@ -42,6 +42,7 @@ interface TTSBatch {
 export interface BatchProcessingResult {
   segments: Map<number, Buffer>; // originalIndex -> audio buffer
   pauseSegments: Map<number, Buffer>; // originalIndex -> silence buffer
+  timingData: Array<{ unitIndex: number; startTime: number; endTime: number }>; // Timing data for each unit
   totalBatches: number;
   totalTTSCalls: number;
 }
@@ -98,7 +99,8 @@ export function groupUnitsIntoBatches(
     const speed = unit.type === 'L2' ? unit.speed || 1.0 : 1.0;
     const pitch = unit.pitch || 0;
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;
-    const text = unit.type === 'L2' && unit.reading ? unit.reading : unit.text;
+    // ALWAYS use text field for TTS (reading field with bracket notation is for display only)
+    const text = unit.text;
 
     // Check if we need a new batch
     const needsNewBatch =
@@ -286,9 +288,26 @@ async function getAudioDuration(filePath: string): Promise<number> {
         reject(err);
         return;
       }
-      resolve(metadata.format.duration || 0);
+      // Ensure duration is always a number (ffprobe can sometimes return string)
+      const duration = metadata.format.duration;
+      const numericDuration = typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
+      resolve(numericDuration);
     });
   });
+}
+
+/**
+ * Get audio duration from a buffer by writing to temp file and using ffprobe
+ */
+async function getAudioDurationFromBuffer(buffer: Buffer, tempDir: string): Promise<number> {
+  const tempPath = path.join(tempDir, `temp-duration-${Date.now()}.mp3`);
+  try {
+    await fs.writeFile(tempPath, buffer);
+    const duration = await getAudioDuration(tempPath);
+    return duration;
+  } finally {
+    await fs.unlink(tempPath).catch(() => {});
+  }
 }
 
 /**
@@ -380,15 +399,55 @@ export async function processBatches(
     pauseSegments.set(idx, silenceBuffer);
   }
 
+  // Build timing data by iterating through units in order
+  console.log(`[TTS BATCH] Building timing data for ${units.length} units...`);
+  const timingData: Array<{ unitIndex: number; startTime: number; endTime: number }> = [];
+  let cumulativeTime = 0; // in seconds
+
+  for (let i = 0; i < units.length; i++) {
+    const unit = units[i];
+
+    // Skip markers - they have no audio
+    if (unit.type === 'marker') {
+      continue;
+    }
+
+    // Get segment buffer (either from segments or pauseSegments)
+    const segmentBuffer = segments.get(i) || pauseSegments.get(i);
+
+    if (!segmentBuffer) {
+      console.warn(`[TTS BATCH] No segment found for unit ${i} (type: ${unit.type})`);
+      continue;
+    }
+
+    // Get duration of this segment
+    const durationSeconds = await getAudioDurationFromBuffer(segmentBuffer, tempDir);
+
+    // Record timing data (convert to milliseconds for storage)
+    const startTimeMs = Math.round(cumulativeTime * 1000);
+    const endTimeMs = Math.round((cumulativeTime + durationSeconds) * 1000);
+
+    timingData.push({
+      unitIndex: i,
+      startTime: startTimeMs,
+      endTime: endTimeMs,
+    });
+
+    // Update cumulative time
+    cumulativeTime += durationSeconds;
+  }
+
   const totalTTSCalls = batches.length + pauseIndices.size; // batches + silence calls
   console.log(
     `[TTS BATCH] Complete: ${totalTTSCalls} TTS calls ` +
-      `(was ${units.filter((u) => u.type !== 'marker').length})`
+      `(was ${units.filter((u) => u.type !== 'marker').length}), ` +
+      `timing data: ${timingData.length} entries, total duration: ${cumulativeTime.toFixed(2)}s`
   );
 
   return {
     segments,
     pauseSegments,
+    timingData,
     totalBatches: batches.length,
     totalTTSCalls,
   };

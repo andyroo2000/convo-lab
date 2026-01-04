@@ -49,6 +49,52 @@
     @apply focus:ring-coral;
   }
 
+  /* Flashcard flip animation */
+  .flashcard-container {
+    perspective: 1000px;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  .flashcard {
+    position: relative;
+    width: 100%;
+    min-height: 450px;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    cursor: pointer;
+  }
+
+  .flashcard.flipped {
+    transform: rotateY(180deg);
+  }
+
+  .flashcard-front,
+  .flashcard-back {
+    position: absolute;
+    width: 100%;
+    min-height: 450px;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    background: white;
+  }
+
+  .flashcard-back {
+    transform: rotateY(180deg);
+  }
+
+  .audio-icon-container {
+    padding: 2rem;
+    border-radius: 50%;
+    background: rgba(99, 102, 241, 0.1);
+  }
+
   .btn-secondary {
     @apply btn bg-periwinkle text-white hover:bg-periwinkle-dark;
     @apply focus:ring-periwinkle;
@@ -78,9 +124,10 @@
 .japanese-text {
   font-family: 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP',
                'Yu Gothic', 'Meiryo', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 500;
-  line-height: 1.8;
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #1a1a1a;
 }
 
 /* Ruby/Furigana styling */
@@ -89,17 +136,19 @@
 }
 
 .japanese-text rt {
-  font-size: 0.6em;
+  font-size: 0.5em;
   font-weight: 400;
-  opacity: 0.85;
+  opacity: 0.75;
+  letter-spacing: 0.05em;
 }
 
 /* Chinese text rendering */
 .chinese-text {
   font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
-  font-size: 2.25rem;
-  font-weight: 500;
-  line-height: 2.2;
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.6;
+  color: #1a1a1a;
 }
 
 /* Chinese Pinyin styling - pinyin below characters */
@@ -109,9 +158,10 @@
 }
 
 .chinese-text rt {
-  font-size: 0.35em;
+  font-size: 0.4em;
   font-weight: 400;
-  opacity: 0.85;
+  opacity: 0.75;
+  letter-spacing: 0.05em;
 }
 
 /* Flowline canvas container */
