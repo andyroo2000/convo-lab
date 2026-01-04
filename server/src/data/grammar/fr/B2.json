@@ -1,0 +1,1057 @@
+{
+  "language": "fr",
+  "level": "B2",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "subjonctif imparfait",
+      "meaning": "imperfect subjunctive",
+      "usage": "Use in literary or formal style for subjunctive actions in the past",
+      "example": "Il fallait qu'il vînt à temps",
+      "exampleTranslation": "It was necessary that he come on time"
+    },
+    {
+      "pattern": "subjonctif plus-que-parfait",
+      "meaning": "pluperfect subjunctive",
+      "usage": "Express past hypothetical situations in formal written French",
+      "example": "J'aurais souhaité qu'il fût venu",
+      "exampleTranslation": "I would have wished that he had come"
+    },
+    {
+      "pattern": "subjonctif après certains verbes impersonnels",
+      "meaning": "subjunctive after impersonal verbs",
+      "usage": "Use subjunctive after expressions like 'it's possible', 'it's important'",
+      "example": "Il est possible que tu sois raison",
+      "exampleTranslation": "It's possible that you might be right"
+    },
+    {
+      "pattern": "subjonctif après expressions de sentiment",
+      "meaning": "subjunctive after emotional expressions",
+      "usage": "Use subjunctive after expressions of joy, regret, sadness",
+      "example": "Je regrette que tu partes demain",
+      "exampleTranslation": "I regret that you are leaving tomorrow"
+    },
+    {
+      "pattern": "conditionnel avec si + imparfait",
+      "meaning": "conditional with if + imperfect",
+      "usage": "Express hypothetical situations in the present",
+      "example": "Si j'avais le temps, je voyagerais",
+      "exampleTranslation": "If I had time, I would travel"
+    },
+    {
+      "pattern": "conditionnel passé deuxième forme",
+      "meaning": "conditional past alternative form",
+      "usage": "Use in literary contexts to express polite wishes",
+      "example": "J'eusse aimé venir à votre fête",
+      "exampleTranslation": "I would have loved to come to your party"
+    },
+    {
+      "pattern": "concordance des temps complexes",
+      "meaning": "complex tense concordance",
+      "usage": "Maintain correct tense relationships in multi-clause sentences",
+      "example": "Si je savais qu'il venait, je serais venu",
+      "exampleTranslation": "If I knew he was coming, I would have come"
+    },
+    {
+      "pattern": "passé simple",
+      "meaning": "simple past (preterite)",
+      "usage": "Use in written narrative to express completed past actions",
+      "example": "Il arriva le jour suivant",
+      "exampleTranslation": "He arrived the following day"
+    },
+    {
+      "pattern": "passé simple verbes irréguliers",
+      "meaning": "simple past irregular verbs",
+      "usage": "Conjugate irregular verbs in simple past tense",
+      "example": "Il fit, il eut, il fut, il vint",
+      "exampleTranslation": "He did, he had, he was, he came"
+    },
+    {
+      "pattern": "passé antérieur",
+      "meaning": "past anterior",
+      "usage": "Express an action completed before another past action in formal writing",
+      "example": "Quand il eut mangé, il partit",
+      "exampleTranslation": "When he had eaten, he left"
+    },
+    {
+      "pattern": "futur antérieur",
+      "meaning": "future perfect",
+      "usage": "Express an action that will be completed before another future action",
+      "example": "Quand il arrivera, j'aurai fini",
+      "exampleTranslation": "When he arrives, I will have finished"
+    },
+    {
+      "pattern": "conditionnel passé",
+      "meaning": "past conditional",
+      "usage": "Express what would have happened under different circumstances",
+      "example": "Si j'avais su, je ne serais pas venu",
+      "exampleTranslation": "If I had known, I would not have come"
+    },
+    {
+      "pattern": "subjonctif après craindre et expressions similaires",
+      "meaning": "subjunctive after 'to fear'",
+      "usage": "Use subjunctive (with optional 'ne') after expressions of fear",
+      "example": "Je crains qu'il ne soit trop tard",
+      "exampleTranslation": "I fear that it might be too late"
+    },
+    {
+      "pattern": "subjonctif après permettre que, demander que",
+      "meaning": "subjunctive after 'allow' and 'ask'",
+      "usage": "Use subjunctive after permission and request verbs",
+      "example": "Je demande que vous veniez",
+      "exampleTranslation": "I ask that you come"
+    },
+    {
+      "pattern": "subjonctif après être content que, triste que",
+      "meaning": "subjunctive after emotional adjectives",
+      "usage": "Use subjunctive after constructions with emotional adjectives",
+      "example": "Je suis content que tu sois venu",
+      "exampleTranslation": "I am happy that you came"
+    },
+    {
+      "pattern": "subjonctif dans les propositions relatives",
+      "meaning": "subjunctive in relative clauses",
+      "usage": "Use subjunctive after relative pronouns with superlatives or negatives",
+      "example": "C'est le meilleur livre que j'aie lu",
+      "exampleTranslation": "It's the best book that I have read"
+    },
+    {
+      "pattern": "subjonctif après quoi que, où que, qui que",
+      "meaning": "subjunctive after indefinite relatives",
+      "usage": "Use subjunctive with indefinite relative expressions",
+      "example": "Quoi qu'il fasse, il est heureux",
+      "exampleTranslation": "Whatever he does, he is happy"
+    },
+    {
+      "pattern": "gérondif formes négatives",
+      "meaning": "gerund negative forms",
+      "usage": "Use negation with gerunds",
+      "example": "En ne parlant pas, j'ai évité le conflit",
+      "exampleTranslation": "By not speaking, I avoided conflict"
+    },
+    {
+      "pattern": "participe absolu",
+      "meaning": "absolute participle",
+      "usage": "Use participles with their own subjects in introductory phrases",
+      "example": "Son travail terminé, il sortit",
+      "exampleTranslation": "His work finished, he left"
+    },
+    {
+      "pattern": "constructions avec avoir + complément + participe",
+      "meaning": "constructions with avoir + object + participle",
+      "usage": "Express causative actions with direct objects",
+      "example": "Je l'ai vu partir",
+      "exampleTranslation": "I saw him leave"
+    },
+    {
+      "pattern": "pronoms relatifs après prépositions: sur lequel, pour laquelle",
+      "meaning": "relative pronouns after prepositions",
+      "usage": "Use compound relative pronouns with prepositions",
+      "example": "La personne sur laquelle je compte",
+      "exampleTranslation": "The person I am counting on"
+    },
+    {
+      "pattern": "pronoms relatifs ce qui, ce que, ce dont",
+      "meaning": "relative pronouns ce qui, ce que, ce dont",
+      "usage": "Use indefinite relative pronouns referring to entire clauses",
+      "example": "Je sais ce que tu veux, ce dont tu as besoin",
+      "exampleTranslation": "I know what you want, what you need"
+    },
+    {
+      "pattern": "pronoms démonstratifs celui-ci, celui-là, ceci, cela",
+      "meaning": "demonstrative pronouns",
+      "usage": "Reference previously mentioned nouns or ideas",
+      "example": "Celui-ci est meilleur que celui-là",
+      "exampleTranslation": "This one is better than that one"
+    },
+    {
+      "pattern": "pronoms possessifs le mien, la mienne, les miens, les miennes",
+      "meaning": "possessive pronouns",
+      "usage": "Replace possessive adjectives with pronouns",
+      "example": "C'est mon livre, c'est le mien",
+      "exampleTranslation": "It's my book, it's mine"
+    },
+    {
+      "pattern": "pronoms indéfinis quelqu'un, quelque chose, rien, personne",
+      "meaning": "indefinite pronouns",
+      "usage": "Reference non-specific persons or things",
+      "example": "Quelqu'un a appelé, quelque chose s'est passé",
+      "exampleTranslation": "Someone called, something happened"
+    },
+    {
+      "pattern": "pronoms interrogatifs qui, quoi, lequel, duquel",
+      "meaning": "interrogative pronouns",
+      "usage": "Form questions about persons or things",
+      "example": "Qui arrives? Lequel préfères-tu?",
+      "exampleTranslation": "Who is arriving? Which one do you prefer?"
+    },
+    {
+      "pattern": "double objet avec y et en",
+      "meaning": "double objects with y and en",
+      "usage": "Use two object pronouns together in correct order",
+      "example": "Il la lui en a donné",
+      "exampleTranslation": "He gave some of it to her"
+    },
+    {
+      "pattern": "ordre des pronoms compléments multiples",
+      "meaning": "word order with multiple complement pronouns",
+      "usage": "Place multiple object pronouns in grammatically correct order",
+      "example": "Je te le donne, je te les explique",
+      "exampleTranslation": "I give it to you, I explain them to you"
+    },
+    {
+      "pattern": "accords participes passés complexes",
+      "meaning": "complex past participle agreements",
+      "usage": "Apply agreement rules with multiple objects and reflexive verbs",
+      "example": "Les livres que j'ai lus, la route qu'elle a prise",
+      "exampleTranslation": "The books I read, the road she took"
+    },
+    {
+      "pattern": "voix passive avec pronoms",
+      "meaning": "passive voice with pronouns",
+      "usage": "Use passive constructions with object pronouns",
+      "example": "Elle a été nommée, je le suis devenu",
+      "exampleTranslation": "She was appointed, I became it"
+    },
+    {
+      "pattern": "inversion du sujet après adverbes",
+      "meaning": "subject inversion after adverbs",
+      "usage": "Invert subject with adverbs in starting position",
+      "example": "Jamais je n'ai vu cela, À peine avait-il parlé",
+      "exampleTranslation": "Never have I seen that, Hardly had he spoken"
+    },
+    {
+      "pattern": "passif avec par et de",
+      "meaning": "passive with par and de",
+      "usage": "Use appropriate prepositions in passive constructions",
+      "example": "Aimé de tous, craint par ses ennemis",
+      "exampleTranslation": "Loved by all, feared by his enemies"
+    },
+    {
+      "pattern": "prépositions complexes: malgré, selon, contre, derrière",
+      "meaning": "complex prepositions",
+      "usage": "Use more sophisticated prepositions for nuanced meaning",
+      "example": "Malgré les difficultés, selon ses critères",
+      "exampleTranslation": "Despite the difficulties, according to his criteria"
+    },
+    {
+      "pattern": "prépositions temporelles: jusque, jusqu'à, à partir de",
+      "meaning": "temporal prepositions",
+      "usage": "Express specific time boundaries",
+      "example": "Jusqu'à demain, à partir d'aujourd'hui",
+      "exampleTranslation": "Until tomorrow, starting from today"
+    },
+    {
+      "pattern": "conjonctions de subordination: lorsque, tandis que, dès que",
+      "meaning": "subordinating conjunctions",
+      "usage": "Use conjunctions for temporal and causal relationships",
+      "example": "Lorsqu'il arriva, tandis qu'elle parlait, dès qu'il apprit",
+      "exampleTranslation": "When he arrived, while she was speaking, as soon as he learned"
+    },
+    {
+      "pattern": "conjonctions adversatives: or, au reste, d'ailleurs",
+      "meaning": "adversative conjunctions",
+      "usage": "Express contrast or correction",
+      "example": "Or, il n'était pas là, d'ailleurs personne ne le savait",
+      "exampleTranslation": "Now, he wasn't there, besides no one knew it"
+    },
+    {
+      "pattern": "structures : c'est ... qui / c'est ... que",
+      "meaning": "cleft sentences with c'est",
+      "usage": "Emphasize a particular element of the sentence",
+      "example": "C'est lui qui a dit cela, c'est à cause de toi que",
+      "exampleTranslation": "It's him who said that, it's because of you that"
+    },
+    {
+      "pattern": "inversions stylistiques",
+      "meaning": "stylistic inversions",
+      "usage": "Use word order for literary or emphatic effect",
+      "example": "Magnifique était cette maison, Sortit-il rapidement",
+      "exampleTranslation": "Magnificent was that house, Out he went quickly"
+    },
+    {
+      "pattern": "énoncé présentatif voilà, voici",
+      "meaning": "presentative statements voilà, voici",
+      "usage": "Introduce or point out things or people",
+      "example": "Voilà les solutions, les voici",
+      "exampleTranslation": "Here are the solutions, here they are"
+    },
+    {
+      "pattern": "comparaisons avec si, comme",
+      "meaning": "comparisons with if and like",
+      "usage": "Express comparisons and similarities",
+      "example": "Fort comme un lion, doux si l'herbe",
+      "exampleTranslation": "Strong like a lion, soft as grass"
+    },
+    {
+      "pattern": "comparaisons avec comparatif: plus... plus, moins... moins",
+      "meaning": "parallel comparisons",
+      "usage": "Express proportional relationships",
+      "example": "Plus tu étudies, plus tu apprendes; Moins il dort, moins il est productif",
+      "exampleTranslation": "The more you study, the more you learn; The less he sleeps, the less productive"
+    },
+    {
+      "pattern": "adjectifs au sens différent avant/après le nom",
+      "meaning": "adjectives with different meanings before/after",
+      "usage": "Understand how position changes adjective meaning",
+      "example": "Un homme pauvre (poor in money), un pauvre homme (unfortunate)",
+      "exampleTranslation": "A poor man, a poor man (different meanings)"
+    },
+    {
+      "pattern": "degrés d'intensité: très, bien, fort, sacrément, terriblement",
+      "meaning": "degrees of intensity adverbs",
+      "usage": "Use adverbs to express varying degrees of intensity",
+      "example": "Très fatigué, bien ennuyé, terriblement heureux",
+      "exampleTranslation": "Very tired, quite annoyed, terribly happy"
+    },
+    {
+      "pattern": "adverbes de limitation: à peine, seulement, simplement",
+      "meaning": "limiting adverbs",
+      "usage": "Express restrictions or minimal degree",
+      "example": "À peine arrivé, seulement trois personnes",
+      "exampleTranslation": "Barely arrived, only three people"
+    },
+    {
+      "pattern": "répétition avec préposition: avec, par, de",
+      "meaning": "repetition with prepositions",
+      "usage": "Emphasize through repetition in formal or literary style",
+      "example": "De jour en jour, de fois en fois",
+      "exampleTranslation": "Day by day, time and time again"
+    },
+    {
+      "pattern": "négation multiple sophistiquée",
+      "meaning": "sophisticated multiple negation",
+      "usage": "Use double negatives for emphasis",
+      "example": "Il n'y a pas un seul jour sans problème",
+      "exampleTranslation": "There is not a single day without problems"
+    },
+    {
+      "pattern": "négation avec ou ne de crainte: ne... de peur que",
+      "meaning": "subjunctive ne in fearing clauses",
+      "usage": "Use 'ne' without negation in fear constructions",
+      "example": "J'ai peur qu'il ne vienne pas",
+      "exampleTranslation": "I'm afraid he won't come"
+    },
+    {
+      "pattern": "restriction avec ne... que",
+      "meaning": "restriction with ne... only",
+      "usage": "Express limitation or exclusive focus",
+      "example": "Je ne bois que du café",
+      "exampleTranslation": "I drink only coffee"
+    },
+    {
+      "pattern": "infinitifs sujets de la phrase",
+      "meaning": "infinitives as sentence subjects",
+      "usage": "Use infinitives as the subject of a sentence",
+      "example": "Lire est important, faire du sport détend",
+      "exampleTranslation": "Reading is important, exercising relaxes"
+    },
+    {
+      "pattern": "infinitifs passés",
+      "meaning": "past infinitives",
+      "usage": "Express completed actions with infinitive form",
+      "example": "Après avoir mangé, après être parti",
+      "exampleTranslation": "After eating, after having left"
+    },
+    {
+      "pattern": "construction avec sans + infinitif",
+      "meaning": "without + infinitive",
+      "usage": "Express negation with infinitives",
+      "example": "Sans dire un mot, sans l'avertir",
+      "exampleTranslation": "Without saying a word, without warning him"
+    },
+    {
+      "pattern": "construction avec pour + infinitif",
+      "meaning": "for + infinitive",
+      "usage": "Express purpose or intention",
+      "example": "Pour réussir, pour être heureux",
+      "exampleTranslation": "To succeed, to be happy"
+    },
+    {
+      "pattern": "construction avec afin de + infinitif",
+      "meaning": "in order to structure",
+      "usage": "Express formal purpose or intention",
+      "example": "Afin de progresser, afin d'atteindre ses buts",
+      "exampleTranslation": "In order to progress, in order to achieve one's goals"
+    },
+    {
+      "pattern": "construction avec au lieu de + infinitif",
+      "meaning": "instead of + infinitive",
+      "usage": "Express alternative actions",
+      "example": "Au lieu de rester, au lieu de partir",
+      "exampleTranslation": "Instead of staying, instead of leaving"
+    },
+    {
+      "pattern": "construction avec de crainte de/de peur de + infinitif",
+      "meaning": "for fear of structure",
+      "usage": "Express precaution to avoid something",
+      "example": "De peur de déranger, de crainte de perdre",
+      "exampleTranslation": "For fear of disturbing, for fear of losing"
+    },
+    {
+      "pattern": "noms abstraits en -tion, -sion, -ment",
+      "meaning": "abstract nouns",
+      "usage": "Recognize and use nominalized forms",
+      "example": "Action, discussion, jugement",
+      "exampleTranslation": "Action, discussion, judgment"
+    },
+    {
+      "pattern": "noms abstraits en -ance, -ence, -ité",
+      "meaning": "abstract nouns with other suffixes",
+      "usage": "Use additional noun-forming suffixes",
+      "example": "Importance, science, clarté",
+      "exampleTranslation": "Importance, science, clarity"
+    },
+    {
+      "pattern": "adjectifs dérivés: -able, -ible, -eux, -ious",
+      "meaning": "adjectives from suffixes",
+      "usage": "Form adjectives using productive suffixes",
+      "example": "Sociable, sensible, joyeux, curieux",
+      "exampleTranslation": "Sociable, sensitive, joyful, curious"
+    },
+    {
+      "pattern": "adjectifs dérivés: -ant, -ent, -iste, -al",
+      "meaning": "more adjective suffixes",
+      "usage": "Use participial and other adjective suffixes",
+      "example": "Émouvant, prudent, réaliste, national",
+      "exampleTranslation": "Moving, prudent, realistic, national"
+    },
+    {
+      "pattern": "verbes dérivés: ajouter des préfixes",
+      "meaning": "derived verbs with prefixes",
+      "usage": "Modify verb meanings with prefixes",
+      "example": "Refaire, défaire, prévoir, pourvoir",
+      "exampleTranslation": "Do again, undo, foresee, provide"
+    },
+    {
+      "pattern": "verbes pronominaux réciproques",
+      "meaning": "reciprocal reflexive verbs",
+      "usage": "Express mutual actions between subjects",
+      "example": "Ils se sont embrassés, nous nous parlons",
+      "exampleTranslation": "They hugged each other, we speak to each other"
+    },
+    {
+      "pattern": "verbes pronominaux passifs",
+      "meaning": "passive reflexive verbs",
+      "usage": "Use reflexive form to express passive meaning",
+      "example": "Cela se vend bien, cela s'explique",
+      "exampleTranslation": "That sells well, that explains itself"
+    },
+    {
+      "pattern": "verbes pronominaux sens idiomatique",
+      "meaning": "reflexive verbs with idiomatic meaning",
+      "usage": "Use reflexive forms with special meanings",
+      "example": "S'apercevoir (to notice), se douter (to suspect), se souvenir (to remember)",
+      "exampleTranslation": "Notice, suspect, remember"
+    },
+    {
+      "pattern": "verbes impersonnels falloir, pleuvior, neiger",
+      "meaning": "impersonal verbs",
+      "usage": "Use verbs that exist only with 'il' as subject",
+      "example": "Il faut partir, il pleut, il neige",
+      "exampleTranslation": "It's necessary to leave, it's raining, it's snowing"
+    },
+    {
+      "pattern": "construction impersonnelle il y a",
+      "meaning": "impersonal construction there is/are",
+      "usage": "Express existence or occurrence",
+      "example": "Il y a un problème, il y a longtemps",
+      "exampleTranslation": "There is a problem, a long time ago"
+    },
+    {
+      "pattern": "construction impersonnelle il est, il semble",
+      "meaning": "impersonal constructions is, seems",
+      "usage": "Use impersonal constructions with adjectives",
+      "example": "Il est possible, il semble que",
+      "exampleTranslation": "It is possible, it seems that"
+    },
+    {
+      "pattern": "emploi de c'est avec inversion d'ordre",
+      "meaning": "c'est with word order inversion",
+      "usage": "Use c'est constructions with various structures",
+      "example": "C'est à toi de décider, c'est pour lui",
+      "exampleTranslation": "It's up to you to decide, it's for him"
+    },
+    {
+      "pattern": "structure c'est + adjectif + de + infinitif",
+      "meaning": "c'est + adjective + to + infinitive",
+      "usage": "Express judgment about actions",
+      "example": "C'est facile de parler, c'est difficile de partir",
+      "exampleTranslation": "It's easy to speak, it's difficult to leave"
+    },
+    {
+      "pattern": "structure ce + adjectif + que + indicatif/subjonctif",
+      "meaning": "ce + adjective + that",
+      "usage": "Express reactions to ideas or clauses",
+      "example": "Ce que tu dis est intéressant, C'est ennuyeux qu'il parte",
+      "exampleTranslation": "What you say is interesting, It's annoying that he's leaving"
+    },
+    {
+      "pattern": "concordance modale: alternance indicatif/subjonctif",
+      "meaning": "modal concordance: indicative/subjunctive alternation",
+      "usage": "Choose correct mood based on main clause verb",
+      "example": "Je crois qu'il vient vs Je doute qu'il vienne",
+      "exampleTranslation": "I believe he comes vs I doubt he comes"
+    },
+    {
+      "pattern": "expressions figées: avoir faim/soif/sommeil/peur",
+      "meaning": "fixed expressions with avoir",
+      "usage": "Use avoir where English uses to be",
+      "example": "J'ai faim, tu as soif, il a peur",
+      "exampleTranslation": "I'm hungry, you're thirsty, he's afraid"
+    },
+    {
+      "pattern": "expressions figées: avoir raison/tort/lieu",
+      "meaning": "fixed expressions: to be right/wrong/to have reason to",
+      "usage": "Use special avoir expressions",
+      "example": "Vous avez raison, il a tort, tu as lieu de croire",
+      "exampleTranslation": "You're right, he's wrong, you have reason to believe"
+    },
+    {
+      "pattern": "expressions figées: avoir l'air, avoir besoin, avoir envie",
+      "meaning": "avoir expressions: to appear, to need, to feel like",
+      "usage": "Use common avoir constructions",
+      "example": "Elle a l'air fatiguée, j'ai besoin d'aide, tu as envie de danser",
+      "exampleTranslation": "She appears tired, I need help, you feel like dancing"
+    },
+    {
+      "pattern": "tournures avec aller: aller mal, aller mieux, comment allez-vous?",
+      "meaning": "aller expressions",
+      "usage": "Use aller in idiomatic expressions",
+      "example": "Les choses vont mieux, ça va de soi",
+      "exampleTranslation": "Things are better, that goes without saying"
+    },
+    {
+      "pattern": "construction impersonnelle avec infinitif",
+      "meaning": "impersonal construction with infinitive",
+      "usage": "Express general truth or possibility",
+      "example": "Il faut manger pour vivre, il est bon d'apprendre",
+      "exampleTranslation": "One must eat to live, it is good to learn"
+    },
+    {
+      "pattern": "pronoms sujets implicites",
+      "meaning": "implicit subject pronouns",
+      "usage": "Omit subjects when clear from context",
+      "example": "Je pense que [je] dois partir",
+      "exampleTranslation": "I think that I must leave"
+    },
+    {
+      "pattern": "pronoms objets implicites dans l'infinitif",
+      "meaning": "implicit objects in infinitive",
+      "usage": "Omit pronouns when understood",
+      "example": "Je le vois courir vs Je le vois courir fast",
+      "exampleTranslation": "I see him running"
+    },
+    {
+      "pattern": "ellipse du verbe",
+      "meaning": "ellipsis of the verb",
+      "usage": "Omit repeated verbs for brevity",
+      "example": "Il travaille, moi aussi; Elle parle français, lui l'anglais",
+      "exampleTranslation": "He works, me too; She speaks French, him English"
+    },
+    {
+      "pattern": "anticipation du complément",
+      "meaning": "anticipation of the object",
+      "usage": "Introduce an object before the main verb",
+      "example": "Cette maison, je l'aime; Son histoire, je la connais",
+      "exampleTranslation": "This house, I love it; His story, I know it"
+    },
+    {
+      "pattern": "récapitulation: sujets et pronoms de rappel",
+      "meaning": "recapitulation with subject pronouns",
+      "usage": "Repeat subjects with pronouns for clarity",
+      "example": "Pierre, il est venu; Marie et Jean, ils sont partis",
+      "exampleTranslation": "Peter, he came; Mary and John, they left"
+    },
+    {
+      "pattern": "parenthèses et incises",
+      "meaning": "parentheses and asides",
+      "usage": "Insert explanatory remarks into sentences",
+      "example": "Son ami, disait-elle, était très intelligent",
+      "exampleTranslation": "His friend, she said, was very intelligent"
+    },
+    {
+      "pattern": "ordre des adjectifs multiples",
+      "meaning": "order of multiple adjectives",
+      "usage": "Arrange multiple adjectives in natural order",
+      "example": "Un grand château blanc ancien",
+      "exampleTranslation": "A large, white, old castle"
+    },
+    {
+      "pattern": "réduction de la relative à l'adjectif",
+      "meaning": "reduction of relative clause to adjective",
+      "usage": "Simplify relative clauses into adjectives",
+      "example": "Le livre qui est bleu → le livre bleu",
+      "exampleTranslation": "The book that is blue → the blue book"
+    },
+    {
+      "pattern": "réduction de la relative au participe",
+      "meaning": "reduction of relative clause to participle",
+      "usage": "Simplify using participles",
+      "example": "L'homme qui partait → L'homme partant",
+      "exampleTranslation": "The man who was leaving → The departing man"
+    },
+    {
+      "pattern": "réduction de la complétive à l'infinitif",
+      "meaning": "reduction of clause to infinitive",
+      "usage": "Simplify object clauses to infinitives",
+      "example": "Je crois qu'il vient → Je crois le voir venir",
+      "exampleTranslation": "I believe he comes → I believe to see him come"
+    },
+    {
+      "pattern": "discours rapporté avec changement de perspective",
+      "meaning": "indirect speech with perspective shift",
+      "usage": "Change tense and person in reported speech",
+      "example": "Il a dit: 'Je suis fatigué' → Il a dit qu'il était fatigué",
+      "exampleTranslation": "He said: 'I am tired' → He said that he was tired"
+    },
+    {
+      "pattern": "discours rapporté avec questions",
+      "meaning": "indirect speech with questions",
+      "usage": "Report questions appropriately",
+      "example": "Elle a demandé: 'Viens-tu?' → Elle a demandé s'il venait",
+      "exampleTranslation": "She asked: 'Are you coming?' → She asked if he was coming"
+    },
+    {
+      "pattern": "discours rapporté avec ordres",
+      "meaning": "indirect speech with commands",
+      "usage": "Report commands with subjunctive or infinitive",
+      "example": "Il dit: 'Va!' → Il dit qu'il aille / de partir",
+      "exampleTranslation": "He says: 'Go!' → He says to go"
+    },
+    {
+      "pattern": "style libre vs style soutenu: alternation",
+      "meaning": "free style vs formal style",
+      "usage": "Switch between casual and formal registers",
+      "example": "T'es sympa vs Tu es sympathique",
+      "exampleTranslation": "You're nice (casual) vs You are nice (formal)"
+    },
+    {
+      "pattern": "connecteurs logiques: premièrement, deuxièmement, enfin",
+      "meaning": "logical connectors",
+      "usage": "Use transition words to organize ideas",
+      "example": "Premièrement..., deuxièmement..., enfin...",
+      "exampleTranslation": "First..., second..., finally..."
+    },
+    {
+      "pattern": "connecteurs de contraste: cependant, en revanche, par contre",
+      "meaning": "contrast connectors",
+      "usage": "Use words to show opposition",
+      "example": "Cependant il n'est pas venu, en revanche sa sœur est venue",
+      "exampleTranslation": "However he didn't come, on the other hand his sister came"
+    },
+    {
+      "pattern": "connecteurs de cause: car, c'est que, puisque",
+      "meaning": "causal connectors",
+      "usage": "Link cause and effect",
+      "example": "Il n'a pas pu venir car il était malade",
+      "exampleTranslation": "He couldn't come because he was sick"
+    },
+    {
+      "pattern": "connecteurs de conséquence: donc, alors, par conséquent",
+      "meaning": "consequence connectors",
+      "usage": "Link effect to cause",
+      "example": "Il pleuvait donc nous sommes restés à l'intérieur",
+      "exampleTranslation": "It was raining so we stayed inside"
+    },
+    {
+      "pattern": "connecteurs d'addition: de plus, en outre, également",
+      "meaning": "additive connectors",
+      "usage": "Add information or points",
+      "example": "De plus, il est intelligent; en outre, il est aimable",
+      "exampleTranslation": "Moreover, he is intelligent; besides, he is kind"
+    },
+    {
+      "pattern": "connecteurs de conclusion: en conclusion, en somme, bref",
+      "meaning": "conclusion connectors",
+      "usage": "Summarize or conclude",
+      "example": "En conclusion, nous avons réussi",
+      "exampleTranslation": "In conclusion, we succeeded"
+    },
+    {
+      "pattern": "connecteurs d'exemplification: par exemple, notamment, en particulier",
+      "meaning": "exemplification connectors",
+      "usage": "Introduce examples",
+      "example": "Plusieurs pays, notamment la France, ont changé",
+      "exampleTranslation": "Several countries, particularly France, have changed"
+    },
+    {
+      "pattern": "appositions",
+      "meaning": "appositives",
+      "usage": "Add explanatory information about nouns",
+      "example": "Paris, la capitale française, est magnifique",
+      "exampleTranslation": "Paris, the capital of France, is magnificent"
+    },
+    {
+      "pattern": "expansion de la phrase par adjectifs et adverbes",
+      "meaning": "expansion with adjectives and adverbs",
+      "usage": "Enrich sentences with descriptive elements",
+      "example": "Un chef cuisinier français très expérimenté prépara soigneusement",
+      "exampleTranslation": "A very experienced French head chef prepared carefully"
+    },
+    {
+      "pattern": "expansion par des propositions subordonnées",
+      "meaning": "expansion with subordinate clauses",
+      "usage": "Add dependent clauses for detail",
+      "example": "L'étudiant qui avait étudié dur réussit l'examen",
+      "exampleTranslation": "The student who had studied hard passed the exam"
+    },
+    {
+      "pattern": "emploi stylistique du pronom on",
+      "meaning": "stylistic use of 'on'",
+      "usage": "Use indefinite 'one' for passive effect",
+      "example": "On dit que..., On ne fait pas cela",
+      "exampleTranslation": "One says that..., One doesn't do that"
+    },
+    {
+      "pattern": "emploi de nous vs on dans le registre formel",
+      "meaning": "nous vs on in formal register",
+      "usage": "Choose between 'we' and 'one'",
+      "example": "Nous pensons que... / On pense que...",
+      "exampleTranslation": "We think that... / One thinks that..."
+    },
+    {
+      "pattern": "implicite et explicite",
+      "meaning": "implicit and explicit information",
+      "usage": "Leave room for interpretation or state clearly",
+      "example": "Il me l'a dit (implicite: quand?) vs Il me l'a dit hier",
+      "exampleTranslation": "He told me (when?) vs He told me yesterday"
+    },
+    {
+      "pattern": "présomption vs certitude: peut-être, probablement",
+      "meaning": "presumption vs certainty",
+      "usage": "Express degrees of probability",
+      "example": "Peut-être qu'il viendra, probablement qu'il viendra",
+      "exampleTranslation": "Perhaps he will come, probably he will come"
+    },
+    {
+      "pattern": "certitude absolue: certes, assurément, sans doute",
+      "meaning": "absolute certainty",
+      "usage": "Express complete certainty",
+      "example": "Il vient assurément, certes tu as raison",
+      "exampleTranslation": "He will certainly come, surely you're right"
+    },
+    {
+      "pattern": "modalité: alternance certitude/doute/possibilité",
+      "meaning": "modality: certainty/doubt/possibility",
+      "usage": "Shift between different levels of certainty",
+      "example": "Je sais... vs Je crois... vs Il se peut que...",
+      "exampleTranslation": "I know vs I believe vs It's possible that"
+    },
+    {
+      "pattern": "expressions d'emphase: vraiment, franchement, sincèrement",
+      "meaning": "emphatic expressions",
+      "usage": "Emphasize statements",
+      "example": "Vraiment tu es formidable!",
+      "exampleTranslation": "You're really amazing!"
+    },
+    {
+      "pattern": "expressions d'atténuation: à peine, presque, quelque peu",
+      "meaning": "mitigating expressions",
+      "usage": "Soften or minimize statements",
+      "example": "C'est à peine acceptable, c'est presque correct",
+      "exampleTranslation": "It's barely acceptable, it's almost correct"
+    },
+    {
+      "pattern": "expressions d'indifférence: peu importe, n'importe, ça m'est égal",
+      "meaning": "expressions of indifference",
+      "usage": "Express lack of concern",
+      "example": "Peu importe ce qu'il pense, ça m'est égal",
+      "exampleTranslation": "It doesn't matter what he thinks, I don't care"
+    },
+    {
+      "pattern": "expressions d'obligation personnelle: je dois absolument, il faut que",
+      "meaning": "personal obligation expressions",
+      "usage": "Express strong personal obligation",
+      "example": "Je dois absolument venir, il faut impérativement que tu saches",
+      "exampleTranslation": "I absolutely must come, you must know"
+    },
+    {
+      "pattern": "expressions de probabilité: il y a des chances que, il est probable",
+      "meaning": "probability expressions",
+      "usage": "Express likelihood with varying certainty",
+      "example": "Il est probable qu'il pleuvra, il y a de bonnes chances",
+      "exampleTranslation": "It's likely to rain, there's a good chance"
+    },
+    {
+      "pattern": "expressions de regret: je regrette que, c'est dommage que",
+      "meaning": "regret expressions",
+      "usage": "Express regret about circumstances",
+      "example": "Je regrette que tu ne sois pas venu",
+      "exampleTranslation": "I regret that you didn't come"
+    },
+    {
+      "pattern": "expressions d'appréciation: j'apprécie que, c'est merveilleux que",
+      "meaning": "appreciation expressions",
+      "usage": "Express appreciation and positive feelings",
+      "example": "J'apprécie que tu sois venu, c'est merveilleux que tu réussisses",
+      "exampleTranslation": "I appreciate that you came, it's wonderful that you succeed"
+    },
+    {
+      "pattern": "expressions de crainte: j'ai peur que, je crains que",
+      "meaning": "fear expressions",
+      "usage": "Express anxiety or concern",
+      "example": "J'ai peur qu'il soit trop tard, je crains qu'elle ne vienne pas",
+      "exampleTranslation": "I'm afraid it's too late, I fear she won't come"
+    },
+    {
+      "pattern": "expressions de surprise: c'est surprenant que, il est étonnant que",
+      "meaning": "surprise expressions",
+      "usage": "Express amazement or astonishment",
+      "example": "C'est surprenant qu'il ait réussi, il est étonnant qu'elle soit venue",
+      "exampleTranslation": "It's surprising he succeeded, it's amazing she came"
+    },
+    {
+      "pattern": "expressions de nécessité: il est essentiel que, c'est indispensable que",
+      "meaning": "necessity expressions",
+      "usage": "Express strong necessity or requirement",
+      "example": "Il est essentiel qu'il vienne, c'est indispensable que tu saches",
+      "exampleTranslation": "It's essential that he comes, you must know"
+    },
+    {
+      "pattern": "adjectifs comparatifs irréguliers: meilleur/mieux, pire/plus mal",
+      "meaning": "irregular comparative adjectives",
+      "usage": "Use special comparative forms",
+      "example": "Ce résultat est meilleur, cette situation est pire",
+      "exampleTranslation": "This result is better, this situation is worse"
+    },
+    {
+      "pattern": "superlatif avec article défini: le meilleur, la plus belle",
+      "meaning": "superlative with definite article",
+      "usage": "Express highest or lowest degree",
+      "example": "Le meilleur jour de ma vie, la plus belle fille du monde",
+      "exampleTranslation": "The best day of my life, the most beautiful girl"
+    },
+    {
+      "pattern": "tournure : il s'agit de, il s'agissait de",
+      "meaning": "it's a matter of structure",
+      "usage": "Express what is at issue or involved",
+      "example": "Il s'agit de terminer ce projet, il s'agissait de trouver une solution",
+      "exampleTranslation": "It's a matter of finishing this project, it was about finding a solution"
+    },
+    {
+      "pattern": "tournure : à moins de, sauf à",
+      "meaning": "except for, unless structure",
+      "usage": "Express exceptions or conditions",
+      "example": "À moins de partir maintenant, nous serons en retard",
+      "exampleTranslation": "Unless we leave now, we'll be late"
+    },
+    {
+      "pattern": "structure : auquel cas, duquel cas",
+      "meaning": "in which case structure",
+      "usage": "Express conditional consequences",
+      "example": "Tu refuses, auquel cas je partirai seul",
+      "exampleTranslation": "You refuse, in which case I'll leave alone"
+    },
+    {
+      "pattern": "structure : partant de, en partant de",
+      "meaning": "starting from structure",
+      "usage": "Express a starting point or premise",
+      "example": "Partant du principe que tu as raison",
+      "exampleTranslation": "Starting from the principle that you're right"
+    },
+    {
+      "pattern": "participiale avec proposition narrative",
+      "meaning": "participial with narrative clause",
+      "usage": "Provide background information with participles",
+      "example": "Ayant terminé son repas, il sortit",
+      "exampleTranslation": "Having finished his meal, he left"
+    },
+    {
+      "pattern": "tournure de politesse avec conditionnel: pourriez-vous",
+      "meaning": "polite conditional",
+      "usage": "Make polite requests using conditional",
+      "example": "Pourriez-vous m'aider?, Auriez-vous du temps?",
+      "exampleTranslation": "Could you help me?, Would you have time?"
+    },
+    {
+      "pattern": "tournure: c'est un fait que, c'est certain que",
+      "meaning": "it is a fact/certain that structure",
+      "usage": "Emphasize certainty or factuality",
+      "example": "C'est un fait que l'inflation a augmenté",
+      "exampleTranslation": "It is a fact that inflation has increased"
+    },
+    {
+      "pattern": "discours indirect avec interrogative indirecte",
+      "meaning": "indirect questions",
+      "usage": "Report questions without direct inversion",
+      "example": "Je me demande s'il viendra, dis-moi pourquoi tu es parti",
+      "exampleTranslation": "I wonder if he will come, tell me why you left"
+    },
+    {
+      "pattern": "discours narratif au passé: le passé simple dans récit",
+      "meaning": "narrative past tense",
+      "usage": "Use simple past in formal narrative",
+      "example": "Il arriva, il vit, il conquit",
+      "exampleTranslation": "He came, he saw, he conquered"
+    },
+    {
+      "pattern": "emploi stylistique du futur: tu ne manqueras pas de remarquer",
+      "meaning": "stylistic use of future",
+      "usage": "Use future tense for irony or certainty",
+      "example": "Tu ne manqueras pas de noter l'absence",
+      "exampleTranslation": "You won't fail to notice the absence"
+    },
+    {
+      "pattern": "emploi stylistique du présent historique",
+      "meaning": "historical present",
+      "usage": "Use present tense for dramatic effect in narration",
+      "example": "En 1789, la Révolution française commence",
+      "exampleTranslation": "In 1789, the French Revolution begins"
+    },
+    {
+      "pattern": "structure : ne serait-ce que, ne fût-ce que",
+      "meaning": "if only, even if only structure",
+      "usage": "Express minimum or exclusive condition",
+      "example": "Ne serait-ce que pour t'aider",
+      "exampleTranslation": "If only to help you"
+    },
+    {
+      "pattern": "construction avec infinitif absolu",
+      "meaning": "absolute infinitive",
+      "usage": "Use infinitive in emphatic position",
+      "example": "Partir, c'était impossible",
+      "exampleTranslation": "To leave was impossible"
+    },
+    {
+      "pattern": "emploi du subjonctif après que relatif",
+      "meaning": "subjunctive after relative que",
+      "usage": "Use subjunctive in certain relative constructions",
+      "example": "C'est un tel homme que le destin l'aide",
+      "exampleTranslation": "He is such a man that fate helps him"
+    },
+    {
+      "pattern": "emploi du subjonctif dans indépendantes",
+      "meaning": "subjunctive in independent clauses",
+      "usage": "Express wishes or commands independently",
+      "example": "Qu'il vienne!, Que tu sois heureux!",
+      "exampleTranslation": "Let him come!, May you be happy!"
+    },
+    {
+      "pattern": "tournure : jusqu'où, à quel point",
+      "meaning": "how far, to what extent structure",
+      "usage": "Ask about degree or limit",
+      "example": "Jusqu'où peux-tu aller?, À quel point est-ce grave?",
+      "exampleTranslation": "How far can you go?, How serious is it?"
+    },
+    {
+      "pattern": "tournure : de telle sorte que, de telle manière que",
+      "meaning": "in such a way that structure",
+      "usage": "Express manner and consequence",
+      "example": "De telle sorte qu'il arriva juste à temps",
+      "exampleTranslation": "In such a way that he arrived just in time"
+    },
+    {
+      "pattern": "construction de plus en plus, de moins en moins",
+      "meaning": "more and more, less and less",
+      "usage": "Express progressive increase or decrease",
+      "example": "C'est de plus en plus difficile",
+      "exampleTranslation": "It's more and more difficult"
+    },
+    {
+      "pattern": "tournure : d'un côté... de l'autre",
+      "meaning": "on one hand... on the other",
+      "usage": "Present contrasting viewpoints",
+      "example": "D'un côté je suis fatigué, de l'autre j'en ai besoin",
+      "exampleTranslation": "On one hand I'm tired, on the other I need it"
+    },
+    {
+      "pattern": "construction : soit... soit, ou bien... ou bien",
+      "meaning": "either... or structure",
+      "usage": "Present alternative choices",
+      "example": "Soit tu viens, soit tu restes",
+      "exampleTranslation": "Either you come or you stay"
+    },
+    {
+      "pattern": "tournure : au cas où tu aurais besoin",
+      "meaning": "in case you needed structure",
+      "usage": "Express precautionary conditional",
+      "example": "Je te laisse mon numéro au cas où tu aurais besoin",
+      "exampleTranslation": "I'll leave you my number in case you need it"
+    },
+    {
+      "pattern": "emploi du conditionnel passé pour politesse",
+      "meaning": "past conditional for politeness",
+      "usage": "Express polite hypothetical requests",
+      "example": "Auriez-vous pu m'aider?, J'aurais aimé savoir",
+      "exampleTranslation": "Could you have helped me?, I would have liked to know"
+    },
+    {
+      "pattern": "emploi du subjonctif passé",
+      "meaning": "past subjunctive",
+      "usage": "Express past subjunctive in dependent clauses",
+      "example": "Je suis heureux qu'il ait réussi",
+      "exampleTranslation": "I'm happy that he succeeded"
+    },
+    {
+      "pattern": "structure : si tant est que, en supposant que",
+      "meaning": "if at all, supposing that structure",
+      "usage": "Express doubt or conditional hypothesis",
+      "example": "Si tant est qu'il vienne, nous verrons",
+      "exampleTranslation": "If he even comes, we'll see"
+    },
+    {
+      "pattern": "emploi du futur antérieur: quand j'aurai fini",
+      "meaning": "future perfect usage",
+      "usage": "Express action completed before future action",
+      "example": "Quand j'aurai fini, nous pourrons partir",
+      "exampleTranslation": "When I have finished, we can leave"
+    },
+    {
+      "pattern": "structure : tant que, aussi longtemps que",
+      "meaning": "as long as structure",
+      "usage": "Express duration or condition",
+      "example": "Tant que tu es ici, je suis heureux",
+      "exampleTranslation": "As long as you're here, I'm happy"
+    },
+    {
+      "pattern": "emploi de tout en + participe",
+      "meaning": "while + participle",
+      "usage": "Express simultaneous actions with contrast",
+      "example": "Tout en étudiant, il travaillait",
+      "exampleTranslation": "While studying, he worked"
+    },
+    {
+      "pattern": "construction non sans + infinitif",
+      "meaning": "not without structure",
+      "usage": "Express action done despite difficulty",
+      "example": "Non sans mal, il réussit",
+      "exampleTranslation": "Not without difficulty, he succeeded"
+    },
+    {
+      "pattern": "emploi du subjonctif avec quelque",
+      "meaning": "subjunctive with quelque",
+      "usage": "Use subjunctive after quelque adjective",
+      "example": "Quelque difficile que ce soit, tu dois essayer",
+      "exampleTranslation": "However difficult it may be, you must try"
+    },
+    {
+      "pattern": "structure : quelle que soit, quel que soit",
+      "meaning": "whatever, whoever structure",
+      "usage": "Express indefinite condition",
+      "example": "Quels que soient tes plans, compte sur moi",
+      "exampleTranslation": "Whatever your plans are, count on me"
+    },
+    {
+      "pattern": "tournure : sans pour autant, néanmoins, toutefois",
+      "meaning": "yet, nevertheless, however",
+      "usage": "Express concession despite preceding clause",
+      "example": "Il est pauvre sans pour autant être malheureux",
+      "exampleTranslation": "He's poor yet not unhappy"
+    },
+    {
+      "pattern": "emploi des verbes de perception: voir, regarder, entendre, écouter",
+      "meaning": "perception verbs",
+      "usage": "Use verbs of perception with infinitives",
+      "example": "Je l'ai vu partir, je l'entends crier",
+      "exampleTranslation": "I saw him leave, I hear him cry"
+    },
+    {
+      "pattern": "structure : à supposer que, en supposant que, supposé que",
+      "meaning": "supposing that structure",
+      "usage": "Express hypothetical conditions",
+      "example": "À supposer qu'il vienne, nous aurions du temps",
+      "exampleTranslation": "Supposing he comes, we would have time"
+    }
+  ]
+}

@@ -1,0 +1,357 @@
+{
+  "language": "fr",
+  "level": "A1",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "être + adjective",
+      "meaning": "to be + adjective",
+      "usage": "Use 'être' with adjectives to describe states or qualities",
+      "example": "Je suis content",
+      "exampleTranslation": "I am happy"
+    },
+    {
+      "pattern": "avoir + noun",
+      "meaning": "to have + noun",
+      "usage": "Use 'avoir' to indicate possession",
+      "example": "J'ai un chat",
+      "exampleTranslation": "I have a cat"
+    },
+    {
+      "pattern": "Subject pronouns (je, tu, il/elle)",
+      "meaning": "First, second, and third person singular pronouns",
+      "usage": "Basic pronouns for forming sentences",
+      "example": "Je m'appelle Marie, tu es étudiant",
+      "exampleTranslation": "My name is Marie, you are a student"
+    },
+    {
+      "pattern": "Definite articles (le, la, l', les)",
+      "meaning": "The (masculine singular, feminine singular, vowel start, plural)",
+      "usage": "Used with specific nouns",
+      "example": "Le chat, la maison, l'école, les livres",
+      "exampleTranslation": "The cat, the house, the school, the books"
+    },
+    {
+      "pattern": "Indefinite articles (un, une, des)",
+      "meaning": "A/an (masculine singular, feminine singular, plural)",
+      "usage": "Used with non-specific nouns",
+      "example": "Un café, une pomme, des fleurs",
+      "exampleTranslation": "A coffee, an apple, some flowers"
+    },
+    {
+      "pattern": "Partitive articles (du, de la, de l', des)",
+      "meaning": "Some/any (used with uncountable nouns)",
+      "usage": "Indicates an unspecified quantity of something",
+      "example": "Je veux du café et de la crème",
+      "exampleTranslation": "I want some coffee and some cream"
+    },
+    {
+      "pattern": "Negation: ne...pas",
+      "meaning": "Not",
+      "usage": "Place 'ne' before verb and 'pas' after",
+      "example": "Je ne suis pas américain",
+      "exampleTranslation": "I am not American"
+    },
+    {
+      "pattern": "Question formation: inversion",
+      "meaning": "Forming yes/no questions",
+      "usage": "Invert subject pronoun and verb",
+      "example": "Êtes-vous français?",
+      "exampleTranslation": "Are you French?"
+    },
+    {
+      "pattern": "Question words: qui, quoi, où, quand",
+      "meaning": "Who, what, where, when",
+      "usage": "Use to ask specific information questions",
+      "example": "Où est la gare?",
+      "exampleTranslation": "Where is the train station?"
+    },
+    {
+      "pattern": "Adjective agreement (gender/number)",
+      "meaning": "Adjectives must agree with noun gender and number",
+      "usage": "Add -e for feminine, -s for plural",
+      "example": "un livre noir, une maison noire, des livres noirs",
+      "exampleTranslation": "a black book, a black house, black books"
+    },
+    {
+      "pattern": "Verb conjugation: être (present)",
+      "meaning": "To be conjugation",
+      "usage": "je suis, tu es, il/elle est, nous sommes, vous êtes, ils/elles sont",
+      "example": "Nous sommes étudiants",
+      "exampleTranslation": "We are students"
+    },
+    {
+      "pattern": "Verb conjugation: avoir (present)",
+      "meaning": "To have conjugation",
+      "usage": "j'ai, tu as, il/elle a, nous avons, vous avez, ils/elles ont",
+      "example": "Vous avez un problème?",
+      "exampleTranslation": "Do you have a problem?"
+    },
+    {
+      "pattern": "Regular -ER verbs (present)",
+      "meaning": "First group verbs ending in -er",
+      "usage": "parler (to speak), manger (to eat), habiter (to live)",
+      "example": "Je parle français",
+      "exampleTranslation": "I speak French"
+    },
+    {
+      "pattern": "Regular -IR verbs (present)",
+      "meaning": "Second group verbs ending in -ir",
+      "usage": "finir (to finish), choisir (to choose)",
+      "example": "Tu finis ton travail",
+      "exampleTranslation": "You finish your work"
+    },
+    {
+      "pattern": "Regular -RE verbs (present)",
+      "meaning": "Third group verbs ending in -re",
+      "usage": "vendre (to sell), répondre (to answer)",
+      "example": "Il répond au téléphone",
+      "exampleTranslation": "He answers the phone"
+    },
+    {
+      "pattern": "Possessive adjectives (mon, ma, mes)",
+      "meaning": "My (masculine singular, feminine singular, plural)",
+      "usage": "Show ownership of objects",
+      "example": "mon frère, ma soeur, mes enfants",
+      "exampleTranslation": "my brother, my sister, my children"
+    },
+    {
+      "pattern": "Demonstrative adjectives (ce, cet, cette, ces)",
+      "meaning": "This/that (masculine singular, vowel start, feminine singular, plural)",
+      "usage": "Point to specific items",
+      "example": "ce garçon, cet homme, cette femme, ces livres",
+      "exampleTranslation": "this/that boy, this/that man, this/that woman, these/those books"
+    },
+    {
+      "pattern": "Numbers 1-20",
+      "meaning": "Cardinal numbers from one to twenty",
+      "usage": "For counting and giving information",
+      "example": "J'ai dix-sept ans",
+      "exampleTranslation": "I am seventeen years old"
+    },
+    {
+      "pattern": "Numbers 20-100 (tens)",
+      "meaning": "Tens and higher numbers",
+      "usage": "vingt, trente, quarante, cinquante, etc.",
+      "example": "J'ai quarante-deux euros",
+      "exampleTranslation": "I have forty-two euros"
+    },
+    {
+      "pattern": "Time: Il est + hour",
+      "meaning": "Telling time",
+      "usage": "Il est une heure, il est deux heures",
+      "example": "Il est trois heures",
+      "exampleTranslation": "It is three o'clock"
+    },
+    {
+      "pattern": "Days of the week",
+      "meaning": "lundi, mardi, mercredi, jeudi, vendredi, samedi, dimanche",
+      "usage": "Specifying which day",
+      "example": "Le lundi, je vais au cinéma",
+      "exampleTranslation": "On Monday, I go to the cinema"
+    },
+    {
+      "pattern": "Months of the year",
+      "meaning": "janvier through décembre",
+      "usage": "Specifying which month",
+      "example": "Mon anniversaire est en juillet",
+      "exampleTranslation": "My birthday is in July"
+    },
+    {
+      "pattern": "Prepositions: à, de, en, sur, sous",
+      "meaning": "In, of/from, in, on, under",
+      "usage": "Show relationships between words",
+      "example": "Le stylo est sur la table",
+      "exampleTranslation": "The pen is on the table"
+    },
+    {
+      "pattern": "Prepositions: dans, devant, derrière, à côté",
+      "meaning": "In, in front of, behind, beside",
+      "usage": "Indicate positions in space",
+      "example": "Le chat est dans la maison",
+      "exampleTranslation": "The cat is in the house"
+    },
+    {
+      "pattern": "Aller (to go) - present tense",
+      "meaning": "je vais, tu vas, il/elle va, nous allons, vous allez, ils/elles vont",
+      "usage": "Express movement or direction",
+      "example": "Je vais à l'école",
+      "exampleTranslation": "I go to school"
+    },
+    {
+      "pattern": "Venir (to come) - present tense",
+      "meaning": "je viens, tu viens, il/elle vient, nous venons, vous venez, ils/elles viennent",
+      "usage": "Express arrival or origin",
+      "example": "Tu viens du Canada?",
+      "exampleTranslation": "Do you come from Canada?"
+    },
+    {
+      "pattern": "Faire (to do/make) - present tense",
+      "meaning": "je fais, tu fais, il/elle fait, nous faisons, vous faites, ils/elles font",
+      "usage": "Express actions or creation",
+      "example": "Je fais mes devoirs",
+      "exampleTranslation": "I do my homework"
+    },
+    {
+      "pattern": "Pouvoir (can/may) - present tense",
+      "meaning": "je peux, tu peux, il/elle peut, nous pouvons, vous pouvez, ils/elles peuvent",
+      "usage": "Express ability or permission",
+      "example": "Je peux parler français",
+      "exampleTranslation": "I can speak French"
+    },
+    {
+      "pattern": "Vouloir (to want) - present tense",
+      "meaning": "je veux, tu veux, il/elle veut, nous voulons, vous voulez, ils/elles veulent",
+      "usage": "Express desire or wish",
+      "example": "Je veux un café, s'il vous plaît",
+      "exampleTranslation": "I want a coffee, please"
+    },
+    {
+      "pattern": "Devoir (must/have to) - present tense",
+      "meaning": "je dois, tu dois, il/elle doit, nous devons, vous devez, ils/elles doivent",
+      "usage": "Express obligation or necessity",
+      "example": "Je dois étudier",
+      "exampleTranslation": "I must study"
+    },
+    {
+      "pattern": "Simple future with aller",
+      "meaning": "Near future: aller + infinitive",
+      "usage": "Express plans or immediate future",
+      "example": "Je vais manger une pomme",
+      "exampleTranslation": "I am going to eat an apple"
+    },
+    {
+      "pattern": "Reflexive verbs (present): se lever",
+      "meaning": "To get up / reflexive verbs with reflexive pronouns",
+      "usage": "Je me lève, tu te lèves, il/elle se lève",
+      "example": "Je me lève à sept heures",
+      "exampleTranslation": "I get up at seven o'clock"
+    },
+    {
+      "pattern": "Imperatives: commands (tu form)",
+      "meaning": "Giving orders to familiar person",
+      "usage": "Parle! Finis! Vends!",
+      "example": "Parle français!",
+      "exampleTranslation": "Speak French!"
+    },
+    {
+      "pattern": "Imperatives: commands (vous form)",
+      "meaning": "Giving orders to formal or plural persons",
+      "usage": "Parlez! Finissez! Vendez!",
+      "example": "Écoutez-moi!",
+      "exampleTranslation": "Listen to me!"
+    },
+    {
+      "pattern": "Imperatives with object pronouns",
+      "meaning": "Commands with direct pronouns",
+      "usage": "Dis-moi, écoute-le, regardez-la",
+      "example": "Dis-moi la vérité",
+      "exampleTranslation": "Tell me the truth"
+    },
+    {
+      "pattern": "Subject pronouns (plural): nous, vous, ils/elles",
+      "meaning": "We, you (plural/formal), they",
+      "usage": "Plural forms for subject pronouns",
+      "example": "Nous habitons à Paris",
+      "exampleTranslation": "We live in Paris"
+    },
+    {
+      "pattern": "Direct object pronouns: me, te, le, la, l', nous, vous, les",
+      "meaning": "Object pronouns referring to people or things",
+      "usage": "Replace direct objects in sentences",
+      "example": "Je te vois demain",
+      "exampleTranslation": "I see you tomorrow"
+    },
+    {
+      "pattern": "Indirect object pronouns: me, te, lui, nous, vous, leur",
+      "meaning": "Pronouns for indirect objects (with à)",
+      "usage": "Replace indirect objects",
+      "example": "Je lui parle",
+      "exampleTranslation": "I speak to him/her"
+    },
+    {
+      "pattern": "Conjunction: et (and)",
+      "meaning": "Joining words, phrases, or clauses",
+      "usage": "Connect related ideas",
+      "example": "Je suis français et j'habite à Lyon",
+      "exampleTranslation": "I am French and I live in Lyon"
+    },
+    {
+      "pattern": "Conjunction: mais (but)",
+      "meaning": "Contrasting ideas",
+      "usage": "Show contrast or opposition",
+      "example": "Je suis fatigué mais je dois travailler",
+      "exampleTranslation": "I am tired but I must work"
+    },
+    {
+      "pattern": "Conjunction: ou (or)",
+      "meaning": "Presenting alternatives",
+      "usage": "Offer choices",
+      "example": "Tu veux du café ou du thé?",
+      "exampleTranslation": "Do you want coffee or tea?"
+    },
+    {
+      "pattern": "Conjunction: parce que (because)",
+      "meaning": "Giving reasons",
+      "usage": "Explain why something happens",
+      "example": "Je suis fatigué parce que je travaille beaucoup",
+      "exampleTranslation": "I am tired because I work a lot"
+    },
+    {
+      "pattern": "Present tense of voir (to see)",
+      "meaning": "je vois, tu vois, il/elle voit, nous voyons, vous voyez, ils/elles voient",
+      "usage": "Express the action of seeing",
+      "example": "Je vois un oiseau",
+      "exampleTranslation": "I see a bird"
+    },
+    {
+      "pattern": "Present tense of savoir (to know)",
+      "meaning": "je sais, tu sais, il/elle sait, nous savons, vous savez, ils/elles savent",
+      "usage": "Express knowledge of facts",
+      "example": "Je sais nager",
+      "exampleTranslation": "I know how to swim"
+    },
+    {
+      "pattern": "Present tense of mettre (to put/wear)",
+      "meaning": "je mets, tu mets, il/elle met, nous mettons, vous mettez, ils/elles mettent",
+      "usage": "Indicate placing or wearing something",
+      "example": "Je mets mon manteau",
+      "exampleTranslation": "I put on my coat"
+    },
+    {
+      "pattern": "Basic adjectives: grand, petit, bon, mauvais",
+      "meaning": "Big, small, good, bad",
+      "usage": "Describe nouns",
+      "example": "C'est une grande maison",
+      "exampleTranslation": "It is a big house"
+    },
+    {
+      "pattern": "Color adjectives",
+      "meaning": "blanc, noir, rouge, bleu, vert, jaune, etc.",
+      "usage": "Describe colors of objects",
+      "example": "J'ai une voiture rouge",
+      "exampleTranslation": "I have a red car"
+    },
+    {
+      "pattern": "Nationality adjectives",
+      "meaning": "français, anglais, américain, allemand, espagnol, etc.",
+      "usage": "Describe people's origins",
+      "example": "Elle est italienne",
+      "exampleTranslation": "She is Italian"
+    },
+    {
+      "pattern": "Common emotions/states: content, heureux, triste, en colère",
+      "meaning": "Happy, happy, sad, angry",
+      "usage": "Describe emotional states",
+      "example": "Je suis très heureux",
+      "exampleTranslation": "I am very happy"
+    },
+    {
+      "pattern": "Personal description: age, appearance",
+      "meaning": "Describing people's characteristics",
+      "usage": "J'ai 25 ans, je suis grand et mince",
+      "example": "Mon ami a les yeux bleus",
+      "exampleTranslation": "My friend has blue eyes"
+    }
+  ]
+}

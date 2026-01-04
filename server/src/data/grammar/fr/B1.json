@@ -1,0 +1,847 @@
+{
+  "language": "fr",
+  "level": "B1",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "subjonctif après il faut que",
+      "meaning": "subjunctive after 'it is necessary that'",
+      "usage": "Use subjunctive mood after expressions of necessity",
+      "example": "Il faut que tu viennes",
+      "exampleTranslation": "You must come"
+    },
+    {
+      "pattern": "subjonctif après je veux que",
+      "meaning": "subjunctive after 'I want that'",
+      "usage": "Use subjunctive when expressing wishes or desires about others",
+      "example": "Je veux que tu réussisses",
+      "exampleTranslation": "I want you to succeed"
+    },
+    {
+      "pattern": "subjonctif après avoir peur que",
+      "meaning": "subjunctive after 'to fear that'",
+      "usage": "Use subjunctive after expressions of fear or doubt",
+      "example": "J'ai peur qu'il ne vienne pas",
+      "exampleTranslation": "I fear that he won't come"
+    },
+    {
+      "pattern": "subjonctif après douter que",
+      "meaning": "subjunctive after 'to doubt that'",
+      "usage": "Use subjunctive after expressions of doubt",
+      "example": "Je doute qu'il soit capable",
+      "exampleTranslation": "I doubt that he is capable"
+    },
+    {
+      "pattern": "subjonctif après bien que",
+      "meaning": "subjunctive after 'although'",
+      "usage": "Use subjunctive after concessive conjunctions",
+      "example": "Bien qu'il soit malade, il travaille",
+      "exampleTranslation": "Although he is sick, he works"
+    },
+    {
+      "pattern": "subjonctif après pourvu que",
+      "meaning": "subjunctive after 'provided that'",
+      "usage": "Use subjunctive after conditional conjunctions",
+      "example": "Pourvu qu'il fasse beau demain",
+      "exampleTranslation": "Provided that the weather is nice tomorrow"
+    },
+    {
+      "pattern": "subjonctif après avant que",
+      "meaning": "subjunctive after 'before'",
+      "usage": "Use subjunctive after temporal conjunctions expressing future time",
+      "example": "Il faut partir avant qu'il ne fasse nuit",
+      "exampleTranslation": "We must leave before it gets dark"
+    },
+    {
+      "pattern": "subjonctif après à moins que",
+      "meaning": "subjunctive after 'unless'",
+      "usage": "Use subjunctive after negative conditional conjunctions",
+      "example": "Il viendra à moins qu'il ne soit malade",
+      "exampleTranslation": "He will come unless he is sick"
+    },
+    {
+      "pattern": "conditionnel présent - hypothèse",
+      "meaning": "conditional present - hypothesis",
+      "usage": "Express hypothetical or polite requests using the conditional mood",
+      "example": "Si j'avais de l'argent, j'achèterais une maison",
+      "exampleTranslation": "If I had money, I would buy a house"
+    },
+    {
+      "pattern": "conditionnel passé - hypothèse irréelle",
+      "meaning": "conditional past - unreal hypothesis",
+      "usage": "Express hypothetical situations that didn't happen",
+      "example": "Si j'avais su, je n'aurais pas fait cela",
+      "exampleTranslation": "If I had known, I wouldn't have done that"
+    },
+    {
+      "pattern": "imparfait avec depuis",
+      "meaning": "imperfect with 'since'",
+      "usage": "Describe an action that was ongoing in the past",
+      "example": "Depuis deux ans, elle habitait à Paris",
+      "exampleTranslation": "For two years, she lived in Paris"
+    },
+    {
+      "pattern": "plus-que-parfait",
+      "meaning": "pluperfect tense",
+      "usage": "Describe an action that was completed before another past action",
+      "example": "Il avait mangé avant que je n'arrive",
+      "exampleTranslation": "He had eaten before I arrived"
+    },
+    {
+      "pattern": "passé récent avec venir de",
+      "meaning": "immediate past with 'to just'",
+      "usage": "Express an action that just happened",
+      "example": "Je viens de terminer mon travail",
+      "exampleTranslation": "I just finished my work"
+    },
+    {
+      "pattern": "futur proche avec aller",
+      "meaning": "near future with 'going to'",
+      "usage": "Express an action that will happen in the near future",
+      "example": "Je vais partir demain",
+      "exampleTranslation": "I am going to leave tomorrow"
+    },
+    {
+      "pattern": "pronoms relatifs qui, que, dont, où",
+      "meaning": "relative pronouns who, that, of which, where",
+      "usage": "Link clauses and provide more information about nouns",
+      "example": "L'homme qui parle est mon père",
+      "exampleTranslation": "The man who is speaking is my father"
+    },
+    {
+      "pattern": "pronoms relatifs composés lequel, auquel, duquel",
+      "meaning": "compound relative pronouns",
+      "usage": "Replace prepositional phrases in relative clauses",
+      "example": "Le crayon avec lequel tu écris est rouge",
+      "exampleTranslation": "The pencil with which you are writing is red"
+    },
+    {
+      "pattern": "pronoms complément d'objet indirect me, te, lui, nous, vous, leur",
+      "meaning": "indirect object pronouns",
+      "usage": "Replace nouns that are objects of prepositions like 'to' or 'for'",
+      "example": "Je lui ai donné un cadeau",
+      "exampleTranslation": "I gave him a gift"
+    },
+    {
+      "pattern": "pronoms complément d'objet direct le, la, l', les",
+      "meaning": "direct object pronouns",
+      "usage": "Replace nouns that receive the action directly",
+      "example": "Je le vois tous les jours",
+      "exampleTranslation": "I see him every day"
+    },
+    {
+      "pattern": "pronoms réfléchis se, me, te, nous, vous",
+      "meaning": "reflexive pronouns",
+      "usage": "Express actions performed by the subject on themselves",
+      "example": "Elle se lave les mains",
+      "exampleTranslation": "She washes her hands"
+    },
+    {
+      "pattern": "pronoms toniques moi, toi, lui, elle, nous, vous, eux, elles",
+      "meaning": "stressed pronouns",
+      "usage": "Emphasize or follow prepositions",
+      "example": "C'est moi qui ai fait cela",
+      "exampleTranslation": "It's me who did that"
+    },
+    {
+      "pattern": "y pour remplacer une chose ou un lieu",
+      "meaning": "y to replace a thing or place",
+      "usage": "Replace prepositional phrases with 'à' or location references",
+      "example": "Tu y vas demain? Oui, j'y vais",
+      "exampleTranslation": "Are you going there tomorrow? Yes, I'm going"
+    },
+    {
+      "pattern": "en pour remplacer une quantité ou une partie",
+      "meaning": "en to replace a quantity or part",
+      "usage": "Replace partitive nouns or phrases introduced by 'de'",
+      "example": "Vous avez du café? Oui, j'en ai",
+      "exampleTranslation": "Do you have coffee? Yes, I have some"
+    },
+    {
+      "pattern": "accord du participe passé avec l'objet direct",
+      "meaning": "agreement of past participle with direct object",
+      "usage": "Participle agrees with preceding direct object in compound tenses",
+      "example": "Les lettres que j'ai écrites",
+      "exampleTranslation": "The letters that I wrote"
+    },
+    {
+      "pattern": "accord du participe passé avec le sujet",
+      "meaning": "agreement of past participle with subject",
+      "usage": "Participle agrees with subject in reflexive verbs",
+      "example": "Elle s'est levée tôt",
+      "exampleTranslation": "She got up early"
+    },
+    {
+      "pattern": "voix passive présent",
+      "meaning": "passive voice present",
+      "usage": "Express actions performed by an agent on the subject",
+      "example": "Le livre est écrit par l'auteur",
+      "exampleTranslation": "The book is written by the author"
+    },
+    {
+      "pattern": "voix passive passé composé",
+      "meaning": "passive voice compound past",
+      "usage": "Express completed actions in passive form",
+      "example": "Le projet a été terminé par l'équipe",
+      "exampleTranslation": "The project was completed by the team"
+    },
+    {
+      "pattern": "adjectifs comparatifs plus... que, moins... que, aussi... que",
+      "meaning": "comparative adjectives",
+      "usage": "Compare qualities between two things",
+      "example": "Marie est plus intelligente que Jean",
+      "exampleTranslation": "Marie is more intelligent than Jean"
+    },
+    {
+      "pattern": "adjectifs superlatifs le plus, le moins",
+      "meaning": "superlative adjectives",
+      "usage": "Express the highest or lowest degree of a quality",
+      "example": "C'est le plus beau jour de ma vie",
+      "exampleTranslation": "It is the most beautiful day of my life"
+    },
+    {
+      "pattern": "adverbes comparatifs plus, moins, aussi",
+      "meaning": "comparative adverbs",
+      "usage": "Compare actions or states between two things",
+      "example": "Il court plus vite que moi",
+      "exampleTranslation": "He runs faster than me"
+    },
+    {
+      "pattern": "adverbes superlatifs le plus, le moins",
+      "meaning": "superlative adverbs",
+      "usage": "Express the highest or lowest degree of an action or state",
+      "example": "Il court le plus vite",
+      "exampleTranslation": "He runs the fastest"
+    },
+    {
+      "pattern": "comparaison avec bon et bien",
+      "meaning": "comparison with 'good' and 'well'",
+      "usage": "Use special comparative forms for 'good' and 'well'",
+      "example": "Ce livre est meilleur que celui-ci",
+      "exampleTranslation": "This book is better than that one"
+    },
+    {
+      "pattern": "position des adjectifs épithètes",
+      "meaning": "position of attributive adjectives",
+      "usage": "Know when to place adjectives before or after nouns",
+      "example": "Une belle maison rouge",
+      "exampleTranslation": "A beautiful red house"
+    },
+    {
+      "pattern": "pluriel des adjectifs",
+      "meaning": "plural of adjectives",
+      "usage": "Form plural adjectives to agree with plural nouns",
+      "example": "Les enfants intelligents",
+      "exampleTranslation": "The intelligent children"
+    },
+    {
+      "pattern": "adjectifs invariables",
+      "meaning": "invariable adjectives",
+      "usage": "Recognize adjectives that don't change form",
+      "example": "Les robes chic, les costumes chic",
+      "exampleTranslation": "The chic dresses, the chic suits"
+    },
+    {
+      "pattern": "formation des adverbes avec -ment",
+      "meaning": "formation of adverbs with -ment",
+      "usage": "Create adverbs from adjectives by adding -ment suffix",
+      "example": "intelligemment, facilement, rapidement",
+      "exampleTranslation": "intelligently, easily, quickly"
+    },
+    {
+      "pattern": "adverbes irréguliers",
+      "meaning": "irregular adverbs",
+      "usage": "Learn adverbs that don't follow standard formation rules",
+      "example": "vite, bien, mal, peu, beaucoup",
+      "exampleTranslation": "quickly, well, badly, little, much"
+    },
+    {
+      "pattern": "négation ne... pas",
+      "meaning": "negation with ne... pas",
+      "usage": "Express simple negation",
+      "example": "Je ne suis pas fatigué",
+      "exampleTranslation": "I am not tired"
+    },
+    {
+      "pattern": "négation ne... jamais",
+      "meaning": "negation with ne... jamais",
+      "usage": "Express that something never happens",
+      "example": "Il ne vient jamais à l'heure",
+      "exampleTranslation": "He never comes on time"
+    },
+    {
+      "pattern": "négation ne... rien",
+      "meaning": "negation with ne... nothing",
+      "usage": "Express that nothing happens or exists",
+      "example": "Je ne vois rien",
+      "exampleTranslation": "I see nothing"
+    },
+    {
+      "pattern": "négation ne... personne",
+      "meaning": "negation with ne... nobody",
+      "usage": "Express that no one does something",
+      "example": "Je ne connais personne ici",
+      "exampleTranslation": "I know nobody here"
+    },
+    {
+      "pattern": "négation ne... plus",
+      "meaning": "negation with ne... anymore",
+      "usage": "Express that something is no longer the case",
+      "example": "Il ne travaille plus",
+      "exampleTranslation": "He doesn't work anymore"
+    },
+    {
+      "pattern": "négation ne... aucun",
+      "meaning": "negation with ne... not a single",
+      "usage": "Express complete negation or absence",
+      "example": "Je n'ai aucune idée",
+      "exampleTranslation": "I have no idea"
+    },
+    {
+      "pattern": "négation double",
+      "meaning": "double negation",
+      "usage": "Use multiple negative structures together",
+      "example": "Il ne dit jamais rien à personne",
+      "exampleTranslation": "He never tells anything to anyone"
+    },
+    {
+      "pattern": "quantificateurs tout, tous, chaque, plusieurs",
+      "meaning": "quantifiers all, each, several",
+      "usage": "Express amounts or quantities",
+      "example": "Tous les étudiants ont réussi",
+      "exampleTranslation": "All students succeeded"
+    },
+    {
+      "pattern": "articles partitifs du, de la, de l', des",
+      "meaning": "partitive articles",
+      "usage": "Refer to undefined quantities of nouns",
+      "example": "Je bois du café",
+      "exampleTranslation": "I drink coffee"
+    },
+    {
+      "pattern": "prépositions de lieu: à, en, dans, sous, sur, près de",
+      "meaning": "prepositions of place",
+      "usage": "Indicate location or position",
+      "example": "Le livre est sur la table",
+      "exampleTranslation": "The book is on the table"
+    },
+    {
+      "pattern": "prépositions de temps: à, en, pendant, depuis, pour",
+      "meaning": "prepositions of time",
+      "usage": "Express when or how long something happens",
+      "example": "Je l'attends depuis une heure",
+      "exampleTranslation": "I've been waiting for him for an hour"
+    },
+    {
+      "pattern": "contractions à + le, à + les, de + le, de + les",
+      "meaning": "contractions with prepositions",
+      "usage": "Combine prepositions with definite articles",
+      "example": "Je vais au cinéma, je reviens du parc",
+      "exampleTranslation": "I'm going to the cinema, I'm coming back from the park"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes réguliers -er",
+      "meaning": "present indicative regular -er verbs",
+      "usage": "Express present actions with regular -er verbs",
+      "example": "Je parle, tu parles, il parle",
+      "exampleTranslation": "I speak, you speak, he speaks"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes réguliers -ir",
+      "meaning": "present indicative regular -ir verbs",
+      "usage": "Express present actions with regular -ir verbs",
+      "example": "Je finis, tu finis, il finit",
+      "exampleTranslation": "I finish, you finish, he finishes"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes réguliers -re",
+      "meaning": "present indicative regular -re verbs",
+      "usage": "Express present actions with regular -re verbs",
+      "example": "Je vends, tu vends, il vend",
+      "exampleTranslation": "I sell, you sell, he sells"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes irréguliers: avoir, être",
+      "meaning": "present indicative irregular verbs: to have, to be",
+      "usage": "Use common irregular auxiliary verbs",
+      "example": "J'ai, je suis, tu as, tu es",
+      "exampleTranslation": "I have, I am, you have, you are"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes irréguliers: aller, faire, venir, pouvoir, devoir, vouloir",
+      "meaning": "present indicative irregular verbs",
+      "usage": "Use frequently used irregular verbs",
+      "example": "Je vais, tu fais, il vient, nous pouvons",
+      "exampleTranslation": "I go, you do, he comes, we can"
+    },
+    {
+      "pattern": "présent de l'indicatif verbes irréguliers: savoir, voir, dire, prendre",
+      "meaning": "present indicative more irregular verbs",
+      "usage": "Use additional common irregular verbs",
+      "example": "Je sais, je vois, je dis, je prends",
+      "exampleTranslation": "I know, I see, I say, I take"
+    },
+    {
+      "pattern": "passé composé avec avoir",
+      "meaning": "compound past with avoir",
+      "usage": "Express completed past actions with avoir auxiliary",
+      "example": "J'ai mangé, tu as parlé, il a fini",
+      "exampleTranslation": "I ate, you spoke, he finished"
+    },
+    {
+      "pattern": "passé composé avec être",
+      "meaning": "compound past with être",
+      "usage": "Express completed past actions with être auxiliary (movement verbs)",
+      "example": "Je suis allé, tu es parti, elle est venue",
+      "exampleTranslation": "I went, you left, she came"
+    },
+    {
+      "pattern": "imparfait pour actions habituelles",
+      "meaning": "imperfect for habitual actions",
+      "usage": "Describe repeated or habitual past actions",
+      "example": "Je jouais au tennis chaque semaine",
+      "exampleTranslation": "I played tennis every week"
+    },
+    {
+      "pattern": "imparfait pour descriptions",
+      "meaning": "imperfect for descriptions",
+      "usage": "Describe conditions or states in the past",
+      "example": "Il faisait beau, les enfants jouaient",
+      "exampleTranslation": "The weather was nice, the children were playing"
+    },
+    {
+      "pattern": "futur simple",
+      "meaning": "simple future",
+      "usage": "Express actions that will happen",
+      "example": "Je parlerai, tu finiras, il vendra",
+      "exampleTranslation": "I will speak, you will finish, he will sell"
+    },
+    {
+      "pattern": "futur simple verbes irréguliers",
+      "meaning": "simple future irregular verbs",
+      "usage": "Form future tense with irregular stems",
+      "example": "Je serai, je ferai, j'irai, je pourrai",
+      "exampleTranslation": "I will be, I will do, I will go, I will be able"
+    },
+    {
+      "pattern": "présent du subjonctif verbes réguliers",
+      "meaning": "present subjunctive regular verbs",
+      "usage": "Form subjunctive mood for regular verbs",
+      "example": "que je parle, que tu finisses, qu'il vende",
+      "exampleTranslation": "that I speak, that you finish, that he sells"
+    },
+    {
+      "pattern": "présent du subjonctif verbes irréguliers: être, avoir, aller, faire",
+      "meaning": "present subjunctive irregular verbs",
+      "usage": "Form subjunctive mood for common irregular verbs",
+      "example": "que je sois, que j'aie, que j'aille, que je fasse",
+      "exampleTranslation": "that I be, that I have, that I go, that I do"
+    },
+    {
+      "pattern": "impératif présent",
+      "meaning": "present imperative",
+      "usage": "Give commands or instructions",
+      "example": "Parle!, Finissons!, Vendez!",
+      "exampleTranslation": "Speak!, Let's finish!, Sell!"
+    },
+    {
+      "pattern": "impératif avec pronoms compléments",
+      "meaning": "imperative with object pronouns",
+      "usage": "Use pronouns in imperative sentences",
+      "example": "Dis-le moi!, Donne-lui le livre!",
+      "exampleTranslation": "Tell me!, Give him the book!"
+    },
+    {
+      "pattern": "gérondif en + participe présent",
+      "meaning": "gerund with en + present participle",
+      "usage": "Express simultaneous or causative actions",
+      "example": "En sortant, j'ai oublié mes clés",
+      "exampleTranslation": "While leaving, I forgot my keys"
+    },
+    {
+      "pattern": "participe présent",
+      "meaning": "present participle",
+      "usage": "Form verbal adjectives or use in literary descriptions",
+      "example": "L'enfant courant dans le parc",
+      "exampleTranslation": "The child running in the park"
+    },
+    {
+      "pattern": "phrase nominale avec de",
+      "meaning": "nominal phrase with de",
+      "usage": "Form noun phrases to modify other nouns",
+      "example": "Une tasse de café, un professeur de français",
+      "exampleTranslation": "A cup of coffee, a French teacher"
+    },
+    {
+      "pattern": "concordance des temps au passé",
+      "meaning": "concordance of tenses in the past",
+      "usage": "Use correct tense combinations in complex sentences with past context",
+      "example": "Il a dit qu'il était fatigué",
+      "exampleTranslation": "He said he was tired"
+    },
+    {
+      "pattern": "style indirect présent",
+      "meaning": "indirect speech present",
+      "usage": "Report what someone says without direct quotation",
+      "example": "Il dit qu'il est heureux",
+      "exampleTranslation": "He says that he is happy"
+    },
+    {
+      "pattern": "style indirect passé",
+      "meaning": "indirect speech past",
+      "usage": "Report past statements with correct tense shifts",
+      "example": "Il a dit qu'il était heureux",
+      "exampleTranslation": "He said that he was happy"
+    },
+    {
+      "pattern": "questions avec inversion",
+      "meaning": "questions with inversion",
+      "usage": "Form questions by inverting subject and verb",
+      "example": "Parlez-vous français?",
+      "exampleTranslation": "Do you speak French?"
+    },
+    {
+      "pattern": "questions avec est-ce que",
+      "meaning": "questions with est-ce que",
+      "usage": "Form questions using 'is it that' structure",
+      "example": "Est-ce que tu parles français?",
+      "exampleTranslation": "Do you speak French?"
+    },
+    {
+      "pattern": "questions avec mots interrogatifs",
+      "meaning": "questions with interrogative words",
+      "usage": "Use who, what, where, when, why, how in questions",
+      "example": "Où allez-vous? Pourquoi partez-vous?",
+      "exampleTranslation": "Where are you going? Why are you leaving?"
+    },
+    {
+      "pattern": "exclamations avec quel, quels, quelle, quelles",
+      "meaning": "exclamations with which/what",
+      "usage": "Express surprise or emotion",
+      "example": "Quel beau jour!",
+      "exampleTranslation": "What a beautiful day!"
+    },
+    {
+      "pattern": "conjonctions et, ou, mais, donc, car",
+      "meaning": "coordinating conjunctions",
+      "usage": "Connect words, phrases, or clauses of equal importance",
+      "example": "Je suis fatigué mais je vais continuer",
+      "exampleTranslation": "I am tired but I will continue"
+    },
+    {
+      "pattern": "conjonctions cependant, pourtant, néanmoins",
+      "meaning": "concessive conjunctions",
+      "usage": "Express contrast or contradiction",
+      "example": "Il est riche, pourtant il n'est pas heureux",
+      "exampleTranslation": "He is rich, yet he is not happy"
+    },
+    {
+      "pattern": "conjonctions de subordination que, si, parce que",
+      "meaning": "subordinating conjunctions",
+      "usage": "Connect main clauses with dependent clauses",
+      "example": "Je sais que tu es occupé, je partis parce qu'il pleuvait",
+      "exampleTranslation": "I know that you are busy, I left because it was raining"
+    },
+    {
+      "pattern": "structures si... alors...",
+      "meaning": "if... then... structures",
+      "usage": "Express conditional relationships",
+      "example": "Si tu étudies, alors tu réussiras",
+      "exampleTranslation": "If you study, then you will succeed"
+    },
+    {
+      "pattern": "structures bien que, quoique",
+      "meaning": "although, even though structures",
+      "usage": "Express concession despite opposition",
+      "example": "Bien qu'il pleuve, nous sortons",
+      "exampleTranslation": "Although it's raining, we're going out"
+    },
+    {
+      "pattern": "structures au cas où",
+      "meaning": "in case structure",
+      "usage": "Express precautionary or hypothetical situations",
+      "example": "Je t'appelle au cas où tu aurais besoin",
+      "exampleTranslation": "I'll call you in case you need something"
+    },
+    {
+      "pattern": "structures pourquoi + infinitif",
+      "meaning": "why + infinitive structures",
+      "usage": "Ask or explain reasons using infinitives",
+      "example": "Pourquoi ne pas venir demain?",
+      "exampleTranslation": "Why not come tomorrow?"
+    },
+    {
+      "pattern": "structures être en train de + infinitif",
+      "meaning": "to be in the process of structure",
+      "usage": "Emphasize that an action is currently happening",
+      "example": "Je suis en train de lire",
+      "exampleTranslation": "I am (in the process of) reading"
+    },
+    {
+      "pattern": "structures venir de + infinitif (passé récent)",
+      "meaning": "to just + infinitive (immediate past)",
+      "usage": "Express an action that just happened",
+      "example": "Je viens de manger",
+      "exampleTranslation": "I just ate"
+    },
+    {
+      "pattern": "structures aller + infinitif (futur proche)",
+      "meaning": "to go + infinitive (near future)",
+      "usage": "Express an action that will happen soon",
+      "example": "Je vais partir",
+      "exampleTranslation": "I'm going to leave"
+    },
+    {
+      "pattern": "structures devoir + infinitif",
+      "meaning": "must + infinitive structures",
+      "usage": "Express obligation or probability",
+      "example": "Je dois partir demain",
+      "exampleTranslation": "I must leave tomorrow"
+    },
+    {
+      "pattern": "structures pouvoir + infinitif",
+      "meaning": "can/may + infinitive structures",
+      "usage": "Express possibility or permission",
+      "example": "Peux-tu m'aider?",
+      "exampleTranslation": "Can you help me?"
+    },
+    {
+      "pattern": "structures vouloir + infinitif",
+      "meaning": "want to + infinitive structures",
+      "usage": "Express wishes or desires",
+      "example": "Je veux apprendre le français",
+      "exampleTranslation": "I want to learn French"
+    },
+    {
+      "pattern": "structures oser + infinitif",
+      "meaning": "dare to + infinitive structures",
+      "usage": "Express boldness or courage",
+      "example": "Il ose dire la vérité",
+      "exampleTranslation": "He dares to tell the truth"
+    },
+    {
+      "pattern": "structures laisser + infinitif",
+      "meaning": "let/allow + infinitive structures",
+      "usage": "Express permission or causation",
+      "example": "Je la laisse partir",
+      "exampleTranslation": "I let her leave"
+    },
+    {
+      "pattern": "structures faire + infinitif",
+      "meaning": "make/have + infinitive structures",
+      "usage": "Express causation or having something done",
+      "example": "Il fait réparer la voiture",
+      "exampleTranslation": "He has the car repaired"
+    },
+    {
+      "pattern": "structures regarder + infinitif, écouter + infinitif",
+      "meaning": "watch/listen + infinitive structures",
+      "usage": "Express perception of actions",
+      "example": "Je le regarde travailler",
+      "exampleTranslation": "I watch him work"
+    },
+    {
+      "pattern": "structures voir + infinitif, entendre + infinitif",
+      "meaning": "see/hear + infinitive structures",
+      "usage": "Express perception of actions or states",
+      "example": "J'ai vu partir le train",
+      "exampleTranslation": "I saw the train leave"
+    },
+    {
+      "pattern": "accord du sujet et verbe",
+      "meaning": "subject-verb agreement",
+      "usage": "Ensure verb agrees with its subject in number and person",
+      "example": "Les enfants jouent, l'enfant joue",
+      "exampleTranslation": "The children play, the child plays"
+    },
+    {
+      "pattern": "sujets collectifs",
+      "meaning": "collective subjects",
+      "usage": "Handle agreement with collective nouns",
+      "example": "La plupart des étudiants sont venus",
+      "exampleTranslation": "Most of the students came"
+    },
+    {
+      "pattern": "sujets joints par et",
+      "meaning": "subjects joined by 'and'",
+      "usage": "Use plural verb with subjects joined by 'and'",
+      "example": "Pierre et Marie sont arrivés",
+      "exampleTranslation": "Peter and Mary arrived"
+    },
+    {
+      "pattern": "sujets joints par ou",
+      "meaning": "subjects joined by 'or'",
+      "usage": "Use singular or plural verb with subjects joined by 'or'",
+      "example": "Pierre ou Marie est venu(e)",
+      "exampleTranslation": "Peter or Mary came"
+    },
+    {
+      "pattern": "accords genre et nombre noms",
+      "meaning": "gender and number agreement with nouns",
+      "usage": "Ensure articles and adjectives agree with nouns",
+      "example": "Une belle maison, des beaux jardins",
+      "exampleTranslation": "A beautiful house, beautiful gardens"
+    },
+    {
+      "pattern": "cas d'exception - noms masculins/féminins",
+      "meaning": "exceptions - masculine/feminine nouns",
+      "usage": "Learn nouns with unexpected gender",
+      "example": "une main, un problème, un système",
+      "exampleTranslation": "a hand, a problem, a system"
+    },
+    {
+      "pattern": "verbes prépositionnels: dépendre de, compter sur",
+      "meaning": "prepositional verbs",
+      "usage": "Use verbs that require specific prepositions",
+      "example": "Je dépends de toi, je compte sur lui",
+      "exampleTranslation": "I depend on you, I count on him"
+    },
+    {
+      "pattern": "verbes avec deux objets: donner quelque chose à quelqu'un",
+      "meaning": "verbs with two objects",
+      "usage": "Use verbs that take both direct and indirect objects",
+      "example": "Je te donne un livre",
+      "exampleTranslation": "I give you a book"
+    },
+    {
+      "pattern": "adjectifs possessifs avant le nom",
+      "meaning": "possessive adjectives",
+      "usage": "Use possessive modifiers before nouns",
+      "example": "Mon livre, ta maison, son ami",
+      "exampleTranslation": "My book, your house, his/her friend"
+    },
+    {
+      "pattern": "accords des adjectifs possessifs",
+      "meaning": "agreement of possessive adjectives",
+      "usage": "Ensure possessives agree with nouns",
+      "example": "Mon ami, ma soeur, mes enfants",
+      "exampleTranslation": "My friend, my sister, my children"
+    },
+    {
+      "pattern": "adjectifs démonstratifs: ce, cet, cette, ces",
+      "meaning": "demonstrative adjectives",
+      "usage": "Point out specific nouns",
+      "example": "Ce livre, cet arbre, cette maison",
+      "exampleTranslation": "This book, this tree, this house"
+    },
+    {
+      "pattern": "adjectifs indéfinis: un, une, des vs quelque, plusieurs",
+      "meaning": "indefinite adjectives",
+      "usage": "Modify nouns with indefinite quantity",
+      "example": "Quelques personnes, plusieurs jours",
+      "exampleTranslation": "Some people, several days"
+    },
+    {
+      "pattern": "adjectifs interrogatifs: quel, quelle, quels, quelles",
+      "meaning": "interrogative adjectives",
+      "usage": "Ask about specific nouns",
+      "example": "Quel livre? Quelle heure?",
+      "exampleTranslation": "Which book? What time?"
+    },
+    {
+      "pattern": "adjectifs exclamatifs: quel, quelle, quels, quelles",
+      "meaning": "exclamatory adjectives",
+      "usage": "Express surprise or emotion about nouns",
+      "example": "Quel dommage!, Quelle beauté!",
+      "exampleTranslation": "What a shame!, What beauty!"
+    },
+    {
+      "pattern": "pronoms référents: le, la, l' après avoir/être",
+      "meaning": "referential pronouns",
+      "usage": "Replace nouns with pronouns after auxiliaries",
+      "example": "Je l'ai vu, il l'est devenu",
+      "exampleTranslation": "I saw him, he became it"
+    },
+    {
+      "pattern": "construction c'est moi: C'est moi qui, C'est toi qui",
+      "meaning": "c'est with pronouns",
+      "usage": "Emphasize subjects using c'est",
+      "example": "C'est moi qui suis venu",
+      "exampleTranslation": "It's me who came"
+    },
+    {
+      "pattern": "emploi de celui-ci et celui-là dans contexte",
+      "meaning": "demonstrative pronouns in context",
+      "usage": "Distinguish between nearby and distant objects",
+      "example": "Celui-ci est neuf, celui-là est ancien",
+      "exampleTranslation": "This one is new, that one is old"
+    },
+    {
+      "pattern": "pronoms relatifs où et quand",
+      "meaning": "relative pronouns where and when",
+      "usage": "Connect temporal or locational information",
+      "example": "La maison où j'habite, le jour où je suis né",
+      "exampleTranslation": "The house where I live, the day when I was born"
+    },
+    {
+      "pattern": "propositions relatives non-restrictives",
+      "meaning": "non-restrictive relative clauses",
+      "usage": "Add additional information about nouns with commas",
+      "example": "Mon ami Pierre, qui est très intelligent, a réussi",
+      "exampleTranslation": "My friend Peter, who is very intelligent, succeeded"
+    },
+    {
+      "pattern": "inversion sujet-verbe dans questions formelles",
+      "meaning": "formal subject-verb inversion",
+      "usage": "Use inversion for formal questions",
+      "example": "Avez-vous des questions?",
+      "exampleTranslation": "Do you have questions?"
+    },
+    {
+      "pattern": "double négation ne... pas ne",
+      "meaning": "double negation",
+      "usage": "Use consecutive negatives for emphasis",
+      "example": "Il n'y a pas ne serait-ce qu'une faute",
+      "exampleTranslation": "There isn't even a single mistake"
+    },
+    {
+      "pattern": "emploi de tout comme pronom et déterminant",
+      "meaning": "tout as pronoun and determiner",
+      "usage": "Use 'all' in various grammatical positions",
+      "example": "Tout est possible, tous les enfants",
+      "exampleTranslation": "Everything is possible, all the children"
+    },
+    {
+      "pattern": "complément de nom avec de ou par",
+      "meaning": "noun complement",
+      "usage": "Modify nouns with prepositional phrases",
+      "example": "Une tasse de café, un professeur de langues",
+      "exampleTranslation": "A cup of coffee, a language teacher"
+    },
+    {
+      "pattern": "pronoms avec impératif: donne-moi, donne-le-moi",
+      "meaning": "pronouns with commands",
+      "usage": "Place pronouns after imperative verbs",
+      "example": "Dis-moi, explique-le-moi",
+      "exampleTranslation": "Tell me, explain it to me"
+    },
+    {
+      "pattern": "structure ne... ni... ni",
+      "meaning": "neither... nor structure",
+      "usage": "Express multiple negations",
+      "example": "Je n'aime ni le café ni le thé",
+      "exampleTranslation": "I like neither coffee nor tea"
+    },
+    {
+      "pattern": "présent itératif et habitual",
+      "meaning": "iterative and habitual present",
+      "usage": "Express repeated or habitual actions in present",
+      "example": "Chaque jour, il va au travail",
+      "exampleTranslation": "Every day, he goes to work"
+    },
+    {
+      "pattern": "passé récent vs imparfait",
+      "meaning": "immediate past vs imperfect",
+      "usage": "Distinguish between just-finished and ongoing past",
+      "example": "Je viens de manger vs je mangeais",
+      "exampleTranslation": "I just ate vs I was eating"
+    },
+    {
+      "pattern": "verbes pronominaux réfléchis: se laver, se coucher",
+      "meaning": "reflexive verbs",
+      "usage": "Express actions done to oneself",
+      "example": "Je me lave les mains, tu te couches",
+      "exampleTranslation": "I wash my hands, you go to bed"
+    }
+  ]
+}

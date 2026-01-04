@@ -1,0 +1,4807 @@
+{
+  "language": "fr",
+  "level": "A1",
+  "framework": "CEFR",
+  "vocabulary": [
+    {
+      "word": "je",
+      "reading": "zhuh",
+      "translation": "I",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "tu",
+      "reading": "too",
+      "translation": "you (informal)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "il",
+      "reading": "eel",
+      "translation": "he",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "elle",
+      "reading": "el",
+      "translation": "she",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "nous",
+      "reading": "noo",
+      "translation": "we",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "vous",
+      "reading": "voo",
+      "translation": "you (formal/plural)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "ils",
+      "reading": "eel",
+      "translation": "they (masculine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "elles",
+      "reading": "el",
+      "translation": "they (feminine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "on",
+      "reading": "on",
+      "translation": "one, we",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "moi",
+      "reading": "mwah",
+      "translation": "me",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "toi",
+      "reading": "twah",
+      "translation": "you",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "lui",
+      "reading": "lwee",
+      "translation": "him",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "ce",
+      "reading": "suh",
+      "translation": "this, that",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "ça",
+      "reading": "sah",
+      "translation": "that",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "qui",
+      "reading": "kee",
+      "translation": "who",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "que",
+      "reading": "kuh",
+      "translation": "that, what",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "quoi",
+      "reading": "kwah",
+      "translation": "what",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "où",
+      "reading": "oo",
+      "translation": "where",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "quand",
+      "reading": "kon",
+      "translation": "when",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "comment",
+      "reading": "ko-mon",
+      "translation": "how",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "le",
+      "reading": "luh",
+      "translation": "the (m.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "la",
+      "reading": "lah",
+      "translation": "the (f.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "les",
+      "reading": "lay",
+      "translation": "the (plural)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "un",
+      "reading": "uhn",
+      "translation": "a, an (m.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "une",
+      "reading": "oon",
+      "translation": "a, an (f.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "des",
+      "reading": "day",
+      "translation": "some (plural)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "du",
+      "reading": "doo",
+      "translation": "some (m.), of the",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "de la",
+      "reading": "duh lah",
+      "translation": "some (f.), of the",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "de l'",
+      "reading": "duh l",
+      "translation": "some, of the",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "au",
+      "reading": "oh",
+      "translation": "to the, at the (m.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "à la",
+      "reading": "ah lah",
+      "translation": "to the, at the (f.)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "aux",
+      "reading": "oh",
+      "translation": "to the, at the (plural)",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "être",
+      "reading": "eh-truh",
+      "translation": "to be",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "avoir",
+      "reading": "ah-vwahr",
+      "translation": "to have",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "aller",
+      "reading": "ah-lay",
+      "translation": "to go",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "faire",
+      "reading": "fehr",
+      "translation": "to do, to make",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "venir",
+      "reading": "vuh-neer",
+      "translation": "to come",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "voir",
+      "reading": "vwahr",
+      "translation": "to see",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "savoir",
+      "reading": "sah-vwahr",
+      "translation": "to know (facts)",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "vouloir",
+      "reading": "voo-lwahr",
+      "translation": "to want",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "pouvoir",
+      "reading": "poo-vwahr",
+      "translation": "to be able to, can",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "devoir",
+      "reading": "duh-vwahr",
+      "translation": "to have to, must",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "dire",
+      "reading": "deer",
+      "translation": "to say, to tell",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "parler",
+      "reading": "pahr-lay",
+      "translation": "to speak",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "donner",
+      "reading": "do-nay",
+      "translation": "to give",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "prendre",
+      "reading": "pron-druh",
+      "translation": "to take",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "trouver",
+      "reading": "troo-vay",
+      "translation": "to find",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "chercher",
+      "reading": "shehr-shay",
+      "translation": "to look for",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "aimer",
+      "reading": "eh-may",
+      "translation": "to like, to love",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "penser",
+      "reading": "pon-say",
+      "translation": "to think",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "croire",
+      "reading": "krwahr",
+      "translation": "to believe",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "comprendre",
+      "reading": "kom-pron-druh",
+      "translation": "to understand",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "manger",
+      "reading": "mon-zhay",
+      "translation": "to eat",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "boire",
+      "reading": "bwahr",
+      "translation": "to drink",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "dormir",
+      "reading": "dor-meer",
+      "translation": "to sleep",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "partir",
+      "reading": "pahr-teer",
+      "translation": "to leave",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "arriver",
+      "reading": "ah-ree-vay",
+      "translation": "to arrive",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "entrer",
+      "reading": "on-tray",
+      "translation": "to enter",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "sortir",
+      "reading": "sor-teer",
+      "translation": "to go out",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "monter",
+      "reading": "mon-tay",
+      "translation": "to go up",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "descendre",
+      "reading": "day-son-druh",
+      "translation": "to go down",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rester",
+      "reading": "reh-stay",
+      "translation": "to stay",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "habiter",
+      "reading": "ah-bee-tay",
+      "translation": "to live",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "travailler",
+      "reading": "trah-vah-yay",
+      "translation": "to work",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "étudier",
+      "reading": "ay-too-dee-ay",
+      "translation": "to study",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "apprendre",
+      "reading": "ah-pron-druh",
+      "translation": "to learn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "écouter",
+      "reading": "ay-koo-tay",
+      "translation": "to listen",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "regarder",
+      "reading": "ruh-gahr-day",
+      "translation": "to watch, to look at",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "lire",
+      "reading": "leer",
+      "translation": "to read",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "écrire",
+      "reading": "ay-kreer",
+      "translation": "to write",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "acheter",
+      "reading": "ahsh-tay",
+      "translation": "to buy",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "vendre",
+      "reading": "von-druh",
+      "translation": "to sell",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "payer",
+      "reading": "pay-yay",
+      "translation": "to pay",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "coûter",
+      "reading": "koo-tay",
+      "translation": "to cost",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ouvrir",
+      "reading": "oo-vreer",
+      "translation": "to open",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "fermer",
+      "reading": "fehr-may",
+      "translation": "to close",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "commencer",
+      "reading": "ko-mon-say",
+      "translation": "to begin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "finir",
+      "reading": "fee-neer",
+      "translation": "to finish",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "choisir",
+      "reading": "shwah-zeer",
+      "translation": "to choose",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "attendre",
+      "reading": "ah-ton-druh",
+      "translation": "to wait",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "demander",
+      "reading": "duh-mon-day",
+      "translation": "to ask",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "répondre",
+      "reading": "ray-pon-druh",
+      "translation": "to answer",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "téléphoner",
+      "reading": "tay-lay-fo-nay",
+      "translation": "to call",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rencontrer",
+      "reading": "ron-kon-tray",
+      "translation": "to meet",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "connaître",
+      "reading": "ko-neh-truh",
+      "translation": "to know (person)",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "jouer",
+      "reading": "zhoo-ay",
+      "translation": "to play",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "visiter",
+      "reading": "vee-zee-tay",
+      "translation": "to visit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "voyager",
+      "reading": "vwah-yah-zhay",
+      "translation": "to travel",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "marcher",
+      "reading": "mahr-shay",
+      "translation": "to walk",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "courir",
+      "reading": "koo-reer",
+      "translation": "to run",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "nager",
+      "reading": "nah-zhay",
+      "translation": "to swim",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "conduire",
+      "reading": "kon-dweer",
+      "translation": "to drive",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "homme",
+      "reading": "om",
+      "translation": "man",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "femme",
+      "reading": "fam",
+      "translation": "woman",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "enfant",
+      "reading": "on-fon",
+      "translation": "child",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "garçon",
+      "reading": "gahr-son",
+      "translation": "boy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fille",
+      "reading": "feey",
+      "translation": "girl, daughter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "père",
+      "reading": "pehr",
+      "translation": "father",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mère",
+      "reading": "mehr",
+      "translation": "mother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fils",
+      "reading": "fees",
+      "translation": "son",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "frère",
+      "reading": "frehr",
+      "translation": "brother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sœur",
+      "reading": "suhr",
+      "translation": "sister",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "famille",
+      "reading": "fah-meey",
+      "translation": "family",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "grand-père",
+      "reading": "gron-pehr",
+      "translation": "grandfather",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "grand-mère",
+      "reading": "gron-mehr",
+      "translation": "grandmother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ami",
+      "reading": "ah-mee",
+      "translation": "friend (m.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "amie",
+      "reading": "ah-mee",
+      "translation": "friend (f.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "personne",
+      "reading": "pehr-son",
+      "translation": "person",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "gens",
+      "reading": "zhon",
+      "translation": "people",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "monsieur",
+      "reading": "muh-syuh",
+      "translation": "sir, Mr.",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "madame",
+      "reading": "mah-dam",
+      "translation": "madam, Mrs.",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mademoiselle",
+      "reading": "mad-mwah-zel",
+      "translation": "miss",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "maison",
+      "reading": "may-zon",
+      "translation": "house",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "appartement",
+      "reading": "ah-pahr-tuh-mon",
+      "translation": "apartment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chambre",
+      "reading": "shom-bruh",
+      "translation": "bedroom",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cuisine",
+      "reading": "kwee-zeen",
+      "translation": "kitchen",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "salle",
+      "reading": "sal",
+      "translation": "room",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "salle de bain",
+      "reading": "sal duh ban",
+      "translation": "bathroom",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "salon",
+      "reading": "sah-lon",
+      "translation": "living room",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "porte",
+      "reading": "port",
+      "translation": "door",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fenêtre",
+      "reading": "fuh-neh-truh",
+      "translation": "window",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "table",
+      "reading": "tah-bluh",
+      "translation": "table",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chaise",
+      "reading": "shez",
+      "translation": "chair",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lit",
+      "reading": "lee",
+      "translation": "bed",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bureau",
+      "reading": "boo-roh",
+      "translation": "desk, office",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jardin",
+      "reading": "zhar-dan",
+      "translation": "garden",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ville",
+      "reading": "veel",
+      "translation": "city",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "rue",
+      "reading": "roo",
+      "translation": "street",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "magasin",
+      "reading": "mah-gah-zan",
+      "translation": "store",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "restaurant",
+      "reading": "reh-stoh-ron",
+      "translation": "restaurant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "café",
+      "reading": "kah-fay",
+      "translation": "café, coffee",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "hôtel",
+      "reading": "oh-tel",
+      "translation": "hotel",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "école",
+      "reading": "ay-kol",
+      "translation": "school",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "université",
+      "reading": "oo-nee-vehr-see-tay",
+      "translation": "university",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bibliothèque",
+      "reading": "bee-blee-oh-tek",
+      "translation": "library",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cinéma",
+      "reading": "see-nay-mah",
+      "translation": "cinema",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "théâtre",
+      "reading": "tay-ah-truh",
+      "translation": "theater",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "musée",
+      "reading": "moo-zay",
+      "translation": "museum",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "parc",
+      "reading": "park",
+      "translation": "park",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "gare",
+      "reading": "gahr",
+      "translation": "train station",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "aéroport",
+      "reading": "ah-ay-ro-por",
+      "translation": "airport",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "banque",
+      "reading": "bonk",
+      "translation": "bank",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "poste",
+      "reading": "post",
+      "translation": "post office",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "hôpital",
+      "reading": "oh-pee-tal",
+      "translation": "hospital",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pharmacie",
+      "reading": "fahr-mah-see",
+      "translation": "pharmacy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "église",
+      "reading": "ay-gleez",
+      "translation": "church",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pays",
+      "reading": "pay-ee",
+      "translation": "country",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "France",
+      "reading": "frons",
+      "translation": "France",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "Paris",
+      "reading": "pah-ree",
+      "translation": "Paris",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jour",
+      "reading": "zhoor",
+      "translation": "day",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "nuit",
+      "reading": "nwee",
+      "translation": "night",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "matin",
+      "reading": "mah-tan",
+      "translation": "morning",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "après-midi",
+      "reading": "ah-preh-mee-dee",
+      "translation": "afternoon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "soir",
+      "reading": "swahr",
+      "translation": "evening",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "semaine",
+      "reading": "suh-men",
+      "translation": "week",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mois",
+      "reading": "mwah",
+      "translation": "month",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "année",
+      "reading": "ah-nay",
+      "translation": "year",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "heure",
+      "reading": "uhr",
+      "translation": "hour",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "minute",
+      "reading": "mee-noot",
+      "translation": "minute",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "seconde",
+      "reading": "suh-gond",
+      "translation": "second",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "temps",
+      "reading": "ton",
+      "translation": "time, weather",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "moment",
+      "reading": "mo-mon",
+      "translation": "moment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "aujourd'hui",
+      "reading": "oh-zhoor-dwee",
+      "translation": "today",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "hier",
+      "reading": "yehr",
+      "translation": "yesterday",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "demain",
+      "reading": "duh-man",
+      "translation": "tomorrow",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "maintenant",
+      "reading": "man-tuh-non",
+      "translation": "now",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "toujours",
+      "reading": "too-zhoor",
+      "translation": "always",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "jamais",
+      "reading": "zhah-meh",
+      "translation": "never",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "souvent",
+      "reading": "soo-von",
+      "translation": "often",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "parfois",
+      "reading": "pahr-fwah",
+      "translation": "sometimes",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "lundi",
+      "reading": "lun-dee",
+      "translation": "Monday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mardi",
+      "reading": "mahr-dee",
+      "translation": "Tuesday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mercredi",
+      "reading": "mehr-kruh-dee",
+      "translation": "Wednesday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jeudi",
+      "reading": "zhuh-dee",
+      "translation": "Thursday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vendredi",
+      "reading": "von-druh-dee",
+      "translation": "Friday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "samedi",
+      "reading": "sam-dee",
+      "translation": "Saturday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "dimanche",
+      "reading": "dee-monsh",
+      "translation": "Sunday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "janvier",
+      "reading": "zhon-vee-ay",
+      "translation": "January",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "février",
+      "reading": "fay-vree-ay",
+      "translation": "February",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mars",
+      "reading": "mars",
+      "translation": "March",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "avril",
+      "reading": "ah-vreel",
+      "translation": "April",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mai",
+      "reading": "meh",
+      "translation": "May",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "juin",
+      "reading": "zhwan",
+      "translation": "June",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "juillet",
+      "reading": "zhwee-yeh",
+      "translation": "July",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "août",
+      "reading": "oot",
+      "translation": "August",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "septembre",
+      "reading": "sep-tom-bruh",
+      "translation": "September",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "octobre",
+      "reading": "ok-to-bruh",
+      "translation": "October",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "novembre",
+      "reading": "no-vom-bruh",
+      "translation": "November",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "décembre",
+      "reading": "day-som-bruh",
+      "translation": "December",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "zéro",
+      "reading": "zay-roh",
+      "translation": "zero",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "un",
+      "reading": "uhn",
+      "translation": "one",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "deux",
+      "reading": "duh",
+      "translation": "two",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "trois",
+      "reading": "trwah",
+      "translation": "three",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "quatre",
+      "reading": "kah-truh",
+      "translation": "four",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "cinq",
+      "reading": "sank",
+      "translation": "five",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "six",
+      "reading": "sees",
+      "translation": "six",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "sept",
+      "reading": "set",
+      "translation": "seven",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "huit",
+      "reading": "weet",
+      "translation": "eight",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "neuf",
+      "reading": "nuhf",
+      "translation": "nine",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "dix",
+      "reading": "dees",
+      "translation": "ten",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "onze",
+      "reading": "onz",
+      "translation": "eleven",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "douze",
+      "reading": "dooz",
+      "translation": "twelve",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "treize",
+      "reading": "trez",
+      "translation": "thirteen",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "quatorze",
+      "reading": "kah-torz",
+      "translation": "fourteen",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "quinze",
+      "reading": "kanz",
+      "translation": "fifteen",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "seize",
+      "reading": "sez",
+      "translation": "sixteen",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "vingt",
+      "reading": "van",
+      "translation": "twenty",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "trente",
+      "reading": "tront",
+      "translation": "thirty",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "quarante",
+      "reading": "kah-ront",
+      "translation": "forty",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "cinquante",
+      "reading": "san-kont",
+      "translation": "fifty",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "soixante",
+      "reading": "swah-sont",
+      "translation": "sixty",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "cent",
+      "reading": "son",
+      "translation": "hundred",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "mille",
+      "reading": "meel",
+      "translation": "thousand",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "pain",
+      "reading": "pan",
+      "translation": "bread",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "eau",
+      "reading": "oh",
+      "translation": "water",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vin",
+      "reading": "van",
+      "translation": "wine",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bière",
+      "reading": "bee-ehr",
+      "translation": "beer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lait",
+      "reading": "leh",
+      "translation": "milk",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "thé",
+      "reading": "tay",
+      "translation": "tea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "viande",
+      "reading": "vee-ond",
+      "translation": "meat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "poisson",
+      "reading": "pwah-son",
+      "translation": "fish",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "poulet",
+      "reading": "poo-leh",
+      "translation": "chicken",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "œuf",
+      "reading": "uhf",
+      "translation": "egg",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fromage",
+      "reading": "fro-mahzh",
+      "translation": "cheese",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "beurre",
+      "reading": "buhr",
+      "translation": "butter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sucre",
+      "reading": "soo-kruh",
+      "translation": "sugar",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sel",
+      "reading": "sel",
+      "translation": "salt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "riz",
+      "reading": "ree",
+      "translation": "rice",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pâtes",
+      "reading": "paht",
+      "translation": "pasta",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "salade",
+      "reading": "sah-lahd",
+      "translation": "salad",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "soupe",
+      "reading": "soop",
+      "translation": "soup",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fruit",
+      "reading": "frwee",
+      "translation": "fruit",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "légume",
+      "reading": "lay-goom",
+      "translation": "vegetable",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pomme",
+      "reading": "pom",
+      "translation": "apple",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "orange",
+      "reading": "o-ronzh",
+      "translation": "orange",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "banane",
+      "reading": "bah-nan",
+      "translation": "banana",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tomate",
+      "reading": "to-mat",
+      "translation": "tomato",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pomme de terre",
+      "reading": "pom duh tehr",
+      "translation": "potato",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "gâteau",
+      "reading": "gah-toh",
+      "translation": "cake",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chocolat",
+      "reading": "sho-ko-lah",
+      "translation": "chocolate",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "glace",
+      "reading": "glas",
+      "translation": "ice cream",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chose",
+      "reading": "shoz",
+      "translation": "thing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "objet",
+      "reading": "ob-zheh",
+      "translation": "object",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "livre",
+      "reading": "lee-vruh",
+      "translation": "book",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "stylo",
+      "reading": "stee-loh",
+      "translation": "pen",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "crayon",
+      "reading": "kreh-yon",
+      "translation": "pencil",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "papier",
+      "reading": "pah-pyay",
+      "translation": "paper",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cahier",
+      "reading": "kah-yay",
+      "translation": "notebook",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sac",
+      "reading": "sak",
+      "translation": "bag",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "téléphone",
+      "reading": "tay-lay-fon",
+      "translation": "telephone",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ordinateur",
+      "reading": "or-dee-nah-tuhr",
+      "translation": "computer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "télévision",
+      "reading": "tay-lay-vee-zyon",
+      "translation": "television",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "voiture",
+      "reading": "vwah-toor",
+      "translation": "car",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vélo",
+      "reading": "vay-loh",
+      "translation": "bicycle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bus",
+      "reading": "boos",
+      "translation": "bus",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "train",
+      "reading": "tran",
+      "translation": "train",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "avion",
+      "reading": "ah-vyon",
+      "translation": "airplane",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bateau",
+      "reading": "bah-toh",
+      "translation": "boat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ticket",
+      "reading": "tee-keh",
+      "translation": "ticket",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "billet",
+      "reading": "bee-yeh",
+      "translation": "ticket, bill",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "argent",
+      "reading": "ahr-zhon",
+      "translation": "money, silver",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "euro",
+      "reading": "uh-roh",
+      "translation": "euro",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "carte",
+      "reading": "kart",
+      "translation": "card, map",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "clé",
+      "reading": "klay",
+      "translation": "key",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "photo",
+      "reading": "fo-toh",
+      "translation": "photo",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "journal",
+      "reading": "zhoor-nal",
+      "translation": "newspaper",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lettre",
+      "reading": "le-truh",
+      "translation": "letter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cadeau",
+      "reading": "kah-doh",
+      "translation": "gift",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "montre",
+      "reading": "mon-truh",
+      "translation": "watch",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vêtement",
+      "reading": "vet-mon",
+      "translation": "clothing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "robe",
+      "reading": "rob",
+      "translation": "dress",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chemise",
+      "reading": "shuh-meez",
+      "translation": "shirt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pantalon",
+      "reading": "pon-tah-lon",
+      "translation": "pants",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jupe",
+      "reading": "zhoop",
+      "translation": "skirt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chaussure",
+      "reading": "shoh-soor",
+      "translation": "shoe",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chapeau",
+      "reading": "shah-poh",
+      "translation": "hat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lunettes",
+      "reading": "loo-net",
+      "translation": "glasses",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "animal",
+      "reading": "ah-nee-mal",
+      "translation": "animal",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chat",
+      "reading": "shah",
+      "translation": "cat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chien",
+      "reading": "shee-an",
+      "translation": "dog",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "oiseau",
+      "reading": "wah-zoh",
+      "translation": "bird",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cheval",
+      "reading": "shuh-val",
+      "translation": "horse",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vache",
+      "reading": "vash",
+      "translation": "cow",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "arbre",
+      "reading": "ahr-bruh",
+      "translation": "tree",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fleur",
+      "reading": "fluhr",
+      "translation": "flower",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mer",
+      "reading": "mehr",
+      "translation": "sea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "montagne",
+      "reading": "mon-tahn-yuh",
+      "translation": "mountain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "rivière",
+      "reading": "ree-vee-ehr",
+      "translation": "river",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lac",
+      "reading": "lak",
+      "translation": "lake",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "plage",
+      "reading": "plahzh",
+      "translation": "beach",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ciel",
+      "reading": "see-el",
+      "translation": "sky",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "soleil",
+      "reading": "so-lay",
+      "translation": "sun",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lune",
+      "reading": "loon",
+      "translation": "moon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "étoile",
+      "reading": "ay-twal",
+      "translation": "star",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pluie",
+      "reading": "plwee",
+      "translation": "rain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "neige",
+      "reading": "nezh",
+      "translation": "snow",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vent",
+      "reading": "von",
+      "translation": "wind",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "corps",
+      "reading": "kor",
+      "translation": "body",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tête",
+      "reading": "tet",
+      "translation": "head",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "cheveux",
+      "reading": "shuh-vuh",
+      "translation": "hair",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "visage",
+      "reading": "vee-zahzh",
+      "translation": "face",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "œil",
+      "reading": "uy",
+      "translation": "eye",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "yeux",
+      "reading": "yuh",
+      "translation": "eyes",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "nez",
+      "reading": "nay",
+      "translation": "nose",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bouche",
+      "reading": "boosh",
+      "translation": "mouth",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "oreille",
+      "reading": "o-ray",
+      "translation": "ear",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "main",
+      "reading": "man",
+      "translation": "hand",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bras",
+      "reading": "brah",
+      "translation": "arm",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jambe",
+      "reading": "zhomb",
+      "translation": "leg",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pied",
+      "reading": "pee-ay",
+      "translation": "foot",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "doigt",
+      "reading": "dwah",
+      "translation": "finger",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "couleur",
+      "reading": "koo-luhr",
+      "translation": "color",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "blanc",
+      "reading": "blon",
+      "translation": "white",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "noir",
+      "reading": "nwahr",
+      "translation": "black",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "rouge",
+      "reading": "roozh",
+      "translation": "red",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "bleu",
+      "reading": "bluh",
+      "translation": "blue",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "vert",
+      "reading": "vehr",
+      "translation": "green",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "jaune",
+      "reading": "zhon",
+      "translation": "yellow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "rose",
+      "reading": "roz",
+      "translation": "pink",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "gris",
+      "reading": "gree",
+      "translation": "gray",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "marron",
+      "reading": "mah-ron",
+      "translation": "brown",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "bon",
+      "reading": "bon",
+      "translation": "good",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "mauvais",
+      "reading": "moh-veh",
+      "translation": "bad",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "grand",
+      "reading": "gron",
+      "translation": "big, tall",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "petit",
+      "reading": "puh-tee",
+      "translation": "small",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "beau",
+      "reading": "boh",
+      "translation": "beautiful, handsome",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "joli",
+      "reading": "zho-lee",
+      "translation": "pretty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "jeune",
+      "reading": "zhun",
+      "translation": "young",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "vieux",
+      "reading": "vyuh",
+      "translation": "old",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "nouveau",
+      "reading": "noo-voh",
+      "translation": "new",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ancien",
+      "reading": "on-syan",
+      "translation": "old, ancient",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "long",
+      "reading": "lon",
+      "translation": "long",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "court",
+      "reading": "koor",
+      "translation": "short",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "haut",
+      "reading": "oh",
+      "translation": "high",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "bas",
+      "reading": "bah",
+      "translation": "low",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "chaud",
+      "reading": "shoh",
+      "translation": "hot",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "froid",
+      "reading": "frwah",
+      "translation": "cold",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "facile",
+      "reading": "fah-seel",
+      "translation": "easy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "difficile",
+      "reading": "dee-fee-seel",
+      "translation": "difficult",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "cher",
+      "reading": "shehr",
+      "translation": "expensive, dear",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "content",
+      "reading": "kon-ton",
+      "translation": "happy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "heureux",
+      "reading": "uh-ruh",
+      "translation": "happy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "triste",
+      "reading": "treest",
+      "translation": "sad",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "fatigué",
+      "reading": "fah-tee-gay",
+      "translation": "tired",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "malade",
+      "reading": "mah-lad",
+      "translation": "sick",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "plein",
+      "reading": "plan",
+      "translation": "full",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "vide",
+      "reading": "veed",
+      "translation": "empty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ouvert",
+      "reading": "oo-vehr",
+      "translation": "open",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "fermé",
+      "reading": "fehr-may",
+      "translation": "closed",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "propre",
+      "reading": "pro-pruh",
+      "translation": "clean",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "sale",
+      "reading": "sal",
+      "translation": "dirty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "rapide",
+      "reading": "rah-peed",
+      "translation": "fast",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "lent",
+      "reading": "lon",
+      "translation": "slow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "fort",
+      "reading": "for",
+      "translation": "strong",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "faible",
+      "reading": "feh-bluh",
+      "translation": "weak",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "riche",
+      "reading": "reesh",
+      "translation": "rich",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "pauvre",
+      "reading": "poh-vruh",
+      "translation": "poor",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "important",
+      "reading": "am-por-ton",
+      "translation": "important",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "intéressant",
+      "reading": "an-tay-reh-son",
+      "translation": "interesting",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "amusant",
+      "reading": "ah-moo-zon",
+      "translation": "funny, amusing",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "gentil",
+      "reading": "zhon-tee",
+      "translation": "nice, kind",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "méchant",
+      "reading": "may-shon",
+      "translation": "mean, naughty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "intelligent",
+      "reading": "an-teh-lee-zhon",
+      "translation": "intelligent",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "stupide",
+      "reading": "stoo-peed",
+      "translation": "stupid",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "sympa",
+      "reading": "sam-pah",
+      "translation": "nice",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "drôle",
+      "reading": "drohl",
+      "translation": "funny",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "sérieux",
+      "reading": "say-ryuh",
+      "translation": "serious",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "calme",
+      "reading": "kalm",
+      "translation": "calm",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "nerveux",
+      "reading": "nehr-vuh",
+      "translation": "nervous",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "parfait",
+      "reading": "pahr-feh",
+      "translation": "perfect",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "possible",
+      "reading": "po-see-bluh",
+      "translation": "possible",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "impossible",
+      "reading": "am-po-see-bluh",
+      "translation": "impossible",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "seul",
+      "reading": "suhl",
+      "translation": "alone",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "même",
+      "reading": "mem",
+      "translation": "same",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "autre",
+      "reading": "oh-truh",
+      "translation": "other",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "tout",
+      "reading": "too",
+      "translation": "all, every",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "chaque",
+      "reading": "shak",
+      "translation": "each",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "quelque",
+      "reading": "kel-kuh",
+      "translation": "some",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "plusieurs",
+      "reading": "ploo-zyuhr",
+      "translation": "several",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "certain",
+      "reading": "sehr-tan",
+      "translation": "certain",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "dernier",
+      "reading": "dehr-nyay",
+      "translation": "last",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "premier",
+      "reading": "pruh-myay",
+      "translation": "first",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "deuxième",
+      "reading": "duh-zyem",
+      "translation": "second",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "prochain",
+      "reading": "pro-shan",
+      "translation": "next",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "libre",
+      "reading": "lee-bruh",
+      "translation": "free",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "occupé",
+      "reading": "o-koo-pay",
+      "translation": "busy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "prêt",
+      "reading": "preh",
+      "translation": "ready",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "sûr",
+      "reading": "soor",
+      "translation": "sure",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "vrai",
+      "reading": "vreh",
+      "translation": "true",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "faux",
+      "reading": "foh",
+      "translation": "false",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "différent",
+      "reading": "dee-fay-ron",
+      "translation": "different",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "pareil",
+      "reading": "pah-ray",
+      "translation": "similar",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "spécial",
+      "reading": "spay-syal",
+      "translation": "special",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "normal",
+      "reading": "nor-mal",
+      "translation": "normal",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "étrange",
+      "reading": "ay-tronzh",
+      "translation": "strange",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "bizarre",
+      "reading": "bee-zahr",
+      "translation": "bizarre",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "nécessaire",
+      "reading": "nay-seh-sehr",
+      "translation": "necessary",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "utile",
+      "reading": "oo-teel",
+      "translation": "useful",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "de",
+      "reading": "duh",
+      "translation": "of, from",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "à",
+      "reading": "ah",
+      "translation": "to, at",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "dans",
+      "reading": "don",
+      "translation": "in",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "sur",
+      "reading": "soor",
+      "translation": "on",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "sous",
+      "reading": "soo",
+      "translation": "under",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "avec",
+      "reading": "ah-vek",
+      "translation": "with",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "sans",
+      "reading": "son",
+      "translation": "without",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "pour",
+      "reading": "poor",
+      "translation": "for",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "par",
+      "reading": "pahr",
+      "translation": "by",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "en",
+      "reading": "on",
+      "translation": "in, to",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "entre",
+      "reading": "on-truh",
+      "translation": "between",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "devant",
+      "reading": "duh-von",
+      "translation": "in front of",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "derrière",
+      "reading": "deh-ree-ehr",
+      "translation": "behind",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "près",
+      "reading": "preh",
+      "translation": "near",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "loin",
+      "reading": "lwan",
+      "translation": "far",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "chez",
+      "reading": "shay",
+      "translation": "at (someone's place)",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "vers",
+      "reading": "vehr",
+      "translation": "toward",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "contre",
+      "reading": "kon-truh",
+      "translation": "against",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "pendant",
+      "reading": "pon-don",
+      "translation": "during",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "depuis",
+      "reading": "duh-pwee",
+      "translation": "since",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "avant",
+      "reading": "ah-von",
+      "translation": "before",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "après",
+      "reading": "ah-preh",
+      "translation": "after",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "et",
+      "reading": "ay",
+      "translation": "and",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "ou",
+      "reading": "oo",
+      "translation": "or",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "mais",
+      "reading": "meh",
+      "translation": "but",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "donc",
+      "reading": "donk",
+      "translation": "therefore",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "parce que",
+      "reading": "pars-kuh",
+      "translation": "because",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "si",
+      "reading": "see",
+      "translation": "if",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "comme",
+      "reading": "kom",
+      "translation": "as, like",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "alors",
+      "reading": "ah-lor",
+      "translation": "so, then",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ne",
+      "reading": "nuh",
+      "translation": "not (part 1)",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "pas",
+      "reading": "pah",
+      "translation": "not (part 2)",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "oui",
+      "reading": "wee",
+      "translation": "yes",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "non",
+      "reading": "non",
+      "translation": "no",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "bien",
+      "reading": "bee-an",
+      "translation": "well",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "mal",
+      "reading": "mal",
+      "translation": "badly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "très",
+      "reading": "treh",
+      "translation": "very",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "trop",
+      "reading": "troh",
+      "translation": "too much",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "assez",
+      "reading": "ah-say",
+      "translation": "enough",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "beaucoup",
+      "reading": "boh-koo",
+      "translation": "a lot",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "peu",
+      "reading": "puh",
+      "translation": "little",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "plus",
+      "reading": "ploo",
+      "translation": "more",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "moins",
+      "reading": "mwan",
+      "translation": "less",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "encore",
+      "reading": "on-kor",
+      "translation": "still, again",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "déjà",
+      "reading": "day-zhah",
+      "translation": "already",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ici",
+      "reading": "ee-see",
+      "translation": "here",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "là",
+      "reading": "lah",
+      "translation": "there",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "vite",
+      "reading": "veet",
+      "translation": "quickly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "lentement",
+      "reading": "lont-mon",
+      "translation": "slowly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ensemble",
+      "reading": "on-som-bluh",
+      "translation": "together",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "aussi",
+      "reading": "oh-see",
+      "translation": "also, too",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "seulement",
+      "reading": "suhl-mon",
+      "translation": "only",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "presque",
+      "reading": "presk",
+      "translation": "almost",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "vraiment",
+      "reading": "vreh-mon",
+      "translation": "really",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "peut-être",
+      "reading": "puh-teh-truh",
+      "translation": "maybe",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "bonjour",
+      "reading": "bon-zhoor",
+      "translation": "hello, good day",
+      "partOfSpeech": "greeting"
+    },
+    {
+      "word": "bonsoir",
+      "reading": "bon-swahr",
+      "translation": "good evening",
+      "partOfSpeech": "greeting"
+    },
+    {
+      "word": "salut",
+      "reading": "sah-loo",
+      "translation": "hi, bye",
+      "partOfSpeech": "greeting"
+    },
+    {
+      "word": "au revoir",
+      "reading": "oh ruh-vwahr",
+      "translation": "goodbye",
+      "partOfSpeech": "greeting"
+    },
+    {
+      "word": "merci",
+      "reading": "mehr-see",
+      "translation": "thank you",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "s'il vous plaît",
+      "reading": "seel voo pleh",
+      "translation": "please",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "pardon",
+      "reading": "pahr-don",
+      "translation": "sorry, excuse me",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "excusez-moi",
+      "reading": "ex-koo-zay mwah",
+      "translation": "excuse me",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "bienvenue",
+      "reading": "bee-an-vuh-noo",
+      "translation": "welcome",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "de rien",
+      "reading": "duh ree-an",
+      "translation": "you're welcome",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "d'accord",
+      "reading": "dah-kor",
+      "translation": "okay, agreed",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "bon appétit",
+      "reading": "bon ah-pay-tee",
+      "translation": "enjoy your meal",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "santé",
+      "reading": "son-tay",
+      "translation": "health, cheers",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "félicitations",
+      "reading": "fay-lee-see-tah-syon",
+      "translation": "congratulations",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "bonne chance",
+      "reading": "bon shons",
+      "translation": "good luck",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "bon anniversaire",
+      "reading": "bon ah-nee-vehr-sehr",
+      "translation": "happy birthday",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "joyeux Noël",
+      "reading": "zhwah-yuh no-el",
+      "translation": "Merry Christmas",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "bonne année",
+      "reading": "bon ah-nay",
+      "translation": "Happy New Year",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "enchanté",
+      "reading": "on-shon-tay",
+      "translation": "nice to meet you",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "comment allez-vous",
+      "reading": "ko-mon tah-lay voo",
+      "translation": "how are you",
+      "partOfSpeech": "expression"
+    },
+    {
+      "word": "vie",
+      "reading": "vee",
+      "translation": "life",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mort",
+      "reading": "mor",
+      "translation": "death",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "monde",
+      "reading": "mond",
+      "translation": "world",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "nom",
+      "reading": "nom",
+      "translation": "name",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "âge",
+      "reading": "ahzh",
+      "translation": "age",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "adresse",
+      "reading": "ah-dres",
+      "translation": "address",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "nationalité",
+      "reading": "nah-syo-nah-lee-tay",
+      "translation": "nationality",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "langue",
+      "reading": "long",
+      "translation": "language",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "français",
+      "reading": "fron-seh",
+      "translation": "French",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "anglais",
+      "reading": "on-gleh",
+      "translation": "English",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "question",
+      "reading": "kes-tyon",
+      "translation": "question",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "réponse",
+      "reading": "ray-pons",
+      "translation": "answer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mot",
+      "reading": "moh",
+      "translation": "word",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "phrase",
+      "reading": "frahz",
+      "translation": "sentence",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "histoire",
+      "reading": "ee-stwahr",
+      "translation": "story, history",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "problème",
+      "reading": "pro-blem",
+      "translation": "problem",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "solution",
+      "reading": "so-loo-syon",
+      "translation": "solution",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "exemple",
+      "reading": "ex-om-pluh",
+      "translation": "example",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "raison",
+      "reading": "reh-zon",
+      "translation": "reason",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "idée",
+      "reading": "ee-day",
+      "translation": "idea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "opinion",
+      "reading": "o-pee-nyon",
+      "translation": "opinion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "travail",
+      "reading": "trah-vay",
+      "translation": "work",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "emploi",
+      "reading": "om-plwah",
+      "translation": "job",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "métier",
+      "reading": "may-tyay",
+      "translation": "profession",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "étudiant",
+      "reading": "ay-too-dee-on",
+      "translation": "student",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "professeur",
+      "reading": "pro-feh-suhr",
+      "translation": "teacher",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "médecin",
+      "reading": "mayd-san",
+      "translation": "doctor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "infirmier",
+      "reading": "an-feer-myay",
+      "translation": "nurse",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vendeur",
+      "reading": "von-duhr",
+      "translation": "salesperson",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "serveur",
+      "reading": "sehr-vuhr",
+      "translation": "waiter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "acteur",
+      "reading": "ak-tuhr",
+      "translation": "actor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chanteur",
+      "reading": "shon-tuhr",
+      "translation": "singer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "musicien",
+      "reading": "moo-zee-syan",
+      "translation": "musician",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "artiste",
+      "reading": "ahr-teest",
+      "translation": "artist",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sport",
+      "reading": "spor",
+      "translation": "sport",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "football",
+      "reading": "foot-bol",
+      "translation": "football, soccer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tennis",
+      "reading": "teh-nees",
+      "translation": "tennis",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "musique",
+      "reading": "moo-zeek",
+      "translation": "music",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "film",
+      "reading": "feelm",
+      "translation": "film, movie",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "concert",
+      "reading": "kon-sehr",
+      "translation": "concert",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "fête",
+      "reading": "fet",
+      "translation": "party, festival",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vacances",
+      "reading": "vah-kons",
+      "translation": "vacation",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "week-end",
+      "reading": "wee-kend",
+      "translation": "weekend",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "rendez-vous",
+      "reading": "ron-day-voo",
+      "translation": "appointment, date",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "prix",
+      "reading": "pree",
+      "translation": "price, prize",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "suivre",
+      "reading": "swee-vre",
+      "translation": "to follow",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "appeler",
+      "reading": "a-ppele",
+      "translation": "to call",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "quel",
+      "reading": "kel",
+      "translation": "which, what",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "retrouver",
+      "reading": "re-troo-ve",
+      "translation": "to retrouv",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rentrer",
+      "reading": "rontre",
+      "translation": "to rentr",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "place",
+      "reading": "pla-ce",
+      "translation": "place, square",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "préparer",
+      "reading": "pray-pare",
+      "translation": "to prépar",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "adorer",
+      "reading": "a-dore",
+      "translation": "to ador",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "aider",
+      "reading": "ehde",
+      "translation": "to aid",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "préférer",
+      "reading": "pray-fay-re",
+      "translation": "to préfér",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "sommer",
+      "reading": "so-mme",
+      "translation": "to somm",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "raconter",
+      "reading": "ra-conte",
+      "translation": "to racont",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "occuper",
+      "reading": "o-ccupe",
+      "translation": "to occup",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ouvrer",
+      "reading": "oo-vre",
+      "translation": "to ouvr",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déjeuner",
+      "reading": "day-zhuhne",
+      "translation": "to déjeun",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "intéresser",
+      "reading": "a-ntay-resse",
+      "translation": "to intéress",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "traverser",
+      "reading": "tra-verse",
+      "translation": "to travser",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "danser",
+      "reading": "do-nse",
+      "translation": "to dans",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "emmener",
+      "reading": "e-mmone",
+      "translation": "to emmen",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "détester",
+      "reading": "day-teste",
+      "translation": "to détest",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "espérer",
+      "reading": "e-spay-re",
+      "translation": "to espér",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "hiver",
+      "reading": "hive",
+      "translation": "to hiv",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "accompagner",
+      "reading": "a-ccompo-nyu-he",
+      "translation": "to accompagn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déjeuner",
+      "reading": "day-zhuhne",
+      "translation": "to déjeun",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "remercier",
+      "reading": "re-mercie",
+      "translation": "to remcier",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "réveiller",
+      "reading": "ray-vehlle",
+      "translation": "to réveill",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "super",
+      "reading": "supe",
+      "translation": "to sup",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "dîner",
+      "reading": "deo-ne",
+      "translation": "to dîn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "combien",
+      "reading": "co-mbion",
+      "translation": "how much, how many",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "dîner",
+      "reading": "deo-ne",
+      "translation": "to dîn",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "reposer",
+      "reading": "re-pose",
+      "translation": "to repos",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "réfléchir",
+      "reading": "ray-flay-shi",
+      "translation": "to think, to reflect",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "saluer",
+      "reading": "sa-lue",
+      "translation": "to salu",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "désoler",
+      "reading": "day-sole",
+      "translation": "to désol",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "voler",
+      "reading": "vole",
+      "translation": "to vol",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "respecter",
+      "reading": "re-specte",
+      "translation": "to respect",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "discuter",
+      "reading": "di-scute",
+      "translation": "to discut",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ennuyer",
+      "reading": "o-nnuye",
+      "translation": "to ennuy",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "fêter",
+      "reading": "fay-te",
+      "translation": "to fêt",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "formidable",
+      "reading": "fo-rmida-ble",
+      "translation": "formidable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "réunir",
+      "reading": "rayu-hni",
+      "translation": "to gather",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "admirer",
+      "reading": "a-dmire",
+      "translation": "to admir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "agréable",
+      "reading": "a-graya-ble",
+      "translation": "agréable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "excuser",
+      "reading": "e-xcuse",
+      "translation": "to excus",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "portable",
+      "reading": "po-rtable",
+      "translation": "portable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "décorer",
+      "reading": "day-core",
+      "translation": "to décor",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ranger",
+      "reading": "ro-nge",
+      "translation": "to rang",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "studentbostäder",
+      "reading": "stu-dontbo-stahde",
+      "translation": "to studentbostäd",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "briller",
+      "reading": "breee",
+      "translation": "to brill",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "goûter",
+      "reading": "gooo-te",
+      "translation": "to goût",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "boulanger",
+      "reading": "boo-longe",
+      "translation": "to boulang",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "déranger",
+      "reading": "day-ronge",
+      "translation": "to dérang",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "commander",
+      "reading": "co-mmonde",
+      "translation": "to command",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "restaurer",
+      "reading": "re-stohre",
+      "translation": "to restaur",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "compléter",
+      "reading": "complay-te",
+      "translation": "to complét",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "baigner",
+      "reading": "be-hnyu-he",
+      "translation": "to baign",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "cuisinier",
+      "reading": "cwee-sanie",
+      "translation": "to cuisini",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "meunier",
+      "reading": "mu-hnie",
+      "translation": "to meuni",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "souffler",
+      "reading": "sooffle",
+      "translation": "to souffl",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "adorable",
+      "reading": "a-dora-ble",
+      "translation": "adorable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "affoler",
+      "reading": "a-ffole",
+      "translation": "to affol",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "compliquer",
+      "reading": "compli-ke",
+      "translation": "to compliqu",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "corriger",
+      "reading": "co-rrige",
+      "translation": "to corrig",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "célébrer",
+      "reading": "cay-lay-bre",
+      "translation": "to célébr",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "diable",
+      "reading": "dia-ble",
+      "translation": "diable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "roller",
+      "reading": "ro-lle",
+      "translation": "to roll",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "divorcer",
+      "reading": "di-vorce",
+      "translation": "to divorc",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déjeûner",
+      "reading": "day-zheoo-ne",
+      "translation": "to déjeûn",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "symboliser",
+      "reading": "sy-mboli-se",
+      "translation": "to symbolis",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déménager",
+      "reading": "day-may-nage",
+      "translation": "to déménag",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "épeler",
+      "reading": "ay-pele",
+      "translation": "to épel",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "inoubliable",
+      "reading": "a-noo-blia-ble",
+      "translation": "inoubliable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "illuminer",
+      "reading": "eeu-mane",
+      "translation": "to illumin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déshonorer",
+      "reading": "day-shono-re",
+      "translation": "to déshonor",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "laitier",
+      "reading": "le-htie",
+      "translation": "to laiti",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "collectionner",
+      "reading": "co-llectio-nne",
+      "translation": "to collectionn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "skier",
+      "reading": "skie",
+      "translation": "to ski",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "déguster",
+      "reading": "day-guste",
+      "translation": "to dégust",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "enchanter",
+      "reading": "onsho-nte",
+      "translation": "to enchant",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "meubler",
+      "reading": "muhble",
+      "translation": "to meubl",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "super",
+      "reading": "supe",
+      "translation": "to sup",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "abriter",
+      "reading": "a-brite",
+      "translation": "to abrit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "dévorer",
+      "reading": "day-vore",
+      "translation": "to dévor",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ensoleiller",
+      "reading": "o-nsolehlle",
+      "translation": "to ensoleill",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "embêter",
+      "reading": "e-mbay-te",
+      "translation": "to embêt",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "admirable",
+      "reading": "a-dmira-ble",
+      "translation": "admirable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "serper",
+      "reading": "se-rpe",
+      "translation": "to sper",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "sorcier",
+      "reading": "so-rcie",
+      "translation": "to sorci",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "téter",
+      "reading": "tay-te",
+      "translation": "to tét",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "honorer",
+      "reading": "ho-nore",
+      "translation": "to honor",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "sacrifier",
+      "reading": "sa-crifie",
+      "translation": "to sacrifi",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "caissier",
+      "reading": "cehssie",
+      "translation": "to caissi",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chevaucher",
+      "reading": "she-vohshe",
+      "translation": "to chevauch",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "numéroter",
+      "reading": "nu-may-rote",
+      "translation": "to numérot",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "jardinier",
+      "reading": "zha-rdanie",
+      "translation": "to jardini",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "colorer",
+      "reading": "co-lore",
+      "translation": "to color",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "décontracter",
+      "reading": "day-contra-cte",
+      "translation": "to décontract",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "chatter",
+      "reading": "sha-tte",
+      "translation": "to chatt",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "étable",
+      "reading": "ay-table",
+      "translation": "étable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "réviser",
+      "reading": "ray-vise",
+      "translation": "to révis",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "automatiser",
+      "reading": "o-htoma-tise",
+      "translation": "to automatis",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "doucher",
+      "reading": "doo-she",
+      "translation": "to douch",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "maquiller",
+      "reading": "ma-qwee-lle",
+      "translation": "to maquill",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "propager",
+      "reading": "pro-page",
+      "translation": "to propag",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "cuisiner",
+      "reading": "cwee-sane",
+      "translation": "to cuisin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "en parler",
+      "reading": "on pa-rle",
+      "translation": "to en parl",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "empoigner",
+      "reading": "empwa-hnyu-he",
+      "translation": "to empoign",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "implorer",
+      "reading": "implo-re",
+      "translation": "to implor",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "lamenter",
+      "reading": "la-monte",
+      "translation": "to lament",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rider",
+      "reading": "ride",
+      "translation": "to rid",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "connétable",
+      "reading": "co-nnay-table",
+      "translation": "connétable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ester",
+      "reading": "este",
+      "translation": "to est",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "fredonner",
+      "reading": "fre-donne",
+      "translation": "to fredonn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rediscuter",
+      "reading": "re-discu-te",
+      "translation": "to rediscut",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "châtaignier",
+      "reading": "sha-htehnyu-hie",
+      "translation": "to châtaigni",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "meunier",
+      "reading": "mu-hnie",
+      "translation": "to meuni",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bosser",
+      "reading": "bo-sse",
+      "translation": "to boss",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "boulanger",
+      "reading": "boo-longe",
+      "translation": "to boulang",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "empester",
+      "reading": "e-mpeste",
+      "translation": "to empest",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "vivable",
+      "reading": "vi-vable",
+      "translation": "vivable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "charcutier",
+      "reading": "sha-rcutie",
+      "translation": "to charcuti",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "blinder",
+      "reading": "bla-nde",
+      "translation": "to blind",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "friser",
+      "reading": "fri-se",
+      "translation": "to fris",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rénover",
+      "reading": "ray-nove",
+      "translation": "to rénov",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "hamster",
+      "reading": "hamste",
+      "translation": "to hamst",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "relaxer",
+      "reading": "re-laxe",
+      "translation": "to relax",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "aréner",
+      "reading": "a-ray-ne",
+      "translation": "to arén",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "bouquiner",
+      "reading": "boo-qweo-ne",
+      "translation": "to bouquin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "confesser",
+      "reading": "co-nfesse",
+      "translation": "to confess",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "écuyer",
+      "reading": "ay-cuye",
+      "translation": "to écuy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "apartager",
+      "reading": "a-parta-ge",
+      "translation": "to apartag",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "culminer",
+      "reading": "cu-lmane",
+      "translation": "to culmin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "appeller",
+      "reading": "a-ppelle",
+      "translation": "to appell",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "outre - mer",
+      "reading": "oo-tre - me",
+      "translation": "to outre - m",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "terrer",
+      "reading": "te-rre",
+      "translation": "to trer",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "placer",
+      "reading": "pla-ce",
+      "translation": "to plac",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "à table",
+      "reading": "ah ta-ble",
+      "translation": "à table (adj.)",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "heure tu veux manger",
+      "reading": "hu-hre tu vuhx mo-nge",
+      "translation": "to heure tu veux mang",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pédaler",
+      "reading": "pay-dale",
+      "translation": "to pédal",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "aromatiser",
+      "reading": "a-roma-tise",
+      "translation": "to aromatis",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "braiser",
+      "reading": "bre-hse",
+      "translation": "to brais",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "climatiser",
+      "reading": "cli-mati-se",
+      "translation": "to climatis",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "pâter",
+      "reading": "pa-hte",
+      "translation": "to pât",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "silhouetter",
+      "reading": "si-lhooe-tte",
+      "translation": "to silhouett",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "érable",
+      "reading": "ay-rable",
+      "translation": "érable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "aventurier",
+      "reading": "a-vontu-rie",
+      "translation": "to aventuri",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "chiner",
+      "reading": "sha-ne",
+      "translation": "to chin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "pionnier",
+      "reading": "pio-nnie",
+      "translation": "to pionni",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "boulanger",
+      "reading": "boo-longe",
+      "translation": "to boulang",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "commercialisable",
+      "reading": "co-mmercia-lisa-ble",
+      "translation": "commercialisable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "févier",
+      "reading": "fay-vie",
+      "translation": "to févi",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "recompter",
+      "reading": "re-compte",
+      "translation": "to recompt",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "taguer",
+      "reading": "ta-gue",
+      "translation": "to tagu",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "télécommander",
+      "reading": "tay-lay-commo-nde",
+      "translation": "to télécommand",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "orientable",
+      "reading": "o-rio-ntable",
+      "translation": "orientable (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "renommer",
+      "reading": "ro-nomme",
+      "translation": "to renomm",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "siester",
+      "reading": "sie-ste",
+      "translation": "to siest",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "seller",
+      "reading": "se-lle",
+      "translation": "to sell",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "à l’ étranger",
+      "reading": "ah l’ ay-tronge",
+      "translation": "to à l’ étrang",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ricaner",
+      "reading": "ri-cone",
+      "translation": "to rican",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "cartable",
+      "reading": "ca-rtable",
+      "translation": "cartable (adj.)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "marrer",
+      "reading": "ma-rre",
+      "translation": "to marr",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "poster",
+      "reading": "po-ste",
+      "translation": "to post",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "poivrer",
+      "reading": "pwahvre",
+      "translation": "to poivr",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "réajuster",
+      "reading": "raya-zhuste",
+      "translation": "to réajust",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "tapissier",
+      "reading": "ta-pissie",
+      "translation": "to tapissi",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "mon",
+      "reading": "mon",
+      "translation": "mon",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "heures",
+      "reading": "hu-hres",
+      "translation": "heures",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "votre",
+      "reading": "vo-tre",
+      "translation": "votre",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "tous",
+      "reading": "toos",
+      "translation": "tous (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "il y a",
+      "reading": "il y a",
+      "translation": "il y a",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "ton",
+      "reading": "ton",
+      "translation": "ton",
+      "partOfSpeech": "article"
+    },
+    {
+      "word": "faillir",
+      "reading": "fehlli",
+      "translation": "to faillir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "un peu",
+      "reading": "uhn puh",
+      "translation": "un peu",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "jours",
+      "reading": "zhoors",
+      "translation": "jours",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "toute",
+      "reading": "too-te",
+      "translation": "toute (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "journée",
+      "reading": "zhoo-rnaye",
+      "translation": "journée",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "bel",
+      "reading": "bel",
+      "translation": "bel (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "plaire",
+      "reading": "ple-hre",
+      "translation": "plary",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "accor",
+      "reading": "acco",
+      "translation": "accor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "il y avoir",
+      "reading": "il y a-vwahr",
+      "translation": "to il y avoir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "tard",
+      "reading": "tard",
+      "translation": "tard",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "h",
+      "reading": "h",
+      "translation": "h",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "copain",
+      "reading": "co-pehn",
+      "translation": "copain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "chapitre",
+      "reading": "sha-pitre",
+      "translation": "chapitre",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tour",
+      "reading": "too",
+      "translation": "tour",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "voyage",
+      "reading": "voya-ge",
+      "translation": "voyage",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "région",
+      "reading": "ray-gion",
+      "translation": "région",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "magnifique",
+      "reading": "mo-nyu-hifi-ke",
+      "translation": "magnific",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "bien sûr",
+      "reading": "bion soo",
+      "translation": "bien sûr",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "es",
+      "reading": "es",
+      "translation": "es",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "h",
+      "reading": "h",
+      "translation": "h",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "collège",
+      "reading": "co-llay-ge",
+      "translation": "collège",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "découvrir",
+      "reading": "day-coo-vri",
+      "translation": "to découvrir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ensuite",
+      "reading": "onswee-te",
+      "translation": "ensuite",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "fin",
+      "reading": "fan",
+      "translation": "fin",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pont",
+      "reading": "pont",
+      "translation": "pont",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mari",
+      "reading": "mari",
+      "translation": "mari",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "après - midi",
+      "reading": "a-prays - mi-di",
+      "translation": "après - midi",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "jusque à",
+      "reading": "zhu-ske ah",
+      "translation": "jusque à",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "boîte",
+      "reading": "boee-te",
+      "translation": "boîte",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "célèbre",
+      "reading": "cay-lay-bre",
+      "translation": "célèbre (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "été",
+      "reading": "ay-tay",
+      "translation": "éty",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "revoir",
+      "reading": "re-vwahr",
+      "translation": "to revoir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "classe",
+      "reading": "cla-sse",
+      "translation": "classe",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "vincent",
+      "reading": "va-ncont",
+      "translation": "vincent",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "attention",
+      "reading": "a-ttonsyon",
+      "translation": "attention",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "île",
+      "reading": "eele",
+      "translation": "île",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "gauche",
+      "reading": "gohshe",
+      "translation": "gauche",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "maman",
+      "reading": "ma-mon",
+      "translation": "maman",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tranquille",
+      "reading": "tronqwee-lle",
+      "translation": "tranquille (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "midi",
+      "reading": "midi",
+      "translation": "midi",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "droite",
+      "reading": "drwa-hte",
+      "translation": "droite",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "habitant",
+      "reading": "ha-bitont",
+      "translation": "habitant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "soirée",
+      "reading": "swa-hraye",
+      "translation": "soirée",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "courses",
+      "reading": "coo-rses",
+      "translation": "courses",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "demie",
+      "reading": "de-mie",
+      "translation": "demy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "lendemain",
+      "reading": "lo-ndemehn",
+      "translation": "lendemain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "tôt",
+      "reading": "toht",
+      "translation": "tôt",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "à côté de",
+      "reading": "ah co-htay de",
+      "translation": "à côté de",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "là - bas",
+      "reading": "lah - bas",
+      "translation": "là - bas",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "dame",
+      "reading": "dame",
+      "translation": "dame",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "excellent",
+      "reading": "e-xcellont",
+      "translation": "excellent (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "accident",
+      "reading": "a-ccidont",
+      "translation": "accident",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "séj",
+      "reading": "sayzh",
+      "translation": "séj",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "surprise",
+      "reading": "surpri-se",
+      "translation": "surprise",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "heureusement",
+      "reading": "hu-hruhse-mon",
+      "translation": "heureusely",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "numéro",
+      "reading": "nu-may-ro",
+      "translation": "numéro",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "centre",
+      "reading": "contre",
+      "translation": "centre",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "moderne",
+      "reading": "mo-derne",
+      "translation": "moderne (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "voici",
+      "reading": "vwa-hci",
+      "translation": "voici",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "rencontre",
+      "reading": "ro-ncontre",
+      "translation": "rencontre",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "secret",
+      "reading": "se-cret",
+      "translation": "secret",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "secrétaire",
+      "reading": "se-cray-tehre",
+      "translation": "secrétary",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "pleuvoir",
+      "reading": "pluhvwahr",
+      "translation": "to pleuvoir",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "grave",
+      "reading": "gra-ve",
+      "translation": "grave (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "à partir de",
+      "reading": "ah pa-rtir de",
+      "translation": "à partir de",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "voisin",
+      "reading": "vwa-hsan",
+      "translation": "voisin",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "affaires",
+      "reading": "a-ffehres",
+      "translation": "affaires",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "peinture",
+      "reading": "pehntu-re",
+      "translation": "peinture",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "mme",
+      "reading": "mme",
+      "translation": "mme",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "métro",
+      "reading": "may-tro",
+      "translation": "métro",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "sapin",
+      "reading": "sa-pan",
+      "translation": "sapin",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "devoirs",
+      "reading": "de-vwahrs",
+      "translation": "devoirs",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "anniversaire",
+      "reading": "o-nnive-rsehre",
+      "translation": "anniversary",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "papa",
+      "reading": "papa",
+      "translation": "papa",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ah",
+      "reading": "ah",
+      "translation": "ah",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "tout droit",
+      "reading": "toot drwaht",
+      "translation": "tout droit",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "télé",
+      "reading": "tay-lay",
+      "translation": "télé",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "moulin",
+      "reading": "moo-lan",
+      "translation": "moulin",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "italien",
+      "reading": "i-talion",
+      "translation": "italien (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "tu vas",
+      "reading": "tu vas",
+      "translation": "tu vas",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "bise",
+      "reading": "bise",
+      "translation": "bise",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "génial",
+      "reading": "gay-nial",
+      "translation": "génial (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "maths",
+      "reading": "maths",
+      "translation": "maths",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "station",
+      "reading": "sta-syon",
+      "translation": "station",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ski",
+      "reading": "ski",
+      "translation": "ski",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "à côté du",
+      "reading": "ah co-htay du",
+      "translation": "à côté du",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "danse",
+      "reading": "do-nse",
+      "translation": "danse",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ii",
+      "reading": "ii",
+      "translation": "ii (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "grand - parent",
+      "reading": "grond - pa-ront",
+      "translation": "grand - parent",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "histoires",
+      "reading": "histwa-hres",
+      "translation": "histoires",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "touriste",
+      "reading": "too-riste",
+      "translation": "touriste",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "curieux",
+      "reading": "cu-riuhx",
+      "translation": "curieux (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "internet",
+      "reading": "a-nternet",
+      "translation": "internet",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ah oui",
+      "reading": "ah o-wah",
+      "translation": "ah oui",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "week - end",
+      "reading": "week - ond",
+      "translation": "week - end",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "brun",
+      "reading": "bruhn",
+      "translation": "brun (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "kilomètre",
+      "reading": "ki-lomay-tre",
+      "translation": "kilomètre",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "collection",
+      "reading": "co-llecsyon",
+      "translation": "collection",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "piscine",
+      "reading": "pi-scane",
+      "translation": "piscine",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "grand - père",
+      "reading": "grond - pay-re",
+      "translation": "grand - père",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "aime",
+      "reading": "ehme",
+      "translation": "aime",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "côte",
+      "reading": "co-hte",
+      "translation": "côte",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "climat",
+      "reading": "cli-mat",
+      "translation": "climat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "d' accord",
+      "reading": "d' a-ccord",
+      "translation": "d' accord",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "défendre",
+      "reading": "day-fondre",
+      "translation": "to défendre",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "bouteille",
+      "reading": "boo-tehlle",
+      "translation": "bouteille",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "blond",
+      "reading": "blond",
+      "translation": "blond (adj.)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "quart",
+      "reading": "kart",
+      "translation": "quart",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "honneur",
+      "reading": "ho-nnuhr",
+      "translation": "honnor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "légende",
+      "reading": "lay-gonde",
+      "translation": "légende",
+      "partOfSpeech": "noun"
+    }
+  ]
+}
