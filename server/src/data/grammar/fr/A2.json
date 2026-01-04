@@ -1,0 +1,567 @@
+{
+  "language": "fr",
+  "level": "A2",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "Passé composé: avoir + past participle",
+      "meaning": "Present perfect tense with avoir",
+      "usage": "Express completed actions in recent past",
+      "example": "J'ai mangé une pomme",
+      "exampleTranslation": "I ate an apple / I have eaten an apple"
+    },
+    {
+      "pattern": "Passé composé: être + past participle",
+      "meaning": "Present perfect tense with être (for movement verbs)",
+      "usage": "Express movement or reflexive actions in past",
+      "example": "Je suis allé à Paris",
+      "exampleTranslation": "I went to Paris / I have gone to Paris"
+    },
+    {
+      "pattern": "Irregular past participles",
+      "meaning": "Past participles of irregular verbs",
+      "usage": "fait (done), eu (had), été (been), vu (seen), dit (said)",
+      "example": "J'ai fait mes devoirs",
+      "exampleTranslation": "I did my homework"
+    },
+    {
+      "pattern": "Imparfait: regular verbs",
+      "meaning": "Imperfect tense for regular verbs",
+      "usage": "Express habitual or repeated past actions",
+      "example": "Je parlais français tous les jours",
+      "exampleTranslation": "I spoke French every day"
+    },
+    {
+      "pattern": "Imparfait: être and avoir",
+      "meaning": "Imperfect forms of être and avoir",
+      "usage": "j'étais, tu étais, il était / j'avais, tu avais, il avait",
+      "example": "Il y avait une maison blanche",
+      "exampleTranslation": "There was a white house"
+    },
+    {
+      "pattern": "Imparfait vs Passé composé",
+      "meaning": "Distinguishing between ongoing and completed past actions",
+      "usage": "Imparfait for background, passé composé for events",
+      "example": "Je parlais quand il est arrivé",
+      "exampleTranslation": "I was speaking when he arrived"
+    },
+    {
+      "pattern": "Future tense: regular verbs",
+      "meaning": "Simple future for regular verbs",
+      "usage": "je parlerai, tu parleras, il parlera",
+      "example": "Je mangerai demain",
+      "exampleTranslation": "I will eat tomorrow"
+    },
+    {
+      "pattern": "Future tense: irregular stems",
+      "meaning": "Future forms with irregular stems",
+      "usage": "aller → irai, avoir → aurai, être → serai, faire → ferai",
+      "example": "Je serai à la maison demain",
+      "exampleTranslation": "I will be at home tomorrow"
+    },
+    {
+      "pattern": "Conditional tense",
+      "meaning": "Would + verb form",
+      "usage": "Express hypothetical or polite requests",
+      "example": "Je voudrais un café, s'il vous plaît",
+      "exampleTranslation": "I would like a coffee, please"
+    },
+    {
+      "pattern": "Si + present = future (real conditional)",
+      "meaning": "If clause with possible outcome",
+      "usage": "Si tu travailles, tu réussiras",
+      "example": "Si je gagne à la loterie, j'achèterai une maison",
+      "exampleTranslation": "If I win the lottery, I will buy a house"
+    },
+    {
+      "pattern": "Si + imparfait = conditional (hypothetical)",
+      "meaning": "If clause expressing hypothetical situations",
+      "usage": "Express what would happen in imaginary situations",
+      "example": "Si j'étais riche, j'achèterais une villa",
+      "exampleTranslation": "If I were rich, I would buy a villa"
+    },
+    {
+      "pattern": "Comparatives: plus...que",
+      "meaning": "More...than",
+      "usage": "Compare two things or people",
+      "example": "Mon frère est plus grand que moi",
+      "exampleTranslation": "My brother is taller than me"
+    },
+    {
+      "pattern": "Comparatives: moins...que",
+      "meaning": "Less...than",
+      "usage": "Compare two things (negative comparison)",
+      "example": "Cette voiture est moins chère que l'autre",
+      "exampleTranslation": "This car is less expensive than the other one"
+    },
+    {
+      "pattern": "Comparatives: aussi...que / autant...que",
+      "meaning": "As...as",
+      "usage": "Show equality in comparison",
+      "example": "Elle parle aussi bien que son frère",
+      "exampleTranslation": "She speaks as well as her brother"
+    },
+    {
+      "pattern": "Superlatives: le plus / le moins",
+      "meaning": "The most / the least",
+      "usage": "Express the highest or lowest degree",
+      "example": "C'est le plus grand bâtiment de la ville",
+      "exampleTranslation": "It is the tallest building in the city"
+    },
+    {
+      "pattern": "Superlatives: le meilleur / le pire",
+      "meaning": "The best / the worst",
+      "usage": "Express quality extremes",
+      "example": "C'est le meilleur restaurant de Paris",
+      "exampleTranslation": "It is the best restaurant in Paris"
+    },
+    {
+      "pattern": "Possessive pronouns: le mien, la mienne, les miens",
+      "meaning": "Mine, his/hers, theirs (ownership)",
+      "usage": "Replace possessive adjectives with pronouns",
+      "example": "Ce livre est le mien",
+      "exampleTranslation": "This book is mine"
+    },
+    {
+      "pattern": "Demonstrative pronouns: celui-ci, celle-ci, ceux-ci",
+      "meaning": "This one / these (near)",
+      "usage": "Point to things close by",
+      "example": "Je préfère celui-ci à celui-là",
+      "exampleTranslation": "I prefer this one to that one"
+    },
+    {
+      "pattern": "Relative pronouns: qui, que, où",
+      "meaning": "Who, which/that, where (connecting clauses)",
+      "usage": "Create complex sentences with relative clauses",
+      "example": "L'homme qui parle est mon père",
+      "exampleTranslation": "The man who is speaking is my father"
+    },
+    {
+      "pattern": "Relative pronoun: dont",
+      "meaning": "Of which / whose (for 'de')",
+      "usage": "Express possession or relationship with de",
+      "example": "La fille dont je parle est ma cousine",
+      "exampleTranslation": "The girl I'm talking about is my cousin"
+    },
+    {
+      "pattern": "Relative pronoun: lequel, laquelle, lesquels",
+      "meaning": "Which / which ones (for prepositions)",
+      "usage": "Use after prepositions instead of que",
+      "example": "La maison dans laquelle j'habite est vieille",
+      "exampleTranslation": "The house in which I live is old"
+    },
+    {
+      "pattern": "Negation: ne...jamais",
+      "meaning": "Never",
+      "usage": "Express something that never happens",
+      "example": "Je ne vais jamais au cinéma",
+      "exampleTranslation": "I never go to the cinema"
+    },
+    {
+      "pattern": "Negation: ne...plus",
+      "meaning": "No longer / not anymore",
+      "usage": "Express cessation of action",
+      "example": "Je n'habite plus à Lyon",
+      "exampleTranslation": "I no longer live in Lyon"
+    },
+    {
+      "pattern": "Negation: ne...rien",
+      "meaning": "Nothing",
+      "usage": "Express absence of something",
+      "example": "Je ne vois rien",
+      "exampleTranslation": "I see nothing"
+    },
+    {
+      "pattern": "Negation: ne...personne",
+      "meaning": "No one / nobody",
+      "usage": "Express absence of people",
+      "example": "Je ne vois personne",
+      "exampleTranslation": "I see no one"
+    },
+    {
+      "pattern": "Negation: ne...ni...ni",
+      "meaning": "Neither...nor",
+      "usage": "Express multiple negations",
+      "example": "Je n'aime ni le café ni le thé",
+      "exampleTranslation": "I like neither coffee nor tea"
+    },
+    {
+      "pattern": "Negation: ne...aucun(e)",
+      "meaning": "Not any / no",
+      "usage": "Express complete absence",
+      "example": "Je n'ai aucune idée",
+      "exampleTranslation": "I have no idea"
+    },
+    {
+      "pattern": "Position of adverbs",
+      "meaning": "Placement of adverbs in sentences",
+      "usage": "Usually after verb or at sentence end",
+      "example": "Il parle très bien français",
+      "exampleTranslation": "He speaks French very well"
+    },
+    {
+      "pattern": "Adverbial phrases: quantity",
+      "meaning": "Beaucoup, un peu, assez, trop, très",
+      "usage": "Modify verbs or adjectives",
+      "example": "Il y a beaucoup de monde",
+      "exampleTranslation": "There are many people"
+    },
+    {
+      "pattern": "Adverbial phrases: frequency",
+      "meaning": "Toujours, souvent, rarement, quelquefois",
+      "usage": "Indicate how often something happens",
+      "example": "Je vais souvent au marché",
+      "exampleTranslation": "I often go to the market"
+    },
+    {
+      "pattern": "Adverbial phrases: time",
+      "meaning": "Hier, aujourd'hui, demain, avant, après",
+      "usage": "Indicate when something happens",
+      "example": "Je vais au cinéma demain",
+      "exampleTranslation": "I'm going to the cinema tomorrow"
+    },
+    {
+      "pattern": "Prepositions: à, de, en, par, pour, avec, sans",
+      "meaning": "Various prepositions",
+      "usage": "Show relationships between words",
+      "example": "Je vais à Paris avec mon ami",
+      "exampleTranslation": "I'm going to Paris with my friend"
+    },
+    {
+      "pattern": "Prepositions: pendant, depuis, jusqu'à",
+      "meaning": "During, since, until",
+      "usage": "Indicate time relationships",
+      "example": "Je travaille ici depuis trois ans",
+      "exampleTranslation": "I've been working here for three years"
+    },
+    {
+      "pattern": "Prepositions: avant, après, entre",
+      "meaning": "Before, after, between",
+      "usage": "Show sequence or position",
+      "example": "Le film commence après le dîner",
+      "exampleTranslation": "The film begins after dinner"
+    },
+    {
+      "pattern": "Infinitive as subject or object",
+      "meaning": "Using verbs in infinitive form",
+      "usage": "Faire du sport est bon pour la santé",
+      "example": "Je veux apprendre l'espagnol",
+      "exampleTranslation": "I want to learn Spanish"
+    },
+    {
+      "pattern": "Infinitive with prepositions",
+      "meaning": "Using prepositions before infinitives",
+      "usage": "de + infinitive, à + infinitive, pour + infinitive",
+      "example": "J'ai peur de parler",
+      "exampleTranslation": "I'm afraid to speak"
+    },
+    {
+      "pattern": "Reflexive verbs: se laver, se coucher, s'habiller",
+      "meaning": "Reflexive actions",
+      "usage": "Action done to oneself",
+      "example": "Je me lave les mains",
+      "exampleTranslation": "I wash my hands"
+    },
+    {
+      "pattern": "Reflexive verbs with passé composé",
+      "meaning": "Past tense of reflexive verbs",
+      "usage": "Use être as auxiliary with reflexive verbs",
+      "example": "Je me suis levé à sept heures",
+      "exampleTranslation": "I got up at seven o'clock"
+    },
+    {
+      "pattern": "Reciprocal verbs: se voir, s'aimer, se parler",
+      "meaning": "Actions done to each other",
+      "usage": "Express mutual actions",
+      "example": "Ils se voient tous les jours",
+      "exampleTranslation": "They see each other every day"
+    },
+    {
+      "pattern": "Imperative with reflexive pronouns",
+      "meaning": "Commands with reflexive actions",
+      "usage": "Lève-toi! Lavez-vous!",
+      "example": "Dépêche-toi!",
+      "exampleTranslation": "Hurry up!"
+    },
+    {
+      "pattern": "Double object pronouns",
+      "meaning": "Using two object pronouns together",
+      "usage": "Follow order: indirect before direct",
+      "example": "Je te le donne",
+      "exampleTranslation": "I give it to you"
+    },
+    {
+      "pattern": "Pronoun y (there / it)",
+      "meaning": "Replaces à + thing / à + place",
+      "usage": "Refers to places or prepositional phrases",
+      "example": "Je vais à la gare. J'y vais à dix heures",
+      "exampleTranslation": "I'm going to the station. I'm going there at ten o'clock"
+    },
+    {
+      "pattern": "Pronoun en (some / it)",
+      "meaning": "Replaces de + thing / quantity",
+      "usage": "Refers to things or amounts",
+      "example": "J'aime les gâteaux. J'en mange souvent",
+      "exampleTranslation": "I like cakes. I eat some often"
+    },
+    {
+      "pattern": "Interrogative adjectives: quel, quelle, quels",
+      "meaning": "Which / what (adjectives)",
+      "usage": "Ask about specific items",
+      "example": "Quel jour préfères-tu?",
+      "exampleTranslation": "Which day do you prefer?"
+    },
+    {
+      "pattern": "Interrogative pronouns: lequel, laquelle, lesquels",
+      "meaning": "Which one / which ones (pronouns)",
+      "usage": "Ask questions with pronouns",
+      "example": "De ces deux livres, lequel préfères-tu?",
+      "exampleTranslation": "Which of these two books do you prefer?"
+    },
+    {
+      "pattern": "Interrogative words: comment, combien, pourquoi",
+      "meaning": "How, how many, why",
+      "usage": "Ask specific questions",
+      "example": "Combien de frères as-tu?",
+      "exampleTranslation": "How many brothers do you have?"
+    },
+    {
+      "pattern": "Indirect questions",
+      "meaning": "Questions embedded in sentences",
+      "usage": "Je me demande où tu habites",
+      "example": "Peux-tu me dire quand tu arrives?",
+      "exampleTranslation": "Can you tell me when you arrive?"
+    },
+    {
+      "pattern": "Present participles: -ant ending",
+      "meaning": "Verb form ending in -ant",
+      "usage": "Express simultaneous actions",
+      "example": "En marchant, j'ai vu mon ami",
+      "exampleTranslation": "While walking, I saw my friend"
+    },
+    {
+      "pattern": "Subjunctive mood: regular formation",
+      "meaning": "Subjunctive present tense",
+      "usage": "Use after expressions of doubt, necessity, emotion",
+      "example": "Je veux que tu sois heureux",
+      "exampleTranslation": "I want you to be happy"
+    },
+    {
+      "pattern": "Subjunctive vs Indicative",
+      "meaning": "When to use subjunctive",
+      "usage": "Subjunctive after certain verbs and expressions",
+      "example": "Je pense qu'il est riche / Je doute qu'il soit riche",
+      "exampleTranslation": "I think he is rich / I doubt he is rich"
+    },
+    {
+      "pattern": "Il faut que + subjunctive",
+      "meaning": "It is necessary that",
+      "usage": "Express necessity",
+      "example": "Il faut que tu études davantage",
+      "exampleTranslation": "You must study more"
+    },
+    {
+      "pattern": "Je veux que / J'aime que + subjunctive",
+      "meaning": "I want that / I like that",
+      "usage": "Express wishes and preferences",
+      "example": "J'aime que tu sois ponctuel",
+      "exampleTranslation": "I like that you are punctual"
+    },
+    {
+      "pattern": "Bien que / Quoique + subjunctive",
+      "meaning": "Although / Although",
+      "usage": "Express concession",
+      "example": "Bien que je sois fatigué, je vais travailler",
+      "exampleTranslation": "Although I am tired, I will work"
+    },
+    {
+      "pattern": "Pour que + subjunctive",
+      "meaning": "So that / in order that",
+      "usage": "Express purpose",
+      "example": "Je lui ai expliqué pour qu'il comprenne",
+      "exampleTranslation": "I explained to him so that he would understand"
+    },
+    {
+      "pattern": "À moins que + subjunctive",
+      "meaning": "Unless",
+      "usage": "Express exception",
+      "example": "Je viendrai à moins qu'il fasse mauvais temps",
+      "exampleTranslation": "I will come unless the weather is bad"
+    },
+    {
+      "pattern": "Passive voice: être + past participle",
+      "meaning": "Passive construction",
+      "usage": "Express that action is done to the subject",
+      "example": "La maison est construite par un architecte",
+      "exampleTranslation": "The house is built by an architect"
+    },
+    {
+      "pattern": "Passive voice in past tense",
+      "meaning": "Passé composé passive form",
+      "usage": "express completed passive actions",
+      "example": "La lettre a été écrite hier",
+      "exampleTranslation": "The letter was written yesterday"
+    },
+    {
+      "pattern": "Causative construction: faire + infinitive",
+      "meaning": "To make someone do something",
+      "usage": "Express having someone do something",
+      "example": "Je fais réparer ma voiture",
+      "exampleTranslation": "I am having my car repaired"
+    },
+    {
+      "pattern": "Laisser + infinitive",
+      "meaning": "To let / allow someone to do something",
+      "usage": "Express permission or allowance",
+      "example": "Je laisse mon enfant jouer",
+      "exampleTranslation": "I let my child play"
+    },
+    {
+      "pattern": "Devoir: obligation vs probability",
+      "meaning": "Must / should vs must be / probably",
+      "usage": "Express obligation or likelihood",
+      "example": "Je dois partir / Il doit être tard",
+      "exampleTranslation": "I must leave / It must be late"
+    },
+    {
+      "pattern": "Pouvoir: ability vs permission vs possibility",
+      "meaning": "Can / am able / may / might",
+      "usage": "Express various abilities and permissions",
+      "example": "Je peux nager / Tu peux entrer / Il peut arriver",
+      "exampleTranslation": "I can swim / You may enter / He might arrive"
+    },
+    {
+      "pattern": "Agreement of past participle with avoir",
+      "meaning": "Gender and number agreement rules",
+      "usage": "Agree when direct object precedes verb",
+      "example": "La lettre que j'ai écrite",
+      "exampleTranslation": "The letter that I wrote"
+    },
+    {
+      "pattern": "Agreement of past participle with être",
+      "meaning": "Agreement in compound tenses with être",
+      "usage": "Always agree with subject",
+      "example": "Elle est allée / Ils sont allés",
+      "exampleTranslation": "She went / They went"
+    },
+    {
+      "pattern": "Y and en: position in complex tenses",
+      "meaning": "Placement of y and en in compound tenses",
+      "usage": "Place before auxiliary verb",
+      "example": "Je y suis allé / J'en ai mangé",
+      "exampleTranslation": "I went there / I ate some"
+    },
+    {
+      "pattern": "Exclamatory sentences",
+      "meaning": "Expressing strong emotions",
+      "usage": "Quel, quelle, comme, que de",
+      "example": "Quel beau jour!",
+      "exampleTranslation": "What a beautiful day!"
+    },
+    {
+      "pattern": "Inversion after direct speech",
+      "meaning": "Inversion with speech verbs",
+      "usage": "'Bonjour', dit-il",
+      "example": "'Comment vas-tu?' demanda-t-elle",
+      "exampleTranslation": "'How are you?' she asked"
+    },
+    {
+      "pattern": "Present tense of irregular verbs: boire, croire",
+      "meaning": "Conjugation of boire and croire",
+      "usage": "je bois, tu bois / je crois, tu crois",
+      "example": "Je bois du café",
+      "exampleTranslation": "I drink coffee"
+    },
+    {
+      "pattern": "Present tense of prendre and compounds",
+      "meaning": "Conjugation of prendre, apprendre, comprendre",
+      "usage": "je prends, tu prends, il prend",
+      "example": "Je comprends la leçon",
+      "exampleTranslation": "I understand the lesson"
+    },
+    {
+      "pattern": "Present tense of venir and tenir",
+      "meaning": "Conjugation of venir, tenir, venir de",
+      "usage": "je viens, je tiens",
+      "example": "Je viens de Paris",
+      "exampleTranslation": "I come from Paris"
+    },
+    {
+      "pattern": "Venir de + infinitive (recent past)",
+      "meaning": "Just did / have just done",
+      "usage": "Express very recent past",
+      "example": "Je viens de manger",
+      "exampleTranslation": "I just ate"
+    },
+    {
+      "pattern": "Être en train de + infinitive (ongoing action)",
+      "meaning": "In the process of doing",
+      "usage": "Express action in progress",
+      "example": "Je suis en train de travailler",
+      "exampleTranslation": "I am working / I am in the process of working"
+    },
+    {
+      "pattern": "Aller + infinitive (near future)",
+      "meaning": "Going to do (future tense)",
+      "usage": "Express immediate future",
+      "example": "Je vais partir demain",
+      "exampleTranslation": "I'm going to leave tomorrow"
+    },
+    {
+      "pattern": "Articles: general rules for use",
+      "meaning": "When to use definite vs indefinite vs partitive",
+      "usage": "Apply proper article usage",
+      "example": "J'aime le chocolat / Un café / Du pain",
+      "exampleTranslation": "I like chocolate / A coffee / Some bread"
+    },
+    {
+      "pattern": "Omission of articles in French",
+      "meaning": "When articles are not used",
+      "usage": "In lists, titles, after être",
+      "example": "C'est un professeur",
+      "exampleTranslation": "He is a teacher"
+    },
+    {
+      "pattern": "Common idiomatic expressions",
+      "meaning": "Phrases and expressions",
+      "usage": "Learn common expressions with avoir and être",
+      "example": "avoir faim, avoir peur, être en retard",
+      "exampleTranslation": "to be hungry, to be afraid, to be late"
+    },
+    {
+      "pattern": "Time expressions with prepositions",
+      "meaning": "Various ways to express time",
+      "usage": "en, dans, depuis, pendant, pour",
+      "example": "Je suis arrivé il y a deux heures",
+      "exampleTranslation": "I arrived two hours ago"
+    },
+    {
+      "pattern": "Geographical prepositions",
+      "meaning": "Prepositions with place names",
+      "usage": "à, en, au, aux for countries and cities",
+      "example": "Je vais en France et au Japon",
+      "exampleTranslation": "I'm going to France and Japan"
+    },
+    {
+      "pattern": "Conjunctions: donc, alors, ensuite, d'ailleurs",
+      "meaning": "Logical connectors",
+      "usage": "Link ideas and sentences",
+      "example": "Il pleut, donc je reste à la maison",
+      "exampleTranslation": "It's raining, so I'm staying home"
+    },
+    {
+      "pattern": "Hyperbole and intensifiers",
+      "meaning": "Extreme expressions: absolument, vraiment, formidable",
+      "usage": "Express strong feelings",
+      "example": "C'est absolument formidable!",
+      "exampleTranslation": "It's absolutely amazing!"
+    },
+    {
+      "pattern": "Emphasis with c'est...qui/que",
+      "meaning": "Cleft sentences for emphasis",
+      "usage": "Emphasize particular words",
+      "example": "C'est moi qui ai fait ça",
+      "exampleTranslation": "It's I who did that / I'm the one who did that"
+    }
+  ]
+}
