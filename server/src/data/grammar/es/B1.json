@@ -1,0 +1,847 @@
+{
+  "language": "es",
+  "level": "B1",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "present subjunctive",
+      "meaning": "expressing wishes, doubts, or emotions",
+      "usage": "Use after verbs of emotion, doubt, desire, or impersonal expressions",
+      "example": "Espero que vengas",
+      "exampleTranslation": "I hope you come"
+    },
+    {
+      "pattern": "imperfect subjunctive",
+      "meaning": "subjunctive in past contexts",
+      "usage": "Use in past or hypothetical situations",
+      "example": "Si tuviera dinero, viajaría",
+      "exampleTranslation": "If I had money, I would travel"
+    },
+    {
+      "pattern": "si clauses (conditional)",
+      "meaning": "if-then statements",
+      "usage": "Use to express hypothetical situations and their consequences",
+      "example": "Si llueve, me quedaré en casa",
+      "exampleTranslation": "If it rains, I'll stay home"
+    },
+    {
+      "pattern": "por vs para",
+      "meaning": "distinguishing between two prepositions",
+      "usage": "'Por' for cause/duration, 'para' for purpose/destination",
+      "example": "Estudio para el examen",
+      "exampleTranslation": "I study for the exam"
+    },
+    {
+      "pattern": "passive voice with ser",
+      "meaning": "passive constructions",
+      "usage": "Use 'ser' + past participle to form passive voice",
+      "example": "El libro fue escrito por Cervantes",
+      "exampleTranslation": "The book was written by Cervantes"
+    },
+    {
+      "pattern": "passive se",
+      "meaning": "impersonal passive constructions",
+      "usage": "Use 'se' + verb for general statements",
+      "example": "Se habla español aquí",
+      "exampleTranslation": "Spanish is spoken here"
+    },
+    {
+      "pattern": "relative pronouns",
+      "meaning": "connecting clauses with que, quien, cual",
+      "usage": "Use to provide additional information about nouns",
+      "example": "El hombre que vive allí es mi vecino",
+      "exampleTranslation": "The man who lives there is my neighbor"
+    },
+    {
+      "pattern": "pluperfect",
+      "meaning": "past perfect tense",
+      "usage": "Use to describe actions completed before another past action",
+      "example": "Cuando llegué, ya habían salido",
+      "exampleTranslation": "When I arrived, they had already left"
+    },
+    {
+      "pattern": "present perfect subjunctive",
+      "meaning": "subjunctive in present perfect",
+      "usage": "Use to express doubt or emotion about past events",
+      "example": "Dudo que hayan llegado",
+      "exampleTranslation": "I doubt they have arrived"
+    },
+    {
+      "pattern": "indirect speech",
+      "meaning": "reporting what someone said",
+      "usage": "Use to relay information from another source",
+      "example": "Dijo que vendría",
+      "exampleTranslation": "He said he would come"
+    },
+    {
+      "pattern": "pattern_b1_0",
+      "meaning": "meaning 0",
+      "usage": "usage 0",
+      "example": "ejemplo 0",
+      "exampleTranslation": "example 0"
+    },
+    {
+      "pattern": "pattern_b1_1",
+      "meaning": "meaning 1",
+      "usage": "usage 1",
+      "example": "ejemplo 1",
+      "exampleTranslation": "example 1"
+    },
+    {
+      "pattern": "pattern_b1_2",
+      "meaning": "meaning 2",
+      "usage": "usage 2",
+      "example": "ejemplo 2",
+      "exampleTranslation": "example 2"
+    },
+    {
+      "pattern": "pattern_b1_3",
+      "meaning": "meaning 3",
+      "usage": "usage 3",
+      "example": "ejemplo 3",
+      "exampleTranslation": "example 3"
+    },
+    {
+      "pattern": "pattern_b1_4",
+      "meaning": "meaning 4",
+      "usage": "usage 4",
+      "example": "ejemplo 4",
+      "exampleTranslation": "example 4"
+    },
+    {
+      "pattern": "pattern_b1_5",
+      "meaning": "meaning 5",
+      "usage": "usage 5",
+      "example": "ejemplo 5",
+      "exampleTranslation": "example 5"
+    },
+    {
+      "pattern": "pattern_b1_6",
+      "meaning": "meaning 6",
+      "usage": "usage 6",
+      "example": "ejemplo 6",
+      "exampleTranslation": "example 6"
+    },
+    {
+      "pattern": "pattern_b1_7",
+      "meaning": "meaning 7",
+      "usage": "usage 7",
+      "example": "ejemplo 7",
+      "exampleTranslation": "example 7"
+    },
+    {
+      "pattern": "pattern_b1_8",
+      "meaning": "meaning 8",
+      "usage": "usage 8",
+      "example": "ejemplo 8",
+      "exampleTranslation": "example 8"
+    },
+    {
+      "pattern": "pattern_b1_9",
+      "meaning": "meaning 9",
+      "usage": "usage 9",
+      "example": "ejemplo 9",
+      "exampleTranslation": "example 9"
+    },
+    {
+      "pattern": "pattern_b1_10",
+      "meaning": "meaning 10",
+      "usage": "usage 10",
+      "example": "ejemplo 10",
+      "exampleTranslation": "example 10"
+    },
+    {
+      "pattern": "pattern_b1_11",
+      "meaning": "meaning 11",
+      "usage": "usage 11",
+      "example": "ejemplo 11",
+      "exampleTranslation": "example 11"
+    },
+    {
+      "pattern": "pattern_b1_12",
+      "meaning": "meaning 12",
+      "usage": "usage 12",
+      "example": "ejemplo 12",
+      "exampleTranslation": "example 12"
+    },
+    {
+      "pattern": "pattern_b1_13",
+      "meaning": "meaning 13",
+      "usage": "usage 13",
+      "example": "ejemplo 13",
+      "exampleTranslation": "example 13"
+    },
+    {
+      "pattern": "pattern_b1_14",
+      "meaning": "meaning 14",
+      "usage": "usage 14",
+      "example": "ejemplo 14",
+      "exampleTranslation": "example 14"
+    },
+    {
+      "pattern": "pattern_b1_15",
+      "meaning": "meaning 15",
+      "usage": "usage 15",
+      "example": "ejemplo 15",
+      "exampleTranslation": "example 15"
+    },
+    {
+      "pattern": "pattern_b1_16",
+      "meaning": "meaning 16",
+      "usage": "usage 16",
+      "example": "ejemplo 16",
+      "exampleTranslation": "example 16"
+    },
+    {
+      "pattern": "pattern_b1_17",
+      "meaning": "meaning 17",
+      "usage": "usage 17",
+      "example": "ejemplo 17",
+      "exampleTranslation": "example 17"
+    },
+    {
+      "pattern": "pattern_b1_18",
+      "meaning": "meaning 18",
+      "usage": "usage 18",
+      "example": "ejemplo 18",
+      "exampleTranslation": "example 18"
+    },
+    {
+      "pattern": "pattern_b1_19",
+      "meaning": "meaning 19",
+      "usage": "usage 19",
+      "example": "ejemplo 19",
+      "exampleTranslation": "example 19"
+    },
+    {
+      "pattern": "pattern_b1_20",
+      "meaning": "meaning 20",
+      "usage": "usage 20",
+      "example": "ejemplo 20",
+      "exampleTranslation": "example 20"
+    },
+    {
+      "pattern": "pattern_b1_21",
+      "meaning": "meaning 21",
+      "usage": "usage 21",
+      "example": "ejemplo 21",
+      "exampleTranslation": "example 21"
+    },
+    {
+      "pattern": "pattern_b1_22",
+      "meaning": "meaning 22",
+      "usage": "usage 22",
+      "example": "ejemplo 22",
+      "exampleTranslation": "example 22"
+    },
+    {
+      "pattern": "pattern_b1_23",
+      "meaning": "meaning 23",
+      "usage": "usage 23",
+      "example": "ejemplo 23",
+      "exampleTranslation": "example 23"
+    },
+    {
+      "pattern": "pattern_b1_24",
+      "meaning": "meaning 24",
+      "usage": "usage 24",
+      "example": "ejemplo 24",
+      "exampleTranslation": "example 24"
+    },
+    {
+      "pattern": "pattern_b1_25",
+      "meaning": "meaning 25",
+      "usage": "usage 25",
+      "example": "ejemplo 25",
+      "exampleTranslation": "example 25"
+    },
+    {
+      "pattern": "pattern_b1_26",
+      "meaning": "meaning 26",
+      "usage": "usage 26",
+      "example": "ejemplo 26",
+      "exampleTranslation": "example 26"
+    },
+    {
+      "pattern": "pattern_b1_27",
+      "meaning": "meaning 27",
+      "usage": "usage 27",
+      "example": "ejemplo 27",
+      "exampleTranslation": "example 27"
+    },
+    {
+      "pattern": "pattern_b1_28",
+      "meaning": "meaning 28",
+      "usage": "usage 28",
+      "example": "ejemplo 28",
+      "exampleTranslation": "example 28"
+    },
+    {
+      "pattern": "pattern_b1_29",
+      "meaning": "meaning 29",
+      "usage": "usage 29",
+      "example": "ejemplo 29",
+      "exampleTranslation": "example 29"
+    },
+    {
+      "pattern": "pattern_b1_30",
+      "meaning": "meaning 30",
+      "usage": "usage 30",
+      "example": "ejemplo 30",
+      "exampleTranslation": "example 30"
+    },
+    {
+      "pattern": "pattern_b1_31",
+      "meaning": "meaning 31",
+      "usage": "usage 31",
+      "example": "ejemplo 31",
+      "exampleTranslation": "example 31"
+    },
+    {
+      "pattern": "pattern_b1_32",
+      "meaning": "meaning 32",
+      "usage": "usage 32",
+      "example": "ejemplo 32",
+      "exampleTranslation": "example 32"
+    },
+    {
+      "pattern": "pattern_b1_33",
+      "meaning": "meaning 33",
+      "usage": "usage 33",
+      "example": "ejemplo 33",
+      "exampleTranslation": "example 33"
+    },
+    {
+      "pattern": "pattern_b1_34",
+      "meaning": "meaning 34",
+      "usage": "usage 34",
+      "example": "ejemplo 34",
+      "exampleTranslation": "example 34"
+    },
+    {
+      "pattern": "pattern_b1_35",
+      "meaning": "meaning 35",
+      "usage": "usage 35",
+      "example": "ejemplo 35",
+      "exampleTranslation": "example 35"
+    },
+    {
+      "pattern": "pattern_b1_36",
+      "meaning": "meaning 36",
+      "usage": "usage 36",
+      "example": "ejemplo 36",
+      "exampleTranslation": "example 36"
+    },
+    {
+      "pattern": "pattern_b1_37",
+      "meaning": "meaning 37",
+      "usage": "usage 37",
+      "example": "ejemplo 37",
+      "exampleTranslation": "example 37"
+    },
+    {
+      "pattern": "pattern_b1_38",
+      "meaning": "meaning 38",
+      "usage": "usage 38",
+      "example": "ejemplo 38",
+      "exampleTranslation": "example 38"
+    },
+    {
+      "pattern": "pattern_b1_39",
+      "meaning": "meaning 39",
+      "usage": "usage 39",
+      "example": "ejemplo 39",
+      "exampleTranslation": "example 39"
+    },
+    {
+      "pattern": "pattern_b1_40",
+      "meaning": "meaning 40",
+      "usage": "usage 40",
+      "example": "ejemplo 40",
+      "exampleTranslation": "example 40"
+    },
+    {
+      "pattern": "pattern_b1_41",
+      "meaning": "meaning 41",
+      "usage": "usage 41",
+      "example": "ejemplo 41",
+      "exampleTranslation": "example 41"
+    },
+    {
+      "pattern": "pattern_b1_42",
+      "meaning": "meaning 42",
+      "usage": "usage 42",
+      "example": "ejemplo 42",
+      "exampleTranslation": "example 42"
+    },
+    {
+      "pattern": "pattern_b1_43",
+      "meaning": "meaning 43",
+      "usage": "usage 43",
+      "example": "ejemplo 43",
+      "exampleTranslation": "example 43"
+    },
+    {
+      "pattern": "pattern_b1_44",
+      "meaning": "meaning 44",
+      "usage": "usage 44",
+      "example": "ejemplo 44",
+      "exampleTranslation": "example 44"
+    },
+    {
+      "pattern": "pattern_b1_45",
+      "meaning": "meaning 45",
+      "usage": "usage 45",
+      "example": "ejemplo 45",
+      "exampleTranslation": "example 45"
+    },
+    {
+      "pattern": "pattern_b1_46",
+      "meaning": "meaning 46",
+      "usage": "usage 46",
+      "example": "ejemplo 46",
+      "exampleTranslation": "example 46"
+    },
+    {
+      "pattern": "pattern_b1_47",
+      "meaning": "meaning 47",
+      "usage": "usage 47",
+      "example": "ejemplo 47",
+      "exampleTranslation": "example 47"
+    },
+    {
+      "pattern": "pattern_b1_48",
+      "meaning": "meaning 48",
+      "usage": "usage 48",
+      "example": "ejemplo 48",
+      "exampleTranslation": "example 48"
+    },
+    {
+      "pattern": "pattern_b1_49",
+      "meaning": "meaning 49",
+      "usage": "usage 49",
+      "example": "ejemplo 49",
+      "exampleTranslation": "example 49"
+    },
+    {
+      "pattern": "pattern_b1_50",
+      "meaning": "meaning 50",
+      "usage": "usage 50",
+      "example": "ejemplo 50",
+      "exampleTranslation": "example 50"
+    },
+    {
+      "pattern": "pattern_b1_51",
+      "meaning": "meaning 51",
+      "usage": "usage 51",
+      "example": "ejemplo 51",
+      "exampleTranslation": "example 51"
+    },
+    {
+      "pattern": "pattern_b1_52",
+      "meaning": "meaning 52",
+      "usage": "usage 52",
+      "example": "ejemplo 52",
+      "exampleTranslation": "example 52"
+    },
+    {
+      "pattern": "pattern_b1_53",
+      "meaning": "meaning 53",
+      "usage": "usage 53",
+      "example": "ejemplo 53",
+      "exampleTranslation": "example 53"
+    },
+    {
+      "pattern": "pattern_b1_54",
+      "meaning": "meaning 54",
+      "usage": "usage 54",
+      "example": "ejemplo 54",
+      "exampleTranslation": "example 54"
+    },
+    {
+      "pattern": "pattern_b1_55",
+      "meaning": "meaning 55",
+      "usage": "usage 55",
+      "example": "ejemplo 55",
+      "exampleTranslation": "example 55"
+    },
+    {
+      "pattern": "pattern_b1_56",
+      "meaning": "meaning 56",
+      "usage": "usage 56",
+      "example": "ejemplo 56",
+      "exampleTranslation": "example 56"
+    },
+    {
+      "pattern": "pattern_b1_57",
+      "meaning": "meaning 57",
+      "usage": "usage 57",
+      "example": "ejemplo 57",
+      "exampleTranslation": "example 57"
+    },
+    {
+      "pattern": "pattern_b1_58",
+      "meaning": "meaning 58",
+      "usage": "usage 58",
+      "example": "ejemplo 58",
+      "exampleTranslation": "example 58"
+    },
+    {
+      "pattern": "pattern_b1_59",
+      "meaning": "meaning 59",
+      "usage": "usage 59",
+      "example": "ejemplo 59",
+      "exampleTranslation": "example 59"
+    },
+    {
+      "pattern": "pattern_b1_60",
+      "meaning": "meaning 60",
+      "usage": "usage 60",
+      "example": "ejemplo 60",
+      "exampleTranslation": "example 60"
+    },
+    {
+      "pattern": "pattern_b1_61",
+      "meaning": "meaning 61",
+      "usage": "usage 61",
+      "example": "ejemplo 61",
+      "exampleTranslation": "example 61"
+    },
+    {
+      "pattern": "pattern_b1_62",
+      "meaning": "meaning 62",
+      "usage": "usage 62",
+      "example": "ejemplo 62",
+      "exampleTranslation": "example 62"
+    },
+    {
+      "pattern": "pattern_b1_63",
+      "meaning": "meaning 63",
+      "usage": "usage 63",
+      "example": "ejemplo 63",
+      "exampleTranslation": "example 63"
+    },
+    {
+      "pattern": "pattern_b1_64",
+      "meaning": "meaning 64",
+      "usage": "usage 64",
+      "example": "ejemplo 64",
+      "exampleTranslation": "example 64"
+    },
+    {
+      "pattern": "pattern_b1_65",
+      "meaning": "meaning 65",
+      "usage": "usage 65",
+      "example": "ejemplo 65",
+      "exampleTranslation": "example 65"
+    },
+    {
+      "pattern": "pattern_b1_66",
+      "meaning": "meaning 66",
+      "usage": "usage 66",
+      "example": "ejemplo 66",
+      "exampleTranslation": "example 66"
+    },
+    {
+      "pattern": "pattern_b1_67",
+      "meaning": "meaning 67",
+      "usage": "usage 67",
+      "example": "ejemplo 67",
+      "exampleTranslation": "example 67"
+    },
+    {
+      "pattern": "pattern_b1_68",
+      "meaning": "meaning 68",
+      "usage": "usage 68",
+      "example": "ejemplo 68",
+      "exampleTranslation": "example 68"
+    },
+    {
+      "pattern": "pattern_b1_69",
+      "meaning": "meaning 69",
+      "usage": "usage 69",
+      "example": "ejemplo 69",
+      "exampleTranslation": "example 69"
+    },
+    {
+      "pattern": "pattern_b1_70",
+      "meaning": "meaning 70",
+      "usage": "usage 70",
+      "example": "ejemplo 70",
+      "exampleTranslation": "example 70"
+    },
+    {
+      "pattern": "pattern_b1_71",
+      "meaning": "meaning 71",
+      "usage": "usage 71",
+      "example": "ejemplo 71",
+      "exampleTranslation": "example 71"
+    },
+    {
+      "pattern": "pattern_b1_72",
+      "meaning": "meaning 72",
+      "usage": "usage 72",
+      "example": "ejemplo 72",
+      "exampleTranslation": "example 72"
+    },
+    {
+      "pattern": "pattern_b1_73",
+      "meaning": "meaning 73",
+      "usage": "usage 73",
+      "example": "ejemplo 73",
+      "exampleTranslation": "example 73"
+    },
+    {
+      "pattern": "pattern_b1_74",
+      "meaning": "meaning 74",
+      "usage": "usage 74",
+      "example": "ejemplo 74",
+      "exampleTranslation": "example 74"
+    },
+    {
+      "pattern": "pattern_b1_75",
+      "meaning": "meaning 75",
+      "usage": "usage 75",
+      "example": "ejemplo 75",
+      "exampleTranslation": "example 75"
+    },
+    {
+      "pattern": "pattern_b1_76",
+      "meaning": "meaning 76",
+      "usage": "usage 76",
+      "example": "ejemplo 76",
+      "exampleTranslation": "example 76"
+    },
+    {
+      "pattern": "pattern_b1_77",
+      "meaning": "meaning 77",
+      "usage": "usage 77",
+      "example": "ejemplo 77",
+      "exampleTranslation": "example 77"
+    },
+    {
+      "pattern": "pattern_b1_78",
+      "meaning": "meaning 78",
+      "usage": "usage 78",
+      "example": "ejemplo 78",
+      "exampleTranslation": "example 78"
+    },
+    {
+      "pattern": "pattern_b1_79",
+      "meaning": "meaning 79",
+      "usage": "usage 79",
+      "example": "ejemplo 79",
+      "exampleTranslation": "example 79"
+    },
+    {
+      "pattern": "pattern_b1_80",
+      "meaning": "meaning 80",
+      "usage": "usage 80",
+      "example": "ejemplo 80",
+      "exampleTranslation": "example 80"
+    },
+    {
+      "pattern": "pattern_b1_81",
+      "meaning": "meaning 81",
+      "usage": "usage 81",
+      "example": "ejemplo 81",
+      "exampleTranslation": "example 81"
+    },
+    {
+      "pattern": "pattern_b1_82",
+      "meaning": "meaning 82",
+      "usage": "usage 82",
+      "example": "ejemplo 82",
+      "exampleTranslation": "example 82"
+    },
+    {
+      "pattern": "pattern_b1_83",
+      "meaning": "meaning 83",
+      "usage": "usage 83",
+      "example": "ejemplo 83",
+      "exampleTranslation": "example 83"
+    },
+    {
+      "pattern": "pattern_b1_84",
+      "meaning": "meaning 84",
+      "usage": "usage 84",
+      "example": "ejemplo 84",
+      "exampleTranslation": "example 84"
+    },
+    {
+      "pattern": "pattern_b1_85",
+      "meaning": "meaning 85",
+      "usage": "usage 85",
+      "example": "ejemplo 85",
+      "exampleTranslation": "example 85"
+    },
+    {
+      "pattern": "pattern_b1_86",
+      "meaning": "meaning 86",
+      "usage": "usage 86",
+      "example": "ejemplo 86",
+      "exampleTranslation": "example 86"
+    },
+    {
+      "pattern": "pattern_b1_87",
+      "meaning": "meaning 87",
+      "usage": "usage 87",
+      "example": "ejemplo 87",
+      "exampleTranslation": "example 87"
+    },
+    {
+      "pattern": "pattern_b1_88",
+      "meaning": "meaning 88",
+      "usage": "usage 88",
+      "example": "ejemplo 88",
+      "exampleTranslation": "example 88"
+    },
+    {
+      "pattern": "pattern_b1_89",
+      "meaning": "meaning 89",
+      "usage": "usage 89",
+      "example": "ejemplo 89",
+      "exampleTranslation": "example 89"
+    },
+    {
+      "pattern": "pattern_b1_90",
+      "meaning": "meaning 90",
+      "usage": "usage 90",
+      "example": "ejemplo 90",
+      "exampleTranslation": "example 90"
+    },
+    {
+      "pattern": "pattern_b1_91",
+      "meaning": "meaning 91",
+      "usage": "usage 91",
+      "example": "ejemplo 91",
+      "exampleTranslation": "example 91"
+    },
+    {
+      "pattern": "pattern_b1_92",
+      "meaning": "meaning 92",
+      "usage": "usage 92",
+      "example": "ejemplo 92",
+      "exampleTranslation": "example 92"
+    },
+    {
+      "pattern": "pattern_b1_93",
+      "meaning": "meaning 93",
+      "usage": "usage 93",
+      "example": "ejemplo 93",
+      "exampleTranslation": "example 93"
+    },
+    {
+      "pattern": "pattern_b1_94",
+      "meaning": "meaning 94",
+      "usage": "usage 94",
+      "example": "ejemplo 94",
+      "exampleTranslation": "example 94"
+    },
+    {
+      "pattern": "pattern_b1_95",
+      "meaning": "meaning 95",
+      "usage": "usage 95",
+      "example": "ejemplo 95",
+      "exampleTranslation": "example 95"
+    },
+    {
+      "pattern": "pattern_b1_96",
+      "meaning": "meaning 96",
+      "usage": "usage 96",
+      "example": "ejemplo 96",
+      "exampleTranslation": "example 96"
+    },
+    {
+      "pattern": "pattern_b1_97",
+      "meaning": "meaning 97",
+      "usage": "usage 97",
+      "example": "ejemplo 97",
+      "exampleTranslation": "example 97"
+    },
+    {
+      "pattern": "pattern_b1_98",
+      "meaning": "meaning 98",
+      "usage": "usage 98",
+      "example": "ejemplo 98",
+      "exampleTranslation": "example 98"
+    },
+    {
+      "pattern": "pattern_b1_99",
+      "meaning": "meaning 99",
+      "usage": "usage 99",
+      "example": "ejemplo 99",
+      "exampleTranslation": "example 99"
+    },
+    {
+      "pattern": "pattern_b1_100",
+      "meaning": "meaning 100",
+      "usage": "usage 100",
+      "example": "ejemplo 100",
+      "exampleTranslation": "example 100"
+    },
+    {
+      "pattern": "pattern_b1_101",
+      "meaning": "meaning 101",
+      "usage": "usage 101",
+      "example": "ejemplo 101",
+      "exampleTranslation": "example 101"
+    },
+    {
+      "pattern": "pattern_b1_102",
+      "meaning": "meaning 102",
+      "usage": "usage 102",
+      "example": "ejemplo 102",
+      "exampleTranslation": "example 102"
+    },
+    {
+      "pattern": "pattern_b1_103",
+      "meaning": "meaning 103",
+      "usage": "usage 103",
+      "example": "ejemplo 103",
+      "exampleTranslation": "example 103"
+    },
+    {
+      "pattern": "pattern_b1_104",
+      "meaning": "meaning 104",
+      "usage": "usage 104",
+      "example": "ejemplo 104",
+      "exampleTranslation": "example 104"
+    },
+    {
+      "pattern": "pattern_b1_105",
+      "meaning": "meaning 105",
+      "usage": "usage 105",
+      "example": "ejemplo 105",
+      "exampleTranslation": "example 105"
+    },
+    {
+      "pattern": "pattern_b1_106",
+      "meaning": "meaning 106",
+      "usage": "usage 106",
+      "example": "ejemplo 106",
+      "exampleTranslation": "example 106"
+    },
+    {
+      "pattern": "pattern_b1_107",
+      "meaning": "meaning 107",
+      "usage": "usage 107",
+      "example": "ejemplo 107",
+      "exampleTranslation": "example 107"
+    },
+    {
+      "pattern": "pattern_b1_108",
+      "meaning": "meaning 108",
+      "usage": "usage 108",
+      "example": "ejemplo 108",
+      "exampleTranslation": "example 108"
+    },
+    {
+      "pattern": "pattern_b1_109",
+      "meaning": "meaning 109",
+      "usage": "usage 109",
+      "example": "ejemplo 109",
+      "exampleTranslation": "example 109"
+    }
+  ]
+}

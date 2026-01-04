@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Comprehensive language data for Arabic, Spanish, and Chinese - added complete CEFR-aligned vocabulary and grammar data for Arabic (A1-C2), Spanish (A1-C2), and Chinese (HSK 1-6); Arabic includes Arabic script with transliterations and pronunciations; Chinese includes Hanzi with Pinyin and tone markings; Spanish includes comprehensive CEFR-leveled content; also added generator scripts (generate_spanish_data.py, smart_vocab_generator.cjs, add_pronunciations.cjs, French vocabulary generation utilities); expands ConvoLab from 2 languages to 5 languages with comprehensive learning materials across all proficiency levels
 - **[feat]** Language seed harness and massive Japanese data expansion from GitHub sources - created autonomous language seed generation harness using Claude Agent SDK supporting Chinese (HSK 1-6), Spanish/French/Arabic (CEFR A1-C2); massively expanded Japanese vocabulary (N5: 30→718 words, N4: 50→666, N3: ~100→2,136, N2: ~150→1,905, N1: ~200→2,693) and grammar (N5: 30→173 patterns, N4: 30→159, N3: 30→167, N2: 30→234, N1: 30→300) by sourcing comprehensive GitHub datasets; added scripts/generate-language-seeds.ts harness, scripts/README-language-seeds.md documentation, progress tracking, npm run scripts, and initial Chinese HSK1 vocabulary/grammar files; follows successful pattern of using community-vetted GitHub datasets for comprehensive language resources
 
 ### Added

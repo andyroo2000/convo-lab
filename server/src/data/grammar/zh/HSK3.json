@@ -1,0 +1,812 @@
+{
+  "language": "zh",
+  "level": "HSK3",
+  "framework": "HSK",
+  "grammarPoints": [
+    {
+      "pattern": "Subject + 会 + Verb + 的",
+      "meaning": "will definitely (future certainty)",
+      "usage": "Use '会...的' to express certainty about future events",
+      "example": "他会来的",
+      "exampleTranslation": "He will definitely come"
+    },
+    {
+      "pattern": "Subject + 快要 + Verb + 了",
+      "meaning": "about to/soon will",
+      "usage": "Use '快要...了' for imminent events",
+      "example": "快要开始了",
+      "exampleTranslation": "It's about to start"
+    },
+    {
+      "pattern": "Subject + 差点儿 + Verb",
+      "meaning": "almost (undesired result)",
+      "usage": "Use '差点儿' for something that almost happened",
+      "example": "我差点儿迟到",
+      "exampleTranslation": "I almost was late"
+    },
+    {
+      "pattern": "Subject + 终于 + Verb + 了",
+      "meaning": "finally",
+      "usage": "Use '终于' for long-awaited results",
+      "example": "我终于明白了",
+      "exampleTranslation": "I finally understand"
+    },
+    {
+      "pattern": "Subject + 从来不/没 + Verb",
+      "meaning": "never (have never)",
+      "usage": "Use '从来不/没' to express never having done something",
+      "example": "我从来没去过",
+      "exampleTranslation": "I have never been there"
+    },
+    {
+      "pattern": "Subject + 曾经 + Verb + 过",
+      "meaning": "once/formerly",
+      "usage": "Use '曾经' to emphasize past experience",
+      "example": "我曾经住在北京",
+      "exampleTranslation": "I once lived in Beijing"
+    },
+    {
+      "pattern": "Subject + 刚才 + Verb",
+      "meaning": "just now/a moment ago",
+      "usage": "Use '刚才' for recent past actions",
+      "example": "他刚才还在这儿",
+      "exampleTranslation": "He was here just now"
+    },
+    {
+      "pattern": "Subject + 马上 + Verb",
+      "meaning": "immediately/right away",
+      "usage": "Use '马上' for immediate future actions",
+      "example": "我马上就来",
+      "exampleTranslation": "I'll come right away"
+    },
+    {
+      "pattern": "Subject + 立刻 + Verb",
+      "meaning": "immediately/at once",
+      "usage": "Use '立刻' for immediate actions (more formal than 马上)",
+      "example": "他立刻离开了",
+      "exampleTranslation": "He left immediately"
+    },
+    {
+      "pattern": "Subject + 突然 + Verb",
+      "meaning": "suddenly",
+      "usage": "Use '突然' for unexpected actions",
+      "example": "天气突然变冷了",
+      "exampleTranslation": "The weather suddenly got cold"
+    },
+    {
+      "pattern": "Subject + 渐渐 + Verb",
+      "meaning": "gradually",
+      "usage": "Use '渐渐' for gradual changes",
+      "example": "天渐渐黑了",
+      "exampleTranslation": "It gradually got dark"
+    },
+    {
+      "pattern": "Subject + 仍然 + Verb",
+      "meaning": "still/yet",
+      "usage": "Use '仍然' to express continuation (formal)",
+      "example": "他仍然在等",
+      "exampleTranslation": "He is still waiting"
+    },
+    {
+      "pattern": "Subject + 依然 + Verb",
+      "meaning": "still/as before",
+      "usage": "Use '依然' to emphasize unchanged state",
+      "example": "她依然很年轻",
+      "exampleTranslation": "She is still very young"
+    },
+    {
+      "pattern": "Subject + 始终 + Verb",
+      "meaning": "from beginning to end/always",
+      "usage": "Use '始终' for consistency throughout time",
+      "example": "他始终坚持自己的想法",
+      "exampleTranslation": "He always stuck to his ideas"
+    },
+    {
+      "pattern": "Subject + 重新 + Verb",
+      "meaning": "again/anew",
+      "usage": "Use '重新' for doing something over again",
+      "example": "重新开始",
+      "exampleTranslation": "start again"
+    },
+    {
+      "pattern": "Subject + 继续 + Verb",
+      "meaning": "to continue",
+      "usage": "Use '继续' to express continuation",
+      "example": "我们继续工作",
+      "exampleTranslation": "We continue working"
+    },
+    {
+      "pattern": "Subject + 难道 + Question",
+      "meaning": "don't tell me/could it be that",
+      "usage": "Use '难道' for rhetorical questions",
+      "example": "难道你不知道吗?",
+      "exampleTranslation": "Don't tell me you don't know?"
+    },
+    {
+      "pattern": "Subject + 干脆 + Verb",
+      "meaning": "simply/just",
+      "usage": "Use '干脆' to express straightforward decision",
+      "example": "我们干脆不去了",
+      "exampleTranslation": "Let's just not go"
+    },
+    {
+      "pattern": "Subject + 特别 + Adjective",
+      "meaning": "especially/particularly",
+      "usage": "Use '特别' to emphasize degree",
+      "example": "今天特别热",
+      "exampleTranslation": "It's especially hot today"
+    },
+    {
+      "pattern": "Subject + 非常 + Adjective",
+      "meaning": "extremely/very",
+      "usage": "Use '非常' for strong emphasis (more formal than 很)",
+      "example": "非常感谢",
+      "exampleTranslation": "Thank you very much"
+    },
+    {
+      "pattern": "Subject + 相当 + Adjective",
+      "meaning": "quite/rather",
+      "usage": "Use '相当' for considerable degree",
+      "example": "相当不错",
+      "exampleTranslation": "quite good"
+    },
+    {
+      "pattern": "Subject + 十分 + Adjective",
+      "meaning": "very/extremely",
+      "usage": "Use '十分' for high degree (formal)",
+      "example": "十分重要",
+      "exampleTranslation": "extremely important"
+    },
+    {
+      "pattern": "Subject + 格外 + Adjective",
+      "meaning": "especially/exceptionally",
+      "usage": "Use '格外' for exceptional degree",
+      "example": "今天格外高兴",
+      "exampleTranslation": "especially happy today"
+    },
+    {
+      "pattern": "Subject + 稍微 + Adjective + 一点儿",
+      "meaning": "slightly/a bit",
+      "usage": "Use '稍微...一点儿' for slight degree",
+      "example": "稍微贵一点儿",
+      "exampleTranslation": "slightly more expensive"
+    },
+    {
+      "pattern": "Subject + 多么 + Adjective",
+      "meaning": "how (exclamatory)",
+      "usage": "Use '多么' in exclamations",
+      "example": "多么美丽啊!",
+      "exampleTranslation": "How beautiful!"
+    },
+    {
+      "pattern": "怪不得 + Clause",
+      "meaning": "no wonder",
+      "usage": "Use '怪不得' to express realization",
+      "example": "怪不得他不来",
+      "exampleTranslation": "No wonder he didn't come"
+    },
+    {
+      "pattern": "恐怕 + Clause",
+      "meaning": "I'm afraid/probably",
+      "usage": "Use '恐怕' to express concern or estimation",
+      "example": "恐怕不行",
+      "exampleTranslation": "I'm afraid it won't work"
+    },
+    {
+      "pattern": "可能 + Clause",
+      "meaning": "possibly/maybe",
+      "usage": "Use '可能' to express possibility",
+      "example": "可能会下雨",
+      "exampleTranslation": "It might rain"
+    },
+    {
+      "pattern": "也许 + Clause",
+      "meaning": "perhaps/maybe",
+      "usage": "Use '也许' to express uncertainty",
+      "example": "也许他忘了",
+      "exampleTranslation": "Perhaps he forgot"
+    },
+    {
+      "pattern": "大概 + Clause",
+      "meaning": "probably/approximately",
+      "usage": "Use '大概' for estimation",
+      "example": "大概三点到",
+      "exampleTranslation": "Probably arrive at 3 o'clock"
+    },
+    {
+      "pattern": "Subject + 必须 + Verb",
+      "meaning": "must/have to",
+      "usage": "Use '必须' for strong obligation",
+      "example": "你必须去",
+      "exampleTranslation": "You must go"
+    },
+    {
+      "pattern": "Subject + 不必 + Verb",
+      "meaning": "need not",
+      "usage": "Use '不必' to express no necessity",
+      "example": "你不必担心",
+      "exampleTranslation": "You needn't worry"
+    },
+    {
+      "pattern": "Subject + 不得不 + Verb",
+      "meaning": "have no choice but to",
+      "usage": "Use '不得不' for reluctant necessity",
+      "example": "我不得不离开",
+      "exampleTranslation": "I have no choice but to leave"
+    },
+    {
+      "pattern": "Subject + 难免 + Verb",
+      "meaning": "hard to avoid/inevitably",
+      "usage": "Use '难免' for unavoidable situations",
+      "example": "难免会出错",
+      "exampleTranslation": "Mistakes are inevitable"
+    },
+    {
+      "pattern": "Subject + 免不了 + Verb",
+      "meaning": "cannot avoid",
+      "usage": "Use '免不了' for unavoidable outcomes",
+      "example": "免不了要受苦",
+      "exampleTranslation": "Cannot avoid suffering"
+    },
+    {
+      "pattern": "Subject + 值得 + Verb",
+      "meaning": "worth (doing)",
+      "usage": "Use '值得' to express worthiness",
+      "example": "值得一看",
+      "exampleTranslation": "worth seeing"
+    },
+    {
+      "pattern": "Subject + 不值得 + Verb",
+      "meaning": "not worth (doing)",
+      "usage": "Use '不值得' for unworthiness",
+      "example": "不值得生气",
+      "exampleTranslation": "not worth getting angry about"
+    },
+    {
+      "pattern": "Subject + 容易 + Verb",
+      "meaning": "easy to",
+      "usage": "Use '容易' before verbs for ease",
+      "example": "容易理解",
+      "exampleTranslation": "easy to understand"
+    },
+    {
+      "pattern": "Subject + 难 + Verb",
+      "meaning": "difficult to/hard to",
+      "usage": "Use '难' before verbs for difficulty",
+      "example": "难说",
+      "exampleTranslation": "hard to say"
+    },
+    {
+      "pattern": "Subject + 敢 + Verb",
+      "meaning": "dare to",
+      "usage": "Use '敢' to express daring or courage",
+      "example": "我不敢去",
+      "exampleTranslation": "I don't dare to go"
+    },
+    {
+      "pattern": "Subject + 舍得 + Verb",
+      "meaning": "willing to part with/to spend",
+      "usage": "Use '舍得' for willingness to sacrifice",
+      "example": "他舍得花钱",
+      "exampleTranslation": "He is willing to spend money"
+    },
+    {
+      "pattern": "Subject + 肯 + Verb",
+      "meaning": "willing to",
+      "usage": "Use '肯' to express willingness",
+      "example": "他不肯帮忙",
+      "exampleTranslation": "He is unwilling to help"
+    },
+    {
+      "pattern": "Subject + 愿意 + Verb",
+      "meaning": "willing to/would like to",
+      "usage": "Use '愿意' to express willingness",
+      "example": "我愿意等",
+      "exampleTranslation": "I'm willing to wait"
+    },
+    {
+      "pattern": "Subject + 打算 + Verb",
+      "meaning": "to plan to/intend to",
+      "usage": "Use '打算' for future plans",
+      "example": "我打算去旅游",
+      "exampleTranslation": "I plan to travel"
+    },
+    {
+      "pattern": "Subject + 准备 + Verb",
+      "meaning": "to prepare to/plan to",
+      "usage": "Use '准备' for preparations or plans",
+      "example": "我准备出发了",
+      "exampleTranslation": "I'm preparing to set off"
+    },
+    {
+      "pattern": "Subject + 决定 + Verb",
+      "meaning": "to decide to",
+      "usage": "Use '决定' for decisions",
+      "example": "我决定留下来",
+      "exampleTranslation": "I decided to stay"
+    },
+    {
+      "pattern": "Subject + 忘记 + Verb",
+      "meaning": "to forget to",
+      "usage": "Use '忘记' before verbs",
+      "example": "我忘记带了",
+      "exampleTranslation": "I forgot to bring it"
+    },
+    {
+      "pattern": "Subject + 记得 + Verb",
+      "meaning": "to remember to",
+      "usage": "Use '记得' before verbs",
+      "example": "记得关门",
+      "exampleTranslation": "Remember to close the door"
+    },
+    {
+      "pattern": "Subject + 尽量 + Verb",
+      "meaning": "try one's best to/as much as possible",
+      "usage": "Use '尽量' to express maximum effort",
+      "example": "尽量早点来",
+      "exampleTranslation": "Try to come as early as possible"
+    },
+    {
+      "pattern": "Subject + 尽快 + Verb",
+      "meaning": "as soon as possible",
+      "usage": "Use '尽快' for urgency",
+      "example": "请尽快回复",
+      "exampleTranslation": "Please reply as soon as possible"
+    },
+    {
+      "pattern": "Subject + 设法 + Verb",
+      "meaning": "to try to/find a way to",
+      "usage": "Use '设法' for making efforts",
+      "example": "我会设法解决",
+      "exampleTranslation": "I'll try to solve it"
+    },
+    {
+      "pattern": "Subject + 想法 + Verb",
+      "meaning": "to try to/think of a way to",
+      "usage": "Use '想法' (as a verb phrase) for seeking solutions",
+      "example": "我得想法帮他",
+      "exampleTranslation": "I must try to help him"
+    },
+    {
+      "pattern": "Subject + 只好 + Verb",
+      "meaning": "have to/have no choice but",
+      "usage": "Use '只好' for reluctant necessity",
+      "example": "我只好放弃",
+      "exampleTranslation": "I have no choice but to give up"
+    },
+    {
+      "pattern": "Subject + 宁可 + Verb",
+      "meaning": "would rather",
+      "usage": "Use '宁可' to express preference",
+      "example": "我宁可等",
+      "exampleTranslation": "I would rather wait"
+    },
+    {
+      "pattern": "Subject + 反而 + Verb",
+      "meaning": "on the contrary/instead",
+      "usage": "Use '反而' for contrary results",
+      "example": "他反而更生气了",
+      "exampleTranslation": "He became even angrier instead"
+    },
+    {
+      "pattern": "Subject + 反正 + Clause",
+      "meaning": "anyway/in any case",
+      "usage": "Use '反正' to express 'in any case'",
+      "example": "反正我不去",
+      "exampleTranslation": "I'm not going anyway"
+    },
+    {
+      "pattern": "Subject + 毕竟 + Clause",
+      "meaning": "after all",
+      "usage": "Use '毕竟' to provide reason or context",
+      "example": "他毕竟还是个孩子",
+      "exampleTranslation": "He is after all still a child"
+    },
+    {
+      "pattern": "Subject + 究竟 + Verb",
+      "meaning": "actually/exactly",
+      "usage": "Use '究竟' in statements to emphasize finding out",
+      "example": "我要看看究竟是怎么回事",
+      "exampleTranslation": "I want to see what exactly is going on"
+    },
+    {
+      "pattern": "Subject + 到底 + Verb",
+      "meaning": "finally/in the end",
+      "usage": "Use '到底' in statements for emphasis on outcome",
+      "example": "我到底明白了",
+      "exampleTranslation": "I finally understood"
+    },
+    {
+      "pattern": "Subject + 简直 + Adjective/Verb",
+      "meaning": "simply/practically",
+      "usage": "Use '简直' for exaggeration",
+      "example": "简直不敢相信",
+      "exampleTranslation": "Simply can't believe it"
+    },
+    {
+      "pattern": "Subject + 确实 + Adjective/Verb",
+      "meaning": "indeed/really",
+      "usage": "Use '确实' to confirm truth",
+      "example": "确实很好",
+      "exampleTranslation": "It's indeed very good"
+    },
+    {
+      "pattern": "Subject + 的确 + Adjective/Verb",
+      "meaning": "indeed/certainly",
+      "usage": "Use '的确' to emphasize truth (similar to 确实)",
+      "example": "他的确很聪明",
+      "exampleTranslation": "He is indeed very smart"
+    },
+    {
+      "pattern": "Subject + 其实 + Clause",
+      "meaning": "actually/in fact",
+      "usage": "Use '其实' to reveal true situation",
+      "example": "其实我不想去",
+      "exampleTranslation": "Actually I don't want to go"
+    },
+    {
+      "pattern": "Subject + 实际上 + Clause",
+      "meaning": "in reality/actually",
+      "usage": "Use '实际上' for contrasting reality with appearance",
+      "example": "实际上很简单",
+      "exampleTranslation": "In reality it's very simple"
+    },
+    {
+      "pattern": "Subject + 事实上 + Clause",
+      "meaning": "in fact/as a matter of fact",
+      "usage": "Use '事实上' to state facts",
+      "example": "事实上他没来",
+      "exampleTranslation": "In fact he didn't come"
+    },
+    {
+      "pattern": "Subject + 本来 + Verb",
+      "meaning": "originally/at first",
+      "usage": "Use '本来' for original state or intention",
+      "example": "我本来想去",
+      "exampleTranslation": "I originally wanted to go"
+    },
+    {
+      "pattern": "Subject + 原本 + Verb",
+      "meaning": "originally/initially",
+      "usage": "Use '原本' similar to '本来' (more formal)",
+      "example": "原本计划明天去",
+      "exampleTranslation": "Originally planned to go tomorrow"
+    },
+    {
+      "pattern": "Subject + 偶尔 + Verb",
+      "meaning": "occasionally/once in a while",
+      "usage": "Use '偶尔' for infrequent actions",
+      "example": "我偶尔去看电影",
+      "exampleTranslation": "I occasionally go to see movies"
+    },
+    {
+      "pattern": "Subject + 往往 + Verb",
+      "meaning": "often/usually",
+      "usage": "Use '往往' for general tendencies",
+      "example": "他往往很晚才睡",
+      "exampleTranslation": "He often goes to sleep very late"
+    },
+    {
+      "pattern": "Subject + 常常 + Verb",
+      "meaning": "often/frequently",
+      "usage": "Use '常常' for frequent actions",
+      "example": "我常常想起你",
+      "exampleTranslation": "I often think of you"
+    },
+    {
+      "pattern": "Subject + 通常 + Verb",
+      "meaning": "usually/generally",
+      "usage": "Use '通常' for usual patterns",
+      "example": "我通常七点起床",
+      "exampleTranslation": "I usually get up at seven"
+    },
+    {
+      "pattern": "Subject + 总是 + Verb",
+      "meaning": "always",
+      "usage": "Use '总是' for consistent actions",
+      "example": "他总是迟到",
+      "exampleTranslation": "He always arrives late"
+    },
+    {
+      "pattern": "Subject + 始终 + Verb",
+      "meaning": "always/all along",
+      "usage": "Use '始终' to emphasize consistency",
+      "example": "我始终支持你",
+      "exampleTranslation": "I always support you"
+    },
+    {
+      "pattern": "Subject + 从不 + Verb",
+      "meaning": "never",
+      "usage": "Use '从不' for things never done",
+      "example": "他从不抽烟",
+      "exampleTranslation": "He never smokes"
+    },
+    {
+      "pattern": "Subject + 难怪 + Clause",
+      "meaning": "no wonder",
+      "usage": "Use '难怪' to express understanding of cause",
+      "example": "难怪你这么累",
+      "exampleTranslation": "No wonder you're so tired"
+    },
+    {
+      "pattern": "Subject + 幸亏 + Clause",
+      "meaning": "fortunately/luckily",
+      "usage": "Use '幸亏' to express good fortune",
+      "example": "幸亏你来了",
+      "exampleTranslation": "Fortunately you came"
+    },
+    {
+      "pattern": "Subject + 难得 + Adjective/Verb",
+      "meaning": "rarely/seldom",
+      "usage": "Use '难得' for rare occurrences or opportunities",
+      "example": "难得有这样的机会",
+      "exampleTranslation": "It's rare to have such an opportunity"
+    },
+    {
+      "pattern": "与其...倒不如...",
+      "meaning": "rather than...it would be better to...",
+      "usage": "Use '与其...倒不如...' for strong preference",
+      "example": "与其等待，倒不如现在就去",
+      "exampleTranslation": "Rather than wait, it would be better to go now"
+    },
+    {
+      "pattern": "Subject + 至少 + Clause",
+      "meaning": "at least",
+      "usage": "Use '至少' for minimum amount",
+      "example": "至少要两个小时",
+      "exampleTranslation": "It takes at least two hours"
+    },
+    {
+      "pattern": "Subject + 至多 + Clause",
+      "meaning": "at most",
+      "usage": "Use '至多' for maximum amount",
+      "example": "至多十个人",
+      "exampleTranslation": "At most ten people"
+    },
+    {
+      "pattern": "Subject + 多亏 + Clause",
+      "meaning": "thanks to",
+      "usage": "Use '多亏' to express gratitude for help",
+      "example": "多亏你的帮助",
+      "exampleTranslation": "Thanks to your help"
+    },
+    {
+      "pattern": "Subject + 好在 + Clause",
+      "meaning": "fortunately",
+      "usage": "Use '好在' to express relief",
+      "example": "好在没有下雨",
+      "exampleTranslation": "Fortunately it didn't rain"
+    },
+    {
+      "pattern": "Subject + 难以 + Verb",
+      "meaning": "difficult to/hard to",
+      "usage": "Use '难以' for formal expression of difficulty",
+      "example": "难以相信",
+      "exampleTranslation": "hard to believe"
+    },
+    {
+      "pattern": "Subject + 无法 + Verb",
+      "meaning": "unable to/cannot",
+      "usage": "Use '无法' for impossibility (formal)",
+      "example": "无法接受",
+      "exampleTranslation": "unable to accept"
+    },
+    {
+      "pattern": "Subject + 足以 + Verb",
+      "meaning": "enough to/sufficient to",
+      "usage": "Use '足以' to express sufficiency",
+      "example": "足以证明",
+      "exampleTranslation": "enough to prove"
+    },
+    {
+      "pattern": "Subject + 何必 + Verb",
+      "meaning": "why bother/why must",
+      "usage": "Use '何必' in rhetorical questions about necessity",
+      "example": "何必这么认真?",
+      "exampleTranslation": "Why bother being so serious?"
+    },
+    {
+      "pattern": "Subject + 何况 + Clause",
+      "meaning": "let alone/much less",
+      "usage": "Use '何况' to add emphasis to argument",
+      "example": "我都不知道，何况你",
+      "exampleTranslation": "Even I don't know, let alone you"
+    },
+    {
+      "pattern": "Subject + 不然 + Clause",
+      "meaning": "otherwise",
+      "usage": "Use '不然' for alternative consequences",
+      "example": "快点，不然就迟到了",
+      "exampleTranslation": "Hurry up, otherwise we'll be late"
+    },
+    {
+      "pattern": "Subject + 否则 + Clause",
+      "meaning": "otherwise/or else",
+      "usage": "Use '否则' similar to '不然' (more formal)",
+      "example": "必须努力，否则会失败",
+      "exampleTranslation": "Must work hard, otherwise will fail"
+    },
+    {
+      "pattern": "Subject + 即使...也...",
+      "meaning": "even if...also...",
+      "usage": "Use '即使...也...' for hypothetical concession",
+      "example": "即使下雨，我也要去",
+      "exampleTranslation": "Even if it rains, I'll still go"
+    },
+    {
+      "pattern": "Subject + 哪怕...也...",
+      "meaning": "even if...still...",
+      "usage": "Use '哪怕...也...' for emphatic concession",
+      "example": "哪怕再难，也要坚持",
+      "exampleTranslation": "No matter how difficult, still must persist"
+    },
+    {
+      "pattern": "Subject + 尽管...但是...",
+      "meaning": "although...but...",
+      "usage": "Use '尽管...但是...' for formal concession",
+      "example": "尽管很累，但是很开心",
+      "exampleTranslation": "Although tired, but very happy"
+    },
+    {
+      "pattern": "Subject + 不论...都...",
+      "meaning": "no matter...all...",
+      "usage": "Use '不论...都...' for unconditional statements",
+      "example": "不论多忙，都要吃饭",
+      "exampleTranslation": "No matter how busy, must eat"
+    },
+    {
+      "pattern": "Subject + 无论如何",
+      "meaning": "no matter what/in any case",
+      "usage": "Use '无论如何' for absolute determination",
+      "example": "无论如何都要完成",
+      "exampleTranslation": "Must complete no matter what"
+    },
+    {
+      "pattern": "Subject + 由于 + Clause",
+      "meaning": "due to/because of",
+      "usage": "Use '由于' for formal causation",
+      "example": "由于下雨，活动取消了",
+      "exampleTranslation": "Due to rain, the event was canceled"
+    },
+    {
+      "pattern": "Subject + 因此 + Clause",
+      "meaning": "therefore/thus",
+      "usage": "Use '因此' for formal conclusion",
+      "example": "天气不好，因此不去了",
+      "exampleTranslation": "The weather is bad, therefore won't go"
+    },
+    {
+      "pattern": "Subject + 因而 + Clause",
+      "meaning": "thus/as a result",
+      "usage": "Use '因而' for result (formal, similar to 因此)",
+      "example": "他很努力，因而成功了",
+      "exampleTranslation": "He worked hard, thus succeeded"
+    },
+    {
+      "pattern": "Subject + 从而 + Clause",
+      "meaning": "thereby/thus",
+      "usage": "Use '从而' to show method leading to result",
+      "example": "改进方法，从而提高效率",
+      "exampleTranslation": "Improve methods, thereby increasing efficiency"
+    },
+    {
+      "pattern": "Subject + 以便 + Clause",
+      "meaning": "so that/in order to",
+      "usage": "Use '以便' to express purpose (formal)",
+      "example": "早点出发，以便准时到达",
+      "exampleTranslation": "Leave early, so that we arrive on time"
+    },
+    {
+      "pattern": "Subject + 以免 + Clause",
+      "meaning": "so as to avoid/lest",
+      "usage": "Use '以免' to avoid negative outcomes",
+      "example": "小心点，以免受伤",
+      "exampleTranslation": "Be careful, so as to avoid getting hurt"
+    },
+    {
+      "pattern": "Subject + 一旦 + Clause",
+      "meaning": "once/in case",
+      "usage": "Use '一旦' for conditional situations",
+      "example": "一旦决定就不要后悔",
+      "exampleTranslation": "Once decided, don't regret"
+    },
+    {
+      "pattern": "Subject + 万一 + Clause",
+      "meaning": "in case/if by chance",
+      "usage": "Use '万一' for unlikely possibilities",
+      "example": "万一下雨怎么办?",
+      "exampleTranslation": "What if it rains?"
+    },
+    {
+      "pattern": "Subject + 倘若 + Clause",
+      "meaning": "if/supposing",
+      "usage": "Use '倘若' for hypothetical conditions (formal)",
+      "example": "倘若你同意的话",
+      "exampleTranslation": "If you agree"
+    },
+    {
+      "pattern": "Subject + 假如 + Clause",
+      "meaning": "if/supposing",
+      "usage": "Use '假如' for hypothetical situations",
+      "example": "假如我是你",
+      "exampleTranslation": "If I were you"
+    },
+    {
+      "pattern": "Subject + 不如 + Verb/Adjective",
+      "meaning": "not as good as/might as well",
+      "usage": "Use '不如' for comparison or suggestion",
+      "example": "在家不如出去走走",
+      "exampleTranslation": "Rather than stay home, might as well go out for a walk"
+    },
+    {
+      "pattern": "Subject + 不仅仅 + Clause",
+      "meaning": "not only/not merely",
+      "usage": "Use '不仅仅' to introduce more than expected",
+      "example": "这不仅仅是钱的问题",
+      "exampleTranslation": "This is not merely a matter of money"
+    },
+    {
+      "pattern": "Subject + 不外乎 + Clause",
+      "meaning": "nothing but/no more than",
+      "usage": "Use '不外乎' to limit scope",
+      "example": "原因不外乎这几个",
+      "exampleTranslation": "The reasons are nothing but these few"
+    },
+    {
+      "pattern": "Subject + 并非 + Clause",
+      "meaning": "not really/not actually",
+      "usage": "Use '并非' for formal negation",
+      "example": "他并非不知道",
+      "exampleTranslation": "It's not that he doesn't know"
+    },
+    {
+      "pattern": "Subject + 并不 + Adjective/Verb",
+      "meaning": "not really/actually not",
+      "usage": "Use '并不' to negate assumptions",
+      "example": "并不困难",
+      "exampleTranslation": "not really difficult"
+    },
+    {
+      "pattern": "Subject + 未必 + Adjective/Verb",
+      "meaning": "not necessarily",
+      "usage": "Use '未必' to express uncertainty about assumption",
+      "example": "未必是真的",
+      "exampleTranslation": "not necessarily true"
+    },
+    {
+      "pattern": "Subject + 不见得 + Adjective/Verb",
+      "meaning": "not necessarily/not likely",
+      "usage": "Use '不见得' similar to '未必'",
+      "example": "不见得比我好",
+      "exampleTranslation": "not necessarily better than me"
+    },
+    {
+      "pattern": "Subject + 未免 + Adjective",
+      "meaning": "rather/a bit too",
+      "usage": "Use '未免' to express criticism or excess",
+      "example": "这未免太贵了",
+      "exampleTranslation": "This is rather too expensive"
+    },
+    {
+      "pattern": "Subject + 难道不 + Verb + 吗?",
+      "meaning": "isn't it...?/shouldn't...?",
+      "usage": "Use '难道不...吗' for emphatic rhetorical questions",
+      "example": "难道不应该道歉吗?",
+      "exampleTranslation": "Shouldn't you apologize?"
+    },
+    {
+      "pattern": "不是...吗?",
+      "meaning": "isn't it...? (rhetorical)",
+      "usage": "Use '不是...吗' for rhetorical confirmation",
+      "example": "这不是你的书吗?",
+      "exampleTranslation": "Isn't this your book?"
+    },
+    {
+      "pattern": "岂不是 + Clause",
+      "meaning": "wouldn't that be/isn't it",
+      "usage": "Use '岂不是' for rhetorical questions (literary)",
+      "example": "这岂不是很好吗?",
+      "exampleTranslation": "Wouldn't that be great?"
+    }
+  ]
+}

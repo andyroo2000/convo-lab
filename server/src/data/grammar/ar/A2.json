@@ -1,0 +1,567 @@
+{
+  "language": "ar",
+  "level": "A2",
+  "framework": "CEFR",
+  "grammarPoints": [
+    {
+      "pattern": "الفعل المضارع (المرفوع)",
+      "meaning": "Present tense verb (indicative mood)",
+      "usage": "Used to describe actions happening now or habitually",
+      "example": "أنا أدرس اللغة العربية",
+      "exampleTranslation": "I study the Arabic language"
+    },
+    {
+      "pattern": "الفعل الماضي",
+      "meaning": "Past tense verb",
+      "usage": "Used to describe completed actions in the past",
+      "example": "كتب الطالب الواجب",
+      "exampleTranslation": "The student wrote the homework"
+    },
+    {
+      "pattern": "الجملة الاسمية: المبتدأ + الخبر",
+      "meaning": "Nominal sentence: Subject + Predicate",
+      "usage": "Basic sentence structure without a verb",
+      "example": "الكتاب جديد",
+      "exampleTranslation": "The book is new"
+    },
+    {
+      "pattern": "الجملة الفعلية: فعل + فاعل + مفعول",
+      "meaning": "Verbal sentence: Verb + Subject + Object",
+      "usage": "Standard VSO word order in Arabic",
+      "example": "قرأ الولد القصة",
+      "exampleTranslation": "The boy read the story"
+    },
+    {
+      "pattern": "أل التعريف",
+      "meaning": "The definite article (al-)",
+      "usage": "Makes nouns definite",
+      "example": "البيت الكبير",
+      "exampleTranslation": "The big house"
+    },
+    {
+      "pattern": "الإضافة",
+      "meaning": "Possessive construction (idafa)",
+      "usage": "Noun + possessed noun to show possession",
+      "example": "كتاب الطالب",
+      "exampleTranslation": "The student's book"
+    },
+    {
+      "pattern": "الصفة والموصوف",
+      "meaning": "Adjective and described noun",
+      "usage": "Adjective follows and agrees with noun",
+      "example": "رجل طويل",
+      "exampleTranslation": "A tall man"
+    },
+    {
+      "pattern": "ضمائر المنفصلة",
+      "meaning": "Separate pronouns (subject pronouns)",
+      "usage": "Used as subjects of sentences",
+      "example": "أنا طالب",
+      "exampleTranslation": "I am a student"
+    },
+    {
+      "pattern": "ضمائر المتصلة",
+      "meaning": "Attached pronouns (possessive/object)",
+      "usage": "Suffixes indicating possession or objects",
+      "example": "كتابي",
+      "exampleTranslation": "My book"
+    },
+    {
+      "pattern": "أسماء الإشارة",
+      "meaning": "Demonstrative pronouns",
+      "usage": "This, that, these, those",
+      "example": "هذا بيت",
+      "exampleTranslation": "This is a house"
+    },
+    {
+      "pattern": "أدوات الاستفهام",
+      "meaning": "Question words",
+      "usage": "Used to form questions",
+      "example": "ما اسمك؟",
+      "exampleTranslation": "What is your name?"
+    },
+    {
+      "pattern": "حروف الجر",
+      "meaning": "Prepositions",
+      "usage": "Show relationships between words",
+      "example": "ذهبت إلى المدرسة",
+      "exampleTranslation": "I went to the school"
+    },
+    {
+      "pattern": "النفي بـ لا",
+      "meaning": "Negation with 'la'",
+      "usage": "Negates present tense verbs",
+      "example": "لا أفهم",
+      "exampleTranslation": "I don't understand"
+    },
+    {
+      "pattern": "النفي بـ ما",
+      "meaning": "Negation with 'ma'",
+      "usage": "Negates past tense verbs",
+      "example": "ما فهمت",
+      "exampleTranslation": "I didn't understand"
+    },
+    {
+      "pattern": "النفي بـ ليس",
+      "meaning": "Negation with 'laysa'",
+      "usage": "Negates nominal sentences",
+      "example": "ليس الكتاب جديدا",
+      "exampleTranslation": "The book is not new"
+    },
+    {
+      "pattern": "المثنى",
+      "meaning": "Dual form",
+      "usage": "Used for exactly two of something",
+      "example": "كتابان",
+      "exampleTranslation": "Two books"
+    },
+    {
+      "pattern": "الجمع المذكر السالم",
+      "meaning": "Sound masculine plural",
+      "usage": "Regular masculine plural ending in -ūn/-īn",
+      "example": "معلمون",
+      "exampleTranslation": "Teachers (masculine)"
+    },
+    {
+      "pattern": "الجمع المؤنث السالم",
+      "meaning": "Sound feminine plural",
+      "usage": "Regular feminine plural ending in -āt",
+      "example": "معلمات",
+      "exampleTranslation": "Teachers (feminine)"
+    },
+    {
+      "pattern": "جمع التكسير",
+      "meaning": "Broken plural",
+      "usage": "Irregular plural with internal vowel changes",
+      "example": "كتب (جمع كتاب)",
+      "exampleTranslation": "Books (plural of book)"
+    },
+    {
+      "pattern": "الأعداد 1-10",
+      "meaning": "Numbers 1-10",
+      "usage": "Basic counting",
+      "example": "خمسة كتب",
+      "exampleTranslation": "Five books"
+    },
+    {
+      "pattern": "كان وأخواتها",
+      "meaning": "'Kana' and its sisters",
+      "usage": "Verbs that enter upon nominal sentences",
+      "example": "كان الطقس باردا",
+      "exampleTranslation": "The weather was cold"
+    },
+    {
+      "pattern": "إن وأخواتها",
+      "meaning": "'Inna' and its sisters",
+      "usage": "Particles that enter upon nominal sentences",
+      "example": "إن الدرس سهل",
+      "exampleTranslation": "Indeed, the lesson is easy"
+    },
+    {
+      "pattern": "الفعل الأمر",
+      "meaning": "Imperative verb",
+      "usage": "Commands and requests",
+      "example": "اكتب الدرس",
+      "exampleTranslation": "Write the lesson"
+    },
+    {
+      "pattern": "المصدر",
+      "meaning": "Verbal noun (masdar)",
+      "usage": "Noun derived from verb root",
+      "example": "الكتابة مهمة",
+      "exampleTranslation": "Writing is important"
+    },
+    {
+      "pattern": "اسم الفاعل",
+      "meaning": "Active participle",
+      "usage": "Describes the doer of an action",
+      "example": "كاتب",
+      "exampleTranslation": "Writer"
+    },
+    {
+      "pattern": "اسم المفعول",
+      "meaning": "Passive participle",
+      "usage": "Describes what the action is done to",
+      "example": "مكتوب",
+      "exampleTranslation": "Written"
+    },
+    {
+      "pattern": "الظرف الزماني",
+      "meaning": "Temporal adverb",
+      "usage": "Indicates when an action occurs",
+      "example": "ذهبت صباحا",
+      "exampleTranslation": "I went in the morning"
+    },
+    {
+      "pattern": "الظرف المكاني",
+      "meaning": "Spatial adverb",
+      "usage": "Indicates where an action occurs",
+      "example": "جلست هنا",
+      "exampleTranslation": "I sat here"
+    },
+    {
+      "pattern": "أفعل التفضيل",
+      "meaning": "Comparative/superlative form",
+      "usage": "Comparing things or expressing extremes",
+      "example": "هذا أكبر",
+      "exampleTranslation": "This is bigger"
+    },
+    {
+      "pattern": "المنادى",
+      "meaning": "Vocative (calling someone)",
+      "usage": "Calling or addressing someone",
+      "example": "يا محمد",
+      "exampleTranslation": "O Muhammad"
+    },
+    {
+      "pattern": "التعجب",
+      "meaning": "Exclamation",
+      "usage": "Expressing wonder or amazement",
+      "example": "ما أجمل الطبيعة!",
+      "exampleTranslation": "How beautiful nature is!"
+    },
+    {
+      "pattern": "الحال",
+      "meaning": "Circumstantial qualifier (haal)",
+      "usage": "Describes the state during an action",
+      "example": "جاء الطالب راكضا",
+      "exampleTranslation": "The student came running"
+    },
+    {
+      "pattern": "التمييز",
+      "meaning": "Specification (tamyeez)",
+      "usage": "Specifies or clarifies ambiguous nouns",
+      "example": "اشتريت كيلو تفاحا",
+      "exampleTranslation": "I bought a kilogram of apples"
+    },
+    {
+      "pattern": "المفعول به",
+      "meaning": "Direct object",
+      "usage": "The receiver of the verb's action",
+      "example": "قرأت الكتاب",
+      "exampleTranslation": "I read the book"
+    },
+    {
+      "pattern": "المفعول المطلق",
+      "meaning": "Cognate accusative",
+      "usage": "Emphasizes the verb using its masdar",
+      "example": "ضربته ضربا شديدا",
+      "exampleTranslation": "I hit him severely"
+    },
+    {
+      "pattern": "المفعول لأجله",
+      "meaning": "Object of purpose",
+      "usage": "Explains why an action was done",
+      "example": "جئت رغبة في التعلم",
+      "exampleTranslation": "I came desiring to learn"
+    },
+    {
+      "pattern": "المفعول معه",
+      "meaning": "Concomitant object",
+      "usage": "What accompanies an action (with 'wa')",
+      "example": "سرت والنيل",
+      "exampleTranslation": "I walked alongside the Nile"
+    },
+    {
+      "pattern": "العطف",
+      "meaning": "Coordination",
+      "usage": "Connecting words with conjunctions",
+      "example": "أحمد ومحمد",
+      "exampleTranslation": "Ahmad and Muhammad"
+    },
+    {
+      "pattern": "البدل",
+      "meaning": "Apposition",
+      "usage": "A noun that clarifies another noun",
+      "example": "صديقي أحمد",
+      "exampleTranslation": "My friend Ahmad"
+    },
+    {
+      "pattern": "النعت",
+      "meaning": "Adjectival phrase",
+      "usage": "Extended description of nouns",
+      "example": "الرجل الطويل القوي",
+      "exampleTranslation": "The tall strong man"
+    },
+    {
+      "pattern": "التوكيد",
+      "meaning": "Emphasis",
+      "usage": "Emphasizing words with particles or repetition",
+      "example": "جاء الرئيس نفسه",
+      "exampleTranslation": "The president himself came"
+    },
+    {
+      "pattern": "الاستثناء",
+      "meaning": "Exception",
+      "usage": "Excluding something using 'illa' (except)",
+      "example": "جاء الطلاب إلا أحمد",
+      "exampleTranslation": "The students came except Ahmad"
+    },
+    {
+      "pattern": "أسلوب الشرط",
+      "meaning": "Conditional sentences",
+      "usage": "If-then constructions",
+      "example": "إن تدرس تنجح",
+      "exampleTranslation": "If you study, you will succeed"
+    },
+    {
+      "pattern": "الفعل المضارع المنصوب",
+      "meaning": "Present tense in subjunctive mood",
+      "usage": "After particles like 'an', 'lan', 'li'",
+      "example": "لن أذهب",
+      "exampleTranslation": "I will not go"
+    },
+    {
+      "pattern": "الفعل المضارع المجزوم",
+      "meaning": "Present tense in jussive mood",
+      "usage": "After particles like 'lam', 'laa' (negative command)",
+      "example": "لم أفهم",
+      "exampleTranslation": "I did not understand"
+    },
+    {
+      "pattern": "الفعل المبني للمجهول",
+      "meaning": "Passive voice",
+      "usage": "When the doer is unknown or unimportant",
+      "example": "كُتِبَ الدرس",
+      "exampleTranslation": "The lesson was written"
+    },
+    {
+      "pattern": "أسماء الموصولة",
+      "meaning": "Relative pronouns",
+      "usage": "Connect clauses: who, which, that",
+      "example": "الرجل الذي جاء",
+      "exampleTranslation": "The man who came"
+    },
+    {
+      "pattern": "الفعل الثلاثي المجرد",
+      "meaning": "Triliteral root verb",
+      "usage": "Basic three-letter root verbs",
+      "example": "كَتَبَ",
+      "exampleTranslation": "He wrote"
+    },
+    {
+      "pattern": "الفعل الثلاثي المزيد",
+      "meaning": "Augmented triliteral verb",
+      "usage": "Three-letter roots with additions",
+      "example": "أَكْرَمَ",
+      "exampleTranslation": "He honored"
+    },
+    {
+      "pattern": "الفعل الرباعي",
+      "meaning": "Quadriliteral verb",
+      "usage": "Four-letter root verbs",
+      "example": "تَرْجَمَ",
+      "exampleTranslation": "He translated"
+    },
+    {
+      "pattern": "المضارع المستمر",
+      "meaning": "Present continuous tense",
+      "usage": "Ongoing actions in the present",
+      "example": "أنا أكتب الآن",
+      "exampleTranslation": "I am writing now"
+    },
+    {
+      "pattern": "المستقبل بـ سوف/س",
+      "meaning": "Future tense with sawfa/sa",
+      "usage": "Actions that will happen",
+      "example": "سوف أسافر غدا",
+      "exampleTranslation": "I will travel tomorrow"
+    },
+    {
+      "pattern": "كاد وأخواتها",
+      "meaning": "Verbs of proximity",
+      "usage": "Indicating something almost happened",
+      "example": "كاد المطر يسقط",
+      "exampleTranslation": "The rain almost fell"
+    },
+    {
+      "pattern": "أفعال المقاربة",
+      "meaning": "Verbs of approach/beginning/hoping",
+      "usage": "Express proximity to action, beginning, or hope",
+      "example": "عسى أن ينجح",
+      "exampleTranslation": "Perhaps he will succeed"
+    },
+    {
+      "pattern": "أسلوب الاستفهام",
+      "meaning": "Interrogative style",
+      "usage": "Various ways to ask questions",
+      "example": "أين تسكن؟",
+      "exampleTranslation": "Where do you live?"
+    },
+    {
+      "pattern": "أسلوب الأمر والنهي",
+      "meaning": "Command and prohibition",
+      "usage": "Giving orders or forbidding actions",
+      "example": "لا تتكلم بصوت عال",
+      "exampleTranslation": "Don't speak loudly"
+    },
+    {
+      "pattern": "الجملة الشرطية بـ إذا",
+      "meaning": "Conditional with 'idha'",
+      "usage": "Real/probable conditions",
+      "example": "إذا جاء محمد سنذهب",
+      "exampleTranslation": "If Muhammad comes, we will go"
+    },
+    {
+      "pattern": "الجملة الشرطية بـ لو",
+      "meaning": "Conditional with 'law'",
+      "usage": "Unreal/hypothetical conditions",
+      "example": "لو درست لنجحت",
+      "exampleTranslation": "If you had studied, you would have succeeded"
+    },
+    {
+      "pattern": "أدوات الربط",
+      "meaning": "Linking words/connectors",
+      "usage": "Connect ideas and sentences",
+      "example": "ذهبت إلى السوق ثم إلى البيت",
+      "exampleTranslation": "I went to the market then to the house"
+    },
+    {
+      "pattern": "الضمائر المستترة",
+      "meaning": "Hidden pronouns",
+      "usage": "Implied subject pronouns in verbs",
+      "example": "يكتب (هو مستتر)",
+      "exampleTranslation": "He writes (implied 'he')"
+    },
+    {
+      "pattern": "أسلوب القسم",
+      "meaning": "Oath/swearing",
+      "usage": "Making oaths or strong affirmations",
+      "example": "والله لأدرسن",
+      "exampleTranslation": "By God, I will study"
+    },
+    {
+      "pattern": "أسلوب المدح والذم",
+      "meaning": "Praise and dispraise",
+      "usage": "Expressing praise or criticism",
+      "example": "نعم الرجل محمد",
+      "exampleTranslation": "What an excellent man Muhammad is"
+    },
+    {
+      "pattern": "اسم التفضيل المضاف",
+      "meaning": "Comparative/superlative with idafa",
+      "usage": "Most/best + noun construction",
+      "example": "أفضل طالب",
+      "exampleTranslation": "The best student"
+    },
+    {
+      "pattern": "الاسم المنقوص",
+      "meaning": "Defective noun",
+      "usage": "Nouns ending in ي preceded by kasra",
+      "example": "القاضي",
+      "exampleTranslation": "The judge"
+    },
+    {
+      "pattern": "الاسم المقصور",
+      "meaning": "Shortened noun",
+      "usage": "Nouns ending in alif",
+      "example": "الفتى",
+      "exampleTranslation": "The young man"
+    },
+    {
+      "pattern": "الاسم الممدود",
+      "meaning": "Extended noun",
+      "usage": "Nouns ending in hamza after alif",
+      "example": "الصحراء",
+      "exampleTranslation": "The desert"
+    },
+    {
+      "pattern": "الممنوع من الصرف",
+      "meaning": "Diptote (non-nunated)",
+      "usage": "Nouns that don't take tanween",
+      "example": "إبراهيم",
+      "exampleTranslation": "Ibrahim"
+    },
+    {
+      "pattern": "العدد والمعدود",
+      "meaning": "Number and counted noun agreement",
+      "usage": "Complex rules for numbers 11-99",
+      "example": "أحد عشر كتابا",
+      "exampleTranslation": "Eleven books"
+    },
+    {
+      "pattern": "الفعل المتعدي واللازم",
+      "meaning": "Transitive and intransitive verbs",
+      "usage": "Verbs that take objects vs. those that don't",
+      "example": "جلس الطالب (لازم)",
+      "exampleTranslation": "The student sat (intransitive)"
+    },
+    {
+      "pattern": "التصغير",
+      "meaning": "Diminutive form",
+      "usage": "Making nouns smaller or showing affection",
+      "example": "كُتَيِّب",
+      "exampleTranslation": "Little book, booklet"
+    },
+    {
+      "pattern": "النسب",
+      "meaning": "Relative adjective (nisba)",
+      "usage": "Adjectives indicating origin or relation",
+      "example": "مصري (من مصر)",
+      "exampleTranslation": "Egyptian (from Egypt)"
+    },
+    {
+      "pattern": "الوصل والفصل",
+      "meaning": "Conjunction and separation in writing",
+      "usage": "Rules for connecting or separating letters",
+      "example": "بسم الله (وصل)",
+      "exampleTranslation": "In the name of God (connected)"
+    },
+    {
+      "pattern": "همزة القطع والوصل",
+      "meaning": "Hamzat al-qat' and hamzat al-wasl",
+      "usage": "Rules for initial hamza pronunciation",
+      "example": "إبراهيم - ابن",
+      "exampleTranslation": "Ibrahim - son"
+    },
+    {
+      "pattern": "التاء المربوطة والمفتوحة",
+      "meaning": "Ta marbuta vs ta maftuha",
+      "usage": "Distinguishing between different ta forms",
+      "example": "مدرسة - بيت",
+      "exampleTranslation": "school - house"
+    },
+    {
+      "pattern": "الألف اللينة",
+      "meaning": "Alif layyina (soft alif)",
+      "usage": "Final alif in verbs and nouns",
+      "example": "مشى - عصا",
+      "exampleTranslation": "walked - stick"
+    },
+    {
+      "pattern": "الألف المقصورة والممدودة",
+      "meaning": "Shortened vs extended alif",
+      "usage": "Different forms of final alif",
+      "example": "الفتى - السماء",
+      "exampleTranslation": "the young man - the sky"
+    },
+    {
+      "pattern": "أسلوب التعجب",
+      "meaning": "Exclamation constructions",
+      "usage": "Expressing amazement",
+      "example": "ما أجمل السماء!",
+      "exampleTranslation": "How beautiful the sky is!"
+    },
+    {
+      "pattern": "أسلوب الترجي",
+      "meaning": "Expressing hope",
+      "usage": "Hoping for something to happen",
+      "example": "لعل المطر ينزل",
+      "exampleTranslation": "Hopefully the rain will fall"
+    },
+    {
+      "pattern": "أسلوب التشبيه",
+      "meaning": "Simile/comparison",
+      "usage": "Comparing two things",
+      "example": "محمد كالأسد في الشجاعة",
+      "exampleTranslation": "Muhammad is like a lion in courage"
+    },
+    {
+      "pattern": "أسلوب الاستعارة",
+      "meaning": "Metaphor",
+      "usage": "Implicit comparison",
+      "example": "رأيت أسدا في المعركة",
+      "exampleTranslation": "I saw a lion (brave man) in battle"
+    }
+  ]
+}
