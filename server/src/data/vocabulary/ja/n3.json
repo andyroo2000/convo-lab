@@ -1,0 +1,307 @@
+{
+  "language": "ja",
+  "level": "N3",
+  "framework": "JLPT",
+  "vocabulary": [
+    {
+      "word": "経験する",
+      "reading": "けいけんする",
+      "translation": "to experience",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "努力する",
+      "reading": "どりょくする",
+      "translation": "to make an effort",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "準備する",
+      "reading": "じゅんびする",
+      "translation": "to prepare",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "確認する",
+      "reading": "かくにんする",
+      "translation": "to confirm",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "説明する",
+      "reading": "せつめいする",
+      "translation": "to explain",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "相談する",
+      "reading": "そうだんする",
+      "translation": "to consult",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "連絡する",
+      "reading": "れんらくする",
+      "translation": "to contact",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "予約する",
+      "reading": "よやくする",
+      "translation": "to reserve",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "申し込む",
+      "reading": "もうしこむ",
+      "translation": "to apply",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "断る",
+      "reading": "ことわる",
+      "translation": "to refuse/decline",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "謝る",
+      "reading": "あやまる",
+      "translation": "to apologize",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "褒める",
+      "reading": "ほめる",
+      "translation": "to praise",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "叱る",
+      "reading": "しかる",
+      "translation": "to scold",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "増える",
+      "reading": "ふえる",
+      "translation": "to increase",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "減る",
+      "reading": "へる",
+      "translation": "to decrease",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "直す",
+      "reading": "なおす",
+      "translation": "to fix/correct",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "慣れる",
+      "reading": "なれる",
+      "translation": "to get used to",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "続ける",
+      "reading": "つづける",
+      "translation": "to continue",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "止める",
+      "reading": "やめる",
+      "translation": "to stop/quit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "経済",
+      "reading": "けいざい",
+      "translation": "economy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "政治",
+      "reading": "せいじ",
+      "translation": "politics",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "社会",
+      "reading": "しゃかい",
+      "translation": "society",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "文化",
+      "reading": "ぶんか",
+      "translation": "culture",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "伝統",
+      "reading": "でんとう",
+      "translation": "tradition",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "習慣",
+      "reading": "しゅうかん",
+      "translation": "custom/habit",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "規則",
+      "reading": "きそく",
+      "translation": "rule",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "法律",
+      "reading": "ほうりつ",
+      "translation": "law",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "権利",
+      "reading": "けんり",
+      "translation": "right",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "義務",
+      "reading": "ぎむ",
+      "translation": "duty/obligation",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "機会",
+      "reading": "きかい",
+      "translation": "opportunity",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "条件",
+      "reading": "じょうけん",
+      "translation": "condition",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "状況",
+      "reading": "じょうきょう",
+      "translation": "situation",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "環境",
+      "reading": "かんきょう",
+      "translation": "environment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "影響",
+      "reading": "えいきょう",
+      "translation": "influence",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "原因",
+      "reading": "げんいん",
+      "translation": "cause",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "結果",
+      "reading": "けっか",
+      "translation": "result",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "効果",
+      "reading": "こうか",
+      "translation": "effect",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "利用",
+      "reading": "りよう",
+      "translation": "use/utilization",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "必要",
+      "reading": "ひつよう",
+      "translation": "necessary",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "十分",
+      "reading": "じゅうぶん",
+      "translation": "sufficient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "不十分",
+      "reading": "ふじゅうぶん",
+      "translation": "insufficient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "適当",
+      "reading": "てきとう",
+      "translation": "appropriate",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "正確",
+      "reading": "せいかく",
+      "translation": "accurate",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "明確",
+      "reading": "めいかく",
+      "translation": "clear",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "曖昧",
+      "reading": "あいまい",
+      "translation": "ambiguous",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "丁寧",
+      "reading": "ていねい",
+      "translation": "polite/careful",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "真面目",
+      "reading": "まじめ",
+      "translation": "serious/earnest",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "素直",
+      "reading": "すなお",
+      "translation": "honest/obedient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "勝手",
+      "reading": "かって",
+      "translation": "selfish",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "自由",
+      "reading": "じゆう",
+      "translation": "free",
+      "partOfSpeech": "な-adjective"
+    }
+  ]
+}

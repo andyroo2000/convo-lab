@@ -1,0 +1,307 @@
+{
+  "language": "ja",
+  "level": "N4",
+  "framework": "JLPT",
+  "vocabulary": [
+    {
+      "word": "勉強する",
+      "reading": "べんきょうする",
+      "translation": "to study",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "働く",
+      "reading": "はたらく",
+      "translation": "to work",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "住む",
+      "reading": "すむ",
+      "translation": "to live/reside",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "乗る",
+      "reading": "のる",
+      "translation": "to ride/get on",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "降りる",
+      "reading": "おりる",
+      "translation": "to get off/descend",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "始まる",
+      "reading": "はじまる",
+      "translation": "to begin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "終わる",
+      "reading": "おわる",
+      "translation": "to end",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "覚える",
+      "reading": "おぼえる",
+      "translation": "to memorize/remember",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "忘れる",
+      "reading": "わすれる",
+      "translation": "to forget",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "探す",
+      "reading": "さがす",
+      "translation": "to search for",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "見つける",
+      "reading": "みつける",
+      "translation": "to find",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "答える",
+      "reading": "こたえる",
+      "translation": "to answer",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "質問する",
+      "reading": "しつもんする",
+      "translation": "to ask a question",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "会社",
+      "reading": "かいしゃ",
+      "translation": "company",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "大学",
+      "reading": "だいがく",
+      "translation": "university",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "病院",
+      "reading": "びょういん",
+      "translation": "hospital",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "銀行",
+      "reading": "ぎんこう",
+      "translation": "bank",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "駅",
+      "reading": "えき",
+      "translation": "station",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "空港",
+      "reading": "くうこう",
+      "translation": "airport",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "公園",
+      "reading": "こうえん",
+      "translation": "park",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "図書館",
+      "reading": "としょかん",
+      "translation": "library",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "天気",
+      "reading": "てんき",
+      "translation": "weather",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "季節",
+      "reading": "きせつ",
+      "translation": "season",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "旅行",
+      "reading": "りょこう",
+      "translation": "travel/trip",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "写真",
+      "reading": "しゃしん",
+      "translation": "photograph",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "趣味",
+      "reading": "しゅみ",
+      "translation": "hobby",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "運動",
+      "reading": "うんどう",
+      "translation": "exercise",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "便利",
+      "reading": "べんり",
+      "translation": "convenient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "不便",
+      "reading": "ふべん",
+      "translation": "inconvenient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "簡単",
+      "reading": "かんたん",
+      "translation": "simple/easy",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "複雑",
+      "reading": "ふくざつ",
+      "translation": "complicated",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "静か",
+      "reading": "しずか",
+      "translation": "quiet",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "賑やか",
+      "reading": "にぎやか",
+      "translation": "lively/bustling",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "有名",
+      "reading": "ゆうめい",
+      "translation": "famous",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "親切",
+      "reading": "しんせつ",
+      "translation": "kind",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "元気",
+      "reading": "げんき",
+      "translation": "energetic/healthy",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "暖かい",
+      "reading": "あたたかい",
+      "translation": "warm",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "涼しい",
+      "reading": "すずしい",
+      "translation": "cool",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "暑い",
+      "reading": "あつい",
+      "translation": "hot",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "寒い",
+      "reading": "さむい",
+      "translation": "cold",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "若い",
+      "reading": "わかい",
+      "translation": "young",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "重い",
+      "reading": "おもい",
+      "translation": "heavy",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "軽い",
+      "reading": "かるい",
+      "translation": "light",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "太い",
+      "reading": "ふとい",
+      "translation": "thick/fat",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "細い",
+      "reading": "ほそい",
+      "translation": "thin/slender",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "強い",
+      "reading": "つよい",
+      "translation": "strong",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "弱い",
+      "reading": "よわい",
+      "translation": "weak",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "長い",
+      "reading": "ながい",
+      "translation": "long",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "短い",
+      "reading": "みじかい",
+      "translation": "short",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "広い",
+      "reading": "ひろい",
+      "translation": "wide/spacious",
+      "partOfSpeech": "い-adjective"
+    }
+  ]
+}

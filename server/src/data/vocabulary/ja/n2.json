@@ -1,0 +1,307 @@
+{
+  "language": "ja",
+  "level": "N2",
+  "framework": "JLPT",
+  "vocabulary": [
+    {
+      "word": "実施する",
+      "reading": "じっしする",
+      "translation": "to implement",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "達成する",
+      "reading": "たっせいする",
+      "translation": "to achieve",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "維持する",
+      "reading": "いじする",
+      "translation": "to maintain",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "促進する",
+      "reading": "そくしんする",
+      "translation": "to promote",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "抑制する",
+      "reading": "よくせいする",
+      "translation": "to suppress/restrain",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "克服する",
+      "reading": "こくふくする",
+      "translation": "to overcome",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "貢献する",
+      "reading": "こうけんする",
+      "translation": "to contribute",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "対処する",
+      "reading": "たいしょする",
+      "translation": "to deal with",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "把握する",
+      "reading": "はあくする",
+      "translation": "to grasp/understand",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "認識する",
+      "reading": "にんしきする",
+      "translation": "to recognize",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "区別する",
+      "reading": "くべつする",
+      "translation": "to distinguish",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "比較する",
+      "reading": "ひかくする",
+      "translation": "to compare",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "評価する",
+      "reading": "ひょうかする",
+      "translation": "to evaluate",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "批判する",
+      "reading": "ひはんする",
+      "translation": "to criticize",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "妨げる",
+      "reading": "さまたげる",
+      "translation": "to hinder",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "補う",
+      "reading": "おぎなう",
+      "translation": "to supplement",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "省く",
+      "reading": "はぶく",
+      "translation": "to omit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "費やす",
+      "reading": "ついやす",
+      "translation": "to spend (time/money)",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "尽くす",
+      "reading": "つくす",
+      "translation": "to exhaust/devote oneself",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "背景",
+      "reading": "はいけい",
+      "translation": "background",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "観点",
+      "reading": "かんてん",
+      "translation": "viewpoint",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "見解",
+      "reading": "けんかい",
+      "translation": "opinion/view",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "方針",
+      "reading": "ほうしん",
+      "translation": "policy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "傾向",
+      "reading": "けいこう",
+      "translation": "tendency",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "動向",
+      "reading": "どうこう",
+      "translation": "trend",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "課題",
+      "reading": "かだい",
+      "translation": "task/issue",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "障害",
+      "reading": "しょうがい",
+      "translation": "obstacle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "欠点",
+      "reading": "けってん",
+      "translation": "defect/fault",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "長所",
+      "reading": "ちょうしょ",
+      "translation": "strong point",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "特徴",
+      "reading": "とくちょう",
+      "translation": "characteristic",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "性質",
+      "reading": "せいしつ",
+      "translation": "nature/property",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "要素",
+      "reading": "ようそ",
+      "translation": "element",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "基準",
+      "reading": "きじゅん",
+      "translation": "standard/criterion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "尺度",
+      "reading": "しゃくど",
+      "translation": "scale/measure",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "範囲",
+      "reading": "はんい",
+      "translation": "range/scope",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "限度",
+      "reading": "げんど",
+      "translation": "limit",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "程度",
+      "reading": "ていど",
+      "translation": "degree/extent",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "割合",
+      "reading": "わりあい",
+      "translation": "proportion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "顕著",
+      "reading": "けんちょ",
+      "translation": "remarkable",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "著しい",
+      "reading": "いちじるしい",
+      "translation": "remarkable",
+      "partOfSpeech": "い-adjective"
+    },
+    {
+      "word": "顕在",
+      "reading": "けんざい",
+      "translation": "obvious/apparent",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "潜在",
+      "reading": "せんざい",
+      "translation": "latent",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "抽象的",
+      "reading": "ちゅうしょうてき",
+      "translation": "abstract",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "具体的",
+      "reading": "ぐたいてき",
+      "translation": "concrete",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "客観的",
+      "reading": "きゃっかんてき",
+      "translation": "objective",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "主観的",
+      "reading": "しゅかんてき",
+      "translation": "subjective",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "効率的",
+      "reading": "こうりつてき",
+      "translation": "efficient",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "合理的",
+      "reading": "ごうりてき",
+      "translation": "rational",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "一時的",
+      "reading": "いちじてき",
+      "translation": "temporary",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "永続的",
+      "reading": "えいぞくてき",
+      "translation": "permanent",
+      "partOfSpeech": "な-adjective"
+    }
+  ]
+}
