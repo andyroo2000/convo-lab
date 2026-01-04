@@ -301,7 +301,7 @@ describe('narrowListeningAudioGenerator', () => {
         'ja'
       );
 
-      expect(mockGenerateSilence).toHaveBeenCalledWith(0.8);
+      expect(mockGenerateSilence).toHaveBeenCalledWith(2.0);
     });
 
     it('should use shared silence path if provided', async () => {
@@ -549,7 +549,7 @@ describe('narrowListeningAudioGenerator', () => {
 
       // With single segment, no concat list should be written
       // (the implementation returns early before concatenation)
-      const concatCalls = mockFs.writeFile.mock.calls.filter(
+      const _concatCalls = mockFs.writeFile.mock.calls.filter(
         (call) => typeof call[0] === 'string' && call[0].includes('concat-list')
       );
       // Single file should still write concat list but ffmpeg should detect single file

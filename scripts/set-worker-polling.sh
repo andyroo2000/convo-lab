@@ -3,8 +3,8 @@
 # Script to adjust worker polling frequency on Cloud Run
 # Usage: ./scripts/set-worker-polling.sh [delay-in-ms]
 # Examples:
-#   ./scripts/set-worker-polling.sh 5000     # Fast (testing mode)
-#   ./scripts/set-worker-polling.sh 30000    # Balanced
+#   ./scripts/set-worker-polling.sh 5000     # Fast & responsive (recommended for fixed Upstash plan)
+#   ./scripts/set-worker-polling.sh 30000    # Balanced (cost-effective for pay-as-you-go)
 #   ./scripts/set-worker-polling.sh 300000   # Idle mode (5 minutes)
 
 set -e
@@ -23,9 +23,14 @@ gcloud run services update ${SERVICE_NAME} \
 echo "✅ Updated! Cloud Run will automatically restart with new setting."
 echo ""
 echo "Polling frequency guide:"
-echo "  5000ms (5s)     = ~103K cmds/day (~\$15/mo) - Use for active testing"
-echo "  30000ms (30s)   = ~17K cmds/day (~\$3-5/mo) - Balanced default"
-echo "  60000ms (60s)   = ~8.6K cmds/day (free tier) - Efficient"
-echo "  300000ms (5min) = ~1.7K cmds/day (minimal)   - Idle mode"
+echo ""
+echo "For Fixed Upstash Plan (\$10/mo with unlimited commands):"
+echo "  5000ms (5s)     = Fast & responsive (recommended)"
+echo "  30000ms (30s)   = Slower but still works"
+echo ""
+echo "For Pay-as-You-Go Upstash Plan (\$0.20 per 100K commands):"
+echo "  30000ms (30s)   = ~17K cmds/day (~\$3-5/mo) - Balanced"
+echo "  60000ms (60s)   = ~8.6K cmds/day - More efficient"
+echo "  300000ms (5min) = ~1.7K cmds/day - Idle mode"
 echo ""
 echo "Current setting: ${DELAY}ms"

@@ -20,7 +20,12 @@
     "strictNullChecks": false,
     "strictPropertyInitialization": false,
     "noImplicitThis": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/src/*"],
+      "@languageflow/shared/*": ["../shared/*"]
+    }
   },
   "include": ["src/**/*", "../shared/src/**/*"],
   "exclude": ["src/**/*.test.ts", "src/**/__tests__/**/*", "src/__tests__/**/*"]

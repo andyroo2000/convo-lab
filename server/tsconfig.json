@@ -19,7 +19,8 @@
     "noFallthroughCasesInSwitch": true,
     "paths": {
       "@/*": ["./src/*"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/src/*"],
+      "@languageflow/shared/*": ["../shared/*"]
     }
   },
   "include": ["src/**/*", "*.ts"],
