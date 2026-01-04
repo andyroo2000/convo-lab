@@ -9,7 +9,7 @@ FROM base AS shared-builder
 WORKDIR /app/shared
 COPY shared/package*.json ./
 COPY shared/tsconfig.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 COPY shared/src ./src
 RUN npm run build || true
 
@@ -26,7 +26,7 @@ COPY --from=shared-builder /app/shared ./shared
 # Copy client files
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 
 # Copy client source and build
 COPY client/ ./
@@ -57,7 +57,7 @@ COPY --from=shared-builder /app/shared ./shared
 WORKDIR /app/server
 COPY server/package*.json ./
 COPY server/tsconfig*.json ./
-RUN npm install
+RUN npm install --ignore-scripts
 
 # Copy server source
 COPY server/src ./src
@@ -73,7 +73,7 @@ WORKDIR /app
 
 # Install production dependencies for server
 COPY server/package*.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --ignore-scripts && npm rebuild
 
 # Copy Prisma schema and generate client in production
 COPY server/prisma ./prisma

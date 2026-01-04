@@ -336,7 +336,7 @@ describe('narrowListeningQueue', () => {
 
       await processor(job);
 
-      expect(mockGenerateSilence).toHaveBeenCalledWith(0.8);
+      expect(mockGenerateSilence).toHaveBeenCalledWith(2.0);
       expect(mockFs.writeFile).toHaveBeenCalled();
     });
 
