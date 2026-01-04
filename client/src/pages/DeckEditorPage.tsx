@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Trash2 } from 'lucide-react';
 import api from '../lib/api';
@@ -22,7 +22,7 @@ interface Deck {
   language: string;
 }
 
-export default function DeckEditorPage() {
+const DeckEditorPage = () => {
   const { deckId } = useParams<{ deckId: string }>();
   const navigate = useNavigate();
 
@@ -49,9 +49,29 @@ export default function DeckEditorPage() {
       ? filteredCards.find((c) => selectedCardIds.has(c.id)) || null
       : null;
 
+  const fetchDeckAndCards = useCallback(async () => {
+    if (!deckId) return;
+
+    setLoading(true);
+    try {
+      const [deckData, cardsData] = await Promise.all([
+        api.get<Deck>(`/api/srs/decks/${deckId}`),
+        api.get<Card[]>(`/api/srs/cards?deckId=${deckId}`),
+      ]);
+
+      setDeck(deckData);
+      setCards(cardsData);
+      setFilteredCards(cardsData);
+    } catch (error) {
+      console.error('Failed to fetch deck and cards:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [deckId]);
+
   useEffect(() => {
     fetchDeckAndCards();
-  }, [deckId]);
+  }, [fetchDeckAndCards]);
 
   useEffect(() => {
     // Filter cards based on search query
@@ -81,33 +101,13 @@ export default function DeckEditorPage() {
     }
   }, [selectedCard]);
 
-  const fetchDeckAndCards = async () => {
-    if (!deckId) return;
-
-    setLoading(true);
-    try {
-      const [deckData, cardsData] = await Promise.all([
-        api.get<Deck>(`/api/srs/decks/${deckId}`),
-        api.get<Card[]>(`/api/srs/cards?deckId=${deckId}`),
-      ]);
-
-      setDeck(deckData);
-      setCards(cardsData);
-      setFilteredCards(cardsData);
-    } catch (error) {
-      console.error('Failed to fetch deck and cards:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSelectCard = (card: Card, index: number, e: React.MouseEvent) => {
     if (e.shiftKey && lastClickedIndex !== -1) {
       // Shift-click: select range
       const start = Math.min(lastClickedIndex, index);
       const end = Math.max(lastClickedIndex, index);
       const newSelectedIds = new Set(selectedCardIds);
-      for (let i = start; i <= end; i++) {
+      for (let i = start; i <= end; i += 1) {
         newSelectedIds.add(filteredCards[i].id);
       }
       setSelectedCardIds(newSelectedIds);
@@ -158,7 +158,7 @@ export default function DeckEditorPage() {
       // selectedCard will automatically update via the computed value
     } catch (error) {
       console.error('Failed to save card:', error);
-      alert('Failed to save card. Please try again.');
+      console.error('Failed to save card. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -183,7 +183,7 @@ export default function DeckEditorPage() {
       setShowDeleteConfirm(false);
     } catch (error) {
       console.error('Failed to delete cards:', error);
-      alert('Failed to delete cards. Please try again.');
+      console.error('Failed to delete cards. Please try again.');
     }
   };
 
@@ -210,6 +210,7 @@ export default function DeckEditorPage() {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <button
+              type="button"
               onClick={() => navigate('/app/review')}
               className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
@@ -225,6 +226,7 @@ export default function DeckEditorPage() {
           </div>
           {selectedCardIds.size > 0 && (
             <button
+              type="button"
               onClick={() => setShowDeleteConfirm(true)}
               className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
@@ -317,12 +319,13 @@ export default function DeckEditorPage() {
 
         {/* Card Editor */}
         <div className="w-1/2 bg-white overflow-y-auto">
-          {selectedCardIds.size > 1 ? (
+          {selectedCardIds.size > 1 && (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
               <p className="text-lg">{selectedCardIds.size} cards selected</p>
               <p className="text-sm">Select a single card to edit</p>
             </div>
-          ) : selectedCard ? (
+          )}
+          {selectedCardIds.size === 1 && selectedCard && (
             <div className="p-6">
               <h2 className="text-lg font-semibold text-navy mb-6">Edit Card</h2>
 
@@ -361,8 +364,12 @@ export default function DeckEditorPage() {
 
               {/* Card Types */}
               <div className="mb-6 space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label
+                  htmlFor="enable-recognition"
+                  className="flex items-center gap-3 cursor-pointer"
+                >
                   <input
+                    id="enable-recognition"
                     type="checkbox"
                     checked={editedEnableRecognition}
                     onChange={(e) => setEditedEnableRecognition(e.target.checked)}
@@ -371,8 +378,9 @@ export default function DeckEditorPage() {
                   <span className="text-gray-700">Recognition Card (L2 → L1)</span>
                 </label>
 
-                <label className="flex items-center gap-3 cursor-pointer">
+                <label htmlFor="enable-audio" className="flex items-center gap-3 cursor-pointer">
                   <input
+                    id="enable-audio"
                     type="checkbox"
                     checked={editedEnableAudio}
                     onChange={(e) => setEditedEnableAudio(e.target.checked)}
@@ -385,14 +393,13 @@ export default function DeckEditorPage() {
               {/* Audio Info */}
               {selectedCard.audioUrl && (
                 <div className="mb-6 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600">
-                    Audio: Linked from source sentence
-                  </p>
+                  <p className="text-xs text-gray-600">Audio: Linked from source sentence</p>
                 </div>
               )}
 
               {/* Save Button */}
               <button
+                type="button"
                 onClick={handleSaveCard}
                 disabled={saving || !editedTextL2.trim() || !editedTranslationL1.trim()}
                 className="w-full px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
@@ -400,7 +407,8 @@ export default function DeckEditorPage() {
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </div>
-          ) : (
+          )}
+          {selectedCardIds.size === 0 && (
             <div className="flex items-center justify-center h-full text-gray-400">
               Select a card to edit
             </div>
@@ -423,4 +431,6 @@ export default function DeckEditorPage() {
       />
     </div>
   );
-}
+};
+
+export default DeckEditorPage;

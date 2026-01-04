@@ -17,7 +17,11 @@ const mockFfmpeg = vi.hoisted(() => {
     audioFrequency: vi.fn().mockReturnThis(),
     audioChannels: vi.fn().mockReturnThis(),
     output: vi.fn().mockReturnThis(),
-    on: vi.fn().mockImplementation(function (this: any, event: string, callback: any) {
+    on: vi.fn().mockImplementation(function (
+      this: typeof mockInstance,
+      event: string,
+      callback: () => void
+    ) {
       if (event === 'end') {
         setTimeout(() => callback(), 0);
       }
@@ -26,9 +30,11 @@ const mockFfmpeg = vi.hoisted(() => {
     run: vi.fn(),
   };
   const ffmpegFn = vi.fn(() => mockInstance);
-  (ffmpegFn as any).ffprobe = vi.fn((path, cb) => {
-    cb(null, { format: { duration: 10.0 } });
-  });
+  (ffmpegFn as typeof ffmpegFn & { ffprobe: typeof vi.fn }).ffprobe = vi.fn(
+    (path: string, cb: (err: Error | null, metadata: { format: { duration: number } }) => void) => {
+      cb(null, { format: { duration: 10.0 } });
+    }
+  );
   return { ffmpegFn, mockInstance };
 });
 const mockFs = vi.hoisted(() => ({
@@ -134,14 +140,15 @@ describe('batchedTTSClient', () => {
       expect(batches[0].units).toHaveLength(2);
     });
 
-    it('should use reading instead of text for L2 units when available', () => {
+    it('should use text field for TTS (reading is for display only)', () => {
       const units: LessonScriptUnit[] = [
         { type: 'L2', text: '漢字', reading: 'かんじ', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
       ];
 
       const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
-      expect(batches[0].units[0].text).toBe('かんじ');
+      // Reading field is for display only, TTS uses the text field
+      expect(batches[0].units[0].text).toBe('漢字');
     });
 
     it('should use native language code for narration_L1 units', () => {

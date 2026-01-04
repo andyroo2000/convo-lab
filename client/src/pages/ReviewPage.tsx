@@ -23,7 +23,7 @@ interface Deck {
   name: string;
 }
 
-export default function ReviewPage() {
+const ReviewPage = () => {
   const { deckId } = useParams<{ deckId?: string }>();
   const navigate = useNavigate();
 
@@ -37,6 +37,24 @@ export default function ReviewPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [cardStartTime, setCardStartTime] = useState<number>(Date.now());
+
+  const fetchDueCards = useCallback(async () => {
+    if (!selectedDeck) return;
+
+    setLoading(true);
+    try {
+      const cardsData = await api.get<Card[]>(`/api/srs/decks/${selectedDeck.id}/due?limit=20`);
+      setDueCards(cardsData);
+      setCurrentIndex(0);
+      setIsFlipped(false);
+      setCompletedCount(0);
+      setCardStartTime(Date.now());
+    } catch (error) {
+      console.error('Failed to fetch due cards:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedDeck]);
 
   // Fetch decks on mount
   useEffect(() => {
@@ -67,74 +85,65 @@ export default function ReviewPage() {
     if (selectedDeck) {
       fetchDueCards();
     }
-  }, [selectedDeck]);
-
-  const fetchDueCards = async () => {
-    if (!selectedDeck) return;
-
-    setLoading(true);
-    try {
-      const cardsData = await api.get<Card[]>(
-        `/api/srs/decks/${selectedDeck.id}/due?limit=20`
-      );
-      setDueCards(cardsData);
-      setCurrentIndex(0);
-      setIsFlipped(false);
-      setCompletedCount(0);
-      setCardStartTime(Date.now());
-    } catch (error) {
-      console.error('Failed to fetch due cards:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [selectedDeck, fetchDueCards]);
 
   const currentCard = dueCards[currentIndex];
 
   // Determine which card type to show
-  const cardType = currentCard
-    ? new Date(currentCard.recognitionDue) <= new Date() &&
-      (new Date(currentCard.audioDue) > new Date() ||
-        new Date(currentCard.recognitionDue) <= new Date(currentCard.audioDue))
-      ? 'recognition'
-      : 'audio'
-    : 'recognition';
+  let cardType: 'recognition' | 'audio' = 'recognition';
+  if (currentCard) {
+    const recognitionDueDate = new Date(currentCard.recognitionDue);
+    const audioDueDate = new Date(currentCard.audioDue);
+    const now = new Date();
+
+    const isRecognitionDue = recognitionDueDate <= now;
+    const isAudioDue = audioDueDate <= now;
+
+    if (isRecognitionDue && (!isAudioDue || recognitionDueDate <= audioDueDate)) {
+      cardType = 'recognition';
+    } else {
+      cardType = 'audio';
+    }
+  }
 
   const handleFlip = useCallback(() => {
     setIsFlipped(!isFlipped);
   }, [isFlipped]);
 
-  const handleRating = async (rating: 1 | 2 | 3 | 4) => {
-    if (!currentCard || submitting) return;
+  const handleRating = useCallback(
+    async (rating: 1 | 2 | 3 | 4) => {
+      if (!currentCard || submitting) return;
 
-    setSubmitting(true);
-    const durationMs = Date.now() - cardStartTime;
+      setSubmitting(true);
+      const durationMs = Date.now() - cardStartTime;
 
-    try {
-      await api.post('/api/srs/reviews', {
-        cardId: currentCard.id,
-        cardType,
-        rating,
-        durationMs,
-      });
+      try {
+        await api.post('/api/srs/reviews', {
+          cardId: currentCard.id,
+          cardType,
+          rating,
+          durationMs,
+        });
 
-      setCompletedCount((prev) => prev + 1);
+        setCompletedCount((prev) => prev + 1);
 
-      // Move to next card
-      if (currentIndex < dueCards.length - 1) {
-        setCurrentIndex((prev) => prev + 1);
-        setIsFlipped(false);
-        setCardStartTime(Date.now());
-      } else {
-        // All cards completed
-        setDueCards([]);
+        // Move to next card
+        if (currentIndex < dueCards.length - 1) {
+          setCurrentIndex((prev) => prev + 1);
+          setIsFlipped(false);
+          setCardStartTime(Date.now());
+        } else {
+          // All cards completed
+          setDueCards([]);
+        }
+      } catch (error) {
+        console.error('Failed to submit review:', error);
+      } finally {
+        setSubmitting(false);
       }
-    } catch (error) {
-      console.error('Failed to submit review:', error);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    },
+    [currentCard, submitting, cardStartTime, cardType, currentIndex, dueCards.length]
+  );
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -157,7 +166,7 @@ export default function ReviewPage() {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isFlipped, handleFlip, submitting, currentCard]);
+  }, [isFlipped, handleFlip, submitting, currentCard, handleRating]);
 
   // Deck selection screen
   if (!selectedDeck) {
@@ -167,9 +176,10 @@ export default function ReviewPage() {
         {decks.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 mb-4">
-              You don't have any decks yet. Start adding vocabulary cards from your courses!
+              You don&apos;t have any decks yet. Start adding vocabulary cards from your courses!
             </p>
             <button
+              type="button"
               onClick={() => navigate('/app/library')}
               className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
             >
@@ -180,6 +190,7 @@ export default function ReviewPage() {
           <div className="grid gap-4">
             {decks.map((deck) => (
               <button
+                type="button"
                 key={deck.id}
                 onClick={() => setSelectedDeck(deck)}
                 className="p-6 border rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-colors text-left"
@@ -212,16 +223,18 @@ export default function ReviewPage() {
         <div className="text-center py-12">
           <h1 className="text-3xl font-bold mb-4">🎉 All Done!</h1>
           <p className="text-xl text-gray-600 mb-6">
-            You've completed {completedCount} cards in this session.
+            You&apos;ve completed {completedCount} cards in this session.
           </p>
           <div className="flex gap-4 justify-center">
             <button
+              type="button"
               onClick={() => navigate('/app/library')}
               className="px-6 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
             >
               Back to Library
             </button>
             <button
+              type="button"
               onClick={() => setSelectedDeck(null)}
               className="px-6 py-3 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600"
             >
@@ -240,8 +253,9 @@ export default function ReviewPage() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl font-bold">{selectedDeck.name}</h1>
         <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2 text-sm">
+          <label htmlFor="show-reading" className="flex items-center gap-2 text-sm">
             <input
+              id="show-reading"
               type="checkbox"
               checked={showReading}
               onChange={(e) => setShowReading(e.target.checked)}
@@ -250,12 +264,14 @@ export default function ReviewPage() {
             Show Reading
           </label>
           <button
+            type="button"
             onClick={() => navigate(`/app/decks/${selectedDeck.id}/edit`)}
             className="text-sm text-gray-600 hover:text-gray-800"
           >
             Edit Deck
           </button>
           <button
+            type="button"
             onClick={() => setSelectedDeck(null)}
             className="text-sm text-gray-600 hover:text-gray-800"
           >
@@ -293,9 +309,9 @@ export default function ReviewPage() {
       )}
 
       {/* Rating Buttons */}
-      {isFlipped && currentCard && (
-        <RatingButtons onRate={handleRating} disabled={submitting} />
-      )}
+      {isFlipped && currentCard && <RatingButtons onRate={handleRating} disabled={submitting} />}
     </div>
   );
-}
+};
+
+export default ReviewPage;

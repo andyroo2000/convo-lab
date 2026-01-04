@@ -3,7 +3,7 @@ interface RatingButtonsProps {
   disabled?: boolean;
 }
 
-export default function RatingButtons({ onRate, disabled = false }: RatingButtonsProps) {
+const RatingButtons = ({ onRate, disabled = false }: RatingButtonsProps) => {
   const buttons = [
     { rating: 1 as const, label: 'Again', color: 'bg-red-500 hover:bg-red-600', key: '1' },
     { rating: 2 as const, label: 'Hard', color: 'bg-yellow-500 hover:bg-yellow-600', key: '2' },
@@ -16,6 +16,7 @@ export default function RatingButtons({ onRate, disabled = false }: RatingButton
       {buttons.map(({ rating, label, color, key }) => (
         <button
           key={rating}
+          type="button"
           onClick={() => onRate(rating)}
           disabled={disabled}
           className={`
@@ -31,4 +32,6 @@ export default function RatingButtons({ onRate, disabled = false }: RatingButton
       ))}
     </div>
   );
-}
+};
+
+export default RatingButtons;

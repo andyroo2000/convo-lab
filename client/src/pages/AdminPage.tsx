@@ -336,7 +336,6 @@ const AdminPage = () => {
       }
       fetchUsers();
     } catch (err) {
-      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to delete user');
     }
   };
@@ -352,13 +351,11 @@ const AdminPage = () => {
       if (!response.ok) throw new Error('Failed to create invite code');
       fetchInviteCodes();
     } catch (err) {
-      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to create invite code');
     }
   };
 
   const handleDeleteInviteCode = async (codeId: string, code: string) => {
-    // eslint-disable-next-line no-alert, no-restricted-globals
     if (!confirm(`Are you sure you want to delete invite code ${code}?`)) {
       return;
     }
@@ -374,7 +371,6 @@ const AdminPage = () => {
       }
       fetchInviteCodes();
     } catch (err) {
-      // eslint-disable-next-line no-alert
       alert(err instanceof Error ? err.message : 'Failed to delete invite code');
     }
   };
@@ -1209,14 +1205,12 @@ const AdminPage = () => {
                                       if (!response.ok)
                                         throw new Error('Failed to upload user avatar');
 
-                                      // eslint-disable-next-line no-alert
                                       alert('User avatar updated successfully');
                                       setCropperOpen(false);
 
                                       // Reload users to show updated avatar
                                       fetchUsers();
                                     } catch (err) {
-                                      // eslint-disable-next-line no-alert
                                       alert(
                                         err instanceof Error
                                           ? err.message

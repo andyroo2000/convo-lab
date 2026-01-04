@@ -168,8 +168,18 @@ describe('courseQueue', () => {
   const mockGeneratedScript = {
     units: [
       { type: 'intro', text: 'Welcome to the lesson' },
-      { type: 'dialogue', speaker: 'Tanaka', text: 'こんにちは' },
-      { type: 'dialogue', speaker: 'Yamada', text: 'お元気ですか' },
+      {
+        type: 'dialogue',
+        speaker: 'Tanaka',
+        text: 'こんにちは',
+        vocabularyItems: [{ textL2: 'こんにちは', readingL2: null, translationL1: 'hello' }],
+      },
+      {
+        type: 'dialogue',
+        speaker: 'Yamada',
+        text: 'お元気ですか',
+        vocabularyItems: [{ textL2: '元気', readingL2: 'げんき', translationL1: 'health/energy' }],
+      },
     ],
     estimatedDurationSeconds: 120,
   };
@@ -338,16 +348,18 @@ describe('courseQueue', () => {
 
     it('should update progress during audio assembly', async () => {
       // Mock assembleLessonAudio to invoke the onProgress callback
-      mockAssembleLessonAudio.mockImplementation(async (options: any) => {
-        // Simulate progress callbacks during audio assembly
-        if (options.onProgress) {
-          options.onProgress(1, 4); // Should update to 60 + (1/4 * 25) = 66
-          options.onProgress(2, 4); // Should update to 60 + (2/4 * 25) = 72
-          options.onProgress(3, 4); // Should update to 60 + (3/4 * 25) = 78
-          options.onProgress(4, 4); // Should update to 60 + (4/4 * 25) = 85
+      mockAssembleLessonAudio.mockImplementation(
+        async (options: { onProgress?: (current: number, total: number) => void }) => {
+          // Simulate progress callbacks during audio assembly
+          if (options.onProgress) {
+            options.onProgress(1, 4); // Should update to 60 + (1/4 * 25) = 66
+            options.onProgress(2, 4); // Should update to 60 + (2/4 * 25) = 72
+            options.onProgress(3, 4); // Should update to 60 + (3/4 * 25) = 78
+            options.onProgress(4, 4); // Should update to 60 + (4/4 * 25) = 85
+          }
+          return mockAssembledAudio;
         }
-        return mockAssembledAudio;
-      });
+      );
 
       const processor = workerProcessors.get('course-generation')!;
       const job = createMockJob({ data: { courseId: 'course-123' } });
@@ -409,6 +421,15 @@ describe('courseQueue', () => {
           vocabularyItems: [],
         },
       ]);
+
+      // Mock script with no vocabularyItems in dialogue units
+      mockGenerateConversationalLessonScript.mockResolvedValue({
+        units: [
+          { type: 'intro', text: 'Welcome to the lesson' },
+          { type: 'dialogue', speaker: 'Tanaka', text: 'こんにちは', vocabularyItems: [] },
+        ],
+        estimatedDurationSeconds: 60,
+      });
 
       const processor = workerProcessors.get('course-generation')!;
       const job = createMockJob({ data: { courseId: 'course-123' } });

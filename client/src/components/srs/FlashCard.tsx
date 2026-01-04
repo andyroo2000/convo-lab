@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { Play } from 'lucide-react';
 import JapaneseText from '../JapaneseText';
 import ChineseText from '../ChineseText';
-import { Play } from 'lucide-react';
 
 interface Card {
   id: string;
@@ -20,14 +20,14 @@ interface FlashCardProps {
   onFlip: () => void;
 }
 
-export default function FlashCard({
+const FlashCard = ({
   card,
   cardType,
   isFlipped,
   showReading,
   language,
   onFlip,
-}: FlashCardProps) {
+}: FlashCardProps) => {
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Auto-play audio for audio cards on mount or when flipping to back for recognition cards
@@ -35,10 +35,14 @@ export default function FlashCard({
     if (audioRef.current && card.audioUrl) {
       if (cardType === 'audio' && !isFlipped) {
         // Auto-play audio card front side
-        audioRef.current.play().catch((err) => console.log('Audio play failed:', err));
+        audioRef.current.play().catch(() => {
+          // Ignore audio play errors
+        });
       } else if (cardType === 'recognition' && isFlipped) {
         // Auto-play audio on recognition card back side
-        audioRef.current.play().catch((err) => console.log('Audio play failed:', err));
+        audioRef.current.play().catch(() => {
+          // Ignore audio play errors
+        });
       }
     }
   }, [cardType, isFlipped, card.audioUrl]);
@@ -55,11 +59,11 @@ export default function FlashCard({
     // Front side: Always show plain text (textL2) without furigana
     if (language === 'ja') {
       return <JapaneseText text={card.textL2} showFurigana={false} />;
-    } else if (language === 'zh') {
-      return <ChineseText text={card.textL2} showPinyin={false} />;
-    } else {
-      return <span className="text-4xl">{card.textL2}</span>;
     }
+    if (language === 'zh') {
+      return <ChineseText text={card.textL2} showPinyin={false} />;
+    }
+    return <span className="text-4xl">{card.textL2}</span>;
   };
 
   const renderTextL2Back = () => {
@@ -69,13 +73,13 @@ export default function FlashCard({
 
     if (language === 'ja') {
       return <JapaneseText text={displayText} showFurigana={showReading} />;
-    } else if (language === 'zh') {
+    }
+    if (language === 'zh') {
       const hasPinyinBrackets = card.readingL2?.includes('[');
       const chineseText = hasPinyinBrackets ? card.readingL2! : card.textL2;
       return <ChineseText text={chineseText} showPinyin={showReading} />;
-    } else {
-      return <span className="text-4xl">{displayText}</span>;
     }
+    return <span className="text-4xl">{displayText}</span>;
   };
 
   return (
@@ -83,7 +87,18 @@ export default function FlashCard({
       {/* Audio element - persistent outside flip animation */}
       {card.audioUrl && <audio ref={audioRef} src={card.audioUrl} />}
 
-      <div onClick={onFlip}>
+      <div
+        onClick={onFlip}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            onFlip();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Flip flashcard"
+      >
         <div className={`flashcard ${isFlipped ? 'flipped' : ''}`}>
           {/* Front Side */}
           <div className="flashcard-front">
@@ -94,6 +109,7 @@ export default function FlashCard({
             ) : (
               <div className="flex flex-col items-center justify-center gap-6">
                 <button
+                  type="button"
                   onClick={playAudio}
                   className="audio-icon-container hover:bg-indigo-50 transition-colors cursor-pointer"
                 >
@@ -111,6 +127,7 @@ export default function FlashCard({
                 <div className="text-center mb-4">{renderTextL2Back()}</div>
                 {card.audioUrl && (
                   <button
+                    type="button"
                     onClick={playAudio}
                     className="mb-6 p-3 hover:bg-gray-100 rounded-full transition-colors"
                   >
@@ -143,4 +160,6 @@ export default function FlashCard({
       </div>
     </div>
   );
-}
+};
+
+export default FlashCard;
