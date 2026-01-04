@@ -1,6 +1,12 @@
 import { Episode, Sentence } from '@prisma/client';
-import { LanguageCode } from '@languageflow/shared/src/types.js';
+
+import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
 import { generateWithGemini } from './geminiClient.js';
+import {
+  sampleVocabulary,
+  formatWordsForPrompt,
+  getProficiencyFramework,
+} from './vocabularySeeding.js';
 // import { getVoicesByGender } from '../../../shared/src/voiceSelection.ts';
 
 export interface CoreItem {
@@ -44,7 +50,9 @@ export interface VocabularyItem {
 }
 
 interface SentenceWithMetadata extends Sentence {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   speaker?: any;
 }
 
@@ -137,6 +145,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
 
   if (targetLang === 'ja') {
     // Japanese-specific scoring
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = sentence.metadata as any;
 
     if (metadata?.japanese?.kanji) {
@@ -157,6 +166,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
     }
   } else if (targetLang === 'zh') {
     // Chinese-specific scoring
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = sentence.metadata as any;
 
     if (metadata?.chinese?.pinyin) {
@@ -195,6 +205,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
  * Extract phonetic reading from sentence metadata
  */
 function extractReading(sentence: SentenceWithMetadata, targetLang: string): string | null {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const metadata = sentence.metadata as any;
 
   if (targetLang === 'ja' && metadata?.japanese?.kana) {
@@ -339,6 +350,7 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
 
         if (decomposition && decomposition.components) {
           results.push(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             decomposition.components.map((comp: any) => ({
               textL2: comp.textL2 || comp.text,
               readingL2: comp.reading || comp.readingL2,
@@ -387,6 +399,7 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
  *   - Component 2: "自転車で旅行されたそうですね" (by bicycle traveled, I heard)
  *   - Component 3: "北海道を自転車で旅行されたそうですね" (full phrase)
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function decomposePhraseForPimsleur(
   textL2: string,
   translationL1: string,
@@ -459,6 +472,7 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
     }
 
     // Convert to PhraseComponent format
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return parsed.map((comp: any) => ({
       textL2: comp.textL2 || comp.text,
       readingL2: comp.reading || comp.readingL2,
@@ -485,9 +499,12 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
  * This keeps each turn to one sentence/question for better Pimsleur pacing
  */
 async function splitLongSentences(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sentences: (SentenceWithMetadata & { speaker: any })[],
   targetLang: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<(SentenceWithMetadata & { speaker: any })[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: (SentenceWithMetadata & { speaker: any })[] = [];
 
   for (const sentence of sentences) {
@@ -495,7 +512,6 @@ async function splitLongSentences(
     // Japanese: Multiple sentences usually separated by 。or ！or ？
     // For now, simple split by sentence-ending punctuation
     const sentenceEnders = ['。', '！', '？', '!', '?'];
-    const needsSplit = false;
     let splitCount = 0;
 
     for (const ender of sentenceEnders) {
@@ -546,7 +562,7 @@ Return ONLY a JSON array (no markdown, no explanation):
               translation: split.translation,
             });
           }
-          console.log(`  Split "${sentence.text}" into ${splits.length} parts`);
+          console.warn(`  Split "${sentence.text}" into ${splits.length} parts`);
           continue;
         }
       } catch (err) {
@@ -569,6 +585,7 @@ Return ONLY a JSON array (no markdown, no explanation):
  */
 export async function extractDialogueExchanges(
   episode: Episode & {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     dialogue: { sentences: (SentenceWithMetadata & { speaker: any })[] } | null;
   },
   targetDurationMinutes: number = 15
@@ -583,7 +600,7 @@ export async function extractDialogueExchanges(
   // FIRST: Split long sentences (those with multiple questions or statements)
   const splitSentences = await splitLongSentences(sentences, targetLang);
 
-  console.log(
+  console.warn(
     `Split ${sentences.length} sentences into ${splitSentences.length} shorter exchanges`
   );
 
@@ -600,18 +617,22 @@ export async function extractDialogueExchanges(
       ? splitSentences
       : selectDiverseSentences(splitSentences, targetExchangeCount);
 
-  console.log(
+  console.warn(
     `Selected ${selectedSentences.length} exchanges for ~${targetDurationMinutes} minute lesson`
   );
 
   // Extract vocabulary from each exchange in a single batch API call
-  const vocabExtractionPrompt = `You are a language teaching expert. Extract 2-4 key vocabulary words or short phrases from each of these ${targetLang.toUpperCase()} sentences that would be useful to teach in isolation.
+  const vocabExtractionPrompt = `You are a language teaching expert. Extract ONLY 1-2 KEY vocabulary words or short phrases from each ${targetLang.toUpperCase()} sentence.
 
-For each sentence, identify the most important words/phrases that a learner should know. Focus on:
-- Verbs and verb phrases
-- Key nouns
-- Useful expressions or particles
-- Avoid very simple words like "is", "the", etc.
+STRICT CRITERIA - Only extract words that are:
+1. Content words (verbs, nouns, adjectives, useful expressions)
+2. NOT particles, copulas, or grammar words (は, が, を, に, で, と, の, です, ます, だ)
+3. NOT ultra-common words learners already know (今, ここ, それ, これ, etc.)
+4. NOT demonstratives or pronouns unless teaching a specific pattern
+5. Multi-syllable/character (avoid single-character words unless highly significant)
+6. Teachable in isolation and reusable in other contexts
+
+EXTRACT ONLY 1-2 WORDS PER SENTENCE - prioritize quality over quantity.
 
 Sentences:
 ${selectedSentences.map((s, i) => `${i + 1}. "${s.text}" (${s.translation})`).join('\n')}
@@ -652,7 +673,10 @@ Return ONLY a JSON object (no markdown, no explanation):
 
       const vocabularyItems: VocabularyItem[] = [];
       if (vocabData && vocabData.vocabulary) {
-        for (const vocab of vocabData.vocabulary) {
+        // Filter vocabulary to remove stopwords and ultra-common words
+        const filteredVocab = filterVocabularyItems(vocabData.vocabulary, targetLang);
+
+        for (const vocab of filteredVocab) {
           vocabularyItems.push({
             textL2: vocab.word,
             readingL2: extractReadingForText(sentence, vocab.word, targetLang),
@@ -691,6 +715,74 @@ Return ONLY a JSON object (no markdown, no explanation):
 }
 
 /**
+ * Filter vocabulary items to remove stopwords, particles, and ultra-common words
+ */
+function filterVocabularyItems(
+  vocabList: Array<{ word: string; translation: string }>,
+  targetLanguage: string
+): Array<{ word: string; translation: string }> {
+  const japaneseStopwords = [
+    // Particles
+    'は',
+    'が',
+    'を',
+    'に',
+    'で',
+    'と',
+    'の',
+    'へ',
+    'から',
+    'まで',
+    'より',
+    // Copulas/auxiliary verbs
+    'です',
+    'だ',
+    'である',
+    'ます',
+    'ました',
+    'ません',
+    // Ultra-common words
+    '今',
+    'ここ',
+    'そこ',
+    'あそこ',
+    'これ',
+    'それ',
+    'あれ',
+    'どれ',
+    'いつ',
+    'どこ',
+    'なに',
+    'なん',
+    'だれ',
+    'どう',
+    // Common verbs
+    'ある',
+    'いる',
+    'する',
+    'なる',
+  ];
+
+  return vocabList.filter((item) => {
+    const word = item.word;
+
+    // Only apply Japanese-specific filtering for Japanese language
+    if (targetLanguage === 'ja') {
+      // Rule 1: Minimum length (at least 2 characters for Japanese)
+      if (word.length < 2) return false;
+
+      // Rule 2: Stopword check
+      if (japaneseStopwords.includes(word)) return false;
+
+      // Rule 3: Don't extract single hiragana/katakana unless it's a special case
+      if (/^[\u3040-\u309F\u30A0-\u30FF]$/.test(word)) return false;
+    }
+
+    return true;
+  });
+}
+
+/**
  * Select diverse sentences from dialogue for lesson
  */
 function selectDiverseSentences(
@@ -711,12 +803,10 @@ function selectDiverseSentences(
  * Extract phonetic reading for a specific word/phrase from sentence metadata
  */
 function extractReadingForText(
-  sentence: SentenceWithMetadata,
-  text: string,
-  targetLang: string
+  _sentence: SentenceWithMetadata,
+  _text: string,
+  _targetLang: string
 ): string | undefined {
-  const metadata = sentence.metadata as any;
-
   // For now, return undefined - could be enhanced to extract reading for specific words
   // This would require more sophisticated parsing of the metadata
   return undefined;
@@ -735,13 +825,13 @@ export async function extractDialogueExchangesFromSourceText(
   targetDurationMinutes: number = 15,
   jlptLevel?: string,
   speakerVoices?: { speakerName: string; voiceId: string }[],
-  speaker1Gender: 'male' | 'female' = 'male',
-  speaker2Gender: 'male' | 'female' = 'female',
+  _speaker1Gender: 'male' | 'female' = 'male',
+  _speaker2Gender: 'male' | 'female' = 'female',
   speaker1VoiceId?: string,
   speaker2VoiceId?: string
 ): Promise<DialogueExchange[]> {
-  console.log(`Extracting dialogue from source text for episode: ${episodeTitle}`);
-  console.log(
+  console.warn(`Extracting dialogue from source text for episode: ${episodeTitle}`);
+  console.warn(
     `Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`
   );
 
@@ -752,13 +842,33 @@ export async function extractDialogueExchangesFromSourceText(
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.max(6, Math.floor(targetSeconds / estimatedSecondsPerExchange));
 
+  // Sample vocabulary to seed the dialogue if proficiency level is specified
+  let vocabularySeed = '';
+  if (jlptLevel && targetLanguage) {
+    try {
+      const seedWords = await sampleVocabulary(targetLanguage, jlptLevel, 30);
+      if (seedWords.length > 0) {
+        const framework = getProficiencyFramework(targetLanguage);
+        vocabularySeed = `
+
+SUGGESTED ${jlptLevel} VOCABULARY TO INCORPORATE:
+Try to naturally use some of these ${framework} ${jlptLevel}-level words in the dialogue:
+${formatWordsForPrompt(seedWords, targetLanguage)}
+
+You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
+      }
+    } catch (error) {
+      console.warn(`Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
+    }
+  }
+
   // Build JLPT level constraint if specified
   const jlptConstraint = jlptLevel
     ? `\n\nIMPORTANT JLPT LEVEL CONSTRAINT:
 - Target level: ${jlptLevel} (${getJLPTDescription(jlptLevel)})
 - Use vocabulary and grammar structures appropriate for students at this level
 - Avoid using words or structures significantly above this level
-- Focus on practical, conversational language at this proficiency level`
+- Focus on practical, conversational language at this proficiency level${vocabularySeed}`
     : '';
 
   const prompt = `You are creating a Pimsleur-style language lesson based on this scenario:
@@ -915,7 +1025,37 @@ Return ONLY a JSON object (no markdown, no explanation):
       });
     }
 
-    console.log(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
+    console.warn(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
+
+    // MULTI-PASS GENERATION: Review and edit if needed
+    if (jlptLevel && exchanges.length > 0) {
+      console.warn('Reviewing dialogue quality...');
+      const review = await reviewDialogue(exchanges, jlptLevel, targetLanguage);
+
+      console.warn(`Dialogue review: ${review.overallScore}/10`);
+      if (review.strengths.length > 0) {
+        console.warn(`Strengths: ${review.strengths.join(', ')}`);
+      }
+      if (review.issues.length > 0) {
+        console.warn(`Issues found: ${review.issues.length}`);
+      }
+
+      // Edit if review indicates revision needed
+      if (review.needsRevision) {
+        console.warn('Revising dialogue based on feedback...');
+        const revisedExchanges = await editDialogue(exchanges, review, jlptLevel, targetLanguage);
+
+        // Merge revised content back into exchanges
+        for (let i = 0; i < Math.min(exchanges.length, revisedExchanges.length); i++) {
+          exchanges[i].textL2 = revisedExchanges[i].textL2;
+          exchanges[i].translationL1 = revisedExchanges[i].translationL1;
+          // Keep existing timing, voice assignments, etc.
+        }
+
+        console.warn('Dialogue revision complete');
+      }
+    }
+
     return exchanges;
   } catch (err) {
     console.error('Failed to extract dialogue from source text:', err);
@@ -943,7 +1083,7 @@ function getJLPTDescription(level: string): string {
  * Extract vocabulary from individual sentences (for future use)
  * This could be used to extract sub-phrases or individual words
  */
-export function extractVocabularyFromSentence(sentence: string, targetLang: string): string[] {
+export function extractVocabularyFromSentence(sentence: string, _targetLang: string): string[] {
   // Future enhancement: use NLP to extract key vocabulary
   // For now, just return the full sentence
   return [sentence];

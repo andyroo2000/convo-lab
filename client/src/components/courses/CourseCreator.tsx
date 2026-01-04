@@ -96,8 +96,8 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
           maxLessonDurationMinutes: maxDuration,
           l1VoiceId: selectedVoice,
           jlptLevel,
-          speaker1Gender: 'female', // Hardcoded: Speaker 1 is always female
-          speaker2Gender: 'male', // Hardcoded: Speaker 2 is always male
+          speaker1Gender: 'male', // Speaker 1 default: male
+          speaker2Gender: 'female', // Speaker 2 default: female
           speaker1VoiceId,
           speaker2VoiceId,
         } as CreateCourseRequest),

@@ -1,0 +1,307 @@
+{
+  "language": "ja",
+  "level": "N1",
+  "framework": "JLPT",
+  "vocabulary": [
+    {
+      "word": "遂行する",
+      "reading": "すいこうする",
+      "translation": "to accomplish/carry out",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "遵守する",
+      "reading": "じゅんしゅする",
+      "translation": "to comply with",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "逸脱する",
+      "reading": "いつだつする",
+      "translation": "to deviate",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "逆行する",
+      "reading": "ぎゃっこうする",
+      "translation": "to go against",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "踏襲する",
+      "reading": "とうしゅうする",
+      "translation": "to follow precedent",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "継承する",
+      "reading": "けいしょうする",
+      "translation": "to inherit/succeed",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "模索する",
+      "reading": "もさくする",
+      "translation": "to grope for/explore",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "洞察する",
+      "reading": "どうさつする",
+      "translation": "to have insight into",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "鼓舞する",
+      "reading": "こぶする",
+      "translation": "to inspire",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "奨励する",
+      "reading": "しょうれいする",
+      "translation": "to encourage",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "抑圧する",
+      "reading": "よくあつする",
+      "translation": "to oppress",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "揺るぐ",
+      "reading": "ゆるぐ",
+      "translation": "to waver/shake",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "揺らぐ",
+      "reading": "ゆらぐ",
+      "translation": "to sway",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "挫折する",
+      "reading": "ざせつする",
+      "translation": "to be frustrated/fail",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "頓挫する",
+      "reading": "とんざする",
+      "translation": "to fail/fall through",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "蔑ろにする",
+      "reading": "ないがしろにする",
+      "translation": "to neglect/make light of",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "軽んじる",
+      "reading": "かろんじる",
+      "translation": "to make light of",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "蔑む",
+      "reading": "さげすむ",
+      "translation": "to despise",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "侮る",
+      "reading": "あなどる",
+      "translation": "to underestimate",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "概念",
+      "reading": "がいねん",
+      "translation": "concept",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "前提",
+      "reading": "ぜんてい",
+      "translation": "premise",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "仮説",
+      "reading": "かせつ",
+      "translation": "hypothesis",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "憶測",
+      "reading": "おくそく",
+      "translation": "speculation",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "推測",
+      "reading": "すいそく",
+      "translation": "inference",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "根拠",
+      "reading": "こんきょ",
+      "translation": "basis/grounds",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "論拠",
+      "reading": "ろんきょ",
+      "translation": "grounds for argument",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "矛盾",
+      "reading": "むじゅん",
+      "translation": "contradiction",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "葛藤",
+      "reading": "かっとう",
+      "translation": "conflict",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "摩擦",
+      "reading": "まさつ",
+      "translation": "friction",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "軋轢",
+      "reading": "あつれき",
+      "translation": "friction/discord",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "弊害",
+      "reading": "へいがい",
+      "translation": "harmful effect",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "懸念",
+      "reading": "けねん",
+      "translation": "concern/worry",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "憂慮",
+      "reading": "ゆうりょ",
+      "translation": "apprehension",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "危惧",
+      "reading": "きぐ",
+      "translation": "fear/misgiving",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "懸案",
+      "reading": "けんあん",
+      "translation": "pending question",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "遺憾",
+      "reading": "いかん",
+      "translation": "regret",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "倫理",
+      "reading": "りんり",
+      "translation": "ethics",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "道徳",
+      "reading": "どうとく",
+      "translation": "morality",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "規範",
+      "reading": "きはん",
+      "translation": "norm/standard",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "慣習",
+      "reading": "かんしゅう",
+      "translation": "custom/convention",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "風潮",
+      "reading": "ふうちょう",
+      "translation": "trend/tendency",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "醸成する",
+      "reading": "じょうせいする",
+      "translation": "to foster/cultivate",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "顕著",
+      "reading": "けんちょ",
+      "translation": "remarkable/conspicuous",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "卓越",
+      "reading": "たくえつ",
+      "translation": "excellence/superiority",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "顕在的",
+      "reading": "けんざいてき",
+      "translation": "manifest",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "潜在的",
+      "reading": "せんざいてき",
+      "translation": "potential/latent",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "緻密",
+      "reading": "ちみつ",
+      "translation": "minute/detailed",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "精緻",
+      "reading": "せいち",
+      "translation": "elaborate/delicate",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "繊細",
+      "reading": "せんさい",
+      "translation": "delicate/subtle",
+      "partOfSpeech": "な-adjective"
+    },
+    {
+      "word": "微妙",
+      "reading": "びみょう",
+      "translation": "delicate/subtle",
+      "partOfSpeech": "な-adjective"
+    }
+  ]
+}

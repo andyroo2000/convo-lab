@@ -1,0 +1,187 @@
+{
+  "language": "ja",
+  "level": "N5",
+  "framework": "JLPT",
+  "vocabulary": [
+    {
+      "word": "食べる",
+      "reading": "たべる",
+      "translation": "to eat",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "飲む",
+      "reading": "のむ",
+      "translation": "to drink",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "行く",
+      "reading": "いく",
+      "translation": "to go",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "来る",
+      "reading": "くる",
+      "translation": "to come",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "見る",
+      "reading": "みる",
+      "translation": "to see/watch",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "聞く",
+      "reading": "きく",
+      "translation": "to hear/listen",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "話す",
+      "reading": "はなす",
+      "translation": "to speak",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "読む",
+      "reading": "よむ",
+      "translation": "to read",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "書く",
+      "reading": "かく",
+      "translation": "to write",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "買う",
+      "reading": "かう",
+      "translation": "to buy",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "学校",
+      "reading": "がっこう",
+      "translation": "school",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "先生",
+      "reading": "せんせい",
+      "translation": "teacher",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "学生",
+      "reading": "がくせい",
+      "translation": "student",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "友達",
+      "reading": "ともだち",
+      "translation": "friend",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "家",
+      "reading": "いえ",
+      "translation": "house/home",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "レストラン",
+      "reading": "れすとらん",
+      "translation": "restaurant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "映画",
+      "reading": "えいが",
+      "translation": "movie",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "美味しい",
+      "reading": "おいしい",
+      "translation": "delicious",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "楽しい",
+      "reading": "たのしい",
+      "translation": "fun/enjoyable",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "大きい",
+      "reading": "おおきい",
+      "translation": "big",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "小さい",
+      "reading": "ちいさい",
+      "translation": "small",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "新しい",
+      "reading": "あたらしい",
+      "translation": "new",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "古い",
+      "reading": "ふるい",
+      "translation": "old",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "高い",
+      "reading": "たかい",
+      "translation": "expensive/high/tall",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "安い",
+      "reading": "やすい",
+      "translation": "cheap",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "良い",
+      "reading": "いい",
+      "translation": "good",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "悪い",
+      "reading": "わるい",
+      "translation": "bad",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "面白い",
+      "reading": "おもしろい",
+      "translation": "interesting",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "難しい",
+      "reading": "むずかしい",
+      "translation": "difficult",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "易しい",
+      "reading": "やさしい",
+      "translation": "easy",
+      "partOfSpeech": "adjective"
+    }
+  ]
+}
