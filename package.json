@@ -61,10 +61,17 @@
     "harness:mobile": "npx ts-node scripts/mobile-harness.ts",
     "harness:mobile:dry-run": "npx ts-node scripts/mobile-harness.ts --dry-run",
     "harness:mobile:responsive": "npx ts-node scripts/mobile-harness.ts --responsive-only",
+    "harness:lang-seeds": "npx tsx scripts/generate-language-seeds.ts",
+    "harness:lang-seeds:test": "npx tsx scripts/generate-language-seeds.ts --language=zh --level=HSK1 --test",
+    "harness:lang-seeds:chinese": "npx tsx scripts/generate-language-seeds.ts --language=zh",
+    "harness:lang-seeds:spanish": "npx tsx scripts/generate-language-seeds.ts --language=es",
+    "harness:lang-seeds:french": "npx tsx scripts/generate-language-seeds.ts --language=fr",
+    "harness:lang-seeds:arabic": "npx tsx scripts/generate-language-seeds.ts --language=ar",
     "prepare": "husky"
   },
   "devDependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.76",
+    "@anthropic-ai/sdk": "^0.71.2",
     "@playwright/test": "^1.57.0",
     "concurrently": "^8.2.2",
     "eslint-config-airbnb": "^19.0.4",

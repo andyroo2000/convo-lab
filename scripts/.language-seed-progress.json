@@ -1,0 +1,291 @@
+[
+  {
+    "language": "zh",
+    "level": "HSK1",
+    "type": "vocabulary",
+    "status": "pending",
+    "timestamp": "2026-01-04T03:33:52.949Z"
+  },
+  {
+    "language": "zh",
+    "level": "HSK1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK3",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK3",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK4",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK4",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK5",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK5",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK6",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "zh",
+    "level": "HSK6",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "A1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "A1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "A2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "A2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "B1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "B1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "B2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "B2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "C1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "C1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "C2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "es",
+    "level": "C2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "A1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "A1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "A2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "A2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "B1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "B1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "B2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "B2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "C1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "C1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "C2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "fr",
+    "level": "C2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "A1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "A1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "A2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "A2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "B1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "B1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "B2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "B2",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "C1",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "C1",
+    "type": "grammar",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "C2",
+    "type": "vocabulary",
+    "status": "pending"
+  },
+  {
+    "language": "ar",
+    "level": "C2",
+    "type": "grammar",
+    "status": "pending"
+  }
+]
