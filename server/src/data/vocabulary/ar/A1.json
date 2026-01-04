@@ -1,0 +1,4007 @@
+{
+  "language": "ar",
+  "level": "A1",
+  "framework": "CEFR",
+  "vocabulary": [
+    {
+      "word": "مرحبا",
+      "translation": "hello",
+      "partOfSpeech": "interjection"
+    },
+    {
+      "word": "السلام عليكم",
+      "translation": "peace be upon you (greeting)",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "صباح الخير",
+      "translation": "good morning",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مساء الخير",
+      "translation": "good evening",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "أنا",
+      "translation": "I",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "أنت",
+      "translation": "you (masculine singular)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "أنتِ",
+      "translation": "you (feminine singular)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هو",
+      "translation": "he",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هي",
+      "translation": "she",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "نحن",
+      "translation": "we",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "أنتم",
+      "translation": "you (plural)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هم",
+      "translation": "they (masculine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هن",
+      "translation": "they (feminine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "نعم",
+      "translation": "yes",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "لا",
+      "translation": "no",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "شكرا",
+      "translation": "thank you",
+      "partOfSpeech": "interjection"
+    },
+    {
+      "word": "من فضلك",
+      "translation": "please",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "عفوا",
+      "translation": "excuse me, you're welcome",
+      "partOfSpeech": "interjection"
+    },
+    {
+      "word": "آسف",
+      "translation": "sorry (masculine)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "اسم",
+      "translation": "name",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ما",
+      "translation": "what",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "من",
+      "translation": "who",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "أين",
+      "translation": "where",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "متى",
+      "translation": "when",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "كيف",
+      "translation": "how",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "لماذا",
+      "translation": "why",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "كم",
+      "translation": "how many, how much",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "هذا",
+      "translation": "this (masculine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هذه",
+      "translation": "this (feminine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "ذلك",
+      "translation": "that (masculine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "تلك",
+      "translation": "that (feminine)",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "هنا",
+      "translation": "here",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "هناك",
+      "translation": "there",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بيت",
+      "translation": "house",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مدرسة",
+      "translation": "school",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كتاب",
+      "translation": "book",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قلم",
+      "translation": "pen",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طالب",
+      "translation": "student (masculine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طالبة",
+      "translation": "student (feminine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مدرس",
+      "translation": "teacher (masculine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مدرسة",
+      "translation": "teacher (feminine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أب",
+      "translation": "father",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أم",
+      "translation": "mother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أخ",
+      "translation": "brother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أخت",
+      "translation": "sister",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ابن",
+      "translation": "son",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بنت",
+      "translation": "daughter, girl",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رجل",
+      "translation": "man",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "امرأة",
+      "translation": "woman",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ولد",
+      "translation": "boy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صديق",
+      "translation": "friend (masculine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صديقة",
+      "translation": "friend (feminine)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "واحد",
+      "translation": "one",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "اثنان",
+      "translation": "two",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "ثلاثة",
+      "translation": "three",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "أربعة",
+      "translation": "four",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "خمسة",
+      "translation": "five",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "ستة",
+      "translation": "six",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "سبعة",
+      "translation": "seven",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "ثمانية",
+      "translation": "eight",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "تسعة",
+      "translation": "nine",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "عشرة",
+      "translation": "ten",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "صفر",
+      "translation": "zero",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "ماء",
+      "translation": "water",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طعام",
+      "translation": "food",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خبز",
+      "translation": "bread",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "لحم",
+      "translation": "meat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سمك",
+      "translation": "fish",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أرز",
+      "translation": "rice",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فاكهة",
+      "translation": "fruit",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خضار",
+      "translation": "vegetables",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تفاح",
+      "translation": "apple",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "موز",
+      "translation": "banana",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "برتقال",
+      "translation": "orange",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حليب",
+      "translation": "milk",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قهوة",
+      "translation": "coffee",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شاي",
+      "translation": "tea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عصير",
+      "translation": "juice",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سكر",
+      "translation": "sugar",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ملح",
+      "translation": "salt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "يوم",
+      "translation": "day",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أسبوع",
+      "translation": "week",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شهر",
+      "translation": "month",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سنة",
+      "translation": "year",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ساعة",
+      "translation": "hour, watch, clock",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دقيقة",
+      "translation": "minute",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "اليوم",
+      "translation": "today",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أمس",
+      "translation": "yesterday",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "غدا",
+      "translation": "tomorrow",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "الآن",
+      "translation": "now",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "صباح",
+      "translation": "morning",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ظهر",
+      "translation": "noon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مساء",
+      "translation": "evening",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ليل",
+      "translation": "night",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الأحد",
+      "translation": "Sunday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الاثنين",
+      "translation": "Monday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الثلاثاء",
+      "translation": "Tuesday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الأربعاء",
+      "translation": "Wednesday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الخميس",
+      "translation": "Thursday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "الجمعة",
+      "translation": "Friday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "السبت",
+      "translation": "Saturday",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كبير",
+      "translation": "big, large",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صغير",
+      "translation": "small, little",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جديد",
+      "translation": "new",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قديم",
+      "translation": "old",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جميل",
+      "translation": "beautiful",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قبيح",
+      "translation": "ugly",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "طويل",
+      "translation": "tall, long",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قصير",
+      "translation": "short",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جيد",
+      "translation": "good",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سيء",
+      "translation": "bad",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سهل",
+      "translation": "easy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صعب",
+      "translation": "difficult",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سريع",
+      "translation": "fast",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بطيء",
+      "translation": "slow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ساخن",
+      "translation": "hot",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بارد",
+      "translation": "cold",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أبيض",
+      "translation": "white",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أسود",
+      "translation": "black",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أحمر",
+      "translation": "red",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أزرق",
+      "translation": "blue",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أخضر",
+      "translation": "green",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أصفر",
+      "translation": "yellow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "لون",
+      "translation": "color",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مدينة",
+      "translation": "city",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قرية",
+      "translation": "village",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شارع",
+      "translation": "street",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طريق",
+      "translation": "road, way",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سوق",
+      "translation": "market",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "متجر",
+      "translation": "store, shop",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مطعم",
+      "translation": "restaurant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مستشفى",
+      "translation": "hospital",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بنك",
+      "translation": "bank",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مكتب",
+      "translation": "office, desk",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فندق",
+      "translation": "hotel",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مطار",
+      "translation": "airport",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "محطة",
+      "translation": "station",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حافلة",
+      "translation": "bus",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سيارة",
+      "translation": "car",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قطار",
+      "translation": "train",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طائرة",
+      "translation": "airplane",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دراجة",
+      "translation": "bicycle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "غرفة",
+      "translation": "room",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "باب",
+      "translation": "door",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نافذة",
+      "translation": "window",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طاولة",
+      "translation": "table",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كرسي",
+      "translation": "chair",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سرير",
+      "translation": "bed",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مفتاح",
+      "translation": "key",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "هاتف",
+      "translation": "telephone",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تلفاز",
+      "translation": "television",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "راديو",
+      "translation": "radio",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جريدة",
+      "translation": "newspaper",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رسالة",
+      "translation": "letter, message",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صورة",
+      "translation": "picture, photo",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جسم",
+      "translation": "body",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رأس",
+      "translation": "head",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عين",
+      "translation": "eye",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أذن",
+      "translation": "ear",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أنف",
+      "translation": "nose",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فم",
+      "translation": "mouth",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "يد",
+      "translation": "hand",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رجل",
+      "translation": "leg, foot",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قلب",
+      "translation": "heart",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صحة",
+      "translation": "health",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مريض",
+      "translation": "sick, patient",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "طبيب",
+      "translation": "doctor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دواء",
+      "translation": "medicine",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عمل",
+      "translation": "work, job",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "موظف",
+      "translation": "employee",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مهندس",
+      "translation": "engineer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "محام",
+      "translation": "lawyer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طباخ",
+      "translation": "cook",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سائق",
+      "translation": "driver",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شرطي",
+      "translation": "police officer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مال",
+      "translation": "money",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ثمن",
+      "translation": "price",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رخيص",
+      "translation": "cheap",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "غالي",
+      "translation": "expensive",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "كتب",
+      "translation": "to write",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "قرأ",
+      "translation": "to read",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أكل",
+      "translation": "to eat",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "شرب",
+      "translation": "to drink",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ذهب",
+      "translation": "to go",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "جاء",
+      "translation": "to come",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "رجع",
+      "translation": "to return",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "خرج",
+      "translation": "to go out, exit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "دخل",
+      "translation": "to enter",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "فتح",
+      "translation": "to open",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أغلق",
+      "translation": "to close",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "جلس",
+      "translation": "to sit",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "وقف",
+      "translation": "to stand",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "نام",
+      "translation": "to sleep",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "استيقظ",
+      "translation": "to wake up",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "عمل",
+      "translation": "to do, work",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "درس",
+      "translation": "to study",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "علّم",
+      "translation": "to teach",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "تعلم",
+      "translation": "to learn",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "تكلم",
+      "translation": "to speak",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "سمع",
+      "translation": "to hear",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "رأى",
+      "translation": "to see",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "نظر",
+      "translation": "to look",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "فهم",
+      "translation": "to understand",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "عرف",
+      "translation": "to know",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "فكّر",
+      "translation": "to think",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أحب",
+      "translation": "to love, like",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "كره",
+      "translation": "to hate",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أراد",
+      "translation": "to want",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "استطاع",
+      "translation": "to be able to",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "لبس",
+      "translation": "to wear",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "خلع",
+      "translation": "to take off",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "غسل",
+      "translation": "to wash",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "طبخ",
+      "translation": "to cook",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "لعب",
+      "translation": "to play",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "مشى",
+      "translation": "to walk",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ركض",
+      "translation": "to run",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "سبح",
+      "translation": "to swim",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "طار",
+      "translation": "to fly",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "اشترى",
+      "translation": "to buy",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "باع",
+      "translation": "to sell",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أعطى",
+      "translation": "to give",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أخذ",
+      "translation": "to take",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "حمل",
+      "translation": "to carry",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "وضع",
+      "translation": "to put",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "قال",
+      "translation": "to say",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "سأل",
+      "translation": "to ask",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "أجاب",
+      "translation": "to answer",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "ساعد",
+      "translation": "to help",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "بحث",
+      "translation": "to search",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "وجد",
+      "translation": "to find",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "فقد",
+      "translation": "to lose",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "بدأ",
+      "translation": "to begin",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "انتهى",
+      "translation": "to end",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "استمر",
+      "translation": "to continue",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "توقف",
+      "translation": "to stop",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "في",
+      "translation": "in, at",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "على",
+      "translation": "on, upon",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "إلى",
+      "translation": "to, toward",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "من",
+      "translation": "from",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "مع",
+      "translation": "with",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "عن",
+      "translation": "about, from",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بدون",
+      "translation": "without",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "قبل",
+      "translation": "before",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بعد",
+      "translation": "after",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "تحت",
+      "translation": "under",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "فوق",
+      "translation": "above",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "أمام",
+      "translation": "in front of",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "خلف",
+      "translation": "behind",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بين",
+      "translation": "between",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بجانب",
+      "translation": "beside",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "داخل",
+      "translation": "inside",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "خارج",
+      "translation": "outside",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "يمين",
+      "translation": "right",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "يسار",
+      "translation": "left",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "و",
+      "translation": "and",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "أو",
+      "translation": "or",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لكن",
+      "translation": "but",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لأن",
+      "translation": "because",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "إذا",
+      "translation": "if",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "عندما",
+      "translation": "when",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "كل",
+      "translation": "all, every",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بعض",
+      "translation": "some",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "كثير",
+      "translation": "many, much",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قليل",
+      "translation": "few, little",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أكثر",
+      "translation": "more",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أقل",
+      "translation": "less",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جدا",
+      "translation": "very",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أيضا",
+      "translation": "also",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "فقط",
+      "translation": "only",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "دائما",
+      "translation": "always",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أحيانا",
+      "translation": "sometimes",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أبدا",
+      "translation": "never",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "معا",
+      "translation": "together",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "وحده",
+      "translation": "alone",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "سريعا",
+      "translation": "quickly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ببطء",
+      "translation": "slowly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "مبكرا",
+      "translation": "early",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "متأخرا",
+      "translation": "late",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "شيء",
+      "translation": "thing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "لا شيء",
+      "translation": "nothing",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "كل شيء",
+      "translation": "everything",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "شخص",
+      "translation": "person",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ناس",
+      "translation": "people",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مكان",
+      "translation": "place",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وقت",
+      "translation": "time",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حياة",
+      "translation": "life",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "موت",
+      "translation": "death",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ولادة",
+      "translation": "birth",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عائلة",
+      "translation": "family",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زوج",
+      "translation": "husband",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زوجة",
+      "translation": "wife",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جد",
+      "translation": "grandfather",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جدة",
+      "translation": "grandmother",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عم",
+      "translation": "paternal uncle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عمة",
+      "translation": "paternal aunt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خال",
+      "translation": "maternal uncle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خالة",
+      "translation": "maternal aunt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طفل",
+      "translation": "child",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رضيع",
+      "translation": "baby",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شاب",
+      "translation": "young man",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شابة",
+      "translation": "young woman",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كبير السن",
+      "translation": "elderly",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صغير السن",
+      "translation": "young",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ملابس",
+      "translation": "clothes",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قميص",
+      "translation": "shirt",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بنطلون",
+      "translation": "pants",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فستان",
+      "translation": "dress",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حذاء",
+      "translation": "shoe",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جورب",
+      "translation": "sock",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قبعة",
+      "translation": "hat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نظارة",
+      "translation": "glasses",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ساعة",
+      "translation": "watch",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حقيبة",
+      "translation": "bag",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جيب",
+      "translation": "pocket",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طقس",
+      "translation": "weather",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شمس",
+      "translation": "sun",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قمر",
+      "translation": "moon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نجم",
+      "translation": "star",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سماء",
+      "translation": "sky",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سحاب",
+      "translation": "cloud",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مطر",
+      "translation": "rain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ثلج",
+      "translation": "snow",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ريح",
+      "translation": "wind",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عاصفة",
+      "translation": "storm",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حار",
+      "translation": "hot (weather)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "دافئ",
+      "translation": "warm",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بارد",
+      "translation": "cold (weather)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ممطر",
+      "translation": "rainy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مشمس",
+      "translation": "sunny",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "غائم",
+      "translation": "cloudy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "طبيعة",
+      "translation": "nature",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جبل",
+      "translation": "mountain",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بحر",
+      "translation": "sea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نهر",
+      "translation": "river",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بحيرة",
+      "translation": "lake",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شاطئ",
+      "translation": "beach",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صحراء",
+      "translation": "desert",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "غابة",
+      "translation": "forest",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شجرة",
+      "translation": "tree",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زهرة",
+      "translation": "flower",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عشب",
+      "translation": "grass",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حيوان",
+      "translation": "animal",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كلب",
+      "translation": "dog",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قطة",
+      "translation": "cat",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حصان",
+      "translation": "horse",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بقرة",
+      "translation": "cow",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خروف",
+      "translation": "sheep",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دجاجة",
+      "translation": "chicken",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طائر",
+      "translation": "bird",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سمكة",
+      "translation": "fish (animal)",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أسد",
+      "translation": "lion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فيل",
+      "translation": "elephant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قرد",
+      "translation": "monkey",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فأر",
+      "translation": "mouse",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رياضة",
+      "translation": "sport",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كرة القدم",
+      "translation": "soccer, football",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كرة",
+      "translation": "ball",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "لعبة",
+      "translation": "game, toy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "موسيقى",
+      "translation": "music",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أغنية",
+      "translation": "song",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فيلم",
+      "translation": "film, movie",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مسرح",
+      "translation": "theater",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سينما",
+      "translation": "cinema",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فن",
+      "translation": "art",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رسم",
+      "translation": "drawing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "لغة",
+      "translation": "language",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عربي",
+      "translation": "Arabic",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "إنجليزي",
+      "translation": "English",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "كلمة",
+      "translation": "word",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جملة",
+      "translation": "sentence",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سؤال",
+      "translation": "question",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جواب",
+      "translation": "answer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رقم",
+      "translation": "number",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حساب",
+      "translation": "calculation, account",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رياضيات",
+      "translation": "mathematics",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "علم",
+      "translation": "science, knowledge",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تاريخ",
+      "translation": "history, date",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جغرافيا",
+      "translation": "geography",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دين",
+      "translation": "religion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "إسلام",
+      "translation": "Islam",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مسيحية",
+      "translation": "Christianity",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مسجد",
+      "translation": "mosque",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كنيسة",
+      "translation": "church",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صلاة",
+      "translation": "prayer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صوم",
+      "translation": "fasting",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عيد",
+      "translation": "holiday, festival",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "هدية",
+      "translation": "gift",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حفلة",
+      "translation": "party",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زيارة",
+      "translation": "visit",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سفر",
+      "translation": "travel",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رحلة",
+      "translation": "trip, journey",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سائح",
+      "translation": "tourist",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بلد",
+      "translation": "country",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عاصمة",
+      "translation": "capital",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دولة",
+      "translation": "state, country",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حكومة",
+      "translation": "government",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رئيس",
+      "translation": "president",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وزير",
+      "translation": "minister",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قانون",
+      "translation": "law",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حرب",
+      "translation": "war",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سلام",
+      "translation": "peace",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جيش",
+      "translation": "army",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سلاح",
+      "translation": "weapon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أمن",
+      "translation": "security, safety",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خطر",
+      "translation": "danger",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خطير",
+      "translation": "dangerous",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "آمن",
+      "translation": "safe",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مشكلة",
+      "translation": "problem",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حل",
+      "translation": "solution",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صحيح",
+      "translation": "correct, true",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "خطأ",
+      "translation": "mistake, error",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صواب",
+      "translation": "correctness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ممكن",
+      "translation": "possible",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مستحيل",
+      "translation": "impossible",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ضروري",
+      "translation": "necessary",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مهم",
+      "translation": "important",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "حلو",
+      "translation": "sweet",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مر",
+      "translation": "bitter",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "حامض",
+      "translation": "sour",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مالح",
+      "translation": "salty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "لذيذ",
+      "translation": "delicious",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جائع",
+      "translation": "hungry",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "عطشان",
+      "translation": "thirsty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "شبعان",
+      "translation": "full, satisfied",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "متعب",
+      "translation": "tired",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "نشيط",
+      "translation": "active, energetic",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سعيد",
+      "translation": "happy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "حزين",
+      "translation": "sad",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "غاضب",
+      "translation": "angry",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "خائف",
+      "translation": "afraid",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "شجاع",
+      "translation": "brave",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "كسلان",
+      "translation": "lazy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "نظيف",
+      "translation": "clean",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قذر",
+      "translation": "dirty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ممتلئ",
+      "translation": "full",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "فارغ",
+      "translation": "empty",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قوي",
+      "translation": "strong",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ضعيف",
+      "translation": "weak",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ثقيل",
+      "translation": "heavy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "خفيف",
+      "translation": "light (weight)",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صلب",
+      "translation": "hard, solid",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ناعم",
+      "translation": "soft",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "عريض",
+      "translation": "wide",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ضيق",
+      "translation": "narrow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "عميق",
+      "translation": "deep",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ضحل",
+      "translation": "shallow",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سميك",
+      "translation": "thick",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "رقيق",
+      "translation": "thin",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "واسع",
+      "translation": "spacious, wide",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مستقيم",
+      "translation": "straight",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "منحني",
+      "translation": "curved",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "دائري",
+      "translation": "circular, round",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مربع",
+      "translation": "square",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مثلث",
+      "translation": "triangle",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "شكل",
+      "translation": "shape, form",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حجم",
+      "translation": "size",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طول",
+      "translation": "length, height",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عرض",
+      "translation": "width",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ارتفاع",
+      "translation": "height",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عمق",
+      "translation": "depth",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وزن",
+      "translation": "weight",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قطعة",
+      "translation": "piece",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جزء",
+      "translation": "part",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كامل",
+      "translation": "complete, whole",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ناقص",
+      "translation": "incomplete",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "نصف",
+      "translation": "half",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ربع",
+      "translation": "quarter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ثلث",
+      "translation": "third",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مائة",
+      "translation": "hundred",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "ألف",
+      "translation": "thousand",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "مليون",
+      "translation": "million",
+      "partOfSpeech": "number"
+    },
+    {
+      "word": "أول",
+      "translation": "first",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ثاني",
+      "translation": "second",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ثالث",
+      "translation": "third",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "رابع",
+      "translation": "fourth",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "خامس",
+      "translation": "fifth",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أخير",
+      "translation": "last",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بداية",
+      "translation": "beginning",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نهاية",
+      "translation": "end",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وسط",
+      "translation": "middle, center",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حافة",
+      "translation": "edge",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زاوية",
+      "translation": "corner, angle",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جانب",
+      "translation": "side",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أعلى",
+      "translation": "top, highest",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أسفل",
+      "translation": "bottom, lowest",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قريب",
+      "translation": "near, close",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "بعيد",
+      "translation": "far",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مسافة",
+      "translation": "distance",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "اتجاه",
+      "translation": "direction",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شمال",
+      "translation": "north",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جنوب",
+      "translation": "south",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شرق",
+      "translation": "east",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "غرب",
+      "translation": "west",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حركة",
+      "translation": "movement",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سكون",
+      "translation": "stillness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صوت",
+      "translation": "sound, voice",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "هدوء",
+      "translation": "silence, quietness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ضجيج",
+      "translation": "noise",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "هادئ",
+      "translation": "quiet, calm",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صاخب",
+      "translation": "noisy",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ضوء",
+      "translation": "light",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ظلام",
+      "translation": "darkness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مظلم",
+      "translation": "dark",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "مضيء",
+      "translation": "bright, illuminated",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "نار",
+      "translation": "fire",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دخان",
+      "translation": "smoke",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رماد",
+      "translation": "ash",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حجر",
+      "translation": "stone",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تراب",
+      "translation": "soil, dust",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رمل",
+      "translation": "sand",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طين",
+      "translation": "mud, clay",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "معدن",
+      "translation": "metal",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ذهب",
+      "translation": "gold",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فضة",
+      "translation": "silver",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حديد",
+      "translation": "iron",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خشب",
+      "translation": "wood",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ورق",
+      "translation": "paper",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زجاج",
+      "translation": "glass",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بلاستيك",
+      "translation": "plastic",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قماش",
+      "translation": "cloth, fabric",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جلد",
+      "translation": "leather, skin",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مادة",
+      "translation": "material, substance",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نوع",
+      "translation": "type, kind",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مثل",
+      "translation": "like, similar to",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "مختلف",
+      "translation": "different",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "نفس",
+      "translation": "same",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "آخر",
+      "translation": "other, another",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "جديد",
+      "translation": "new, modern",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "حديث",
+      "translation": "modern, recent",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قديم",
+      "translation": "old, ancient",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قدير",
+      "translation": "capable",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "ذكي",
+      "translation": "intelligent",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "غبي",
+      "translation": "stupid",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "لطيف",
+      "translation": "kind, nice",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سيئ",
+      "translation": "bad, mean",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "صادق",
+      "translation": "truthful, honest",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "كاذب",
+      "translation": "liar, false",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "حقيقة",
+      "translation": "truth, reality",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كذب",
+      "translation": "lie",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حق",
+      "translation": "right, truth",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "باطل",
+      "translation": "false, invalid",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خير",
+      "translation": "good, goodness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شر",
+      "translation": "evil",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حب",
+      "translation": "love",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كراهية",
+      "translation": "hatred",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فرح",
+      "translation": "joy",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حزن",
+      "translation": "sadness, grief",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "خوف",
+      "translation": "fear",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شجاعة",
+      "translation": "courage",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أمل",
+      "translation": "hope",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "يأس",
+      "translation": "despair",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فكرة",
+      "translation": "idea",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رأي",
+      "translation": "opinion",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عقل",
+      "translation": "mind, intellect",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ذكاء",
+      "translation": "intelligence",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "معرفة",
+      "translation": "knowledge",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جهل",
+      "translation": "ignorance",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تعليم",
+      "translation": "education",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "تعلم",
+      "translation": "learning",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "امتحان",
+      "translation": "exam, test",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "درجة",
+      "translation": "grade, degree",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نجاح",
+      "translation": "success",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فشل",
+      "translation": "failure",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جامعة",
+      "translation": "university",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كلية",
+      "translation": "college, faculty",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "معهد",
+      "translation": "institute",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مكتبة",
+      "translation": "library",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قراءة",
+      "translation": "reading",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كتابة",
+      "translation": "writing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حساب",
+      "translation": "arithmetic",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رسم",
+      "translation": "drawing",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صفحة",
+      "translation": "page",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سطر",
+      "translation": "line",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فقرة",
+      "translation": "paragraph",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عنوان",
+      "translation": "title, address",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "موضوع",
+      "translation": "subject, topic",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قصة",
+      "translation": "story",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رواية",
+      "translation": "novel",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شعر",
+      "translation": "poetry, hair",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نثر",
+      "translation": "prose",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "كاتب",
+      "translation": "writer, author",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "قارئ",
+      "translation": "reader",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أديب",
+      "translation": "man of letters",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "شاعر",
+      "translation": "poet",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فنان",
+      "translation": "artist",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رسام",
+      "translation": "painter",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نحات",
+      "translation": "sculptor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "مغني",
+      "translation": "singer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ممثل",
+      "translation": "actor",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "راقص",
+      "translation": "dancer",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عازف",
+      "translation": "musician, player",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "آلة موسيقية",
+      "translation": "musical instrument",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جيتار",
+      "translation": "guitar",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بيانو",
+      "translation": "piano",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طبل",
+      "translation": "drum",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طريقة",
+      "translation": "method, way",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وسيلة",
+      "translation": "means, medium",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "آلة",
+      "translation": "machine, tool",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أداة",
+      "translation": "tool, instrument",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "سرعة",
+      "translation": "speed",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بطء",
+      "translation": "slowness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حرارة",
+      "translation": "heat, temperature",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "برودة",
+      "translation": "coldness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "رطوبة",
+      "translation": "humidity",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "جفاف",
+      "translation": "dryness",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "نور",
+      "translation": "light",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ظل",
+      "translation": "shade, shadow",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "صباح",
+      "translation": "morning",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ليلة",
+      "translation": "night",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "يومية",
+      "translation": "daily",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "أسبوعي",
+      "translation": "weekly",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "شهري",
+      "translation": "monthly",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سنوي",
+      "translation": "yearly, annual",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "قريبا",
+      "translation": "soon",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بعيدا",
+      "translation": "far away",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "حولَ",
+      "translation": "around",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "ضد",
+      "translation": "against",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "نحو",
+      "translation": "toward",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "خلال",
+      "translation": "during, through",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "رغم",
+      "translation": "despite",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "حتى",
+      "translation": "until, even",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "كي",
+      "translation": "in order to",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لكي",
+      "translation": "so that",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "بينما",
+      "translation": "while",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لذلك",
+      "translation": "therefore",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "مثلا",
+      "translation": "for example",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "خاصة",
+      "translation": "especially",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "تقريبا",
+      "translation": "approximately",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بالضبط",
+      "translation": "exactly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ربما",
+      "translation": "perhaps, maybe",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "حقا",
+      "translation": "really, truly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "طبعا",
+      "translation": "of course",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "فعلا",
+      "translation": "actually, indeed",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "قطعا",
+      "translation": "certainly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "كثيرا",
+      "translation": "much, a lot",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "قليلا",
+      "translation": "a little",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "جدا جدا",
+      "translation": "very much",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أكثر من",
+      "translation": "more than",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "أقل من",
+      "translation": "less than",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مثل ما",
+      "translation": "just as",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "كما",
+      "translation": "as, like",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "إما...أو",
+      "translation": "either...or",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لا...ولا",
+      "translation": "neither...nor",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "سواء",
+      "translation": "whether",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "منذ",
+      "translation": "since",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "طوال",
+      "translation": "throughout",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "عبر",
+      "translation": "across, through",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "ضمن",
+      "translation": "within, among",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "حسب",
+      "translation": "according to",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "مقابل",
+      "translation": "opposite, in exchange for",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بفضل",
+      "translation": "thanks to",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "بسبب",
+      "translation": "because of",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "نتيجة",
+      "translation": "as a result of",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "إضافة إلى",
+      "translation": "in addition to",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بالإضافة",
+      "translation": "additionally",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بالنسبة ل",
+      "translation": "regarding, as for",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بالنسبة إلى",
+      "translation": "in relation to",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "فيما يتعلق ب",
+      "translation": "concerning",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "على الرغم من",
+      "translation": "despite",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بدلا من",
+      "translation": "instead of",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من أجل",
+      "translation": "for the sake of",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من حيث",
+      "translation": "in terms of",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "على أي حال",
+      "translation": "anyway, in any case",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الواقع",
+      "translation": "in fact",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الحقيقة",
+      "translation": "actually, in truth",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "على العكس",
+      "translation": "on the contrary",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من ناحية أخرى",
+      "translation": "on the other hand",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في نفس الوقت",
+      "translation": "at the same time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مع ذلك",
+      "translation": "nevertheless",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بالتالي",
+      "translation": "consequently",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "إذن",
+      "translation": "therefore, then",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "هكذا",
+      "translation": "thus, this way",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "كذلك",
+      "translation": "likewise, also",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أيضا",
+      "translation": "also, too",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "فقط",
+      "translation": "only, just",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "إلا",
+      "translation": "except, only",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "غير",
+      "translation": "other than, not",
+      "partOfSpeech": "adjective"
+    },
+    {
+      "word": "سوى",
+      "translation": "except, other than",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "عدا",
+      "translation": "except",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "ماعدا",
+      "translation": "except for",
+      "partOfSpeech": "preposition"
+    },
+    {
+      "word": "حاشا",
+      "translation": "God forbid",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "ليت",
+      "translation": "if only, would that",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "لعل",
+      "translation": "perhaps, maybe",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "كأن",
+      "translation": "as if",
+      "partOfSpeech": "particle"
+    },
+    {
+      "word": "لكن",
+      "translation": "but, however",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "بل",
+      "translation": "rather, but",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "غير أن",
+      "translation": "except that",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "إلا أن",
+      "translation": "except that",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "مع أن",
+      "translation": "although",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "بالرغم من أن",
+      "translation": "although, despite",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "حيث",
+      "translation": "where, whereas",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "كلما",
+      "translation": "whenever",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "لما",
+      "translation": "when (past)",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "بعدما",
+      "translation": "after",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "قبلما",
+      "translation": "before",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "حالما",
+      "translation": "as soon as",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "بما أن",
+      "translation": "since, given that",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "طالما",
+      "translation": "as long as",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "ما دام",
+      "translation": "as long as",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "إذ",
+      "translation": "when, since",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "حين",
+      "translation": "when",
+      "partOfSpeech": "conjunction"
+    },
+    {
+      "word": "وقت",
+      "translation": "time, when",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زمان",
+      "translation": "time, era",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حقبة",
+      "translation": "era, period",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عهد",
+      "translation": "era, covenant",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فترة زمنية",
+      "translation": "time period",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مدة",
+      "translation": "duration",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "برهة",
+      "translation": "moment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "هنيهة",
+      "translation": "brief moment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أمد",
+      "translation": "period of time",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "دهر",
+      "translation": "age, long time",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "حين",
+      "translation": "time, while",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "آن",
+      "translation": "time, moment",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "أوان",
+      "translation": "time, proper time",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "زمن",
+      "translation": "time, tense",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "وقت فراغ",
+      "translation": "free time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "وقت العمل",
+      "translation": "work time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "وقت الراحة",
+      "translation": "rest time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "استراحة",
+      "translation": "break, rest",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "إجازة",
+      "translation": "vacation, leave",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عطلة",
+      "translation": "holiday, vacation",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عطلة نهاية الأسبوع",
+      "translation": "weekend",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "يوم عطلة",
+      "translation": "day off",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "يوم العمل",
+      "translation": "workday",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "نهار",
+      "translation": "daytime",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فجر",
+      "translation": "dawn",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "ضحى",
+      "translation": "forenoon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "عصر",
+      "translation": "afternoon",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "غسق",
+      "translation": "dusk",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "فجر",
+      "translation": "dawn",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "بعد الظهر",
+      "translation": "afternoon",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "قبل الظهر",
+      "translation": "before noon",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "منتصف النهار",
+      "translation": "midday",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "سحر",
+      "translation": "pre-dawn",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "طلوع الفجر",
+      "translation": "daybreak",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مغيب الشمس",
+      "translation": "sunset",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "طلوع الشمس",
+      "translation": "sunrise",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "وقت الغروب",
+      "translation": "sunset time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "وقت الشروق",
+      "translation": "sunrise time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "ضوء النهار",
+      "translation": "daylight",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "ظلام الليل",
+      "translation": "darkness of night",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "قلب الليل",
+      "translation": "dead of night",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "جوف الليل",
+      "translation": "middle of night",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "آخر الليل",
+      "translation": "end of night",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "أول الليل",
+      "translation": "beginning of night",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "منتصف الليل",
+      "translation": "midnight",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "ساعة متأخرة",
+      "translation": "late hour",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "ساعة مبكرة",
+      "translation": "early hour",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الوقت المحدد",
+      "translation": "on time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الموعد",
+      "translation": "at the appointed time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "متأخر عن الموعد",
+      "translation": "late",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مبكر عن الموعد",
+      "translation": "early",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الوقت المناسب",
+      "translation": "at the right time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "قبل الأوان",
+      "translation": "premature",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بعد فوات الأوان",
+      "translation": "too late",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الوقت الحالي",
+      "translation": "currently",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في هذا الوقت",
+      "translation": "at this time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في ذلك الوقت",
+      "translation": "at that time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في أي وقت",
+      "translation": "anytime",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "طوال الوقت",
+      "translation": "all the time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "معظم الوقت",
+      "translation": "most of the time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بعض الوقت",
+      "translation": "some time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من وقت لآخر",
+      "translation": "from time to time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "بين الحين والآخر",
+      "translation": "now and then",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في كل مرة",
+      "translation": "every time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "هذه المرة",
+      "translation": "this time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "المرة القادمة",
+      "translation": "next time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "المرة الماضية",
+      "translation": "last time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "أول مرة",
+      "translation": "first time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "آخر مرة",
+      "translation": "last time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مرة أخرى",
+      "translation": "again",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مرة واحدة",
+      "translation": "once",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مرتين",
+      "translation": "twice",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ثلاث مرات",
+      "translation": "three times",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "عدة مرات",
+      "translation": "several times",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "مرارا",
+      "translation": "repeatedly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "مرارا وتكرارا",
+      "translation": "again and again",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "للمرة الأولى",
+      "translation": "for the first time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "للمرة الأخيرة",
+      "translation": "for the last time",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في البداية",
+      "translation": "at the beginning",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في النهاية",
+      "translation": "in the end",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "في الأخير",
+      "translation": "finally",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "أخيرا",
+      "translation": "finally",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أولا",
+      "translation": "firstly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ثانيا",
+      "translation": "secondly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ثالثا",
+      "translation": "thirdly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "أخيرا وليس آخرا",
+      "translation": "last but not least",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من جهة",
+      "translation": "on one hand",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "من جهة أخرى",
+      "translation": "on the other hand",
+      "partOfSpeech": "phrase"
+    },
+    {
+      "word": "باستمرار",
+      "translation": "continuously",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بانتظام",
+      "translation": "regularly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بسرعة",
+      "translation": "quickly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "ببطء",
+      "translation": "slowly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بصعوبة",
+      "translation": "with difficulty",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بسهولة",
+      "translation": "easily",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "بوضوح",
+      "translation": "clearly",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "تماما",
+      "translation": "completely",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "جزئيا",
+      "translation": "partially",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "كليا",
+      "translation": "totally",
+      "partOfSpeech": "adverb"
+    },
+    {
+      "word": "نسبيا",
+      "translation": "relatively",
+      "partOfSpeech": "adverb"
+    }
+  ]
+}
