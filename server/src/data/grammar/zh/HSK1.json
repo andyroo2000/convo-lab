@@ -1,0 +1,28 @@
+{
+  "language": "zh",
+  "level": "HSK1",
+  "framework": "HSK",
+  "grammarPoints": [
+    {
+      "pattern": "subject + verb + object",
+      "meaning": "basic sentence structure",
+      "usage": "The most fundamental Chinese sentence pattern. Subject performs the action (verb) on the object.",
+      "example": "我吃饭",
+      "exampleTranslation": "I eat rice/food"
+    },
+    {
+      "pattern": "subject + 是 + noun/pronoun",
+      "meaning": "to be (for identity/definition)",
+      "usage": "Use 是 (shì) to link the subject with a noun that defines or identifies what the subject is.",
+      "example": "我是学生",
+      "exampleTranslation": "I am a student"
+    },
+    {
+      "pattern": "subject + adjective",
+      "meaning": "to describe quality or state",
+      "usage": "In Chinese, adjectives can function as predicates without needing a verb 'to be'. For single-syllable adjectives, often add 很 (hěn) before the adjective.",
+      "example": "水很好",
+      "exampleTranslation": "The water is very good"
+    }
+  ]
+}

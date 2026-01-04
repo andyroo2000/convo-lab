@@ -1,0 +1,37 @@
+{
+  "language": "zh",
+  "level": "HSK1",
+  "framework": "HSK",
+  "vocabulary": [
+    {
+      "word": "你好",
+      "reading": "nǐ hǎo",
+      "translation": "hello",
+      "partOfSpeech": "greeting"
+    },
+    {
+      "word": "我",
+      "reading": "wǒ",
+      "translation": "I, me",
+      "partOfSpeech": "pronoun"
+    },
+    {
+      "word": "吃",
+      "reading": "chī",
+      "translation": "to eat",
+      "partOfSpeech": "verb"
+    },
+    {
+      "word": "水",
+      "reading": "shuǐ",
+      "translation": "water",
+      "partOfSpeech": "noun"
+    },
+    {
+      "word": "好",
+      "reading": "hǎo",
+      "translation": "good",
+      "partOfSpeech": "adjective"
+    }
+  ]
+}
