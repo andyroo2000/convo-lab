@@ -1,21 +1,22 @@
+/* eslint-disable no-console */
+// Console logging is necessary in this background job worker for monitoring and debugging
+
 import { Queue, Worker } from 'bullmq';
-import { prisma } from '../db/client.js';
-import {
-  extractCoreItems,
-  extractDialogueExchanges,
-  extractDialogueExchangesFromSourceText,
-} from '../services/courseItemExtractor.js';
-import { planCourse } from '../services/lessonPlanner.js';
-import { generateLessonScript } from '../services/lessonScriptGenerator.js';
-import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
-import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
+
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
+import { prisma } from '../db/client.js';
+import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
+import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
+import { extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
 
 const connection = createRedisConnection();
 
 export const courseQueue = new Queue('course-generation', { connection });
 
-async function processCourseGeneration(job: any) {
+async function processCourseGeneration(job: {
+  data: { courseId: string };
+  updateProgress: (progress: number) => Promise<void>;
+}) {
   const { courseId } = job.data;
 
   try {
@@ -101,7 +102,7 @@ async function processCourseGeneration(job: any) {
     // For now, create a single lesson per episode
     // Future: could split long dialogues into multiple lessons
     const lessonTitle = `${firstEpisode.title} - Lesson 1`;
-    const estimatedDuration = dialogueExchanges.length * 90; // ~1.5 min per exchange
+    const _estimatedDuration = dialogueExchanges.length * 90; // ~1.5 min per exchange
 
     console.log(`Planning conversational lesson: ${lessonTitle}`);
     await job.updateProgress(30);
@@ -153,7 +154,7 @@ async function processCourseGeneration(job: any) {
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptJson: generatedScript.units as any,
+        scriptJson: generatedScript.units as unknown,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });
@@ -168,18 +169,28 @@ async function processCourseGeneration(job: any) {
     }> = [];
 
     // Extract vocabulary from dialogue units
-    generatedScript.units.forEach((unit: any, index: number) => {
-      if (unit.type === 'dialogue' && unit.vocabularyItems && unit.vocabularyItems.length > 0) {
-        unit.vocabularyItems.forEach((vocab: any) => {
-          vocabularyItems.push({
-            textL2: vocab.textL2,
-            readingL2: vocab.readingL2 || null,
-            translationL1: vocab.translationL1,
-            unitIndex: index,
-          });
-        });
+    generatedScript.units.forEach(
+      (
+        unit: {
+          type: string;
+          vocabularyItems?: { textL2: string; readingL2?: string; translationL1: string }[];
+        },
+        index: number
+      ) => {
+        if (unit.type === 'dialogue' && unit.vocabularyItems && unit.vocabularyItems.length > 0) {
+          unit.vocabularyItems.forEach(
+            (vocab: { textL2: string; readingL2?: string; translationL1: string }) => {
+              vocabularyItems.push({
+                textL2: vocab.textL2,
+                readingL2: vocab.readingL2 || null,
+                translationL1: vocab.translationL1,
+                unitIndex: index,
+              });
+            }
+          );
+        }
       }
-    });
+    );
 
     // Save vocabulary items with sourceUnitIndex
     if (vocabularyItems.length > 0) {
@@ -222,7 +233,7 @@ async function processCourseGeneration(job: any) {
       data: {
         audioUrl: assembledAudio.audioUrl,
         approxDurationSeconds: assembledAudio.actualDurationSeconds,
-        timingData: assembledAudio.timingData as any,
+        timingData: assembledAudio.timingData as unknown,
         status: 'ready',
       },
     });
@@ -243,7 +254,7 @@ async function processCourseGeneration(job: any) {
     return {
       courseId,
       lessonCount: 1,
-      vocabularyItemCount: allVocabItems.length,
+      vocabularyItemCount: vocabularyItems.length,
       exchangeCount: dialogueExchanges.length,
     };
   } catch (error) {

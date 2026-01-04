@@ -9,7 +9,7 @@ interface ConfirmDialogProps {
   variant?: 'danger' | 'primary';
 }
 
-export default function ConfirmDialog({
+const ConfirmDialog = ({
   isOpen,
   title,
   message,
@@ -18,7 +18,7 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
   variant = 'primary',
-}: ConfirmDialogProps) {
+}: ConfirmDialogProps) => {
   if (!isOpen) return null;
 
   const confirmButtonClass =
@@ -29,7 +29,16 @@ export default function ConfirmDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onCancel} />
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onCancel}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCancel();
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label="Close dialog"
+      />
 
       {/* Dialog */}
       <div className="relative bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
@@ -38,12 +47,14 @@ export default function ConfirmDialog({
 
         <div className="flex gap-3 justify-end">
           <button
+            type="button"
             onClick={onCancel}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
           >
             {cancelText}
           </button>
           <button
+            type="button"
             onClick={onConfirm}
             className={`px-4 py-2 rounded-lg transition-colors ${confirmButtonClass}`}
           >
@@ -53,4 +64,6 @@ export default function ConfirmDialog({
       </div>
     </div>
   );
-}
+};
+
+export default ConfirmDialog;

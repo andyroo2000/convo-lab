@@ -49,7 +49,8 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
           className="text-3xl font-medium"
         />
       );
-    } else if (targetLanguage === 'zh') {
+    }
+    if (targetLanguage === 'zh') {
       // Chinese with optional pinyin (reading is in bracket notation)
       return (
         <ChineseText
@@ -58,14 +59,9 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
           className="text-3xl font-medium"
         />
       );
-    } else {
-      // Other languages: plain text display
-      return (
-        <div className="text-3xl font-medium">
-          {text}
-        </div>
-      );
     }
+    // Other languages: plain text display
+    return <div className="text-3xl font-medium">{text}</div>;
   };
 
   return (
@@ -87,9 +83,7 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
       >
         {renderText()}
         {showTranslations && translation && (
-          <div className="mt-4 text-lg text-gray-600">
-            {translation}
-          </div>
+          <div className="mt-4 text-lg text-gray-600">{translation}</div>
         )}
       </div>
     </div>
