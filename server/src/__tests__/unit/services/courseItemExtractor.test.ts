@@ -6,20 +6,48 @@ import {
   extractDialogueExchanges,
   extractDialogueExchangesFromSourceText,
   extractVocabularyFromSentence,
-  CoreItem,
-  DialogueExchange,
 } from '../../../services/courseItemExtractor.js';
 
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
+const mockReviewDialogue = vi.hoisted(() => vi.fn());
+const mockEditDialogue = vi.hoisted(() => vi.fn());
+const mockSampleVocabulary = vi.hoisted(() => vi.fn());
+const mockFormatWordsForPrompt = vi.hoisted(() => vi.fn());
+const mockGetProficiencyFramework = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/geminiClient.js', () => ({
   generateWithGemini: mockGenerateWithGemini,
 }));
 
+vi.mock('../../../services/dialogueReviewer.js', () => ({
+  reviewDialogue: mockReviewDialogue,
+  editDialogue: mockEditDialogue,
+}));
+
+vi.mock('../../../services/vocabularySeeding.js', () => ({
+  sampleVocabulary: mockSampleVocabulary,
+  formatWordsForPrompt: mockFormatWordsForPrompt,
+  getProficiencyFramework: mockGetProficiencyFramework,
+}));
+
 describe('courseItemExtractor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Set up default mocks for dialogueReviewer
+    mockReviewDialogue.mockResolvedValue({
+      overallScore: 8,
+      issues: [],
+      strengths: ['Good dialogue flow'],
+      needsRevision: false,
+    });
+    mockEditDialogue.mockResolvedValue([]);
+
+    // Set up default mocks for vocabularySeeding
+    mockSampleVocabulary.mockResolvedValue([]);
+    mockFormatWordsForPrompt.mockReturnValue('');
+    mockGetProficiencyFramework.mockReturnValue('JLPT');
   });
 
   // Helper to create mock episode with dialogue
