@@ -9,14 +9,14 @@ interface JapaneseTextProps {
 
 /**
  * Converts bracket notation to HTML ruby tags
- * Input: "買[か]い物[もの]"
+ * Input: "買[か]い物[もの]" or "お正月休み[おしょうがつやすみ]"
  * Output: "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
  */
 function renderRuby(text: string): string {
-  // Pattern matches one or more kanji characters followed by bracket notation containing the reading
-  // Handles: "買[か]", "鈴木[すずき]", "鈴木[すず き]" (with spaces in reading)
-  // Example: "買[か]い物[もの]" -> "<ruby>買<rt>か</rt></ruby>い<ruby>物<rt>もの</rt></ruby>"
-  const rubyPattern = /([\u4E00-\u9FAF]+)\[([^\]]+)\]/g;
+  // Pattern matches kanji OR mixed kanji/hiragana followed by bracket notation
+  // Handles: "買[か]", "鈴木[すずき]", "お正月休み[おしょうがつやすみ]"
+  // [\u4E00-\u9FAF\u3040-\u309F]+ matches kanji and hiragana characters
+  const rubyPattern = /([\u4E00-\u9FAF\u3040-\u309F]+)\[([^\]]+)\]/g;
 
   return text.replace(rubyPattern, (match, base, reading) => {
     // Remove extra spaces from the reading that might have been added during generation
@@ -26,12 +26,12 @@ function renderRuby(text: string): string {
 }
 
 /**
- * Removes bracket notation, leaving only the base kanji
- * Input: "買[か]い物[もの]"
- * Output: "買い物"
+ * Removes bracket notation, leaving only the base text
+ * Input: "買[か]い物[もの]" or "お正月休み[おしょうがつやすみ]"
+ * Output: "買い物" or "お正月休み"
  */
 function stripFurigana(text: string): string {
-  const rubyPattern = /([\u4E00-\u9FAF]+)\[([^\]]+)\]/g;
+  const rubyPattern = /([\u4E00-\u9FAF\u3040-\u309F]+)\[([^\]]+)\]/g;
   return text.replace(rubyPattern, '$1');
 }
 

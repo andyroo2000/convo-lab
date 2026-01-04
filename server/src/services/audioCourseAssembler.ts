@@ -28,6 +28,7 @@ export interface AssembleAudioOptions {
 export interface AssembledAudio {
   audioUrl: string;
   actualDurationSeconds: number;
+  timingData: Array<{ unitIndex: number; startTime: number; endTime: number }>;
 }
 
 /**
@@ -109,6 +110,7 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
     return {
       audioUrl,
       actualDurationSeconds: Math.floor(actualDuration / 1000),
+      timingData: batchResult.timingData,
     };
   } finally {
     // Cleanup temp directory
@@ -131,7 +133,9 @@ async function getAudioDurationFromFile(filePath: string): Promise<number> {
         return;
       }
 
-      const durationSeconds = metadata.format.duration || 0;
+      // Ensure duration is always a number (ffprobe can sometimes return string)
+      const duration = metadata.format.duration;
+      const durationSeconds = typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
       resolve(durationSeconds * 1000); // Convert to milliseconds
     });
   });

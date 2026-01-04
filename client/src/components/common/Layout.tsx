@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic } from 'lucide-react';
+import { Library, Mic, BookMarked } from 'lucide-react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
@@ -54,6 +54,7 @@ const Layout = () => {
     location.pathname.startsWith('/app/narrow-listening') ||
     location.pathname.startsWith('/app/chunk-packs') ||
     location.pathname.startsWith('/app/pi/session');
+  const isReviewActive = location.pathname.startsWith('/app/review');
   const isCreateActive =
     location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
 
@@ -93,6 +94,17 @@ const Layout = () => {
                   {t('common:nav.library')}
                 </Link>
                 <Link
+                  to="/app/review"
+                  className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
+                    isReviewActive
+                      ? 'bg-white text-indigo-600 shadow-md'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  <BookMarked className="w-4 h-4 mr-2 flex-shrink-0" />
+                  Review
+                </Link>
+                <Link
                   to="/app/create"
                   className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
                     isCreateActive
@@ -116,6 +128,17 @@ const Layout = () => {
                 >
                   <Library className="w-4 h-4 mr-1 flex-shrink-0" />
                   {t('common:nav.library')}
+                </Link>
+                <Link
+                  to="/app/review"
+                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
+                    isReviewActive
+                      ? 'bg-white text-indigo-600 shadow-md'
+                      : 'text-white hover:bg-white/20'
+                  }`}
+                >
+                  <BookMarked className="w-4 h-4 mr-1 flex-shrink-0" />
+                  Review
                 </Link>
                 <Link
                   to="/app/create"

@@ -1,21 +1,105 @@
-import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { BookOpen, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { BookOpen, Clock, Plus, Check } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import CurrentTextDisplay from '../components/CurrentTextDisplay';
+import ViewToggleButtons from '../components/common/ViewToggleButtons';
+import { LessonScriptUnit } from '../types';
+import api from '../lib/api';
 
 const CoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const _navigate = useNavigate();
   const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
-  const { audioRef } = useAudioPlayer();
+  const { audioRef, currentTime } = useAudioPlayer();
 
   // Inline editing state
   const [editingTitle, setEditingTitle] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
   const [editedDescription, setEditedDescription] = useState('');
+
+  // Current text display state
+  const [showReadings, setShowReadings] = useState(false);
+  const [showTranslations, setShowTranslations] = useState(true);
+  const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
+
+  // SRS card management state
+  const [cardsInDeck, setCardsInDeck] = useState<Set<string>>(new Set());
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [cardTypeModal, setCardTypeModal] = useState<string | null>(null);
+  const [enableRecognition, setEnableRecognition] = useState(true);
+  const [enableAudio, setEnableAudio] = useState(true);
+  const [addingCard, setAddingCard] = useState(false);
+
+  // Fetch existing cards for this course
+  useEffect(() => {
+    const fetchExistingCards = async () => {
+      if (!course?.coreItems) return;
+
+      try {
+        const response = await api.get<Array<{ coreItemId: string | null }>>('/api/srs/cards');
+        const existingCoreItemIds = response
+          .map((card) => card.coreItemId)
+          .filter((id): id is string => id !== null);
+        setCardsInDeck(new Set(existingCoreItemIds));
+      } catch (error) {
+        console.error('Failed to fetch existing cards:', error);
+      }
+    };
+
+    fetchExistingCards();
+  }, [course?.coreItems]);
+
+  // Handle adding card to deck
+  const handleAddCard = async (coreItemId: string) => {
+    setAddingCard(true);
+    try {
+      await api.post('/api/srs/cards', {
+        coreItemId,
+        enableRecognition,
+        enableAudio,
+      });
+      setCardsInDeck((prev) => new Set(prev).add(coreItemId));
+      setCardTypeModal(null);
+      setEnableRecognition(true);
+      setEnableAudio(true);
+    } catch (error) {
+      console.error('Failed to add card:', error);
+      alert('Failed to add card. Please try again.');
+    } finally {
+      setAddingCard(false);
+    }
+  };
+
+  // Track current L2 unit based on audio playback position
+  useEffect(() => {
+    if (!course?.scriptJson || !course?.timingData) {
+      setCurrentUnit(null);
+      return;
+    }
+
+    const currentTimeMs = currentTime * 1000;
+    const PADDING_START_MS = 1000; // Show text 1 second before speech starts
+    const PADDING_END_MS = 5000; // Keep text 5 seconds after speech ends
+
+    // Find active L2 unit with padding
+    const activeTiming = course.timingData.find((timing) => {
+      const unit = course.scriptJson![timing.unitIndex];
+      return (
+        unit.type === 'L2' &&
+        currentTimeMs >= timing.startTime - PADDING_START_MS &&
+        currentTimeMs < timing.endTime + PADDING_END_MS
+      );
+    });
+
+    if (activeTiming) {
+      setCurrentUnit(course.scriptJson[activeTiming.unitIndex]);
+    } else {
+      setCurrentUnit(null);
+    }
+  }, [currentTime, course]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -160,6 +244,31 @@ const CoursePage = () => {
       <div className="card">
         {course.status === 'ready' && course.audioUrl ? (
           <>
+            {/* View Toggle Buttons */}
+            {course.timingData && (
+              <div className="mb-4">
+                <ViewToggleButtons
+                  showReadings={showReadings}
+                  showTranslations={showTranslations}
+                  onToggleReadings={() => setShowReadings(!showReadings)}
+                  onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                  readingsLabel={course.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
+                />
+              </div>
+            )}
+
+            {/* Current Text Display */}
+            {course.timingData && (
+              <div className="mb-6">
+                <CurrentTextDisplay
+                  currentUnit={currentUnit}
+                  targetLanguage={course.targetLanguage}
+                  showReadings={showReadings}
+                  showTranslations={showTranslations}
+                />
+              </div>
+            )}
+
             <h2 className="text-2xl font-bold text-navy mb-4">Course Audio</h2>
 
             <AudioPlayer src={course.audioUrl} audioRef={audioRef} key={course.audioUrl} />
@@ -172,12 +281,36 @@ const CoursePage = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {course.coreItems.map((item) => (
-                    <div key={item.id} className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <div
+                      key={item.id}
+                      className="relative p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-md hover:border-indigo-300"
+                      onMouseEnter={() => setHoveredItemId(item.id)}
+                      onMouseLeave={() => setHoveredItemId(null)}
+                    >
                       <div className="text-lg font-medium text-navy">{item.textL2}</div>
                       {item.readingL2 && (
                         <div className="text-sm text-gray-500 mt-1">{item.readingL2}</div>
                       )}
                       <div className="text-sm text-gray-600 mt-2">{item.translationL1}</div>
+
+                      {/* Card status or add button */}
+                      {cardsInDeck.has(item.id) ? (
+                        <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
+                          <Check className="w-3 h-3" />
+                          In Deck
+                        </div>
+                      ) : (
+                        hoveredItemId === item.id && (
+                          <button
+                            type="button"
+                            onClick={() => setCardTypeModal(item.id)}
+                            className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 bg-indigo-500 text-white rounded-full text-xs font-medium hover:bg-indigo-600 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Add to Deck
+                          </button>
+                        )
+                      )}
                     </div>
                   ))}
                 </div>
@@ -240,6 +373,74 @@ const CoursePage = () => {
           </div>
         )}
       </div>
+
+      {/* Card Type Selection Modal */}
+      {cardTypeModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setCardTypeModal(null)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-navy mb-4">Add Card to Deck</h3>
+            <p className="text-gray-600 mb-6 text-sm">
+              Select which card types you'd like to add for this vocabulary item:
+            </p>
+
+            <div className="space-y-3 mb-6">
+              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={enableRecognition}
+                  onChange={(e) => setEnableRecognition(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-navy">Recognition Card</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    See the word in {course.targetLanguage.toUpperCase()} → recall the translation
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={enableAudio}
+                  onChange={(e) => setEnableAudio(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <div className="flex-1">
+                  <div className="font-medium text-navy">Audio Card</div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Hear the audio → recall the word and translation
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setCardTypeModal(null)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAddCard(cardTypeModal)}
+                disabled={(!enableRecognition && !enableAudio) || addingCard}
+                className="flex-1 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {addingCard ? 'Adding...' : 'Add to Deck'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

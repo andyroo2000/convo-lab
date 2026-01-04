@@ -124,22 +124,8 @@ async function processCourseGeneration(job: any) {
 
     await job.updateProgress(35);
 
-    // Save vocabulary items from dialogue exchanges (batched for DB efficiency)
-    const allVocabItems = dialogueExchanges.flatMap((ex) => ex.vocabularyItems || []);
-    if (allVocabItems.length > 0) {
-      await prisma.courseCoreItem.createMany({
-        data: allVocabItems.map((item, index) => ({
-          courseId: course.id,
-          textL2: item.textL2,
-          readingL2: item.readingL2,
-          translationL1: item.translationL1,
-          complexityScore: index, // Simple ordering
-          sourceEpisodeId: firstEpisode.id,
-          sourceSentenceId: null, // Could be linked if needed
-        })),
-      });
-      console.log(`Saved ${allVocabItems.length} vocabulary items for course`);
-    }
+    // NOTE: Vocabulary creation moved to AFTER script generation
+    // so we can extract from actual dialogue units with exact text matches
     await job.updateProgress(40);
 
     // STEP 3: Generate conversational script with Gemini
@@ -172,6 +158,46 @@ async function processCourseGeneration(job: any) {
       },
     });
 
+    // STEP 3.5: Extract vocabulary from generated dialogue units
+    console.log('Extracting vocabulary from generated dialogue...');
+    const vocabularyItems: Array<{
+      textL2: string;
+      readingL2: string | null;
+      translationL1: string;
+      unitIndex: number;
+    }> = [];
+
+    // Extract vocabulary from dialogue units
+    generatedScript.units.forEach((unit: any, index: number) => {
+      if (unit.type === 'dialogue' && unit.vocabularyItems && unit.vocabularyItems.length > 0) {
+        unit.vocabularyItems.forEach((vocab: any) => {
+          vocabularyItems.push({
+            textL2: vocab.textL2,
+            readingL2: vocab.readingL2 || null,
+            translationL1: vocab.translationL1,
+            unitIndex: index,
+          });
+        });
+      }
+    });
+
+    // Save vocabulary items with sourceUnitIndex
+    if (vocabularyItems.length > 0) {
+      await prisma.courseCoreItem.createMany({
+        data: vocabularyItems.map((item, idx) => ({
+          courseId: course.id,
+          textL2: item.textL2,
+          readingL2: item.readingL2,
+          translationL1: item.translationL1,
+          complexityScore: idx,
+          sourceEpisodeId: firstEpisode.id,
+          sourceSentenceId: null,
+          sourceUnitIndex: item.unitIndex,
+        })),
+      });
+      console.log(`Saved ${vocabularyItems.length} vocabulary items from dialogue units`);
+    }
+
     // STEP 4: Assemble audio
     console.log('Assembling course audio with Edge TTS...');
 
@@ -190,12 +216,13 @@ async function processCourseGeneration(job: any) {
     console.log(`Audio assembled: ${assembledAudio.audioUrl}`);
     await job.updateProgress(85);
 
-    // Update course with audio URL and actual duration
+    // Update course with audio URL, actual duration, and timing data
     await prisma.course.update({
       where: { id: course.id },
       data: {
         audioUrl: assembledAudio.audioUrl,
         approxDurationSeconds: assembledAudio.actualDurationSeconds,
+        timingData: assembledAudio.timingData as any,
         status: 'ready',
       },
     });

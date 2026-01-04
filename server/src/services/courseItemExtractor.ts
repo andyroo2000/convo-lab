@@ -901,11 +901,12 @@ Scenario: "${sourceText}"
 Generate ${targetExchangeCount} dialogue exchanges in ${targetLanguage.toUpperCase()} for this scenario. Create a realistic back-and-forth conversation.
 
 For each exchange:
-1. Write the line in ${targetLanguage.toUpperCase()}
-2. Provide an English translation
-3. Identify the speaker (give them a name like "Kenji", "Maria", "Bartender", etc.)
-4. Provide a relationship description for narration (e.g., "Your friend", "The bartender", "Your colleague")
-5. Extract 2-4 key vocabulary words or short phrases that would be useful to teach
+1. Write the line in ${targetLanguage.toUpperCase()} as plain text (this goes in "textL2")
+2. ${targetLanguage === 'ja' ? 'Provide a SEPARATE reading in BRACKET NOTATION - put hiragana in brackets after each kanji (this goes in "reading"). Example textL2: "北海道に行きました", reading: "北[ほっ]海[かい]道[どう]に行[い]きました"' : targetLanguage === 'zh' ? 'Provide the pinyin for the full sentence (with tone marks like nǐ hǎo) in "reading"' : ''}
+3. Provide an English translation
+4. Identify the speaker (give them a name like "Kenji", "Maria", "Bartender", etc.)
+5. Provide a relationship description for narration (e.g., "Your friend", "The bartender", "Your colleague")
+6. Extract 2-4 key vocabulary words or short phrases that would be useful to teach
 
 ${jlptConstraint}
 
@@ -932,7 +933,13 @@ Examples of BAD turn length (TOO LONG):
 ${
   targetLanguage === 'ja'
     ? `
-IMPORTANT for Japanese vocabulary:
+IMPORTANT for Japanese:
+SENTENCE READING FORMAT:
+- Use BRACKET NOTATION: put hiragana in brackets after each kanji
+- Example: "北[ほっ]海[かい]道[どう]に行[い]きました"
+- For particles and kana-only words, write them normally without brackets: "に", "を", "は"
+
+VOCABULARY WORDS:
 - "word" should contain ONLY Japanese characters (kanji/kana), NO romanization
 - "reading" should contain the hiragana reading (e.g., "ほっかいどう" for 北海道)
 - "jlptLevel" should indicate the JLPT level where this word is typically taught (N5, N4, N3, N2, N1)
@@ -954,7 +961,8 @@ Return ONLY a JSON object (no markdown, no explanation):
       "order": 0,
       "speakerName": "Kenji",
       "relationshipName": "Your friend",
-      "textL2": "...",
+      "textL2": "${targetLanguage === 'ja' ? '北海道に行きました' : '...'}",${targetLanguage === 'ja' || targetLanguage === 'zh' ? `
+      "reading": "${targetLanguage === 'ja' ? '北[ほっ]海[かい]道[どう]に行[い]きました' : '...'}",` : ''}
       "translation": "...",
       "vocabulary": [
         {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...", "jlptLevel": "N4",' : ''} "translation": "..."},
@@ -1041,7 +1049,7 @@ Return ONLY a JSON object (no markdown, no explanation):
         relationshipName: exchange.relationshipName || exchange.speakerName, // Fallback to speakerName if not provided
         speakerVoiceId: voiceId,
         textL2: exchange.textL2,
-        readingL2: null, // Could be enhanced to generate readings
+        readingL2: exchange.reading || null,
         translationL1: exchange.translation,
         vocabularyItems,
       });

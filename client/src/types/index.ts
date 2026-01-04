@@ -205,6 +205,7 @@ export interface Course {
   scriptJson?: LessonScriptUnit[];
   approxDurationSeconds?: number;
   audioUrl?: string;
+  timingData?: Array<{ unitIndex: number; startTime: number; endTime: number }>;
   coreItems?: CourseCoreItem[];
   courseEpisodes?: CourseEpisode[];
 }
@@ -230,7 +231,7 @@ export interface CourseCoreItem {
 
 export type LessonScriptUnit =
   | { type: 'narration_L1'; text: string; voiceId: string }
-  | { type: 'L2'; text: string; reading?: string; voiceId: string; speed?: number }
+  | { type: 'L2'; text: string; reading?: string; translation?: string; voiceId: string; speed?: number }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
 
