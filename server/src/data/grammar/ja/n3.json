@@ -1,0 +1,217 @@
+{
+  "language": "ja",
+  "level": "N3",
+  "framework": "JLPT",
+  "grammarPoints": [
+    {
+      "pattern": "～ば",
+      "meaning": "if / when (conditional)",
+      "usage": "Verb ば-form",
+      "example": "行けば",
+      "exampleTranslation": "if you go"
+    },
+    {
+      "pattern": "～たら",
+      "meaning": "if / when (past conditional)",
+      "usage": "Verb た-form + ら",
+      "example": "行ったら",
+      "exampleTranslation": "if/when you go"
+    },
+    {
+      "pattern": "～なら",
+      "meaning": "if it's the case that",
+      "usage": "Noun / plain form + なら",
+      "example": "日本なら",
+      "exampleTranslation": "if it's Japan"
+    },
+    {
+      "pattern": "～ても",
+      "meaning": "even if / even though",
+      "usage": "Verb て-form + も",
+      "example": "雨が降っても",
+      "exampleTranslation": "even if it rains"
+    },
+    {
+      "pattern": "～のに",
+      "meaning": "although / despite",
+      "usage": "Plain form + のに",
+      "example": "勉強したのに",
+      "exampleTranslation": "although I studied"
+    },
+    {
+      "pattern": "～ばかり",
+      "meaning": "just / only / nothing but",
+      "usage": "Verb dictionary form / noun + ばかり",
+      "example": "遊んでばかりいる",
+      "exampleTranslation": "do nothing but play"
+    },
+    {
+      "pattern": "～によって",
+      "meaning": "depending on / by means of",
+      "usage": "Noun + によって",
+      "example": "人によって",
+      "exampleTranslation": "depending on the person"
+    },
+    {
+      "pattern": "～について",
+      "meaning": "about / concerning",
+      "usage": "Noun + について",
+      "example": "日本について",
+      "exampleTranslation": "about Japan"
+    },
+    {
+      "pattern": "～に対して",
+      "meaning": "towards / in contrast to",
+      "usage": "Noun + に対して",
+      "example": "子供に対して",
+      "exampleTranslation": "towards children"
+    },
+    {
+      "pattern": "～とともに",
+      "meaning": "together with / as",
+      "usage": "Noun + とともに",
+      "example": "時間とともに",
+      "exampleTranslation": "as time passes"
+    },
+    {
+      "pattern": "～ことにする",
+      "meaning": "decide to",
+      "usage": "Verb dictionary form + ことにする",
+      "example": "行くことにしました",
+      "exampleTranslation": "decided to go"
+    },
+    {
+      "pattern": "～ことになる",
+      "meaning": "it has been decided that",
+      "usage": "Verb dictionary form + ことになる",
+      "example": "行くことになりました",
+      "exampleTranslation": "it's been decided that I'll go"
+    },
+    {
+      "pattern": "～わけだ",
+      "meaning": "no wonder / that's why",
+      "usage": "Plain form + わけだ",
+      "example": "忙しいわけだ",
+      "exampleTranslation": "no wonder you're busy"
+    },
+    {
+      "pattern": "～はずだ",
+      "meaning": "should be / expected to be",
+      "usage": "Plain form + はずだ",
+      "example": "知っているはずだ",
+      "exampleTranslation": "should know"
+    },
+    {
+      "pattern": "～かもしれない",
+      "meaning": "might / maybe",
+      "usage": "Plain form + かもしれない",
+      "example": "雨が降るかもしれない",
+      "exampleTranslation": "it might rain"
+    },
+    {
+      "pattern": "～に違いない",
+      "meaning": "must be / no doubt",
+      "usage": "Plain form + に違いない",
+      "example": "彼だに違いない",
+      "exampleTranslation": "it must be him"
+    },
+    {
+      "pattern": "～ようだ",
+      "meaning": "it seems / appears",
+      "usage": "Plain form + ようだ",
+      "example": "雨が降るようだ",
+      "exampleTranslation": "it seems it will rain"
+    },
+    {
+      "pattern": "～みたいだ",
+      "meaning": "seems like / looks like",
+      "usage": "Plain form + みたいだ",
+      "example": "学生みたいだ",
+      "exampleTranslation": "seems like a student"
+    },
+    {
+      "pattern": "～ところだ",
+      "meaning": "just about to / just did",
+      "usage": "Verb form + ところだ",
+      "example": "食べるところです",
+      "exampleTranslation": "just about to eat"
+    },
+    {
+      "pattern": "～最中",
+      "meaning": "in the middle of",
+      "usage": "Verb ている + 最中",
+      "example": "食事の最中",
+      "exampleTranslation": "in the middle of a meal"
+    },
+    {
+      "pattern": "～うちに",
+      "meaning": "while / during",
+      "usage": "Plain form / ている + うちに",
+      "example": "若いうちに",
+      "exampleTranslation": "while young"
+    },
+    {
+      "pattern": "～ために",
+      "meaning": "for / in order to / because",
+      "usage": "Noun / verb dictionary form + ために",
+      "example": "勉強するために",
+      "exampleTranslation": "in order to study"
+    },
+    {
+      "pattern": "～おかげで",
+      "meaning": "thanks to",
+      "usage": "Noun / plain form + おかげで",
+      "example": "先生のおかげで",
+      "exampleTranslation": "thanks to the teacher"
+    },
+    {
+      "pattern": "～せいで",
+      "meaning": "because of (negative)",
+      "usage": "Noun / plain form + せいで",
+      "example": "雨のせいで",
+      "exampleTranslation": "because of the rain"
+    },
+    {
+      "pattern": "～限り",
+      "meaning": "as long as / as far as",
+      "usage": "Plain form + 限り",
+      "example": "生きている限り",
+      "exampleTranslation": "as long as I'm alive"
+    },
+    {
+      "pattern": "～上で",
+      "meaning": "after / upon / in terms of",
+      "usage": "Verb た-form / noun + 上で",
+      "example": "考えた上で",
+      "exampleTranslation": "after considering"
+    },
+    {
+      "pattern": "～わりに",
+      "meaning": "considering / although",
+      "usage": "Plain form / noun + わりに",
+      "example": "高いわりにおいしくない",
+      "exampleTranslation": "not delicious considering the price"
+    },
+    {
+      "pattern": "～くせに",
+      "meaning": "even though (criticism)",
+      "usage": "Plain form + くせに",
+      "example": "知っているくせに",
+      "exampleTranslation": "even though you know"
+    },
+    {
+      "pattern": "～っぽい",
+      "meaning": "-ish / -like / tends to",
+      "usage": "Noun / verb stem + っぽい",
+      "example": "子供っぽい",
+      "exampleTranslation": "childish"
+    },
+    {
+      "pattern": "～がちだ",
+      "meaning": "tend to / prone to",
+      "usage": "Verb stem / noun + がちだ",
+      "example": "忘れがちだ",
+      "exampleTranslation": "tend to forget"
+    }
+  ]
+}

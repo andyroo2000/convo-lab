@@ -1,0 +1,217 @@
+{
+  "language": "ja",
+  "level": "N1",
+  "framework": "JLPT",
+  "grammarPoints": [
+    {
+      "pattern": "～を余儀なくされる",
+      "meaning": "be forced to / be compelled to",
+      "usage": "Noun + を余儀なくされる",
+      "example": "中止を余儀なくされた",
+      "exampleTranslation": "was forced to cancel"
+    },
+    {
+      "pattern": "～に先立って",
+      "meaning": "prior to / before",
+      "usage": "Noun / verb dictionary form + に先立って",
+      "example": "会議に先立って",
+      "exampleTranslation": "prior to the meeting"
+    },
+    {
+      "pattern": "～をもって",
+      "meaning": "by means of / with / as of",
+      "usage": "Noun + をもって",
+      "example": "本日をもって",
+      "exampleTranslation": "as of today"
+    },
+    {
+      "pattern": "～をめぐって",
+      "meaning": "concerning / regarding",
+      "usage": "Noun + をめぐって",
+      "example": "この問題をめぐって",
+      "exampleTranslation": "concerning this issue"
+    },
+    {
+      "pattern": "～に至る",
+      "meaning": "lead to / reach / come to",
+      "usage": "Noun / verb dictionary form + に至る",
+      "example": "この結果に至った",
+      "exampleTranslation": "came to this result"
+    },
+    {
+      "pattern": "～に至って",
+      "meaning": "now that / at this stage",
+      "usage": "Noun + に至って",
+      "example": "この段階に至って",
+      "exampleTranslation": "at this stage"
+    },
+    {
+      "pattern": "～にほかならない",
+      "meaning": "nothing but / none other than",
+      "usage": "Noun / plain form + にほかならない",
+      "example": "これは事実にほかならない",
+      "exampleTranslation": "this is nothing but the truth"
+    },
+    {
+      "pattern": "～極まりない",
+      "meaning": "extremely / utterly",
+      "usage": "Noun / な-adjective stem + 極まりない",
+      "example": "失礼極まりない",
+      "exampleTranslation": "extremely rude"
+    },
+    {
+      "pattern": "～ならでは",
+      "meaning": "unique to / only",
+      "usage": "Noun + ならでは",
+      "example": "日本ならではの",
+      "exampleTranslation": "unique to Japan"
+    },
+    {
+      "pattern": "～がてら",
+      "meaning": "while / on the occasion of",
+      "usage": "Noun / verb stem + がてら",
+      "example": "散歩がてら",
+      "exampleTranslation": "while taking a walk"
+    },
+    {
+      "pattern": "～かたわら",
+      "meaning": "while / in addition to",
+      "usage": "Noun / verb dictionary form + かたわら",
+      "example": "仕事のかたわら",
+      "exampleTranslation": "while working"
+    },
+    {
+      "pattern": "～んばかりに",
+      "meaning": "as if about to / almost",
+      "usage": "Verb ん-form + ばかりに",
+      "example": "泣かんばかりに",
+      "exampleTranslation": "as if about to cry"
+    },
+    {
+      "pattern": "～といえども",
+      "meaning": "even though / even if",
+      "usage": "Noun / plain form + といえども",
+      "example": "専門家といえども",
+      "exampleTranslation": "even though an expert"
+    },
+    {
+      "pattern": "～たるもの",
+      "meaning": "person who is / being",
+      "usage": "Noun + たるもの",
+      "example": "教師たるもの",
+      "exampleTranslation": "being a teacher"
+    },
+    {
+      "pattern": "～たりとも",
+      "meaning": "even / not even (with negative)",
+      "usage": "Question word / number + たりとも",
+      "example": "一度たりとも",
+      "exampleTranslation": "not even once"
+    },
+    {
+      "pattern": "～ずくめ",
+      "meaning": "entirely / completely",
+      "usage": "Noun + ずくめ",
+      "example": "良いことずくめ",
+      "exampleTranslation": "entirely good things"
+    },
+    {
+      "pattern": "～まみれ",
+      "meaning": "covered with",
+      "usage": "Noun + まみれ",
+      "example": "泥まみれ",
+      "exampleTranslation": "covered with mud"
+    },
+    {
+      "pattern": "～だらけ",
+      "meaning": "full of / covered with",
+      "usage": "Noun + だらけ",
+      "example": "間違いだらけ",
+      "exampleTranslation": "full of mistakes"
+    },
+    {
+      "pattern": "～に越したことはない",
+      "meaning": "nothing is better than",
+      "usage": "Plain form + に越したことはない",
+      "example": "早いに越したことはない",
+      "exampleTranslation": "nothing is better than being early"
+    },
+    {
+      "pattern": "～ものを",
+      "meaning": "although / but (regret)",
+      "usage": "Plain form + ものを",
+      "example": "言えばいいものを",
+      "exampleTranslation": "you should have said (regret)"
+    },
+    {
+      "pattern": "～ともなく",
+      "meaning": "without particular intention",
+      "usage": "Verb dictionary form + ともなく",
+      "example": "見るともなく見ていた",
+      "exampleTranslation": "was watching without really watching"
+    },
+    {
+      "pattern": "～まじき",
+      "meaning": "should not / must not",
+      "usage": "Verb dictionary form + まじき",
+      "example": "許すまじき行為",
+      "exampleTranslation": "an act that should not be forgiven"
+    },
+    {
+      "pattern": "～がゆえに",
+      "meaning": "because / due to (formal)",
+      "usage": "Noun / な-adjective + であるがゆえに",
+      "example": "若いがゆえに",
+      "exampleTranslation": "because of being young"
+    },
+    {
+      "pattern": "～いかんによらず",
+      "meaning": "regardless of",
+      "usage": "Noun + のいかんによらず",
+      "example": "理由のいかんによらず",
+      "exampleTranslation": "regardless of the reason"
+    },
+    {
+      "pattern": "～たところで",
+      "meaning": "even if / even though",
+      "usage": "Verb た-form + ところで",
+      "example": "言ったところで",
+      "exampleTranslation": "even if you say"
+    },
+    {
+      "pattern": "～ともあろうものが",
+      "meaning": "person of such standing / unbecoming",
+      "usage": "Noun + ともあろうものが",
+      "example": "先生ともあろうものが",
+      "exampleTranslation": "unbecoming of a teacher"
+    },
+    {
+      "pattern": "～やいなや",
+      "meaning": "as soon as / the moment",
+      "usage": "Verb dictionary form + やいなや",
+      "example": "聞くやいなや",
+      "exampleTranslation": "as soon as hearing"
+    },
+    {
+      "pattern": "～そばから",
+      "meaning": "no sooner than / as soon as",
+      "usage": "Verb dictionary form + そばから",
+      "example": "言うそばから忘れる",
+      "exampleTranslation": "forget as soon as saying"
+    },
+    {
+      "pattern": "～なり",
+      "meaning": "as soon as",
+      "usage": "Verb dictionary form + なり",
+      "example": "帰るなり寝た",
+      "exampleTranslation": "went to bed as soon as getting home"
+    },
+    {
+      "pattern": "～んがため",
+      "meaning": "in order to / for the purpose of",
+      "usage": "Verb ん-form + がため",
+      "example": "成功せんがため",
+      "exampleTranslation": "in order to succeed"
+    }
+  ]
+}

@@ -6,6 +6,8 @@ import {
   sampleVocabulary,
   formatWordsForPrompt,
   getProficiencyFramework,
+  sampleGrammar,
+  formatGrammarForPrompt,
 } from './vocabularySeeding.js';
 // import { getVoicesByGender } from '../../../shared/src/voiceSelection.ts';
 
@@ -862,13 +864,33 @@ You don't need to use all of them - just incorporate 5-10 naturally where they f
     }
   }
 
+  // Sample grammar to seed the dialogue if proficiency level is specified
+  let grammarSeed = '';
+  if (jlptLevel && targetLanguage) {
+    try {
+      const seedGrammar = await sampleGrammar(targetLanguage, jlptLevel, 5);
+      if (seedGrammar.length > 0) {
+        const framework = getProficiencyFramework(targetLanguage);
+        grammarSeed = `
+
+SUGGESTED ${jlptLevel} GRAMMAR PATTERNS TO INCORPORATE:
+Try to naturally use 2-3 of these ${framework} ${jlptLevel}-level grammar patterns in the dialogue:
+${formatGrammarForPrompt(seedGrammar)}
+
+Use these patterns where they naturally fit the conversation flow.`;
+      }
+    } catch (error) {
+      console.warn(`Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
+    }
+  }
+
   // Build JLPT level constraint if specified
   const jlptConstraint = jlptLevel
     ? `\n\nIMPORTANT JLPT LEVEL CONSTRAINT:
 - Target level: ${jlptLevel} (${getJLPTDescription(jlptLevel)})
 - Use vocabulary and grammar structures appropriate for students at this level
 - Avoid using words or structures significantly above this level
-- Focus on practical, conversational language at this proficiency level${vocabularySeed}`
+- Focus on practical, conversational language at this proficiency level${vocabularySeed}${grammarSeed}`
     : '';
 
   const prompt = `You are creating a Pimsleur-style language lesson based on this scenario:

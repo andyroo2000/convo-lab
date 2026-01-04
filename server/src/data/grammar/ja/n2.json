@@ -1,0 +1,217 @@
+{
+  "language": "ja",
+  "level": "N2",
+  "framework": "JLPT",
+  "grammarPoints": [
+    {
+      "pattern": "～べきだ",
+      "meaning": "should / ought to",
+      "usage": "Verb dictionary form + べきだ",
+      "example": "勉強するべきだ",
+      "exampleTranslation": "should study"
+    },
+    {
+      "pattern": "～ものだ",
+      "meaning": "should / used to",
+      "usage": "Verb dictionary/た-form + ものだ",
+      "example": "若い時はよく遊んだものだ",
+      "exampleTranslation": "I used to play a lot when young"
+    },
+    {
+      "pattern": "～わけではない",
+      "meaning": "it doesn't mean that",
+      "usage": "Plain form + わけではない",
+      "example": "嫌いなわけではない",
+      "exampleTranslation": "it's not that I dislike it"
+    },
+    {
+      "pattern": "～わけにはいかない",
+      "meaning": "cannot afford to / can't very well",
+      "usage": "Verb dictionary form + わけにはいかない",
+      "example": "休むわけにはいかない",
+      "exampleTranslation": "can't afford to rest"
+    },
+    {
+      "pattern": "～ざるを得ない",
+      "meaning": "cannot help but / have no choice but",
+      "usage": "Verb ない-form (ない → ざる) + を得ない",
+      "example": "行かざるを得ない",
+      "exampleTranslation": "have no choice but to go"
+    },
+    {
+      "pattern": "～ないことには",
+      "meaning": "unless / without doing",
+      "usage": "Verb ない-form + ことには",
+      "example": "見ないことには分からない",
+      "exampleTranslation": "unless I see it, I won't know"
+    },
+    {
+      "pattern": "～に決まっている",
+      "meaning": "definitely / must be",
+      "usage": "Plain form + に決まっている",
+      "example": "そうに決まっている",
+      "exampleTranslation": "it must be so"
+    },
+    {
+      "pattern": "～にちがいない",
+      "meaning": "must be / no doubt",
+      "usage": "Plain form + にちがいない",
+      "example": "成功するにちがいない",
+      "exampleTranslation": "will no doubt succeed"
+    },
+    {
+      "pattern": "～つつある",
+      "meaning": "be in the process of",
+      "usage": "Verb stem + つつある",
+      "example": "変わりつつある",
+      "exampleTranslation": "is in the process of changing"
+    },
+    {
+      "pattern": "～つつも",
+      "meaning": "while / though",
+      "usage": "Verb stem + つつも",
+      "example": "知りつつも",
+      "exampleTranslation": "while knowing"
+    },
+    {
+      "pattern": "～において",
+      "meaning": "in / at / regarding",
+      "usage": "Noun + において",
+      "example": "会議において",
+      "exampleTranslation": "at the meeting"
+    },
+    {
+      "pattern": "～に関して",
+      "meaning": "regarding / concerning",
+      "usage": "Noun + に関して",
+      "example": "この問題に関して",
+      "exampleTranslation": "regarding this problem"
+    },
+    {
+      "pattern": "～に基づいて",
+      "meaning": "based on",
+      "usage": "Noun + に基づいて",
+      "example": "事実に基づいて",
+      "exampleTranslation": "based on facts"
+    },
+    {
+      "pattern": "～に際して",
+      "meaning": "on the occasion of",
+      "usage": "Noun / verb dictionary form + に際して",
+      "example": "卒業に際して",
+      "exampleTranslation": "on the occasion of graduation"
+    },
+    {
+      "pattern": "～に伴って",
+      "meaning": "along with / as",
+      "usage": "Noun + に伴って",
+      "example": "発展に伴って",
+      "exampleTranslation": "along with development"
+    },
+    {
+      "pattern": "～をきっかけに",
+      "meaning": "taking the opportunity / triggered by",
+      "usage": "Noun + をきっかけに",
+      "example": "この事件をきっかけに",
+      "exampleTranslation": "triggered by this incident"
+    },
+    {
+      "pattern": "～を通じて",
+      "meaning": "through / via",
+      "usage": "Noun + を通じて",
+      "example": "インターネットを通じて",
+      "exampleTranslation": "through the Internet"
+    },
+    {
+      "pattern": "～をはじめ",
+      "meaning": "starting with / including",
+      "usage": "Noun + をはじめ",
+      "example": "日本をはじめ",
+      "exampleTranslation": "starting with Japan"
+    },
+    {
+      "pattern": "～を中心に",
+      "meaning": "centered on / focusing on",
+      "usage": "Noun + を中心に",
+      "example": "東京を中心に",
+      "exampleTranslation": "centered on Tokyo"
+    },
+    {
+      "pattern": "～を問わず",
+      "meaning": "regardless of",
+      "usage": "Noun + を問わず",
+      "example": "年齢を問わず",
+      "exampleTranslation": "regardless of age"
+    },
+    {
+      "pattern": "～にとって",
+      "meaning": "to / for (from someone's perspective)",
+      "usage": "Noun + にとって",
+      "example": "私にとって",
+      "exampleTranslation": "to me / for me"
+    },
+    {
+      "pattern": "～ばかりか",
+      "meaning": "not only... but also",
+      "usage": "Plain form + ばかりか",
+      "example": "勉強ばかりか",
+      "exampleTranslation": "not only studying"
+    },
+    {
+      "pattern": "～はもちろん",
+      "meaning": "not to mention / of course",
+      "usage": "Noun + はもちろん",
+      "example": "英語はもちろん",
+      "exampleTranslation": "not to mention English"
+    },
+    {
+      "pattern": "～どころか",
+      "meaning": "far from / let alone",
+      "usage": "Plain form + どころか",
+      "example": "簡単どころか",
+      "exampleTranslation": "far from easy"
+    },
+    {
+      "pattern": "～というより",
+      "meaning": "rather than",
+      "usage": "Plain form + というより",
+      "example": "怖いというより不安だ",
+      "exampleTranslation": "rather than scary, it's worrying"
+    },
+    {
+      "pattern": "～ものの",
+      "meaning": "although / but",
+      "usage": "Plain form + ものの",
+      "example": "分かったものの",
+      "exampleTranslation": "although I understood"
+    },
+    {
+      "pattern": "～からこそ",
+      "meaning": "precisely because",
+      "usage": "Plain form + からこそ",
+      "example": "難しいからこそ",
+      "exampleTranslation": "precisely because it's difficult"
+    },
+    {
+      "pattern": "～だけあって",
+      "meaning": "being / living up to",
+      "usage": "Noun / plain form + だけあって",
+      "example": "プロだけあって",
+      "exampleTranslation": "being a professional"
+    },
+    {
+      "pattern": "～というものではない",
+      "meaning": "it's not that / not necessarily",
+      "usage": "Plain form + というものではない",
+      "example": "簡単というものではない",
+      "exampleTranslation": "it's not that it's easy"
+    },
+    {
+      "pattern": "～末に",
+      "meaning": "after / at the end of",
+      "usage": "Verb た-form / noun + 末に",
+      "example": "考えた末に",
+      "exampleTranslation": "after much thought"
+    }
+  ]
+}

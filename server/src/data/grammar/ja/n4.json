@@ -1,0 +1,217 @@
+{
+  "language": "ja",
+  "level": "N4",
+  "framework": "JLPT",
+  "grammarPoints": [
+    {
+      "pattern": "～ことができる",
+      "meaning": "can do / be able to",
+      "usage": "Verb dictionary form + ことができる",
+      "example": "泳ぐことができます",
+      "exampleTranslation": "can swim"
+    },
+    {
+      "pattern": "～た方がいい",
+      "meaning": "had better / should",
+      "usage": "Verb た-form + 方がいい",
+      "example": "休んだ方がいい",
+      "exampleTranslation": "you should rest"
+    },
+    {
+      "pattern": "～ない方がいい",
+      "meaning": "had better not / shouldn't",
+      "usage": "Verb ない-form + 方がいい",
+      "example": "行かない方がいい",
+      "exampleTranslation": "you shouldn't go"
+    },
+    {
+      "pattern": "～なくてもいい",
+      "meaning": "don't have to / it's okay not to",
+      "usage": "Verb ない-form (ない → なくて) + もいい",
+      "example": "行かなくてもいい",
+      "exampleTranslation": "you don't have to go"
+    },
+    {
+      "pattern": "～なければならない",
+      "meaning": "must / have to",
+      "usage": "Verb ない-form (ない → なければ) + ならない",
+      "example": "勉強しなければならない",
+      "exampleTranslation": "must study"
+    },
+    {
+      "pattern": "～てもいい",
+      "meaning": "may / it's okay to",
+      "usage": "Verb て-form + もいい",
+      "example": "食べてもいい",
+      "exampleTranslation": "may eat"
+    },
+    {
+      "pattern": "～てはいけない",
+      "meaning": "must not / may not",
+      "usage": "Verb て-form + はいけない",
+      "example": "入ってはいけない",
+      "exampleTranslation": "must not enter"
+    },
+    {
+      "pattern": "～た後で",
+      "meaning": "after doing",
+      "usage": "Verb た-form + 後で",
+      "example": "食べた後で",
+      "exampleTranslation": "after eating"
+    },
+    {
+      "pattern": "～る前に",
+      "meaning": "before doing",
+      "usage": "Verb dictionary form + 前に",
+      "example": "寝る前に",
+      "exampleTranslation": "before sleeping"
+    },
+    {
+      "pattern": "～てから",
+      "meaning": "after / since",
+      "usage": "Verb て-form + から",
+      "example": "食べてから",
+      "exampleTranslation": "after eating"
+    },
+    {
+      "pattern": "～ながら",
+      "meaning": "while doing",
+      "usage": "Verb stem + ながら",
+      "example": "音楽を聞きながら",
+      "exampleTranslation": "while listening to music"
+    },
+    {
+      "pattern": "～やすい",
+      "meaning": "easy to do",
+      "usage": "Verb stem + やすい",
+      "example": "読みやすい",
+      "exampleTranslation": "easy to read"
+    },
+    {
+      "pattern": "～にくい",
+      "meaning": "hard to do / difficult to",
+      "usage": "Verb stem + にくい",
+      "example": "読みにくい",
+      "exampleTranslation": "hard to read"
+    },
+    {
+      "pattern": "～すぎる",
+      "meaning": "too much / over-",
+      "usage": "Verb stem / い-adjective stem + すぎる",
+      "example": "食べすぎた",
+      "exampleTranslation": "ate too much"
+    },
+    {
+      "pattern": "～そう",
+      "meaning": "looks like / seems",
+      "usage": "Verb stem / い-adjective stem + そう",
+      "example": "おいしそう",
+      "exampleTranslation": "looks delicious"
+    },
+    {
+      "pattern": "～らしい",
+      "meaning": "seems / I heard",
+      "usage": "Plain form + らしい",
+      "example": "雨が降るらしい",
+      "exampleTranslation": "it seems it will rain"
+    },
+    {
+      "pattern": "～てみる",
+      "meaning": "try doing",
+      "usage": "Verb て-form + みる",
+      "example": "食べてみます",
+      "exampleTranslation": "will try eating"
+    },
+    {
+      "pattern": "～ておく",
+      "meaning": "do in advance / leave as is",
+      "usage": "Verb て-form + おく",
+      "example": "買っておきます",
+      "exampleTranslation": "will buy in advance"
+    },
+    {
+      "pattern": "～てしまう",
+      "meaning": "regrettably / completely",
+      "usage": "Verb て-form + しまう",
+      "example": "忘れてしまった",
+      "exampleTranslation": "completely forgot"
+    },
+    {
+      "pattern": "～てあげる",
+      "meaning": "do for someone (outward)",
+      "usage": "Verb て-form + あげる",
+      "example": "教えてあげます",
+      "exampleTranslation": "will teach (for you)"
+    },
+    {
+      "pattern": "～てくれる",
+      "meaning": "do for me (toward speaker)",
+      "usage": "Verb て-form + くれる",
+      "example": "教えてくれました",
+      "exampleTranslation": "taught me"
+    },
+    {
+      "pattern": "～てもらう",
+      "meaning": "receive favor / have someone do",
+      "usage": "Verb て-form + もらう",
+      "example": "教えてもらいました",
+      "exampleTranslation": "received teaching / was taught"
+    },
+    {
+      "pattern": "～たことがある",
+      "meaning": "have done before (experience)",
+      "usage": "Verb た-form + ことがある",
+      "example": "行ったことがあります",
+      "exampleTranslation": "have been there"
+    },
+    {
+      "pattern": "～たり～たりする",
+      "meaning": "do things like (listing actions)",
+      "usage": "Verb た-form + り",
+      "example": "読んだり書いたりします",
+      "exampleTranslation": "do things like reading and writing"
+    },
+    {
+      "pattern": "～し",
+      "meaning": "and what's more / and also",
+      "usage": "Plain form + し",
+      "example": "安いし、おいしい",
+      "exampleTranslation": "it's cheap, and what's more, delicious"
+    },
+    {
+      "pattern": "～という",
+      "meaning": "called / named",
+      "usage": "Name + という + noun",
+      "example": "田中という人",
+      "exampleTranslation": "a person called Tanaka"
+    },
+    {
+      "pattern": "～かどうか",
+      "meaning": "whether or not",
+      "usage": "Plain form + かどうか",
+      "example": "行くかどうか分かりません",
+      "exampleTranslation": "don't know whether will go or not"
+    },
+    {
+      "pattern": "～つもり",
+      "meaning": "intend to / plan to",
+      "usage": "Verb dictionary form + つもり",
+      "example": "行くつもりです",
+      "exampleTranslation": "intend to go"
+    },
+    {
+      "pattern": "～予定",
+      "meaning": "plan to / scheduled to",
+      "usage": "Verb dictionary form + 予定",
+      "example": "行く予定です",
+      "exampleTranslation": "plan to go"
+    },
+    {
+      "pattern": "～ように",
+      "meaning": "so that / in order to",
+      "usage": "Verb dictionary/ない-form + ように",
+      "example": "忘れないように",
+      "exampleTranslation": "so that I don't forget"
+    }
+  ]
+}
