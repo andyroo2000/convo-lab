@@ -150,11 +150,13 @@ describe('AdminPage', () => {
     );
 
   describe('access control', () => {
-    it('should redirect non-admin users', () => {
+    it('should redirect non-admin users', async () => {
       mockUser.value = { id: 'user-1', email: 'user@test.com', role: 'user' };
       renderPage();
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      });
     });
 
     it('should render admin dashboard for admin users', async () => {
@@ -243,20 +245,27 @@ describe('AdminPage', () => {
     it('should handle search input change', async () => {
       renderPage('users');
 
-      fireEvent.change(searchInput, { target: { value: 'user1' } });
-      await waitFor(async () => {
-        const searchInput = screen.getByPlaceholderText('Search users by name or email...');
-        expect(searchInput).toHaveValue('user1');
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search users by name or email...')).toBeInTheDocument();
       });
+
+      const searchInput = screen.getByPlaceholderText('Search users by name or email...');
+      fireEvent.change(searchInput, { target: { value: 'user1' } });
+
+      expect(searchInput).toHaveValue('user1');
     });
 
     it('should fetch users when search button is clicked', async () => {
       renderPage('users');
 
-      fireEvent.click(searchButton);
-      await waitFor(async () => {
-        const _searchButton = screen.getByText('Search');
+      await waitFor(() => {
+        expect(screen.getByText('Search')).toBeInTheDocument();
+      });
 
+      const searchButton = screen.getByText('Search');
+      fireEvent.click(searchButton);
+
+      await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('/api/admin/users'),
           expect.objectContaining({ credentials: 'include' })
@@ -366,26 +375,32 @@ describe('AdminPage', () => {
 
       renderPage('invite-codes');
 
-      fireEvent.click(createButton);
-      await waitFor(async () => {
-        const _createButton = screen.getByText('Create Code');
+      await waitFor(() => {
+        expect(screen.getByText('Create Code')).toBeInTheDocument();
+      });
 
-        await waitFor(() => {
-          expect(global.fetch).toHaveBeenCalledWith(
-            expect.stringContaining('/api/admin/invite-codes'),
-            expect.objectContaining({ method: 'POST' })
-          );
-        });
+      const createButton = screen.getByText('Create Code');
+      fireEvent.click(createButton);
+
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/admin/invite-codes'),
+          expect.objectContaining({ method: 'POST' })
+        );
       });
     });
 
     it('should handle copying invite code', async () => {
       renderPage('invite-codes');
 
-      fireEvent.click(copyButtons[0]);
-      await waitFor(async () => {
-        const _copyButtons = screen.getAllByTitle('Copy code');
+      await waitFor(() => {
+        expect(screen.getAllByTitle('Copy code').length).toBeGreaterThan(0);
+      });
 
+      const copyButtons = screen.getAllByTitle('Copy code');
+      fireEvent.click(copyButtons[0]);
+
+      await waitFor(() => {
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith('ABCD1234');
       });
     });

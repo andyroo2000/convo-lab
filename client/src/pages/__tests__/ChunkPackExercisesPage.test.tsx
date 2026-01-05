@@ -263,7 +263,7 @@ describe('ChunkPackExercisesPage', () => {
         expect(screen.getByText('Exercise')).toBeInTheDocument();
       });
 
-      expect(screen.queryByText('Explanation:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Explanation')).not.toBeInTheDocument();
     });
 
     it('should show explanation after answering', async () => {
@@ -275,7 +275,7 @@ describe('ChunkPackExercisesPage', () => {
 
       fireEvent.click(screen.getByText('Exercise'));
 
-      expect(screen.getByText('Explanation:')).toBeInTheDocument();
+      expect(screen.getByText('Explanation')).toBeInTheDocument();
       expect(screen.getByText('Exercise helps keep your body healthy.')).toBeInTheDocument();
     });
 
@@ -288,7 +288,7 @@ describe('ChunkPackExercisesPage', () => {
 
       fireEvent.click(screen.getByText('Exercise'));
 
-      const explanationBox = screen.getByText('Explanation:').closest('div');
+      const explanationBox = screen.getByText('Explanation').closest('div');
       expect(explanationBox).toHaveClass('bg-blue-50', 'border-blue-200');
     });
   });

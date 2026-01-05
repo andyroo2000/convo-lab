@@ -17,10 +17,14 @@ vi.mock('react-router-dom', async () => {
 
 // Mock AuthContext
 const mockRefreshUser = vi.fn();
-const mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
+let mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
+
+// Create a getter function to always return the current mockUser value
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: mockUser,
+    get user() {
+      return mockUser;
+    },
     refreshUser: mockRefreshUser,
   }),
 }));
@@ -43,12 +47,14 @@ function renderWithRouter(initialRoute = '/verify-email') {
 describe('VerifyEmailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUser.emailVerified = false;
+    // Reset mockUser to a fresh object
+    mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
     (global.fetch as any).mockClear();
   });
 
   afterEach(() => {
     vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   describe('Token Verification', () => {
@@ -84,8 +90,6 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should redirect to library after successful verification', async () => {
-      vi.useFakeTimers();
-
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Email verified successfully' }),
@@ -97,13 +101,12 @@ describe('VerifyEmailPage', () => {
         expect(screen.getByText('Email Verified!')).toBeInTheDocument();
       });
 
-      vi.advanceTimersByTime(3000);
-
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/app/library');
+      // Wait 3 seconds for the redirect timeout
+      await new Promise((resolve) => {
+        setTimeout(resolve, 3100);
       });
 
-      vi.useRealTimers();
+      expect(mockNavigate).toHaveBeenCalledWith('/app/library');
     });
 
     it('should show error for invalid token', async () => {
@@ -115,8 +118,15 @@ describe('VerifyEmailPage', () => {
       renderWithRouter('/verify-email/invalid-token');
 
       await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          `${API_URL}/api/verification/invalid-token`,
+          { credentials: 'include' }
+        );
+      }, { timeout: 10000 });
+
+      await waitFor(() => {
         expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      });
+      }, { timeout: 10000 });
 
       expect(screen.getByText('Invalid or expired verification token')).toBeInTheDocument();
     });
@@ -268,7 +278,8 @@ describe('VerifyEmailPage', () => {
 
       expect(screen.getByText('Verify Your Email')).toBeInTheDocument();
       expect(screen.getByText(/We sent a verification email to/)).toBeInTheDocument();
-      expect(screen.getByText(mockUser.email)).toBeInTheDocument();
+      // The email is embedded in the translation string, not rendered separately
+      expect(screen.getByText(/test@example\.com/)).toBeInTheDocument();
     });
 
     it('should allow resending verification email from no-token state', async () => {

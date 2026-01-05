@@ -150,7 +150,7 @@ describe('LoginPage', () => {
       fireEvent.click(screen.getByTestId('auth-submit-button'));
 
       await waitFor(() => {
-        expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Loading...');
+        expect(screen.getByTestId('auth-submit-button')).toHaveTextContent('Logging in...');
       });
       expect(screen.getByTestId('auth-submit-button')).toBeDisabled();
     });

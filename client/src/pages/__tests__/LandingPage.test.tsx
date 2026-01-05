@@ -5,7 +5,7 @@ import LandingPage from '../LandingPage';
 
 // Mock Logo component
 vi.mock('../../components/common/Logo', () => ({
-  default: () => <div data-testid="logo">Logo</div>,
+  default: () => <div data-testid="logo"><span>ConvoLab</span></div>,
 }));
 
 // Mock useNavigate

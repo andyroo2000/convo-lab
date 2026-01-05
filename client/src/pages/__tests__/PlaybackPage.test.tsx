@@ -368,10 +368,12 @@ describe('PlaybackPage', () => {
     it('should call seek when clicking a sentence', async () => {
       renderPlaybackPage();
 
-      fireEvent.click(sentence);
       await waitFor(() => {
-        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
+        expect(screen.getByTestId('playback-sentence-sentence-1')).toBeInTheDocument();
       });
+
+      const sentence = screen.getByTestId('playback-sentence-sentence-1');
+      fireEvent.click(sentence);
 
       // seek should be called with the start time in seconds
       expect(mockSeek).toHaveBeenCalledWith(0);
@@ -380,10 +382,12 @@ describe('PlaybackPage', () => {
     it('should call play when clicking sentence if not playing', async () => {
       renderPlaybackPage();
 
-      fireEvent.click(sentence);
       await waitFor(() => {
-        const _sentence = screen.getByTestId('playback-sentence-sentence-1');
+        expect(screen.getByTestId('playback-sentence-sentence-1')).toBeInTheDocument();
       });
+
+      const sentence = screen.getByTestId('playback-sentence-sentence-1');
+      fireEvent.click(sentence);
 
       expect(mockPlay).toHaveBeenCalled();
     });

@@ -13,8 +13,8 @@ const VerifyEmailPage = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'already-verified'>(
-    'verifying'
+  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'already-verified' | 'idle'>(
+    token ? 'verifying' : 'idle'
   );
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
@@ -25,6 +25,8 @@ const VerifyEmailPage = () => {
       // User is just viewing the page (not coming from email link)
       if (user?.emailVerified) {
         setStatus('already-verified');
+      } else if (user) {
+        setStatus('idle');
       }
       return;
     }
@@ -57,7 +59,7 @@ const VerifyEmailPage = () => {
     };
 
     verifyToken();
-  }, [token, user, navigate, refreshUser]);
+  }, [token, user?.emailVerified, navigate, refreshUser]);
 
   const handleResendEmail = async () => {
     setResending(true);
@@ -170,7 +172,7 @@ const VerifyEmailPage = () => {
             </div>
           )}
 
-          {!token && !user?.emailVerified && user && (
+          {status === 'idle' && !user?.emailVerified && user && (
             <div className="text-center py-8">
               <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-dark-brown mb-2">
