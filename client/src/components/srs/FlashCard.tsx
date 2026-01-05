@@ -11,6 +11,7 @@ interface Card {
   audioUrl?: string | null;
   sentenceL2?: string | null;
   sentenceReadingL2?: string | null;
+  sentenceTranslationL1?: string | null;
 }
 
 interface FlashCardProps {
@@ -68,62 +69,82 @@ const FlashCard = ({
     return <span className="text-4xl">{card.textL2}</span>;
   };
 
-  const renderTextL2Back = () => {
-    // Back side: Show full sentence with vocabulary word highlighted, or just the word if no sentence
+  const renderSentenceWithHighlight = () => {
+    // Render full sentence with vocabulary word highlighted
     const hasSentence = card.sentenceL2 && card.sentenceL2 !== card.textL2;
 
-    if (hasSentence) {
-      // Show sentence with highlighted vocabulary word
-      const sentenceText = showReading && card.sentenceReadingL2 ? card.sentenceReadingL2 : card.sentenceL2!;
+    if (!hasSentence) {
+      return null;
+    }
 
-      // Split sentence at the vocabulary word to highlight it
-      const vocabWord = card.textL2;
-      const parts = sentenceText.split(vocabWord);
+    // Always split based on plain text to ensure vocab word is found
+    const plainSentence = card.sentenceL2!;
+    const vocabWord = card.textL2;
+    const vocabReading = card.readingL2 || card.textL2;
+    const sentenceReading = card.sentenceReadingL2 || plainSentence;
 
-      if (parts.length > 1) {
-        // Found the word in the sentence - highlight it
-        if (language === 'ja') {
-          return (
-            <div className="text-2xl">
-              <JapaneseText text={parts[0]} showFurigana={showReading} />
-              <span className="text-indigo-600 font-bold">
-                <JapaneseText text={vocabWord} showFurigana={showReading} />
-              </span>
-              <JapaneseText text={parts.slice(1).join(vocabWord)} showFurigana={showReading} />
-            </div>
-          );
+    // Find the position of the vocab word in the plain sentence
+    const vocabIndex = plainSentence.indexOf(vocabWord);
+
+    if (vocabIndex !== -1) {
+      // Split the sentence into before, vocab, and after parts
+      const before = plainSentence.substring(0, vocabIndex);
+      const after = plainSentence.substring(vocabIndex + vocabWord.length);
+
+      // For reading version, we need to find the corresponding parts
+      let beforeReading = before;
+      let afterReading = after;
+
+      if (showReading && sentenceReading !== plainSentence) {
+        // Extract the reading parts by finding the vocab word boundaries
+        const readingVocabIndex = sentenceReading.indexOf(vocabWord);
+        if (readingVocabIndex !== -1) {
+          beforeReading = sentenceReading.substring(0, readingVocabIndex);
+          afterReading = sentenceReading.substring(readingVocabIndex + vocabWord.length);
         }
-        if (language === 'zh') {
-          return (
-            <div className="text-2xl">
-              <ChineseText text={parts[0]} showPinyin={showReading} />
-              <span className="text-indigo-600 font-bold">
-                <ChineseText text={vocabWord} showPinyin={showReading} />
-              </span>
-              <ChineseText text={parts.slice(1).join(vocabWord)} showPinyin={showReading} />
-            </div>
-          );
-        }
+      }
+
+      // Render with highlighted vocabulary word
+      if (language === 'ja') {
         return (
-          <div className="text-2xl">
-            {parts[0]}
-            <span className="text-indigo-600 font-bold">{vocabWord}</span>
-            {parts.slice(1).join(vocabWord)}
+          <div className="text-xl text-gray-600">
+            <JapaneseText text={beforeReading} showFurigana={showReading} />
+            <JapaneseText text={vocabReading} showFurigana={showReading} className="text-indigo-600 font-bold" />
+            <JapaneseText text={afterReading} showFurigana={showReading} />
           </div>
         );
       }
-
-      // Word not found in sentence - just show sentence
-      if (language === 'ja') {
-        return <div className="text-2xl"><JapaneseText text={sentenceText} showFurigana={showReading} /></div>;
-      }
       if (language === 'zh') {
-        return <div className="text-2xl"><ChineseText text={sentenceText} showPinyin={showReading} /></div>;
+        return (
+          <div className="text-xl text-gray-600">
+            <ChineseText text={beforeReading} showPinyin={showReading} />
+            <ChineseText text={vocabReading} showPinyin={showReading} className="text-indigo-600 font-bold" />
+            <ChineseText text={afterReading} showPinyin={showReading} />
+          </div>
+        );
       }
-      return <div className="text-2xl">{sentenceText}</div>;
+      return (
+        <div className="text-xl text-gray-600">
+          {before}
+          <span className="text-indigo-600 font-bold">{vocabWord}</span>
+          {after}
+        </div>
+      );
     }
 
-    // No sentence - show just the vocabulary word (original behavior)
+    // Word not found in sentence - just show sentence
+    const displayText = showReading && sentenceReading !== plainSentence ? sentenceReading : plainSentence;
+    if (language === 'ja') {
+      return <div className="text-xl text-gray-600"><JapaneseText text={displayText} showFurigana={showReading} /></div>;
+    }
+    if (language === 'zh') {
+      return <div className="text-xl text-gray-600"><ChineseText text={displayText} showPinyin={showReading} /></div>;
+    }
+    return <div className="text-xl text-gray-600">{displayText}</div>;
+  };
+
+  const renderVocabWord = () => {
+    // Render standalone vocabulary word
     const hasFuriganaBrackets = card.readingL2?.includes('[');
     const displayText = hasFuriganaBrackets ? card.readingL2! : card.textL2;
 
@@ -136,6 +157,18 @@ const FlashCard = ({
       return <ChineseText text={chineseText} showPinyin={showReading} />;
     }
     return <span className="text-4xl">{displayText}</span>;
+  };
+
+  const renderTextL2Back = () => {
+    // Back side: Show full sentence with vocabulary word highlighted, or just the word if no sentence
+    const hasSentence = card.sentenceL2 && card.sentenceL2 !== card.textL2;
+
+    if (hasSentence) {
+      return null; // Sentence and vocab word are rendered separately now
+    }
+
+    // No sentence - show just the vocabulary word (original behavior)
+    return renderVocabWord();
   };
 
   return (
@@ -180,24 +213,56 @@ const FlashCard = ({
           <div className="flashcard-back">
             {cardType === 'recognition' ? (
               <div className="flex flex-col items-center justify-center px-8 py-6">
-                <div className="text-center mb-4">{renderTextL2Back()}</div>
+                {/* Sentence with highlighted word (if available) */}
+                {renderSentenceWithHighlight() && (
+                  <div className="text-center mb-4">{renderSentenceWithHighlight()}</div>
+                )}
+                {/* Sentence translation - only show if there's a different sentence */}
+                {card.sentenceTranslationL1 && card.sentenceL2 && card.sentenceL2 !== card.textL2 && (
+                  <p className="text-base text-gray-500 text-center mb-4 font-serif italic">
+                    {card.sentenceTranslationL1}
+                  </p>
+                )}
+                {/* Audio button */}
                 {card.audioUrl && (
                   <button
                     type="button"
                     onClick={playAudio}
-                    className="mb-6 p-3 hover:bg-gray-100 rounded-full transition-colors"
+                    className="mb-4 p-3 hover:bg-gray-100 rounded-full transition-colors"
                   >
                     <Play size={40} className="text-gray-700" />
                   </button>
                 )}
+                {/* Horizontal line */}
                 <div className="w-full border-t border-gray-300 mb-6" />
+                {/* Standalone vocabulary word */}
+                <div className="text-center mb-6 text-3xl font-medium">
+                  {renderVocabWord()}
+                </div>
+                {/* Translation */}
                 <p className="text-xl text-gray-700 text-center font-serif leading-relaxed">
                   {card.translationL1}
                 </p>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center gap-6 px-8">
-                <div className="text-center">{renderTextL2Back()}</div>
+                {/* Sentence with highlighted word (if available) or just vocab word */}
+                {renderSentenceWithHighlight() ? (
+                  <>
+                    <div className="text-center">{renderSentenceWithHighlight()}</div>
+                    {/* Sentence translation - only show if there's a different sentence */}
+                    {card.sentenceTranslationL1 && card.sentenceL2 && card.sentenceL2 !== card.textL2 && (
+                      <p className="text-base text-gray-500 text-center font-serif italic">
+                        {card.sentenceTranslationL1}
+                      </p>
+                    )}
+                    <div className="w-full border-t border-gray-300" />
+                    <div className="text-center text-3xl font-medium">{renderVocabWord()}</div>
+                  </>
+                ) : (
+                  <div className="text-center">{renderTextL2Back()}</div>
+                )}
+                {/* Translation */}
                 <div className="w-full border-t border-gray-300" />
                 <p className="text-xl text-gray-700 text-center font-serif leading-relaxed">
                   {card.translationL1}

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FSRS, Rating, Card as FSRSCard, State } from 'ts-fsrs';
 import FlashCard from '../components/srs/FlashCard';
 import RatingButtons from '../components/srs/RatingButtons';
 import api from '../lib/api';
@@ -15,12 +16,119 @@ interface Card {
   enableAudio: boolean;
   recognitionDue: string;
   audioDue: string;
+  // Recognition FSRS state
+  recognitionState: string;
+  recognitionStability: number | null;
+  recognitionDifficulty: number | null;
+  recognitionElapsedDays: number;
+  recognitionScheduledDays: number;
+  recognitionReps: number;
+  recognitionLapses: number;
+  recognitionLastReview: string | null;
+  // Audio FSRS state
+  audioState: string;
+  audioStability: number | null;
+  audioDifficulty: number | null;
+  audioElapsedDays: number;
+  audioScheduledDays: number;
+  audioReps: number;
+  audioLapses: number;
+  audioLastReview: string | null;
 }
 
 interface Deck {
   id: string;
   language: string;
   name: string;
+}
+
+interface SchedulingPreview {
+  again: string;
+  hard: string;
+  good: string;
+  easy: string;
+}
+
+// Helper functions for FSRS
+const fsrs = new FSRS();
+
+function mapStateToFSRS(state: string): State {
+  switch (state) {
+    case 'new':
+      return State.New;
+    case 'learning':
+      return State.Learning;
+    case 'review':
+      return State.Review;
+    case 'relearning':
+      return State.Relearning;
+    default:
+      return State.New;
+  }
+}
+
+function formatInterval(scheduledDays: number): string {
+  const minutes = scheduledDays * 24 * 60;
+
+  if (minutes < 1) {
+    return '<1m';
+  }
+  if (minutes < 60) {
+    return `${Math.round(minutes)}m`;
+  }
+
+  const hours = minutes / 60;
+  if (hours < 24) {
+    return `${Math.round(hours)}h`;
+  }
+
+  const days = scheduledDays;
+  if (days < 30) {
+    return `${Math.round(days)}d`;
+  }
+
+  const months = days / 30;
+  if (months < 12) {
+    return `${Math.round(months)}mo`;
+  }
+
+  const years = months / 12;
+  return `${Math.round(years)}y`;
+}
+
+function computeSchedulingPreview(card: Card, cardType: 'recognition' | 'audio'): SchedulingPreview {
+  const isRecognition = cardType === 'recognition';
+  const currentState = isRecognition ? card.recognitionState : card.audioState;
+  const currentDue = isRecognition ? card.recognitionDue : card.audioDue;
+  const currentStability = isRecognition ? card.recognitionStability : card.audioStability;
+  const currentDifficulty = isRecognition ? card.recognitionDifficulty : card.audioDifficulty;
+  const currentElapsedDays = isRecognition ? card.recognitionElapsedDays : card.audioElapsedDays;
+  const currentScheduledDays = isRecognition ? card.recognitionScheduledDays : card.audioScheduledDays;
+  const currentReps = isRecognition ? card.recognitionReps : card.audioReps;
+  const currentLapses = isRecognition ? card.recognitionLapses : card.audioLapses;
+  const currentLastReview = isRecognition ? card.recognitionLastReview : card.audioLastReview;
+
+  const fsrsCard: FSRSCard = {
+    due: new Date(currentDue),
+    stability: currentStability ?? 0,
+    difficulty: currentDifficulty ?? 0,
+    elapsed_days: currentElapsedDays,
+    scheduled_days: currentScheduledDays,
+    reps: currentReps,
+    lapses: currentLapses,
+    state: mapStateToFSRS(currentState),
+    last_review: currentLastReview ? new Date(currentLastReview) : undefined,
+  };
+
+  const now = new Date();
+  const recordLog = fsrs.repeat(fsrsCard, now);
+
+  return {
+    again: formatInterval(recordLog[Rating.Again].card.scheduled_days),
+    hard: formatInterval(recordLog[Rating.Hard].card.scheduled_days),
+    good: formatInterval(recordLog[Rating.Good].card.scheduled_days),
+    easy: formatInterval(recordLog[Rating.Easy].card.scheduled_days),
+  };
 }
 
 const ReviewPage = () => {
@@ -105,6 +213,12 @@ const ReviewPage = () => {
       cardType = 'audio';
     }
   }
+
+  // Compute scheduling preview for current card
+  const schedulingPreview = useMemo(() => {
+    if (!currentCard) return null;
+    return computeSchedulingPreview(currentCard, cardType);
+  }, [currentCard, cardType]);
 
   const handleFlip = useCallback(() => {
     setIsFlipped(!isFlipped);
@@ -309,7 +423,9 @@ const ReviewPage = () => {
       )}
 
       {/* Rating Buttons */}
-      {isFlipped && currentCard && <RatingButtons onRate={handleRating} disabled={submitting} />}
+      {isFlipped && currentCard && schedulingPreview && (
+        <RatingButtons onRate={handleRating} disabled={submitting} intervals={schedulingPreview} />
+      )}
     </div>
   );
 };

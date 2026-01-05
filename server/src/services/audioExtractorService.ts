@@ -73,7 +73,7 @@ export async function extractVocabularyAudio(
         return null;
       }
 
-      console.log(`Unit text: "${targetUnit.textL2}"`);
+      console.log(`Unit text: "${targetUnit.text}"`);
 
       // Get timing for this unit
       const timing = timingData.find((t) => t.unitIndex === coreItem.sourceUnitIndex);
@@ -130,7 +130,8 @@ async function extractAudioSegment(
     const durationSec = (endTimeMs - startTimeMs) / 1000;
 
     // Extract segment using ffmpeg
-    const ffmpegCommand = `ffmpeg -i "${tempInputPath}" -ss ${startTimeSec} -t ${durationSec} -c copy "${tempOutputPath}"`;
+    // Re-encode for precise timing (don't use -c copy which only cuts at keyframes)
+    const ffmpegCommand = `ffmpeg -i "${tempInputPath}" -ss ${startTimeSec} -t ${durationSec} -c:a libmp3lame -q:a 2 "${tempOutputPath}"`;
     console.log(`Running ffmpeg: ${ffmpegCommand}`);
 
     await execAsync(ffmpegCommand);

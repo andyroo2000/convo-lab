@@ -1,4 +1,8 @@
 import { Router } from 'express';
+import { Storage } from '@google-cloud/storage';
+import os from 'os';
+import path from 'path';
+import fs from 'fs/promises';
 
 import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -6,9 +10,80 @@ import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { extractVocabularyAudio } from '../services/audioExtractorService.js';
 import { reviewCard, getDueCards, getDeckStats } from '../services/srsService.js';
+import { synthesizeSpeech } from '../services/ttsClient.js';
 
 const router = Router();
 router.use(requireAuth);
+
+const storage = new Storage();
+const bucketName = process.env.GCS_BUCKET_NAME || 'languageflow-audio';
+
+/**
+ * Voice mappings for different languages
+ */
+const LANGUAGE_VOICES: Record<string, { voiceId: string; languageCode: string }> = {
+  ja: { voiceId: 'ja-JP-Wavenet-B', languageCode: 'ja-JP' },
+  zh: { voiceId: 'zh-CN-Wavenet-C', languageCode: 'zh-CN' },
+  es: { voiceId: 'es-ES-Wavenet-B', languageCode: 'es-ES' },
+  fr: { voiceId: 'fr-FR-Wavenet-B', languageCode: 'fr-FR' },
+  ar: { voiceId: 'ar-XA-Wavenet-B', languageCode: 'ar-XA' },
+};
+
+/**
+ * Generates TTS audio for vocabulary and uploads to GCS
+ */
+async function generateVocabularyTTS(
+  text: string,
+  language: string,
+  cardId: string
+): Promise<string> {
+  const voiceConfig = LANGUAGE_VOICES[language];
+  if (!voiceConfig) {
+    throw new Error(`No voice configuration for language: ${language}`);
+  }
+
+  try {
+    console.log(`[Card TTS] Generating audio for "${text}" in ${language}`);
+
+    // Generate TTS audio
+    const audioBuffer = await synthesizeSpeech({
+      text,
+      voiceId: voiceConfig.voiceId,
+      languageCode: voiceConfig.languageCode,
+      speed: 0.85, // Slightly slower for learning
+    });
+
+    // Save to temp file
+    const tempDir = os.tmpdir();
+    const tempPath = path.join(tempDir, `card_${cardId}_${Date.now()}.mp3`);
+    await fs.writeFile(tempPath, audioBuffer);
+
+    try {
+      // Upload to GCS
+      const gcsPath = `vocabulary/card_${cardId}.mp3`;
+      await storage.bucket(bucketName).upload(tempPath, {
+        destination: gcsPath,
+        metadata: {
+          contentType: 'audio/mpeg',
+        },
+      });
+
+      // Make the file public
+      await storage.bucket(bucketName).file(gcsPath).makePublic();
+
+      const publicUrl = `https://storage.googleapis.com/${bucketName}/${gcsPath}`;
+      console.log(`[Card TTS] Uploaded to ${publicUrl}`);
+
+      return publicUrl;
+    } finally {
+      // Clean up temp file
+      await fs.unlink(tempPath).catch(() => {});
+    }
+  } catch (error) {
+    console.error('[Card TTS] Error generating audio:', error);
+    throw error;
+  }
+}
 
 /**
  * Creates furigana bracket notation that only annotates kanji, not hiragana
@@ -177,6 +252,9 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
     let audioUrl = null;
     let sentenceL2 = null;
     let sentenceReadingL2 = null;
+    let sentenceTranslationL1 = null;
+
+    console.log(`[Card Creation] coreItem.sourceUnitIndex:`, coreItem.sourceUnitIndex);
 
     // Try to get full sentence from sourceUnitIndex first (newer courses)
     if (coreItem.sourceUnitIndex !== null && coreItem.sourceUnitIndex !== undefined) {
@@ -184,12 +262,21 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
         type: string;
         text?: string;
         reading?: string;
+        translation?: string;
       }>;
       if (scriptUnits && scriptUnits[coreItem.sourceUnitIndex]) {
         const unit = scriptUnits[coreItem.sourceUnitIndex];
+        console.log(`[Card Creation] Unit at index ${coreItem.sourceUnitIndex}:`, {
+          type: unit.type,
+          text: unit.text,
+          hasReading: !!unit.reading,
+          hasTranslation: !!unit.translation,
+        });
         if (unit.type === 'L2' && unit.text) {
           sentenceL2 = unit.text;
           sentenceReadingL2 = unit.reading || null;
+          sentenceTranslationL1 = unit.translation || null;
+          console.log(`[Card Creation] Extracted sentence: "${sentenceL2}"`);
         }
       }
     }
@@ -243,12 +330,25 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
       }
     }
 
-    // If still no audio found, try extracting from course audio
+    // If still no audio found, generate TTS audio for the sentence or vocabulary word
     if (!audioUrl) {
-      audioUrl = await extractVocabularyAudio(coreItemId);
+      try {
+        // Prefer generating audio for the full sentence if available
+        const textForAudio = (sentenceL2 && sentenceL2 !== coreItem.textL2)
+          ? sentenceL2
+          : coreItem.textL2;
 
-      if (!audioUrl) {
-        console.warn(`No audio found for vocabulary "${coreItem.textL2}". Consider generating TTS audio for vocabulary cards.`);
+        console.log(`[Card Creation] Generating audio for: "${textForAudio}" (sentence: ${sentenceL2 ? 'yes' : 'no'})`);
+
+        // Generate a temporary card ID for the audio filename
+        const tempCardId = `${coreItemId}_${Date.now()}`;
+        audioUrl = await generateVocabularyTTS(
+          textForAudio,
+          coreItem.course.targetLanguage,
+          tempCardId
+        );
+      } catch (error) {
+        console.warn(`Failed to generate TTS audio for vocabulary "${coreItem.textL2}":`, error);
       }
     }
 
@@ -289,6 +389,7 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
         audioUrl,
         sentenceL2,
         sentenceReadingL2,
+        sentenceTranslationL1,
         enableRecognition,
         enableAudio,
       },
