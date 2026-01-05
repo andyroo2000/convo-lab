@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** Full sentence context for SRS flashcards with highlighted vocabulary - flashcard backs now display complete sentences from course dialogue with the target vocabulary word highlighted in blue, providing crucial context for authentic usage; added sentenceL2 and sentenceReadingL2 fields to Card schema; card creation extracts full sentences from script units using sourceUnitIndex mapping; FlashCard component renders sentences with vocabulary highlighted in indigo color; supports furigana/pinyin display for entire sentences when reading toggle is enabled; maintains backward compatibility (shows vocabulary word only if no sentence context available); flashcard audio now matches the complete sentence shown on card back for seamless audio-visual learning reinforcement
+
 ### Fixed
 
 - **[fix]** Vocabulary extraction audio mapping from dialogue exchanges - improved audio course vocabulary extraction to map each vocabulary item to its source L2 script unit for proper audio extraction; now extracts vocabulary from dialogue exchanges (which contain the full vocabulary list from Gemini) instead of dialogue units; added logging for vocab-to-unit mapping success/failures and statistics about audio mappings
