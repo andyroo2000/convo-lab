@@ -67,6 +67,7 @@ const CoursePage = () => {
       setEnableAudio(true);
     } catch (error) {
       console.error('Failed to add card:', error);
+      // eslint-disable-next-line no-alert
       alert('Failed to add card. Please try again.');
     } finally {
       setAddingCard(false);
@@ -242,6 +243,7 @@ const CoursePage = () => {
 
       {/* Course Player */}
       <div className="card">
+        {/* eslint-disable-next-line no-nested-ternary */}
         {course.status === 'ready' && course.audioUrl ? (
           <>
             {/* View Toggle Buttons */}
@@ -341,28 +343,26 @@ const CoursePage = () => {
               <div className="max-w-md mx-auto">
                 <div className="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-xs font-semibold text-white"
+                    className="bg-gradient-to-r from-coral via-strawberry to-periwinkle h-4 rounded-full transition-all duration-300 ease-out flex items-center justify-center text-xs font-semibold text-white"
                     style={{ width: `${Math.max(generationProgress, 3)}%` }}
                   >
                     {generationProgress > 10 && `${generationProgress}%`}
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  {generationProgress < 20
-                    ? 'Extracting dialogue...'
-                    : generationProgress < 40
-                      ? 'Planning course structure...'
-                      : generationProgress < 60
-                        ? 'Generating teaching script...'
-                        : generationProgress < 85
-                          ? `Synthesizing audio (${generationProgress - 60}% complete)...`
-                          : 'Finalizing audio file...'}
+                  {(() => {
+                    if (generationProgress < 20) return 'Extracting dialogue...';
+                    if (generationProgress < 40) return 'Planning course structure...';
+                    if (generationProgress < 60) return 'Generating teaching script...';
+                    if (generationProgress < 85) return `Synthesizing audio (${generationProgress - 60}% complete)...`;
+                    return 'Finalizing audio file...';
+                  })()}
                 </p>
               </div>
             )}
 
             <p className="text-sm text-gray-500 mt-4">
-              This may take several minutes due to AI generation
+              Hang tight! Our AI is crafting your personalized audio course with voice synthesis and timing.
             </p>
           </div>
         ) : (
@@ -379,19 +379,30 @@ const CoursePage = () => {
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => setCardTypeModal(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setCardTypeModal(null);
+          }}
+          role="button"
+          tabIndex={0}
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
           >
             <h3 className="text-xl font-bold text-navy mb-4">Add Card to Deck</h3>
             <p className="text-gray-600 mb-6 text-sm">
-              Select which card types you'd like to add for this vocabulary item:
+              Select which card types you&apos;d like to add for this vocabulary item:
             </p>
 
             <div className="space-y-3 mb-6">
-              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label htmlFor="recognition-checkbox" className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input
+                  id="recognition-checkbox"
                   type="checkbox"
                   checked={enableRecognition}
                   onChange={(e) => setEnableRecognition(e.target.checked)}
@@ -405,8 +416,9 @@ const CoursePage = () => {
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label htmlFor="audio-checkbox" className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                 <input
+                  id="audio-checkbox"
                   type="checkbox"
                   checked={enableAudio}
                   onChange={(e) => setEnableAudio(e.target.checked)}

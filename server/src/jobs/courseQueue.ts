@@ -172,21 +172,27 @@ async function processCourseGeneration(job: {
     dialogueExchanges.forEach((exchange) => {
       if (exchange.vocabularyItems && exchange.vocabularyItems.length > 0) {
         exchange.vocabularyItems.forEach((vocab) => {
-          // Find the script unit that contains this exchange's L2 text
-          // This allows us to extract audio for this vocabulary item
+          // Find the script unit that contains the full dialogue sentence (not just the vocab word)
+          // We want the actual dialogue, not standalone vocabulary units
           let sourceUnitIndex: number | null = null;
 
-          // Search for an L2 unit containing this vocabulary word
+          // Search for an L2 unit that:
+          // 1. Contains this vocabulary word
+          // 2. Is NOT just the vocabulary word itself (must be longer)
           const unitIndex = generatedScript.units.findIndex(
             (unit: { type: string; text?: string }) =>
-              unit.type === 'L2' && unit.text && unit.text.includes(vocab.textL2)
+              unit.type === 'L2' &&
+              unit.text &&
+              unit.text.includes(vocab.textL2) &&
+              unit.text.length > vocab.textL2.length // Ensure it's a sentence, not just the word
           );
 
           if (unitIndex !== -1) {
             sourceUnitIndex = unitIndex;
-            console.log(`Found vocab "${vocab.textL2}" in unit ${unitIndex}`);
+            const unitText = generatedScript.units[unitIndex].text;
+            console.log(`Found vocab "${vocab.textL2}" in sentence unit ${unitIndex}: "${unitText}"`);
           } else {
-            console.warn(`Could not find vocab "${vocab.textL2}" in any L2 unit`);
+            console.warn(`Could not find vocab "${vocab.textL2}" in any dialogue sentence`);
           }
 
           vocabularyItems.push({
