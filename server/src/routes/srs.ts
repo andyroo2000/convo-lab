@@ -1,14 +1,15 @@
-import { Router } from 'express';
-import { Storage } from '@google-cloud/storage';
+import fs from 'fs/promises';
 import os from 'os';
 import path from 'path';
-import fs from 'fs/promises';
+
+import { Storage } from '@google-cloud/storage';
+import { Router } from 'express';
 
 import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { extractVocabularyAudio } from '../services/audioExtractorService.js';
+import { addReadingBrackets } from '../services/furiganaService.js';
 import { reviewCard, getDueCards, getDeckStats } from '../services/srsService.js';
 import { synthesizeSpeech } from '../services/ttsClient.js';
 
@@ -43,6 +44,7 @@ async function generateVocabularyTTS(
   }
 
   try {
+    // eslint-disable-next-line no-console
     console.log(`[Card TTS] Generating audio for "${text}" in ${language}`);
 
     // Generate TTS audio
@@ -72,6 +74,7 @@ async function generateVocabularyTTS(
       await storage.bucket(bucketName).file(gcsPath).makePublic();
 
       const publicUrl = `https://storage.googleapis.com/${bucketName}/${gcsPath}`;
+      // eslint-disable-next-line no-console
       console.log(`[Card TTS] Uploaded to ${publicUrl}`);
 
       return publicUrl;
@@ -254,6 +257,7 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
     let sentenceReadingL2 = null;
     let sentenceTranslationL1 = null;
 
+    // eslint-disable-next-line no-console
     console.log(`[Card Creation] coreItem.sourceUnitIndex:`, coreItem.sourceUnitIndex);
 
     // Try to get full sentence from sourceUnitIndex first (newer courses)
@@ -266,6 +270,7 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
       }>;
       if (scriptUnits && scriptUnits[coreItem.sourceUnitIndex]) {
         const unit = scriptUnits[coreItem.sourceUnitIndex];
+        // eslint-disable-next-line no-console
         console.log(`[Card Creation] Unit at index ${coreItem.sourceUnitIndex}:`, {
           type: unit.type,
           text: unit.text,
@@ -276,7 +281,20 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
           sentenceL2 = unit.text;
           sentenceReadingL2 = unit.reading || null;
           sentenceTranslationL1 = unit.translation || null;
+          // eslint-disable-next-line no-console
           console.log(`[Card Creation] Extracted sentence: "${sentenceL2}"`);
+
+          // Generate furigana for sentence if not provided
+          if (sentenceL2 && !sentenceReadingL2) {
+            // eslint-disable-next-line no-console
+            console.log(`[Card Creation] Generating furigana for sentence: "${sentenceL2}"`);
+            sentenceReadingL2 = await addReadingBrackets(
+              sentenceL2,
+              coreItem.course.targetLanguage
+            );
+            // eslint-disable-next-line no-console
+            console.log(`[Card Creation] Generated sentenceReadingL2: "${sentenceReadingL2}"`);
+          }
         }
       }
     }
@@ -325,7 +343,9 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
         } else {
           console.warn('No dialogue found for episodeId:', coreItem.sourceEpisodeId);
           console.warn('This is likely a Course episode which does not have per-sentence audio.');
-          console.warn('Course vocabulary audio would need to be generated separately or extracted from course audio.');
+          console.warn(
+            'Course vocabulary audio would need to be generated separately or extracted from course audio.'
+          );
         }
       }
     }
@@ -334,11 +354,13 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
     if (!audioUrl) {
       try {
         // Prefer generating audio for the full sentence if available
-        const textForAudio = (sentenceL2 && sentenceL2 !== coreItem.textL2)
-          ? sentenceL2
-          : coreItem.textL2;
+        const textForAudio =
+          sentenceL2 && sentenceL2 !== coreItem.textL2 ? sentenceL2 : coreItem.textL2;
 
-        console.log(`[Card Creation] Generating audio for: "${textForAudio}" (sentence: ${sentenceL2 ? 'yes' : 'no'})`);
+        // eslint-disable-next-line no-console
+        console.log(
+          `[Card Creation] Generating audio for: "${textForAudio}" (sentence: ${sentenceL2 ? 'yes' : 'no'})`
+        );
 
         // Generate a temporary card ID for the audio filename
         const tempCardId = `${coreItemId}_${Date.now()}`;

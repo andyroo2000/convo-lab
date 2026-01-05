@@ -23,6 +23,7 @@
     "generate:avatars": "tsx scripts/generate-speaker-avatars.ts",
     "crop:avatars": "tsx scripts/crop-avatars.ts",
     "backfill:metadata": "tsx scripts/backfill-sentence-metadata.ts",
+    "backfill:furigana": "tsx scripts/backfill-sentence-furigana.ts",
     "check:metadata": "tsx scripts/check-metadata-status.ts",
     "check:prod": "tsx scripts/quick-check-prod.ts",
     "prepare": "husky"

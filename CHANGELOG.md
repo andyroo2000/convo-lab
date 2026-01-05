@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Full sentence furigana support for SRS flashcards - flashcards now display furigana for entire sentences instead of just the target vocabulary word, improving reading comprehension and context understanding; added furiganaService using kuroshiro library for automatic furigana generation; implemented smart sentence parsing logic to correctly extract and render vocabulary words with split furigana annotations (e.g., 予[よ]定[てい]); created backfill script for existing cards; added comprehensive FlashCard test coverage; changed English translation toggle default to off for better learning flow; fixed CurrentTextDisplay container height jumping issue
 - **[test]** Comprehensive unit tests for SRS system (routes, services, FSRS state transitions)
 
 ### Fixed

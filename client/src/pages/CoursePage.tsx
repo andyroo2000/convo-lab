@@ -22,7 +22,7 @@ const CoursePage = () => {
 
   // Current text display state
   const [showReadings, setShowReadings] = useState(false);
-  const [showTranslations, setShowTranslations] = useState(true);
+  const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
 
   // SRS card management state
@@ -354,7 +354,8 @@ const CoursePage = () => {
                     if (generationProgress < 20) return 'Extracting dialogue...';
                     if (generationProgress < 40) return 'Planning course structure...';
                     if (generationProgress < 60) return 'Generating teaching script...';
-                    if (generationProgress < 85) return `Synthesizing audio (${generationProgress - 60}% complete)...`;
+                    if (generationProgress < 85)
+                      return `Synthesizing audio (${generationProgress - 60}% complete)...`;
                     return 'Finalizing audio file...';
                   })()}
                 </p>
@@ -362,7 +363,8 @@ const CoursePage = () => {
             )}
 
             <p className="text-sm text-gray-500 mt-4">
-              Hang tight! Our AI is crafting your personalized audio course with voice synthesis and timing.
+              Hang tight! Our AI is crafting your personalized audio course with voice synthesis and
+              timing.
             </p>
           </div>
         ) : (
@@ -400,7 +402,10 @@ const CoursePage = () => {
             </p>
 
             <div className="space-y-3 mb-6">
-              <label htmlFor="recognition-checkbox" className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label
+                htmlFor="recognition-checkbox"
+                className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+              >
                 <input
                   id="recognition-checkbox"
                   type="checkbox"
@@ -416,7 +421,10 @@ const CoursePage = () => {
                 </div>
               </label>
 
-              <label htmlFor="audio-checkbox" className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+              <label
+                htmlFor="audio-checkbox"
+                className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+              >
                 <input
                   id="audio-checkbox"
                   type="checkbox"

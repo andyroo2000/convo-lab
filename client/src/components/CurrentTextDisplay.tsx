@@ -82,9 +82,9 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
         }}
       >
         {renderText()}
-        {showTranslations && translation && (
-          <div className="mt-4 text-lg text-gray-600">{translation}</div>
-        )}
+        <div className="mt-4 text-lg text-gray-600 min-h-[28px]">
+          {showTranslations && translation && translation}
+        </div>
       </div>
     </div>
   );

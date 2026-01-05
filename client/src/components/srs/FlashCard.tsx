@@ -91,16 +91,69 @@ const FlashCard = ({
       const before = plainSentence.substring(0, vocabIndex);
       const after = plainSentence.substring(vocabIndex + vocabWord.length);
 
-      // For reading version, we need to find the corresponding parts
+      // For reading version, extract the corresponding parts from sentenceReading
       let beforeReading = before;
       let afterReading = after;
 
-      if (showReading && sentenceReading !== plainSentence) {
-        // Extract the reading parts by finding the vocab word boundaries
-        const readingVocabIndex = sentenceReading.indexOf(vocabWord);
-        if (readingVocabIndex !== -1) {
-          beforeReading = sentenceReading.substring(0, readingVocabIndex);
-          afterReading = sentenceReading.substring(readingVocabIndex + vocabWord.length);
+      // Extract vocab word reading from sentence for highlighting
+      let vocabReadingFromSentence = vocabReading;
+
+      if (sentenceReading !== plainSentence) {
+        // We need to map positions from plain sentence to reading sentence
+        // The challenge: vocab word might have brackets interspersed (e.g., "本[ほん]当[とう]")
+        // So we can't just use indexOf directly
+
+        // Build a mapping by walking through both strings
+        let plainPos = 0;
+        let readingPos = 0;
+        let vocabStartReading = -1;
+        let vocabEndReading = -1;
+
+        while (plainPos < plainSentence.length && readingPos < sentenceReading.length) {
+          // Mark the start of vocab word in reading string
+          if (plainPos === vocabIndex && vocabStartReading === -1) {
+            vocabStartReading = readingPos;
+          }
+
+          // Mark the end of vocab word in reading string
+          if (plainPos === vocabIndex + vocabWord.length && vocabEndReading === -1) {
+            // Check if there's a bracket following (for the last character's furigana)
+            if (sentenceReading[readingPos] === '[') {
+              const closeBracket = sentenceReading.indexOf(']', readingPos);
+              if (closeBracket !== -1) {
+                vocabEndReading = closeBracket + 1;
+              } else {
+                vocabEndReading = readingPos;
+              }
+            } else {
+              vocabEndReading = readingPos;
+            }
+            break;
+          }
+
+          // Check if current position in reading has a bracket (furigana annotation)
+          if (sentenceReading[readingPos] === '[') {
+            // Skip to the closing bracket
+            const closeBracket = sentenceReading.indexOf(']', readingPos);
+            if (closeBracket !== -1) {
+              readingPos = closeBracket + 1;
+            } else {
+              readingPos += 1;
+            }
+          } else if (plainSentence[plainPos] === sentenceReading[readingPos]) {
+            // Regular character - advance both positions
+            plainPos += 1;
+            readingPos += 1;
+          } else {
+            // Mismatch - fall back to simple approach
+            break;
+          }
+        }
+
+        if (vocabStartReading !== -1 && vocabEndReading !== -1) {
+          beforeReading = sentenceReading.substring(0, vocabStartReading);
+          vocabReadingFromSentence = sentenceReading.substring(vocabStartReading, vocabEndReading);
+          afterReading = sentenceReading.substring(vocabEndReading);
         }
       }
 
@@ -109,7 +162,11 @@ const FlashCard = ({
         return (
           <div className="text-xl text-gray-600">
             <JapaneseText text={beforeReading} showFurigana={showReading} />
-            <JapaneseText text={vocabReading} showFurigana={showReading} className="text-indigo-600 font-bold" />
+            <JapaneseText
+              text={vocabReadingFromSentence}
+              showFurigana={showReading}
+              className="text-indigo-600 font-bold"
+            />
             <JapaneseText text={afterReading} showFurigana={showReading} />
           </div>
         );
@@ -118,7 +175,11 @@ const FlashCard = ({
         return (
           <div className="text-xl text-gray-600">
             <ChineseText text={beforeReading} showPinyin={showReading} />
-            <ChineseText text={vocabReading} showPinyin={showReading} className="text-indigo-600 font-bold" />
+            <ChineseText
+              text={vocabReadingFromSentence}
+              showPinyin={showReading}
+              className="text-indigo-600 font-bold"
+            />
             <ChineseText text={afterReading} showPinyin={showReading} />
           </div>
         );
@@ -133,28 +194,34 @@ const FlashCard = ({
     }
 
     // Word not found in sentence - just show sentence
-    const displayText = showReading && sentenceReading !== plainSentence ? sentenceReading : plainSentence;
+    const displayText = sentenceReading;
     if (language === 'ja') {
-      return <div className="text-xl text-gray-600"><JapaneseText text={displayText} showFurigana={showReading} /></div>;
+      return (
+        <div className="text-xl text-gray-600">
+          <JapaneseText text={displayText} showFurigana={showReading} />
+        </div>
+      );
     }
     if (language === 'zh') {
-      return <div className="text-xl text-gray-600"><ChineseText text={displayText} showPinyin={showReading} /></div>;
+      return (
+        <div className="text-xl text-gray-600">
+          <ChineseText text={displayText} showPinyin={showReading} />
+        </div>
+      );
     }
     return <div className="text-xl text-gray-600">{displayText}</div>;
   };
 
   const renderVocabWord = () => {
     // Render standalone vocabulary word
-    const hasFuriganaBrackets = card.readingL2?.includes('[');
-    const displayText = hasFuriganaBrackets ? card.readingL2! : card.textL2;
+    // Always prefer readingL2 (with bracket notation) if available
+    const displayText = card.readingL2 || card.textL2;
 
     if (language === 'ja') {
       return <JapaneseText text={displayText} showFurigana={showReading} />;
     }
     if (language === 'zh') {
-      const hasPinyinBrackets = card.readingL2?.includes('[');
-      const chineseText = hasPinyinBrackets ? card.readingL2! : card.textL2;
-      return <ChineseText text={chineseText} showPinyin={showReading} />;
+      return <ChineseText text={displayText} showPinyin={showReading} />;
     }
     return <span className="text-4xl">{displayText}</span>;
   };
@@ -218,11 +285,13 @@ const FlashCard = ({
                   <div className="text-center mb-4">{renderSentenceWithHighlight()}</div>
                 )}
                 {/* Sentence translation - only show if there's a different sentence */}
-                {card.sentenceTranslationL1 && card.sentenceL2 && card.sentenceL2 !== card.textL2 && (
-                  <p className="text-base text-gray-500 text-center mb-4 font-serif italic">
-                    {card.sentenceTranslationL1}
-                  </p>
-                )}
+                {card.sentenceTranslationL1 &&
+                  card.sentenceL2 &&
+                  card.sentenceL2 !== card.textL2 && (
+                    <p className="text-base text-gray-500 text-center mb-4 font-serif italic">
+                      {card.sentenceTranslationL1}
+                    </p>
+                  )}
                 {/* Audio button */}
                 {card.audioUrl && (
                   <button
@@ -236,9 +305,7 @@ const FlashCard = ({
                 {/* Horizontal line */}
                 <div className="w-full border-t border-gray-300 mb-6" />
                 {/* Standalone vocabulary word */}
-                <div className="text-center mb-6 text-3xl font-medium">
-                  {renderVocabWord()}
-                </div>
+                <div className="text-center mb-6 text-3xl font-medium">{renderVocabWord()}</div>
                 {/* Translation */}
                 <p className="text-xl text-gray-700 text-center font-serif leading-relaxed">
                   {card.translationL1}
@@ -251,11 +318,13 @@ const FlashCard = ({
                   <>
                     <div className="text-center">{renderSentenceWithHighlight()}</div>
                     {/* Sentence translation - only show if there's a different sentence */}
-                    {card.sentenceTranslationL1 && card.sentenceL2 && card.sentenceL2 !== card.textL2 && (
-                      <p className="text-base text-gray-500 text-center font-serif italic">
-                        {card.sentenceTranslationL1}
-                      </p>
-                    )}
+                    {card.sentenceTranslationL1 &&
+                      card.sentenceL2 &&
+                      card.sentenceL2 !== card.textL2 && (
+                        <p className="text-base text-gray-500 text-center font-serif italic">
+                          {card.sentenceTranslationL1}
+                        </p>
+                      )}
                     <div className="w-full border-t border-gray-300" />
                     <div className="text-center text-3xl font-medium">{renderVocabWord()}</div>
                   </>
