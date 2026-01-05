@@ -159,40 +159,47 @@ async function processCourseGeneration(job: {
       },
     });
 
-    // STEP 3.5: Extract vocabulary from generated dialogue units
-    console.log('Extracting vocabulary from generated dialogue...');
+    // STEP 3.5: Extract vocabulary from dialogue exchanges and map to script units
+    console.log('Extracting vocabulary from dialogue exchanges...');
     const vocabularyItems: Array<{
       textL2: string;
       readingL2: string | null;
       translationL1: string;
-      unitIndex: number;
+      sourceUnitIndex: number | null;
     }> = [];
 
-    // Extract vocabulary from dialogue units
-    generatedScript.units.forEach(
-      (
-        unit: {
-          type: string;
-          vocabularyItems?: { textL2: string; readingL2?: string; translationL1: string }[];
-        },
-        index: number
-      ) => {
-        if (unit.type === 'dialogue' && unit.vocabularyItems && unit.vocabularyItems.length > 0) {
-          unit.vocabularyItems.forEach(
-            (vocab: { textL2: string; readingL2?: string; translationL1: string }) => {
-              vocabularyItems.push({
-                textL2: vocab.textL2,
-                readingL2: vocab.readingL2 || null,
-                translationL1: vocab.translationL1,
-                unitIndex: index,
-              });
-            }
-          );
-        }
-      }
-    );
+    // Extract vocabulary from each dialogue exchange and find matching script units
+    dialogueExchanges.forEach((exchange) => {
+      if (exchange.vocabularyItems && exchange.vocabularyItems.length > 0) {
+        exchange.vocabularyItems.forEach((vocab) => {
+          // Find the script unit that contains this exchange's L2 text
+          // This allows us to extract audio for this vocabulary item
+          let sourceUnitIndex: number | null = null;
 
-    // Save vocabulary items with sourceUnitIndex
+          // Search for an L2 unit containing this vocabulary word
+          const unitIndex = generatedScript.units.findIndex(
+            (unit: { type: string; text?: string }) =>
+              unit.type === 'L2' && unit.text && unit.text.includes(vocab.textL2)
+          );
+
+          if (unitIndex !== -1) {
+            sourceUnitIndex = unitIndex;
+            console.log(`Found vocab "${vocab.textL2}" in unit ${unitIndex}`);
+          } else {
+            console.warn(`Could not find vocab "${vocab.textL2}" in any L2 unit`);
+          }
+
+          vocabularyItems.push({
+            textL2: vocab.textL2,
+            readingL2: vocab.readingL2 || null,
+            translationL1: vocab.translationL1,
+            sourceUnitIndex,
+          });
+        });
+      }
+    });
+
+    // Save vocabulary items
     if (vocabularyItems.length > 0) {
       await prisma.courseCoreItem.createMany({
         data: vocabularyItems.map((item, idx) => ({
@@ -203,10 +210,14 @@ async function processCourseGeneration(job: {
           complexityScore: idx,
           sourceEpisodeId: firstEpisode.id,
           sourceSentenceId: null,
-          sourceUnitIndex: item.unitIndex,
+          sourceUnitIndex: item.sourceUnitIndex,
         })),
       });
-      console.log(`Saved ${vocabularyItems.length} vocabulary items from dialogue units`);
+      console.log(`Saved ${vocabularyItems.length} vocabulary items from dialogue exchanges`);
+      const withAudio = vocabularyItems.filter((item) => item.sourceUnitIndex !== null).length;
+      console.log(`  → ${withAudio} items have audio mappings`);
+    } else {
+      console.log('⚠️  No vocabulary items found in dialogue exchanges');
     }
 
     // STEP 4: Assemble audio
