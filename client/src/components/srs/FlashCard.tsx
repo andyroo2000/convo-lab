@@ -9,6 +9,8 @@ interface Card {
   readingL2?: string | null;
   translationL1: string;
   audioUrl?: string | null;
+  sentenceL2?: string | null;
+  sentenceReadingL2?: string | null;
 }
 
 interface FlashCardProps {
@@ -67,7 +69,61 @@ const FlashCard = ({
   };
 
   const renderTextL2Back = () => {
-    // Back side: Show with furigana if toggle is on and we have bracket notation
+    // Back side: Show full sentence with vocabulary word highlighted, or just the word if no sentence
+    const hasSentence = card.sentenceL2 && card.sentenceL2 !== card.textL2;
+
+    if (hasSentence) {
+      // Show sentence with highlighted vocabulary word
+      const sentenceText = showReading && card.sentenceReadingL2 ? card.sentenceReadingL2 : card.sentenceL2!;
+
+      // Split sentence at the vocabulary word to highlight it
+      const vocabWord = card.textL2;
+      const parts = sentenceText.split(vocabWord);
+
+      if (parts.length > 1) {
+        // Found the word in the sentence - highlight it
+        if (language === 'ja') {
+          return (
+            <div className="text-2xl">
+              <JapaneseText text={parts[0]} showFurigana={showReading} />
+              <span className="text-indigo-600 font-bold">
+                <JapaneseText text={vocabWord} showFurigana={showReading} />
+              </span>
+              <JapaneseText text={parts.slice(1).join(vocabWord)} showFurigana={showReading} />
+            </div>
+          );
+        }
+        if (language === 'zh') {
+          return (
+            <div className="text-2xl">
+              <ChineseText text={parts[0]} showPinyin={showReading} />
+              <span className="text-indigo-600 font-bold">
+                <ChineseText text={vocabWord} showPinyin={showReading} />
+              </span>
+              <ChineseText text={parts.slice(1).join(vocabWord)} showPinyin={showReading} />
+            </div>
+          );
+        }
+        return (
+          <div className="text-2xl">
+            {parts[0]}
+            <span className="text-indigo-600 font-bold">{vocabWord}</span>
+            {parts.slice(1).join(vocabWord)}
+          </div>
+        );
+      }
+
+      // Word not found in sentence - just show sentence
+      if (language === 'ja') {
+        return <div className="text-2xl"><JapaneseText text={sentenceText} showFurigana={showReading} /></div>;
+      }
+      if (language === 'zh') {
+        return <div className="text-2xl"><ChineseText text={sentenceText} showPinyin={showReading} /></div>;
+      }
+      return <div className="text-2xl">{sentenceText}</div>;
+    }
+
+    // No sentence - show just the vocabulary word (original behavior)
     const hasFuriganaBrackets = card.readingL2?.includes('[');
     const displayText = hasFuriganaBrackets ? card.readingL2! : card.textL2;
 

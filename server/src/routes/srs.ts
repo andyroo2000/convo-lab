@@ -1,10 +1,11 @@
 import { Router } from 'express';
+
+import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
-import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { reviewCard, getDueCards, getDeckStats } from '../services/srsService.js';
 import { extractVocabularyAudio } from '../services/audioExtractorService.js';
+import { reviewCard, getDueCards, getDeckStats } from '../services/srsService.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -170,17 +171,28 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
       // readingL2 is pure kana - we need to create proper bracket notation
       // that only adds furigana to kanji, not hiragana
       readingL2 = createFuriganaBracketNotation(coreItem.textL2, readingL2);
-      console.log(`Converted reading from pure kana to bracket notation: ${readingL2}`);
     }
 
-    // Get audio from source sentence
+    // Get audio and full sentence from source
     let audioUrl = null;
-    console.log('Creating card for:', {
-      textL2: coreItem.textL2,
-      readingL2: coreItem.readingL2,
-      generatedReadingL2: readingL2,
-      sourceSentenceId: coreItem.sourceSentenceId,
-    });
+    let sentenceL2 = null;
+    let sentenceReadingL2 = null;
+
+    // Try to get full sentence from sourceUnitIndex first (newer courses)
+    if (coreItem.sourceUnitIndex !== null && coreItem.sourceUnitIndex !== undefined) {
+      const scriptUnits = coreItem.course.scriptJson as unknown as Array<{
+        type: string;
+        text?: string;
+        reading?: string;
+      }>;
+      if (scriptUnits && scriptUnits[coreItem.sourceUnitIndex]) {
+        const unit = scriptUnits[coreItem.sourceUnitIndex];
+        if (unit.type === 'L2' && unit.text) {
+          sentenceL2 = unit.text;
+          sentenceReadingL2 = unit.reading || null;
+        }
+      }
+    }
 
     if (coreItem.sourceSentenceId) {
       const sentence = await prisma.sentence.findUnique({
@@ -191,10 +203,8 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
         },
       });
       audioUrl = sentence?.audioUrl_0_85 || sentence?.audioUrl;
-      console.log('Retrieved audio from sourceSentenceId:', audioUrl);
     } else {
       // Fallback: search for a sentence containing this vocabulary
-      console.log('No sourceSentenceId, searching for sentence containing:', coreItem.textL2);
 
       if (coreItem.sourceEpisodeId) {
         // First find the dialogue for this episode
@@ -222,7 +232,6 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
 
           if (sentence) {
             audioUrl = sentence.audioUrl_0_85 || sentence.audioUrl;
-            console.log('Found sentence containing vocab, using audio:', audioUrl);
           } else {
             console.warn('No sentence found containing:', coreItem.textL2);
           }
@@ -236,7 +245,6 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
 
     // If still no audio found, try extracting from course audio
     if (!audioUrl) {
-      console.log(`Attempting to extract audio from course for "${coreItem.textL2}"`);
       audioUrl = await extractVocabularyAudio(coreItemId);
 
       if (!audioUrl) {
@@ -279,6 +287,8 @@ router.post('/cards', blockDemoUser, async (req: AuthRequest, res, next) => {
         readingL2, // Use the generated bracket notation
         translationL1: coreItem.translationL1,
         audioUrl,
+        sentenceL2,
+        sentenceReadingL2,
         enableRecognition,
         enableAudio,
       },
@@ -295,7 +305,9 @@ router.get('/cards', async (req: AuthRequest, res, next) => {
   try {
     const { deckId, coreItemId } = req.query;
 
-    const where: any = { userId: req.userId };
+    const where: { userId?: string; deckId?: string; coreItemId?: string } = {
+      userId: req.userId,
+    };
 
     if (deckId) {
       where.deckId = deckId as string;
@@ -344,31 +356,6 @@ router.put('/cards/:cardId', blockDemoUser, async (req: AuthRequest, res, next) 
     });
 
     res.json(card);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// DELETE /api/srs/cards/:cardId - Delete card
-router.delete('/cards/:cardId', blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    const { cardId } = req.params;
-
-    // Verify card belongs to user
-    const existingCard = await prisma.card.findFirst({
-      where: { id: cardId, userId: req.userId },
-    });
-
-    if (!existingCard) {
-      throw new AppError('Card not found', 404);
-    }
-
-    // Delete card (reviews will cascade delete)
-    await prisma.card.delete({
-      where: { id: cardId },
-    });
-
-    res.json({ success: true });
   } catch (error) {
     next(error);
   }
