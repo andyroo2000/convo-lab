@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Vocabulary extraction audio mapping from dialogue exchanges - improved audio course vocabulary extraction to map each vocabulary item to its source L2 script unit for proper audio extraction; now extracts vocabulary from dialogue exchanges (which contain the full vocabulary list from Gemini) instead of dialogue units; added logging for vocab-to-unit mapping success/failures and statistics about audio mappings
+
 ### Added
 
 - **[feat]** Complete SRS (Spaced Repetition System) with FSRS algorithm - implemented comprehensive flashcard system with FSRS scheduling algorithm (ts-fsrs library), dual card types (Recognition L2→L1 and Audio audio→L2+L1), Anki-style 4-button rating (Again/Hard/Good/Easy), smart furigana/pinyin rendering with bracket notation, audio extraction from course dialogue units, deck editor with multi-select and bulk operations, and custom confirmation dialogs; added database models (Deck, Card, Review with FSRS state tracking), frontend pages (ReviewPage with 3D flip animation and auto-play audio, DeckEditorPage with search/edit/delete), backend services (srsService for scheduling, audioExtractorService for audio extraction), and API routes (/api/srs/\*); architecture redesigned to extract vocabulary FROM generated dialogue (not before) with sourceUnitIndex field linking CourseCoreItem to exact dialogue units for perfect text/audio/furigana alignment and direct audio extraction without fuzzy matching
