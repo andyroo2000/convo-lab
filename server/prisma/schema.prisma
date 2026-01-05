@@ -616,6 +616,10 @@ model Card {
   audioUrl            String?
   imageUrl            String?
 
+  // Full sentence context (for displaying on card back)
+  sentenceL2          String?
+  sentenceReadingL2   String?
+
   // FSRS State - Recognition Cards (L2 → L1)
   recognitionState    String   @default("new")
   recognitionDue      DateTime @default(now())
