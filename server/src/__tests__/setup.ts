@@ -1,7 +1,9 @@
-import { vi, beforeEach } from 'vitest';
 import i18next from 'i18next';
+import { vi, beforeEach } from 'vitest';
+// eslint-disable-next-line import/no-named-as-default-member -- i18next default export is used correctly
 
 // Initialize i18next for tests with inline resources
+// eslint-disable-next-line import/no-named-as-default-member
 i18next.init({
   lng: 'en',
   fallbackLng: 'en',
@@ -188,6 +190,43 @@ export const mockPrisma = {
     update: vi.fn(),
     delete: vi.fn(),
     deleteMany: vi.fn(),
+  },
+  deck: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
+    delete: vi.fn(),
+    count: vi.fn(),
+  },
+  card: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    count: vi.fn(),
+  },
+  review: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    count: vi.fn(),
+  },
+  courseCoreItem: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+    count: vi.fn(),
   },
   $transaction: vi.fn((callback) => callback(mockPrisma)),
 };

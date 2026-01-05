@@ -13,9 +13,9 @@ const VerifyEmailPage = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
 
-  const [status, setStatus] = useState<'verifying' | 'success' | 'error' | 'already-verified' | 'idle'>(
-    token ? 'verifying' : 'idle'
-  );
+  const [status, setStatus] = useState<
+    'verifying' | 'success' | 'error' | 'already-verified' | 'idle'
+  >(token ? 'verifying' : 'idle');
   const [error, setError] = useState('');
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
@@ -59,7 +59,7 @@ const VerifyEmailPage = () => {
     };
 
     verifyToken();
-  }, [token, user?.emailVerified, navigate, refreshUser]);
+  }, [token, user, navigate, refreshUser]);
 
   const handleResendEmail = async () => {
     setResending(true);
@@ -139,7 +139,8 @@ const VerifyEmailPage = () => {
               {user && !user.emailVerified && (
                 <div className="mt-6">
                   <p className="text-medium-brown mb-4">{t('auth:verifyEmail.needNewLink')}</p>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={handleResendEmail}
                     disabled={resending}
                     className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
@@ -182,7 +183,8 @@ const VerifyEmailPage = () => {
                 {t('auth:verifyEmail.sentTo', { email: user.email })}
               </p>
 
-              <button type="button"
+              <button
+                type="button"
                 onClick={handleResendEmail}
                 disabled={resending}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
