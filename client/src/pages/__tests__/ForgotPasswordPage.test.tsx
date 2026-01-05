@@ -84,7 +84,7 @@ describe('ForgotPasswordPage', () => {
       });
 
       expect(screen.getByText(/If an account exists with/)).toBeInTheDocument();
-      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+      expect(screen.getByText(/test@example\.com/, { exact: false })).toBeInTheDocument();
       expect(screen.getByText(/The link will expire in 1 hour/)).toBeInTheDocument();
     });
 
@@ -117,7 +117,10 @@ describe('ForgotPasswordPage', () => {
 
     it('should show loading state during submission', async () => {
       (global.fetch as any).mockImplementationOnce(
-        () => new Promise((resolve) => setTimeout(resolve, 1000))
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          })
       );
 
       renderWithRouter();
@@ -242,7 +245,7 @@ describe('ForgotPasswordPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(testEmail)).toBeInTheDocument();
+        expect(screen.getByText(new RegExp(testEmail.replace('.', '\\.')))).toBeInTheDocument();
       });
     });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import ResetPasswordPage from '../ResetPasswordPage';
 
@@ -38,6 +38,7 @@ describe('ResetPasswordPage', () => {
 
   afterEach(() => {
     vi.clearAllTimers();
+    vi.useRealTimers();
   });
 
   describe('Token Validation', () => {
@@ -75,10 +76,10 @@ describe('ResetPasswordPage', () => {
       renderWithRouter('/reset-password/valid-token');
 
       await waitFor(() => {
-        expect(screen.getByText(/Reset Password/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Reset Password/i })).toBeInTheDocument();
       });
 
-      expect(screen.getByText('test@example.com')).toBeInTheDocument();
+      expect(screen.getByText(/test@example\.com/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/New Password/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
     });
@@ -100,13 +101,13 @@ describe('ResetPasswordPage', () => {
       renderWithRouter('/reset-password');
 
       await waitFor(() => {
-        expect(screen.getByText(/Invalid reset link/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Invalid Reset Link/i })).toBeInTheDocument();
       });
     });
   });
 
   describe('Password Reset Form', () => {
-    beforeEach(async () => {
+    beforeEach(() => {
       (global.fetch as any).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
@@ -164,15 +165,10 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should successfully reset password', async () => {
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ valid: true, email: 'test@example.com' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ message: 'Password reset successfully' }),
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Password reset successfully' }),
+      });
 
       renderWithRouter('/reset-password/valid-token');
 
@@ -189,20 +185,15 @@ describe('ResetPasswordPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Password Reset Successfully/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Password Reset/i })).toBeInTheDocument();
       });
     });
 
     it('should call API with token and new password', async () => {
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ valid: true, email: 'test@example.com' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ message: 'Password reset successfully' }),
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Password reset successfully' }),
+      });
 
       renderWithRouter('/reset-password/valid-token');
 
@@ -233,17 +224,12 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show loading state during submission', async () => {
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ valid: true, email: 'test@example.com' }),
-        })
-        .mockImplementationOnce(
-          () =>
-            new Promise((resolve) => {
-              setTimeout(resolve, 1000);
-            })
-        );
+      (global.fetch as any).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 1000);
+          })
+      );
 
       renderWithRouter('/reset-password/valid-token');
 
@@ -259,22 +245,17 @@ describe('ResetPasswordPage', () => {
       fireEvent.change(confirmPassword, { target: { value: 'newpassword123' } });
       fireEvent.click(submitButton);
 
-      expect(screen.getByRole('button', { name: /Resetting.../i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Resetting.../i })).toBeDisabled();
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Resetting Password/i })).toBeInTheDocument();
+      });
+      expect(screen.getByRole('button', { name: /Resetting Password/i })).toBeDisabled();
     });
 
     it('should redirect to login after successful reset', async () => {
-      vi.useFakeTimers();
-
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ valid: true, email: 'test@example.com' }),
-        })
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ message: 'Password reset successfully' }),
-        });
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ message: 'Password reset successfully' }),
+      });
 
       renderWithRouter('/reset-password/valid-token');
 
@@ -288,31 +269,36 @@ describe('ResetPasswordPage', () => {
 
       fireEvent.change(newPassword, { target: { value: 'newpassword123' } });
       fireEvent.change(confirmPassword, { target: { value: 'newpassword123' } });
+
+      // Use fake timers before triggering the success state
+      vi.useFakeTimers();
       fireEvent.click(submitButton);
 
-      await waitFor(() => {
-        expect(screen.getByText(/Password Reset Successfully/i)).toBeInTheDocument();
+      // Need to flush pending promises before waiting
+      await act(async () => {
+        await Promise.resolve();
       });
 
-      vi.advanceTimersByTime(3000);
+      // Now we should see the success heading
+      expect(screen.getByRole('heading', { name: /Password Reset/i })).toBeInTheDocument();
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/login');
+      // Advance timers to trigger the setTimeout callback
+      act(() => {
+        vi.advanceTimersByTime(3000);
       });
+
+      expect(mockNavigate).toHaveBeenCalledWith('/login');
 
       vi.useRealTimers();
     });
 
     it('should handle API errors gracefully', async () => {
-      (global.fetch as any)
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ valid: true, email: 'test@example.com' }),
-        })
-        .mockResolvedValueOnce({
-          ok: false,
-          json: async () => ({ error: 'Token already used' }),
-        });
+      vi.useRealTimers(); // Ensure real timers are active after previous test
+
+      (global.fetch as any).mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: 'Token already used' }),
+      });
 
       renderWithRouter('/reset-password/valid-token');
 
@@ -385,9 +371,13 @@ describe('ResetPasswordPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        const successIcon = document.querySelector('.text-green-500');
-        expect(successIcon).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Password Reset/i })).toBeInTheDocument();
       });
+
+      // Check that success icon (CheckCircle) is rendered
+      const successIcon = document.querySelector('.lucide-circle-check-big');
+      expect(successIcon).toBeInTheDocument();
+      expect(successIcon).toHaveClass('text-green-500');
     });
 
     it('should show error icon for invalid token', async () => {
@@ -399,9 +389,13 @@ describe('ResetPasswordPage', () => {
       renderWithRouter('/reset-password/invalid-token');
 
       await waitFor(() => {
-        const errorIcon = document.querySelector('.text-red-500');
-        expect(errorIcon).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Invalid Reset Link/i })).toBeInTheDocument();
       });
+
+      // Check that error icon (XCircle) is rendered
+      const errorIcon = document.querySelector('.lucide-circle-x');
+      expect(errorIcon).toBeInTheDocument();
+      expect(errorIcon).toHaveClass('text-red-500');
     });
   });
 });

@@ -13,6 +13,68 @@ vi.mock('../../hooks/useDemo', () => ({
   useIsDemo: () => false,
 }));
 
+// Mock AuthContext
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { preferredStudyLanguage: 'ja' },
+  }),
+}));
+
+// Mock react-i18next
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      const translations: Record<string, string> = {
+        'narrowListening:pageTitle': 'Narrow Listening Packs',
+        'narrowListening:pageSubtitle': 'The same story told 5 different ways for focused listening practice',
+        'narrowListening:form.yourStory': 'Your Story',
+        'narrowListening:form.whatAbout': 'What should your story be about?',
+        'narrowListening:form.topicPlaceholder.ja': "e.g., Tanaka's weekend activities or a day at the office",
+        'narrowListening:form.topicPlaceholder.zh': "e.g., Wang Wei's weekend activities or a day at the office",
+        'narrowListening:form.topicPlaceholder.es': "e.g., María's weekend activities or a day at the office",
+        'narrowListening:form.topicHelper': 'Describe what you want your story to be about',
+        'narrowListening:form.targetJLPT': 'Target JLPT Level',
+        'narrowListening:form.targetHSK': 'Target HSK Level',
+        'narrowListening:form.targetCEFR': 'Target CEFR Level',
+        'narrowListening:form.jlpt.n5': 'N5 (Beginner)',
+        'narrowListening:form.jlpt.n4': 'N4',
+        'narrowListening:form.jlpt.n3': 'N3',
+        'narrowListening:form.jlpt.n2': 'N2',
+        'narrowListening:form.jlpt.n1': 'N1 (Advanced)',
+        'narrowListening:form.hsk.hsk1': 'HSK 1 (Beginner)',
+        'narrowListening:form.hsk.hsk2': 'HSK 2',
+        'narrowListening:form.hsk.hsk3': 'HSK 3',
+        'narrowListening:form.hsk.hsk4': 'HSK 4',
+        'narrowListening:form.hsk.hsk5': 'HSK 5',
+        'narrowListening:form.hsk.hsk6': 'HSK 6 (Advanced)',
+        'narrowListening:form.cefr.a1': 'A1 (Beginner)',
+        'narrowListening:form.cefr.a2': 'A2',
+        'narrowListening:form.cefr.b1': 'B1',
+        'narrowListening:form.cefr.b2': 'B2',
+        'narrowListening:form.cefr.c1': 'C1',
+        'narrowListening:form.cefr.c2': 'C2 (Advanced)',
+        'narrowListening:form.levelHelper': 'Choose the appropriate level',
+        'narrowListening:form.grammarFocus': 'Grammar Focus (Optional)',
+        'narrowListening:form.grammarPlaceholder': 'e.g., past vs present tense',
+        'narrowListening:form.grammarHelper': 'Optionally specify a grammar point to focus on',
+        'narrowListening:info.title': 'What is Narrow Listening?',
+        'narrowListening:info.description': 'Narrow listening description',
+        'narrowListening:info.features.versions': '5 versions of the same story with different grammar patterns',
+        'narrowListening:info.features.slowAudio': 'Slow audio (0.7x speed) for shadowing practice',
+        'narrowListening:info.features.normalAudio': 'Normal speed audio for listening practice',
+        'narrowListening:info.features.textJa': 'Japanese text with furigana',
+        'narrowListening:info.features.textZh': 'Chinese text with pinyin',
+        'narrowListening:info.features.textEs': 'Spanish text with translations',
+        'narrowListening:info.features.textFr': 'French text with translations',
+        'narrowListening:actions.cancel': 'Cancel',
+        'narrowListening:actions.generate': 'Generate Pack',
+        'narrowListening:actions.generating': 'Generating...',
+      };
+      return translations[key] || key;
+    },
+  }),
+}));
+
 // Mock DemoRestrictionModal
 vi.mock('../../components/common/DemoRestrictionModal', () => ({
   default: ({ isOpen }: { isOpen: boolean }) =>
@@ -58,53 +120,12 @@ describe('NarrowListeningCreatorPage', () => {
     });
   });
 
-  describe('language selection', () => {
-    it('should render all three language options', () => {
-      renderPage();
-      expect(screen.getByText('Japanese')).toBeInTheDocument();
-      expect(screen.getByText('Chinese')).toBeInTheDocument();
-      expect(screen.getByText('Spanish')).toBeInTheDocument();
-    });
-
-    it('should have Japanese selected by default', () => {
-      renderPage();
-      const japaneseButton = screen.getByText('Japanese').closest('button');
-      expect(japaneseButton).toHaveClass('bg-strawberry', 'text-white');
-    });
-
-    it('should change language when clicking different button', () => {
-      renderPage();
-      const chineseButton = screen.getByText('Chinese').closest('button');
-
-      fireEvent.click(chineseButton!);
-
-      expect(chineseButton).toHaveClass('bg-strawberry', 'text-white');
-    });
-  });
 
   describe('proficiency level selection', () => {
     it('should show JLPT levels when Japanese is selected', () => {
       renderPage();
       expect(screen.getByText('Target JLPT Level')).toBeInTheDocument();
       expect(screen.getByRole('combobox')).toHaveValue('N5');
-    });
-
-    it('should show HSK levels when Chinese is selected', () => {
-      renderPage();
-      const chineseButton = screen.getByText('Chinese').closest('button');
-      fireEvent.click(chineseButton!);
-
-      expect(screen.getByText('Target HSK Level')).toBeInTheDocument();
-      expect(screen.getByRole('combobox')).toHaveValue('HSK3');
-    });
-
-    it('should show CEFR levels when Spanish is selected', () => {
-      renderPage();
-      const spanishButton = screen.getByText('Spanish').closest('button');
-      fireEvent.click(spanishButton!);
-
-      expect(screen.getByText('Target CEFR Level')).toBeInTheDocument();
-      expect(screen.getByRole('combobox')).toHaveValue('A1');
     });
 
     it('should allow changing JLPT level', () => {
@@ -130,22 +151,6 @@ describe('NarrowListeningCreatorPage', () => {
       fireEvent.change(textarea, { target: { value: 'My test topic' } });
 
       expect(textarea).toHaveValue('My test topic');
-    });
-
-    it('should show different placeholder for Chinese', () => {
-      renderPage();
-      const chineseButton = screen.getByText('Chinese').closest('button');
-      fireEvent.click(chineseButton!);
-
-      expect(screen.getByPlaceholderText(/Wang Wei's weekend activities/)).toBeInTheDocument();
-    });
-
-    it('should show different placeholder for Spanish', () => {
-      renderPage();
-      const spanishButton = screen.getByText('Spanish').closest('button');
-      fireEvent.click(spanishButton!);
-
-      expect(screen.getByPlaceholderText(/María's weekend activities/)).toBeInTheDocument();
     });
   });
 

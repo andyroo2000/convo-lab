@@ -22,3 +22,25 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: () => {},
   }),
 });
+
+// Mock IntersectionObserver
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
+global.IntersectionObserver = class IntersectionObserver {
+  // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
+  constructor() {}
+
+  // eslint-disable-next-line class-methods-use-this
+  disconnect() {}
+
+  // eslint-disable-next-line class-methods-use-this
+  observe() {}
+
+  // eslint-disable-next-line class-methods-use-this
+  unobserve() {}
+
+  // eslint-disable-next-line class-methods-use-this
+  takeRecords() {
+    return [];
+  }
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+} as any;
