@@ -3,11 +3,29 @@ import { Episode, CreateEpisodeRequest, Speaker, AudioSpeed } from '../types';
 
 import { API_URL } from '../config';
 
+interface QuotaInfo {
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsAt: string;
+}
+
+interface ErrorWithMetadata {
+  message: string;
+  status?: number;
+  quota?: QuotaInfo;
+  cooldown?: {
+    remainingSeconds: number;
+    retryAfter: string;
+  };
+}
+
 // Named export is intentional for hooks
 // eslint-disable-next-line import/prefer-default-export
 export function useEpisodes() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorMetadata, setErrorMetadata] = useState<ErrorWithMetadata | null>(null);
 
   const createEpisode = async (request: CreateEpisodeRequest): Promise<Episode> => {
     setLoading(true);
@@ -47,6 +65,7 @@ export function useEpisodes() {
   ): Promise<{ jobId: string }> => {
     setLoading(true);
     setError(null);
+    setErrorMetadata(null);
 
     try {
       const response = await fetch(`${API_URL}/api/dialogue/generate`, {
@@ -60,7 +79,24 @@ export function useEpisodes() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate dialogue');
+        const errorMessage = errorData.error || errorData.message || 'Failed to generate dialogue';
+
+        // Capture metadata for quota/cooldown errors
+        const metadata: ErrorWithMetadata = {
+          message: errorMessage,
+          status: response.status,
+        };
+
+        if (errorData.quota) {
+          metadata.quota = errorData.quota;
+        }
+
+        if (errorData.cooldown) {
+          metadata.cooldown = errorData.cooldown;
+        }
+
+        setErrorMetadata(metadata);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -263,6 +299,7 @@ export function useEpisodes() {
   return {
     loading,
     error,
+    errorMetadata,
     createEpisode,
     generateDialogue,
     generateAudio,

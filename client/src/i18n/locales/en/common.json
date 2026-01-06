@@ -42,16 +42,20 @@
   },
   "upgradePrompt": {
     "title": "Quota Limit Reached",
-    "quotaUsed": "You've used {{used}} of {{limit}} generations this week",
-    "limitReached": "You've reached your weekly generation limit. Upgrade to Pro to create more content and unlock premium features!",
-    "limitReachedPro": "You've reached your weekly generation limit. Your quota will reset at the start of next week (Monday 00:00 UTC).",
+    "quotaUsed": "You've used {{used}} of {{limit}} generations",
+    "limitReached": "You've reached your free tier lifetime limit. Upgrade to Pro to create more content and unlock premium features!",
+    "limitReachedPro": "You've reached your monthly generation limit. Your quota will reset on the 1st of next month at midnight UTC.",
+    "resetInfo": "You've reached your monthly generation limit. Your quota will reset on the 1st of next month at midnight UTC.",
+    "proQuotaInfo": "As a Pro member, you get 30 generations per month across all content types.",
+    "quotaResetInfo": "Your quota resets on the 1st of every month at midnight UTC.",
     "proPlan": {
       "title": "Pro Plan - $10/month",
-      "feature1": "30 generations per month",
-      "feature1Detail": "(unlimited vs 3 items for Free)",
-      "feature2": "All content types included",
-      "feature3": "High-quality Google Cloud TTS",
-      "feature4": "Priority support"
+      "features": [
+        "30 generations per month",
+        "All content types included",
+        "High-quality Google Cloud TTS",
+        "Priority support"
+      ]
     },
     "proInfo": {
       "plan": "Pro Plan:",

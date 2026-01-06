@@ -61,22 +61,14 @@ const UpgradePrompt = ({ onClose, quotaUsed, quotaLimit }: UpgradePromptProps) =
                   {t('upgradePrompt.proPlan.title')}
                 </h3>
                 <ul className="space-y-3 mb-4">
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.0')}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.1')}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.2')}</span>
-                  </li>
-                  <li className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">{t('upgradePrompt.proPlan.features.3')}</span>
-                  </li>
+                  {(t('upgradePrompt.proPlan.features', { returnObjects: true }) as string[]).map(
+                    (feature) => (
+                      <li key={feature} className="flex items-start">
+                        <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
+                        <span className="text-dark-brown">{feature}</span>
+                      </li>
+                    )
+                  )}
                 </ul>
               </div>
 

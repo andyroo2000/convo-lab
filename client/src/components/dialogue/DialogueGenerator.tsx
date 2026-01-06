@@ -14,6 +14,7 @@ import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import { useAuth } from '../../contexts/AuthContext';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
+import UpgradePrompt from '../common/UpgradePrompt';
 
 interface SpeakerFormData {
   name: string;
@@ -40,9 +41,11 @@ const DialogueGenerator = () => {
     pollJobStatus,
     loading,
     error,
+    errorMetadata,
   } = useEpisodes();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const [sourceText, setSourceText] = useState('');
   const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
@@ -73,6 +76,13 @@ const DialogueGenerator = () => {
       color: DEFAULT_SPEAKER_COLORS[index],
     }));
   });
+
+  // Show upgrade prompt when quota is exceeded
+  useEffect(() => {
+    if (errorMetadata?.status === 429 && errorMetadata?.quota) {
+      setShowUpgradePrompt(true);
+    }
+  }, [errorMetadata]);
 
   // Re-initialize speakers when target language changes
   useEffect(() => {
@@ -456,6 +466,15 @@ const DialogueGenerator = () => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && errorMetadata?.quota && (
+        <UpgradePrompt
+          onClose={() => setShowUpgradePrompt(false)}
+          quotaUsed={errorMetadata.quota.used}
+          quotaLimit={errorMetadata.quota.limit}
+        />
+      )}
     </div>
   );
 };
