@@ -2,7 +2,7 @@
   "welcome": "Welcome to ConvoLab! 🎉",
   "subtitle": "Let's personalize your learning experience",
   "step1": {
-    "title": "What's your native language?",
+    "title": "What's your primary language?",
     "description": "This will be used for translations and explanations"
   },
   "step2": {

@@ -35,8 +35,14 @@ const OnboardingModal = () => {
     setIsSubmitting(true);
     try {
       // Store the language-specific level in the generic proficiencyLevel field
-      const proficiencyLevel =
-        targetLanguage === 'ja' ? jlptLevel : targetLanguage === 'zh' ? hskLevel : cefrLevel;
+      let proficiencyLevel: string;
+      if (targetLanguage === 'ja') {
+        proficiencyLevel = jlptLevel;
+      } else if (targetLanguage === 'zh') {
+        proficiencyLevel = hskLevel;
+      } else {
+        proficiencyLevel = cefrLevel;
+      }
 
       await updateUser({
         preferredNativeLanguage: nativeLanguage,
@@ -95,7 +101,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇺🇸</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">English</h3>
                 </div>
               </button>
@@ -110,7 +115,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇯🇵</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">Japanese</h3>
                   <p className="text-sm text-gray-600">日本語</p>
                 </div>
@@ -126,7 +130,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇨🇳</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">Chinese</h3>
                   <p className="text-sm text-gray-600">中文</p>
                 </div>
@@ -142,7 +145,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇪🇸</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
                   <p className="text-sm text-gray-600">Español</p>
                 </div>
@@ -158,7 +160,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇫🇷</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
                   <p className="text-sm text-gray-600">Français</p>
                 </div>
@@ -174,7 +175,6 @@ const OnboardingModal = () => {
                 }`}
               >
                 <div className="text-center">
-                  <div className="text-4xl mb-2">🇸🇦</div>
                   <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
                   <p className="text-sm text-gray-600">العربية</p>
                 </div>
@@ -211,7 +211,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇺🇸</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">English</h3>
                   </div>
                 </button>
@@ -228,7 +227,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇯🇵</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">Japanese</h3>
                     <p className="text-sm text-gray-600">日本語</p>
                   </div>
@@ -246,7 +244,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇨🇳</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">Chinese</h3>
                     <p className="text-sm text-gray-600">中文</p>
                   </div>
@@ -264,7 +261,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇪🇸</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
                     <p className="text-sm text-gray-600">Español</p>
                   </div>
@@ -282,7 +278,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇫🇷</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
                     <p className="text-sm text-gray-600">Français</p>
                   </div>
@@ -300,7 +295,6 @@ const OnboardingModal = () => {
                   }`}
                 >
                   <div className="text-center">
-                    <div className="text-4xl mb-2">🇸🇦</div>
                     <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
                     <p className="text-sm text-gray-600">العربية</p>
                   </div>
