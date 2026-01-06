@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
@@ -272,7 +272,7 @@ Write only the description, no formatting or quotes.`;
 router.post(
   '/:id/generate',
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('course'),
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {

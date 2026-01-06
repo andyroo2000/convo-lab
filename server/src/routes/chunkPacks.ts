@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
@@ -142,7 +142,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 router.post(
   '/generate',
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('chunk_pack'),
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
@@ -257,9 +257,6 @@ router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, re
     if (pack.stories.length === 0) {
       throw new AppError('Chunk pack has no story', 400);
     }
-
-    // Use the first story for NL session
-    const story = pack.stories[0];
 
     // Create topic description from chunks
     const chunkForms = pack.chunks.map((c) => c.form).join(', ');

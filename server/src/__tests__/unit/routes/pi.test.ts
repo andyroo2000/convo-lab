@@ -17,7 +17,7 @@ const mockRequireAuth = vi.hoisted(() =>
 );
 const mockBlockDemoUser = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
 const mockRequireEmailVerified = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
-const mockRateLimitGeneration = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
+const mockRateLimitGeneration = vi.hoisted(() => vi.fn(() => vi.fn((req: any, res: any, next: any) => next())));
 const mockPrisma = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
