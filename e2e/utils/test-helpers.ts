@@ -184,21 +184,21 @@ export async function wait(ms: number): Promise<void> {
  * Clear all generation logs for a user (via API)
  */
 export async function clearUserQuota(page: Page, userId: string): Promise<void> {
-  await page.request.delete(`http://localhost:3000/api/test/quota/${userId}`);
+  await page.request.delete(`http://localhost:3001/api/test/quota/${userId}`);
 }
 
 /**
  * Clear Redis cooldown keys (via API)
  */
 export async function clearCooldowns(page: Page): Promise<void> {
-  await page.request.delete('http://localhost:3000/api/test/cooldowns');
+  await page.request.delete('http://localhost:3001/api/test/cooldowns');
 }
 
 /**
  * Set user quota usage (via API)
  */
 export async function setUserQuota(page: Page, userId: string, used: number): Promise<void> {
-  await page.request.post(`http://localhost:3000/api/test/quota/${userId}`, {
+  await page.request.post(`http://localhost:3001/api/test/quota/${userId}`, {
     data: { used },
   });
 }

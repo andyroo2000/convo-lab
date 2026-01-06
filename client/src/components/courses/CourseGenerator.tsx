@@ -10,6 +10,19 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
+import UpgradePrompt from '../common/UpgradePrompt';
+
+interface QuotaInfo {
+  limit: number;
+  used: number;
+  remaining: number;
+  resetsAt: string;
+}
+
+interface ErrorMetadata {
+  quota?: QuotaInfo;
+  status?: number;
+}
 
 const CourseGenerator = () => {
   const navigate = useNavigate();
@@ -31,6 +44,8 @@ const CourseGenerator = () => {
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorMetadata, setErrorMetadata] = useState<ErrorMetadata | null>(null);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
 
@@ -41,6 +56,13 @@ const CourseGenerator = () => {
       setNativeLanguage(user.preferredNativeLanguage || 'en');
     }
   }, [user]);
+
+  // Show upgrade prompt when quota is exceeded
+  useEffect(() => {
+    if (errorMetadata?.status === 429 && errorMetadata?.quota) {
+      setShowUpgradePrompt(true);
+    }
+  }, [errorMetadata]);
 
   // Initialize default voices when languages change
   useEffect(() => {
@@ -115,7 +137,17 @@ const CourseGenerator = () => {
 
       if (!generateResponse.ok) {
         const errorData = await generateResponse.json();
-        throw new Error(errorData.message || 'Failed to start course generation');
+        const errorMessage = errorData.message || errorData.error || 'Failed to start course generation';
+
+        // Capture metadata for quota errors
+        if (generateResponse.status === 429 && errorData.quota) {
+          setErrorMetadata({
+            status: generateResponse.status,
+            quota: errorData.quota,
+          });
+        }
+
+        throw new Error(errorMessage);
       }
 
       setStep('complete');
@@ -427,6 +459,15 @@ const CourseGenerator = () => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && errorMetadata?.quota && (
+        <UpgradePrompt
+          onClose={() => setShowUpgradePrompt(false)}
+          quotaUsed={errorMetadata.quota.used}
+          quotaLimit={errorMetadata.quota.limit}
+        />
+      )}
     </div>
   );
 };

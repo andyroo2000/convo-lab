@@ -1,4 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 /**
  * Playwright E2E Test Configuration
@@ -58,7 +62,7 @@ export default defineConfig({
     },
     {
       command: 'cd server && npm run dev',
-      url: 'http://localhost:3000/health',
+      url: 'http://localhost:3001/health',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
     },
