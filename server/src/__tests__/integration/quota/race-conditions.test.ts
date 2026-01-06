@@ -6,7 +6,7 @@ import {
   setCooldown,
 } from '../../../services/usageTracker.js';
 import { mockPrisma } from '../../setup.js';
-import { getWeekStart, getNextWeekStart } from '../../../utils/dateUtils.js';
+import { getMonthStart, getNextMonthStart } from '../../../utils/dateUtils.js';
 
 // Mock Redis
 const mockRedis = {
@@ -21,51 +21,51 @@ vi.mock('../../../config/redis.js', () => ({
 
 describe('Quota System Race Conditions - Integration Tests', () => {
   const mockUserId = 'user-123';
-  const _weekStart = getWeekStart();
-  const _nextWeekStart = getNextWeekStart();
+  const _monthStart = getMonthStart();
+  const _nextMonthStart = getNextMonthStart();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   describe('checkGenerationLimit', () => {
-    it('should allow generation when under quota limit', async () => {
+    it('should allow generation when under quota limit (free tier dialogue)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'free',
         role: 'user',
       });
 
-      mockPrisma.generationLog.count.mockResolvedValue(3); // 3 of 5
+      mockPrisma.generationLog.count.mockResolvedValue(1); // 1 of 2 dialogues
 
-      const status = await checkGenerationLimit(mockUserId);
+      const status = await checkGenerationLimit(mockUserId, 'dialogue');
 
       expect(status).toEqual({
         allowed: true,
-        used: 3,
-        limit: 5,
-        remaining: 2,
-        resetsAt: expect.any(Date),
+        used: 1,
+        limit: 2,
+        remaining: 1,
+        resetsAt: new Date('9999-12-31'), // Lifetime limit
       });
     });
 
-    it('should reject generation when at quota limit', async () => {
+    it('should reject generation when at quota limit (free tier dialogue)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
         tier: 'free',
         role: 'user',
       });
 
-      mockPrisma.generationLog.count.mockResolvedValue(5); // 5 of 5
+      mockPrisma.generationLog.count.mockResolvedValue(2); // 2 of 2 dialogues
 
-      const status = await checkGenerationLimit(mockUserId);
+      const status = await checkGenerationLimit(mockUserId, 'dialogue');
 
       expect(status).toEqual({
         allowed: false,
-        used: 5,
-        limit: 5,
+        used: 2,
+        limit: 2,
         remaining: 0,
-        resetsAt: expect.any(Date),
+        resetsAt: new Date('9999-12-31'), // Lifetime limit
       });
     });
 
@@ -76,7 +76,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         role: 'admin',
       });
 
-      const status = await checkGenerationLimit(mockUserId);
+      const status = await checkGenerationLimit(mockUserId, 'dialogue');
 
       expect(status).toEqual({
         allowed: true,
@@ -91,37 +91,64 @@ describe('Quota System Race Conditions - Integration Tests', () => {
       expect(mockPrisma.generationLog.count).not.toHaveBeenCalled();
     });
 
-    it('should use correct tier limits (free: 5, pro: 30)', async () => {
-      // Test free tier
+    it('should use correct tier limits (free: per-type lifetime, pro: 30/month)', async () => {
+      // Test free tier dialogue limit (2)
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
         role: 'user',
       });
       mockPrisma.generationLog.count.mockResolvedValue(0);
 
-      const freeStatus = await checkGenerationLimit(mockUserId);
-      expect(freeStatus.limit).toBe(5);
+      const freeDialogueStatus = await checkGenerationLimit(mockUserId, 'dialogue');
+      expect(freeDialogueStatus.limit).toBe(2);
+      expect(freeDialogueStatus.resetsAt).toEqual(new Date('9999-12-31')); // Lifetime
 
-      // Test pro tier
+      // Test free tier course limit (1)
+      const freeCourseStatus = await checkGenerationLimit(mockUserId, 'course');
+      expect(freeCourseStatus.limit).toBe(1);
+
+      // Test pro tier monthly limit (30, combined across all content types)
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro',
         role: 'user',
       });
 
-      const proStatus = await checkGenerationLimit(mockUserId);
+      const proStatus = await checkGenerationLimit(mockUserId, 'dialogue');
       expect(proStatus.limit).toBe(30);
     });
 
-    it('should count generations from current week only', async () => {
+    it('should count generations correctly for each tier', async () => {
+      // Free tier: lifetime count for specific content type
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
         role: 'user',
       });
 
-      mockPrisma.generationLog.count.mockResolvedValue(2);
+      mockPrisma.generationLog.count.mockResolvedValue(1);
 
-      await checkGenerationLimit(mockUserId);
+      await checkGenerationLimit(mockUserId, 'dialogue');
 
+      // Free tier should NOT filter by createdAt (lifetime count)
+      expect(mockPrisma.generationLog.count).toHaveBeenCalledWith({
+        where: {
+          userId: mockUserId,
+          contentType: 'dialogue',
+        },
+      });
+
+      vi.clearAllMocks();
+
+      // Pro tier: monthly count across all content types
+      mockPrisma.user.findUnique.mockResolvedValue({
+        tier: 'pro',
+        role: 'user',
+      });
+
+      mockPrisma.generationLog.count.mockResolvedValue(15);
+
+      await checkGenerationLimit(mockUserId, 'dialogue');
+
+      // Pro tier should filter by createdAt and NOT by contentType
       expect(mockPrisma.generationLog.count).toHaveBeenCalledWith({
         where: {
           userId: mockUserId,
@@ -129,33 +156,34 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         },
       });
 
-      // Verify week start calculation
+      // Verify month start calculation
       const call = mockPrisma.generationLog.count.mock.calls[0][0];
-      const weekStartArg = call.where.createdAt.gte;
+      const monthStartArg = call.where.createdAt.gte;
 
-      // Should be Monday 00:00:00 UTC
-      expect(weekStartArg.getUTCHours()).toBe(0);
-      expect(weekStartArg.getUTCMinutes()).toBe(0);
-      expect(weekStartArg.getUTCSeconds()).toBe(0);
+      // Should be 1st of month 00:00:00 UTC
+      expect(monthStartArg.getUTCDate()).toBe(1);
+      expect(monthStartArg.getUTCHours()).toBe(0);
+      expect(monthStartArg.getUTCMinutes()).toBe(0);
+      expect(monthStartArg.getUTCSeconds()).toBe(0);
     });
 
-    it('should handle tier upgrade mid-week correctly', async () => {
-      // User was free tier (5/week), now pro tier (30/week)
+    it('should handle tier upgrade mid-month correctly', async () => {
+      // User was free tier (lifetime limits), now pro tier (30/month)
       // Should use current tier limit, not tier at time of previous generations
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro', // Current tier
         role: 'user',
       });
 
-      mockPrisma.generationLog.count.mockResolvedValue(6); // 6 generations
+      mockPrisma.generationLog.count.mockResolvedValue(10); // 10 generations this month
 
-      const status = await checkGenerationLimit(mockUserId);
+      const status = await checkGenerationLimit(mockUserId, 'dialogue');
 
       expect(status).toEqual({
         allowed: true,
-        used: 6,
-        limit: 30, // Uses current tier (pro)
-        remaining: 24,
+        used: 10,
+        limit: 30, // Uses current tier (pro monthly limit)
+        remaining: 20,
         resetsAt: expect.any(Date),
       });
     });
@@ -246,36 +274,36 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
   describe('Race Conditions', () => {
     it('should handle concurrent quota checks at limit boundary', async () => {
-      // Simulate user at 4/5 quota making 3 concurrent requests
-      // Expected: 1 succeeds (5/5), 2 fail
+      // Simulate free tier user at 1/2 dialogue quota making 3 concurrent requests
+      // Expected: 1 succeeds (2/2), 2 fail
 
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'free',
         role: 'user',
       });
 
-      // First check: 4 used, allowed
-      // Second check: 4 used, allowed (race condition)
-      // Third check: 4 used, allowed (race condition)
+      // First check: 1 used, allowed
+      // Second check: 1 used, allowed (race condition)
+      // Third check: 1 used, allowed (race condition)
       mockPrisma.generationLog.count
-        .mockResolvedValueOnce(4)
-        .mockResolvedValueOnce(4)
-        .mockResolvedValueOnce(4);
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(1);
 
       const checks = await Promise.all([
-        checkGenerationLimit(mockUserId),
-        checkGenerationLimit(mockUserId),
-        checkGenerationLimit(mockUserId),
+        checkGenerationLimit(mockUserId, 'dialogue'),
+        checkGenerationLimit(mockUserId, 'dialogue'),
+        checkGenerationLimit(mockUserId, 'dialogue'),
       ]);
 
-      // All checks see 4/5, all return allowed (race condition exists)
+      // All checks see 1/2, all return allowed (race condition exists)
       expect(checks.every((c) => c.allowed)).toBe(true);
-      expect(checks.every((c) => c.used === 4)).toBe(true);
+      expect(checks.every((c) => c.used === 1)).toBe(true);
       expect(checks.every((c) => c.remaining === 1)).toBe(true);
 
       // This demonstrates the race condition:
       // Without transaction isolation, all 3 requests could pass quota check
-      // and increment to 7/5 total
+      // and increment to 4/2 total
     });
 
     it('should handle concurrent cooldown checks', async () => {
@@ -308,13 +336,13 @@ describe('Quota System Race Conditions - Integration Tests', () => {
         tier: 'free',
         role: 'user',
       });
-      mockPrisma.generationLog.count.mockResolvedValue(2); // 2/5
+      mockPrisma.generationLog.count.mockResolvedValue(1); // 1/2 dialogues
 
       // Simulate middleware flow
       const cooldownStatus = await checkCooldown(mockUserId);
       expect(cooldownStatus.active).toBe(false);
 
-      const quotaStatus = await checkGenerationLimit(mockUserId);
+      const quotaStatus = await checkGenerationLimit(mockUserId, 'dialogue');
       expect(quotaStatus.allowed).toBe(true);
 
       await setCooldown(mockUserId);
@@ -326,70 +354,8 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     });
   });
 
-  describe('Week Boundary Edge Cases', () => {
-    it('should handle generation at week boundary (Sunday 23:59:59 UTC)', async () => {
-      // Create a date at Sunday 23:59:59 UTC
-      const sunday = new Date('2025-01-05T23:59:59Z'); // Sunday
-      const _mondayStart = getWeekStart(sunday); // Should be Monday 2024-12-30
-
-      mockPrisma.user.findUnique.mockResolvedValue({
-        tier: 'free',
-        role: 'user',
-      });
-      mockPrisma.generationLog.count.mockResolvedValue(3);
-
-      await checkGenerationLimit(mockUserId);
-
-      // Verify it counts from Monday of current week
-      const call = mockPrisma.generationLog.count.mock.calls[0][0];
-      const weekStartArg = call.where.createdAt.gte;
-
-      expect(weekStartArg.getUTCDay()).toBe(1); // Monday
-      expect(weekStartArg.getUTCHours()).toBe(0);
-    });
-
-    it('should handle generation at Monday 00:00:00 UTC (week start)', async () => {
-      const monday = new Date('2025-01-06T00:00:00Z'); // Monday
-      const _mondayStart = getWeekStart(monday);
-
-      // Week start should be same as input
-      expect(_mondayStart.toISOString()).toBe(monday.toISOString());
-    });
-
-    it('should reset quota count on new week', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        tier: 'free',
-        role: 'user',
-      });
-
-      // User had 5 generations last week, 0 this week
-      mockPrisma.generationLog.count.mockResolvedValue(0);
-
-      const status = await checkGenerationLimit(mockUserId);
-
-      expect(status.used).toBe(0);
-      expect(status.remaining).toBe(5);
-      expect(status.allowed).toBe(true);
-    });
-  });
-
   describe('Tier Limits', () => {
-    it('should enforce free tier limit (5/week)', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        tier: 'free',
-        role: 'user',
-      });
-
-      mockPrisma.generationLog.count.mockResolvedValue(5);
-
-      const status = await checkGenerationLimit(mockUserId);
-
-      expect(status.allowed).toBe(false);
-      expect(status.limit).toBe(5);
-      expect(status.remaining).toBe(0);
-    });
-
-    it('should enforce pro tier limit (30/week)', async () => {
+    it('should enforce pro tier limit (30/month)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         tier: 'pro',
         role: 'user',
@@ -397,24 +363,11 @@ describe('Quota System Race Conditions - Integration Tests', () => {
 
       mockPrisma.generationLog.count.mockResolvedValue(30);
 
-      const status = await checkGenerationLimit(mockUserId);
+      const status = await checkGenerationLimit(mockUserId, 'dialogue');
 
       expect(status.allowed).toBe(false);
       expect(status.limit).toBe(30);
       expect(status.remaining).toBe(0);
-    });
-
-    it('should default to free tier for unknown tiers', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        tier: 'unknown-tier',
-        role: 'user',
-      });
-
-      mockPrisma.generationLog.count.mockResolvedValue(0);
-
-      const status = await checkGenerationLimit(mockUserId);
-
-      expect(status.limit).toBe(5); // Defaults to free
     });
   });
 
@@ -422,7 +375,7 @@ describe('Quota System Race Conditions - Integration Tests', () => {
     it('should throw error for non-existent user', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await expect(checkGenerationLimit(mockUserId)).rejects.toThrow('User not found');
+      await expect(checkGenerationLimit(mockUserId, 'dialogue')).rejects.toThrow('User not found');
     });
 
     it('should disconnect Redis even on error', async () => {

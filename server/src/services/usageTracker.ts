@@ -4,12 +4,19 @@
 
 import { prisma } from '../db/client.js';
 import { createRedisConnection } from '../config/redis.js';
-import { getWeekStart, getNextWeekStart } from '../utils/dateUtils.js';
+import { getMonthStart, getNextMonthStart } from '../utils/dateUtils.js';
 
-const TIER_LIMITS: Record<string, number> = {
-  free: 5,
-  pro: 30,
+// Free tier: Lifetime limits per content type
+const FREE_TIER_LIFETIME_LIMITS: Record<string, number> = {
+  dialogue: 2, // 2 dialogues ever
+  course: 1, // 1 audio course ever
+  narrow_listening: 0, // Not available in free tier for MVP
+  chunk_pack: 0, // Not available in free tier for MVP
+  pi_session: 0, // Not available in free tier for MVP
 };
+
+// Paid tier: Monthly quota (all content types combined)
+const PAID_TIER_MONTHLY_LIMIT = 30;
 
 const COOLDOWN_SECONDS = 30;
 
@@ -26,12 +33,19 @@ export type ContentType = 'dialogue' | 'course' | 'narrow_listening' | 'chunk_pa
 
 /**
  * Check if user can generate content (quota check only)
- * Counts all generation logs for the current week (Monday-Sunday UTC)
- * Uses tier-based limits: free (5/week), pro (30/week), admin (unlimited)
+ *
+ * Free tier: Lifetime limits per content type (2 dialogues, 1 course, others disabled)
+ * Paid tier: 30 generations per month (all content types combined, resets 1st of month)
+ * Admin: Unlimited
+ *
+ * @param userId - User ID to check
+ * @param contentType - Type of content being generated
+ * @returns QuotaStatus with allowed flag, usage counts, and reset date
  */
-export async function checkGenerationLimit(userId: string): Promise<QuotaStatus> {
-  const weekStart = getWeekStart();
-
+export async function checkGenerationLimit(
+  userId: string,
+  contentType: ContentType
+): Promise<QuotaStatus> {
   // Get user tier and role
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -49,29 +63,63 @@ export async function checkGenerationLimit(userId: string): Promise<QuotaStatus>
       used: 0,
       limit: 0,
       remaining: 0,
-      resetsAt: getNextWeekStart(),
+      resetsAt: getNextMonthStart(),
       unlimited: true,
     };
   }
 
-  // Get tier limit (default to free tier)
-  const limit = TIER_LIMITS[user.tier] || TIER_LIMITS.free;
+  // Free tier: Lifetime limits per content type
+  if (user.tier === 'free') {
+    const contentTypeLimit = FREE_TIER_LIFETIME_LIMITS[contentType] || 0;
 
-  // Count generations this week
+    // Content type not available for free tier
+    if (contentTypeLimit === 0) {
+      return {
+        allowed: false,
+        used: 0,
+        limit: 0,
+        remaining: 0,
+        resetsAt: new Date('9999-12-31'), // Never resets (upgrade required)
+      };
+    }
+
+    // Count all-time generations for this content type
+    const count = await prisma.generationLog.count({
+      where: {
+        userId,
+        contentType,
+      },
+    });
+
+    const remaining = contentTypeLimit - count;
+
+    return {
+      allowed: remaining > 0,
+      used: count,
+      limit: contentTypeLimit,
+      remaining: Math.max(0, remaining),
+      resetsAt: new Date('9999-12-31'), // Lifetime limit, never resets
+    };
+  }
+
+  // Paid tier (pro): Monthly quota for all content types combined
+  const monthStart = getMonthStart();
+
+  // Count generations this month (all content types)
   const count = await prisma.generationLog.count({
     where: {
       userId,
-      createdAt: { gte: weekStart },
+      createdAt: { gte: monthStart },
     },
   });
 
-  const remaining = limit - count;
-  const resetsAt = getNextWeekStart();
+  const remaining = PAID_TIER_MONTHLY_LIMIT - count;
+  const resetsAt = getNextMonthStart();
 
   return {
     allowed: remaining > 0,
     used: count,
-    limit,
+    limit: PAID_TIER_MONTHLY_LIMIT,
     remaining: Math.max(0, remaining),
     resetsAt,
   };

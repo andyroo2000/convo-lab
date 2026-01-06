@@ -35,7 +35,7 @@
   },
   "rateLimit": {
     "cooldown": "Please wait {{seconds}} seconds before generating more content.",
-    "quotaExceeded": "Weekly quota exceeded. You've used {{used}} of {{limit}} content generations this week."
+    "quotaExceeded": "Quota exceeded. You've used {{used}} of {{limit}} content generations."
   },
   "emailVerificationRequired": "Please verify your email address before generating content. Check your inbox for the verification email.",
   "validation": {

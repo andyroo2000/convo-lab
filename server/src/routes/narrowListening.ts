@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
+import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
@@ -120,7 +120,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 router.post(
   '/generate',
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('narrow_listening'),
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
@@ -283,7 +283,7 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
 router.post(
   '/:id/generate-speed',
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('narrow_listening'),
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {

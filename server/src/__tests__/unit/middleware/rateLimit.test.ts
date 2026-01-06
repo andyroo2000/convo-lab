@@ -43,7 +43,7 @@ describe('rateLimitGeneration middleware', () => {
     it('should throw 401 when userId is missing', async () => {
       mockReq.userId = undefined;
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
       const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
@@ -54,7 +54,7 @@ describe('rateLimitGeneration middleware', () => {
     it('should throw 404 when user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-123' },
@@ -71,7 +71,7 @@ describe('rateLimitGeneration middleware', () => {
     it('should allow admin users to bypass all rate limits', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ role: 'admin' });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-123' },
@@ -94,7 +94,7 @@ describe('rateLimitGeneration middleware', () => {
         remainingSeconds: 25,
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockCheckCooldown).toHaveBeenCalledWith('user-123');
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
@@ -116,7 +116,7 @@ describe('rateLimitGeneration middleware', () => {
         remainingSeconds: 30,
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
       const retryAfter = error.metadata?.cooldown.retryAfter;
@@ -132,14 +132,14 @@ describe('rateLimitGeneration middleware', () => {
         remainingSeconds: 15,
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockCheckCooldown).toHaveBeenCalled();
       expect(mockCheckGenerationLimit).not.toHaveBeenCalled();
     });
   });
 
-  describe('Weekly quota enforcement', () => {
+  describe('Quota enforcement', () => {
     beforeEach(() => {
       mockPrisma.user.findUnique.mockResolvedValue({ role: 'user' });
       mockCheckCooldown.mockResolvedValue({
@@ -148,7 +148,7 @@ describe('rateLimitGeneration middleware', () => {
       });
     });
 
-    it('should block request when weekly quota exceeded', async () => {
+    it('should block request when quota exceeded', async () => {
       mockCheckGenerationLimit.mockResolvedValue({
         allowed: false,
         used: 20,
@@ -157,14 +157,13 @@ describe('rateLimitGeneration middleware', () => {
         resetsAt: new Date('2025-12-16T00:00:00Z'),
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
-      expect(mockCheckGenerationLimit).toHaveBeenCalledWith('user-123');
+      expect(mockCheckGenerationLimit).toHaveBeenCalledWith('user-123', 'dialogue');
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
       const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
-      expect(error.message).toBe(
-        "Weekly quota exceeded. You've used 20 of 20 content generations this week."
-      );
+      expect(error.message).toMatch(/quota exceeded/i);
+      expect(error.message).toContain("20 of 20");
       expect(error.statusCode).toBe(429);
       expect(error.metadata).toEqual({
         quota: {
@@ -185,9 +184,9 @@ describe('rateLimitGeneration middleware', () => {
         resetsAt: new Date('2025-12-16T00:00:00Z'),
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
-      expect(mockCheckGenerationLimit).toHaveBeenCalledWith('user-123');
+      expect(mockCheckGenerationLimit).toHaveBeenCalledWith('user-123', 'dialogue');
       expect(mockSetCooldown).toHaveBeenCalledWith('user-123');
       expect(mockNext).toHaveBeenCalledWith();
     });
@@ -210,14 +209,14 @@ describe('rateLimitGeneration middleware', () => {
     });
 
     it('should set cooldown after allowing request', async () => {
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockSetCooldown).toHaveBeenCalledWith('user-123');
       expect(mockNext).toHaveBeenCalledWith();
     });
 
     it('should call next() without arguments when all checks pass', async () => {
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith();
       expect(mockNext).toHaveBeenCalledTimes(1);
@@ -251,7 +250,7 @@ describe('rateLimitGeneration middleware', () => {
         callOrder.push('setCooldown');
       });
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(callOrder).toEqual(['findUser', 'checkCooldown', 'checkQuota', 'setCooldown']);
     });
@@ -262,7 +261,7 @@ describe('rateLimitGeneration middleware', () => {
       const dbError = new Error('Database connection failed');
       mockPrisma.user.findUnique.mockRejectedValue(dbError);
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(dbError);
     });
@@ -272,7 +271,7 @@ describe('rateLimitGeneration middleware', () => {
       const redisError = new Error('Redis connection failed');
       mockCheckCooldown.mockRejectedValue(redisError);
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(redisError);
     });
@@ -283,7 +282,7 @@ describe('rateLimitGeneration middleware', () => {
       const dbError = new Error('Database query failed');
       mockCheckGenerationLimit.mockRejectedValue(dbError);
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(dbError);
     });
@@ -301,7 +300,7 @@ describe('rateLimitGeneration middleware', () => {
       const redisError = new Error('Redis SETEX failed');
       mockSetCooldown.mockRejectedValue(redisError);
 
-      await rateLimitGeneration(mockReq as AuthRequest, mockRes as Response, mockNext);
+      await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(redisError);
     });

@@ -17,7 +17,7 @@ router.use(requireAuth);
 router.post(
   '/generate',
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('dialogue'),
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {

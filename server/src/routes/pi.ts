@@ -25,7 +25,7 @@ router.post(
   '/generate-session',
   requireAuth,
   requireEmailVerified,
-  rateLimitGeneration,
+  rateLimitGeneration('pi_session'),
   blockDemoUser,
   async (req: AuthRequest, res) => {
     try {
