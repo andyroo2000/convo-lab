@@ -8,8 +8,8 @@
       "period": "forever",
       "description": "Perfect for trying out ConvoLab",
       "features": {
-        "generations": "5 generations per week",
-        "contentTypes": "All content types",
+        "generations": "2 dialogues + 1 audio course (lifetime)",
+        "contentTypes": "Sample content included",
         "tts": "High-quality TTS audio",
         "support": "Standard support"
       }
@@ -29,11 +29,11 @@
     },
     "pro": {
       "name": "Pro",
-      "price": "$7",
+      "price": "$10",
       "period": "per month",
       "description": "For serious language learners",
       "features": {
-        "generations": "30 generations per week",
+        "generations": "30 generations per month",
         "contentTypes": "All content types",
         "tts": "High-quality TTS audio",
         "support": "Priority support",

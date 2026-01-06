@@ -57,7 +57,7 @@
       "helper": "Your primary target language for learning"
     },
     "native": {
-      "label": "Native Language",
+      "label": "Primary Language",
       "helper": "Your first language, used for translations"
     },
     "proficiency": {
@@ -133,15 +133,15 @@
       "pro": "Pro",
       "plan": "Plan",
       "freePrice": "Free forever",
-      "proPrice": "$7/month",
+      "proPrice": "$10/month",
       "limit": "Weekly generation limit",
       "generations": "generations per week",
       "cancelsOn": "Cancels on",
       "renewsOn": "Renews on"
     },
     "actions": {
-      "upgrade": "Upgrade to Pro ($7/month)",
-      "upgradeHelper": "Get 30 generations per week and priority support",
+      "upgrade": "Upgrade to Pro ($10/month)",
+      "upgradeHelper": "Get 30 generations per month and access to all features",
       "manage": "Manage Subscription",
       "manageHelper": "Update payment method, view invoices, or cancel subscription"
     },

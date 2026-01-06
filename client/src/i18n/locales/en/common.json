@@ -46,21 +46,21 @@
     "limitReached": "You've reached your weekly generation limit. Upgrade to Pro to create more content and unlock premium features!",
     "limitReachedPro": "You've reached your weekly generation limit. Your quota will reset at the start of next week (Monday 00:00 UTC).",
     "proPlan": {
-      "title": "Pro Plan - $7/month",
-      "feature1": "30 generations per week",
-      "feature1Detail": "(6x more than Free)",
+      "title": "Pro Plan - $10/month",
+      "feature1": "30 generations per month",
+      "feature1Detail": "(unlimited vs 3 items for Free)",
       "feature2": "All content types included",
       "feature3": "High-quality Google Cloud TTS",
       "feature4": "Priority support"
     },
     "proInfo": {
       "plan": "Pro Plan:",
-      "planDetail": "30 generations per week",
+      "planDetail": "30 generations per month",
       "quota": "Quota resets:",
-      "quotaDetail": "Every Monday at midnight UTC"
+      "quotaDetail": "First of every month at midnight UTC"
     },
     "buttons": {
-      "upgrade": "Upgrade to Pro - $7/month",
+      "upgrade": "Upgrade to Pro - $10/month",
       "maybeLater": "Maybe Later",
       "viewBilling": "View Billing Settings",
       "close": "Close"
