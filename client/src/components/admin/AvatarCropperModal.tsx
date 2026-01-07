@@ -70,26 +70,16 @@ const AvatarCropperModal = ({
 
     const fetchImage = async () => {
       try {
-        // eslint-disable-next-line no-console
-        console.log('Fetching image from:', imageUrl);
         // Only send credentials for same-origin requests (not for GCS URLs)
         const isGCSUrl = imageUrl.includes('storage.googleapis.com');
-        // eslint-disable-next-line no-console
-        console.log('Is GCS URL:', isGCSUrl);
         const response = await fetch(imageUrl, {
           credentials: isGCSUrl ? 'omit' : 'include',
         });
-        // eslint-disable-next-line no-console
-        console.log('Response status:', response.status);
         if (!response.ok) {
           throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`);
         }
         const blob = await response.blob();
-        // eslint-disable-next-line no-console
-        console.log('Blob created, size:', blob.size);
         const url = URL.createObjectURL(blob);
-        // eslint-disable-next-line no-console
-        console.log('Blob URL created:', url);
         setBlobUrl(url);
       } catch (error) {
         console.error('Failed to load image:', error);

@@ -90,6 +90,7 @@ const PISessionPage = () => {
         });
       }, 300);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIndex]);
 
   if (!session) {
@@ -279,7 +280,6 @@ const PISessionPage = () => {
                   preload="auto"
                   onError={(e) => console.error('Error loading audio A:', e)}
                   // eslint-disable-next-line no-console
-                  onLoadedData={() => console.log('Audio A loaded:', currentItem.audioUrlA)}
                 />
                 <audio
                   ref={audioRefB}
@@ -287,7 +287,6 @@ const PISessionPage = () => {
                   preload="auto"
                   onError={(e) => console.error('Error loading audio B:', e)}
                   // eslint-disable-next-line no-console
-                  onLoadedData={() => console.log('Audio B loaded:', currentItem.audioUrlB)}
                 />
               </div>
             ) : (
@@ -309,7 +308,6 @@ const PISessionPage = () => {
                   preload="auto"
                   onError={(e) => console.error('Error loading audio:', e, currentItem.audioUrl)}
                   // eslint-disable-next-line no-console
-                  onLoadedData={() => console.log('Audio loaded:', currentItem.audioUrl)}
                 />
               </div>
             )}
@@ -326,7 +324,9 @@ const PISessionPage = () => {
                   key={choice.id}
                   onClick={() => handleChoiceSelect(choice.id)}
                   disabled={hasAnswered}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                  className={
+                    /* eslint-disable no-nested-ternary */
+                    `w-full text-left p-4 rounded-lg border-2 transition-all ${
                     showResult && choice.isCorrect
                       ? 'border-green-500 bg-green-50'
                       : showResult && !choice.isCorrect
@@ -334,7 +334,9 @@ const PISessionPage = () => {
                         : isSelected
                           ? 'border-indigo-500 bg-indigo-50'
                           : 'border-gray-200 bg-white hover:border-gray-300'
-                  } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                  } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`
+                    /* eslint-enable no-nested-ternary */
+                  }
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">

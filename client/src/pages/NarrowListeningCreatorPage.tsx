@@ -81,7 +81,6 @@ const NarrowListeningCreatorPage = () => {
 
       const { jobId, packId } = await response.json();
       // eslint-disable-next-line no-console
-      console.log(`Generation started: jobId=${jobId}, packId=${packId}`);
 
       // Poll for progress
       const pollInterval = setInterval(async () => {
@@ -114,7 +113,6 @@ const NarrowListeningCreatorPage = () => {
           if (status.state === 'completed') {
             clearInterval(pollInterval);
             // eslint-disable-next-line no-console
-            console.log('Generation complete!', status.result);
             // Invalidate library cache so new pack shows up
             invalidateLibrary();
             // Navigate to playback page

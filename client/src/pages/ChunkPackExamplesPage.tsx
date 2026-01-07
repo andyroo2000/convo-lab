@@ -92,6 +92,7 @@ const ChunkPackExamplesPage = () => {
 
   useEffect(() => {
     fetchPack();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [packId]);
 
   // Auto-select first example when pack loads
@@ -99,6 +100,7 @@ const ChunkPackExamplesPage = () => {
     if (pack && !selectedExampleId && allExamples.length > 0) {
       setSelectedExampleId(allExamples[0].id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pack]);
 
   // Auto-play when example changes (for sequential playback)
@@ -111,7 +113,6 @@ const ChunkPackExamplesPage = () => {
     // Delay to ensure audio element is loaded and ready
     const timer = setTimeout(() => {
       // eslint-disable-next-line no-console
-      console.log('Auto-playing next example:', currentExample?.sentence);
       play();
       shouldAutoPlay.current = false;
     }, 200);
@@ -125,14 +126,15 @@ const ChunkPackExamplesPage = () => {
 
   const handleAudioEnded = () => {
     // eslint-disable-next-line no-console
-    console.log('Audio ended, current index:', currentExampleIndex, 'repeat mode:', repeatMode);
     if (!pack || currentExampleIndex < 0) return;
 
     // If repeat mode is 'one', replay the current example
     if (repeatMode === 'one') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const audio = audioRef as any;
       if (audio && audio.current) {
         audio.current.currentTime = 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         audio.current.play().catch((err: any) => console.error('Playback failed:', err));
       }
       return;
@@ -141,13 +143,11 @@ const ChunkPackExamplesPage = () => {
     // If there's a next example, play it
     if (currentExampleIndex < allExamples.length - 1) {
       // eslint-disable-next-line no-console
-      console.log('Advancing to next example');
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[currentExampleIndex + 1].id);
     } else if (repeatMode === 'all') {
       // Loop back to first example
       // eslint-disable-next-line no-console
-      console.log('Looping back to first example');
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[0].id);
     }
