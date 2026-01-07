@@ -5,6 +5,7 @@ import { Library, Mic, BookMarked } from 'lucide-react';
 import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
@@ -15,6 +16,7 @@ const Layout = () => {
   const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isFeatureEnabled } = useFeatureFlags();
 
   const handleLogout = async () => {
     await logout();
@@ -93,17 +95,19 @@ const Layout = () => {
                   <Library className="w-4 h-4 mr-2 flex-shrink-0" />
                   {t('common:nav.library')}
                 </Link>
-                <Link
-                  to="/app/review"
-                  className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
-                    isReviewActive
-                      ? 'bg-white text-indigo-600 shadow-md'
-                      : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  <BookMarked className="w-4 h-4 mr-2 flex-shrink-0" />
-                  Review
-                </Link>
+                {isFeatureEnabled('flashcardsEnabled') && (
+                  <Link
+                    to="/app/review"
+                    className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
+                      isReviewActive
+                        ? 'bg-white text-indigo-600 shadow-md'
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <BookMarked className="w-4 h-4 mr-2 flex-shrink-0" />
+                    Review
+                  </Link>
+                )}
                 <Link
                   to="/app/create"
                   className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
@@ -120,7 +124,7 @@ const Layout = () => {
               <div className="flex sm:hidden ml-2 gap-1 flex-1">
                 <Link
                   to="/app/library"
-                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
+                  className={`relative inline-flex items-center justify-center px-3 h-11 text-xs font-bold transition-all rounded-lg flex-1 ${
                     isLibraryActive
                       ? 'bg-white text-strawberry shadow-md'
                       : 'text-white hover:bg-white/20'
@@ -129,20 +133,22 @@ const Layout = () => {
                   <Library className="w-4 h-4 mr-1 flex-shrink-0" />
                   {t('common:nav.library')}
                 </Link>
-                <Link
-                  to="/app/review"
-                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
-                    isReviewActive
-                      ? 'bg-white text-indigo-600 shadow-md'
-                      : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  <BookMarked className="w-4 h-4 mr-1 flex-shrink-0" />
-                  Review
-                </Link>
+                {isFeatureEnabled('flashcardsEnabled') && (
+                  <Link
+                    to="/app/review"
+                    className={`relative inline-flex items-center justify-center px-3 h-11 text-xs font-bold transition-all rounded-lg flex-1 ${
+                      isReviewActive
+                        ? 'bg-white text-indigo-600 shadow-md'
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <BookMarked className="w-4 h-4 mr-1 flex-shrink-0" />
+                    Review
+                  </Link>
+                )}
                 <Link
                   to="/app/create"
-                  className={`relative inline-flex items-center justify-center px-3 h-9 text-xs font-bold transition-all rounded-lg flex-1 ${
+                  className={`relative inline-flex items-center justify-center px-3 h-11 text-xs font-bold transition-all rounded-lg flex-1 ${
                     isCreateActive
                       ? 'bg-white text-coral shadow-md'
                       : 'text-white hover:bg-white/20'

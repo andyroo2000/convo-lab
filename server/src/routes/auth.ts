@@ -8,6 +8,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 import { sendVerificationEmail } from '../services/emailService.js';
+import { copySampleContentToUser } from '../services/sampleContent.js';
 import i18next from '../i18n/index.js';
 
 const router = Router();
@@ -211,6 +212,8 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
+        seenSampleContentGuide: true,
+        seenCustomContentGuide: true,
         emailVerified: true,
         emailVerifiedAt: true,
         isTestUser: true,
@@ -241,6 +244,8 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       pinyinDisplayMode,
       proficiencyLevel,
       onboardingCompleted,
+      seenSampleContentGuide,
+      seenCustomContentGuide,
     } = req.body;
 
     // Validate avatarColor if provided
@@ -309,10 +314,19 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;
     if (proficiencyLevel !== undefined) updateData.proficiencyLevel = proficiencyLevel;
     if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
+    if (seenSampleContentGuide !== undefined)
+      updateData.seenSampleContentGuide = seenSampleContentGuide;
+    if (seenCustomContentGuide !== undefined)
+      updateData.seenCustomContentGuide = seenCustomContentGuide;
 
     if (Object.keys(updateData).length === 0) {
       throw new AppError('No fields to update', 400);
     }
+
+    const previousUser = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { onboardingCompleted: true },
+    });
 
     const user = await prisma.user.update({
       where: { id: req.userId },
@@ -330,12 +344,37 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
         pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
+        seenSampleContentGuide: true,
+        seenCustomContentGuide: true,
         emailVerified: true,
         emailVerifiedAt: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    // Copy sample content when user completes onboarding for the first time
+    if (
+      onboardingCompleted === true &&
+      previousUser &&
+      !previousUser.onboardingCompleted &&
+      user.preferredStudyLanguage &&
+      user.proficiencyLevel
+    ) {
+      try {
+        await copySampleContentToUser(
+          user.id,
+          user.preferredStudyLanguage,
+          user.proficiencyLevel
+        );
+        console.log(
+          `[ONBOARDING] Sample content copied for user ${user.id} (${user.preferredStudyLanguage} ${user.proficiencyLevel})`
+        );
+      } catch (error) {
+        console.error('[ONBOARDING] Failed to copy sample content:', error);
+        // Don't fail the request if sample content copy fails
+      }
+    }
 
     res.json(user);
   } catch (error) {
@@ -586,6 +625,8 @@ router.post('/claim-invite', async (req, res, next) => {
         pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
+        seenSampleContentGuide: true,
+        seenCustomContentGuide: true,
         emailVerified: true,
         tier: true,
         createdAt: true,

@@ -16,6 +16,9 @@ interface AuthContextType {
     preferredNativeLanguage?: string;
     pinyinDisplayMode?: string;
     proficiencyLevel?: string;
+    onboardingCompleted?: boolean;
+    seenSampleContentGuide?: boolean;
+    seenCustomContentGuide?: boolean;
   }) => Promise<void>;
   deleteAccount: () => Promise<void>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -100,6 +103,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     preferredNativeLanguage?: string;
     pinyinDisplayMode?: string;
     proficiencyLevel?: string;
+    onboardingCompleted?: boolean;
+    seenSampleContentGuide?: boolean;
+    seenCustomContentGuide?: boolean;
   }) => {
     const response = await fetch(`${API_URL}/api/auth/me`, {
       method: 'PATCH',

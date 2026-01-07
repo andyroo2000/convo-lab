@@ -419,4 +419,160 @@ describe('useEpisodes', () => {
       expect(result.current.error).toBe('Unknown error');
     });
   });
+
+  describe('Error Metadata (Quota)', () => {
+    it('should initialize with null errorMetadata', () => {
+      const { result } = renderHook(() => useEpisodes());
+
+      expect(result.current.errorMetadata).toBeNull();
+    });
+
+    it('should capture quota metadata from 429 response in generateDialogue', async () => {
+      const quotaError = {
+        error: 'Quota exceeded',
+        quota: {
+          used: 5,
+          limit: 5,
+          resetsAt: '2026-02-01T00:00:00.000Z',
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve(quotaError),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        try {
+          await result.current.generateDialogue('ep-123', []);
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      expect(result.current.errorMetadata).toEqual({
+        message: 'Quota exceeded',
+        status: 429,
+        quota: {
+          used: 5,
+          limit: 5,
+          resetsAt: '2026-02-01T00:00:00.000Z',
+        },
+      });
+    });
+
+    it('should set errorMetadata without quota when quota not in response', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: () => Promise.resolve({ error: 'Server error' }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        try {
+          await result.current.generateDialogue('ep-123', []);
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      expect(result.current.errorMetadata).toEqual({
+        message: 'Server error',
+        status: 500,
+      });
+      expect(result.current.errorMetadata?.quota).toBeUndefined();
+    });
+
+    it('should use message field when error field not present', async () => {
+      const errorResponse = {
+        message: 'Custom error message',
+        quota: {
+          used: 3,
+          limit: 5,
+          resetsAt: '2026-02-01T00:00:00.000Z',
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve(errorResponse),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        try {
+          await result.current.generateDialogue('ep-123', []);
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      expect(result.current.errorMetadata?.message).toBe('Custom error message');
+      expect(result.current.errorMetadata?.quota).toEqual(errorResponse.quota);
+    });
+
+    it('should use default error message when neither error nor message present', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () => Promise.resolve({}),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        try {
+          await result.current.generateDialogue('ep-123', []);
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      expect(result.current.errorMetadata?.message).toBe('Failed to generate dialogue');
+    });
+
+    it('should clear previous errorMetadata on successful request', async () => {
+      // First request fails with quota error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        json: () =>
+          Promise.resolve({
+            error: 'Quota exceeded',
+            quota: { used: 5, limit: 5, resetsAt: '2026-02-01T00:00:00.000Z' },
+          }),
+      });
+
+      const { result } = renderHook(() => useEpisodes());
+
+      await act(async () => {
+        try {
+          await result.current.generateDialogue('ep-123', []);
+        } catch {
+          // Expected to throw
+        }
+      });
+
+      expect(result.current.errorMetadata).not.toBeNull();
+
+      // Second request succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ jobId: 'job-123' }),
+      });
+
+      await act(async () => {
+        await result.current.generateDialogue('ep-123', []);
+      });
+
+      expect(result.current.errorMetadata).toBeNull();
+    });
+  });
 });

@@ -71,15 +71,15 @@ const UserMenu = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1 text-sm font-bold text-white hover:bg-white/20 transition-colors rounded-lg"
+        className="flex items-center gap-2 p-1.5 text-sm font-bold text-white hover:bg-white/20 transition-colors rounded-lg min-h-[44px] min-w-[44px] justify-center"
         data-testid="user-menu-button"
       >
         {avatarUrl ? (
-          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
+          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white">
             <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
             <span className="text-sm font-bold text-periwinkle">{userInitial}</span>
           </div>
         )}

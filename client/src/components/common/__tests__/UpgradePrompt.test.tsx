@@ -16,7 +16,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock AuthContext
-let mockUser: any = { id: '1', tier: 'free' };
+let mockUser: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any = { id: '1', tier: 'free' };
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
@@ -47,7 +48,7 @@ describe('UpgradePrompt', () => {
     it('should display quota usage when provided', () => {
       renderWithRouter({ quotaUsed: 5, quotaLimit: 5 });
 
-      expect(screen.getByText(/You've used 5 of 5 generations this week/)).toBeInTheDocument();
+      expect(screen.getByText(/You've used 5 of 5 generations/)).toBeInTheDocument();
     });
 
     it('should not display quota usage when not provided', () => {
@@ -80,18 +81,19 @@ describe('UpgradePrompt', () => {
     it('should show upgrade message for free users', () => {
       renderWithRouter();
 
-      expect(screen.getByText(/You've reached your weekly generation limit/i)).toBeInTheDocument();
+      expect(screen.getByText(/You've reached your free tier lifetime limit/i)).toBeInTheDocument();
       expect(screen.getAllByText(/Upgrade to Pro/i).length).toBeGreaterThan(0);
     });
 
     it('should display Pro plan features', () => {
       renderWithRouter();
 
-      expect(screen.getByText(/Pro Plan - \$7\/month/i)).toBeInTheDocument();
+      expect(screen.getByText(/Pro Plan - \$10\/month/i)).toBeInTheDocument();
       // Features show as translation keys when i18n isn't fully set up in tests
-      expect(screen.getByText(/upgradePrompt.proPlan.features.0/i)).toBeInTheDocument();
-      expect(screen.getByText(/upgradePrompt.proPlan.features.1/i)).toBeInTheDocument();
-      expect(screen.getByText(/upgradePrompt.proPlan.features.2/i)).toBeInTheDocument();
+      expect(screen.getByText(/30 generations per month/i)).toBeInTheDocument();
+      expect(screen.getByText(/All content types included/i)).toBeInTheDocument();
+      expect(screen.getByText(/High-quality Google Cloud TTS/i)).toBeInTheDocument();
+      expect(screen.getByText(/Priority support/i)).toBeInTheDocument();
     });
 
     it('should show upgrade button for free users', () => {
@@ -139,8 +141,7 @@ describe('UpgradePrompt', () => {
     it('should show quota reset message for pro users', () => {
       renderWithRouter();
 
-      // Component shows translation keys
-      expect(screen.getByText(/upgradePrompt.resetInfo/i)).toBeInTheDocument();
+      expect(screen.getByText(/You've reached your monthly generation limit/i)).toBeInTheDocument();
     });
 
     it('should show view billing button for pro users', () => {
@@ -164,7 +165,7 @@ describe('UpgradePrompt', () => {
     it('should not show upgrade to pro features for pro users', () => {
       renderWithRouter();
 
-      expect(screen.queryByText(/Pro Plan - \$7\/month/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Pro Plan - \$10\/month/i)).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Upgrade to Pro/i })).not.toBeInTheDocument();
     });
   });
@@ -247,13 +248,13 @@ describe('UpgradePrompt', () => {
     it('should handle zero quota values', () => {
       renderWithRouter({ quotaUsed: 0, quotaLimit: 0 });
 
-      expect(screen.getByText(/You've used 0 of 0 generations this week/)).toBeInTheDocument();
+      expect(screen.getByText(/You've used 0 of 0 generations/)).toBeInTheDocument();
     });
 
     it('should handle large quota values', () => {
       renderWithRouter({ quotaUsed: 999, quotaLimit: 1000 });
 
-      expect(screen.getByText(/You've used 999 of 1000 generations this week/)).toBeInTheDocument();
+      expect(screen.getByText(/You've used 999 of 1000 generations/)).toBeInTheDocument();
     });
 
     it('should not call onClose when not provided', () => {

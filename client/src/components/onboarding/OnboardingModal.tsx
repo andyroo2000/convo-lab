@@ -60,7 +60,7 @@ const OnboardingModal = () => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+      <div className="bg-cream rounded-3xl shadow-2xl max-w-2xl w-full p-8 sm:p-10 max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-navy mb-2">{t('onboarding:welcome')}</h1>
@@ -70,13 +70,13 @@ const OnboardingModal = () => {
         {/* Progress Indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
           <div
-            className={`h-2 w-24 rounded-full ${step === 1 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            className={`h-2 w-24 rounded-full transition-all ${step >= 1 ? 'bg-coral' : 'bg-gray-300'}`}
           />
           <div
-            className={`h-2 w-24 rounded-full ${step === 2 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            className={`h-2 w-24 rounded-full transition-all ${step >= 2 ? 'bg-coral' : 'bg-gray-300'}`}
           />
           <div
-            className={`h-2 w-24 rounded-full ${step === 3 ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            className={`h-2 w-24 rounded-full transition-all ${step >= 3 ? 'bg-coral' : 'bg-gray-300'}`}
           />
         </div>
 
@@ -90,14 +90,14 @@ const OnboardingModal = () => {
               <p className="text-gray-600">{t('onboarding:step1.description')}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => setNativeLanguage('en')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'en'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
@@ -108,75 +108,75 @@ const OnboardingModal = () => {
               <button
                 type="button"
                 onClick={() => setNativeLanguage('ja')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'ja'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-navy mb-1">Japanese</h3>
-                  <p className="text-sm text-gray-600">日本語</p>
+                  <p className="text-lg text-gray-600">日本語</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNativeLanguage('zh')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'zh'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-navy mb-1">Chinese</h3>
-                  <p className="text-sm text-gray-600">中文</p>
+                  <p className="text-lg text-gray-600">中文</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNativeLanguage('es')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'es'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
-                  <p className="text-sm text-gray-600">Español</p>
+                  <p className="text-lg text-gray-600">Español</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNativeLanguage('fr')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'fr'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
-                  <p className="text-sm text-gray-600">Français</p>
+                  <p className="text-lg text-gray-600">Français</p>
                 </div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setNativeLanguage('ar')}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-6 rounded-xl border-2 transition-all bg-white ${
                   nativeLanguage === 'ar'
-                    ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                    : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                    ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                    : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                 }`}
               >
                 <div className="text-center">
                   <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
-                  <p className="text-sm text-gray-600">العربية</p>
+                  <p className="text-lg text-gray-600">العربية</p>
                 </div>
               </button>
             </div>
@@ -199,15 +199,15 @@ const OnboardingModal = () => {
               <p className="text-gray-600">{t('onboarding:step2.description')}</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {nativeLanguage !== 'en' && (
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('en')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'en'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
@@ -220,10 +220,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('ja')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'ja'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
@@ -237,15 +237,15 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('zh')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'zh'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-navy mb-1">Chinese</h3>
-                    <p className="text-sm text-gray-600">中文</p>
+                    <p className="text-lg text-gray-600">中文</p>
                   </div>
                 </button>
               )}
@@ -254,15 +254,15 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('es')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'es'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-navy mb-1">Spanish</h3>
-                    <p className="text-sm text-gray-600">Español</p>
+                    <p className="text-lg text-gray-600">Español</p>
                   </div>
                 </button>
               )}
@@ -271,15 +271,15 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('fr')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'fr'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-navy mb-1">French</h3>
-                    <p className="text-sm text-gray-600">Français</p>
+                    <p className="text-lg text-gray-600">Français</p>
                   </div>
                 </button>
               )}
@@ -288,15 +288,15 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setTargetLanguage('ar')}
-                  className={`p-6 rounded-xl border-2 transition-all ${
+                  className={`p-6 rounded-xl border-2 transition-all bg-white ${
                     targetLanguage === 'ar'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <div className="text-center">
                     <h3 className="text-xl font-semibold text-navy mb-1">Arabic</h3>
-                    <p className="text-sm text-gray-600">العربية</p>
+                    <p className="text-lg text-gray-600">العربية</p>
                   </div>
                 </button>
               )}
@@ -328,10 +328,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setJlptLevel('N5')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     jlptLevel === 'N5'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">N5 (Beginner)</h3>
@@ -343,10 +343,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setJlptLevel('N4')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     jlptLevel === 'N4'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">N4 (Upper Beginner)</h3>
@@ -358,10 +358,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setJlptLevel('N3')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     jlptLevel === 'N3'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">N3 (Intermediate)</h3>
@@ -373,10 +373,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setJlptLevel('N2')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     jlptLevel === 'N2'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">N2 (Upper Intermediate)</h3>
@@ -388,10 +388,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setJlptLevel('N1')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     jlptLevel === 'N1'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">N1 (Advanced)</h3>
@@ -407,10 +407,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK1')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK1'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 1 (Beginner)</h3>
@@ -422,10 +422,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK2')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK2'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 2 (Upper Beginner)</h3>
@@ -435,10 +435,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK3')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK3'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 3 (Intermediate)</h3>
@@ -448,10 +448,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK4')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK4'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 4 (Upper Intermediate)</h3>
@@ -463,10 +463,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK5')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK5'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 5 (Advanced)</h3>
@@ -478,10 +478,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setHskLevel('HSK6')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     hskLevel === 'HSK6'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">HSK 6 (Mastery)</h3>
@@ -500,10 +500,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('A1')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'A1'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">A1 (Beginner)</h3>
@@ -515,10 +515,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('A2')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'A2'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">A2 (Elementary)</h3>
@@ -528,10 +528,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('B1')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'B1'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">B1 (Intermediate)</h3>
@@ -543,10 +543,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('B2')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'B2'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">B2 (Upper Intermediate)</h3>
@@ -556,10 +556,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('C1')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'C1'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">C1 (Advanced)</h3>
@@ -569,10 +569,10 @@ const OnboardingModal = () => {
                 <button
                   type="button"
                   onClick={() => setCefrLevel('C2')}
-                  className={`w-full p-5 rounded-xl border-2 transition-all text-left ${
+                  className={`w-full p-5 rounded-xl border-2 transition-all text-left bg-white ${
                     cefrLevel === 'C2'
-                      ? 'border-indigo-600 bg-indigo-50 shadow-lg'
-                      : 'border-gray-200 hover:border-indigo-300 hover:shadow-md'
+                      ? 'border-coral shadow-lg ring-2 ring-coral ring-opacity-50'
+                      : 'border-gray-200 hover:border-coral-light hover:shadow-md'
                   }`}
                 >
                   <h3 className="font-semibold text-navy mb-1">C2 (Mastery)</h3>

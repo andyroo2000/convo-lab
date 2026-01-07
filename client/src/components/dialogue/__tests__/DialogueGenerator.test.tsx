@@ -14,6 +14,8 @@ const mockGetEpisode = vi.fn();
 const mockPollJobStatus = vi.fn();
 const mockNavigate = vi.fn();
 const mockInvalidateLibrary = vi.fn();
+let mockErrorMetadata: // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  any = null;
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -32,6 +34,7 @@ vi.mock('../../../hooks/useEpisodes', () => ({
     pollJobStatus: mockPollJobStatus,
     loading: false,
     error: null,
+    errorMetadata: mockErrorMetadata,
   }),
 }));
 
@@ -64,6 +67,7 @@ vi.mock('../../../../../shared/src/constants-new', () => ({
   SPEAKER_COLORS: ['#6366f1', '#ec4899', '#10b981', '#f59e0b'],
 }));
 
+/* eslint-disable no-nested-ternary */
 vi.mock('../../../../../shared/src/nameConstants', () => ({
   getRandomName: (language: string, gender: string) =>
     language === 'ja'
@@ -78,6 +82,7 @@ vi.mock('../../../../../shared/src/nameConstants', () => ({
           ? 'Carlos'
           : 'María',
 }));
+/* eslint-enable no-nested-ternary */
 
 vi.mock('../../../../../shared/src/voiceSelection', () => ({
   getDialogueSpeakerVoices: (language: string, count: number) =>
@@ -745,6 +750,152 @@ describe('DialogueGenerator', () => {
       const svg = document.querySelector('svg');
       expect(svg).toBeInTheDocument();
     });
+  });
+});
+
+describe('DialogueGenerator - Upgrade Prompt', () => {
+  const renderDialogueGenerator = () =>
+    render(
+      <MemoryRouter>
+        <DialogueGenerator />
+      </MemoryRouter>
+    );
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    mockErrorMetadata = null;
+
+    mockCreateEpisode.mockResolvedValue({ id: 'episode-123' });
+    mockGenerateDialogue.mockResolvedValue({ jobId: 'job-123' });
+    mockGetEpisode.mockResolvedValue({
+      id: 'episode-123',
+      dialogue: { id: 'dialogue-123' },
+    });
+    mockPollJobStatus.mockResolvedValue('pending');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('should not show upgrade prompt initially', () => {
+    renderDialogueGenerator();
+    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+  });
+
+  it('should show upgrade prompt when generateDialogue returns 429 with quota metadata', async () => {
+    // Set up quota error
+    mockErrorMetadata = {
+      status: 429,
+      message: 'Quota exceeded',
+      quota: {
+        used: 5,
+        limit: 5,
+        resetsAt: '2026-02-01T00:00:00.000Z',
+      },
+    };
+
+    // Make generateDialogue throw to trigger error handling
+    mockGenerateDialogue.mockRejectedValueOnce(new Error('Quota exceeded'));
+
+    renderDialogueGenerator();
+
+    const input = screen.getByTestId('dialogue-input-source-text');
+    fireEvent.change(input, { target: { value: 'My story' } });
+
+    const button = screen.getByTestId('dialogue-button-generate');
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve(); // Allow error to propagate
+    });
+
+    // Modal should appear
+    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
+    expect(screen.getByText(/You've used 5 of 5 generations/)).toBeInTheDocument();
+  });
+
+  it('should not show upgrade prompt for non-429 errors', async () => {
+    mockErrorMetadata = {
+      status: 500,
+      message: 'Server error',
+    };
+
+    mockGenerateDialogue.mockRejectedValueOnce(new Error('Server error'));
+
+    renderDialogueGenerator();
+
+    const input = screen.getByTestId('dialogue-input-source-text');
+    fireEvent.change(input, { target: { value: 'My story' } });
+
+    const button = screen.getByTestId('dialogue-button-generate');
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+  });
+
+  it('should not show upgrade prompt when errorMetadata has no quota field', async () => {
+    mockErrorMetadata = {
+      status: 429,
+      message: 'Quota exceeded',
+      // No quota field
+    };
+
+    mockGenerateDialogue.mockRejectedValueOnce(new Error('Quota exceeded'));
+
+    renderDialogueGenerator();
+
+    const input = screen.getByTestId('dialogue-input-source-text');
+    fireEvent.change(input, { target: { value: 'My story' } });
+
+    const button = screen.getByTestId('dialogue-button-generate');
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
+  });
+
+  it('should close upgrade prompt when close button clicked', async () => {
+    mockErrorMetadata = {
+      status: 429,
+      message: 'Quota exceeded',
+      quota: {
+        used: 5,
+        limit: 5,
+        resetsAt: '2026-02-01T00:00:00.000Z',
+      },
+    };
+
+    mockGenerateDialogue.mockRejectedValueOnce(new Error('Quota exceeded'));
+
+    renderDialogueGenerator();
+
+    const input = screen.getByTestId('dialogue-input-source-text');
+    fireEvent.change(input, { target: { value: 'My story' } });
+
+    const button = screen.getByTestId('dialogue-button-generate');
+
+    await act(async () => {
+      fireEvent.click(button);
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
+
+    // Click close button
+    const closeButton = screen.getByLabelText('Close');
+    fireEvent.click(closeButton);
+
+    // Modal should be hidden
+    expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
   });
 });
 

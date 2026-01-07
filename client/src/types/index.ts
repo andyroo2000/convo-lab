@@ -37,6 +37,7 @@ export interface Episode {
   targetLanguage: LanguageCode;
   nativeLanguage: LanguageCode;
   status: 'draft' | 'generating' | 'ready' | 'error';
+  isSampleContent?: boolean;
   createdAt: Date;
   updatedAt: Date;
   dialogue?: Dialogue;
@@ -191,6 +192,7 @@ export interface Course {
   title: string;
   description?: string;
   status: 'draft' | 'generating' | 'ready' | 'error';
+  isSampleContent?: boolean;
   nativeLanguage: LanguageCode;
   targetLanguage: LanguageCode;
   maxLessonDurationMinutes: number;

@@ -996,11 +996,29 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Get voices from TTS_VOICES constant (centralized voice management)
     // const languageVoices = getVoicesByGender(targetLanguage as LanguageCode);
 
-    // Use provided voice IDs if available, otherwise use defaults
-    // Speaker 1 (friend) defaults to first female voice, Speaker 2 (listener) defaults to first male voice
+    // Use provided voice IDs if available, otherwise use language-appropriate defaults
+    // Speaker 1 (friend) defaults to female voice, Speaker 2 (listener) defaults to male voice
+    const getDefaultVoices = (lang: string): [string, string] => {
+      switch (lang.toLowerCase()) {
+        case 'ja':
+          return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
+        case 'zh':
+          return ['zh-CN-Wavenet-A', 'zh-CN-Wavenet-B'];
+        case 'es':
+          return ['es-ES-Wavenet-C', 'es-ES-Wavenet-B'];
+        case 'fr':
+          return ['fr-FR-Wavenet-A', 'fr-FR-Wavenet-B'];
+        case 'ar':
+          return ['ar-XA-Wavenet-A', 'ar-XA-Wavenet-B'];
+        default:
+          return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
+      }
+    };
+
+    const [defaultFemale, defaultMale] = getDefaultVoices(targetLanguage);
     const availableVoices = [
-      speaker1VoiceId || 'ja-JP-NanamiNeural', // Speaker 1 (friend) - temp default
-      speaker2VoiceId || 'ja-JP-KeitaNeural', // Speaker 2 (listener) - temp default
+      speaker1VoiceId || defaultFemale, // Speaker 1 (friend) - female default
+      speaker2VoiceId || defaultMale, // Speaker 2 (listener) - male default
     ];
 
     // Track unique speakers and assign voices
