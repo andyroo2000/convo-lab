@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **[chore]** Code cleanup and environment documentation - removed development console.log statements from client components (AvatarCropperModal, ChunkPackExamplesPage, NarrowListeningCreatorPage, PISessionPage, PlaybackPage); added comprehensive .env.example for client with Stripe and API configuration; expanded server .env.example with all required variables (OAuth, email, AWS, Stripe, admin emails, worker config); updated README with detailed PWA usage instructions including iOS and Android installation steps, offline support details, and service worker caching configuration
+
 ### Added
 
 - **[feat]** Progressive Web App (PWA) implementation with offline support - configured VitePWA plugin with service worker and web app manifest; generated PWA icons (192x192, 512x512, apple-touch-icon); created PWAInstallPrompt component with platform-specific install flows for iOS Safari and Android/Chrome; implemented Workbox runtime caching strategies for fonts, API calls (5-minute cache), and audio files (30-day cache); added PWA meta tags for standalone app mode with theme color and viewport-fit configuration
