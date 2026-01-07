@@ -36,6 +36,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
           sourceText: true,
           targetLanguage: true,
           status: true,
+          isSampleContent: true,
           createdAt: true,
           updatedAt: true,
           dialogue: {

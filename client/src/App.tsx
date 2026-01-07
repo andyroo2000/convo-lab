@@ -5,6 +5,8 @@ import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedByFeatureFlag from './components/ProtectedByFeatureFlag';
+import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import './i18n';
 
 // Lazy load all page components for code splitting
@@ -53,6 +55,7 @@ const App = () => (
       <AuthProvider>
         <LocaleProvider>
           <AudioPlayerProvider>
+            <PWAInstallPrompt />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 {/* Public Routes */}
@@ -91,9 +94,30 @@ const App = () => (
                   <Route path="pi/session" element={<PISessionPage />} />
                   <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
                   <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-                  <Route path="review" element={<ReviewPage />} />
-                  <Route path="review/:deckId" element={<ReviewPage />} />
-                  <Route path="decks/:deckId/edit" element={<DeckEditorPage />} />
+                  <Route
+                    path="review"
+                    element={
+                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
+                        <ReviewPage />
+                      </ProtectedByFeatureFlag>
+                    }
+                  />
+                  <Route
+                    path="review/:deckId"
+                    element={
+                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
+                        <ReviewPage />
+                      </ProtectedByFeatureFlag>
+                    }
+                  />
+                  <Route
+                    path="decks/:deckId/edit"
+                    element={
+                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
+                        <DeckEditorPage />
+                      </ProtectedByFeatureFlag>
+                    }
+                  />
                   <Route
                     path="chunk-packs/:packId/exercises"
                     element={<ChunkPackExercisesPage />}

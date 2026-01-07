@@ -665,6 +665,7 @@ router.get('/feature-flags', async (req: AuthRequest, res, next) => {
           narrowListeningEnabled: true,
           processingInstructionEnabled: true,
           lexicalChunksEnabled: true,
+          flashcardsEnabled: true,
         },
       });
     }
@@ -684,6 +685,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       narrowListeningEnabled,
       processingInstructionEnabled,
       lexicalChunksEnabled,
+      flashcardsEnabled,
     } = req.body;
 
     // Validate boolean values
@@ -698,6 +700,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(narrowListeningEnabled, 'narrowListeningEnabled');
     validateBoolean(processingInstructionEnabled, 'processingInstructionEnabled');
     validateBoolean(lexicalChunksEnabled, 'lexicalChunksEnabled');
+    validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -711,6 +714,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           narrowListeningEnabled: narrowListeningEnabled ?? true,
           processingInstructionEnabled: processingInstructionEnabled ?? true,
           lexicalChunksEnabled: lexicalChunksEnabled ?? true,
+          flashcardsEnabled: flashcardsEnabled ?? true,
         },
       });
     } else {
@@ -723,6 +727,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(narrowListeningEnabled !== undefined && { narrowListeningEnabled }),
           ...(processingInstructionEnabled !== undefined && { processingInstructionEnabled }),
           ...(lexicalChunksEnabled !== undefined && { lexicalChunksEnabled }),
+          ...(flashcardsEnabled !== undefined && { flashcardsEnabled }),
         },
       });
     }

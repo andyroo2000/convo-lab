@@ -39,6 +39,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
           targetLanguage: true,
           nativeLanguage: true,
           status: true,
+          isSampleContent: true,
           jlptLevel: true,
           hskLevel: true,
           createdAt: true,

@@ -143,7 +143,7 @@ const AudioPlayer = ({
       <button
         type="button"
         onClick={togglePlayPause}
-        className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
+        className="w-11 h-11 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
         aria-label={isPlaying ? t('aria.pause') : t('aria.play')}
         data-testid="audio-button-play-pause"
       >
@@ -198,7 +198,7 @@ const AudioPlayer = ({
         <button
           type="button"
           onClick={toggleRepeatMode}
-          className={`w-10 h-10 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
+          className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
             repeatMode !== 'off'
               ? 'bg-indigo text-white hover:bg-indigo-600'
               : 'bg-gray-200 text-gray-600 hover:bg-gray-300'

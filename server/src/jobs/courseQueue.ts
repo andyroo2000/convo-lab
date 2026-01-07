@@ -216,7 +216,7 @@ async function processCourseGeneration(job: {
           complexityScore: idx,
           sourceEpisodeId: firstEpisode.id,
           sourceSentenceId: null,
-          sourceUnitIndex: item.sourceUnitIndex,
+          // sourceUnitIndex: item.sourceUnitIndex, // TODO: Add migration for this field
         })),
       });
       console.log(`Saved ${vocabularyItems.length} vocabulary items from dialogue exchanges`);

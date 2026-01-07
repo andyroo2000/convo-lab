@@ -24,6 +24,8 @@ model User {
   pinyinDisplayMode        String    @default("toneMarks") // 'toneMarks' or 'toneNumbers'
   proficiencyLevel         String    @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
   onboardingCompleted      Boolean   @default(false)
+  seenSampleContentGuide   Boolean   @default(false) // Pulse point: Has user seen the sample content guide?
+  seenCustomContentGuide   Boolean   @default(false) // Pulse point: Has user seen the custom content creation guide?
   emailVerified            Boolean   @default(false)
   emailVerifiedAt          DateTime?
 
@@ -137,6 +139,7 @@ model Episode {
   targetLanguage String   // Language code: 'ja', 'zh', etc.
   nativeLanguage String   // User's native language
   status         String   @default("draft") // draft, generating, ready, error
+  isSampleContent Boolean @default(false) // Pre-generated sample content
 
   // Legacy single-speed audio (for backward compatibility)
   audioUrl       String?
@@ -252,6 +255,7 @@ model Course {
   title                    String
   description              String?  @db.Text
   status                   String   @default("draft") // draft, generating, ready, error
+  isSampleContent          Boolean  @default(false) // Pre-generated sample content
   nativeLanguage           String   // L1 (e.g., 'en')
   targetLanguage           String   // L2 (e.g., 'ja', 'zh')
   maxLessonDurationMinutes Int      @default(30)
@@ -523,6 +527,7 @@ model FeatureFlag {
   narrowListeningEnabled       Boolean  @default(true)
   processingInstructionEnabled Boolean  @default(true)
   lexicalChunksEnabled         Boolean  @default(true)
+  flashcardsEnabled            Boolean  @default(true)
   updatedAt                    DateTime @updatedAt
 
   @@map("feature_flags")

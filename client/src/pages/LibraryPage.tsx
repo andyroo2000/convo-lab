@@ -11,7 +11,9 @@ import {
 } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
+import SampleContentGuide from '../components/pulsePoints/SampleContentGuide';
 import EmptyStateCard from '../components/EmptyStateCard';
 import LanguageLevelPill from '../components/common/LanguageLevelPill';
 import LanguageLevelSidebar from '../components/common/LanguageLevelSidebar';
@@ -49,6 +51,29 @@ const LibraryPage = () => {
   } = useLibraryData(viewAsUserId);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
+  const { user, updateUser } = useAuth();
+
+  // Show sample content guide for users who completed onboarding but haven't seen it
+  const [showSampleGuide, setShowSampleGuide] = useState(false);
+
+  useEffect(() => {
+    // Show guide if user completed onboarding, hasn't seen the guide, and isn't viewing as another user
+    if (user?.onboardingCompleted && !user?.seenSampleContentGuide && !viewAsUserId && !isDemo) {
+      setShowSampleGuide(true);
+    }
+  }, [user, viewAsUserId, isDemo]);
+
+  const handleCloseSampleGuide = async () => {
+    setShowSampleGuide(false);
+    // Mark as seen so it doesn't show again
+    if (user && !user.seenSampleContentGuide) {
+      try {
+        await updateUser({ seenSampleContentGuide: true });
+      } catch (err) {
+        console.err('Failed to update seenSampleContentGuide:', error);
+      }
+    }
+  };
 
   // Fetch impersonated user info if viewing as another user
   const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; email: string } | null>(
@@ -61,10 +86,10 @@ const LibraryPage = () => {
         credentials: 'include',
       })
         .then((res) => res.json())
-        .then((user) => {
+        .then((impUser) => {
           setImpersonatedUser({
-            name: user.displayName || user.name,
-            email: user.email,
+            name: impUser.displayName || impUser.name,
+            email: impUser.email,
           });
         })
         .catch((err) => {
@@ -166,6 +191,7 @@ const LibraryPage = () => {
       setPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete pack:', err);
+      // eslint-disable-next-line no-alert
       alert(t('library:delete.alertError', { type: 'pack' }));
     }
   };
@@ -184,6 +210,7 @@ const LibraryPage = () => {
       setChunkPackToDelete(null);
     } catch (err) {
       console.error('Failed to delete chunk pack:', err);
+      // eslint-disable-next-line no-alert
       alert(t('library:delete.alertError', { type: 'chunk pack' }));
     }
   };
@@ -290,7 +317,7 @@ const LibraryPage = () => {
           {isFeatureEnabled('dialoguesEnabled') && (
             <button type="button"
               onClick={() => handleFilterChange('dialogues')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'dialogues'
                   ? 'bg-periwinkle text-white'
                   : 'bg-periwinkle-light text-periwinkle-dark hover:bg-periwinkle/20'
@@ -304,7 +331,7 @@ const LibraryPage = () => {
           {isFeatureEnabled('audioCourseEnabled') && (
             <button type="button"
               onClick={() => handleFilterChange('courses')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'courses'
                   ? 'bg-coral text-white'
                   : 'bg-coral-light text-coral-dark hover:bg-coral/20'
@@ -318,7 +345,7 @@ const LibraryPage = () => {
           {isFeatureEnabled('narrowListeningEnabled') && (
             <button type="button"
               onClick={() => handleFilterChange('narrowListening')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'narrowListening'
                   ? 'bg-strawberry text-white'
                   : 'bg-strawberry-light text-strawberry-dark hover:bg-strawberry/20'
@@ -332,7 +359,7 @@ const LibraryPage = () => {
           {isFeatureEnabled('lexicalChunksEnabled') && (
             <button type="button"
               onClick={() => handleFilterChange('chunkPacks')}
-              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
+              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'chunkPacks'
                   ? 'bg-yellow text-dark-brown'
                   : 'bg-yellow-light text-dark-brown hover:bg-yellow/20'
@@ -413,7 +440,7 @@ const LibraryPage = () => {
               <div className="text-center py-12 space-y-4">
                 <p className="text-gray-500">{t('library:emptyStates.all.description')}</p>
                 <button type="button"
-                  onClick={() => (window.location.href = '/app/create')}
+                  onClick={() => { window.location.href = '/app/create'; }}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"
                 >
@@ -470,6 +497,12 @@ const LibraryPage = () => {
                             language={episode.targetLanguage}
                             level={proficiencyLevels.join(', ')}
                           />
+                        )}
+                        {episode.isSampleContent && (
+                          <Pill color="blue" className="flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Sample
+                          </Pill>
                         )}
                         {episode.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
@@ -537,6 +570,12 @@ const LibraryPage = () => {
 
                       {/* Right: Badges and actions */}
                       <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
+                        {course.isSampleContent && (
+                          <Pill color="blue" className="flex items-center gap-1">
+                            <Sparkles className="w-3 h-3" />
+                            Sample
+                          </Pill>
+                        )}
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             {t('common:status.generating')}
@@ -773,6 +812,9 @@ const LibraryPage = () => {
         onCancel={handleCancelDelete}
         isLoading={isDeletingChunkPack}
       />
+
+      {/* Sample Content Guide Pulse Point */}
+      {showSampleGuide && <SampleContentGuide onClose={handleCloseSampleGuide} />}
     </div>
   );
 };

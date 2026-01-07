@@ -1,13 +1,41 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
+import { useAuth } from '../contexts/AuthContext';
+import { useIsDemo } from '../hooks/useDemo';
 import QuotaBadge from '../components/QuotaBadge';
+import CustomContentGuide from '../components/pulsePoints/CustomContentGuide';
 
 const CreatePage = () => {
   const { t } = useTranslation(['create']);
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatureFlags();
+  const { user, updateUser } = useAuth();
+  const isDemo = useIsDemo();
+
+  // Show custom content guide for users who haven't seen it
+  const [showCustomGuide, setShowCustomGuide] = useState(false);
+
+  useEffect(() => {
+    // Show guide if user completed onboarding, hasn't seen the custom content guide, and isn't a demo user
+    if (user?.onboardingCompleted && !user?.seenCustomContentGuide && !isDemo) {
+      setShowCustomGuide(true);
+    }
+  }, [user, isDemo]);
+
+  const handleCloseCustomGuide = async () => {
+    setShowCustomGuide(false);
+    // Mark as seen so it doesn't show again
+    if (user && !user.seenCustomContentGuide) {
+      try {
+        await updateUser({ seenCustomContentGuide: true });
+      } catch (error) {
+        console.error('Failed to update seenCustomContentGuide:', error);
+      }
+    }
+  };
 
   return (
     <div>
@@ -151,6 +179,9 @@ const CreatePage = () => {
       </div>
 
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>
+
+      {/* Custom Content Guide Pulse Point */}
+      {showCustomGuide && <CustomContentGuide onClose={handleCloseCustomGuide} />}
     </div>
   );
 };
