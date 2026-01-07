@@ -6,6 +6,7 @@ import { Sparkles, Loader } from 'lucide-react';
 import { API_URL } from '../config';
 import { useIsDemo } from '../hooks/useDemo';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
+import UpgradePrompt from '../components/common/UpgradePrompt';
 
 type JLPTLevel = 'N5' | 'N4' | 'N3' | 'N2';
 type ItemCount = 10 | 15;
@@ -209,7 +210,11 @@ const PISetupPage = () => {
   const [itemCount, setItemCount] = useState<ItemCount>(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorMetadata, setErrorMetadata] = useState<{ status?: number; quota?: unknown } | null>(
+    null
+  );
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // When JLPT level changes, reset to first grammar point for that level
   useEffect(() => {
@@ -245,6 +250,13 @@ const PISetupPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle quota exceeded errors
+        if (response.status === 429 && errorData.metadata?.quota) {
+          setErrorMetadata({ status: 429, quota: errorData.metadata.quota });
+          setShowUpgradePrompt(true);
+        }
+
         throw new Error(errorData.error || 'Failed to generate PI session');
       }
 
@@ -257,9 +269,11 @@ const PISetupPage = () => {
 
       // Navigate to session page with the session data
       navigate('/app/pi/session', { state: { session } });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error generating PI session:', err);
-      setError(err.message || 'Failed to generate session. Please try again.');
+      setError(
+        err instanceof Error ? err.message : 'Failed to generate session. Please try again.'
+      );
       setIsGenerating(false);
     }
   };
@@ -292,12 +306,21 @@ const PISetupPage = () => {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label htmlFor="jlpt-level-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label
+                htmlFor="jlpt-level-selection"
+                className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4"
+              >
                 {t('processingInstruction:setup.selectLevel')}
               </label>
-              <div id="jlpt-level-selection" className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3" role="group" aria-label={t('processingInstruction:setup.selectLevel')}>
+              <div
+                id="jlpt-level-selection"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3"
+                role="group"
+                aria-label={t('processingInstruction:setup.selectLevel')}
+              >
                 {(['N5', 'N4', 'N3', 'N2'] as JLPTLevel[]).map((level) => (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={level}
                     onClick={() => setJlptLevel(level)}
                     className={`px-4 sm:px-6 py-3 sm:py-4 rounded-lg border-2 font-bold transition-all ${
@@ -317,14 +340,23 @@ const PISetupPage = () => {
 
             {/* Grammar Point Selection */}
             <div>
-              <label htmlFor="grammar-point-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label
+                htmlFor="grammar-point-selection"
+                className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4"
+              >
                 {t('processingInstruction:setup.selectGrammar')}
               </label>
-              <div id="grammar-point-selection" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2" role="group" aria-label={t('processingInstruction:setup.selectGrammar')}>
+              <div
+                id="grammar-point-selection"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 max-h-64 overflow-y-auto p-2"
+                role="group"
+                aria-label={t('processingInstruction:setup.selectGrammar')}
+              >
                 {availableGrammarPoints.map((gpId) => {
                   const gp = GRAMMAR_POINTS[gpId];
                   return (
-                    <button type="button"
+                    <button
+                      type="button"
                       key={gpId}
                       onClick={() => setGrammarPoint(gpId)}
                       className={`px-3 sm:px-4 py-2 sm:py-3 rounded-lg border-2 text-left transition-all ${
@@ -347,12 +379,21 @@ const PISetupPage = () => {
 
             {/* Item Count Selection */}
             <div>
-              <label htmlFor="item-count-selection" className="block text-lg font-bold text-dark-brown mb-4">
+              <label
+                htmlFor="item-count-selection"
+                className="block text-lg font-bold text-dark-brown mb-4"
+              >
                 {t('processingInstruction:setup.itemCount')}
               </label>
-              <div id="item-count-selection" className="grid grid-cols-2 gap-3" role="group" aria-label={t('processingInstruction:setup.itemCount')}>
+              <div
+                id="item-count-selection"
+                className="grid grid-cols-2 gap-3"
+                role="group"
+                aria-label={t('processingInstruction:setup.itemCount')}
+              >
                 {([10, 15] as ItemCount[]).map((count) => (
-                  <button type="button"
+                  <button
+                    type="button"
                     key={count}
                     onClick={() => setItemCount(count)}
                     className={`px-6 py-4 rounded-lg border-2 font-medium transition-all ${
@@ -380,7 +421,8 @@ const PISetupPage = () => {
 
           {/* Start Button */}
           <div className="mt-8">
-            <button type="button"
+            <button
+              type="button"
               onClick={handleStartSession}
               disabled={isGenerating}
               className="w-full bg-keylime hover:bg-keylime-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3"
@@ -408,6 +450,15 @@ const PISetupPage = () => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && errorMetadata?.quota && (
+        <UpgradePrompt
+          onClose={() => setShowUpgradePrompt(false)}
+          quotaUsed={errorMetadata.quota.used}
+          quotaLimit={errorMetadata.quota.limit}
+        />
+      )}
     </div>
   );
 };

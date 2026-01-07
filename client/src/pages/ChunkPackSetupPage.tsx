@@ -6,6 +6,7 @@ import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { API_URL } from '../config';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
+import UpgradePrompt from '../components/common/UpgradePrompt';
 
 type JLPTLevel = 'N5' | 'N4' | 'N3';
 
@@ -204,8 +205,12 @@ const ChunkPackSetupPage = () => {
   const [theme, setTheme] = useState<ChunkPackTheme>('daily_routine');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorMetadata, setErrorMetadata] = useState<{ status?: number; quota?: unknown } | null>(
+    null
+  );
   const [progress, setProgress] = useState(0);
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   // When JLPT level changes, reset to first theme for that level
   useEffect(() => {
@@ -242,6 +247,13 @@ const ChunkPackSetupPage = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // Handle quota exceeded errors
+        if (response.status === 429 && errorData.metadata?.quota) {
+          setErrorMetadata({ status: 429, quota: errorData.metadata.quota });
+          setShowUpgradePrompt(true);
+        }
+
         throw new Error(errorData.error || 'Failed to start chunk pack generation');
       }
 
@@ -274,9 +286,11 @@ const ChunkPackSetupPage = () => {
       };
 
       pollJob();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error generating chunk pack:', err);
-      setError(err.message || 'Failed to generate chunk pack. Please try again.');
+      setError(
+        err instanceof Error ? err.message : 'Failed to generate chunk pack. Please try again.'
+      );
       setIsGenerating(false);
     }
   };
@@ -305,10 +319,18 @@ const ChunkPackSetupPage = () => {
           <div className="space-y-8">
             {/* JLPT Level Selection */}
             <div>
-              <label htmlFor="chunk-pack-level-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label
+                htmlFor="chunk-pack-level-selection"
+                className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4"
+              >
                 {t('chunkPack:setup.selectLevel')}
               </label>
-              <div id="chunk-pack-level-selection" className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3" role="group" aria-label={t('chunkPack:setup.selectLevel')}>
+              <div
+                id="chunk-pack-level-selection"
+                className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3"
+                role="group"
+                aria-label={t('chunkPack:setup.selectLevel')}
+              >
                 {(['N5', 'N4', 'N3'] as JLPTLevel[]).map((level) => (
                   <button
                     type="button"
@@ -332,10 +354,18 @@ const ChunkPackSetupPage = () => {
 
             {/* Theme Selection */}
             <div>
-              <label htmlFor="chunk-pack-theme-selection" className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4">
+              <label
+                htmlFor="chunk-pack-theme-selection"
+                className="block text-base sm:text-lg font-bold text-dark-brown mb-3 sm:mb-4"
+              >
                 {t('chunkPack:setup.selectTheme')}
               </label>
-              <div id="chunk-pack-theme-selection" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2" role="group" aria-label={t('chunkPack:setup.selectTheme')}>
+              <div
+                id="chunk-pack-theme-selection"
+                className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 max-h-80 overflow-y-auto p-2"
+                role="group"
+                aria-label={t('chunkPack:setup.selectTheme')}
+              >
                 {availableThemes.map((themeData) => (
                   <button
                     type="button"
@@ -417,6 +447,15 @@ const ChunkPackSetupPage = () => {
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />
+
+      {/* Upgrade Prompt Modal */}
+      {showUpgradePrompt && errorMetadata?.quota && (
+        <UpgradePrompt
+          onClose={() => setShowUpgradePrompt(false)}
+          quotaUsed={errorMetadata.quota.used}
+          quotaLimit={errorMetadata.quota.limit}
+        />
+      )}
     </div>
   );
 };
