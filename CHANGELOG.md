@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **[style]** Restored font sizes to pre-flashcard styling - reverted Japanese text (2.5rem → 1.5rem, weight 600 → 500) and Chinese text (2.5rem → 2.25rem, weight 600 → 500) to original sizes that existed before flashcard feature; the flashcard feature had increased font sizes for card display but unintentionally affected text rendering throughout the entire application
+
 ### Removed
 
 - **[refactor]** Complete removal of flashcard/SRS feature - removed all flashcard and spaced repetition system functionality including ReviewPage, DeckEditorPage, flashcard components, SRS routes and service, Deck/Card/Review database models, and flashcardsEnabled feature flag; this simplifies the application by ~4,700 lines of code and speeds up audio course generation by eliminating flashcard audio synthesis
