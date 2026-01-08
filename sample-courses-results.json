@@ -1,0 +1,211 @@
+{
+  "total": 29,
+  "queued": 29,
+  "skipped": 0,
+  "errors": 0,
+  "details": [
+    {
+      "language": "ja",
+      "level": "N5",
+      "status": "queued",
+      "courseId": "8d9e7009-69f5-4edc-9ba8-60e0e15c3202",
+      "jobId": "8"
+    },
+    {
+      "language": "ja",
+      "level": "N4",
+      "status": "queued",
+      "courseId": "0cc0078f-014c-4d26-9894-619da0c69e87",
+      "jobId": "9"
+    },
+    {
+      "language": "ja",
+      "level": "N3",
+      "status": "queued",
+      "courseId": "cec45a1f-f7c2-4f61-ae8c-e5f12829ecee",
+      "jobId": "10"
+    },
+    {
+      "language": "ja",
+      "level": "N2",
+      "status": "queued",
+      "courseId": "4ac039d0-372b-42aa-99af-5f3f33fd6db3",
+      "jobId": "11"
+    },
+    {
+      "language": "ja",
+      "level": "N1",
+      "status": "queued",
+      "courseId": "4c3880ff-f9e2-43d9-ac10-0bb553264c65",
+      "jobId": "12"
+    },
+    {
+      "language": "zh",
+      "level": "HSK1",
+      "status": "queued",
+      "courseId": "813d7394-8fe2-4a15-b4de-51f5c607ea0f",
+      "jobId": "13"
+    },
+    {
+      "language": "zh",
+      "level": "HSK2",
+      "status": "queued",
+      "courseId": "fbf45f0d-3514-4150-aa91-f754e0b40b4c",
+      "jobId": "14"
+    },
+    {
+      "language": "zh",
+      "level": "HSK3",
+      "status": "queued",
+      "courseId": "6249b3bf-b373-407a-a46f-8deb7a9a6760",
+      "jobId": "15"
+    },
+    {
+      "language": "zh",
+      "level": "HSK4",
+      "status": "queued",
+      "courseId": "712ed870-37cf-4989-b534-fc5114c2d914",
+      "jobId": "16"
+    },
+    {
+      "language": "zh",
+      "level": "HSK5",
+      "status": "queued",
+      "courseId": "aa426941-38a8-436d-bf38-9ead2cd0a8d5",
+      "jobId": "17"
+    },
+    {
+      "language": "zh",
+      "level": "HSK6",
+      "status": "queued",
+      "courseId": "2b99bb3d-0d67-4a25-8f77-de6d883fc222",
+      "jobId": "18"
+    },
+    {
+      "language": "es",
+      "level": "A1",
+      "status": "queued",
+      "courseId": "f86047bc-be2d-42f1-bcc8-aa43be98e3d4",
+      "jobId": "19"
+    },
+    {
+      "language": "es",
+      "level": "A2",
+      "status": "queued",
+      "courseId": "92daf9ca-41d6-430f-8d37-845447a3ccae",
+      "jobId": "20"
+    },
+    {
+      "language": "es",
+      "level": "B1",
+      "status": "queued",
+      "courseId": "1a185b62-cedd-42fe-9593-30f71a853b3d",
+      "jobId": "21"
+    },
+    {
+      "language": "es",
+      "level": "B2",
+      "status": "queued",
+      "courseId": "ab22e5f3-f008-4f05-bc06-661476fed085",
+      "jobId": "22"
+    },
+    {
+      "language": "es",
+      "level": "C1",
+      "status": "queued",
+      "courseId": "f2a41746-adbd-4f21-bfa3-ab3535a8c1a6",
+      "jobId": "23"
+    },
+    {
+      "language": "es",
+      "level": "C2",
+      "status": "queued",
+      "courseId": "d00bcd87-8dd5-4433-a882-3974753e0237",
+      "jobId": "24"
+    },
+    {
+      "language": "fr",
+      "level": "A1",
+      "status": "queued",
+      "courseId": "7faa6b69-e235-45c3-b675-69a6fa5b9da1",
+      "jobId": "25"
+    },
+    {
+      "language": "fr",
+      "level": "A2",
+      "status": "queued",
+      "courseId": "04cf75a9-3fd6-4a68-9812-7f6edf521112",
+      "jobId": "26"
+    },
+    {
+      "language": "fr",
+      "level": "B1",
+      "status": "queued",
+      "courseId": "6a9db073-5482-4c65-ab52-0fc190042317",
+      "jobId": "27"
+    },
+    {
+      "language": "fr",
+      "level": "B2",
+      "status": "queued",
+      "courseId": "3b4c6c4e-5a76-45ec-8325-38df8e80b7b6",
+      "jobId": "28"
+    },
+    {
+      "language": "fr",
+      "level": "C1",
+      "status": "queued",
+      "courseId": "8a9767ac-5c18-4af5-8911-9f8c0e6e8b4f",
+      "jobId": "29"
+    },
+    {
+      "language": "fr",
+      "level": "C2",
+      "status": "queued",
+      "courseId": "8c81ceaf-1984-46f8-aa0c-544f1e81ac14",
+      "jobId": "30"
+    },
+    {
+      "language": "ar",
+      "level": "A1",
+      "status": "queued",
+      "courseId": "2f7addde-069a-415a-ad0e-a93f9ad4b07e",
+      "jobId": "31"
+    },
+    {
+      "language": "ar",
+      "level": "A2",
+      "status": "queued",
+      "courseId": "4f07d421-6768-4f34-9c00-07fe928bb0c6",
+      "jobId": "32"
+    },
+    {
+      "language": "ar",
+      "level": "B1",
+      "status": "queued",
+      "courseId": "420a4eab-247e-438b-aad7-711c443ff1b4",
+      "jobId": "33"
+    },
+    {
+      "language": "ar",
+      "level": "B2",
+      "status": "queued",
+      "courseId": "d3dac7ab-1f7d-4293-927d-6e8d4a5983fc",
+      "jobId": "34"
+    },
+    {
+      "language": "ar",
+      "level": "C1",
+      "status": "queued",
+      "courseId": "d0811a09-fad4-4432-b863-3e69c99e9e7b",
+      "jobId": "35"
+    },
+    {
+      "language": "ar",
+      "level": "C2",
+      "status": "queued",
+      "courseId": "a573d5c2-54ab-43b2-b0b2-50838280ce49",
+      "jobId": "36"
+    }
+  ]
+}

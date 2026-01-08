@@ -9,7 +9,6 @@ export interface FeatureFlags {
   narrowListeningEnabled: boolean;
   processingInstructionEnabled: boolean;
   lexicalChunksEnabled: boolean;
-  flashcardsEnabled: boolean;
   updatedAt: string;
 }
 
