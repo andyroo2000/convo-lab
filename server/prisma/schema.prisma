@@ -56,9 +56,6 @@ model User {
   passwordResetTokens      PasswordResetToken[]
   subscriptionEvents       SubscriptionEvent[]
   oauthAccounts            OAuthAccount[]
-  decks                    Deck[]
-  cards                    Card[]
-  reviews                  Review[]
 
   @@index([email])
   @@index([role])
@@ -312,7 +309,6 @@ model CourseCoreItem {
   components        Json?   // Pimsleur backward-build components: PhraseComponent[]
 
   course            Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  cards             Card[]
 
   @@index([courseId])
 }
@@ -527,7 +523,6 @@ model FeatureFlag {
   narrowListeningEnabled       Boolean  @default(true)
   processingInstructionEnabled Boolean  @default(true)
   lexicalChunksEnabled         Boolean  @default(true)
-  flashcardsEnabled            Boolean  @default(true)
   updatedAt                    DateTime @updatedAt
 
   @@map("feature_flags")
@@ -587,109 +582,4 @@ model OAuthAccount {
   @@unique([provider, providerId])
   @@index([userId])
   @@map("oauth_accounts")
-}
-
-// SRS (Spaced Repetition System) Models
-
-model Deck {
-  id          String   @id @default(uuid())
-  userId      String
-  language    String   // ISO 639-1 code (ja, zh, es)
-  name        String
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cards       Card[]
-
-  @@unique([userId, language])
-  @@index([userId])
-  @@index([language])
-}
-
-model Card {
-  id                  String   @id @default(uuid())
-  deckId              String
-  userId              String
-  coreItemId          String?
-
-  // Denormalized content
-  textL2              String
-  readingL2           String?
-  translationL1       String
-  audioUrl            String?
-  imageUrl            String?
-
-  // Full sentence context (for displaying on card back)
-  sentenceL2          String?
-  sentenceReadingL2   String?
-  sentenceTranslationL1 String?
-
-  // FSRS State - Recognition Cards (L2 → L1)
-  recognitionState    String   @default("new")
-  recognitionDue      DateTime @default(now())
-  recognitionStability Float?
-  recognitionDifficulty Float?
-  recognitionElapsedDays Int   @default(0)
-  recognitionScheduledDays Int @default(0)
-  recognitionReps     Int      @default(0)
-  recognitionLapses   Int      @default(0)
-  recognitionLastReview DateTime?
-
-  // FSRS State - Audio Cards (Audio → L2 + L1)
-  audioState          String   @default("new")
-  audioDue            DateTime @default(now())
-  audioStability      Float?
-  audioDifficulty     Float?
-  audioElapsedDays    Int      @default(0)
-  audioScheduledDays  Int      @default(0)
-  audioReps           Int      @default(0)
-  audioLapses         Int      @default(0)
-  audioLastReview     DateTime?
-
-  // Card settings
-  enableRecognition   Boolean  @default(true)
-  enableAudio         Boolean  @default(true)
-  tags                String[]
-  notes               String?  @db.Text
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  deck                Deck     @relation(fields: [deckId], references: [id], onDelete: Cascade)
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coreItem            CourseCoreItem? @relation(fields: [coreItemId], references: [id], onDelete: SetNull)
-  reviews             Review[]
-
-  @@index([deckId])
-  @@index([userId])
-  @@index([coreItemId])
-  @@index([recognitionDue])
-  @@index([audioDue])
-  @@index([recognitionState])
-  @@index([audioState])
-}
-
-model Review {
-  id            String   @id @default(uuid())
-  cardId        String
-  userId        String
-  cardType      String   // "recognition" or "audio"
-  rating        Int      // 1 (Again), 2 (Hard), 3 (Good), 4 (Easy)
-
-  stateBefore   String
-  stateAfter    String
-  dueBefore     DateTime
-  dueAfter      DateTime
-
-  reviewedAt    DateTime @default(now())
-  durationMs    Int?
-
-  card          Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([cardId])
-  @@index([userId])
-  @@index([reviewedAt])
-  @@index([cardType])
 }

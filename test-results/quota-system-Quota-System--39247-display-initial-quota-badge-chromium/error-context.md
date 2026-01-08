@@ -1,0 +1,228 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - link "ConvoLab" [ref=e8] [cursor=pointer]:
+          - /url: /app/library
+          - generic [ref=e9]:
+            - generic [ref=e10]:
+              - img [ref=e11]
+              - img [ref=e13]
+            - generic [ref=e15]: ConvoLab
+        - generic [ref=e16]:
+          - link "Library" [ref=e17] [cursor=pointer]:
+            - /url: /app/library
+            - img [ref=e18]
+            - text: Library
+          - link "Review" [ref=e20] [cursor=pointer]:
+            - /url: /app/review
+            - img [ref=e21]
+            - text: Review
+          - link "Create" [ref=e24] [cursor=pointer]:
+            - /url: /app/create
+            - img [ref=e25]
+            - text: Create
+      - generic [ref=e28]:
+        - generic [ref=e30]: JA
+        - button "A" [ref=e32] [cursor=pointer]:
+          - generic [ref=e34]: A
+  - main [ref=e35]:
+    - generic [ref=e36]:
+      - generic [ref=e38]:
+        - button "Dialogues" [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+          - text: Dialogues
+        - button "Audio Courses" [ref=e42] [cursor=pointer]:
+          - img [ref=e43]
+          - text: Audio Courses
+        - button "Narrow Listening" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+          - text: Narrow Listening
+        - button "Lexical Chunk Packs" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - text: Lexical Chunk Packs
+      - generic [ref=e51]:
+        - link "Audio Course NYE Get ready to celebrate New Year's Eve in Japanese! Our Pimsleur-style interactive audio course, built around authentic NYE dialogues and spaced repetition, will have English speakers confidently speaking Japanese. JA N4" [ref=e52] [cursor=pointer]:
+          - /url: /app/courses/b430372b-9544-4f8d-a24d-535ed614892d
+          - generic [ref=e53]:
+            - img [ref=e54]
+            - generic [ref=e56]: Audio Course
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - heading "NYE" [level=3] [ref=e60]
+              - paragraph [ref=e61]: Get ready to celebrate New Year's Eve in Japanese! Our Pimsleur-style interactive audio course, built around authentic NYE dialogues and spaced repetition, will have English speakers confidently speaking Japanese.
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - generic [ref=e64]: JA
+                - generic [ref=e65]: N4
+              - button "Delete course" [ref=e66]:
+                - img [ref=e67]
+        - link "Dialogues Favorite Foods What are your favorite foods? AR A1" [ref=e70] [cursor=pointer]:
+          - /url: /app/playback/7b9353c9-8b78-416e-b737-3c56442c6fee
+          - generic [ref=e71]:
+            - img [ref=e72]
+            - generic [ref=e74]: Dialogues
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - heading "Favorite Foods" [level=3] [ref=e78]
+              - paragraph [ref=e79]: What are your favorite foods?
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - generic [ref=e82]: AR
+                - generic [ref=e83]: A1
+              - button "Delete episode" [ref=e84]:
+                - img [ref=e85]
+        - link "Dialogues French Food Favorites What are your favorite French foods? FR A1" [ref=e88] [cursor=pointer]:
+          - /url: /app/playback/b110b6a8-4b1d-4a36-967f-69568e1ed9e9
+          - generic [ref=e89]:
+            - img [ref=e90]
+            - generic [ref=e92]: Dialogues
+          - generic [ref=e94]:
+            - generic [ref=e95]:
+              - heading "French Food Favorites" [level=3] [ref=e96]
+              - paragraph [ref=e97]: What are your favorite French foods?
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - generic [ref=e100]: FR
+                - generic [ref=e101]: A1
+              - button "Delete episode" [ref=e102]:
+                - img [ref=e103]
+        - link "Dialogues Spanish Food Recommendations What foods should someone eat in Spain when visiting? ES A1" [ref=e106] [cursor=pointer]:
+          - /url: /app/playback/bec4bdcd-0efc-4c85-afeb-a6e2cff4fb44
+          - generic [ref=e107]:
+            - img [ref=e108]
+            - generic [ref=e110]: Dialogues
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - heading "Spanish Food Recommendations" [level=3] [ref=e114]
+              - paragraph [ref=e115]: What foods should someone eat in Spain when visiting?
+            - generic [ref=e116]:
+              - generic [ref=e117]:
+                - generic [ref=e118]: ES
+                - generic [ref=e119]: A1
+              - button "Delete episode" [ref=e120]:
+                - img [ref=e121]
+        - link "Narrow Listening Shopping Trip with Ana and Pedro Shopping ES A1" [ref=e124] [cursor=pointer]:
+          - /url: /app/narrow-listening/b8f88d04-53b7-4409-a57d-8f66e9aadd7c
+          - generic [ref=e125]:
+            - img [ref=e126]
+            - generic [ref=e128]: Narrow Listening
+          - generic [ref=e130]:
+            - generic [ref=e131]:
+              - heading "Shopping Trip with Ana and Pedro" [level=3] [ref=e132]
+              - paragraph [ref=e133]: Shopping
+            - generic [ref=e134]:
+              - generic [ref=e135]:
+                - generic [ref=e136]: ES
+                - generic [ref=e137]: A1
+              - button "Delete pack" [ref=e138]:
+                - img [ref=e139]
+        - link "Chunk Pack 買い物 - Shopping shopping JA N5" [ref=e142] [cursor=pointer]:
+          - /url: /app/chunk-packs/1ddea1ec-acef-4103-b2e6-f76ad401bb31/examples
+          - generic [ref=e143]:
+            - img [ref=e144]
+            - generic [ref=e146]: Chunk Pack
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - heading "買い物 - Shopping" [level=3] [ref=e150]
+              - paragraph [ref=e151]: shopping
+            - generic [ref=e152]:
+              - generic [ref=e153]:
+                - generic [ref=e154]: JA
+                - generic [ref=e155]: N5
+              - button "Delete lexical chunk pack" [ref=e156]:
+                - img [ref=e157]
+        - link "Narrow Listening Family Mart Favorites Favorite foods at Family Mart. JA N4" [ref=e160] [cursor=pointer]:
+          - /url: /app/narrow-listening/a4409900-984d-44f9-9bfe-03a97fa9f15d
+          - generic [ref=e161]:
+            - img [ref=e162]
+            - generic [ref=e164]: Narrow Listening
+          - generic [ref=e166]:
+            - generic [ref=e167]:
+              - heading "Family Mart Favorites" [level=3] [ref=e168]
+              - paragraph [ref=e169]: Favorite foods at Family Mart.
+            - generic [ref=e170]:
+              - generic [ref=e171]:
+                - generic [ref=e172]: JA
+                - generic [ref=e173]: N4
+              - button "Delete pack" [ref=e174]:
+                - img [ref=e175]
+        - link "Audio Course Favorite Tokyo Neighborhoods Explore Tokyo's vibrant neighborhoods while mastering Japanese conversation through our engaging, Pimsleur-style audio lessons, expertly designed with spaced repetition for lasting fluency. JA N4" [ref=e178] [cursor=pointer]:
+          - /url: /app/courses/4dcf2651-ca6f-4eaf-b364-d69fe2e142e0
+          - generic [ref=e179]:
+            - img [ref=e180]
+            - generic [ref=e182]: Audio Course
+          - generic [ref=e184]:
+            - generic [ref=e185]:
+              - heading "Favorite Tokyo Neighborhoods" [level=3] [ref=e186]
+              - paragraph [ref=e187]: Explore Tokyo's vibrant neighborhoods while mastering Japanese conversation through our engaging, Pimsleur-style audio lessons, expertly designed with spaced repetition for lasting fluency.
+            - generic [ref=e188]:
+              - generic [ref=e189]:
+                - generic [ref=e190]: JA
+                - generic [ref=e191]: N4
+              - button "Delete course" [ref=e192]:
+                - img [ref=e193]
+        - link "Dialogues Favorite Foods Two friends talking about their favorite foods. ZH HSK1" [ref=e196] [cursor=pointer]:
+          - /url: /app/playback/47c56acf-0497-4ee3-bac7-bd32528be400
+          - generic [ref=e197]:
+            - img [ref=e198]
+            - generic [ref=e200]: Dialogues
+          - generic [ref=e202]:
+            - generic [ref=e203]:
+              - heading "Favorite Foods" [level=3] [ref=e204]
+              - paragraph [ref=e205]: Two friends talking about their favorite foods.
+            - generic [ref=e206]:
+              - generic [ref=e207]:
+                - generic [ref=e208]: ZH
+                - generic [ref=e209]: HSK1
+              - button "Delete episode" [ref=e210]:
+                - img [ref=e211]
+        - link "Chunk Pack 毎日のこと - Daily Activities daily routine JA N5" [ref=e214] [cursor=pointer]:
+          - /url: /app/chunk-packs/2b598838-b72f-4096-9a94-82e1bf05b856/examples
+          - generic [ref=e215]:
+            - img [ref=e216]
+            - generic [ref=e218]: Chunk Pack
+          - generic [ref=e220]:
+            - generic [ref=e221]:
+              - heading "毎日のこと - Daily Activities" [level=3] [ref=e222]
+              - paragraph [ref=e223]: daily routine
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - generic [ref=e226]: JA
+                - generic [ref=e227]: N5
+              - button "Delete lexical chunk pack" [ref=e228]:
+                - img [ref=e229]
+        - link "Dialogues Favorite Places A friend is describing his favorite places in Tokyo JA N4" [ref=e232] [cursor=pointer]:
+          - /url: /app/playback/cf0b4046-9870-4c0e-8023-1175ca3eba21
+          - generic [ref=e233]:
+            - img [ref=e234]
+            - generic [ref=e236]: Dialogues
+          - generic [ref=e238]:
+            - generic [ref=e239]:
+              - heading "Favorite Places" [level=3] [ref=e240]
+              - paragraph [ref=e241]: A friend is describing his favorite places in Tokyo
+            - generic [ref=e242]:
+              - generic [ref=e243]:
+                - generic [ref=e244]: JA
+                - generic [ref=e245]: N4
+              - button "Delete episode" [ref=e246]:
+                - img [ref=e247]
+        - link "Narrow Listening 週末の予定 weekend plans JA N4" [ref=e250] [cursor=pointer]:
+          - /url: /app/narrow-listening/ef7c6f2b-ebd6-469c-9242-e964ebd4759a
+          - generic [ref=e251]:
+            - img [ref=e252]
+            - generic [ref=e254]: Narrow Listening
+          - generic [ref=e256]:
+            - generic [ref=e257]:
+              - heading "週末の予定" [level=3] [ref=e258]
+              - paragraph [ref=e259]: weekend plans
+            - generic [ref=e260]:
+              - generic [ref=e261]:
+                - generic [ref=e262]: JA
+                - generic [ref=e263]: N4
+              - button "Delete pack" [ref=e264]:
+                - img [ref=e265]
+```

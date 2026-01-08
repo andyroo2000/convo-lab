@@ -5,7 +5,6 @@ import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import Layout from './components/common/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
-import ProtectedByFeatureFlag from './components/ProtectedByFeatureFlag';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import './i18n';
 
@@ -33,8 +32,6 @@ const ChunkPackSetupPage = lazy(() => import('./pages/ChunkPackSetupPage'));
 const ChunkPackExamplesPage = lazy(() => import('./pages/ChunkPackExamplesPage'));
 const ChunkPackStoryPage = lazy(() => import('./pages/ChunkPackStoryPage'));
 const ChunkPackExercisesPage = lazy(() => import('./pages/ChunkPackExercisesPage'));
-const ReviewPage = lazy(() => import('./pages/ReviewPage'));
-const DeckEditorPage = lazy(() => import('./pages/DeckEditorPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -94,30 +91,6 @@ const App = () => (
                   <Route path="pi/session" element={<PISessionPage />} />
                   <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
                   <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-                  <Route
-                    path="review"
-                    element={
-                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
-                        <ReviewPage />
-                      </ProtectedByFeatureFlag>
-                    }
-                  />
-                  <Route
-                    path="review/:deckId"
-                    element={
-                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
-                        <ReviewPage />
-                      </ProtectedByFeatureFlag>
-                    }
-                  />
-                  <Route
-                    path="decks/:deckId/edit"
-                    element={
-                      <ProtectedByFeatureFlag flag="flashcardsEnabled">
-                        <DeckEditorPage />
-                      </ProtectedByFeatureFlag>
-                    }
-                  />
                   <Route
                     path="chunk-packs/:packId/exercises"
                     element={<ChunkPackExercisesPage />}
