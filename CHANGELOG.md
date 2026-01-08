@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+
+- **[refactor]** Complete removal of flashcard/SRS feature - removed all flashcard and spaced repetition system functionality including ReviewPage, DeckEditorPage, flashcard components, SRS routes and service, Deck/Card/Review database models, and flashcardsEnabled feature flag; this simplifies the application by ~4,700 lines of code and speeds up audio course generation by eliminating flashcard audio synthesis
+
 ### Changed
 
 - **[chore]** Code cleanup and environment documentation - removed development console.log statements from client components (AvatarCropperModal, ChunkPackExamplesPage, NarrowListeningCreatorPage, PISessionPage, PlaybackPage); added comprehensive .env.example for client with Stripe and API configuration; expanded server .env.example with all required variables (OAuth, email, AWS, Stripe, admin emails, worker config); updated README with detailed PWA usage instructions including iOS and Android installation steps, offline support details, and service worker caching configuration
