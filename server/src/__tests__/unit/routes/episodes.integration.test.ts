@@ -123,6 +123,7 @@ describe('Episodes Routes Integration', () => {
           sourceText: true,
           targetLanguage: true,
           status: true,
+          isSampleContent: true,
           createdAt: true,
           updatedAt: true,
           dialogue: {

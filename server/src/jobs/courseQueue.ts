@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 // Console logging is necessary in this background job worker for monitoring and debugging
 
+import { Prisma } from '@prisma/client';
 import { Queue, Worker } from 'bullmq';
 
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
@@ -154,7 +155,7 @@ async function processCourseGeneration(job: {
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptJson: generatedScript.units as unknown,
+        scriptJson: generatedScript.units as unknown as Prisma.JsonValue,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });
@@ -189,8 +190,11 @@ async function processCourseGeneration(job: {
 
           if (unitIndex !== -1) {
             sourceUnitIndex = unitIndex;
-            const unitText = generatedScript.units[unitIndex].text;
-            console.log(`Found vocab "${vocab.textL2}" in sentence unit ${unitIndex}: "${unitText}"`);
+            const unit = generatedScript.units[unitIndex];
+            const unitText = 'text' in unit ? unit.text : '';
+            console.log(
+              `Found vocab "${vocab.textL2}" in sentence unit ${unitIndex}: "${unitText}"`
+            );
           } else {
             console.warn(`Could not find vocab "${vocab.textL2}" in any dialogue sentence`);
           }
@@ -216,7 +220,6 @@ async function processCourseGeneration(job: {
           complexityScore: idx,
           sourceEpisodeId: firstEpisode.id,
           sourceSentenceId: null,
-          // sourceUnitIndex: item.sourceUnitIndex, // TODO: Add migration for this field
         })),
       });
       console.log(`Saved ${vocabularyItems.length} vocabulary items from dialogue exchanges`);
@@ -250,7 +253,7 @@ async function processCourseGeneration(job: {
       data: {
         audioUrl: assembledAudio.audioUrl,
         approxDurationSeconds: assembledAudio.actualDurationSeconds,
-        timingData: assembledAudio.timingData as unknown,
+        timingData: assembledAudio.timingData as unknown as Prisma.JsonValue,
         status: 'ready',
       },
     });
