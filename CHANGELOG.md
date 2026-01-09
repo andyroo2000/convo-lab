@@ -7,17 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** TypeScript compilation errors and ESLint warnings - resolved type errors in courseQueue.ts (Prisma JsonValue casting), auth.ts (proper types for Prisma updates, Express user, JWT payload), and audioExtractorService.ts (removed unused interface, proper type casting); added appropriate eslint-disable comments for necessary console logging; fixed checkGenerationLimit call to include contentType parameter; updated test expectations for isSampleContent field; added test credentials to server/.env.example
+
 ### Changed
 
 - **[style]** Restored font sizes to pre-flashcard styling - reverted Japanese text (2.5rem → 1.5rem, weight 600 → 500) and Chinese text (2.5rem → 2.25rem, weight 600 → 500) to original sizes that existed before flashcard feature; the flashcard feature had increased font sizes for card display but unintentionally affected text rendering throughout the entire application
+- **[chore]** Code cleanup and environment documentation - removed development console.log statements from client components (AvatarCropperModal, ChunkPackExamplesPage, NarrowListeningCreatorPage, PISessionPage, PlaybackPage); added comprehensive .env.example for client with Stripe and API configuration; expanded server .env.example with all required variables (OAuth, email, AWS, Stripe, admin emails, worker config); updated README with detailed PWA usage instructions including iOS and Android installation steps, offline support details, and service worker caching configuration
 
 ### Removed
 
 - **[refactor]** Complete removal of flashcard/SRS feature - removed all flashcard and spaced repetition system functionality including ReviewPage, DeckEditorPage, flashcard components, SRS routes and service, Deck/Card/Review database models, and flashcardsEnabled feature flag; this simplifies the application by ~4,700 lines of code and speeds up audio course generation by eliminating flashcard audio synthesis
-
-### Changed
-
-- **[chore]** Code cleanup and environment documentation - removed development console.log statements from client components (AvatarCropperModal, ChunkPackExamplesPage, NarrowListeningCreatorPage, PISessionPage, PlaybackPage); added comprehensive .env.example for client with Stripe and API configuration; expanded server .env.example with all required variables (OAuth, email, AWS, Stripe, admin emails, worker config); updated README with detailed PWA usage instructions including iOS and Android installation steps, offline support details, and service worker caching configuration
 
 ### Added
 

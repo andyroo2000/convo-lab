@@ -1,15 +1,21 @@
-import { Router } from 'express';
+/* eslint-disable no-console */
+/* eslint-disable import/no-named-as-default-member */
+// Console logging is necessary for OAuth callback monitoring
+// Using default imports for bcrypt and jwt per their official documentation
+import { Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
+import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
-import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 import { sendVerificationEmail } from '../services/emailService.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
-import i18next from '../i18n/index.js';
+import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
 
@@ -303,7 +309,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Build update data object (only include provided fields)
-    const updateData: any = {};
+    const updateData: Prisma.UserUpdateInput = {};
     if (displayName !== undefined) updateData.displayName = displayName;
     if (avatarColor !== undefined) updateData.avatarColor = avatarColor;
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
@@ -362,11 +368,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       user.proficiencyLevel
     ) {
       try {
-        await copySampleContentToUser(
-          user.id,
-          user.preferredStudyLanguage,
-          user.proficiencyLevel
-        );
+        await copySampleContentToUser(user.id, user.preferredStudyLanguage, user.proficiencyLevel);
         console.log(
           `[ONBOARDING] Sample content copied for user ${user.id} (${user.preferredStudyLanguage} ${user.proficiencyLevel})`
         );
@@ -459,7 +461,7 @@ router.get('/me/quota', requireAuth, async (req: AuthRequest, res, next) => {
       });
     }
 
-    const status = await checkGenerationLimit(req.userId!);
+    const status = await checkGenerationLimit(req.userId!, 'dialogue');
     const cooldown = await checkCooldown(req.userId!);
 
     res.json({
@@ -487,7 +489,7 @@ router.get(
   passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
   async (req, res) => {
     try {
-      const user = req.user as any;
+      const user = req.user as Express.User;
 
       if (!user) {
         return res.redirect(
@@ -565,7 +567,7 @@ router.post('/claim-invite', async (req, res, next) => {
     // Verify temporary token
     let decoded;
     try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as jwt.JwtPayload & { userId: string };
     } catch (error) {
       throw new AppError('Invalid or expired token', 401);
     }

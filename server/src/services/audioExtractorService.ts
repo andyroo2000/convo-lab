@@ -1,10 +1,14 @@
-import { prisma } from '../db/client.js';
+/* eslint-disable no-console */
+// Console logging is necessary in this service for monitoring and debugging audio extraction
 import { exec } from 'child_process';
-import { promisify } from 'util';
-import { Storage } from '@google-cloud/storage';
 import fs from 'fs/promises';
-import path from 'path';
 import os from 'os';
+import path from 'path';
+import { promisify } from 'util';
+
+import { Storage } from '@google-cloud/storage';
+
+import { prisma } from '../db/client.js';
 
 const execAsync = promisify(exec);
 
@@ -17,7 +21,7 @@ interface TimingDataUnit {
   endTime: number; // milliseconds
 }
 
-interface PhraseComponent {
+interface _PhraseComponent {
   type: 'word' | 'particle' | 'grammar';
   textL2: string;
   translationL1?: string;
@@ -27,9 +31,7 @@ interface PhraseComponent {
 /**
  * Extracts audio for a vocabulary word from course audio using timing data
  */
-export async function extractVocabularyAudio(
-  coreItemId: string
-): Promise<string | null> {
+export async function extractVocabularyAudio(coreItemId: string): Promise<string | null> {
   try {
     // Get the core item with course data
     const coreItem = await prisma.courseCoreItem.findUnique({
@@ -60,8 +62,8 @@ export async function extractVocabularyAudio(
 
     // Use sourceUnitIndex if available (new approach)
     if (coreItem.sourceUnitIndex !== null && coreItem.sourceUnitIndex !== undefined) {
-      const scriptUnits = course.scriptJson as any[];
-      const timingData = course.timingData as TimingDataUnit[];
+      const scriptUnits = course.scriptJson as unknown as Array<{ text?: string }>;
+      const timingData = course.timingData as unknown as TimingDataUnit[];
 
       console.log(`\n=== Audio Extraction (Direct Index) ===`);
       console.log(`Vocabulary: "${coreItem.textL2}"`);
