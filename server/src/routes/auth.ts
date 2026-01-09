@@ -489,7 +489,8 @@ router.get(
   passport.authenticate('google', { session: false, failureRedirect: '/login?error=oauth_failed' }),
   async (req, res) => {
     try {
-      const user = req.user as Express.User;
+      // Passport attaches the user object with custom properties
+      const user = req.user as { id: string; isExistingUser?: boolean } | undefined;
 
       if (!user) {
         return res.redirect(
