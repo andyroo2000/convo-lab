@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[chore]** Production data migration scripts - added three migration scripts to sync local sample content to production database: migrate-sample-courses.ts (migrates 29 sample audio courses), sync-avatar-urls.ts (syncs speaker avatar URLs for sample dialogues), and sync-arabic-avatars.ts (syncs Arabic speaker avatars by name matching); successfully migrated 5 new sample courses and 20 Arabic speaker avatars to production, avoiding the need to regenerate audio and images
+
 ### Fixed
 
 - **[fix]** TypeScript compilation errors and ESLint warnings - resolved type errors in courseQueue.ts (Prisma JsonValue casting), auth.ts (proper types for Prisma updates, Express user, JWT payload), and audioExtractorService.ts (removed unused interface, proper type casting); added appropriate eslint-disable comments for necessary console logging; fixed checkGenerationLimit call to include contentType parameter; updated test expectations for isSampleContent field; added test credentials to server/.env.example
