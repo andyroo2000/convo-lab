@@ -154,13 +154,11 @@ const ChunkPackExercisesPage = () => {
                   key={idx}
                   onClick={() => handleOptionSelect(option)}
                   disabled={hasAnswered}
-                  className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                    showAsCorrect
-                      ? 'border-green-500 bg-green-50'
-                      : showAsWrong
-                        ? 'border-red-500 bg-red-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                  } ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
+                  className={`w-full text-left p-3 sm:p-4 rounded-lg border-2 transition-all ${(() => {
+                    if (showAsCorrect) return 'border-green-500 bg-green-50';
+                    if (showAsWrong) return 'border-red-500 bg-red-50';
+                    return 'border-gray-200 hover:border-gray-300';
+                  })()} ${hasAnswered ? 'cursor-default' : 'cursor-pointer'}`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-base sm:text-xl">{option}</span>

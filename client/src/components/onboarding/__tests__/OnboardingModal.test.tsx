@@ -133,7 +133,12 @@ describe('OnboardingModal', () => {
 
     it('should show Loading... during submission', async () => {
       // Use a long-delayed promise instead of one that never resolves
-      mockUpdateUser.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10000)));
+      mockUpdateUser.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 10000);
+          })
+      );
 
       render(<OnboardingModal />);
 
@@ -148,7 +153,12 @@ describe('OnboardingModal', () => {
 
     it('should disable buttons during submission', async () => {
       // Use a long-delayed promise instead of one that never resolves
-      mockUpdateUser.mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 10000)));
+      mockUpdateUser.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(resolve, 10000);
+          })
+      );
 
       render(<OnboardingModal />);
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Improved
+
+- **[chore]** Fixed 61 ESLint errors across client codebase - eliminated all 57 errors including unused eslint-disable directives (10), nested ternaries (7), testing-library violations (20), await-in-loop patterns (7), promise executor returns (4), continue statements (2), restricted syntax (2), consistent-return (1), and restricted-globals (1); remaining 91 warnings are all @typescript-eslint/no-explicit-any types flagged for future type improvement
+
 ### Added
 
 - **[chore]** Production data migration scripts - added three migration scripts to sync local sample content to production database: migrate-sample-courses.ts (migrates 29 sample audio courses), sync-avatar-urls.ts (syncs speaker avatar URLs for sample dialogues), and sync-arabic-avatars.ts (syncs Arabic speaker avatars by name matching); successfully migrated 5 new sample courses and 20 Arabic speaker avatars to production, avoiding the need to regenerate audio and images

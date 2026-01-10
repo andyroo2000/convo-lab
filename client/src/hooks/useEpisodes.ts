@@ -239,6 +239,7 @@ export function useEpisodes() {
 
       for (let attempt = 0; attempt < MAX_RETRIES; attempt += 1) {
         try {
+          // eslint-disable-next-line no-await-in-loop -- Sequential retry attempts required
           const response = await fetch(`${API_URL}/api/${endpoint}/job/${jobId}`, {
             credentials: 'include',
           });
@@ -249,24 +250,31 @@ export function useEpisodes() {
               console.warn(
                 `Transient error ${response.status} polling job status, retrying in ${RETRY_DELAYS[attempt]}ms...`
               );
-              await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]));
+              // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
+              await new Promise((resolve) => {
+                setTimeout(resolve, RETRY_DELAYS[attempt]);
+              });
+              // eslint-disable-next-line no-continue -- Continue needed to retry on transient errors
               continue; // Retry
             }
             throw new Error('Failed to fetch job status');
           }
 
+          // eslint-disable-next-line no-await-in-loop -- Sequential parsing of response required
           const data = await response.json();
-          return data.state === 'completed'
-            ? 'completed'
-            : data.state === 'failed'
-              ? 'failed'
-              : 'pending';
+          if (data.state === 'completed') return 'completed';
+          if (data.state === 'failed') return 'failed';
+          return 'pending';
         } catch (err) {
           // Network errors or other failures
           if (attempt < MAX_RETRIES - 1) {
             console.warn(`Error polling job status (attempt ${attempt + 1}/${MAX_RETRIES}):`, err);
             console.warn(`Retrying in ${RETRY_DELAYS[attempt]}ms...`);
-            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS[attempt]));
+            // eslint-disable-next-line no-await-in-loop -- Delay needed for retry backoff
+            await new Promise((resolve) => {
+              setTimeout(resolve, RETRY_DELAYS[attempt]);
+            });
+            // eslint-disable-next-line no-continue -- Continue needed to retry on network errors
             continue; // Retry
           }
           // Final attempt failed
@@ -282,14 +290,19 @@ export function useEpisodes() {
     // Poll every 2 seconds until completed or failed
     let status: 'completed' | 'failed' | 'pending' = 'pending';
     while (status === 'pending') {
+      // eslint-disable-next-line no-await-in-loop -- Sequential status check required
       status = await checkStatus();
 
       if (onStatusChange) {
+        // eslint-disable-next-line no-await-in-loop -- Callback execution must complete before next poll
         await onStatusChange(status);
       }
 
       if (status === 'pending') {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        // eslint-disable-next-line no-await-in-loop -- Polling interval delay required
+        await new Promise((resolve) => {
+          setTimeout(resolve, 2000);
+        });
       }
     }
 

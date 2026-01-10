@@ -279,14 +279,12 @@ const PISessionPage = () => {
                   src={currentItem.audioUrlA || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio A:', e)}
-                  // eslint-disable-next-line no-console
                 />
                 <audio
                   ref={audioRefB}
                   src={currentItem.audioUrlB || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio B:', e)}
-                  // eslint-disable-next-line no-console
                 />
               </div>
             ) : (
@@ -307,7 +305,6 @@ const PISessionPage = () => {
                   src={currentItem.audioUrl || ''}
                   preload="auto"
                   onError={(e) => console.error('Error loading audio:', e, currentItem.audioUrl)}
-                  // eslint-disable-next-line no-console
                 />
               </div>
             )}

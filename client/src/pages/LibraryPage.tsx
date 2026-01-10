@@ -70,7 +70,7 @@ const LibraryPage = () => {
       try {
         await updateUser({ seenSampleContentGuide: true });
       } catch (err) {
-        console.err('Failed to update seenSampleContentGuide:', error);
+        console.error('Failed to update seenSampleContentGuide:', error);
       }
     }
   };
@@ -238,6 +238,7 @@ const LibraryPage = () => {
       setCourseToDelete(null);
     } catch (err) {
       console.error('Failed to delete course:', err);
+      // eslint-disable-next-line no-alert -- User feedback for critical operation failure
       alert(t('library:delete.alertError', { type: 'course' }));
     }
   };

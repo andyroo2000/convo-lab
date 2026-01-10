@@ -375,6 +375,7 @@ describe('ResetPasswordPage', () => {
       });
 
       // Check that success icon (CheckCircle) is rendered
+      // eslint-disable-next-line testing-library/no-node-access
       const successIcon = document.querySelector('.lucide-circle-check-big');
       expect(successIcon).toBeInTheDocument();
       expect(successIcon).toHaveClass('text-green-500');
@@ -393,6 +394,7 @@ describe('ResetPasswordPage', () => {
       });
 
       // Check that error icon (XCircle) is rendered
+      // eslint-disable-next-line testing-library/no-node-access
       const errorIcon = document.querySelector('.lucide-circle-x');
       expect(errorIcon).toBeInTheDocument();
       expect(errorIcon).toHaveClass('text-red-500');

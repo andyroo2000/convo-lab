@@ -190,13 +190,12 @@ const LoginPage = () => {
               className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="auth-submit-button"
             >
-              {loading
-                ? isLogin
-                  ? t('auth:login.submitting')
-                  : t('auth:signup.submitting')
-                : isLogin
-                  ? t('auth:login.submit')
-                  : t('auth:signup.submit')}
+              {(() => {
+                if (loading) {
+                  return isLogin ? t('auth:login.submitting') : t('auth:signup.submitting');
+                }
+                return isLogin ? t('auth:login.submit') : t('auth:signup.submit');
+              })()}
             </button>
           </form>
 
