@@ -24,7 +24,6 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock IntersectionObserver
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 global.IntersectionObserver = class IntersectionObserver {
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function
   constructor() {}

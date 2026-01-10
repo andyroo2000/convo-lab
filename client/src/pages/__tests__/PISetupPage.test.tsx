@@ -51,6 +51,7 @@ describe('PISetupPage', () => {
 
   it('should have N5 selected by default', () => {
     renderPage();
+    // eslint-disable-next-line testing-library/no-node-access
     const n5Button = screen.getByText('N5').closest('button');
     expect(n5Button).toHaveClass('bg-keylime');
   });
@@ -63,6 +64,7 @@ describe('PISetupPage', () => {
   it('should change grammar points when level is changed', () => {
     renderPage();
 
+    // eslint-disable-next-line testing-library/no-node-access
     const n4Button = screen.getByText('N4').closest('button');
     fireEvent.click(n4Button!);
 

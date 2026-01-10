@@ -112,7 +112,6 @@ const ChunkPackExamplesPage = () => {
 
     // Delay to ensure audio element is loaded and ready
     const timer = setTimeout(() => {
-      // eslint-disable-next-line no-console
       play();
       shouldAutoPlay.current = false;
     }, 200);
@@ -125,7 +124,6 @@ const ChunkPackExamplesPage = () => {
   };
 
   const handleAudioEnded = () => {
-    // eslint-disable-next-line no-console
     if (!pack || currentExampleIndex < 0) return;
 
     // If repeat mode is 'one', replay the current example
@@ -142,12 +140,10 @@ const ChunkPackExamplesPage = () => {
 
     // If there's a next example, play it
     if (currentExampleIndex < allExamples.length - 1) {
-      // eslint-disable-next-line no-console
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[currentExampleIndex + 1].id);
     } else if (repeatMode === 'all') {
       // Loop back to first example
-      // eslint-disable-next-line no-console
       shouldAutoPlay.current = true;
       setSelectedExampleId(allExamples[0].id);
     }

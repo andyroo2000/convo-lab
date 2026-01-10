@@ -56,6 +56,7 @@ const NarrowListeningLibraryPage = () => {
     e.preventDefault();
     e.stopPropagation();
 
+    // eslint-disable-next-line no-alert, no-restricted-globals
     if (!confirm('Are you sure you want to delete this pack? This cannot be undone.')) {
       return;
     }
@@ -75,6 +76,7 @@ const NarrowListeningLibraryPage = () => {
       await loadPacks();
     } catch (err) {
       console.error('Failed to delete pack:', err);
+      // eslint-disable-next-line no-alert -- User feedback for critical operation failure
       alert('Failed to delete pack. Please try again.');
     } finally {
       setDeletingId(null);
@@ -141,35 +143,45 @@ const NarrowListeningLibraryPage = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader className="w-8 h-8 text-purple-600 animate-spin" />
-          </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-            <p className="text-red-700">{error}</p>
-            <button type="button" onClick={loadPacks} className="btn-outline mt-4">
-              Try Again
-            </button>
-          </div>
-        ) : packs.length === 0 ? (
-          <div className="bg-white border rounded-lg p-12 text-center">
-            <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-purple-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No packs yet</h3>
-            <p className="text-gray-600 mb-6">
-              Create your first narrow listening pack to start practicing with story variations
-            </p>
-            <button type="button"
-              onClick={() => navigate('/app/narrow-listening/create')}
-              className="btn-primary inline-flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Your First Pack
-            </button>
-          </div>
-        ) : (
+        {(() => {
+          if (loading) {
+            return (
+              <div className="flex items-center justify-center py-12">
+                <Loader className="w-8 h-8 text-purple-600 animate-spin" />
+              </div>
+            );
+          }
+          if (error) {
+            return (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <p className="text-red-700">{error}</p>
+                <button type="button" onClick={loadPacks} className="btn-outline mt-4">
+                  Try Again
+                </button>
+              </div>
+            );
+          }
+          if (packs.length === 0) {
+            return (
+              <div className="bg-white border rounded-lg p-12 text-center">
+                <div className="p-4 bg-purple-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                  <Sparkles className="w-8 h-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No packs yet</h3>
+                <p className="text-gray-600 mb-6">
+                  Create your first narrow listening pack to start practicing with story variations
+                </p>
+                <button type="button"
+                  onClick={() => navigate('/app/narrow-listening/create')}
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Your First Pack
+                </button>
+              </div>
+            );
+          }
+          return (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {packs.map((pack) => (
               <Link
@@ -225,7 +237,8 @@ const NarrowListeningLibraryPage = () => {
               </Link>
             ))}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

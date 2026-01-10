@@ -1160,13 +1160,11 @@ const SettingsPage = () => {
                       </div>
                       {subscriptionStatus?.status && (
                         <span
-                          className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                            subscriptionStatus.status === 'active'
-                              ? 'bg-green-100 text-green-700'
-                              : subscriptionStatus.status === 'past_due'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-gray-100 text-gray-700'
-                          }`}
+                          className={`px-3 py-1 rounded-full text-sm font-semibold ${(() => {
+                            if (subscriptionStatus.status === 'active') return 'bg-green-100 text-green-700';
+                            if (subscriptionStatus.status === 'past_due') return 'bg-yellow-100 text-yellow-700';
+                            return 'bg-gray-100 text-gray-700';
+                          })()}`}
                         >
                           {subscriptionStatus.status}
                         </span>

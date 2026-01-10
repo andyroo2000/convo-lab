@@ -110,7 +110,12 @@ const Pill = ({
   }[variant];
 
   // Text transform
-  const textTransform = uppercase ? 'uppercase' : capitalize ? 'capitalize' : '';
+  let textTransform = '';
+  if (uppercase) {
+    textTransform = 'uppercase';
+  } else if (capitalize) {
+    textTransform = 'capitalize';
+  }
 
   // Animation
   const animation = animated ? 'animate-pulse' : '';

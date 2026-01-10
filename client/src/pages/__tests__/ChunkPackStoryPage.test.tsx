@@ -88,8 +88,9 @@ describe('ChunkPackStoryPage', () => {
     it('should show loading spinner initially', () => {
       (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
 
-      const { container } = renderPage();
-      const loader = container.querySelector('.animate-spin');
+      renderPage();
+      // eslint-disable-next-line testing-library/no-node-access
+      const loader = document.querySelector('.animate-spin');
       expect(loader).toBeInTheDocument();
     });
   });

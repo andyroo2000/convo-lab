@@ -44,6 +44,7 @@ function convertToneMarksToNumbers(pinyin: string): string {
   let result = '';
   let tone = 0;
 
+  // eslint-disable-next-line no-restricted-syntax -- Character-by-character processing required for tone mark conversion
   for (const char of pinyin) {
     const mapping = TONE_MARK_MAP[char];
     if (mapping) {
@@ -83,6 +84,7 @@ function renderPinyinRuby(characters: string, pinyin: string): string {
   let syllableIndex = 0;
   let result = '';
 
+  // eslint-disable-next-line no-restricted-syntax -- Character-by-character processing required for ruby annotation
   for (const char of characters) {
     // Check if character is Chinese (CJK Unified Ideographs)
     if (/[\u4e00-\u9fff]/.test(char)) {

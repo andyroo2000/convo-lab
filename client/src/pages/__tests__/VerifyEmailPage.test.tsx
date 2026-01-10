@@ -348,6 +348,7 @@ describe('VerifyEmailPage', () => {
       });
 
       // Check for CheckCircle icon (you may need to adjust based on how lucide-react renders)
+      // eslint-disable-next-line testing-library/no-node-access
       const successIcon = document.querySelector('.text-green-500');
       expect(successIcon).toBeInTheDocument();
     });
@@ -365,6 +366,7 @@ describe('VerifyEmailPage', () => {
       });
 
       // Check for XCircle icon
+      // eslint-disable-next-line testing-library/no-node-access
       const errorIcon = document.querySelector('.text-red-500');
       expect(errorIcon).toBeInTheDocument();
     });

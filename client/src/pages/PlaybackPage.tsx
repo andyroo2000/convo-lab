@@ -185,7 +185,6 @@ const PlaybackPage = () => {
     const hasAllSpeeds = episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0;
 
     if (!hasAllSpeeds && !isGeneratingAudio) {
-      // eslint-disable-next-line no-console
       lastProcessedEpisodeRef.current = episode.id;
 
       // Mark this episode as processed in sessionStorage
@@ -319,7 +318,7 @@ const PlaybackPage = () => {
 
   // Auto-scroll to currently playing sentence
   useEffect(() => {
-    if (!episode?.dialogue?.sentences) return undefined;
+    if (!episode?.dialogue?.sentences) return;
 
     const currentSentence = episode.dialogue.sentences.find((sentence) => {
       // Get timing for current speed

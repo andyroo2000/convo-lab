@@ -80,7 +80,6 @@ const NarrowListeningCreatorPage = () => {
       }
 
       const { jobId, packId } = await response.json();
-      // eslint-disable-next-line no-console
 
       // Poll for progress
       const pollInterval = setInterval(async () => {
@@ -112,7 +111,6 @@ const NarrowListeningCreatorPage = () => {
           // Check if completed
           if (status.state === 'completed') {
             clearInterval(pollInterval);
-            // eslint-disable-next-line no-console
             // Invalidate library cache so new pack shows up
             invalidateLibrary();
             // Navigate to playback page
