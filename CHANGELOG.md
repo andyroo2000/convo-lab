@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[chore]** Utility script for fixing common furigana errors in Japanese dialogues - added fix-furigana-errors.ts script to correct misreadings like この前[ぜん]→この前[まえ], 何[なん]→何[なに] before particles, 私[わたくし]→私[わたし], and other common mistakes; supports filtering by user ID and provides detailed fix reporting
+
 - **[chore]** Production data migration scripts - added three migration scripts to sync local sample content to production database: migrate-sample-courses.ts (migrates 29 sample audio courses), sync-avatar-urls.ts (syncs speaker avatar URLs for sample dialogues), and sync-arabic-avatars.ts (syncs Arabic speaker avatars by name matching); successfully migrated 5 new sample courses and 20 Arabic speaker avatars to production, avoiding the need to regenerate audio and images
 
 ### Fixed
