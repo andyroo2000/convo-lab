@@ -122,7 +122,13 @@ const CourseGenerator = () => {
 
       if (!createResponse.ok) {
         const errorData = await createResponse.json();
-        throw new Error(errorData.message || 'Failed to create course');
+        // Handle both formats: { message } and { error: { message } }
+        const errorMessage =
+          errorData.message ||
+          errorData.error?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          'Failed to create course';
+        throw new Error(errorMessage);
       }
 
       const course = await createResponse.json();
@@ -137,13 +143,19 @@ const CourseGenerator = () => {
 
       if (!generateResponse.ok) {
         const errorData = await generateResponse.json();
-        const errorMessage = errorData.message || errorData.error || 'Failed to start course generation';
+        // Handle both formats: { message } and { error: { message } }
+        const errorMessage =
+          errorData.message ||
+          errorData.error?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          'Failed to start course generation';
 
-        // Capture metadata for quota errors
-        if (generateResponse.status === 429 && errorData.quota) {
+        // Capture metadata for quota errors (can be at root or nested in error)
+        const quota = errorData.quota || errorData.error?.quota;
+        if (generateResponse.status === 429 && quota) {
           setErrorMetadata({
             status: generateResponse.status,
-            quota: errorData.quota,
+            quota,
           });
         }
 
