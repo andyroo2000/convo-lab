@@ -29,11 +29,6 @@ export const emailWorker = new Worker(
   {
     connection,
     ...defaultWorkerSettings,
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
   }
 );
 
