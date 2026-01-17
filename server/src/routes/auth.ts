@@ -10,10 +10,10 @@ import jwt from 'jsonwebtoken';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
+import { emailQueue } from '../jobs/emailQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
-import { sendVerificationEmail } from '../services/emailService.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
@@ -21,8 +21,11 @@ const router = Router();
 
 // Sign up
 router.post('/signup', async (req, res, next) => {
+  const startTime = Date.now();
   try {
     const { email, password, name, inviteCode } = req.body;
+
+    console.log(`[SIGNUP] Request received: ${email}`);
 
     if (!email || !password || !name) {
       throw new AppError(i18next.t('server:auth.emailRequired'), 400);
@@ -48,6 +51,68 @@ router.post('/signup', async (req, res, next) => {
     // Check if user exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
+      // Check if this is a retry (invite already used by this user)
+      const usedInvite = await prisma.inviteCode.findUnique({ where: { code: inviteCode } });
+
+      if (usedInvite?.usedBy === existingUser.id) {
+        // Idempotent retry - recreate session and return success
+        console.log(`[SIGNUP] Idempotent retry detected: ${email} (id: ${existingUser.id})`);
+
+        const token = jwt.sign({ userId: existingUser.id }, process.env.JWT_SECRET!, {
+          expiresIn: '7d',
+        });
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        // Queue verification email if not yet verified
+        if (!existingUser.emailVerified) {
+          await emailQueue.add(
+            'send-verification',
+            {
+              type: 'verification',
+              userId: existingUser.id,
+              email: existingUser.email,
+              name: existingUser.name,
+            },
+            {
+              removeOnComplete: true,
+              removeOnFail: { age: 7 * 24 * 60 * 60 },
+            }
+          );
+          console.log(`[SIGNUP] Retry verification email queued: ${existingUser.email}`);
+        }
+
+        const duration = Date.now() - startTime;
+        console.log(
+          `[SIGNUP] Response sent (idempotent retry): ${existingUser.id} ${email} ${duration}ms`
+        );
+
+        return res.json({
+          id: existingUser.id,
+          email: existingUser.email,
+          name: existingUser.name,
+          displayName: existingUser.displayName,
+          avatarColor: existingUser.avatarColor,
+          role: existingUser.role,
+          tier: existingUser.tier,
+          preferredStudyLanguage: existingUser.preferredStudyLanguage,
+          preferredNativeLanguage: existingUser.preferredNativeLanguage,
+          pinyinDisplayMode: existingUser.pinyinDisplayMode,
+          proficiencyLevel: existingUser.proficiencyLevel,
+          onboardingCompleted: existingUser.onboardingCompleted,
+          emailVerified: existingUser.emailVerified,
+          emailVerifiedAt: existingUser.emailVerifiedAt,
+          isTestUser: existingUser.isTestUser,
+          createdAt: existingUser.createdAt,
+          updatedAt: existingUser.updatedAt,
+        });
+      }
+
       throw new AppError(i18next.t('server:auth.userExists'), 400);
     }
 
@@ -56,6 +121,8 @@ router.post('/signup', async (req, res, next) => {
 
     // Check if user should be admin
     const role = isAdminEmail(email) ? 'admin' : 'user';
+
+    console.log(`[SIGNUP] Starting transaction: ${email}`);
 
     // Create user and mark invite code as used in a transaction
     const user = await prisma.$transaction(async (tx) => {
@@ -100,6 +167,8 @@ router.post('/signup', async (req, res, next) => {
       return newUser;
     });
 
+    console.log(`[SIGNUP] User created: ${user.id} ${email}`);
+
     // Create JWT
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
       expiresIn: '7d',
@@ -113,13 +182,24 @@ router.post('/signup', async (req, res, next) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
-    // Send verification email (don't block signup if this fails)
-    try {
-      await sendVerificationEmail(user.id, user.email, user.name);
-    } catch (error) {
-      console.error('Failed to send verification email:', error);
-      // Continue anyway - user can request resend later
-    }
+    // Queue verification email (non-blocking with retries)
+    await emailQueue.add(
+      'send-verification',
+      {
+        type: 'verification',
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+      },
+      {
+        removeOnComplete: true,
+        removeOnFail: { age: 7 * 24 * 60 * 60 },
+      }
+    );
+
+    const duration = Date.now() - startTime;
+    console.log(`[SIGNUP] Verification email queued: ${email}`);
+    console.log(`[SIGNUP] Response sent: ${user.id} ${email} ${duration}ms`);
 
     res.json(user);
   } catch (error) {

@@ -1,9 +1,12 @@
+/* eslint-disable no-console */
+// Console logging is necessary for worker monitoring
 import { audioWorker } from './jobs/audioQueue.js';
-import { dialogueWorker } from './jobs/dialogueQueue.js';
-import { imageWorker } from './jobs/imageQueue.js';
-import { courseWorker } from './jobs/courseQueue.js';
-import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 import { chunkPackWorker } from './jobs/chunkPackQueue.js';
+import { courseWorker } from './jobs/courseQueue.js';
+import { dialogueWorker } from './jobs/dialogueQueue.js';
+import { emailWorker } from './jobs/emailQueue.js';
+import { imageWorker } from './jobs/imageQueue.js';
+import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 
 console.log('🚀 BullMQ Workers Starting...');
 console.log('Workers initialized:', {
@@ -13,6 +16,7 @@ console.log('Workers initialized:', {
   courseWorker: !!courseWorker,
   narrowListeningWorker: !!narrowListeningWorker,
   chunkPackWorker: !!chunkPackWorker,
+  emailWorker: !!emailWorker,
 });
 
 const workers = [
@@ -22,6 +26,7 @@ const workers = [
   courseWorker,
   narrowListeningWorker,
   chunkPackWorker,
+  emailWorker,
 ];
 
 // Check if all queues are empty
@@ -33,6 +38,7 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { courseQueue } = await import('./jobs/courseQueue.js');
     const { narrowListeningQueue } = await import('./jobs/narrowListeningQueue.js');
     const { chunkPackQueue } = await import('./jobs/chunkPackQueue.js');
+    const { emailQueue } = await import('./jobs/emailQueue.js');
 
     const queues = [
       audioQueue,
@@ -41,6 +47,7 @@ async function areQueuesEmpty(): Promise<boolean> {
       courseQueue,
       narrowListeningQueue,
       chunkPackQueue,
+      emailQueue,
     ];
 
     const counts = await Promise.all(

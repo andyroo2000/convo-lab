@@ -36,7 +36,21 @@ const LoginPage = () => {
       const returnUrl = searchParams.get('returnUrl') || '/app/library';
       navigate(returnUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+
+      // Special handling for network errors during signup
+      if (!isLogin && errorMessage.toLowerCase().includes('fetch')) {
+        setError(
+          'Network error during signup. Your account may have been created. ' +
+            'Try logging in with your credentials, or wait a moment and try again.'
+        );
+      } else if (!isLogin && errorMessage.toLowerCase().includes('already exists')) {
+        setError(
+          'This email is already registered. If you just signed up, try logging in instead.'
+        );
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -66,7 +80,8 @@ const LoginPage = () => {
 
         <div className="card">
           <div className="flex space-x-4 mb-6">
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setIsLogin(true)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 isLogin
@@ -77,7 +92,8 @@ const LoginPage = () => {
             >
               {t('auth:login.title')}
             </button>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setIsLogin(false)}
               className={`flex-1 py-2 text-sm font-medium border-b-2 transition-colors ${
                 !isLogin
