@@ -335,5 +335,42 @@ describe('batchedTTSClient', () => {
       // Pitch doesn't create new batches in current implementation
       expect(batches).toHaveLength(1);
     });
+
+    it('should group alternating voices into minimal batches', () => {
+      // Simulate a lesson script that alternates between narrator and L2 speaker
+      const units: LessonScriptUnit[] = [
+        { type: 'narration_L1', text: 'Hello', voiceId: 'en-US-Neural2-J' },
+        { type: 'L2', text: 'Bonjour', voiceId: 'Lea', speed: 1.0 },
+        { type: 'pause', seconds: 1 },
+        { type: 'narration_L1', text: 'How are you?', voiceId: 'en-US-Neural2-J' },
+        { type: 'L2', text: 'Comment allez-vous?', voiceId: 'Lea', speed: 1.0 },
+        { type: 'pause', seconds: 1 },
+        { type: 'narration_L1', text: 'Goodbye', voiceId: 'en-US-Neural2-J' },
+        { type: 'L2', text: 'Au revoir', voiceId: 'Lea', speed: 1.0 },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'fr-FR');
+
+      // Should create only 2 batches (all English together, all French together)
+      // Instead of 6 batches if processing sequentially
+      expect(batches).toHaveLength(2);
+
+      // Find English and French batches
+      const englishBatch = batches.find((b) => b.voiceId === 'en-US-Neural2-J');
+      const frenchBatch = batches.find((b) => b.voiceId === 'Lea');
+
+      expect(englishBatch).toBeDefined();
+      expect(frenchBatch).toBeDefined();
+      expect(englishBatch!.units).toHaveLength(3); // 3 English narrations
+      expect(frenchBatch!.units).toHaveLength(3); // 3 French phrases
+
+      // Verify original indices are preserved for correct reassembly
+      expect(englishBatch!.units[0].originalIndex).toBe(0);
+      expect(englishBatch!.units[1].originalIndex).toBe(3);
+      expect(englishBatch!.units[2].originalIndex).toBe(6);
+      expect(frenchBatch!.units[0].originalIndex).toBe(1);
+      expect(frenchBatch!.units[1].originalIndex).toBe(4);
+      expect(frenchBatch!.units[2].originalIndex).toBe(7);
+    });
   });
 });
