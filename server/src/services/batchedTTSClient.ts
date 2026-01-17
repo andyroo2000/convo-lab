@@ -61,22 +61,25 @@ export interface BatchProcessingOptions {
 }
 
 /**
- * Group script units into batches by (voiceId, speed)
+ * Group script units into batches by (voiceId, speed, languageCode)
  *
- * Batch boundaries are created when:
- * - voiceId changes
- * - speed changes
- * - A pause unit is encountered (silence generated separately)
- * - A marker unit is encountered (produces no audio)
+ * This function groups ALL units with the same voice/speed/language together into single batches,
+ * regardless of their position in the script. This dramatically reduces API calls.
+ *
+ * Example: If a script alternates between English narrator and French speaker 100 times,
+ * instead of creating 200 batches, we create just 2 batches (1 for all English, 1 for all French).
+ *
+ * Units are tracked by originalIndex so they can be reassembled in the correct order later.
  */
 export function groupUnitsIntoBatches(
   units: LessonScriptUnit[],
   nativeLanguageCode: string,
   targetLanguageCode: string
 ): { batches: TTSBatch[]; pauseIndices: Map<number, number> } {
-  const batches: TTSBatch[] = [];
   const pauseIndices = new Map<number, number>(); // originalIndex -> seconds
-  let currentBatch: TTSBatch | null = null;
+
+  // Group units by (voiceId, speed, languageCode) using a Map
+  const batchGroups = new Map<string, TTSBatch>();
 
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
@@ -89,7 +92,6 @@ export function groupUnitsIntoBatches(
     // Handle pauses separately - they don't break batches (pauses are generated locally)
     if (unit.type === 'pause') {
       pauseIndices.set(i, unit.seconds);
-      // Continue to next unit without breaking batch
       continue;
     }
 
@@ -101,40 +103,32 @@ export function groupUnitsIntoBatches(
     // ALWAYS use text field for TTS (reading field with bracket notation is for display only)
     const text = unit.text;
 
-    // Check if we need a new batch
-    const needsNewBatch =
-      !currentBatch ||
-      currentBatch.voiceId !== voiceId ||
-      currentBatch.speed !== speed ||
-      currentBatch.languageCode !== languageCode;
+    // Create unique key for this voice/speed/language combination
+    const batchKey = `${voiceId}|${speed}|${languageCode}`;
 
-    if (needsNewBatch) {
-      // Close current batch if exists
-      if (currentBatch && currentBatch.units.length > 0) {
-        batches.push(currentBatch);
-      }
-      // Start new batch
-      currentBatch = {
+    // Get or create batch for this key
+    let batch = batchGroups.get(batchKey);
+    if (!batch) {
+      batch = {
         voiceId,
         languageCode,
         speed,
         pitch,
         units: [],
       };
+      batchGroups.set(batchKey, batch);
     }
 
-    // Add unit to current batch
-    currentBatch!.units.push({
+    // Add unit to batch (preserving original index for reassembly)
+    batch.units.push({
       originalIndex: i,
       markName: `unit_${i}`,
       text,
     });
   }
 
-  // Don't forget the last batch
-  if (currentBatch && currentBatch.units.length > 0) {
-    batches.push(currentBatch);
-  }
+  // Convert map to array of batches
+  const batches = Array.from(batchGroups.values());
 
   return { batches, pauseIndices };
 }
