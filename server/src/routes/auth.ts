@@ -80,6 +80,11 @@ router.post('/signup', async (req, res, next) => {
               name: existingUser.name,
             },
             {
+              attempts: 3,
+              backoff: {
+                type: 'exponential',
+                delay: 2000,
+              },
               removeOnComplete: true,
               removeOnFail: { age: 7 * 24 * 60 * 60 },
             }
@@ -192,6 +197,11 @@ router.post('/signup', async (req, res, next) => {
         name: user.name,
       },
       {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
         removeOnComplete: true,
         removeOnFail: { age: 7 * 24 * 60 * 60 },
       }
