@@ -71,6 +71,28 @@ export interface BatchProcessingOptions {
  *
  * Units are tracked by originalIndex so they can be reassembled in the correct order later.
  */
+// Google TTS SSML limit is 5000 bytes, use buffer for safety
+const MAX_SSML_BYTES = 4800;
+
+/**
+ * Calculate approximate SSML byte size for a batch
+ */
+function calculateSSMLSize(batch: TTSBatch): number {
+  let size = '<speak>'.length + '</speak>'.length;
+
+  // Add prosody tags if Polly (worst case)
+  size += '<prosody rate="100%">'.length + '</prosody>'.length;
+
+  for (const unit of batch.units) {
+    // <mark name="unit_123"/>
+    size += `<mark name="${unit.markName}"/>`.length;
+    // Text content (use Buffer to get accurate byte count for Unicode)
+    size += Buffer.byteLength(unit.text, 'utf8');
+  }
+
+  return size;
+}
+
 export function groupUnitsIntoBatches(
   units: LessonScriptUnit[],
   nativeLanguageCode: string,
@@ -127,10 +149,66 @@ export function groupUnitsIntoBatches(
     });
   }
 
-  // Convert map to array of batches
-  const batches = Array.from(batchGroups.values());
+  // Split large batches that exceed byte limit
+  const finalBatches: TTSBatch[] = [];
 
-  return { batches, pauseIndices };
+  for (const batch of batchGroups.values()) {
+    const batchSize = calculateSSMLSize(batch);
+
+    if (batchSize <= MAX_SSML_BYTES) {
+      // Batch fits within limit
+      finalBatches.push(batch);
+    } else {
+      // Split batch into smaller chunks
+      // eslint-disable-next-line no-console
+      console.log(
+        `[TTS BATCH] Splitting large batch (${batchSize} bytes) for voice ${batch.voiceId}`
+      );
+
+      const chunks: TTSBatch[] = [];
+      let currentChunk: TTSBatch = {
+        voiceId: batch.voiceId,
+        languageCode: batch.languageCode,
+        speed: batch.speed,
+        pitch: batch.pitch,
+        units: [],
+      };
+
+      for (const unit of batch.units) {
+        // Try adding this unit to current chunk
+        const testChunk = { ...currentChunk, units: [...currentChunk.units, unit] };
+        const testSize = calculateSSMLSize(testChunk);
+
+        if (testSize <= MAX_SSML_BYTES) {
+          // Fits in current chunk
+          currentChunk.units.push(unit);
+        } else {
+          // Start new chunk
+          if (currentChunk.units.length > 0) {
+            chunks.push(currentChunk);
+          }
+          currentChunk = {
+            voiceId: batch.voiceId,
+            languageCode: batch.languageCode,
+            speed: batch.speed,
+            pitch: batch.pitch,
+            units: [unit],
+          };
+        }
+      }
+
+      // Add final chunk
+      if (currentChunk.units.length > 0) {
+        chunks.push(currentChunk);
+      }
+
+      // eslint-disable-next-line no-console
+      console.log(`[TTS BATCH] Split into ${chunks.length} chunks`);
+      finalBatches.push(...chunks);
+    }
+  }
+
+  return { batches: finalBatches, pauseIndices };
 }
 
 /**

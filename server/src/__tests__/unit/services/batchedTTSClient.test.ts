@@ -372,5 +372,36 @@ describe('batchedTTSClient', () => {
       expect(frenchBatch!.units[1].originalIndex).toBe(4);
       expect(frenchBatch!.units[2].originalIndex).toBe(7);
     });
+
+    it('should split large batches that exceed byte limit', () => {
+      // Create a batch with very long text that will exceed 4800 byte limit
+      const longText = 'A'.repeat(2000); // 2000 bytes each
+      const units: LessonScriptUnit[] = [
+        { type: 'L2', text: longText, voiceId: 'test-voice', speed: 1.0 },
+        { type: 'L2', text: longText, voiceId: 'test-voice', speed: 1.0 },
+        { type: 'L2', text: longText, voiceId: 'test-voice', speed: 1.0 },
+        { type: 'L2', text: longText, voiceId: 'test-voice', speed: 1.0 },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      // Should split into multiple batches to stay under limit
+      // With 2000 bytes each + markup, should fit 2 units per batch
+      expect(batches.length).toBeGreaterThan(1);
+
+      // Verify each batch has correct voice properties
+      for (const batch of batches) {
+        expect(batch.voiceId).toBe('test-voice');
+        expect(batch.speed).toBe(1.0);
+      }
+
+      // Verify all units are present and in correct order
+      const allUnits = batches.flatMap((b) => b.units);
+      expect(allUnits).toHaveLength(4);
+      expect(allUnits[0].originalIndex).toBe(0);
+      expect(allUnits[1].originalIndex).toBe(1);
+      expect(allUnits[2].originalIndex).toBe(2);
+      expect(allUnits[3].originalIndex).toBe(3);
+    });
   });
 });
