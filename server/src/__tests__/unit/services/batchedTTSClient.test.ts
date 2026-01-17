@@ -113,7 +113,7 @@ describe('batchedTTSClient', () => {
       expect(batches[1].speed).toBe(1.0);
     });
 
-    it('should handle pause units and track them separately', () => {
+    it('should handle pause units and track them separately without breaking batches', () => {
       const units: LessonScriptUnit[] = [
         { type: 'L2', text: 'Before', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
         { type: 'pause', seconds: 2 },
@@ -122,7 +122,8 @@ describe('batchedTTSClient', () => {
 
       const { batches, pauseIndices } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
-      expect(batches).toHaveLength(2); // Pause breaks the batch
+      expect(batches).toHaveLength(1); // Pauses don't break batches (they're generated separately)
+      expect(batches[0].units).toHaveLength(2); // Both 'Before' and 'After' in same batch
       expect(pauseIndices.size).toBe(1);
       expect(pauseIndices.get(1)).toBe(2); // Index 1 has 2 second pause
     });
@@ -193,10 +194,11 @@ describe('batchedTTSClient', () => {
 
       const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
+      expect(batches).toHaveLength(1); // Both units in same batch (pauses don't break batches)
       expect(batches[0].units[0].originalIndex).toBe(1); // After marker
       expect(batches[0].units[0].markName).toBe('unit_1');
-      expect(batches[1].units[0].originalIndex).toBe(3); // After pause
-      expect(batches[1].units[0].markName).toBe('unit_3');
+      expect(batches[0].units[1].originalIndex).toBe(3); // After pause, but same batch
+      expect(batches[0].units[1].markName).toBe('unit_3');
     });
   });
 
