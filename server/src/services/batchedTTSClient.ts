@@ -1,13 +1,16 @@
-import ffmpeg from 'fluent-ffmpeg';
+// eslint-disable-next-line import/no-named-as-default-member
 import { promises as fs } from 'fs';
 import path from 'path';
+
+import ffmpeg from 'fluent-ffmpeg';
+
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
+import { generateSilence } from './ttsClient.js';
 import {
   getGoogleTTSBetaProvider,
   SynthesizeWithTimepointsResult,
 } from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
-import { generateSilence } from './ttsClient.js';
 
 /**
  * Detect TTS provider from voice ID format
@@ -83,14 +86,10 @@ export function groupUnitsIntoBatches(
       continue;
     }
 
-    // Handle pauses separately - they break batches
+    // Handle pauses separately - they don't break batches (pauses are generated locally)
     if (unit.type === 'pause') {
       pauseIndices.set(i, unit.seconds);
-      // Close current batch if exists
-      if (currentBatch && currentBatch.units.length > 0) {
-        batches.push(currentBatch);
-        currentBatch = null;
-      }
+      // Continue to next unit without breaking batch
       continue;
     }
 
@@ -283,6 +282,7 @@ async function extractAudioSegment(
  */
 async function getAudioDuration(filePath: string): Promise<number> {
   return new Promise((resolve, reject) => {
+    // eslint-disable-next-line import/no-named-as-default-member
     ffmpeg.ffprobe(filePath, (err, metadata) => {
       if (err) {
         reject(err);
@@ -290,7 +290,8 @@ async function getAudioDuration(filePath: string): Promise<number> {
       }
       // Ensure duration is always a number (ffprobe can sometimes return string)
       const duration = metadata.format.duration;
-      const numericDuration = typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
+      const numericDuration =
+        typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
       resolve(numericDuration);
     });
   });
@@ -337,7 +338,9 @@ export async function processBatches(
     targetLanguageCode
   );
 
+  // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Grouped ${units.length} units into ${batches.length} batches`);
+  // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Pause units: ${pauseIndices.size}`);
 
   const segments = new Map<number, Buffer>();
@@ -351,6 +354,7 @@ export async function processBatches(
     const providerType = getProviderFromVoiceId(batch.voiceId);
     const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
+    // eslint-disable-next-line no-console
     console.log(
       `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
         `provider=${providerType}, voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
@@ -368,6 +372,7 @@ export async function processBatches(
       pitch: batch.pitch,
     });
 
+    // eslint-disable-next-line no-console
     console.log(
       `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
         `Got ${result.timepoints.length} timepoints, splitting audio...`
@@ -393,6 +398,7 @@ export async function processBatches(
   }
 
   // Generate silence for pause units
+  // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Generating ${pauseIndices.size} silence segments...`);
   for (const [idx, seconds] of pauseIndices) {
     const silenceBuffer = await generateSilence(seconds);
@@ -400,6 +406,7 @@ export async function processBatches(
   }
 
   // Build timing data by iterating through units in order
+  // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Building timing data for ${units.length} units...`);
   const timingData: Array<{ unitIndex: number; startTime: number; endTime: number }> = [];
   let cumulativeTime = 0; // in seconds
@@ -416,6 +423,7 @@ export async function processBatches(
     const segmentBuffer = segments.get(i) || pauseSegments.get(i);
 
     if (!segmentBuffer) {
+      // eslint-disable-next-line no-console
       console.warn(`[TTS BATCH] No segment found for unit ${i} (type: ${unit.type})`);
       continue;
     }
@@ -438,6 +446,7 @@ export async function processBatches(
   }
 
   const totalTTSCalls = batches.length + pauseIndices.size; // batches + silence calls
+  // eslint-disable-next-line no-console
   console.log(
     `[TTS BATCH] Complete: ${totalTTSCalls} TTS calls ` +
       `(was ${units.filter((u) => u.type !== 'marker').length}), ` +
@@ -495,6 +504,7 @@ export async function synthesizeBatchedTexts(
 
   const { voiceId, languageCode, speed = 1.0, pitch = 0 } = options;
 
+  // eslint-disable-next-line no-console
   console.log(
     `[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`
   );
@@ -532,6 +542,7 @@ export async function synthesizeBatchedTexts(
     pitch,
   });
 
+  // eslint-disable-next-line no-console
   console.log(`[TTS BATCH SIMPLE] Got ${result.timepoints.length} timepoints, splitting audio...`);
 
   // Create temp directory for splitting
@@ -581,6 +592,7 @@ export async function synthesizeBatchedTexts(
       await fs.unlink(segmentPath).catch(() => {});
     }
 
+    // eslint-disable-next-line no-console
     console.log(`[TTS BATCH SIMPLE] Complete: 1 TTS call (was ${texts.length})`);
     return segments;
   } finally {
