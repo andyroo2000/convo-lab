@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** TTS batch size limit causing API failures - added byte limit checking to prevent batches from exceeding Google's 5000 byte SSML limit; batches now automatically split into 4800-byte chunks when needed while preserving voice properties and original indices for correct reassembly; prevents "input.ssml is longer than the limit" errors during course generation
 - **[fix]** Client error display bug showing "[object Object]" instead of actual error messages - fixed CourseGenerator and other components to properly extract error messages from nested API response format ({ error: { message } }); users now see helpful messages like "Please verify your email..." instead of confusing error objects
 - **[fix]** Production signup "failed to fetch" error with async email queue - resolved issue where users saw network errors despite successful account creation by making verification email sending asynchronous via BullMQ; implemented idempotent signup to handle retry scenarios gracefully (users can retry without "already exists" errors); added comprehensive [SIGNUP] logging for monitoring; added slow request tracking (>5s for signup, >2s for others); improved client error messaging for network failures; signup responses now complete in <2s with email queued in background with 3 automatic retries
 
