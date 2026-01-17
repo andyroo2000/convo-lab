@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Production signup "failed to fetch" error with async email queue - resolved issue where users saw network errors despite successful account creation by making verification email sending asynchronous via BullMQ; implemented idempotent signup to handle retry scenarios gracefully (users can retry without "already exists" errors); added comprehensive [SIGNUP] logging for monitoring; added slow request tracking (>5s for signup, >2s for others); improved client error messaging for network failures; signup responses now complete in <2s with email queued in background with 3 automatic retries
 - **[fix]** TypeScript compilation errors and ESLint warnings - resolved type errors in courseQueue.ts (Prisma JsonValue casting), auth.ts (proper types for Prisma updates, Express user, JWT payload), and audioExtractorService.ts (removed unused interface, proper type casting); added appropriate eslint-disable comments for necessary console logging; fixed checkGenerationLimit call to include contentType parameter; updated test expectations for isSampleContent field; added test credentials to server/.env.example
 
 ### Changed
