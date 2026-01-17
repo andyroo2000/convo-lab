@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Improved
 
+- **[perf]** Audio course generation performance dramatically improved by fixing TTS batching - reduced TTS API calls from 600+ to ~20 per course by preventing pause units from breaking batches; pauses are generated locally and don't require TTS calls; course generation time reduced by ~90% from 21 hours to 1-2 hours; added admin utility script kill-active-course-jobs.ts for managing course generation jobs
 - **[chore]** Fixed 61 ESLint errors across client codebase - eliminated all 57 errors including unused eslint-disable directives (10), nested ternaries (7), testing-library violations (20), await-in-loop patterns (7), promise executor returns (4), continue statements (2), restricted syntax (2), consistent-return (1), and restricted-globals (1); remaining 91 warnings are all @typescript-eslint/no-explicit-any types flagged for future type improvement
 
 ### Added
