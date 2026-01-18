@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Admin impersonation lost when clicking navigation links - fixed critical bug where viewAs query parameter was not preserved in Layout navigation links (logo, Library, Create buttons); admins would lose impersonation context when clicking any nav link; all navigation now preserves viewAs parameter; added visual "Viewing as: [name]" indicator badge in header to clearly show active impersonation; fetches and displays impersonated user's name for admin clarity
 - **[fix]** Google TTS language code mismatch causing audio generation failures - fixed issue where 2-letter language codes (e.g., "fr") didn't match Google TTS voice format requirements (e.g., "fr-FR"); now extract full language code directly from voice ID ("fr-FR-Neural2-A" → "fr-FR") to ensure API compatibility; resolves "Requested language code doesn't match voice's language code" errors that blocked audio generation for French and other non-English content
 - **[fix]** Admin impersonation now works across all content pages - fixed bug where viewAs query parameter was not preserved when navigating from library to playback/course pages; all content pages now properly read and pass viewAsUserId to API calls
 
