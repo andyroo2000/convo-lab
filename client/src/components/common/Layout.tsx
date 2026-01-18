@@ -1,6 +1,7 @@
-import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic } from 'lucide-react';
+import { Library, Mic, Eye } from 'lucide-react';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,6 +16,28 @@ const Layout = () => {
   const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const [impersonatedUserName, setImpersonatedUserName] = useState<string | null>(null);
+
+  // Fetch impersonated user's name when viewAsUserId changes
+  useEffect(() => {
+    if (viewAsUserId && user?.role === 'admin') {
+      fetch(`/api/admin/users/${viewAsUserId}`, {
+        credentials: 'include',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          setImpersonatedUserName(data.displayName || data.name || data.email);
+        })
+        .catch((err) => {
+          console.error('Failed to fetch impersonated user:', err);
+          setImpersonatedUserName(null);
+        });
+    } else {
+      setImpersonatedUserName(null);
+    }
+  }, [viewAsUserId, user?.role]);
 
   const handleLogout = async () => {
     await logout();
@@ -68,7 +91,7 @@ const Layout = () => {
           <div className="flex h-16">
             <div className="flex items-center flex-1">
               <Link
-                to="/app/library"
+                to={viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library'}
                 className="flex items-center gap-2 px-2 sm:px-4 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
               >
                 <span className="hidden xs:inline">ConvoLab</span>
@@ -79,10 +102,16 @@ const Layout = () => {
                   {t('common:demoMode')}
                 </span>
               )}
+              {impersonatedUserName && (
+                <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
+                  <Eye className="w-3 h-3" />
+                  Viewing as: {impersonatedUserName}
+                </span>
+              )}
               {/* Desktop Navigation */}
               <div className="hidden sm:ml-6 sm:flex h-16 items-center gap-1">
                 <Link
-                  to="/app/library"
+                  to={viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library'}
                   className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
                     isLibraryActive
                       ? 'bg-white text-strawberry shadow-md'
@@ -93,7 +122,7 @@ const Layout = () => {
                   {t('common:nav.library')}
                 </Link>
                 <Link
-                  to="/app/create"
+                  to={viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create'}
                   className={`relative inline-flex items-center justify-center px-4 h-10 text-sm font-bold transition-all rounded-lg ${
                     isCreateActive
                       ? 'bg-white text-coral shadow-md'
@@ -107,7 +136,7 @@ const Layout = () => {
               {/* Mobile Navigation */}
               <div className="flex sm:hidden ml-2 gap-1 flex-1">
                 <Link
-                  to="/app/library"
+                  to={viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library'}
                   className={`relative inline-flex items-center justify-center px-3 h-11 text-xs font-bold transition-all rounded-lg flex-1 ${
                     isLibraryActive
                       ? 'bg-white text-strawberry shadow-md'
@@ -118,7 +147,7 @@ const Layout = () => {
                   {t('common:nav.library')}
                 </Link>
                 <Link
-                  to="/app/create"
+                  to={viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create'}
                   className={`relative inline-flex items-center justify-center px-3 h-11 text-xs font-bold transition-all rounded-lg flex-1 ${
                     isCreateActive
                       ? 'bg-white text-coral shadow-md'
@@ -135,6 +164,12 @@ const Layout = () => {
               {isDemo && (
                 <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-amber-100 text-amber-800 rounded-full">
                   {t('common:demoMode')}
+                </span>
+              )}
+              {impersonatedUserName && (
+                <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
+                  <Eye className="w-2.5 h-2.5" />
+                  {impersonatedUserName}
                 </span>
               )}
               {/* Language Indicator - Mobile */}
