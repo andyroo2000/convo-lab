@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** Admin impersonation preserved across content creation workflow - admins can now create content for users while impersonating them; viewAs query parameter is maintained through all navigation paths including: library empty states → create page → content type forms → API calls → success navigation; enables admins to generate dialogues, audio courses, narrow listening packs, processing instruction sessions, and lexical chunk packs on behalf of users without losing impersonation context
+- **[chore]** Diagnostic scripts for debugging content generation - added 34 utility scripts for monitoring and managing content generation: check-\*-queue.ts (queue status monitoring), delete-course.ts (safe course deletion), trigger-episode-audio.ts (manual audio generation), find-yuriy-courses.ts, get-course-details.ts, list-all-users.ts, and various user/content inspection utilities
+
 ### Fixed
 
 - **[fix]** Google TTS language code mismatch causing audio generation failures - fixed issue where 2-letter language codes (e.g., "fr") didn't match Google TTS voice format requirements (e.g., "fr-FR"); now extract full language code directly from voice ID ("fr-FR-Neural2-A" → "fr-FR") to ensure API compatibility; resolves "Requested language code doesn't match voice's language code" errors that blocked audio generation for French and other non-English content
