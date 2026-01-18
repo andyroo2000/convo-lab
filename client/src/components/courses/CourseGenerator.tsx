@@ -9,6 +9,7 @@ import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
+import useEffectiveUser from '../../hooks/useEffectiveUser';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 
@@ -29,7 +30,8 @@ const CourseGenerator = () => {
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['audioCourse']);
-  const { user } = useAuth();
+  const { user } = useAuth(); // For role checking
+  const { effectiveUser } = useEffectiveUser(); // For language preferences
   const isDemo = useIsDemo();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
@@ -51,13 +53,13 @@ const CourseGenerator = () => {
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
 
-  // Initialize from user preferences
+  // Initialize from effective user preferences (respects impersonation)
   useEffect(() => {
-    if (user) {
-      setTargetLanguage(user.preferredStudyLanguage || 'ja');
-      setNativeLanguage(user.preferredNativeLanguage || 'en');
+    if (effectiveUser) {
+      setTargetLanguage(effectiveUser.preferredStudyLanguage || 'ja');
+      setNativeLanguage(effectiveUser.preferredNativeLanguage || 'en');
     }
-  }, [user]);
+  }, [effectiveUser]);
 
   // Show upgrade prompt when quota is exceeded
   useEffect(() => {
