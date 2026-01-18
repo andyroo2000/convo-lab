@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic, Eye } from 'lucide-react';
@@ -6,50 +5,20 @@ import { Library, Mic, Eye } from 'lucide-react';
 import { LANGUAGE_ABBREVIATIONS } from '@languageflow/shared/src/constants-new';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
+import useEffectiveUser from '../../hooks/useEffectiveUser';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
 
 const Layout = () => {
   const { user, loading, logout } = useAuth();
+  const { effectiveUser, isImpersonating } = useEffectiveUser();
   const { t } = useTranslation(['common']);
   const isDemo = useIsDemo();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
-  const [impersonatedUser, setImpersonatedUser] = useState<{
-    name: string;
-    displayName?: string;
-    avatarColor?: string;
-    avatarUrl?: string;
-    role: 'user' | 'moderator' | 'admin' | 'demo';
-  } | null>(null);
-
-  // Fetch impersonated user's full data when viewAsUserId changes
-  useEffect(() => {
-    if (viewAsUserId && user?.role === 'admin') {
-      fetch(`/api/admin/users/${viewAsUserId}/info`, {
-        credentials: 'include',
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          setImpersonatedUser({
-            name: data.name,
-            displayName: data.displayName,
-            avatarColor: data.avatarColor,
-            avatarUrl: data.avatarUrl,
-            role: data.role || 'user',
-          });
-        })
-        .catch((err) => {
-          console.error('Failed to fetch impersonated user:', err);
-          setImpersonatedUser(null);
-        });
-    } else {
-      setImpersonatedUser(null);
-    }
-  }, [viewAsUserId, user?.role]);
 
   const handleLogout = async () => {
     await logout();
@@ -114,10 +83,10 @@ const Layout = () => {
                   {t('common:demoMode')}
                 </span>
               )}
-              {impersonatedUser && (
+              {isImpersonating && effectiveUser && (
                 <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
                   <Eye className="w-3 h-3" />
-                  Viewing as: {impersonatedUser.displayName || impersonatedUser.name}
+                  Viewing as: {effectiveUser.displayName || effectiveUser.name}
                 </span>
               )}
               {/* Desktop Navigation */}
@@ -178,10 +147,10 @@ const Layout = () => {
                   {t('common:demoMode')}
                 </span>
               )}
-              {impersonatedUser && (
+              {isImpersonating && effectiveUser && (
                 <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
                   <Eye className="w-2.5 h-2.5" />
-                  {impersonatedUser.displayName || impersonatedUser.name}
+                  {effectiveUser.displayName || effectiveUser.name}
                 </span>
               )}
               {/* Language Indicator - Mobile */}
@@ -189,7 +158,7 @@ const Layout = () => {
                 <div className="px-1.5 py-0.5 bg-white/20 rounded">
                   <span className="text-[10px] font-bold text-white tracking-wide">
                     {LANGUAGE_ABBREVIATIONS[
-                      user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
+                      effectiveUser?.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
                     ] || 'JA'}
                   </span>
                 </div>
@@ -199,20 +168,24 @@ const Layout = () => {
                 <div className="px-2.5 py-1 bg-white/20 rounded-md">
                   <span className="text-xs font-bold text-white tracking-wide">
                     {LANGUAGE_ABBREVIATIONS[
-                      user.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
+                      effectiveUser?.preferredStudyLanguage as keyof typeof LANGUAGE_ABBREVIATIONS
                     ] || 'JA'}
                   </span>
                 </div>
               </div>
               <UserMenu
                 userName={
-                  impersonatedUser
-                    ? impersonatedUser.displayName || impersonatedUser.name
+                  isImpersonating && effectiveUser
+                    ? effectiveUser.displayName || effectiveUser.name
                     : user.displayName || user.name
                 }
-                avatarColor={impersonatedUser ? impersonatedUser.avatarColor : user.avatarColor}
-                avatarUrl={impersonatedUser ? impersonatedUser.avatarUrl : user.avatarUrl}
-                userRole={impersonatedUser ? impersonatedUser.role : user.role}
+                avatarColor={
+                  isImpersonating && effectiveUser ? effectiveUser.avatarColor : user.avatarColor
+                }
+                avatarUrl={
+                  isImpersonating && effectiveUser ? effectiveUser.avatarUrl : user.avatarUrl
+                }
+                userRole={isImpersonating && effectiveUser ? effectiveUser.role : user.role}
                 onLogout={handleLogout}
               />
             </div>

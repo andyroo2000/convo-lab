@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader, Sparkles } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
-import { useAuth } from '../contexts/AuthContext';
+import useEffectiveUser from '../hooks/useEffectiveUser';
 import DemoRestrictionModal from '../components/common/DemoRestrictionModal';
 import UpgradePrompt from '../components/common/UpgradePrompt';
 
@@ -15,10 +15,14 @@ const NarrowListeningCreatorPage = () => {
   const { t } = useTranslation(['narrowListening']);
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
-  const { user } = useAuth();
+  const { effectiveUser } = useEffectiveUser();
 
   const [topic, setTopic] = useState('');
-  const targetLanguage = (user?.preferredStudyLanguage || 'ja') as 'ja' | 'zh' | 'es' | 'fr';
+  const targetLanguage = (effectiveUser?.preferredStudyLanguage || 'ja') as
+    | 'ja'
+    | 'zh'
+    | 'es'
+    | 'fr';
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [hskLevel, setHskLevel] = useState<string>('HSK3');
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
