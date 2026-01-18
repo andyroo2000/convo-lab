@@ -18,9 +18,15 @@ const Layout = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
-  const [impersonatedUserName, setImpersonatedUserName] = useState<string | null>(null);
+  const [impersonatedUser, setImpersonatedUser] = useState<{
+    name: string;
+    displayName?: string;
+    avatarColor?: string;
+    avatarUrl?: string;
+    role: 'user' | 'moderator' | 'admin' | 'demo';
+  } | null>(null);
 
-  // Fetch impersonated user's name when viewAsUserId changes
+  // Fetch impersonated user's full data when viewAsUserId changes
   useEffect(() => {
     if (viewAsUserId && user?.role === 'admin') {
       fetch(`/api/admin/users/${viewAsUserId}`, {
@@ -28,14 +34,20 @@ const Layout = () => {
       })
         .then((res) => res.json())
         .then((data) => {
-          setImpersonatedUserName(data.displayName || data.name || data.email);
+          setImpersonatedUser({
+            name: data.name,
+            displayName: data.displayName,
+            avatarColor: data.avatarColor,
+            avatarUrl: data.avatarUrl,
+            role: data.role || 'user',
+          });
         })
         .catch((err) => {
           console.error('Failed to fetch impersonated user:', err);
-          setImpersonatedUserName(null);
+          setImpersonatedUser(null);
         });
     } else {
-      setImpersonatedUserName(null);
+      setImpersonatedUser(null);
     }
   }, [viewAsUserId, user?.role]);
 
@@ -102,10 +114,10 @@ const Layout = () => {
                   {t('common:demoMode')}
                 </span>
               )}
-              {impersonatedUserName && (
+              {impersonatedUser && (
                 <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
                   <Eye className="w-3 h-3" />
-                  Viewing as: {impersonatedUserName}
+                  Viewing as: {impersonatedUser.displayName || impersonatedUser.name}
                 </span>
               )}
               {/* Desktop Navigation */}
@@ -166,10 +178,10 @@ const Layout = () => {
                   {t('common:demoMode')}
                 </span>
               )}
-              {impersonatedUserName && (
+              {impersonatedUser && (
                 <span className="sm:hidden inline-flex mr-2 px-1.5 py-0.5 text-[10px] font-medium bg-purple-100 text-purple-800 rounded-full items-center gap-1">
                   <Eye className="w-2.5 h-2.5" />
-                  {impersonatedUserName}
+                  {impersonatedUser.displayName || impersonatedUser.name}
                 </span>
               )}
               {/* Language Indicator - Mobile */}
@@ -193,10 +205,14 @@ const Layout = () => {
                 </div>
               </div>
               <UserMenu
-                userName={user.displayName || user.name}
-                avatarColor={user.avatarColor}
-                avatarUrl={user.avatarUrl}
-                userRole={user.role}
+                userName={
+                  impersonatedUser
+                    ? impersonatedUser.displayName || impersonatedUser.name
+                    : user.displayName || user.name
+                }
+                avatarColor={impersonatedUser ? impersonatedUser.avatarColor : user.avatarColor}
+                avatarUrl={impersonatedUser ? impersonatedUser.avatarUrl : user.avatarUrl}
+                userRole={impersonatedUser ? impersonatedUser.role : user.role}
                 onLogout={handleLogout}
               />
             </div>
