@@ -12,7 +12,7 @@ import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
-import { useAuth } from '../../contexts/AuthContext';
+import useEffectiveUser from '../../hooks/useEffectiveUser';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 
@@ -31,7 +31,7 @@ const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 const DialogueGenerator = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { effectiveUser } = useEffectiveUser();
   const isDemo = useIsDemo();
   const {
     createEpisode,
@@ -56,14 +56,14 @@ const DialogueGenerator = () => {
   const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [tone, setTone] = useState<ToneStyle>('casual');
 
-  // Initialize from user preferences
+  // Initialize from effective user preferences (respects impersonation)
   useEffect(() => {
-    if (user) {
-      setTargetLanguage(user.preferredStudyLanguage || 'ja');
+    if (effectiveUser) {
+      setTargetLanguage(effectiveUser.preferredStudyLanguage || 'ja');
       // Initialize language-specific proficiency levels from user settings if available
       // For now, defaults to N5/HSK1 since we don't have user JLPT/HSK preferences yet
     }
-  }, [user]);
+  }, [effectiveUser]);
 
   // Initialize speakers based on target language with unique voices
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => {
