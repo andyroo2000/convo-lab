@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES, getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
@@ -30,8 +30,15 @@ function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): str
 
 const PlaybackPage = () => {
   const { episodeId } = useParams<{ episodeId: string }>();
-  const { getEpisode, generateAudio: _generateAudio, generateAllSpeedsAudio, pollJobStatus: _pollJobStatus, loading } =
-    useEpisodes();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const {
+    getEpisode,
+    generateAudio: _generateAudio,
+    generateAllSpeedsAudio,
+    pollJobStatus: _pollJobStatus,
+    loading,
+  } = useEpisodes();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
   const [episode, setEpisode] = useState<Episode | null>(null);
@@ -66,7 +73,7 @@ const PlaybackPage = () => {
   const loadEpisode = async (bustCache = false) => {
     if (!episodeId) return;
     try {
-      const data = await getEpisode(episodeId, bustCache);
+      const data = await getEpisode(episodeId, bustCache, viewAsUserId);
       setEpisode(data);
     } catch (err) {
       console.error('Failed to load episode:', err);
@@ -314,7 +321,7 @@ const PlaybackPage = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, play, pause, episode, currentTime, seek]);
+  }, [isPlaying, play, pause, episode, currentTime, seek, speedKey]);
 
   // Auto-scroll to currently playing sentence
   useEffect(() => {

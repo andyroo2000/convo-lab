@@ -316,7 +316,8 @@ const LibraryPage = () => {
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
           {isFeatureEnabled('dialoguesEnabled') && (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => handleFilterChange('dialogues')}
               className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'dialogues'
@@ -330,7 +331,8 @@ const LibraryPage = () => {
             </button>
           )}
           {isFeatureEnabled('audioCourseEnabled') && (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => handleFilterChange('courses')}
               className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'courses'
@@ -344,7 +346,8 @@ const LibraryPage = () => {
             </button>
           )}
           {isFeatureEnabled('narrowListeningEnabled') && (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => handleFilterChange('narrowListening')}
               className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'narrowListening'
@@ -358,7 +361,8 @@ const LibraryPage = () => {
             </button>
           )}
           {isFeatureEnabled('lexicalChunksEnabled') && (
-            <button type="button"
+            <button
+              type="button"
               onClick={() => handleFilterChange('chunkPacks')}
               className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
                 filter === 'chunkPacks'
@@ -440,8 +444,11 @@ const LibraryPage = () => {
             <div className="card">
               <div className="text-center py-12 space-y-4">
                 <p className="text-gray-500">{t('library:emptyStates.all.description')}</p>
-                <button type="button"
-                  onClick={() => { window.location.href = '/app/create'; }}
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.location.href = '/app/create';
+                  }}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"
                 >
@@ -465,7 +472,7 @@ const LibraryPage = () => {
               return (
                 <Link
                   key={episode.id}
-                  to={`/app/playback/${episode.id}`}
+                  to={`/app/playback/${episode.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
                   className="group relative flex items-stretch bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-lg"
                   data-testid={`library-episode-card-${episode.id}`}
                 >
@@ -511,7 +518,8 @@ const LibraryPage = () => {
                           </Pill>
                         )}
                         {!isDemo && !viewAsUserId && (
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={(e) => handleDeleteClick(episode, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete episode"
@@ -541,7 +549,7 @@ const LibraryPage = () => {
               return (
                 <Link
                   key={course.id}
-                  to={`/app/courses/${course.id}`}
+                  to={`/app/courses/${course.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
                   className="group relative flex items-stretch bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-lg"
                   data-testid={`library-course-card-${course.id}`}
                 >
@@ -550,6 +558,7 @@ const LibraryPage = () => {
                     <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     <span
                       className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
+                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
                       dangerouslySetInnerHTML={{ __html: t('library:sidebar.course') }}
                     />
                   </div>
@@ -590,7 +599,8 @@ const LibraryPage = () => {
                           />
                         )}
                         {!isDemo && !viewAsUserId && (
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={(e) => handleDeleteCourseClick(course, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete course"
@@ -629,6 +639,7 @@ const LibraryPage = () => {
                     <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                     <span
                       className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
+                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
                       dangerouslySetInnerHTML={{ __html: t('library:sidebar.narrowListening') }}
                     />
                   </div>
@@ -659,7 +670,8 @@ const LibraryPage = () => {
                           </Pill>
                         )}
                         {!isDemo && !viewAsUserId && (
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={(e) => handleDeletePackClick(pack, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete pack"
@@ -696,6 +708,7 @@ const LibraryPage = () => {
                     <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
                     <span
                       className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight"
+                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
                       dangerouslySetInnerHTML={{ __html: t('library:sidebar.chunkPack') }}
                     />
                   </div>
@@ -727,7 +740,8 @@ const LibraryPage = () => {
                           level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
                         />
                         {!isDemo && !viewAsUserId && (
-                          <button type="button"
+                          <button
+                            type="button"
                             onClick={(e) => handleDeleteChunkPackClick(pack, e)}
                             className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete lexical chunk pack"
