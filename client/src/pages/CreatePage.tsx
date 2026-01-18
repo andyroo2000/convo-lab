@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -11,9 +11,17 @@ import CustomContentGuide from '../components/pulsePoints/CustomContentGuide';
 const CreatePage = () => {
   const { t } = useTranslation(['create']);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { isFeatureEnabled } = useFeatureFlags();
   const { user, updateUser } = useAuth();
   const isDemo = useIsDemo();
+
+  // Helper function to navigate with viewAs preserved
+  const navigateWithViewAs = (path: string) => {
+    const fullPath = viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path;
+    navigate(fullPath);
+  };
 
   // Show custom content guide for users who haven't seen it
   const [showCustomGuide, setShowCustomGuide] = useState(false);
@@ -50,7 +58,7 @@ const CreatePage = () => {
         {isFeatureEnabled('dialoguesEnabled') && (
           <button
             type="button"
-            onClick={() => navigate('/app/create/dialogue')}
+            onClick={() => navigateWithViewAs('/app/create/dialogue')}
             className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-dialogues"
           >
@@ -75,7 +83,7 @@ const CreatePage = () => {
         {isFeatureEnabled('audioCourseEnabled') && (
           <button
             type="button"
-            onClick={() => navigate('/app/create/audio-course')}
+            onClick={() => navigateWithViewAs('/app/create/audio-course')}
             className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-audio-course"
           >
@@ -102,7 +110,7 @@ const CreatePage = () => {
         {isFeatureEnabled('narrowListeningEnabled') && (
           <button
             type="button"
-            onClick={() => navigate('/app/create/narrow-listening')}
+            onClick={() => navigateWithViewAs('/app/create/narrow-listening')}
             className="w-full flex items-center bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-narrow-listening"
           >
@@ -129,7 +137,7 @@ const CreatePage = () => {
         {isFeatureEnabled('processingInstructionEnabled') && (
           <button
             type="button"
-            onClick={() => navigate('/app/create/processing-instruction')}
+            onClick={() => navigateWithViewAs('/app/create/processing-instruction')}
             className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-processing-instruction"
           >
@@ -154,7 +162,7 @@ const CreatePage = () => {
         {isFeatureEnabled('lexicalChunksEnabled') && (
           <button
             type="button"
-            onClick={() => navigate('/app/create/lexical-chunk-pack')}
+            onClick={() => navigateWithViewAs('/app/create/lexical-chunk-pack')}
             className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
             data-testid="create-card-lexical-chunks"
           >

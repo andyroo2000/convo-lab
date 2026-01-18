@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Loader } from 'lucide-react';
 
@@ -203,6 +203,8 @@ function getGrammarPointsForLevel(level: JLPTLevel): GrammarPointType[] {
 
 const PISetupPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['processingInstruction']);
   const isDemo = useIsDemo();
   const [jlptLevel, setJlptLevel] = useState<JLPTLevel>('N5');
@@ -235,7 +237,8 @@ const PISetupPage = () => {
     setError(null);
 
     try {
-      const response = await fetch(`${API_URL}/api/pi/generate-session`, {
+      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+      const response = await fetch(`${API_URL}/api/pi/generate-session${viewAsParam}`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -268,7 +271,10 @@ const PISetupPage = () => {
       }
 
       // Navigate to session page with the session data
-      navigate('/app/pi/session', { state: { session } });
+      const sessionUrl = viewAsUserId
+        ? `/app/pi/session?viewAs=${viewAsUserId}`
+        : '/app/pi/session';
+      navigate(sessionUrl, { state: { session } });
     } catch (err: unknown) {
       console.error('Error generating PI session:', err);
       setError(

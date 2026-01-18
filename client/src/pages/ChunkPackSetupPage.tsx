@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { BookOpen, Loader } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
@@ -198,6 +198,8 @@ function getThemesForLevel(level: JLPTLevel): ThemeMetadata[] {
 
 const ChunkPackSetupPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['chunkPack']);
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
@@ -233,7 +235,8 @@ const ChunkPackSetupPage = () => {
 
     try {
       // Start generation job
-      const response = await fetch(`${API_URL}/api/chunk-packs/generate`, {
+      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+      const response = await fetch(`${API_URL}/api/chunk-packs/generate${viewAsParam}`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -261,7 +264,7 @@ const ChunkPackSetupPage = () => {
 
       // Poll for job completion
       const pollJob = async () => {
-        const jobResponse = await fetch(`${API_URL}/api/chunk-packs/job/${jobId}`, {
+        const jobResponse = await fetch(`${API_URL}/api/chunk-packs/job/${jobId}${viewAsParam}`, {
           credentials: 'include',
         });
 
@@ -276,7 +279,10 @@ const ChunkPackSetupPage = () => {
           // Invalidate library cache so new pack shows up
           invalidateLibrary();
           // Navigate to the pack examples
-          navigate(`/app/chunk-packs/${jobData.result.packId}/examples`);
+          const packUrl = viewAsUserId
+            ? `/app/chunk-packs/${jobData.result.packId}/examples?viewAs=${viewAsUserId}`
+            : `/app/chunk-packs/${jobData.result.packId}/examples`;
+          navigate(packUrl);
         } else if (jobData.state === 'failed') {
           throw new Error('Chunk pack generation failed');
         } else {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
@@ -26,6 +26,8 @@ interface ErrorMetadata {
 
 const CourseGenerator = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['audioCourse']);
   const { user } = useAuth();
   const isDemo = useIsDemo();
@@ -99,7 +101,8 @@ const CourseGenerator = () => {
 
     try {
       // Create course
-      const createResponse = await fetch('/api/courses', {
+      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+      const createResponse = await fetch(`/api/courses${viewAsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -135,7 +138,7 @@ const CourseGenerator = () => {
       setGeneratedCourseId(course.id);
 
       // Start generation
-      const generateResponse = await fetch(`/api/courses/${course.id}/generate`, {
+      const generateResponse = await fetch(`/api/courses/${course.id}/generate${viewAsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -169,7 +172,8 @@ const CourseGenerator = () => {
 
       // Navigate to library page after a short delay
       setTimeout(() => {
-        navigate('/app/library');
+        const libraryUrl = viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library';
+        navigate(libraryUrl);
       }, 2000);
     } catch (err) {
       console.error('Course creation error:', err);
