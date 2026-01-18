@@ -1,9 +1,12 @@
 import express from 'express';
+
+import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
-import { logGeneration } from '../services/usageTracker.js';
+import { synthesizeBatchedTexts } from '../services/batchedTTSClient.js';
 import {
   generatePISession,
   JLPTLevel,
@@ -11,10 +14,10 @@ import {
   GRAMMAR_POINTS,
   isGrammarPointValidForLevel,
 } from '../services/piGenerator.js';
-import { synthesizeBatchedTexts } from '../services/batchedTTSClient.js';
 import { uploadToGCS } from '../services/storageClient.js';
-import i18next from '../i18n/index.js';
+import { logGeneration } from '../services/usageTracker.js';
 
+// eslint-disable-next-line import/no-named-as-default-member
 const router = express.Router();
 
 /**
@@ -29,6 +32,9 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res) => {
     try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
       const { jlptLevel, itemCount, grammarPoint } = req.body;
 
       // Validate inputs
@@ -57,6 +63,7 @@ router.post(
         });
       }
 
+      // eslint-disable-next-line no-console
       console.log(
         `Generating PI session: ${jlptLevel}, ${itemCount} items, grammar: ${grammarPoint}`
       );
@@ -68,6 +75,7 @@ router.post(
         grammarPoint as GrammarPointType
       );
 
+      // eslint-disable-next-line no-console
       console.log(`Generated ${session.items.length} PI items`);
 
       // Collect all texts that need audio generation
@@ -82,6 +90,7 @@ router.post(
         }
       });
 
+      // eslint-disable-next-line no-console
       console.log(`[PI] Batching ${textsToSynthesize.length} texts into single TTS call`);
 
       // Generate all audio in one batched TTS call
@@ -133,15 +142,17 @@ router.post(
         };
       });
 
+      // eslint-disable-next-line no-console
       console.log(`[PI] Audio generation complete: 1 TTS call (was ${textsToSynthesize.length})`);
 
       // Log the generation for quota tracking
-      await logGeneration(req.userId!, 'pi_session');
+      await logGeneration(effectiveUserId, 'pi_session');
 
       res.json({
         ...session,
         items: itemsWithAudio,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error('Error generating PI session:', error);
       res.status(500).json({

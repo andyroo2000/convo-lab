@@ -1,17 +1,18 @@
-import { Router } from 'express';
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { Router } from 'express';
+
+import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
+import { courseQueue } from '../jobs/courseQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
-import { rateLimitGeneration } from '../middleware/rateLimit.js';
-import { logGeneration } from '../services/usageTracker.js';
-import { getEffectiveUserId } from '../middleware/impersonation.js';
-import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
-import { courseQueue } from '../jobs/courseQueue.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
+import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { generateWithGemini } from '../services/geminiClient.js';
+import { logGeneration } from '../services/usageTracker.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -151,15 +152,19 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
       throw new AppError('Missing required fields: nativeLanguage, targetLanguage', 400);
     }
 
+    // Get effective user ID (supports admin impersonation)
+    const effectiveUserId = await getEffectiveUserId(req);
+
     // Get or create episode(s)
     let finalEpisodeIds: string[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let episodes: any[];
 
     if (sourceText) {
       // Create a new episode from sourceText
       const episode = await prisma.episode.create({
         data: {
-          userId: req.userId!,
+          userId: effectiveUserId,
           title,
           sourceText,
           targetLanguage,
@@ -174,7 +179,7 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
       episodes = await prisma.episode.findMany({
         where: {
           id: { in: episodeIds },
-          userId: req.userId,
+          userId: effectiveUserId,
         },
         include: {
           dialogue: true,
@@ -202,6 +207,7 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
       narratorVoice =
         journeyToNeural2[narratorVoice] ||
         DEFAULT_NARRATOR_VOICES[nativeLanguage as keyof typeof DEFAULT_NARRATOR_VOICES];
+      // eslint-disable-next-line no-console
       console.log(`[Course] Replaced Journey voice with Neural2: ${l1VoiceId} -> ${narratorVoice}`);
     }
 
@@ -232,7 +238,7 @@ Write only the description, no formatting or quotes.`;
     // Create course
     const course = await prisma.course.create({
       data: {
-        userId: req.userId!,
+        userId: effectiveUserId,
         title,
         description: courseDescription || null,
         status: 'draft',
@@ -277,13 +283,16 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
       // Use a transaction to atomically check and update course status
       const result = await prisma.$transaction(async (tx) => {
         // Lock the course row for this transaction
         const course = await tx.course.findFirst({
           where: {
             id: req.params.id,
-            userId: req.userId,
+            userId: effectiveUserId,
           },
         });
 
@@ -385,10 +394,13 @@ router.get('/:id/status', async (req: AuthRequest, res, next) => {
 // Reset stuck course (when status is 'generating' but no active job exists)
 router.post('/:id/reset', async (req: AuthRequest, res, next) => {
   try {
+    // Get effective user ID (supports admin impersonation)
+    const effectiveUserId = await getEffectiveUserId(req);
+
     const course = await prisma.course.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: effectiveUserId,
       },
     });
 
@@ -414,6 +426,7 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
       data: { status: 'draft' },
     });
 
+    // eslint-disable-next-line no-console
     console.log(`Reset stuck course ${course.id} from 'generating' to 'draft'`);
 
     res.json({
@@ -456,10 +469,13 @@ router.patch('/:id', async (req: AuthRequest, res, next) => {
 // Delete course (blocked for demo users)
 router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
+    // Get effective user ID (supports admin impersonation)
+    const effectiveUserId = await getEffectiveUserId(req);
+
     const deleted = await prisma.course.deleteMany({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: effectiveUserId,
       },
     });
 

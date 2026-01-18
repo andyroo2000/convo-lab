@@ -1,15 +1,16 @@
 import { Router } from 'express';
+
+import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
+import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
-import { getEffectiveUserId } from '../middleware/impersonation.js';
-import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
-import { narrowListeningQueue } from '../jobs/narrowListeningQueue.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -124,6 +125,9 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
       const {
         topic,
         targetLanguage = 'ja',
@@ -212,7 +216,7 @@ router.post(
       // Create pack in draft status
       const pack = await prisma.narrowListeningPack.create({
         data: {
-          userId: req.userId!,
+          userId: effectiveUserId,
           title: 'Generating...', // Will be updated by the job
           topic,
           targetLanguage,
@@ -225,6 +229,7 @@ router.post(
       });
 
       // Queue generation job
+      // eslint-disable-next-line no-console
       console.log(`Adding narrow listening job to queue for pack ${pack.id}`);
       const job = await narrowListeningQueue.add('generate-narrow-listening', {
         packId: pack.id,
@@ -234,10 +239,11 @@ router.post(
         versionCount,
         grammarFocus: grammarFocus || '',
       });
+      // eslint-disable-next-line no-console
       console.log(`Job ${job.id} added to queue successfully`);
 
       // Log the generation for quota tracking
-      await logGeneration(req.userId!, 'narrow_listening', pack.id);
+      await logGeneration(effectiveUserId, 'narrow_listening', pack.id);
 
       // Trigger Cloud Run Job to process the queue
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
@@ -287,6 +293,9 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
       const { speed } = req.body;
 
       // Validate speed
@@ -297,7 +306,7 @@ router.post(
       const pack = await prisma.narrowListeningPack.findFirst({
         where: {
           id: req.params.id,
-          userId: req.userId,
+          userId: effectiveUserId,
         },
         include: {
           versions: {
@@ -337,7 +346,7 @@ router.post(
       });
 
       // Log the generation for quota tracking
-      await logGeneration(req.userId!, 'narrow_listening', pack.id);
+      await logGeneration(effectiveUserId, 'narrow_listening', pack.id);
 
       // Trigger Cloud Run Job to process the queue
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
@@ -357,10 +366,13 @@ router.post(
 // Delete pack (blocked for demo users)
 router.delete('/:id', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
+    // Get effective user ID (supports admin impersonation)
+    const effectiveUserId = await getEffectiveUserId(req);
+
     const result = await prisma.narrowListeningPack.deleteMany({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: effectiveUserId,
       },
     });
 

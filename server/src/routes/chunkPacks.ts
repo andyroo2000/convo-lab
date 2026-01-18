@@ -1,16 +1,17 @@
 import { Router } from 'express';
+
+import { JLPTLevel, ChunkPackTheme, CHUNK_THEMES } from '../config/chunkThemes.js';
+import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
+import { chunkPackQueue } from '../jobs/chunkPackQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
-import { getEffectiveUserId } from '../middleware/impersonation.js';
-import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
-import { chunkPackQueue } from '../jobs/chunkPackQueue.js';
-import { JLPTLevel, ChunkPackTheme, CHUNK_THEMES } from '../config/chunkThemes.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -146,6 +147,9 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
+      // Get effective user ID (supports admin impersonation)
+      const effectiveUserId = await getEffectiveUserId(req);
+
       const { jlptLevel, theme } = req.body;
 
       // Validate inputs
@@ -176,13 +180,13 @@ router.post(
 
       // Add job to queue
       const job = await chunkPackQueue.add('generate', {
-        userId: req.userId!,
+        userId: effectiveUserId,
         jlptLevel,
         theme,
       });
 
       // Log the generation for quota tracking
-      await logGeneration(req.userId!, 'chunk_pack');
+      await logGeneration(effectiveUserId, 'chunk_pack');
 
       // Trigger Cloud Run Job to process the queue
       triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
@@ -231,10 +235,13 @@ router.get('/job/:jobId', async (req: AuthRequest, res, next) => {
  */
 router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
+    // Get effective user ID (supports admin impersonation)
+    const effectiveUserId = await getEffectiveUserId(req);
+
     const pack = await prisma.chunkPack.findFirst({
       where: {
         id: req.params.id,
-        userId: req.userId,
+        userId: effectiveUserId,
       },
       include: {
         chunks: true,
@@ -268,7 +275,7 @@ router.post('/:id/create-nl-session', blockDemoUser, async (req: AuthRequest, re
     // Create NL pack in database
     const nlPack = await prisma.narrowListeningPack.create({
       data: {
-        userId: req.userId!,
+        userId: effectiveUserId,
         title: `${pack.title} - Narrow Listening`,
         topic,
         jlptLevel: pack.jlptLevel,
