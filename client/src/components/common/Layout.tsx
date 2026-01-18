@@ -29,7 +29,7 @@ const Layout = () => {
   // Fetch impersonated user's full data when viewAsUserId changes
   useEffect(() => {
     if (viewAsUserId && user?.role === 'admin') {
-      fetch(`/api/admin/users/${viewAsUserId}`, {
+      fetch(`/api/admin/users/${viewAsUserId}/info`, {
         credentials: 'include',
       })
         .then((res) => res.json())
