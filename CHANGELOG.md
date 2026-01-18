@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Full UI impersonation support with useEffectiveUser hook - when admins impersonate users via the viewAs parameter, the entire UI now reflects the impersonated user's preferences including language preferences (study language, native language), form defaults (course generator, narrow listening), navigation language indicator, and user avatar/name/display info; created useEffectiveUser hook that fetches impersonated user data and provides effectiveUser for UI personalization while keeping useAuth() for authentication/authorization logic
 - **[feat]** Admin impersonation preserved across content creation workflow - admins can now create content for users while impersonating them; viewAs query parameter is maintained through all navigation paths including: library empty states → create page → content type forms → API calls → success navigation; enables admins to generate dialogues, audio courses, narrow listening packs, processing instruction sessions, and lexical chunk packs on behalf of users without losing impersonation context
 - **[chore]** Diagnostic scripts for debugging content generation - added 34 utility scripts for monitoring and managing content generation: check-\*-queue.ts (queue status monitoring), delete-course.ts (safe course deletion), trigger-episode-audio.ts (manual audio generation), find-yuriy-courses.ts, get-course-details.ts, list-all-users.ts, and various user/content inspection utilities
 
