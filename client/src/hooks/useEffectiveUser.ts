@@ -31,7 +31,7 @@ export default function useEffectiveUser(): {
 
     // Fetch the impersonated user's data
     setLoading(true);
-    fetch(`/api/admin/users/${viewAsUserId}`, {
+    fetch(`/api/admin/users/${viewAsUserId}/info`, {
       credentials: 'include',
     })
       .then((res) => {

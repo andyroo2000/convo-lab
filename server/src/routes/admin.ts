@@ -191,6 +191,11 @@ router.get('/users/:id/info', async (req: AuthRequest, res, next) => {
         name: true,
         displayName: true,
         role: true,
+        avatarColor: true,
+        avatarUrl: true,
+        preferredStudyLanguage: true,
+        preferredNativeLanguage: true,
+        onboardingCompleted: true,
       },
     });
 
