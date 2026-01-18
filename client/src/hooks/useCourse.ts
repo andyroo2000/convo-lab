@@ -9,8 +9,14 @@ export const courseKeys = {
   status: (id: string) => [...courseKeys.all, 'status', id] as const,
 };
 
-async function fetchCourse(courseId: string): Promise<Course> {
-  const response = await fetch(`${API_URL}/api/courses/${courseId}`, {
+async function fetchCourse(courseId: string, viewAsUserId?: string): Promise<Course> {
+  const params = new URLSearchParams();
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const queryString = params.toString();
+  const url = `${API_URL}/api/courses/${courseId}${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url, {
     credentials: 'include',
   });
 
@@ -51,13 +57,13 @@ async function updateCourseRequest(
   return response.json();
 }
 
-export function useCourse(courseId: string | undefined) {
+export function useCourse(courseId: string | undefined, viewAsUserId?: string) {
   const queryClient = useQueryClient();
 
   // Main course query
   const courseQuery = useQuery({
     queryKey: courseKeys.detail(courseId!),
-    queryFn: () => fetchCourse(courseId!),
+    queryFn: () => fetchCourse(courseId!, viewAsUserId),
     enabled: !!courseId,
   });
 

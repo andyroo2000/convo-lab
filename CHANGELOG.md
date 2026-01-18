@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Admin impersonation now works across all content pages - fixed bug where viewAs query parameter was not preserved when navigating from library to playback/course pages; all content pages now properly read and pass viewAsUserId to API calls
+
 ### Improved
 
 - **[perf]** Audio course generation performance dramatically improved by properly optimizing TTS batching - fixed root cause where alternating narrator/speaker voices created excessive batches; now all units with same voice/speed/language are grouped together regardless of script position; reduced TTS API calls by 99% from 534 to 3-5 batches per 30-minute course; course generation time reduced from 21+ hours to 15-30 minutes; added admin utility scripts kill-active-course-jobs.ts and reset-course-status.ts for managing course generation
@@ -20,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** TTS batched audio cutting off speech at segment boundaries - fixed critical bug where SSML marks were placed BEFORE text instead of AFTER, causing speech to be truncated when splitting batched audio at mark timepoints; marks now correctly fire after speech completes, ensuring full audio capture without cutting off words mid-speech; updated splitting logic to extract segments from previous mark to current mark; resolves audio quality issues in batched course generation
 - **[fix]** TTS batch size limit causing API failures - added byte limit checking to prevent batches from exceeding Google's 5000 byte SSML limit; batches now automatically split into 4800-byte chunks when needed while preserving voice properties and original indices for correct reassembly; prevents "input.ssml is longer than the limit" errors during course generation
 - **[fix]** Client error display bug showing "[object Object]" instead of actual error messages - fixed CourseGenerator and other components to properly extract error messages from nested API response format ({ error: { message } }); users now see helpful messages like "Please verify your email..." instead of confusing error objects
 - **[fix]** Production signup "failed to fetch" error with async email queue - resolved issue where users saw network errors despite successful account creation by making verification email sending asynchronous via BullMQ; implemented idempotent signup to handle retry scenarios gracefully (users can retry without "already exists" errors); added comprehensive [SIGNUP] logging for monitoring; added slow request tracking (>5s for signup, >2s for others); improved client error messaging for network failures; signup responses now complete in <2s with email queued in background with 3 automatic retries

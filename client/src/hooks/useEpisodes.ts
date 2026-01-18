@@ -175,15 +175,23 @@ export function useEpisodes() {
     }
   };
 
-  const getEpisode = async (episodeId: string, bustCache = false): Promise<Episode> => {
+  const getEpisode = async (
+    episodeId: string,
+    bustCache = false,
+    viewAsUserId?: string
+  ): Promise<Episode> => {
     setLoading(true);
     setError(null);
 
     try {
-      // Add cache-busting query param when needed (e.g., after audio generation)
-      const url = bustCache
-        ? `${API_URL}/api/episodes/${episodeId}?_t=${Date.now()}`
-        : `${API_URL}/api/episodes/${episodeId}`;
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (bustCache) params.append('_t', Date.now().toString());
+      if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+      const queryString = params.toString();
+      const url = `${API_URL}/api/episodes/${episodeId}${queryString ? `?${queryString}` : ''}`;
+
       const response = await fetch(url, {
         credentials: 'include',
         ...(bustCache && { cache: 'no-store' }), // Also prevent browser caching

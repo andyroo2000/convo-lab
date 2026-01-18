@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { BookOpen, Clock } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import AudioPlayer from '../components/AudioPlayer';
@@ -10,7 +10,9 @@ import { LessonScriptUnit } from '../types';
 
 const CoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
-  const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId);
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
+  const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId, viewAsUserId);
   const { audioRef, currentTime } = useAudioPlayer();
 
   // Inline editing state

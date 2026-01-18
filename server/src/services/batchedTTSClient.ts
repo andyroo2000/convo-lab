@@ -227,8 +227,8 @@ export function buildBatchSSML(batch: TTSBatch, provider: 'google' | 'polly'): s
   }
 
   for (const unit of batch.units) {
-    ssml += `<mark name="${unit.markName}"/>`;
     ssml += escapeSSML(unit.text);
+    ssml += `<mark name="${unit.markName}"/>`;
   }
 
   if (provider === 'polly') {
@@ -266,39 +266,26 @@ async function splitAudioAtTimepoints(
   const combinedPath = path.join(tempDir, `batch-combined-${Date.now()}.mp3`);
   await fs.writeFile(combinedPath, audioBuffer);
 
-  // Get total duration for calculating last segment
-  const totalDuration = await getAudioDuration(combinedPath);
-
   // Create a map from markName to timepoint
   const timepointMap = new Map<string, number>();
   for (const tp of timepoints) {
     timepointMap.set(tp.markName, tp.timeSeconds);
   }
 
-  // Detect if this is a Polly voice (needs trim adjustment)
-  // Polly Speech Marks can have slight timing discrepancies
-  const provider = getProviderFromVoiceId(batch.voiceId);
-  const POLLY_TRIM_MS = provider === 'polly' ? 0.02 : 0; // 20ms trim for Polly only
-
   // Split each unit
+  // Note: Marks are now placed AFTER the text, so:
+  // - unit_0's mark fires AFTER unit_0's speech completes
+  // - To extract unit_0, we go from (previous mark OR 0) to (unit_0's mark)
   for (let i = 0; i < batch.units.length; i++) {
     const unit = batch.units[i];
-    const startTime = timepointMap.get(unit.markName);
+    const endTime = timepointMap.get(unit.markName);
 
-    if (startTime === undefined) {
+    if (endTime === undefined) {
       throw new Error(`No timepoint found for mark: ${unit.markName}`);
     }
 
-    // End time is either the next mark's time or end of audio
-    // Apply a small trim for Polly voices to prevent overlap between segments
-    let endTime: number;
-    if (i < batch.units.length - 1) {
-      const nextMarkName = batch.units[i + 1].markName;
-      const nextMarkTime = timepointMap.get(nextMarkName) || totalDuration;
-      endTime = Math.max(startTime + 0.1, nextMarkTime - POLLY_TRIM_MS); // Ensure minimum 100ms duration
-    } else {
-      endTime = totalDuration;
-    }
+    // Start time is either the previous unit's mark or beginning of audio
+    const startTime = i > 0 ? timepointMap.get(batch.units[i - 1].markName) || 0 : 0;
 
     // Extract segment
     const segmentPath = path.join(tempDir, `segment-${unit.originalIndex}-${Date.now()}.mp3`);
