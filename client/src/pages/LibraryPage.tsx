@@ -387,6 +387,7 @@ const LibraryPage = () => {
               description={t('library:emptyStates.dialogue.description')}
               buttonText={t('library:emptyStates.dialogue.button')}
               route="/app/create/dialogue"
+              viewAsUserId={viewAsUserId}
               colorTheme={{
                 bg: 'bg-periwinkle-light',
                 text: 'text-periwinkle-dark',
@@ -402,6 +403,7 @@ const LibraryPage = () => {
               description={t('library:emptyStates.course.description')}
               buttonText={t('library:emptyStates.course.button')}
               route="/app/create/audio-course"
+              viewAsUserId={viewAsUserId}
               colorTheme={{
                 bg: 'bg-coral-light',
                 text: 'text-coral-dark',
@@ -417,6 +419,7 @@ const LibraryPage = () => {
               description={t('library:emptyStates.narrowListening.description')}
               buttonText={t('library:emptyStates.narrowListening.button')}
               route="/app/create/narrow-listening"
+              viewAsUserId={viewAsUserId}
               colorTheme={{
                 bg: 'bg-strawberry-light',
                 text: 'text-strawberry-dark',
@@ -432,6 +435,7 @@ const LibraryPage = () => {
               description={t('library:emptyStates.chunkPack.description')}
               buttonText={t('library:emptyStates.chunkPack.button')}
               route="/app/create/lexical-chunk-pack"
+              viewAsUserId={viewAsUserId}
               colorTheme={{
                 bg: 'bg-yellow-light',
                 text: 'text-dark-brown',
@@ -447,7 +451,10 @@ const LibraryPage = () => {
                 <button
                   type="button"
                   onClick={() => {
-                    window.location.href = '/app/create';
+                    const createUrl = viewAsUserId
+                      ? `/app/create?viewAs=${viewAsUserId}`
+                      : '/app/create';
+                    window.location.href = createUrl;
                   }}
                   className="btn-primary inline-flex items-center gap-2"
                   data-testid="library-button-browse-all"

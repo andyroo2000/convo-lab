@@ -7,6 +7,7 @@ interface EmptyStateCardProps {
   description: string;
   buttonText: string;
   route: string;
+  viewAsUserId?: string;
   colorTheme: {
     bg: string; // e.g., 'bg-indigo-100'
     text: string; // e.g., 'text-indigo-600'
@@ -21,9 +22,15 @@ const EmptyStateCard = ({
   description,
   buttonText,
   route,
+  viewAsUserId,
   colorTheme,
 }: EmptyStateCardProps) => {
   const navigate = useNavigate();
+
+  const handleNavigate = () => {
+    const fullRoute = viewAsUserId ? `${route}?viewAs=${viewAsUserId}` : route;
+    navigate(fullRoute);
+  };
 
   return (
     <div className="max-w-md mx-auto py-12">
@@ -46,7 +53,7 @@ const EmptyStateCard = ({
         {/* CTA Button */}
         <button
           type="button"
-          onClick={() => navigate(route)}
+          onClick={handleNavigate}
           className={`px-6 py-3 ${colorTheme.button} text-white rounded-lg font-medium transition-colors inline-flex items-center gap-2`}
         >
           {buttonText}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader, Sparkles } from 'lucide-react';
 import { useInvalidateLibrary } from '../hooks/useLibraryData';
@@ -10,6 +10,8 @@ import UpgradePrompt from '../components/common/UpgradePrompt';
 
 const NarrowListeningCreatorPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['narrowListening']);
   const invalidateLibrary = useInvalidateLibrary();
   const isDemo = useIsDemo();
@@ -52,7 +54,8 @@ const NarrowListeningCreatorPage = () => {
 
     try {
       // Start generation
-      const response = await fetch('/api/narrow-listening/generate', {
+      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+      const response = await fetch(`/api/narrow-listening/generate${viewAsParam}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -84,7 +87,7 @@ const NarrowListeningCreatorPage = () => {
       // Poll for progress
       const pollInterval = setInterval(async () => {
         try {
-          const statusRes = await fetch(`/api/narrow-listening/job/${jobId}`, {
+          const statusRes = await fetch(`/api/narrow-listening/job/${jobId}${viewAsParam}`, {
             credentials: 'include',
           });
 
@@ -114,7 +117,10 @@ const NarrowListeningCreatorPage = () => {
             // Invalidate library cache so new pack shows up
             invalidateLibrary();
             // Navigate to playback page
-            navigate(`/app/narrow-listening/${packId}`);
+            const packUrl = viewAsUserId
+              ? `/app/narrow-listening/${packId}?viewAs=${viewAsUserId}`
+              : `/app/narrow-listening/${packId}`;
+            navigate(packUrl);
           } else if (status.state === 'failed') {
             clearInterval(pollInterval);
             const errorMsg = status.failedReason || 'Generation failed. Please try again.';
