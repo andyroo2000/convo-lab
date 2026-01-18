@@ -26,7 +26,9 @@ COPY --from=shared-builder /app/shared ./shared
 # Copy client files
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm install --ignore-scripts
+# Install with --ignore-scripts to skip prepare script, then manually install optional platform dependencies
+RUN npm install --ignore-scripts && \
+    npm install --no-save --force @rollup/rollup-linux-x64-musl @esbuild/linux-x64
 
 # Copy client source and build
 COPY client/ ./

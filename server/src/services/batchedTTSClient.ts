@@ -252,6 +252,17 @@ function escapeSSML(text: string): string {
 }
 
 /**
+ * Extract language code from voice ID
+ * e.g., "ja-JP-Neural2-B" -> "ja-JP", "fr-FR-Neural2-A" -> "fr-FR"
+ * Falls back to languageCode if extraction fails (for providers like Polly)
+ */
+function extractLanguageCodeFromVoice(voiceId: string, fallbackCode: string): string {
+  // Match pattern: xx-XX at the start (e.g., ja-JP, fr-FR, en-US)
+  const match = voiceId.match(/^([a-z]{2}-[A-Z]{2})/);
+  return match ? match[1] : fallbackCode;
+}
+
+/**
  * Split audio at timepoints using ffmpeg
  */
 async function splitAudioAtTimepoints(
@@ -422,11 +433,15 @@ export async function processBatches(
     // Build SSML with marks (provider-aware for speed handling)
     const ssml = buildBatchSSML(batch, providerType);
 
+    // Extract language code from voice ID (e.g., "fr-FR-Neural2-A" -> "fr-FR")
+    // This ensures the format matches what Google TTS expects
+    const languageCode = extractLanguageCodeFromVoice(batch.voiceId, batch.languageCode);
+
     // Synthesize with timepoints
     const result = await provider.synthesizeSpeechWithTimepoints({
       ssml,
       voiceId: batch.voiceId,
-      languageCode: batch.languageCode,
+      languageCode,
       speed: batch.speed,
       pitch: batch.pitch,
     });
@@ -592,11 +607,15 @@ export async function synthesizeBatchedTexts(
 
   ssml += '</speak>';
 
+  // Extract language code from voice ID (e.g., "fr-FR-Neural2-A" -> "fr-FR")
+  // This ensures the format matches what Google TTS expects
+  const extractedLanguageCode = extractLanguageCodeFromVoice(voiceId, languageCode);
+
   // Synthesize with timepoints
   const result = await provider.synthesizeSpeechWithTimepoints({
     ssml,
     voiceId,
-    languageCode,
+    languageCode: extractedLanguageCode,
     speed,
     pitch,
   });
