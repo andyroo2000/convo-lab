@@ -41,6 +41,7 @@ const CoursePage = () => {
     const activeTiming = course.timingData.find((timing) => {
       const unit = course.scriptJson![timing.unitIndex];
       return (
+        unit &&
         unit.type === 'L2' &&
         currentTimeMs >= timing.startTime - PADDING_START_MS &&
         currentTimeMs < timing.endTime + PADDING_END_MS
