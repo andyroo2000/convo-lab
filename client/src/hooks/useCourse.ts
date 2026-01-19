@@ -27,8 +27,17 @@ async function fetchCourse(courseId: string, viewAsUserId?: string): Promise<Cou
   return response.json();
 }
 
-async function fetchCourseStatus(courseId: string): Promise<CourseStatusResponse> {
-  const response = await fetch(`${API_URL}/api/courses/${courseId}/status`, {
+async function fetchCourseStatus(
+  courseId: string,
+  viewAsUserId?: string
+): Promise<CourseStatusResponse> {
+  const params = new URLSearchParams();
+  if (viewAsUserId) params.append('viewAs', viewAsUserId);
+
+  const queryString = params.toString();
+  const url = `${API_URL}/api/courses/${courseId}/status${queryString ? `?${queryString}` : ''}`;
+
+  const response = await fetch(url, {
     credentials: 'include',
   });
 
@@ -73,7 +82,7 @@ export function useCourse(courseId: string | undefined, viewAsUserId?: string) {
   // Status polling query - only active when course is generating
   const statusQuery = useQuery({
     queryKey: courseKeys.status(courseId!),
-    queryFn: () => fetchCourseStatus(courseId!),
+    queryFn: () => fetchCourseStatus(courseId!, viewAsUserId),
     enabled: !!courseId && isGenerating,
     refetchInterval: isGenerating ? 5000 : false, // Poll every 5 seconds while generating
   });
