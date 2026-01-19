@@ -607,9 +607,9 @@ export async function extractDialogueExchanges(
   );
 
   // Estimate how many exchanges we need for target duration
-  // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
+  // Each exchange takes ~90 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
   // This includes: introduction, vocabulary breakdown, anticipation prompts, and review cycles
-  const estimatedSecondsPerExchange = 35;
+  const estimatedSecondsPerExchange = 90;
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.floor(targetSeconds / estimatedSecondsPerExchange);
 
@@ -838,9 +838,9 @@ export async function extractDialogueExchangesFromSourceText(
   );
 
   // Estimate how many exchanges we need for target duration
-  // Each exchange takes ~30-40 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
+  // Each exchange takes ~90 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
   // This includes: introduction, vocabulary breakdown, anticipation prompts, and review cycles
-  const estimatedSecondsPerExchange = 35;
+  const estimatedSecondsPerExchange = 90;
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.max(6, Math.floor(targetSeconds / estimatedSecondsPerExchange));
 
@@ -961,8 +961,12 @@ Return ONLY a JSON object (no markdown, no explanation):
       "order": 0,
       "speakerName": "Kenji",
       "relationshipName": "Your friend",
-      "textL2": "${targetLanguage === 'ja' ? '北海道に行きました' : '...'}",${targetLanguage === 'ja' || targetLanguage === 'zh' ? `
-      "reading": "${targetLanguage === 'ja' ? '北[ほっ]海[かい]道[どう]に行[い]きました' : '...'}",` : ''}
+      "textL2": "${targetLanguage === 'ja' ? '北海道に行きました' : '...'}",${
+        targetLanguage === 'ja' || targetLanguage === 'zh'
+          ? `
+      "reading": "${targetLanguage === 'ja' ? '北[ほっ]海[かい]道[どう]に行[い]きました' : '...'}",`
+          : ''
+      }
       "translation": "...",
       "vocabulary": [
         {"word": "...", ${targetLanguage === 'ja' ? '"reading": "...", "jlptLevel": "N4",' : ''} "translation": "..."},

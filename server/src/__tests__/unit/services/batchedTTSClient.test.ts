@@ -220,7 +220,7 @@ describe('batchedTTSClient', () => {
 
       const ssml = buildBatchSSML(batch, 'google');
 
-      expect(ssml).toBe('<speak>Hello<mark name="unit_0"/>World<mark name="unit_1"/></speak>');
+      expect(ssml).toBe('<speak><mark name="unit_0"/>Hello<mark name="unit_1"/>World</speak>');
     });
 
     it('should wrap content in prosody tag for Polly provider', () => {
@@ -229,7 +229,7 @@ describe('batchedTTSClient', () => {
       const ssml = buildBatchSSML(batch, 'polly');
 
       expect(ssml).toBe(
-        '<speak><prosody rate="70%">Hello<mark name="unit_0"/>World<mark name="unit_1"/></prosody></speak>'
+        '<speak><prosody rate="70%"><mark name="unit_0"/>Hello<mark name="unit_1"/>World</prosody></speak>'
       );
     });
 

@@ -227,8 +227,10 @@ export function buildBatchSSML(batch: TTSBatch, provider: 'google' | 'polly'): s
   }
 
   for (const unit of batch.units) {
-    ssml += escapeSSML(unit.text);
+    // Place mark BEFORE text (same as dialogue batching)
+    // This makes the mark fire at the START of the unit's audio
     ssml += `<mark name="${unit.markName}"/>`;
+    ssml += escapeSSML(unit.text);
   }
 
   if (provider === 'polly') {
@@ -264,6 +266,9 @@ function extractLanguageCodeFromVoice(voiceId: string, fallbackCode: string): st
 
 /**
  * Split audio at timepoints using ffmpeg
+ * Uses the same approach as dialogue batching: marks BEFORE text
+ * - Mark fires at the START of the unit's audio
+ * - Extract from current mark to next mark (or end of audio for last unit)
  */
 async function splitAudioAtTimepoints(
   audioBuffer: Buffer,
@@ -277,6 +282,9 @@ async function splitAudioAtTimepoints(
   const combinedPath = path.join(tempDir, `batch-combined-${Date.now()}.mp3`);
   await fs.writeFile(combinedPath, audioBuffer);
 
+  // Get total duration for handling the last segment
+  const totalDuration = await getAudioDuration(combinedPath);
+
   // Create a map from markName to timepoint
   const timepointMap = new Map<string, number>();
   for (const tp of timepoints) {
@@ -284,19 +292,24 @@ async function splitAudioAtTimepoints(
   }
 
   // Split each unit
-  // Note: Marks are now placed AFTER the text, so:
-  // - unit_0's mark fires AFTER unit_0's speech completes
-  // - To extract unit_0, we go from (previous mark OR 0) to (unit_0's mark)
+  // Note: Marks are now placed BEFORE the text (same as dialogue batching), so:
+  // - unit_0's mark fires at the START of unit_0's speech
+  // - To extract unit_0, we go from (unit_0's mark) to (unit_1's mark OR end of audio)
   for (let i = 0; i < batch.units.length; i++) {
     const unit = batch.units[i];
-    const endTime = timepointMap.get(unit.markName);
+    const startTime = timepointMap.get(unit.markName);
 
-    if (endTime === undefined) {
+    if (startTime === undefined) {
       throw new Error(`No timepoint found for mark: ${unit.markName}`);
     }
 
-    // Start time is either the previous unit's mark or beginning of audio
-    const startTime = i > 0 ? timepointMap.get(batch.units[i - 1].markName) || 0 : 0;
+    // End time is either the next unit's mark or end of audio
+    let endTime: number;
+    if (i < batch.units.length - 1) {
+      endTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
+    } else {
+      endTime = totalDuration;
+    }
 
     // Extract segment
     const segmentPath = path.join(tempDir, `segment-${unit.originalIndex}-${Date.now()}.mp3`);
