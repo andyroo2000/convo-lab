@@ -313,7 +313,7 @@ async function splitAudioAtTimepoints(
     }
 
     // Apply timing correction to align with actual speech
-    const startTime = applyTimingCorrection(markTime);
+    let startTime = applyTimingCorrection(markTime);
 
     // End time is based on the next unit's mark (or end of audio)
     let endTime: number;
@@ -322,6 +322,22 @@ async function splitAudioAtTimepoints(
       endTime = applyTimingCorrection(nextMarkTime);
     } else {
       endTime = totalDuration;
+    }
+
+    // Ensure valid segment duration (minimum 0.1 seconds)
+    // If timing correction causes overlap, use uncorrected times
+    if (endTime <= startTime) {
+      startTime = markTime;
+      if (i < batch.units.length - 1) {
+        const nextMarkTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
+        endTime = nextMarkTime;
+      } else {
+        endTime = totalDuration;
+      }
+      // If still invalid, add minimum duration
+      if (endTime <= startTime) {
+        endTime = startTime + 0.1;
+      }
     }
 
     // Extract segment (use unique timestamp to avoid conflicts)
