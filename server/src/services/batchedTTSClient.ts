@@ -303,70 +303,44 @@ async function splitAudioAtTimepoints(
     timepointMap.set(tp.markName, tp.timeSeconds);
   }
 
-  // Split units in batched parallel extraction for performance
-  // Process 10 segments at a time to avoid overwhelming Cloud Run resources
-  const PARALLEL_BATCH_SIZE = 10;
-  const results: Array<readonly [number, Buffer]> = [];
+  // Split each unit in parallel for performance
+  // Extract all segments concurrently instead of sequentially
+  const extractionPromises = batch.units.map(async (unit, i) => {
+    const markTime = timepointMap.get(unit.markName);
 
-  for (let batchStart = 0; batchStart < batch.units.length; batchStart += PARALLEL_BATCH_SIZE) {
-    const batchEnd = Math.min(batchStart + PARALLEL_BATCH_SIZE, batch.units.length);
-    const batchUnits = batch.units.slice(batchStart, batchEnd);
+    if (markTime === undefined) {
+      throw new Error(`No timepoint found for mark: ${unit.markName}`);
+    }
 
-    const extractionPromises = batchUnits.map(async (unit, relativeIndex) => {
-      const i = batchStart + relativeIndex;
-      const markTime = timepointMap.get(unit.markName);
+    // Apply timing correction to align with actual speech
+    const startTime = applyTimingCorrection(markTime);
 
-      if (markTime === undefined) {
-        throw new Error(`No timepoint found for mark: ${unit.markName}`);
-      }
+    // End time is based on the next unit's mark (or end of audio)
+    let endTime: number;
+    if (i < batch.units.length - 1) {
+      const nextMarkTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
+      endTime = applyTimingCorrection(nextMarkTime);
+    } else {
+      endTime = totalDuration;
+    }
 
-      // Apply timing correction to align with actual speech
-      let startTime = applyTimingCorrection(markTime);
+    // Extract segment (use unique timestamp to avoid conflicts)
+    const segmentPath = path.join(
+      tempDir,
+      `segment-${unit.originalIndex}-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
+    );
+    await extractAudioSegment(combinedPath, segmentPath, startTime, endTime);
 
-      // End time is based on the next unit's mark (or end of audio)
-      let endTime: number;
-      if (i < batch.units.length - 1) {
-        const nextMarkTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
-        endTime = applyTimingCorrection(nextMarkTime);
-      } else {
-        endTime = totalDuration;
-      }
+    const segmentBuffer = await fs.readFile(segmentPath);
 
-      // Ensure valid segment duration (minimum 0.1 seconds)
-      // If timing correction causes overlap, use uncorrected times
-      if (endTime <= startTime) {
-        startTime = markTime;
-        if (i < batch.units.length - 1) {
-          const nextMarkTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
-          endTime = nextMarkTime;
-        } else {
-          endTime = totalDuration;
-        }
-        // If still invalid, add minimum duration
-        if (endTime <= startTime) {
-          endTime = startTime + 0.1;
-        }
-      }
+    // Clean up segment file
+    await fs.unlink(segmentPath).catch(() => {});
 
-      // Extract segment (use unique timestamp to avoid conflicts)
-      const segmentPath = path.join(
-        tempDir,
-        `segment-${unit.originalIndex}-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
-      );
-      await extractAudioSegment(combinedPath, segmentPath, startTime, endTime);
+    return [unit.originalIndex, segmentBuffer] as const;
+  });
 
-      const segmentBuffer = await fs.readFile(segmentPath);
-
-      // Clean up segment file
-      await fs.unlink(segmentPath).catch(() => {});
-
-      return [unit.originalIndex, segmentBuffer] as const;
-    });
-
-    // Wait for this batch of extractions to complete
-    const batchResults = await Promise.all(extractionPromises);
-    results.push(...batchResults);
-  }
+  // Wait for all extractions to complete
+  const results = await Promise.all(extractionPromises);
 
   // Populate segments map
   for (const [index, buffer] of results) {
