@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Audio splitting performance regression from validation logic - reverted segment duration validation that caused 13+ minute stalls in jobs 175 and 176; restored working full parallelization approach from job 174 that completed 81 segments in 29 seconds; the validation logic, while preventing zero-duration errors, inadvertently reintroduced sequential processing behavior
 - **[fix]** Batched TTS audio clipping fixed with timing correction - resolved issue where speech was cut off at segment boundaries in batched audio courses; Google TTS mark timepoints don't precisely align with actual speech timing (consistently 0.5-1.5 seconds late due to processing latency), causing splits to cut into words; now applies -0.7 second timing correction to compensate for mark delay; eliminates clipping while maintaining batching optimization that reduces API calls by 99%; optimized from initial silence detection approach which was too slow
 
 ### Improved
