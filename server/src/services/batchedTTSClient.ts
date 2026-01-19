@@ -303,10 +303,9 @@ async function splitAudioAtTimepoints(
     timepointMap.set(tp.markName, tp.timeSeconds);
   }
 
-  // Split each unit
-  // Apply timing correction to compensate for mark processing delay
-  for (let i = 0; i < batch.units.length; i++) {
-    const unit = batch.units[i];
+  // Split each unit in parallel for performance
+  // Extract all segments concurrently instead of sequentially
+  const extractionPromises = batch.units.map(async (unit, i) => {
     const markTime = timepointMap.get(unit.markName);
 
     if (markTime === undefined) {
@@ -325,15 +324,27 @@ async function splitAudioAtTimepoints(
       endTime = totalDuration;
     }
 
-    // Extract segment
-    const segmentPath = path.join(tempDir, `segment-${unit.originalIndex}-${Date.now()}.mp3`);
+    // Extract segment (use unique timestamp to avoid conflicts)
+    const segmentPath = path.join(
+      tempDir,
+      `segment-${unit.originalIndex}-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
+    );
     await extractAudioSegment(combinedPath, segmentPath, startTime, endTime);
 
     const segmentBuffer = await fs.readFile(segmentPath);
-    segments.set(unit.originalIndex, segmentBuffer);
 
     // Clean up segment file
     await fs.unlink(segmentPath).catch(() => {});
+
+    return [unit.originalIndex, segmentBuffer] as const;
+  });
+
+  // Wait for all extractions to complete
+  const results = await Promise.all(extractionPromises);
+
+  // Populate segments map
+  for (const [index, buffer] of results) {
+    segments.set(index, buffer);
   }
 
   // Clean up combined file
