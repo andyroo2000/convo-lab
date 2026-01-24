@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** OAuth token refresh infrastructure - implemented full token refresh support per Claude bot review: added `refreshGoogleToken()` and `getValidAccessToken()` services to refresh expired tokens, `/disconnect/google` endpoint for token revocation, googleapis dependency for OAuth2 client; includes unit tests for OAuth service
+
+### Changed
+
+- **[ux]** Google OAuth prompt changed from `consent` to `select_account` - users now see a simpler account picker instead of full consent screen on every login, while still getting refresh tokens on first auth
+- **[fix]** OAuth token expiresAt calculation corrected - was incorrectly using ID token expiry (often null), now properly sets 1-hour expiry matching Google access token lifetime
+
+### Fixed
+
+- **[fix]** Google OAuth refresh token not being returned - added `accessType: 'offline'` and `prompt: 'consent'` parameters to OAuth configuration; without offline access mode, Google only returns access tokens and never sends refresh tokens, causing sync failures after the initial authentication expires
+
+### Added
+
 - **[feat]** Full UI impersonation support with useEffectiveUser hook - when admins impersonate users via the viewAs parameter, the entire UI now reflects the impersonated user's preferences including language preferences (study language, native language), form defaults (course generator, narrow listening), navigation language indicator, and user avatar/name/display info; created useEffectiveUser hook that fetches impersonated user data and provides effectiveUser for UI personalization while keeping useAuth() for authentication/authorization logic
 - **[feat]** Admin impersonation preserved across content creation workflow - admins can now create content for users while impersonating them; viewAs query parameter is maintained through all navigation paths including: library empty states → create page → content type forms → API calls → success navigation; enables admins to generate dialogues, audio courses, narrow listening packs, processing instruction sessions, and lexical chunk packs on behalf of users without losing impersonation context
 - **[chore]** Diagnostic scripts for debugging content generation - added 34 utility scripts for monitoring and managing content generation: check-\*-queue.ts (queue status monitoring), delete-course.ts (safe course deletion), trigger-episode-audio.ts (manual audio generation), find-yuriy-courses.ts, get-course-details.ts, list-all-users.ts, and various user/content inspection utilities
