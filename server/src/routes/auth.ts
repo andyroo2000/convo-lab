@@ -569,6 +569,8 @@ router.get(
   '/google',
   passport.authenticate('google', {
     scope: ['profile', 'email'],
+    accessType: 'offline', // Required to get refresh token
+    prompt: 'consent', // Force consent screen to ensure refresh token is returned
     session: false,
   })
 );

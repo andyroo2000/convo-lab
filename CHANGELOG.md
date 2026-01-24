@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Google OAuth refresh token not being returned - added `accessType: 'offline'` and `prompt: 'consent'` parameters to OAuth configuration; without offline access mode, Google only returns access tokens and never sends refresh tokens, causing sync failures after the initial authentication expires
+
 ### Added
 
 - **[feat]** Full UI impersonation support with useEffectiveUser hook - when admins impersonate users via the viewAs parameter, the entire UI now reflects the impersonated user's preferences including language preferences (study language, native language), form defaults (course generator, narrow listening), navigation language indicator, and user avatar/name/display info; created useEffectiveUser hook that fetches impersonated user data and provides effectiveUser for UI personalization while keeping useAuth() for authentication/authorization logic
