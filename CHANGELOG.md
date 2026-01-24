@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** OAuth token refresh infrastructure - implemented full token refresh support per Claude bot review: added `refreshGoogleToken()` and `getValidAccessToken()` services to refresh expired tokens, `/disconnect/google` endpoint for token revocation, googleapis dependency for OAuth2 client; includes unit tests for OAuth service
+
+### Changed
+
+- **[ux]** Google OAuth prompt changed from `consent` to `select_account` - users now see a simpler account picker instead of full consent screen on every login, while still getting refresh tokens on first auth
+- **[fix]** OAuth token expiresAt calculation corrected - was incorrectly using ID token expiry (often null), now properly sets 1-hour expiry matching Google access token lifetime
+
 ### Fixed
 
 - **[fix]** Google OAuth refresh token not being returned - added `accessType: 'offline'` and `prompt: 'consent'` parameters to OAuth configuration; without offline access mode, Google only returns access tokens and never sends refresh tokens, causing sync failures after the initial authentication expires
