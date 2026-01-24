@@ -16,6 +16,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
+import { revokeGoogleTokens } from '../services/oauth.js';
 
 const router = Router();
 
@@ -570,7 +571,7 @@ router.get(
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     accessType: 'offline', // Required to get refresh token
-    prompt: 'consent', // Force consent screen to ensure refresh token is returned
+    prompt: 'select_account', // Show account picker - less intrusive than full consent
     session: false,
   })
 );
@@ -647,6 +648,21 @@ router.get(
     }
   }
 );
+
+// Disconnect Google account
+router.post('/disconnect/google', requireAuth, async (req: AuthRequest, res, next) => {
+  try {
+    const revoked = await revokeGoogleTokens(req.userId!);
+
+    if (!revoked) {
+      throw new AppError('No Google account connected', 404);
+    }
+
+    res.json({ success: true, message: 'Google account disconnected' });
+  } catch (error) {
+    next(error);
+  }
+});
 
 // Claim invite code (for OAuth users)
 router.post('/claim-invite', async (req, res, next) => {
