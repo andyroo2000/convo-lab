@@ -34,7 +34,7 @@ passport.use(
             update: {
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Access token expires in 1 hour
             },
             create: {
               userId: user.id,
@@ -42,7 +42,7 @@ passport.use(
               providerId: profile.id,
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Access token expires in 1 hour
             },
           });
 
@@ -79,7 +79,7 @@ passport.use(
               providerId: profile.id,
               accessToken,
               refreshToken,
-              expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
+              expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Access token expires in 1 hour
             },
           });
 
@@ -108,7 +108,7 @@ passport.use(
             providerId: profile.id,
             accessToken,
             refreshToken,
-            expiresAt: profile._json.exp ? new Date(profile._json.exp * 1000) : null,
+            expiresAt: new Date(Date.now() + 60 * 60 * 1000), // Access token expires in 1 hour
           },
         });
 
