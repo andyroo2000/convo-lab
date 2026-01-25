@@ -111,13 +111,17 @@ jobs:
             echo "🐋 Pulling latest Docker images..."
             docker-compose -f docker-compose.prod.yml pull
 
-            # Restart containers
-            echo "♻️  Restarting containers..."
-            docker-compose -f docker-compose.prod.yml up -d --force-recreate
+            # Stop containers first to avoid metadata issues
+            echo "🛑 Stopping existing containers..."
+            docker-compose -f docker-compose.prod.yml --env-file .env.production down
+
+            # Start containers with environment file
+            echo "♻️  Starting containers..."
+            docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
 
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            docker-compose -f docker-compose.prod.yml ps
+            docker-compose -f docker-compose.prod.yml --env-file .env.production ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
             # Cleanup old images
