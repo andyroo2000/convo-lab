@@ -1,9 +1,10 @@
-import { Redis } from 'ioredis';
 import { WorkerOptions } from 'bullmq';
+import { Redis } from 'ioredis';
 
 /**
  * Shared Redis connection configuration for job queues
- * Optimized to stay under Upstash free tier (10k requests/day limit)
+ * Automatically enables TLS when using Upstash (host contains 'upstash.io')
+ * For self-hosted Redis, connects without TLS on internal Docker network
  */
 export const createRedisConnection = () =>
   new Redis({
