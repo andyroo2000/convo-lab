@@ -61,6 +61,7 @@
     "harness:mobile": "npx ts-node scripts/mobile-harness.ts",
     "harness:mobile:dry-run": "npx ts-node scripts/mobile-harness.ts --dry-run",
     "harness:mobile:responsive": "npx ts-node scripts/mobile-harness.ts --responsive-only",
+    "kanban": "cd tools/kanban && npm install --silent && npx tsx server.ts",
     "prepare": "husky"
   },
   "devDependencies": {

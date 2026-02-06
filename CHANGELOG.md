@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** Beads Kanban Board — standalone dev tool (`tools/kanban/`) that reads from `.beads/beads.db` (SQLite) and serves a live Kanban board at `localhost:3333`; 4-column layout (Open/In Progress/Blocked/Closed) with real-time SSE updates via chokidar file watching; click any card for a detail modal showing description, design, acceptance criteria, notes, parent/child relationships; run with `npm run kanban`
+
 ### Removed
 
 - **[refactor]** Removed Narrow Listening feature entirely — deleted 17 standalone files (services, routes, jobs, pages, tests, i18n locales), cleaned up all references across server entry points, client routing, library/create/admin/settings pages, hooks, i18n configs, feature flags, usage tracking, utility scripts, and tests; Prisma schema models retained with DEPRECATED comments (no database migration); 58 test files, 1086 tests passing

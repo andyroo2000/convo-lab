@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beads Board</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f1f3f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.5px; }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+    }
+
+    .column-counts { display: flex; gap: 12px; }
+
+    .column-count {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      opacity: 0.7;
+    }
+
+    .column-count .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      transition: background 0.3s;
+    }
+
+    .status-dot.connected { background: #22c55e; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 20px;
+      min-height: calc(100vh - 54px);
+      align-items: start;
+    }
+
+    .column {
+      background: #e9ecef;
+      border-radius: 10px;
+      padding: 12px;
+      min-height: 200px;
+    }
+
+    .column-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .column-header .count {
+      background: rgba(0,0,0,0.1);
+      border-radius: 10px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .column-header .accent {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .column[data-status="open"] .accent { background: #3b82f6; }
+    .column[data-status="in_progress"] .accent { background: #f59e0b; }
+    .column[data-status="blocked"] .accent { background: #ef4444; }
+    .column[data-status="closed"] .accent { background: #22c55e; }
+
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border-left: 3px solid transparent;
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+
+    .card:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .card[data-status="open"] { border-left-color: #3b82f6; }
+    .card[data-status="in_progress"] { border-left-color: #f59e0b; }
+    .card[data-status="blocked"] { border-left-color: #ef4444; }
+    .card[data-status="closed"] { border-left-color: #22c55e; }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .priority-0 { background: #fecdd3; color: #9f1239; }
+    .priority-1 { background: #fed7aa; color: #9a3412; }
+    .priority-2 { background: #e0e7ff; color: #3730a3; }
+    .priority-3 { background: #e5e7eb; color: #4b5563; }
+
+    .type-bug { background: #fecdd3; color: #9f1239; }
+    .type-feature { background: #d1fae5; color: #065f46; }
+    .type-task { background: #dbeafe; color: #1e40af; }
+    .type-epic { background: #ede9fe; color: #5b21b6; }
+    .type-chore { background: #e5e7eb; color: #374151; }
+
+    .assignee-badge {
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .label-tag {
+      font-size: 9px;
+      background: #fef9c3;
+      color: #854d0e;
+      padding: 1px 5px;
+      border-radius: 3px;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 6px;
+    }
+
+    .card-id {
+      font-size: 10px;
+      color: #9ca3af;
+      font-family: monospace;
+    }
+
+    .card-children-count {
+      font-size: 10px;
+      color: #6b7280;
+      background: #f3f4f6;
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+
+    /* Deferred section */
+    .deferred-section {
+      grid-column: 1 / -1;
+      padding: 0 20px 20px;
+    }
+
+    .deferred-toggle {
+      background: none;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      color: #6b7280;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .deferred-toggle:hover { background: #f9fafb; }
+
+    .deferred-cards {
+      display: none;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .deferred-cards.open { display: flex; }
+
+    .deferred-cards .card {
+      width: 280px;
+      border-left-color: #9ca3af;
+      opacity: 0.7;
+    }
+
+    /* Modal overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 60px 20px 20px;
+      overflow-y: auto;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 640px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      animation: modalIn 0.15s ease-out;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #9ca3af;
+      padding: 2px 6px;
+      border-radius: 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .modal-close:hover { background: #f3f4f6; color: #1a1a2e; }
+
+    .modal-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 12px 24px;
+    }
+
+    .modal-body {
+      padding: 0 24px 24px;
+    }
+
+    .modal-section {
+      margin-top: 16px;
+    }
+
+    .modal-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .modal-section-content {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #374151;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .modal-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+
+    .modal-meta-item {
+      font-size: 12px;
+    }
+
+    .modal-meta-label {
+      color: #6b7280;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .modal-meta-value {
+      color: #1a1a2e;
+      font-weight: 600;
+    }
+
+    .modal-children {
+      margin-top: 16px;
+    }
+
+    .modal-child-link {
+      display: block;
+      padding: 8px 12px;
+      margin-top: 4px;
+      background: #f9fafb;
+      border-radius: 6px;
+      border-left: 3px solid transparent;
+      cursor: pointer;
+      font-size: 13px;
+      transition: background 0.1s;
+    }
+
+    .modal-child-link:hover { background: #e5e7eb; }
+
+    .modal-child-link[data-status="open"] { border-left-color: #3b82f6; }
+    .modal-child-link[data-status="in_progress"] { border-left-color: #f59e0b; }
+    .modal-child-link[data-status="blocked"] { border-left-color: #ef4444; }
+    .modal-child-link[data-status="closed"] { border-left-color: #22c55e; }
+
+    .modal-child-title { font-weight: 500; }
+
+    .modal-child-meta {
+      font-size: 11px;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .modal-parent-link {
+      display: inline-block;
+      padding: 4px 10px;
+      background: #ede9fe;
+      color: #5b21b6;
+      border-radius: 4px;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    .modal-parent-link:hover { background: #ddd6fe; }
+
+    @media (max-width: 900px) {
+      .board {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 12px;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 550px) {
+      .board {
+        grid-template-columns: 1fr;
+      }
+      .modal { margin: 0; border-radius: 0; min-height: 100vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Beads Board</h1>
+    <div class="header-right">
+      <div class="column-counts" id="column-counts"></div>
+      <div class="status-indicator">
+        <div class="status-dot" id="status-dot"></div>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="board" id="board">
+    <div class="column" data-status="open">
+      <div class="column-header">
+        <span><span class="accent"></span>Open</span>
+        <span class="count" id="count-open">0</span>
+      </div>
+      <div class="cards" id="cards-open"></div>
+    </div>
+    <div class="column" data-status="in_progress">
+      <div class="column-header">
+        <span><span class="accent"></span>In Progress</span>
+        <span class="count" id="count-in_progress">0</span>
+      </div>
+      <div class="cards" id="cards-in_progress"></div>
+    </div>
+    <div class="column" data-status="blocked">
+      <div class="column-header">
+        <span><span class="accent"></span>Blocked</span>
+        <span class="count" id="count-blocked">0</span>
+      </div>
+      <div class="cards" id="cards-blocked"></div>
+    </div>
+    <div class="column" data-status="closed">
+      <div class="column-header">
+        <span><span class="accent"></span>Closed</span>
+        <span class="count" id="count-closed">0</span>
+      </div>
+      <div class="cards" id="cards-closed"></div>
+    </div>
+  </div>
+
+  <div class="deferred-section" id="deferred-section" style="display:none">
+    <button class="deferred-toggle" id="deferred-toggle">
+      <span id="deferred-arrow">&#9654;</span> Deferred <span id="count-deferred">(0)</span>
+    </button>
+    <div class="deferred-cards" id="cards-deferred"></div>
+  </div>
+
+  <!-- Detail modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="modal"></div>
+  </div>
+
+  <script>
+    const STATUSES = ['open', 'in_progress', 'blocked', 'closed'];
+    const COLORS = { open: '#3b82f6', in_progress: '#f59e0b', blocked: '#ef4444', closed: '#22c55e' };
+    const STATUS_LABELS = { open: 'Open', in_progress: 'In Progress', blocked: 'Blocked', closed: 'Closed', deferred: 'Deferred' };
+    let reconnectDelay = 1000;
+    let allIssues = [];
+    let issueMap = {};
+
+    function renderCard(issue) {
+      const priority = issue.priority ?? 2;
+      const pLabel = 'P' + priority;
+      const type = issue.issue_type || 'task';
+
+      let html = `<div class="card" data-status="${issue.status}" data-id="${esc(issue.id)}" onclick="openModal('${esc(issue.id)}')">`;
+      html += `<div class="card-title">${esc(issue.title)}</div>`;
+      html += `<div class="card-meta">`;
+      html += `<span class="badge priority-${priority}">${pLabel}</span>`;
+      html += `<span class="badge type-${type}">${type}</span>`;
+      if (issue.assignee) {
+        html += `<span class="assignee-badge">${esc(issue.assignee)}</span>`;
+      }
+      if (issue.labels) {
+        for (const label of issue.labels) {
+          html += `<span class="label-tag">${esc(label)}</span>`;
+        }
+      }
+      html += `</div>`;
+      html += `<div class="card-footer">`;
+      if (issue.children && issue.children.length > 0) {
+        html += `<span class="card-children-count">${issue.children.length} subtask${issue.children.length === 1 ? '' : 's'}</span>`;
+      } else {
+        html += `<span></span>`;
+      }
+      html += `<span class="card-id">${esc(issue.id)}</span>`;
+      html += `</div>`;
+      html += `</div>`;
+      return html;
+    }
+
+    function render(issues) {
+      allIssues = issues;
+      issueMap = {};
+      for (const issue of issues) {
+        issueMap[issue.id] = issue;
+      }
+
+      const grouped = { open: [], in_progress: [], blocked: [], closed: [], deferred: [] };
+      for (const issue of issues) {
+        const status = issue.status || 'open';
+        if (grouped[status]) grouped[status].push(issue);
+      }
+
+      for (const key of Object.keys(grouped)) {
+        grouped[key].sort((a, b) => (a.priority ?? 2) - (b.priority ?? 2));
+      }
+
+      for (const status of STATUSES) {
+        const container = document.getElementById('cards-' + status);
+        container.innerHTML = grouped[status].map(renderCard).join('');
+        document.getElementById('count-' + status).textContent = grouped[status].length;
+      }
+
+      const countsEl = document.getElementById('column-counts');
+      countsEl.innerHTML = STATUSES.map(s =>
+        `<div class="column-count"><span class="dot" style="background:${COLORS[s]}"></span>${grouped[s].length}</div>`
+      ).join('');
+
+      const deferredSection = document.getElementById('deferred-section');
+      const deferredCards = document.getElementById('cards-deferred');
+      if (grouped.deferred.length > 0) {
+        deferredSection.style.display = 'block';
+        document.getElementById('count-deferred').textContent = `(${grouped.deferred.length})`;
+        deferredCards.innerHTML = grouped.deferred.map(renderCard).join('');
+      } else {
+        deferredSection.style.display = 'none';
+      }
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    // Modal
+    function openModal(id) {
+      const issue = issueMap[id];
+      if (!issue) return;
+
+      const priority = issue.priority ?? 2;
+      const type = issue.issue_type || 'task';
+      const status = issue.status || 'open';
+
+      let html = `<div class="modal-header">`;
+      html += `<h2>${esc(issue.title)}</h2>`;
+      html += `<button class="modal-close" onclick="closeModal()">&times;</button>`;
+      html += `</div>`;
+
+      // Badges row
+      html += `<div class="modal-badges">`;
+      html += `<span class="badge priority-${priority}">P${priority}</span>`;
+      html += `<span class="badge type-${type}">${type}</span>`;
+      html += `<span class="badge" style="background:#e5e7eb;color:#374151">${STATUS_LABELS[status] || status}</span>`;
+      if (issue.assignee) html += `<span class="assignee-badge">${esc(issue.assignee)}</span>`;
+      if (issue.labels) {
+        for (const label of issue.labels) {
+          html += `<span class="label-tag" style="font-size:11px;padding:2px 8px">${esc(label)}</span>`;
+        }
+      }
+      html += `</div>`;
+
+      html += `<div class="modal-body">`;
+
+      // Meta grid
+      html += `<div class="modal-meta-grid">`;
+      html += `<div class="modal-meta-item"><div class="modal-meta-label">ID</div><div class="modal-meta-value" style="font-family:monospace">${esc(issue.id)}</div></div>`;
+      html += `<div class="modal-meta-item"><div class="modal-meta-label">Created</div><div class="modal-meta-value">${formatDate(issue.created_at)}</div></div>`;
+      html += `<div class="modal-meta-item"><div class="modal-meta-label">Updated</div><div class="modal-meta-value">${formatDate(issue.updated_at)}</div></div>`;
+      if (issue.closed_at) {
+        html += `<div class="modal-meta-item"><div class="modal-meta-label">Closed</div><div class="modal-meta-value">${formatDate(issue.closed_at)}</div></div>`;
+      }
+      html += `</div>`;
+
+      // Parent link
+      if (issue.parent_id && issueMap[issue.parent_id]) {
+        const parent = issueMap[issue.parent_id];
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Parent</div>`;
+        html += `<div class="modal-parent-link" onclick="openModal('${esc(parent.id)}')">${esc(parent.title)} (${esc(parent.id)})</div>`;
+        html += `</div>`;
+      }
+
+      // Description
+      if (issue.description) {
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Description</div>`;
+        html += `<div class="modal-section-content">${esc(issue.description)}</div>`;
+        html += `</div>`;
+      }
+
+      // Design
+      if (issue.design) {
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Design</div>`;
+        html += `<div class="modal-section-content">${esc(issue.design)}</div>`;
+        html += `</div>`;
+      }
+
+      // Acceptance Criteria
+      if (issue.acceptance_criteria) {
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Acceptance Criteria</div>`;
+        html += `<div class="modal-section-content">${esc(issue.acceptance_criteria)}</div>`;
+        html += `</div>`;
+      }
+
+      // Notes
+      if (issue.notes) {
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Notes</div>`;
+        html += `<div class="modal-section-content">${esc(issue.notes)}</div>`;
+        html += `</div>`;
+      }
+
+      // Close reason
+      if (issue.close_reason) {
+        html += `<div class="modal-section">`;
+        html += `<div class="modal-section-title">Close Reason</div>`;
+        html += `<div class="modal-section-content">${esc(issue.close_reason)}</div>`;
+        html += `</div>`;
+      }
+
+      // Children
+      if (issue.children && issue.children.length > 0) {
+        html += `<div class="modal-children">`;
+        html += `<div class="modal-section-title">Subtasks (${issue.children.length})</div>`;
+        for (const childId of issue.children) {
+          const child = issueMap[childId];
+          if (!child) continue;
+          const cStatus = child.status || 'open';
+          html += `<div class="modal-child-link" data-status="${cStatus}" onclick="event.stopPropagation(); openModal('${esc(childId)}')">`;
+          html += `<div class="modal-child-title">${esc(child.title)}</div>`;
+          html += `<div class="modal-child-meta">${esc(childId)} &middot; ${STATUS_LABELS[cStatus] || cStatus} &middot; P${child.priority ?? 2}</div>`;
+          html += `</div>`;
+        }
+        html += `</div>`;
+      }
+
+      html += `</div>`;
+
+      document.getElementById('modal').innerHTML = html;
+      document.getElementById('modal-overlay').classList.add('open');
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+
+    // Close on overlay click
+    document.getElementById('modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
+
+    // Deferred toggle
+    document.getElementById('deferred-toggle').addEventListener('click', () => {
+      const cards = document.getElementById('cards-deferred');
+      const arrow = document.getElementById('deferred-arrow');
+      const isOpen = cards.classList.toggle('open');
+      arrow.innerHTML = isOpen ? '&#9660;' : '&#9654;';
+    });
+
+    // SSE connection with reconnect
+    function connect() {
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+
+      const es = new EventSource('/api/events');
+
+      es.onopen = () => {
+        dot.classList.add('connected');
+        text.textContent = 'Live';
+        reconnectDelay = 1000;
+      };
+
+      es.onmessage = (e) => {
+        try {
+          const issues = JSON.parse(e.data);
+          render(issues);
+        } catch {}
+      };
+
+      es.onerror = () => {
+        es.close();
+        dot.classList.remove('connected');
+        text.textContent = 'Reconnecting...';
+        setTimeout(connect, reconnectDelay);
+        reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+      };
+    }
+
+    connect();
+  </script>
+</body>
+</html>
