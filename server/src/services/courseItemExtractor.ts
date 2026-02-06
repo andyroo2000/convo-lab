@@ -52,7 +52,7 @@ export interface VocabularyItem {
   components?: PhraseComponent[]; // Backward-build components for this word/phrase
 }
 
-interface SentenceWithMetadata extends Sentence {
+interface SentenceWithMetadata extends Omit<Sentence, 'metadata'> {
   metadata: LanguageMetadata;
   speaker?: Speaker;
 }
