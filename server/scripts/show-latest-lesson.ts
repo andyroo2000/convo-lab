@@ -1,4 +1,5 @@
 import { prisma } from '../src/db/client.js';
+import type { LessonScriptUnit } from '../src/services/lessonScriptGenerator.js';
 
 async function getAllLessons() {
   const lessons = await prisma.lesson.findMany({
@@ -23,7 +24,7 @@ async function getAllLessons() {
     console.log('Course:', lesson.course.title, '(status:', lesson.course.status + ')');
     console.log('Lesson Status:', lesson.status);
     console.log('Created:', lesson.createdAt);
-    const units = lesson.scriptJson as any[];
+    const units = lesson.scriptJson as LessonScriptUnit[] | null;
     console.log('Script Units:', units?.length || 'N/A');
 
     if (units && units.length > 0) {

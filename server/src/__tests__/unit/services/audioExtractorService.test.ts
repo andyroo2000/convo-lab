@@ -31,8 +31,7 @@ vi.mock('child_process', () => ({
 }));
 
 vi.mock('util', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  promisify: (_fn: any) => mockExecAsync,
+  promisify: (_fn: (...args: unknown[]) => unknown) => mockExecAsync,
 }));
 
 vi.mock('fs/promises', () => ({
@@ -42,18 +41,20 @@ vi.mock('fs/promises', () => ({
   },
 }));
 
-vi.mock('@google-cloud/storage', () => ({
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  Storage: vi.fn(function (this: any) {
-    this.bucket = vi.fn(() => ({
-      upload: mockUpload,
-      file: vi.fn(() => ({
-        makePublic: mockMakePublic,
-      })),
-    }));
-    return this;
-  }),
-}));
+vi.mock('@google-cloud/storage', () => {
+  class MockStorage {
+    bucket() {
+      return {
+        upload: mockUpload,
+        file: vi.fn(() => ({
+          makePublic: mockMakePublic,
+        })),
+      };
+    }
+  }
+
+  return { Storage: MockStorage };
+});
 
 describe('audioExtractorService', () => {
   beforeEach(() => {

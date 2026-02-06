@@ -436,7 +436,7 @@ Do NOT auto-fix @typescript-eslint/no-explicit-any:
 
 \`\`\`typescript
 // TODO: Type this properly - looks like Stripe subscription object
-const subscription: any = await stripe.subscriptions.retrieve(id);
+const subscription: Stripe.Subscription = await stripe.subscriptions.retrieve(id);
 \`\`\`
 
 Create follow-up issue for TypeScript migration.

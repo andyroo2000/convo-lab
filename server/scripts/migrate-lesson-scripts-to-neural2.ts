@@ -6,6 +6,7 @@
  */
 
 import { prisma } from '../src/db/client.js';
+import type { LessonScriptUnit } from '../src/services/lessonScriptGenerator.js';
 
 async function migrateLessonScripts() {
   console.log('Finding lessons with Journey voices in scriptJson...');
@@ -27,7 +28,7 @@ async function migrateLessonScripts() {
   let updatedCount = 0;
 
   for (const lesson of lessons) {
-    const scriptJson = lesson.scriptJson as any[];
+    const scriptJson = lesson.scriptJson as LessonScriptUnit[] | null;
     if (!scriptJson || !Array.isArray(scriptJson)) continue;
 
     let hasJourneyVoice = false;
@@ -43,7 +44,7 @@ async function migrateLessonScripts() {
       console.log(`  Updating lesson: ${lesson.title}`);
       await prisma.lesson.update({
         where: { id: lesson.id },
-        data: { scriptJson: updatedScript as any },
+        data: { scriptJson: updatedScript },
       });
       updatedCount++;
     }

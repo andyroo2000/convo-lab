@@ -1,8 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, import/no-named-as-default-member */
+/* eslint-disable import/no-named-as-default-member */
 import crypto from 'crypto';
 
 import { Router } from 'express';
 import multer from 'multer';
+import type Stripe from 'stripe';
 
 import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
@@ -17,6 +18,7 @@ import {
 } from '../services/avatarService.js';
 
 const router = Router();
+const STRIPE_API_VERSION = '2024-12-18.acacia' as Stripe.LatestApiVersion;
 
 // Configure multer for memory storage
 const upload = multer({
@@ -346,7 +348,7 @@ router.post('/users/:id/subscription/cancel', async (req: AuthRequest, res, next
     // Import Stripe service for subscription cancellation
     const Stripe = (await import('stripe')).default;
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-      apiVersion: '2024-12-18.acacia' as any,
+      apiVersion: STRIPE_API_VERSION,
     });
 
     // Cancel the subscription in Stripe
@@ -662,10 +664,14 @@ router.get('/feature-flags', async (req: AuthRequest, res, next) => {
 // Update feature flags
 router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
   try {
-    const { dialoguesEnabled, audioCourseEnabled } = req.body;
+    const payload = req.body as {
+      dialoguesEnabled?: unknown;
+      audioCourseEnabled?: unknown;
+    };
+    const { dialoguesEnabled, audioCourseEnabled } = payload;
 
     // Validate boolean values
-    const validateBoolean = (val: any, name: string) => {
+    const validateBoolean = (val: unknown, name: string) => {
       if (val !== undefined && typeof val !== 'boolean') {
         throw new AppError(`${name} must be a boolean`, 400);
       }
@@ -674,6 +680,11 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
 
+    const dialoguesEnabledValue =
+      typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
+    const audioCourseEnabledValue =
+      typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
+
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
 
@@ -681,8 +692,8 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       // Create with provided values (defaults to true for any undefined)
       flags = await prisma.featureFlag.create({
         data: {
-          dialoguesEnabled: dialoguesEnabled ?? true,
-          audioCourseEnabled: audioCourseEnabled ?? true,
+          dialoguesEnabled: dialoguesEnabledValue ?? true,
+          audioCourseEnabled: audioCourseEnabledValue ?? true,
         },
       });
     } else {
@@ -690,8 +701,10 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       flags = await prisma.featureFlag.update({
         where: { id: flags.id },
         data: {
-          ...(dialoguesEnabled !== undefined && { dialoguesEnabled }),
-          ...(audioCourseEnabled !== undefined && { audioCourseEnabled }),
+          ...(dialoguesEnabledValue !== undefined && { dialoguesEnabled: dialoguesEnabledValue }),
+          ...(audioCourseEnabledValue !== undefined && {
+            audioCourseEnabled: audioCourseEnabledValue,
+          }),
         },
       });
     }

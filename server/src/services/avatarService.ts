@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -211,7 +210,7 @@ export async function getSpeakerAvatar(filename: string) {
  */
 function getVoiceGenderFromConfig(voiceId: string): string {
   for (const config of Object.values(TTS_VOICES)) {
-    const voice = config.voices.find((v: any) => v.id === voiceId);
+    const voice = config.voices.find((v) => v.id === voiceId);
     if (voice) {
       return voice.gender;
     }
@@ -238,7 +237,7 @@ function parseVoiceId(voiceId: string): { language: string; gender: string } {
     // Amazon Polly voice: Look up language from TTS_VOICES configuration
     let found = false;
     for (const [langCode, config] of Object.entries(TTS_VOICES)) {
-      const voice = config.voices.find((v: any) => v.id === voiceId);
+      const voice = config.voices.find((v) => v.id === voiceId);
       if (voice) {
         language = langCode;
         found = true;
