@@ -24,9 +24,9 @@ ALTER TABLE "User" DROP COLUMN IF EXISTS "hskLevel";
 ALTER TABLE "User" DROP COLUMN IF EXISTS "cefrLevel";
 ALTER TABLE "Course" DROP COLUMN IF EXISTS "hskLevel";
 ALTER TABLE "Course" DROP COLUMN IF EXISTS "cefrLevel";
-ALTER TABLE "FeatureFlag" DROP COLUMN IF EXISTS "narrowListeningEnabled";
-ALTER TABLE "FeatureFlag" DROP COLUMN IF EXISTS "processingInstructionEnabled";
-ALTER TABLE "FeatureFlag" DROP COLUMN IF EXISTS "lexicalChunksEnabled";
+ALTER TABLE "feature_flags" DROP COLUMN IF EXISTS "narrowListeningEnabled";
+ALTER TABLE "feature_flags" DROP COLUMN IF EXISTS "processingInstructionEnabled";
+ALTER TABLE "feature_flags" DROP COLUMN IF EXISTS "lexicalChunksEnabled";
 
 -- Drop deprecated tables
 DROP TABLE IF EXISTS "StorySegment" CASCADE;
