@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- **[chore]** Track `tools/kanban/package-lock.json` for reproducible dependency installs
+
 ### Added
 
 - **[feat]** Beads Kanban Board — standalone dev tool (`tools/kanban/`) that reads from `.beads/beads.db` (SQLite) and serves a live Kanban board at `localhost:3333`; 4-column layout (Open/In Progress/Blocked/Closed) with real-time SSE updates via chokidar file watching; click any card for a detail modal showing description, design, acceptance criteria, notes, parent/child relationships; run with `npm run kanban`
