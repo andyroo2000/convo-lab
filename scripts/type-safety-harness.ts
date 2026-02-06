@@ -279,9 +279,14 @@ async function runFileSession(
   const startTime = Date.now();
   const prompt = buildPrompt(task, options.dryRun);
 
+  const shortFile = task.file.split('/').pop()!;
+  console.log(`  🚀 [${shortFile}] starting (${task.anyCount} any)`);
+
   try {
     let messageCount = 0;
     let lastMessage = '';
+    let lastToolName = '';
+    let lastHeartbeat = Date.now();
 
     for await (const message of query({
       prompt,
@@ -303,15 +308,25 @@ async function runFileSession(
         for (const block of message.message.content) {
           if ('text' in block && block.text) {
             lastMessage = block.text;
-            if (options.verbose) {
-              const preview = block.text.substring(0, 200);
-              console.log(`  [${task.file}] ${preview}${block.text.length > 200 ? '...' : ''}`);
-            }
           }
+          if ('tool_use' in block) {
+            lastToolName = (block as { tool_use: { name: string } }).tool_use.name;
+          }
+        }
+
+        // Heartbeat logging so the user can see sessions are alive
+        const now = Date.now();
+        const heartbeatInterval = options.verbose ? 5000 : 15000;
+        if (now - lastHeartbeat >= heartbeatInterval) {
+          const elapsed = formatDuration(now - startTime);
+          const action = lastToolName || 'thinking';
+          console.log(`  ⚡ [${shortFile}] turn ${messageCount}/${options.maxTurns} — ${action} (${elapsed})`);
+          lastHeartbeat = now;
         }
 
         // Detect skip: the session found the card was already claimed
         if (lastMessage.includes('SKIPPED:')) {
+          console.log(`  ⏭️  [${shortFile}] skipped (card already claimed)`);
           return {
             file: task.file,
             cardId: task.cardId,
@@ -324,7 +339,9 @@ async function runFileSession(
       }
 
       if (message.type === 'result') {
+        const elapsed = formatDuration(Date.now() - startTime);
         if (message.subtype === 'success') {
+          console.log(`  ✅ [${shortFile}] done in ${messageCount} turns (${elapsed})`);
           return {
             file: task.file,
             cardId: task.cardId,
@@ -333,6 +350,7 @@ async function runFileSession(
             turns: messageCount,
           };
         } else {
+          console.log(`  ❌ [${shortFile}] failed after ${messageCount} turns (${elapsed})`);
           return {
             file: task.file,
             cardId: task.cardId,
