@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Kanban board not showing latest beads updates — SQLite `readonly` mode can't read uncommitted WAL changes; switched to `query_only` pragma so live updates reflect immediately
 - **[fix]** Fixed deploy health check failure caused by incorrect table name in japanese_only_cleanup migration — `"FeatureFlag"` should be `"feature_flags"` (Prisma `@@map`); also added `prisma migrate resolve --rolled-back` to Dockerfile CMD to recover from failed migration state in production
 
 ### Changed
