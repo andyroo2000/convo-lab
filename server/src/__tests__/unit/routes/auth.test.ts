@@ -41,7 +41,7 @@ describe('Auth Route Validation Logic', () => {
   });
 
   describe('Language Code Validation', () => {
-    const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'he', 'en'];
+    const validLanguages = ['ja', 'en'];
 
     it('should accept valid language codes', () => {
       validLanguages.forEach((lang) => {
@@ -57,23 +57,6 @@ describe('Auth Route Validation Logic', () => {
     });
   });
 
-  describe('Pinyin Display Mode Validation', () => {
-    const validModes = ['toneMarks', 'toneNumbers'];
-
-    it('should accept valid pinyin modes', () => {
-      validModes.forEach((mode) => {
-        expect(validModes.includes(mode)).toBe(true);
-      });
-    });
-
-    it('should reject invalid pinyin modes', () => {
-      const invalidModes = ['none', 'both', '', 'invalid'];
-      invalidModes.forEach((mode) => {
-        expect(validModes.includes(mode)).toBe(false);
-      });
-    });
-  });
-
   describe('Proficiency Level Validation', () => {
     const validLevels = [
       'N5',
@@ -81,18 +64,6 @@ describe('Auth Route Validation Logic', () => {
       'N3',
       'N2',
       'N1', // JLPT
-      'HSK1',
-      'HSK2',
-      'HSK3',
-      'HSK4',
-      'HSK5',
-      'HSK6', // HSK
-      'A1',
-      'A2',
-      'B1',
-      'B2',
-      'C1',
-      'C2', // CEFR
     ];
 
     it('should accept valid JLPT levels', () => {
@@ -101,20 +72,8 @@ describe('Auth Route Validation Logic', () => {
       });
     });
 
-    it('should accept valid HSK levels', () => {
-      ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'].forEach((level) => {
-        expect(validLevels.includes(level)).toBe(true);
-      });
-    });
-
-    it('should accept valid CEFR levels', () => {
-      ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].forEach((level) => {
-        expect(validLevels.includes(level)).toBe(true);
-      });
-    });
-
     it('should reject invalid proficiency levels', () => {
-      const invalidLevels = ['N6', 'HSK7', 'C3', 'beginner', 'advanced', ''];
+      const invalidLevels = ['N6', 'N0', 'beginner', 'advanced', ''];
       invalidLevels.forEach((level) => {
         expect(validLevels.includes(level)).toBe(false);
       });

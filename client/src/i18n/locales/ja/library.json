@@ -4,8 +4,7 @@
     "all": "すべて",
     "dialogues": "対話",
     "courses": "オーディオコース",
-    "narrowListening": "ナローリスニング",
-    "chunkPacks": "語彙チャンクパック"
+    "narrowListening": "ナローリスニング"
   },
   "empty": {
     "title": "まだコンテンツがありません",
@@ -17,7 +16,6 @@
     "confirmEpisode": "この対話を削除してもよろしいですか？",
     "confirmCourse": "このコースを削除してもよろしいですか？",
     "confirmNarrowListening": "このナローリスニングパックを削除してもよろしいですか？",
-    "confirmChunkPack": "このチャンクパックを削除してもよろしいですか？",
     "confirmButton": "はい、削除します",
     "cancelButton": "キャンセル",
     "deleting": "削除中...",
@@ -48,11 +46,6 @@
       "description": "あなたのレベルのストーリーバリエーションで集中的なリスニング理解を練習",
       "button": "始める"
     },
-    "chunkPack": {
-      "title": "最初の語彙チャンクパックを作成",
-      "description": "例、ストーリー、インタラクティブな演習で高頻度表現をマスター",
-      "button": "始める"
-    },
     "all": {
       "description": "まだコンテンツがありません。最初の学習教材を作成して始めましょう！",
       "button": "すべてのオプションを見る"
@@ -60,7 +53,6 @@
   },
   "sidebar": {
     "course": "オーディオ\nコース",
-    "narrowListening": "ナロー\nリスニング",
-    "chunkPack": "チャンク\nパック"
+    "narrowListening": "ナロー\nリスニング"
   }
 }

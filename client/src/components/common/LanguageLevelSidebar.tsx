@@ -7,7 +7,6 @@ interface LanguageLevelSidebarProps {
 function getLanguageBgClass(language: string): string {
   const bgMap: Record<string, string> = {
     ja: 'bg-periwinkle',
-    zh: 'bg-keylime',
   };
   return bgMap[language.toLowerCase()] || 'bg-periwinkle';
 }

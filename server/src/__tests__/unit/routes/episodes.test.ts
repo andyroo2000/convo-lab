@@ -520,7 +520,7 @@ describe('Episodes Route Logic', () => {
 
   describe('Validation', () => {
     it('should validate target language is supported', () => {
-      const supportedLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'he'];
+      const supportedLanguages = ['ja'];
 
       expect(supportedLanguages.includes('ja')).toBe(true);
       expect(supportedLanguages.includes('de')).toBe(false);

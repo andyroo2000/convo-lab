@@ -60,29 +60,15 @@ vi.mock('../../../contexts/AuthContext', () => ({
 vi.mock('../../../../../shared/src/constants-new', () => ({
   SUPPORTED_LANGUAGES: {
     ja: { name: 'Japanese', nativeName: '日本語' },
-    zh: { name: 'Chinese', nativeName: '中文' },
-    es: { name: 'Spanish', nativeName: 'Español' },
     en: { name: 'English', nativeName: 'English' },
   },
   SPEAKER_COLORS: ['#6366f1', '#ec4899', '#10b981', '#f59e0b'],
 }));
 
-/* eslint-disable no-nested-ternary */
 vi.mock('../../../../../shared/src/nameConstants', () => ({
-  getRandomName: (language: string, gender: string) =>
-    language === 'ja'
-      ? gender === 'male'
-        ? '田中'
-        : '鈴木'
-      : language === 'zh'
-        ? gender === 'male'
-          ? '小明'
-          : '小红'
-        : gender === 'male'
-          ? 'Carlos'
-          : 'María',
+  getRandomName: (_language: string, gender: string) =>
+    gender === 'male' ? '田中' : '鈴木',
 }));
-/* eslint-enable no-nested-ternary */
 
 vi.mock('../../../../../shared/src/voiceSelection', () => ({
   getDialogueSpeakerVoices: (language: string, count: number) =>

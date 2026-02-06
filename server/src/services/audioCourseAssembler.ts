@@ -81,6 +81,11 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
       }
 
       if (buffer) {
+        // Validate segment buffer is non-empty before writing
+        if (buffer.length === 0) {
+          console.warn(`[ASSEMBLER] Empty buffer for unit ${i} (type: ${unit.type}, voice: ${'voiceId' in unit ? unit.voiceId : 'N/A'}) - skipping`);
+          continue;
+        }
         const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
         await fs.writeFile(segmentPath, buffer);
         audioSegmentFiles.push(segmentPath);
@@ -162,6 +167,10 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
   const outputFile = path.join(tempDir, 'final-output.mp3');
 
   await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('ffmpeg concatenation timed out after 60 seconds'));
+    }, 60000);
+
     ffmpeg()
       .input(listFile)
       .inputOptions(['-f concat', '-safe 0'])
@@ -171,8 +180,14 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
       .audioFrequency(44100)
       .audioChannels(2)
       .output(outputFile)
-      .on('end', () => resolve())
-      .on('error', (err) => reject(err))
+      .on('end', () => {
+        clearTimeout(timeout);
+        resolve();
+      })
+      .on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      })
       .run();
   });
 

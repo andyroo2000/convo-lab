@@ -10,7 +10,6 @@ interface LanguageLevelPillProps {
 function getLanguageColor(language: string): ColorScheme {
   const colorMap: Record<string, ColorScheme> = {
     ja: 'periwinkle',
-    zh: 'keylime',
   };
   return colorMap[language.toLowerCase()] || 'periwinkle';
 }

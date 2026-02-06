@@ -11,8 +11,6 @@ const FREE_TIER_LIFETIME_LIMITS: Record<string, number> = {
   dialogue: 2, // 2 dialogues ever
   course: 1, // 1 audio course ever
   narrow_listening: 0, // Not available in free tier for MVP
-  chunk_pack: 0, // Not available in free tier for MVP
-  pi_session: 0, // Not available in free tier for MVP
 };
 
 // Paid tier: Monthly quota (all content types combined)
@@ -29,7 +27,7 @@ export interface QuotaStatus {
   unlimited?: boolean;
 }
 
-export type ContentType = 'dialogue' | 'course' | 'narrow_listening' | 'chunk_pack' | 'pi_session';
+export type ContentType = 'dialogue' | 'course' | 'narrow_listening';
 
 /**
  * Check if user can generate content (quota check only)

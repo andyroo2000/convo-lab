@@ -21,8 +21,6 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
       dialoguesEnabled: true,
       audioCourseEnabled: true,
       narrowListeningEnabled: true,
-      processingInstructionEnabled: true,
-      lexicalChunksEnabled: true,
     },
     isLoading: false,
     error: null,
@@ -78,8 +76,6 @@ describe('CreatePage', () => {
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
       expect(screen.getByTestId('create-card-audio-course')).toBeTruthy();
       expect(screen.getByTestId('create-card-narrow-listening')).toBeTruthy();
-      expect(screen.getByTestId('create-card-processing-instruction')).toBeTruthy();
-      expect(screen.getByTestId('create-card-lexical-chunks')).toBeTruthy();
     });
   });
 
@@ -131,23 +127,6 @@ describe('CreatePage', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/narrow-listening');
     });
 
-    it('should navigate to processing instruction creation on click', () => {
-      renderCreatePage();
-
-      const piCard = screen.getByTestId('create-card-processing-instruction');
-      fireEvent.click(piCard);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/create/processing-instruction');
-    });
-
-    it('should navigate to lexical chunk pack creation on click', () => {
-      renderCreatePage();
-
-      const chunkCard = screen.getByTestId('create-card-lexical-chunks');
-      fireEvent.click(chunkCard);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/create/lexical-chunk-pack');
-    });
   });
 
   describe('Card structure', () => {

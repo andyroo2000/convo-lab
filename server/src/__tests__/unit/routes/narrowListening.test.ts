@@ -226,42 +226,17 @@ describe('Narrow Listening Route Logic', () => {
       expect(isValidJLPT('N6')).toBe(false);
     });
 
-    it('should accept valid HSK levels for Chinese', () => {
-      const hskLevels = ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'];
-      const isValidHSK = (level: string) => hskLevels.includes(level);
-
-      expect(isValidHSK('HSK1')).toBe(true);
-      expect(isValidHSK('HSK6')).toBe(true);
-      expect(isValidHSK('HSK7')).toBe(false);
-    });
-
-    it('should accept valid CEFR levels for Spanish', () => {
-      const cefrLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-      const isValidCEFR = (level: string) => cefrLevels.includes(level);
-
-      expect(isValidCEFR('A1')).toBe(true);
-      expect(isValidCEFR('C2')).toBe(true);
-      expect(isValidCEFR('C3')).toBe(false);
-    });
-
-    it('should map language to proficiency system', () => {
+    it('should map Japanese to JLPT proficiency system', () => {
       const getProficiencySystem = (lang: string) => {
         switch (lang) {
           case 'ja':
             return 'JLPT';
-          case 'zh':
-            return 'HSK';
-          case 'es':
-          case 'fr':
-            return 'CEFR';
           default:
-            return 'CEFR';
+            return 'JLPT';
         }
       };
 
       expect(getProficiencySystem('ja')).toBe('JLPT');
-      expect(getProficiencySystem('zh')).toBe('HSK');
-      expect(getProficiencySystem('es')).toBe('CEFR');
     });
   });
 

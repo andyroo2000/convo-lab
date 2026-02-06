@@ -136,10 +136,10 @@ describe('ViewToggleButtons', () => {
     });
 
     it('should use custom label in title', () => {
-      render(<ViewToggleButtons {...defaultProps} readingsLabel="Pinyin" showReadings />);
+      render(<ViewToggleButtons {...defaultProps} readingsLabel="Furigana" showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
-      expect(readingsButton).toHaveAttribute('title', 'Hide pinyin');
+      expect(readingsButton).toHaveAttribute('title', 'Hide furigana');
     });
   });
 

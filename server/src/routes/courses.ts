@@ -438,6 +438,50 @@ router.post('/:id/reset', async (req: AuthRequest, res, next) => {
   }
 });
 
+// Retry a failed course generation (re-queues from saved pipeline state)
+router.post('/:id/retry', blockDemoUser, async (req: AuthRequest, res, next) => {
+  try {
+    const effectiveUserId = await getEffectiveUserId(req);
+
+    const course = await prisma.course.findFirst({
+      where: {
+        id: req.params.id,
+        userId: effectiveUserId,
+      },
+    });
+
+    if (!course) {
+      throw new AppError(i18next.t('server:content.notFound', { type: 'Course' }), 404);
+    }
+
+    if (course.status !== 'error') {
+      throw new AppError('Only courses in error status can be retried', 400);
+    }
+
+    // Reset status and re-queue
+    await prisma.course.update({
+      where: { id: course.id },
+      data: { status: 'draft' },
+    });
+
+    const job = await courseQueue.add('generate-course', {
+      courseId: course.id,
+    });
+
+    await logGeneration(req.userId!, 'course', course.id);
+
+    triggerWorkerJob().catch((err) => console.error('Worker trigger failed:', err));
+
+    res.json({
+      message: 'Course generation retried',
+      jobId: job.id,
+      courseId: course.id,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // Update course
 router.patch('/:id', async (req: AuthRequest, res, next) => {
   try {

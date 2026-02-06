@@ -179,30 +179,6 @@ describe('courseItemExtractor', () => {
       expect(result[0].readingL2).toBe('かんじ');
     });
 
-    it('should extract pinyin from Chinese metadata', async () => {
-      const sentences = [
-        createMockSentence('s1', '你好', 'Hello', {
-          chinese: { pinyin: 'nǐ hǎo' },
-        }),
-      ];
-      const episode = {
-        ...createMockEpisode(sentences),
-        targetLanguage: 'zh',
-      };
-
-      mockGenerateWithGemini.mockResolvedValue(
-        JSON.stringify({
-          phrases: [
-            { phraseIndex: 0, components: [{ textL2: '你好', translation: 'Hello', order: 0 }] },
-          ],
-        })
-      );
-
-      const result = await extractCoreItems(episode as any);
-
-      expect(result[0].readingL2).toBe('nǐ hǎo');
-    });
-
     it('should include Pimsleur components for longer phrases', async () => {
       const sentences = [
         createMockSentence('s1', '東京に行きたいです', 'I want to go to Tokyo', {
@@ -673,14 +649,10 @@ describe('courseItemExtractor', () => {
       expect(result).toEqual(['こんにちは']);
     });
 
-    it('should work with different languages', () => {
+    it('should work with Japanese text', () => {
       const jaResult = extractVocabularyFromSentence('テスト', 'ja');
-      const zhResult = extractVocabularyFromSentence('测试', 'zh');
-      const esResult = extractVocabularyFromSentence('Hola', 'es');
 
       expect(jaResult).toEqual(['テスト']);
-      expect(zhResult).toEqual(['测试']);
-      expect(esResult).toEqual(['Hola']);
     });
   });
 

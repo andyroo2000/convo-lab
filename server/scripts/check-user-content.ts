@@ -151,36 +151,6 @@ async function checkUserContent() {
       console.log('  (none)\n');
     }
 
-    // Check Chunk Packs
-    const chunkPacks = await prisma.chunkPack.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        targetLanguage: true,
-        theme: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    console.log(`📦 Lexical Chunk Packs: ${chunkPacks.length}`);
-    if (chunkPacks.length > 0) {
-      chunkPacks.forEach(pack => {
-        console.log(`  - "${pack.title}"`);
-        console.log(`    Status: ${pack.status}`);
-        console.log(`    Language: ${pack.targetLanguage}`);
-        console.log(`    Theme: ${pack.theme}`);
-        console.log(`    Created: ${pack.createdAt.toISOString()}`);
-        console.log(`    Updated: ${pack.updatedAt.toISOString()}`);
-        console.log();
-      });
-    } else {
-      console.log('  (none)\n');
-    }
-
     // Check Generation Logs
     const genLogs = await prisma.generationLog.findMany({
       where: { userId: user.id },
@@ -217,7 +187,7 @@ async function checkUserContent() {
     console.log();
 
     // Summary
-    const totalContent = episodes.length + courses.length + narrowPacks.length + chunkPacks.length;
+    const totalContent = episodes.length + courses.length + narrowPacks.length;
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`📊 Summary for ${user.email}:`);
     console.log(`  Total content pieces: ${totalContent}`);

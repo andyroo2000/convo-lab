@@ -4,7 +4,6 @@ import { Loader, Zap } from 'lucide-react';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import AudioPlayer, { RepeatMode } from '../components/AudioPlayer';
 import JapaneseText from '../components/JapaneseText';
-import ChineseText from '../components/ChineseText';
 import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
 
@@ -490,7 +489,7 @@ const NarrowListeningPlaybackPage = () => {
                 <div className="inline-flex items-center text-xs font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
                   <div className="pl-3 pr-4 py-1 bg-periwinkle text-white uppercase tracking-wide">
-                    {pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
+                    {pack.jlptLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
@@ -516,13 +515,13 @@ const NarrowListeningPlaybackPage = () => {
               {!generatingSpeed && currentAudioUrl && (
                 <div className="flex flex-col gap-2">
                   {/* Row 1: Furigana & English Toggles - Only show for languages with readings (ja, zh) */}
-                  {(pack.targetLanguage === 'ja' || pack.targetLanguage === 'zh') && (
+                  {(pack.targetLanguage === 'ja') && (
                     <ViewToggleButtons
                       showReadings={showReadings}
                       showTranslations={showTranslations}
                       onToggleReadings={() => setShowReadings(!showReadings)}
                       onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                      readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
+                      readingsLabel="Furigana"
                     />
                   )}
 
@@ -548,7 +547,7 @@ const NarrowListeningPlaybackPage = () => {
                 <div className="inline-flex items-center text-sm font-medium overflow-hidden rounded-md shadow-sm">
                   {/* Left segment - Proficiency Level */}
                   <div className="pl-4 pr-5 py-1.5 bg-periwinkle text-white uppercase tracking-wide">
-                    {pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
+                    {pack.jlptLevel}
                   </div>
 
                   {/* Right segment - Variations (with chevron left edge) */}
@@ -574,13 +573,13 @@ const NarrowListeningPlaybackPage = () => {
               {!generatingSpeed && currentAudioUrl && (
                 <div className="flex flex-col items-end gap-2 ml-6">
                   {/* Row 1: Furigana & English Toggles - Only show for languages with readings (ja, zh) */}
-                  {(pack.targetLanguage === 'ja' || pack.targetLanguage === 'zh') && (
+                  {(pack.targetLanguage === 'ja') && (
                     <ViewToggleButtons
                       showReadings={showReadings}
                       showTranslations={showTranslations}
                       onToggleReadings={() => setShowReadings(!showReadings)}
                       onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                      readingsLabel={pack.targetLanguage === 'zh' ? 'Pinyin' : 'Furigana'}
+                      readingsLabel="Furigana"
                     />
                   )}
 
@@ -722,29 +721,21 @@ const NarrowListeningPlaybackPage = () => {
                         <p
                           className={`text-lg text-dark-brown leading-relaxed ${showTranslations ? 'mb-2' : ''}`}
                         >
-                          {pack.targetLanguage === 'zh' ? (
-                            <ChineseText
-                              text={segment.targetText}
-                              pinyin={segment.reading || undefined}
-                              showPinyin={showReadings}
-                            />
-                          ) : (
-                            <JapaneseText
-                              text={segment.targetText}
-                              metadata={
-                                segment.reading
-                                  ? {
-                                      japanese: {
-                                        kanji: segment.targetText,
-                                        kana: '',
-                                        furigana: segment.reading,
-                                      },
-                                    }
-                                  : undefined
-                              }
-                              showFurigana={showReadings}
-                            />
-                          )}
+                          <JapaneseText
+                            text={segment.targetText}
+                            metadata={
+                              segment.reading
+                                ? {
+                                    japanese: {
+                                      kanji: segment.targetText,
+                                      kana: '',
+                                      furigana: segment.reading,
+                                    },
+                                  }
+                                : undefined
+                            }
+                            showFurigana={showReadings}
+                          />
                         </p>
                         {showTranslations && (
                           <p className="text-sm text-gray-600 italic">

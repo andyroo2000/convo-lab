@@ -228,40 +228,23 @@ describe('GoogleTTSProvider', () => {
   });
 
   describe('extractLanguageCode (via synthesizeSpeech)', () => {
-    it('should extract es-ES language code', async () => {
+    it('should extract ja-JP language code', async () => {
       const audioContent = Buffer.from('audio data');
       mockSynthesizeSpeech.mockResolvedValue([{ audioContent }]);
 
       await provider.synthesizeSpeech({
-        text: 'Hola',
-        voiceId: 'es-ES-Neural2-A',
+        text: 'こんにちは',
+        voiceId: 'ja-JP-Neural2-B',
       });
 
       expect(mockSynthesizeSpeech).toHaveBeenCalledWith(
         expect.objectContaining({
           voice: expect.objectContaining({
-            languageCode: 'es-ES',
+            languageCode: 'ja-JP',
           }),
         })
       );
     });
 
-    it('should extract zh-CN language code', async () => {
-      const audioContent = Buffer.from('audio data');
-      mockSynthesizeSpeech.mockResolvedValue([{ audioContent }]);
-
-      await provider.synthesizeSpeech({
-        text: '你好',
-        voiceId: 'zh-CN-Wavenet-A',
-      });
-
-      expect(mockSynthesizeSpeech).toHaveBeenCalledWith(
-        expect.objectContaining({
-          voice: expect.objectContaining({
-            languageCode: 'zh-CN',
-          }),
-        })
-      );
-    });
   });
 });

@@ -24,30 +24,12 @@ export interface NarrowListeningPack {
   };
 }
 
-export interface ChunkPack {
-  id: string;
-  title: string;
-  theme: string;
-  targetLanguage: string;
-  jlptLevel: string | null;
-  hskLevel: string | null;
-  cefrLevel: string | null;
-  status: string;
-  createdAt: string;
-  _count: {
-    examples: number;
-    stories: number;
-    exercises: number;
-  };
-}
-
 // Query keys for cache management
 export const libraryKeys = {
   all: ['library'] as const,
   episodes: () => [...libraryKeys.all, 'episodes'] as const,
   courses: () => [...libraryKeys.all, 'courses'] as const,
   narrowListening: () => [...libraryKeys.all, 'narrowListening'] as const,
-  chunkPacks: () => [...libraryKeys.all, 'chunkPacks'] as const,
 };
 
 // Invalidate library cache - call this after creating new content
@@ -116,23 +98,6 @@ async function fetchNarrowListeningPacks(
   return response.json();
 }
 
-async function fetchChunkPacks(offset: number = 0, viewAsUserId?: string): Promise<ChunkPack[]> {
-  const params = new URLSearchParams({
-    library: 'true',
-    limit: '20',
-    offset: String(offset),
-  });
-  if (viewAsUserId) params.append('viewAs', viewAsUserId);
-
-  const response = await fetch(`${API_URL}/api/chunk-packs?${params}`, {
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch chunk packs');
-  }
-  return response.json();
-}
-
 // Delete functions
 async function deleteEpisodeRequest(episodeId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
@@ -162,16 +127,6 @@ async function deleteNarrowListeningPackRequest(packId: string): Promise<void> {
   });
   if (!response.ok) {
     throw new Error('Failed to delete pack');
-  }
-}
-
-async function deleteChunkPackRequest(packId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/chunk-packs/${packId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to delete chunk pack');
   }
 }
 
@@ -211,20 +166,6 @@ export function useLibraryData(viewAsUserId?: string) {
     initialPageParam: 0,
   });
 
-  const chunkPacksQuery = useInfiniteQuery({
-    queryKey: [...libraryKeys.chunkPacks(), viewAsUserId],
-    queryFn: ({ pageParam = 0 }) => fetchChunkPacks(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === 20 ? allPages.length * 20 : undefined,
-    initialPageParam: 0,
-    // Poll every 5 seconds while any chunk pack is generating
-    refetchInterval: (query) => {
-      const allPacks = query.state.data?.pages.flat() ?? [];
-      const hasGenerating = allPacks.some((cp) => cp.status === 'generating');
-      return hasGenerating ? 5000 : false;
-    },
-  });
-
   // Delete mutations with optimistic updates
   const deleteEpisodeMutation = useMutation({
     mutationFn: deleteEpisodeRequest,
@@ -247,19 +188,11 @@ export function useLibraryData(viewAsUserId?: string) {
     },
   });
 
-  const deleteChunkPackMutation = useMutation({
-    mutationFn: deleteChunkPackRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: libraryKeys.chunkPacks() });
-    },
-  });
-
   // Combined loading state - only show loading on initial load
   const isLoading =
     episodesQuery.isLoading ||
     coursesQuery.isLoading ||
-    narrowListeningQuery.isLoading ||
-    chunkPacksQuery.isLoading;
+    narrowListeningQuery.isLoading;
 
   // Error state - only show error if episodes fail (primary content)
   const error = episodesQuery.error?.message || null;
@@ -268,28 +201,24 @@ export function useLibraryData(viewAsUserId?: string) {
   const episodes = episodesQuery.data?.pages.flat() ?? [];
   const courses = coursesQuery.data?.pages.flat() ?? [];
   const narrowListeningPacks = narrowListeningQuery.data?.pages.flat() ?? [];
-  const chunkPacks = chunkPacksQuery.data?.pages.flat() ?? [];
 
   // Check if we're fetching more data
   const isFetchingNextPage =
     episodesQuery.isFetchingNextPage ||
     coursesQuery.isFetchingNextPage ||
-    narrowListeningQuery.isFetchingNextPage ||
-    chunkPacksQuery.isFetchingNextPage;
+    narrowListeningQuery.isFetchingNextPage;
 
   // Check if there's more data to load
   const hasNextPage =
     episodesQuery.hasNextPage ||
     coursesQuery.hasNextPage ||
-    narrowListeningQuery.hasNextPage ||
-    chunkPacksQuery.hasNextPage;
+    narrowListeningQuery.hasNextPage;
 
   // Fetch next page for all queries
   const fetchNextPage = () => {
     if (episodesQuery.hasNextPage) episodesQuery.fetchNextPage();
     if (coursesQuery.hasNextPage) coursesQuery.fetchNextPage();
     if (narrowListeningQuery.hasNextPage) narrowListeningQuery.fetchNextPage();
-    if (chunkPacksQuery.hasNextPage) chunkPacksQuery.fetchNextPage();
   };
 
   return {
@@ -297,7 +226,6 @@ export function useLibraryData(viewAsUserId?: string) {
     episodes,
     courses,
     narrowListeningPacks,
-    chunkPacks,
 
     // Status
     isLoading,
@@ -312,12 +240,10 @@ export function useLibraryData(viewAsUserId?: string) {
     deleteEpisode: deleteEpisodeMutation.mutateAsync,
     deleteCourse: deleteCourseMutation.mutateAsync,
     deleteNarrowListeningPack: deleteNarrowListeningMutation.mutateAsync,
-    deleteChunkPack: deleteChunkPackMutation.mutateAsync,
 
     // Mutation states for UI feedback
     isDeletingEpisode: deleteEpisodeMutation.isPending,
     isDeletingCourse: deleteCourseMutation.isPending,
     isDeletingNarrowListening: deleteNarrowListeningMutation.isPending,
-    isDeletingChunkPack: deleteChunkPackMutation.isPending,
   };
 }

@@ -26,12 +26,6 @@ const CoursePage = lazy(() => import('./pages/CoursePage'));
 const NarrowListeningLibraryPage = lazy(() => import('./pages/NarrowListeningLibraryPage'));
 const NarrowListeningCreatorPage = lazy(() => import('./pages/NarrowListeningCreatorPage'));
 const NarrowListeningPlaybackPage = lazy(() => import('./pages/NarrowListeningPlaybackPage'));
-const PISetupPage = lazy(() => import('./pages/PISetupPage'));
-const PISessionPage = lazy(() => import('./pages/PISessionPage'));
-const ChunkPackSetupPage = lazy(() => import('./pages/ChunkPackSetupPage'));
-const ChunkPackExamplesPage = lazy(() => import('./pages/ChunkPackExamplesPage'));
-const ChunkPackStoryPage = lazy(() => import('./pages/ChunkPackStoryPage'));
-const ChunkPackExercisesPage = lazy(() => import('./pages/ChunkPackExercisesPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -79,8 +73,6 @@ const App = () => (
                   <Route path="create/dialogue" element={<DialogueCreatorPage />} />
                   <Route path="create/audio-course" element={<CourseCreatorPage />} />
                   <Route path="create/narrow-listening" element={<NarrowListeningCreatorPage />} />
-                  <Route path="create/processing-instruction" element={<PISetupPage />} />
-                  <Route path="create/lexical-chunk-pack" element={<ChunkPackSetupPage />} />
 
                   {/* Playback & Practice */}
                   <Route path="playback/:episodeId" element={<PlaybackPage />} />
@@ -88,13 +80,6 @@ const App = () => (
                   <Route path="courses/:courseId" element={<CoursePage />} />
                   <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
                   <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
-                  <Route path="pi/session" element={<PISessionPage />} />
-                  <Route path="chunk-packs/:packId/examples" element={<ChunkPackExamplesPage />} />
-                  <Route path="chunk-packs/:packId/story" element={<ChunkPackStoryPage />} />
-                  <Route
-                    path="chunk-packs/:packId/exercises"
-                    element={<ChunkPackExercisesPage />}
-                  />
                 </Route>
 
                 {/* 404 Catch-all Route */}

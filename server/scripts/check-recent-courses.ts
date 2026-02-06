@@ -142,23 +142,6 @@ async function checkRecentCourses() {
       orderBy: { createdAt: 'desc' }
     });
 
-    const chunkPacks = await prisma.chunkPack.findMany({
-      where: {
-        createdAt: { gte: thirtyDaysAgo }
-      },
-      select: {
-        title: true,
-        status: true,
-        createdAt: true,
-        user: {
-          select: {
-            email: true,
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
     console.log(`📝 Dialogs: ${episodes.length}`);
     if (episodes.length > 0) {
       episodes.forEach(ep => {
@@ -174,13 +157,6 @@ async function checkRecentCourses() {
       });
     }
     console.log();
-
-    console.log(`📦 Chunk Packs: ${chunkPacks.length}`);
-    if (chunkPacks.length > 0) {
-      chunkPacks.forEach(pack => {
-        console.log(`  - "${pack.title}" (${pack.status}) by ${pack.user.email} - ${pack.createdAt.toISOString()}`);
-      });
-    }
 
   } catch (error) {
     console.error('❌ Error:', error);

@@ -43,7 +43,6 @@ interface UserData {
     episodes: number;
     courses: number;
     narrowListeningPacks: number;
-    chunkPacks: number;
   };
 }
 
@@ -65,7 +64,6 @@ interface Stats {
   episodes: number;
   courses: number;
   narrowListeningPacks: number;
-  chunkPacks: number;
   inviteCodes: {
     total: number;
     used: number;
@@ -90,8 +88,6 @@ interface FeatureFlags {
   dialoguesEnabled: boolean;
   audioCourseEnabled: boolean;
   narrowListeningEnabled: boolean;
-  processingInstructionEnabled: boolean;
-  lexicalChunksEnabled: boolean;
   updatedAt: string;
 }
 
@@ -144,10 +140,7 @@ const AdminPage = () => {
     // Map language codes
     const languageMap: { [key: string]: string } = {
       ja: 'Japanese',
-      zh: 'Chinese',
-      es: 'Spanish',
-      fr: 'French',
-      ar: 'Arabic',
+      en: 'English',
     };
 
     // Capitalize first letter
@@ -174,30 +167,6 @@ const AdminPage = () => {
     'ja-male-casual.jpg',
     'ja-male-polite.jpg',
     'ja-male-formal.jpg',
-    'zh-female-casual.jpg',
-    'zh-female-polite.jpg',
-    'zh-female-formal.jpg',
-    'zh-male-casual.jpg',
-    'zh-male-polite.jpg',
-    'zh-male-formal.jpg',
-    'es-female-casual.jpg',
-    'es-female-polite.jpg',
-    'es-female-formal.jpg',
-    'es-male-casual.jpg',
-    'es-male-polite.jpg',
-    'es-male-formal.jpg',
-    'fr-female-casual.jpg',
-    'fr-female-polite.jpg',
-    'fr-female-formal.jpg',
-    'fr-male-casual.jpg',
-    'fr-male-polite.jpg',
-    'fr-male-formal.jpg',
-    'ar-female-casual.jpg',
-    'ar-female-polite.jpg',
-    'ar-female-formal.jpg',
-    'ar-male-casual.jpg',
-    'ar-male-polite.jpg',
-    'ar-male-formal.jpg',
   ];
 
   const fetchUsers = async () => {
@@ -775,8 +744,7 @@ const AdminPage = () => {
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {u._count.episodes +
                           u._count.courses +
-                          u._count.narrowListeningPacks +
-                          u._count.chunkPacks}{' '}
+                          u._count.narrowListeningPacks}{' '}
                         items
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
@@ -976,15 +944,6 @@ const AdminPage = () => {
                 <p className="text-3xl font-bold text-navy">{stats.narrowListeningPacks}</p>
               </div>
 
-              {/* Chunk Packs */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Chunk Packs</h3>
-                  <BarChart3 className="w-5 h-5 text-indigo" />
-                </div>
-                <p className="text-3xl font-bold text-navy">{stats.chunkPacks}</p>
-              </div>
-
               {/* Invite Codes */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-2">
@@ -1016,7 +975,7 @@ const AdminPage = () => {
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Manage the 36 speaker avatar images used in dialogues and courses (6 languages × 6
+              Manage the 12 speaker avatar images used in dialogues and courses (2 languages × 6
               avatars each)
             </p>
 
@@ -1332,57 +1291,6 @@ const AdminPage = () => {
                   </label>
                 </div>
 
-                {/* Processing Instruction Toggle */}
-                <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-base font-semibold text-navy">
-                      Processing Instruction Activities
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Learn grammar through structured input—answer meaning-based questions
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="toggle-processing-instruction"
-                    className="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      id="toggle-processing-instruction"
-                      type="checkbox"
-                      checked={featureFlags.processingInstructionEnabled}
-                      onChange={(e) =>
-                        updateFeatureFlag('processingInstructionEnabled', e.target.checked)
-                      }
-                      className="sr-only peer"
-                      aria-label="Toggle Processing Instruction Activities"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                  </label>
-                </div>
-
-                {/* Lexical Chunks Toggle */}
-                <div className="flex items-center justify-between py-4">
-                  <div>
-                    <h3 className="text-base font-semibold text-navy">Lexical Chunk Packs</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Acquire phrases as complete units—learn high-frequency chunks
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="toggle-lexical-chunks"
-                    className="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      id="toggle-lexical-chunks"
-                      type="checkbox"
-                      checked={featureFlags.lexicalChunksEnabled}
-                      onChange={(e) => updateFeatureFlag('lexicalChunksEnabled', e.target.checked)}
-                      className="sr-only peer"
-                      aria-label="Toggle Lexical Chunk Packs"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                  </label>
-                </div>
               </div>
 
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

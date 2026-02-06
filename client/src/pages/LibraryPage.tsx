@@ -1,13 +1,12 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Trash2, BookOpen, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
+import { Trash2, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
 import { Episode, Course } from '../types';
 import {
   useLibraryData,
   LibraryCourse,
   NarrowListeningPack,
-  ChunkPack,
 } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -23,7 +22,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { API_URL } from '../config';
 
-type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening' | 'chunkPacks';
+type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening';
 
 const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
@@ -34,7 +33,6 @@ const LibraryPage = () => {
     episodes,
     courses,
     narrowListeningPacks,
-    chunkPacks,
     isLoading,
     error,
     hasNextPage,
@@ -43,11 +41,9 @@ const LibraryPage = () => {
     deleteEpisode,
     deleteCourse,
     deleteNarrowListeningPack,
-    deleteChunkPack,
     isDeletingEpisode,
     isDeletingCourse,
     isDeletingNarrowListening,
-    isDeletingChunkPack,
   } = useLibraryData(viewAsUserId);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
@@ -102,11 +98,10 @@ const LibraryPage = () => {
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
   const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
-  const [chunkPackToDelete, setChunkPackToDelete] = useState<ChunkPack | null>(null);
 
   // Combined deleting state for modal
   const isDeleting =
-    isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening || isDeletingChunkPack;
+    isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening;
 
   // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
@@ -114,7 +109,6 @@ const LibraryPage = () => {
     dialogues: 'dialogues',
     courses: 'courses',
     'narrow-listening': 'narrowListening',
-    'lexical-chunk-packs': 'chunkPacks',
   };
 
   const filterTypeToParam: Record<FilterType, string> = {
@@ -122,7 +116,6 @@ const LibraryPage = () => {
     dialogues: 'dialogues',
     courses: 'courses',
     narrowListening: 'narrow-listening',
-    chunkPacks: 'lexical-chunk-packs',
   };
 
   // Get filter from URL or default to 'all'
@@ -196,31 +189,11 @@ const LibraryPage = () => {
     }
   };
 
-  const handleDeleteChunkPackClick = (pack: ChunkPack, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setChunkPackToDelete(pack);
-  };
-
-  const handleConfirmDeleteChunkPack = async () => {
-    if (!chunkPackToDelete) return;
-
-    try {
-      await deleteChunkPack(chunkPackToDelete.id);
-      setChunkPackToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete chunk pack:', err);
-      // eslint-disable-next-line no-alert
-      alert(t('library:delete.alertError', { type: 'chunk pack' }));
-    }
-  };
-
   const handleCancelDelete = () => {
     if (!isDeleting) {
       setEpisodeToDelete(null);
       setCourseToDelete(null);
       setPackToDelete(null);
-      setChunkPackToDelete(null);
     }
   };
 
@@ -247,21 +220,17 @@ const LibraryPage = () => {
   const allItems = useMemo(() => {
     // Filter content based on selected filter
     const filteredEpisodes =
-      filter === 'courses' || filter === 'narrowListening' || filter === 'chunkPacks'
+      filter === 'courses' || filter === 'narrowListening'
         ? []
         : episodes;
     const filteredCourses =
-      filter === 'dialogues' || filter === 'narrowListening' || filter === 'chunkPacks'
+      filter === 'dialogues' || filter === 'narrowListening'
         ? []
         : courses;
     const filteredPacks =
-      filter === 'dialogues' || filter === 'courses' || filter === 'chunkPacks'
+      filter === 'dialogues' || filter === 'courses'
         ? []
         : narrowListeningPacks;
-    const filteredChunkPacks =
-      filter === 'dialogues' || filter === 'courses' || filter === 'narrowListening'
-        ? []
-        : chunkPacks;
 
     // Combine and sort by date
     return [
@@ -280,13 +249,8 @@ const LibraryPage = () => {
         data: pack,
         date: new Date(pack.createdAt),
       })),
-      ...filteredChunkPacks.map((pack) => ({
-        type: 'chunkPack' as const,
-        data: pack,
-        date: new Date(pack.createdAt),
-      })),
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [filter, episodes, courses, narrowListeningPacks, chunkPacks]);
+  }, [filter, episodes, courses, narrowListeningPacks]);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -360,21 +324,6 @@ const LibraryPage = () => {
               {t('library:filters.narrowListening')}
             </button>
           )}
-          {isFeatureEnabled('lexicalChunksEnabled') && (
-            <button
-              type="button"
-              onClick={() => handleFilterChange('chunkPacks')}
-              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-                filter === 'chunkPacks'
-                  ? 'bg-yellow text-dark-brown'
-                  : 'bg-yellow-light text-dark-brown hover:bg-yellow/20'
-              }`}
-              data-testid="library-filter-chunk-packs"
-            >
-              <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {t('library:filters.chunkPacks')}
-            </button>
-          )}
         </div>
       </div>
 
@@ -425,22 +374,6 @@ const LibraryPage = () => {
                 text: 'text-strawberry-dark',
                 border: 'border-strawberry',
                 button: 'bg-strawberry hover:bg-strawberry-dark',
-              }}
-            />
-          )}
-          {filter === 'chunkPacks' && (
-            <EmptyStateCard
-              icon={BookOpen}
-              title={t('library:emptyStates.chunkPack.title')}
-              description={t('library:emptyStates.chunkPack.description')}
-              buttonText={t('library:emptyStates.chunkPack.button')}
-              route="/app/create/lexical-chunk-pack"
-              viewAsUserId={viewAsUserId}
-              colorTheme={{
-                bg: 'bg-yellow-light',
-                text: 'text-dark-brown',
-                border: 'border-yellow',
-                button: 'bg-yellow hover:bg-yellow-dark text-dark-brown',
               }}
             />
           )}
@@ -598,11 +531,11 @@ const LibraryPage = () => {
                             {t('common:status.generating')}
                           </Pill>
                         )}
-                        {(course.jlptLevel || course.hskLevel || course.cefrLevel) && (
+                        {(course.jlptLevel) && (
                           <LanguageLevelPill
                             className="hidden sm:inline-flex"
                             language={course.targetLanguage}
-                            level={course.jlptLevel || course.hskLevel || course.cefrLevel}
+                            level={course.jlptLevel}
                           />
                         )}
                         {!isDemo && !viewAsUserId && (
@@ -621,11 +554,11 @@ const LibraryPage = () => {
                   </div>
 
                   {/* Language/Level Sidebar (mobile only) */}
-                  {(course.jlptLevel || course.hskLevel || course.cefrLevel) && (
+                  {(course.jlptLevel) && (
                     <LanguageLevelSidebar
                       className="sm:hidden"
                       language={course.targetLanguage.toUpperCase()}
-                      level={course.jlptLevel || course.hskLevel || course.cefrLevel}
+                      level={course.jlptLevel}
                     />
                   )}
                 </Link>
@@ -669,7 +602,7 @@ const LibraryPage = () => {
                         <LanguageLevelPill
                           className="hidden sm:inline-flex"
                           language={pack.targetLanguage}
-                          level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
+                          level={pack.jlptLevel}
                         />
                         {pack.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
@@ -695,77 +628,7 @@ const LibraryPage = () => {
                   <LanguageLevelSidebar
                     className="sm:hidden"
                     language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
-                  />
-                </Link>
-              );
-            }
-            if (item.type === 'chunkPack') {
-              const pack = item.data as ChunkPack;
-
-              return (
-                <Link
-                  key={pack.id}
-                  to={`/app/chunk-packs/${pack.id}/examples`}
-                  className="group relative flex items-stretch bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-lg"
-                  data-testid={`library-chunk-pack-card-${pack.id}`}
-                >
-                  {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-yellow flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
-                    <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-dark-brown" />
-                    <span
-                      className="text-[10px] sm:text-xs font-bold text-dark-brown uppercase tracking-wide text-center leading-tight"
-                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
-                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.chunkPack') }}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors truncate mb-1 sm:mb-2">
-                          {pack.title}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 capitalize line-clamp-1">
-                          {pack.theme.replace(/_/g, ' ')}
-                        </p>
-                      </div>
-
-                      {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        {pack.status === 'error' && <Pill color="red">error</Pill>}
-                        {pack.status === 'generating' && (
-                          <Pill color="yellow" className="animate-pulse">
-                            {t('common:status.generating')}
-                          </Pill>
-                        )}
-                        <LanguageLevelPill
-                          className="hidden sm:inline-flex"
-                          language={pack.targetLanguage}
-                          level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
-                        />
-                        {!isDemo && !viewAsUserId && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteChunkPackClick(pack, e)}
-                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete lexical chunk pack"
-                            data-testid={`library-delete-chunk-pack-${pack.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Language/Level Sidebar (mobile only) */}
-                  <LanguageLevelSidebar
-                    className="sm:hidden"
-                    language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel || pack.hskLevel || pack.cefrLevel}
+                    level={pack.jlptLevel}
                   />
                 </Link>
               );
@@ -821,18 +684,6 @@ const LibraryPage = () => {
         onConfirm={handleConfirmDeletePack}
         onCancel={handleCancelDelete}
         isLoading={isDeletingNarrowListening}
-      />
-
-      {/* Delete Chunk Pack Confirmation Modal */}
-      <ConfirmModal
-        isOpen={chunkPackToDelete !== null}
-        title={t('library:delete.confirmTitle')}
-        message={t('library:delete.confirmChunkPack', { title: chunkPackToDelete?.title })}
-        confirmLabel={t('library:delete.confirmButton')}
-        cancelLabel={t('library:delete.cancelButton')}
-        onConfirm={handleConfirmDeleteChunkPack}
-        onCancel={handleCancelDelete}
-        isLoading={isDeletingChunkPack}
       />
 
       {/* Sample Content Guide Pulse Point */}

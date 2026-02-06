@@ -83,12 +83,7 @@ const SettingsPage = () => {
   const [selectedColor, setSelectedColor] = useState('indigo');
   const [preferredStudyLanguage, setPreferredStudyLanguage] = useState<LanguageCode>('ja');
   const [preferredNativeLanguage, setPreferredNativeLanguage] = useState<LanguageCode>('en');
-  const [pinyinDisplayMode, setPinyinDisplayMode] = useState<'toneMarks' | 'toneNumbers'>(
-    'toneMarks'
-  );
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
-  const [hskLevel, setHskLevel] = useState<string>('HSK1');
-  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -107,7 +102,6 @@ const SettingsPage = () => {
   const [proficiencySaveMessage, setProficiencySaveMessage] = useState<string | null>(null);
   const [studyLanguageSaveMessage, setStudyLanguageSaveMessage] = useState<string | null>(null);
   const [nativeLanguageSaveMessage, setNativeLanguageSaveMessage] = useState<string | null>(null);
-  const [pinyinSaveMessage, setPinyinSaveMessage] = useState<string | null>(null);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -161,18 +155,7 @@ const SettingsPage = () => {
 
   // Auto-save proficiency level when it changes
   const handleProficiencyLevelChange = async (level: string) => {
-    const isJLPT = level.startsWith('N');
-    const isHSK = level.startsWith('HSK');
-    const isCEFR = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(level);
-
-    if (isJLPT) {
-      setJlptLevel(level);
-    } else if (isHSK) {
-      setHskLevel(level);
-    } else if (isCEFR) {
-      setCefrLevel(level);
-    }
-
+    setJlptLevel(level);
     setProficiencySaveMessage(null);
 
     try {
@@ -182,21 +165,6 @@ const SettingsPage = () => {
     } catch (err: any) {
       setProficiencySaveMessage(t('settings:messages.failedToSave'));
       setTimeout(() => setProficiencySaveMessage(null), 3000);
-    }
-  };
-
-  // Auto-save pinyin display mode when it changes
-  const handlePinyinModeChange = async (mode: 'toneMarks' | 'toneNumbers') => {
-    setPinyinDisplayMode(mode);
-    setPinyinSaveMessage(null);
-
-    try {
-      await updateUser({ pinyinDisplayMode: mode });
-      setPinyinSaveMessage(t('settings:messages.saved'));
-      setTimeout(() => setPinyinSaveMessage(null), 2000);
-    } catch (err: any) {
-      setPinyinSaveMessage(t('settings:messages.failedToSave'));
-      setTimeout(() => setPinyinSaveMessage(null), 3000);
     }
   };
 
@@ -260,23 +228,11 @@ const SettingsPage = () => {
       setSelectedColor(user.avatarColor || 'indigo');
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
-      setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
 
-      // Initialize language-specific proficiency level
+      // Initialize JLPT proficiency level
       const storedLevel = user.proficiencyLevel;
-      if (storedLevel) {
-        // If it's a JLPT level (N1-N5), set jlptLevel
-        if (storedLevel.startsWith('N')) {
-          setJlptLevel(storedLevel);
-        }
-        // If it's an HSK level (HSK1-HSK6), set hskLevel
-        else if (storedLevel.startsWith('HSK')) {
-          setHskLevel(storedLevel);
-        }
-        // If it's a CEFR level (A1-C2), set cefrLevel
-        else if (['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(storedLevel)) {
-          setCefrLevel(storedLevel);
-        }
+      if (storedLevel && storedLevel.startsWith('N')) {
+        setJlptLevel(storedLevel);
       }
     }
   }, [user]);
@@ -296,14 +252,12 @@ const SettingsPage = () => {
     const currentColor = user.avatarColor || 'indigo';
     const currentStudyLang = user.preferredStudyLanguage || 'ja';
     const currentNativeLang = user.preferredNativeLanguage || 'en';
-    const currentPinyinMode = user.pinyinDisplayMode || 'toneMarks';
 
     return (
       displayName !== currentDisplayName ||
       selectedColor !== currentColor ||
       preferredStudyLanguage !== currentStudyLang ||
-      preferredNativeLanguage !== currentNativeLang ||
-      pinyinDisplayMode !== currentPinyinMode
+      preferredNativeLanguage !== currentNativeLang
     );
   };
 
@@ -323,7 +277,6 @@ const SettingsPage = () => {
         avatarColor: selectedColor,
         preferredStudyLanguage,
         preferredNativeLanguage,
-        pinyinDisplayMode,
       });
       setSuccess(t('settings:messages.saveSuccess'));
       setTimeout(() => setSuccess(null), 3000);
@@ -340,16 +293,11 @@ const SettingsPage = () => {
       setSelectedColor(user.avatarColor || 'indigo');
       setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
       setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
-      setPinyinDisplayMode(user.pinyinDisplayMode || 'toneMarks');
 
-      // Reset language-specific proficiency level
+      // Reset JLPT proficiency level
       const storedLevel = user.proficiencyLevel;
-      if (storedLevel) {
-        if (storedLevel.startsWith('N')) {
-          setJlptLevel(storedLevel);
-        } else if (storedLevel.startsWith('HSK')) {
-          setHskLevel(storedLevel);
-        }
+      if (storedLevel && storedLevel.startsWith('N')) {
+        setJlptLevel(storedLevel);
       }
 
       setError(null);
@@ -693,18 +641,6 @@ const SettingsPage = () => {
                 {preferredNativeLanguage !== 'ja' && (
                   <option value="ja">{t('settings:language.names.ja')}</option>
                 )}
-                {preferredNativeLanguage !== 'zh' && (
-                  <option value="zh">{t('settings:language.names.zh')}</option>
-                )}
-                {preferredNativeLanguage !== 'es' && (
-                  <option value="es">{t('settings:language.names.es')}</option>
-                )}
-                {preferredNativeLanguage !== 'fr' && (
-                  <option value="fr">{t('settings:language.names.fr')}</option>
-                )}
-                {preferredNativeLanguage !== 'ar' && (
-                  <option value="ar">{t('settings:language.names.ar')}</option>
-                )}
               </select>
               {studyLanguageSaveMessage && (
                 <p
@@ -732,18 +668,6 @@ const SettingsPage = () => {
               >
                 {preferredStudyLanguage !== 'en' && (
                   <option value="en">{t('settings:language.names.en')}</option>
-                )}
-                {preferredStudyLanguage !== 'es' && (
-                  <option value="es">{t('settings:language.names.es')}</option>
-                )}
-                {preferredStudyLanguage !== 'fr' && (
-                  <option value="fr">{t('settings:language.names.fr')}</option>
-                )}
-                {preferredStudyLanguage !== 'ar' && (
-                  <option value="ar">{t('settings:language.names.ar')}</option>
-                )}
-                {preferredStudyLanguage !== 'zh' && (
-                  <option value="zh">{t('settings:language.names.zh')}</option>
                 )}
                 {preferredStudyLanguage !== 'ja' && (
                   <option value="ja">{t('settings:language.names.ja')}</option>
@@ -795,236 +719,6 @@ const SettingsPage = () => {
               </div>
             )}
 
-            {preferredStudyLanguage === 'zh' && (
-              <div className="mb-6">
-                <label htmlFor="settings-hsk-level" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.hsk.label')}
-                </label>
-                <select
-                  id="settings-hsk-level"
-                  value={hskLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-hsk-level"
-                >
-                  <option value="HSK1">{t('settings:language.proficiency.hsk.hsk1')}</option>
-                  <option value="HSK2">{t('settings:language.proficiency.hsk.hsk2')}</option>
-                  <option value="HSK3">{t('settings:language.proficiency.hsk.hsk3')}</option>
-                  <option value="HSK4">{t('settings:language.proficiency.hsk.hsk4')}</option>
-                  <option value="HSK5">{t('settings:language.proficiency.hsk.hsk5')}</option>
-                  <option value="HSK6">{t('settings:language.proficiency.hsk.hsk6')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.hsk.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Spanish - CEFR Levels */}
-            {preferredStudyLanguage === 'es' && (
-              <div className="mb-6">
-                <label htmlFor="settings-cefr-level-es" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.cefr.spanish')}
-                </label>
-                <select
-                  id="settings-cefr-level-es"
-                  value={cefrLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-cefr-level"
-                >
-                  <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
-                  <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
-                  <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
-                  <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
-                  <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
-                  <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.cefr.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* French - CEFR Levels */}
-            {preferredStudyLanguage === 'fr' && (
-              <div className="mb-6">
-                <label htmlFor="settings-cefr-level-fr" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.cefr.french')}
-                </label>
-                <select
-                  id="settings-cefr-level-fr"
-                  value={cefrLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-cefr-level"
-                >
-                  <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
-                  <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
-                  <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
-                  <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
-                  <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
-                  <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.cefr.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Arabic - CEFR Levels */}
-            {preferredStudyLanguage === 'ar' && (
-              <div className="mb-6">
-                <label htmlFor="settings-cefr-level-ar" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.cefr.arabic')}
-                </label>
-                <select
-                  id="settings-cefr-level-ar"
-                  value={cefrLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-cefr-level"
-                >
-                  <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
-                  <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
-                  <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
-                  <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
-                  <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
-                  <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.cefr.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* English - CEFR Levels */}
-            {preferredStudyLanguage === 'en' && (
-              <div className="mb-6">
-                <label htmlFor="settings-cefr-level-en" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.cefr.english')}
-                </label>
-                <select
-                  id="settings-cefr-level-en"
-                  value={cefrLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-proficiency"
-                >
-                  <option value="A1">{t('settings:language.proficiency.cefr.a1')}</option>
-                  <option value="A2">{t('settings:language.proficiency.cefr.a2')}</option>
-                  <option value="B1">{t('settings:language.proficiency.cefr.b1')}</option>
-                  <option value="B2">{t('settings:language.proficiency.cefr.b2')}</option>
-                  <option value="C1">{t('settings:language.proficiency.cefr.c1')}</option>
-                  <option value="C2">{t('settings:language.proficiency.cefr.c2')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.cefr.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Pinyin Display Mode (only shown when study language is Chinese) */}
-            {preferredStudyLanguage === 'zh' && (
-              <div className="mb-6">
-                <p className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.pinyin.label')}
-                </p>
-                <div className="flex gap-4">
-                  <label htmlFor="pinyin-tone-marks" className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      id="pinyin-tone-marks"
-                      type="radio"
-                      name="pinyinMode"
-                      value="toneMarks"
-                      checked={pinyinDisplayMode === 'toneMarks'}
-                      onChange={(e) =>
-                        handlePinyinModeChange(e.target.value as 'toneMarks' | 'toneNumbers')
-                      }
-                      className="w-4 h-4 text-periwinkle"
-                      data-testid="settings-radio-pinyin-tone-marks"
-                    />
-                    <span className="text-base text-gray-700">
-                      {t('settings:language.pinyin.toneMarks')}
-                    </span>
-                  </label>
-                  <label htmlFor="pinyin-tone-numbers" className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      id="pinyin-tone-numbers"
-                      type="radio"
-                      name="pinyinMode"
-                      value="toneNumbers"
-                      checked={pinyinDisplayMode === 'toneNumbers'}
-                      onChange={(e) =>
-                        handlePinyinModeChange(e.target.value as 'toneMarks' | 'toneNumbers')
-                      }
-                      className="w-4 h-4 text-periwinkle"
-                      data-testid="settings-radio-pinyin-tone-numbers"
-                    />
-                    <span className="text-base text-gray-700">
-                      {t('settings:language.pinyin.toneNumbers')}
-                    </span>
-                  </label>
-                </div>
-                {pinyinSaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${pinyinSaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {pinyinSaveMessage}
-                  </p>
-                )}
-                {!pinyinSaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.pinyin.helper')}
-                  </p>
-                )}
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1259,7 +953,6 @@ const SettingsPage = () => {
                     <li>{t('settings:danger.deleteAccount.items.dialogues')}</li>
                     <li>{t('settings:danger.deleteAccount.items.courses')}</li>
                     <li>{t('settings:danger.deleteAccount.items.narrowListening')}</li>
-                    <li>{t('settings:danger.deleteAccount.items.chunkPacks')}</li>
                     <li>{t('settings:danger.deleteAccount.items.account')}</li>
                   </ul>
                   <button type="button"

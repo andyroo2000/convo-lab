@@ -12,7 +12,6 @@ const mockGenerateNarrowListeningPack = vi.hoisted(() => vi.fn());
 const mockGenerateNarrowListeningAudio = vi.hoisted(() => vi.fn());
 const mockAssignVoicesToSegments = vi.hoisted(() => vi.fn());
 const mockProcessJapaneseBatch = vi.hoisted(() => vi.fn());
-const mockProcessChineseBatch = vi.hoisted(() => vi.fn());
 const mockGenerateSilence = vi.hoisted(() => vi.fn());
 const mockPrisma = vi.hoisted(() => ({
   narrowListeningPack: {
@@ -90,7 +89,6 @@ vi.mock('../../../services/narrowListeningAudioGenerator.js', () => ({
 
 vi.mock('../../../services/languageProcessor.js', () => ({
   processJapaneseBatch: mockProcessJapaneseBatch,
-  processChineseBatch: mockProcessChineseBatch,
 }));
 
 vi.mock('../../../services/ttsClient.js', () => ({
@@ -103,12 +101,6 @@ vi.mock('../../../../shared/src/constants-new.js', () => ({
       voices: [
         { id: 'ja-JP-Neural2-B', gender: 'male', description: 'Male 1' },
         { id: 'ja-JP-Neural2-C', gender: 'female', description: 'Female 1' },
-      ],
-    },
-    zh: {
-      voices: [
-        { id: 'zh-CN-Neural2-A', gender: 'male', description: 'Male 1' },
-        { id: 'zh-CN-Neural2-B', gender: 'female', description: 'Female 1' },
       ],
     },
   },
@@ -221,10 +213,6 @@ describe('narrowListeningQueue', () => {
     mockProcessJapaneseBatch.mockResolvedValue([
       { furigana: 'こんにちは' },
       { furigana: 'さようなら' },
-    ]);
-    mockProcessChineseBatch.mockResolvedValue([
-      { pinyinToneMarks: 'nǐ hǎo' },
-      { pinyinToneMarks: 'zài jiàn' },
     ]);
     mockGenerateSilence.mockResolvedValue(Buffer.from('silence'));
     mockFs.mkdir.mockResolvedValue(undefined);
@@ -377,34 +365,6 @@ describe('narrowListeningQueue', () => {
       await processor(job);
 
       expect(mockProcessJapaneseBatch).toHaveBeenCalledWith(['こんにちは', 'さようなら']);
-    });
-
-    it('should batch process Chinese pinyin', async () => {
-      mockGenerateNarrowListeningPack.mockResolvedValue({
-        ...mockStoryPack,
-        versions: [
-          {
-            ...mockStoryPack.versions[0],
-            segments: [{ targetText: '你好', englishTranslation: 'Hello' }],
-          },
-        ],
-      });
-
-      const processor = workerProcessors.get('narrow-listening-generation')!;
-      const job = createMockJob({
-        name: 'generate-narrow-listening',
-        data: {
-          packId: 'pack-123',
-          topic: 'test',
-          targetLanguage: 'zh',
-          proficiencyLevel: 'intermediate',
-          versionCount: 1,
-        },
-      });
-
-      await processor(job);
-
-      expect(mockProcessChineseBatch).toHaveBeenCalledWith(['你好']);
     });
 
     it('should generate audio at 0.7x, 0.85x, and 1.0x speeds', async () => {

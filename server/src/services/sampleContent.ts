@@ -173,8 +173,7 @@ async function copySampleCourses(
 
   try {
     // Get proficiency level field name based on language
-    const levelField =
-      targetLanguage === 'ja' ? 'jlptLevel' : targetLanguage === 'zh' ? 'hskLevel' : 'cefrLevel';
+    const levelField = 'jlptLevel';
 
     // Get all sample courses for the target language and proficiency level
     const sampleCourses = await prisma.course.findMany({

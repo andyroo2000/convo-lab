@@ -195,28 +195,6 @@ async function checkYuriyContent() {
       }
       console.log();
 
-      // Check Chunk Packs
-      const chunkPacks = await prisma.chunkPack.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          targetLanguage: true,
-          theme: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      console.log(`📦 Lexical Chunk Packs: ${chunkPacks.length}`);
-      if (chunkPacks.length > 0) {
-        chunkPacks.forEach(pack => {
-          console.log(`  - "${pack.title}" (${pack.status}) - ${pack.targetLanguage} - Theme: ${pack.theme} - Created: ${pack.createdAt.toISOString()}`);
-        });
-      }
-      console.log();
-
       // Check Generation Logs to see all attempts
       const genLogs = await prisma.generationLog.findMany({
         where: { userId: user.id },
@@ -249,7 +227,7 @@ async function checkYuriyContent() {
       console.log();
 
       // Summary
-      const totalContent = episodes.length + courses.length + narrowPacks.length + chunkPacks.length;
+      const totalContent = episodes.length + courses.length + narrowPacks.length;
       console.log(`\n📊 Summary for ${user.email}:`);
       console.log(`  Total content pieces: ${totalContent}`);
       console.log(`  Total generation attempts: ${genLogs.length}`);

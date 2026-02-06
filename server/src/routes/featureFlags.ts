@@ -17,8 +17,6 @@ router.get('/', requireAuth, async (req: AuthRequest, res, next) => {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
           narrowListeningEnabled: true,
-          processingInstructionEnabled: true,
-          lexicalChunksEnabled: true,
         },
       });
     }

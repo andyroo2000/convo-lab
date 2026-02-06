@@ -74,31 +74,6 @@ vi.mock('../../../../../shared/src/constants-new.js', () => ({
         { id: 'Takumi', name: 'Takumi', gender: 'male' },
       ],
     },
-    es: {
-      voices: [
-        { id: 'Lucia', name: 'Lucia', gender: 'female' },
-        { id: 'Sergio', name: 'Sergio', gender: 'male' },
-      ],
-    },
-    zh: {
-      voices: [
-        { id: 'cmn-CN-Wavenet-A', name: 'Chinese Female 1', gender: 'female' },
-        { id: 'cmn-CN-Wavenet-B', name: 'Chinese Male 1', gender: 'male' },
-        { id: 'Zhiyu', name: 'Zhiyu', gender: 'female' },
-      ],
-    },
-    fr: {
-      voices: [
-        { id: 'Léa', name: 'Léa', gender: 'female' },
-        { id: 'Rémi', name: 'Rémi', gender: 'male' },
-      ],
-    },
-    ar: {
-      voices: [
-        { id: 'Hala', name: 'Hala', gender: 'female' },
-        { id: 'Zayd', name: 'Zayd', gender: 'male' },
-      ],
-    },
   },
 }));
 
@@ -364,34 +339,6 @@ describe('avatarService', () => {
       expect(parseVoiceIdForGender('Takumi')).toBe('male');
     });
 
-    it('should return female for Lucia Polly voice', () => {
-      expect(parseVoiceIdForGender('Lucia')).toBe('female');
-    });
-
-    it('should return female for Chinese Wavenet-A voice', () => {
-      expect(parseVoiceIdForGender('cmn-CN-Wavenet-A')).toBe('female');
-    });
-
-    it('should return male for Chinese Wavenet-B voice', () => {
-      expect(parseVoiceIdForGender('cmn-CN-Wavenet-B')).toBe('male');
-    });
-
-    it('should return female for French Léa voice', () => {
-      expect(parseVoiceIdForGender('Léa')).toBe('female');
-    });
-
-    it('should return male for French Rémi voice', () => {
-      expect(parseVoiceIdForGender('Rémi')).toBe('male');
-    });
-
-    it('should return female for Arabic Hala voice', () => {
-      expect(parseVoiceIdForGender('Hala')).toBe('female');
-    });
-
-    it('should return male for Arabic Zayd voice', () => {
-      expect(parseVoiceIdForGender('Zayd')).toBe('male');
-    });
-
     it('should default to female for unknown voice', () => {
       expect(parseVoiceIdForGender('unknown-voice')).toBe('female');
     });
@@ -458,39 +405,21 @@ describe('avatarService', () => {
       expect(result).toBe('https://storage.example.com/ja-female-casual.jpg');
     });
 
-    it('should find avatar for Chinese voice with language code normalization', async () => {
-      mockPrisma.speakerAvatar.findFirst.mockResolvedValue({
-        croppedUrl: 'https://storage.example.com/zh-male-formal.jpg',
-      });
-
-      const result = await getAvatarUrlFromVoice('cmn-CN-Wavenet-B', 'formal');
-
-      // cmn should be normalized to zh
-      expect(mockPrisma.speakerAvatar.findFirst).toHaveBeenCalledWith({
-        where: {
-          language: 'zh',
-          gender: 'male',
-          tone: 'formal',
-        },
-      });
-      expect(result).toBe('https://storage.example.com/zh-male-formal.jpg');
-    });
-
     it('should find avatar for Polly voice', async () => {
       mockPrisma.speakerAvatar.findFirst.mockResolvedValue({
-        croppedUrl: 'https://storage.example.com/es-female-casual.jpg',
+        croppedUrl: 'https://storage.example.com/ja-male-casual.jpg',
       });
 
-      const result = await getAvatarUrlFromVoice('Lucia', 'casual');
+      const result = await getAvatarUrlFromVoice('Takumi', 'casual');
 
       expect(mockPrisma.speakerAvatar.findFirst).toHaveBeenCalledWith({
         where: {
-          language: 'es',
-          gender: 'female',
+          language: 'ja',
+          gender: 'male',
           tone: 'casual',
         },
       });
-      expect(result).toBe('https://storage.example.com/es-female-casual.jpg');
+      expect(result).toBe('https://storage.example.com/ja-male-casual.jpg');
     });
 
     it('should return null if no matching avatar found', async () => {

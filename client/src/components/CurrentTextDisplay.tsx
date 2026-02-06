@@ -1,7 +1,6 @@
 import React from 'react';
 import { LessonScriptUnit, LanguageCode } from '../types';
 import JapaneseText from './JapaneseText';
-import ChineseText from './ChineseText';
 
 interface CurrentTextDisplayProps {
   currentUnit: LessonScriptUnit | null;
@@ -46,16 +45,6 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
         <JapaneseText
           text={displayText}
           showFurigana={showReadings}
-          className="text-3xl font-medium"
-        />
-      );
-    }
-    if (targetLanguage === 'zh') {
-      // Chinese with optional pinyin (reading is in bracket notation)
-      return (
-        <ChineseText
-          text={reading || text}
-          showPinyin={showReadings}
           className="text-3xl font-medium"
         />
       );

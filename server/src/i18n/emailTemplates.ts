@@ -126,7 +126,6 @@ export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: strin
             <li style="margin-bottom: 10px;"><strong>${t('welcome.dialogues.title')}</strong> ${t('welcome.dialogues.description')}</li>
             <li style="margin-bottom: 10px;"><strong>${t('welcome.audioCourses.title')}</strong> ${t('welcome.audioCourses.description')}</li>
             <li style="margin-bottom: 10px;"><strong>${t('welcome.narrowListening.title')}</strong> ${t('welcome.narrowListening.description')}</li>
-            <li style="margin-bottom: 10px;"><strong>${t('welcome.lexicalChunks.title')}</strong> ${t('welcome.lexicalChunks.description')}</li>
           </ul>
 
           <div style="text-align: center; margin: 30px 0;">

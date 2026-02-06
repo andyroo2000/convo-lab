@@ -300,11 +300,7 @@ async function createDialogueInDB(
 function getLanguageName(code: string): string {
   const names: Record<string, string> = {
     ja: 'Japanese',
-    zh: 'Chinese',
-    es: 'Spanish',
-    fr: 'French',
-    ar: 'Arabic',
-    he: 'Hebrew',
+    en: 'English',
   };
   return names[code] || code;
 }

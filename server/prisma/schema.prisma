@@ -21,7 +21,7 @@ model User {
   role                     String    @default("user") // "user", "moderator", "admin"
   preferredStudyLanguage   String    @default("ja") // 'ja' or 'zh'
   preferredNativeLanguage  String    @default("en")
-  pinyinDisplayMode        String    @default("toneMarks") // 'toneMarks' or 'toneNumbers'
+  pinyinDisplayMode        String    @default("toneMarks") // DEPRECATED - was for Chinese pinyin display
   proficiencyLevel         String    @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
   onboardingCompleted      Boolean   @default(false)
   seenSampleContentGuide   Boolean   @default(false) // Pulse point: Has user seen the sample content guide?
@@ -259,8 +259,8 @@ model Course {
   l1VoiceId                String   // English narrator voice
   l1VoiceProvider          String?  @default("google") // "google" | "polly"
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
-  hskLevel                 String?  // Target HSK level: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (null = no specific level)
-  cefrLevel                String?  // Target CEFR level: A1, A2, B1, B2, C1, C2 (for Spanish and French)
+  hskLevel                 String?  // DEPRECATED - was for Chinese HSK levels
+  cefrLevel                String?  // DEPRECATED - was for CEFR levels (Spanish/French)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
@@ -322,8 +322,8 @@ model NarrowListeningPack {
   topic          String   @db.Text
   targetLanguage String   @default("ja") // ISO 639-1 code (ja, zh, es)
   jlptLevel      String?  // N5, N4, N3, N2, N1 (for Japanese)
-  hskLevel       String?  // HSK1-HSK6 (for Chinese)
-  cefrLevel      String?  // A1, A2, B1, B2, C1, C2 (for Spanish and European languages)
+  hskLevel       String?  // DEPRECATED - was for Chinese HSK levels
+  cefrLevel      String?  // DEPRECATED - was for CEFR levels
   grammarFocus   String?  @db.Text
   status         String   @default("draft") // draft, generating, ready, error
   createdAt      DateTime @default(now())
@@ -386,6 +386,7 @@ model StorySegment {
 
 // Lexical Chunk Pack Models
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model ChunkPack {
   id             String   @id @default(uuid())
   userId         String
@@ -408,6 +409,7 @@ model ChunkPack {
   @@index([jlptLevel])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model Chunk {
   id            String  @id @default(uuid())
   packId        String
@@ -426,6 +428,7 @@ model Chunk {
   @@index([order])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model ChunkExample {
   id           String  @id @default(uuid())
   packId       String
@@ -447,6 +450,7 @@ model ChunkExample {
   @@index([order])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model ChunkStory {
   id        String   @id @default(uuid())
   packId    String
@@ -464,6 +468,7 @@ model ChunkStory {
   @@index([packId])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model ChunkStorySegment {
   id                 String  @id @default(uuid())
   storyId            String
@@ -480,6 +485,7 @@ model ChunkStorySegment {
   @@index([order])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 model ChunkExercise {
   id            String   @id @default(uuid())
   packId        String
@@ -521,7 +527,9 @@ model FeatureFlag {
   dialoguesEnabled             Boolean  @default(true)
   audioCourseEnabled           Boolean  @default(true)
   narrowListeningEnabled       Boolean  @default(true)
+  // DEPRECATED - Feature removed, column retained for data preservation
   processingInstructionEnabled Boolean  @default(true)
+  // DEPRECATED - Feature removed, column retained for data preservation
   lexicalChunksEnabled         Boolean  @default(true)
   updatedAt                    DateTime @updatedAt
 
@@ -552,7 +560,7 @@ model AdminAuditLog {
 model GenerationLog {
   id          String   @id @default(uuid())
   userId      String
-  contentType String   // "dialogue", "course", "narrow_listening", "chunk_pack", "pi_session"
+  contentType String   // "dialogue", "course", "narrow_listening"
   contentId   String?  // Optional reference to generated content
   createdAt   DateTime @default(now())
 

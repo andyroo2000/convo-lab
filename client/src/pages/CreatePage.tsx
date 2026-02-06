@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Headphones, Sparkles, Brain, BookOpen } from 'lucide-react';
+import { MessageSquare, Headphones, Sparkles } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
@@ -133,57 +133,6 @@ const CreatePage = () => {
           </button>
         )}
 
-        {/* Processing Instruction Mode */}
-        {isFeatureEnabled('processingInstructionEnabled') && (
-          <button
-            type="button"
-            onClick={() => navigateWithViewAs('/app/create/processing-instruction')}
-            className="w-full flex items-center bg-white hover:bg-keylime-light transition-all duration-200 hover:shadow-xl group"
-            data-testid="create-card-processing-instruction"
-          >
-            <div className="w-20 sm:w-32 flex-shrink-0 bg-keylime flex flex-col items-center justify-center py-6 sm:py-8">
-              <Brain className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center">
-                {t('create:types.processingInstruction.title')}
-              </span>
-            </div>
-            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-keylime-dark transition-colors mb-1 sm:mb-2">
-                {t('create:types.processingInstruction.title')}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                {t('create:types.processingInstruction.description')}
-              </p>
-            </div>
-          </button>
-        )}
-
-        {/* Lexical Chunk Packs */}
-        {isFeatureEnabled('lexicalChunksEnabled') && (
-          <button
-            type="button"
-            onClick={() => navigateWithViewAs('/app/create/lexical-chunk-pack')}
-            className="w-full flex items-center bg-white hover:bg-yellow-light transition-all duration-200 hover:shadow-xl group"
-            data-testid="create-card-lexical-chunks"
-          >
-            <div className="w-20 sm:w-32 flex-shrink-0 bg-yellow flex flex-col items-center justify-center py-6 sm:py-8">
-              <BookOpen className="w-10 h-10 sm:w-12 sm:h-12 text-dark-brown mb-2" />
-              <span className="text-xs sm:text-sm font-bold text-dark-brown uppercase tracking-wide text-center leading-tight">
-                {t('create:types.chunkPack.title').split(' ').slice(-2)[0]}
-                <br />
-                {t('create:types.chunkPack.title').split(' ').slice(-1)[0]}
-              </span>
-            </div>
-            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-yellow-dark transition-colors mb-1 sm:mb-2">
-                {t('create:types.chunkPack.title')}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                {t('create:types.chunkPack.description')}
-              </p>
-            </div>
-          </button>
-        )}
       </div>
 
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>
