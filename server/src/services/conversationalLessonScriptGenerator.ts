@@ -24,6 +24,7 @@ const REVIEW_ANTICIPATION_SECONDS = 5.0;
 const REVIEW_REPEAT_PAUSE_SECONDS = 2.5;
 const REVIEW_SLOW_SPEED = 0.85;
 const MIN_DURATION_RATIO = 0.9;
+const MAX_DURATION_RATIO = 1.05;
 const MAX_REVIEW_ROUNDS = 5;
 
 export async function generateConversationalLessonScript(
@@ -595,15 +596,75 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
       const wordCount = unit.text.split(/\s+/).length;
       duration += wordCount / 3 + 0.5; // +0.5 for natural pausing
     } else if (unit.type === 'L2') {
+      const normalizedText = normalizeL2TextForEstimate(unit);
       // Japanese/Asian languages: ~1.5 seconds per 5 characters
       // Other languages: ~3 words per second
-      const charCount = unit.text.length;
+      const charCount = normalizedText.length;
       const speed = unit.speed || 1.0;
       duration += ((charCount / 5) * 1.5) / speed + 0.5;
     }
   }
 
   return duration;
+}
+
+function isHiragana(char: string): boolean {
+  if (!char) return false;
+  const code = char.charCodeAt(0);
+  return code >= 0x3040 && code <= 0x309f;
+}
+
+function isKatakana(char: string): boolean {
+  if (!char) return false;
+  const code = char.charCodeAt(0);
+  return code >= 0x30a0 && code <= 0x30ff;
+}
+
+function isKana(char: string): boolean {
+  return isHiragana(char) || isKatakana(char);
+}
+
+function stripFuriganaToKana(text: string): string {
+  let output = '';
+  let inBracket = false;
+
+  for (const char of text) {
+    if (char === '[') {
+      inBracket = true;
+      continue;
+    }
+    if (char === ']') {
+      inBracket = false;
+      continue;
+    }
+
+    if (inBracket) {
+      output += char;
+      continue;
+    }
+
+    if (isKana(char) || /\s/.test(char)) {
+      output += char;
+    }
+  }
+
+  return output;
+}
+
+function normalizeL2TextForEstimate(unit: LessonScriptUnit): string {
+  if (unit.type !== 'L2') {
+    return '';
+  }
+
+  const reading = unit.reading?.trim();
+  if (reading && /[\u3040-\u30ff]/.test(reading)) {
+    const normalized = reading.includes('[') ? stripFuriganaToKana(reading) : reading;
+    if (normalized.trim()) {
+      return normalized;
+    }
+  }
+
+  return unit.text;
 }
 
 function padScriptToTargetDuration(
@@ -631,17 +692,24 @@ function padScriptToTargetDuration(
   const requiredRounds = Math.max(1, Math.ceil(missingSeconds / reviewSeconds));
   const roundsToAdd = Math.min(MAX_REVIEW_ROUNDS, requiredRounds);
 
-  const paddedUnits = [...units];
+  const reviewRounds: LessonScriptUnit[][] = [];
   for (let round = 1; round <= roundsToAdd; round++) {
-    paddedUnits.push(...buildReviewRoundUnits(exchanges, context, round));
+    reviewRounds.push(buildReviewRoundUnits(exchanges, context, round));
   }
 
-  const finalSeconds = estimateUnitsDuration(paddedUnits);
+  let paddedUnits = [...units, ...reviewRounds.flat()];
+  let finalSeconds = estimateUnitsDuration(paddedUnits);
+
+  while (finalSeconds > targetDurationSeconds * MAX_DURATION_RATIO && reviewRounds.length > 0) {
+    reviewRounds.pop();
+    paddedUnits = [...units, ...reviewRounds.flat()];
+    finalSeconds = estimateUnitsDuration(paddedUnits);
+  }
 
   return {
     units: paddedUnits,
     estimatedDurationSeconds: finalSeconds,
-    reviewRounds: roundsToAdd,
+    reviewRounds: reviewRounds.length,
   };
 }
 
