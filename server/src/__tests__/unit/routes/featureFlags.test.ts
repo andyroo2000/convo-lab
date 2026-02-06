@@ -12,7 +12,6 @@ describe('Feature Flags Route Logic', () => {
         id: 'flag-1',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -23,7 +22,6 @@ describe('Feature Flags Route Logic', () => {
 
       expect(flags).toBeDefined();
       expect(flags?.dialoguesEnabled).toBe(true);
-      expect(flags?.narrowListeningEnabled).toBe(false);
     });
 
     it('should create default flags if none exist', async () => {
@@ -33,7 +31,6 @@ describe('Feature Flags Route Logic', () => {
         id: 'new-flag-1',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -47,7 +44,6 @@ describe('Feature Flags Route Logic', () => {
           data: {
             dialoguesEnabled: true,
             audioCourseEnabled: true,
-            narrowListeningEnabled: true,
           },
         });
       }
@@ -56,12 +52,10 @@ describe('Feature Flags Route Logic', () => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
-          narrowListeningEnabled: true,
         },
       });
       expect(flags.dialoguesEnabled).toBe(true);
       expect(flags.audioCourseEnabled).toBe(true);
-      expect(flags.narrowListeningEnabled).toBe(true);
     });
 
     it('should use existing flags without creating new ones', async () => {
@@ -69,7 +63,6 @@ describe('Feature Flags Route Logic', () => {
         id: 'existing-flag',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       };
 
       mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
@@ -81,7 +74,6 @@ describe('Feature Flags Route Logic', () => {
           data: {
             dialoguesEnabled: true,
             audioCourseEnabled: true,
-            narrowListeningEnabled: true,
           },
         });
       }
@@ -110,7 +102,6 @@ describe('Feature Flags Route Logic', () => {
             data: {
               dialoguesEnabled: true,
               audioCourseEnabled: true,
-              narrowListeningEnabled: true,
             },
           })
         ).rejects.toThrow('Unique constraint violation');
@@ -123,12 +114,10 @@ describe('Feature Flags Route Logic', () => {
       const defaultFlags = {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
       expect(defaultFlags.audioCourseEnabled).toBe(true);
-      expect(defaultFlags.narrowListeningEnabled).toBe(true);
     });
   });
 
@@ -137,13 +126,11 @@ describe('Feature Flags Route Logic', () => {
       const expectedFlags = [
         'dialoguesEnabled',
         'audioCourseEnabled',
-        'narrowListeningEnabled',
       ];
 
       const flagKeys = Object.keys({
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       expectedFlags.forEach((flag) => {
@@ -155,7 +142,6 @@ describe('Feature Flags Route Logic', () => {
       const mockFlags = {
         dialoguesEnabled: true,
         audioCourseEnabled: false,
-        narrowListeningEnabled: true,
       };
 
       Object.values(mockFlags).forEach((value) => {

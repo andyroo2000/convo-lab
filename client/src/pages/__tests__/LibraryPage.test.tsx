@@ -10,15 +10,12 @@ vi.mock('../../hooks/useLibraryData', () => ({
   useLibraryData: () => ({
     episodes: [],
     courses: [],
-    narrowListeningPacks: [],
     isLoading: false,
     error: null,
     deleteEpisode: vi.fn(),
     deleteCourse: vi.fn(),
-    deleteNarrowListeningPack: vi.fn(),
     isDeletingEpisode: false,
     isDeletingCourse: false,
-    isDeletingNarrowListening: false,
   }),
 }));
 
@@ -31,7 +28,6 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
     flags: {
       dialoguesEnabled: true,
       audioCourseEnabled: true,
-      narrowListeningEnabled: true,
     },
     isLoading: false,
     error: null,
@@ -86,7 +82,6 @@ describe('LibraryPage', () => {
 
       expect(screen.getByTestId('library-filter-dialogues')).toBeTruthy();
       expect(screen.getByTestId('library-filter-courses')).toBeTruthy();
-      expect(screen.getByTestId('library-filter-narrow-listening')).toBeTruthy();
     });
   });
 

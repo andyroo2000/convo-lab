@@ -14,7 +14,6 @@ import enLanding from './locales/en/landing.json';
 import enNotFound from './locales/en/notFound.json';
 import enDialogue from './locales/en/dialogue.json';
 import enAudioCourse from './locales/en/audioCourse.json';
-import enNarrowListening from './locales/en/narrowListening.json';
 import enPricing from './locales/en/pricing.json';
 
 // Import Japanese translations
@@ -29,7 +28,6 @@ import jaLanding from './locales/ja/landing.json';
 import jaNotFound from './locales/ja/notFound.json';
 import jaDialogue from './locales/ja/dialogue.json';
 import jaAudioCourse from './locales/ja/audioCourse.json';
-import jaNarrowListening from './locales/ja/narrowListening.json';
 import jaPricing from './locales/ja/pricing.json';
 
 // Configure i18next resources
@@ -46,7 +44,6 @@ const resources = {
     notFound: enNotFound,
     dialogue: enDialogue,
     audioCourse: enAudioCourse,
-    narrowListening: enNarrowListening,
     pricing: enPricing,
   },
   ja: {
@@ -61,7 +58,6 @@ const resources = {
     notFound: jaNotFound,
     dialogue: jaDialogue,
     audioCourse: jaAudioCourse,
-    narrowListening: jaNarrowListening,
     pricing: jaPricing,
   },
 };
@@ -85,7 +81,6 @@ i18n
       'notFound',
       'dialogue',
       'audioCourse',
-      'narrowListening',
       'pricing',
     ],
 

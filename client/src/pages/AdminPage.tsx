@@ -42,7 +42,6 @@ interface UserData {
   _count: {
     episodes: number;
     courses: number;
-    narrowListeningPacks: number;
   };
 }
 
@@ -63,7 +62,6 @@ interface Stats {
   users: number;
   episodes: number;
   courses: number;
-  narrowListeningPacks: number;
   inviteCodes: {
     total: number;
     used: number;
@@ -87,7 +85,6 @@ interface FeatureFlags {
   id: string;
   dialoguesEnabled: boolean;
   audioCourseEnabled: boolean;
-  narrowListeningEnabled: boolean;
   updatedAt: string;
 }
 
@@ -743,8 +740,7 @@ const AdminPage = () => {
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {u._count.episodes +
-                          u._count.courses +
-                          u._count.narrowListeningPacks}{' '}
+                          u._count.courses}{' '}
                         items
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
@@ -933,15 +929,6 @@ const AdminPage = () => {
                   <BarChart3 className="w-5 h-5 text-indigo" />
                 </div>
                 <p className="text-3xl font-bold text-navy">{stats.courses}</p>
-              </div>
-
-              {/* Narrow Listening Packs */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Listening Packs</h3>
-                  <BarChart3 className="w-5 h-5 text-indigo" />
-                </div>
-                <p className="text-3xl font-bold text-navy">{stats.narrowListeningPacks}</p>
               </div>
 
               {/* Invite Codes */}
@@ -1260,32 +1247,6 @@ const AdminPage = () => {
                       onChange={(e) => updateFeatureFlag('audioCourseEnabled', e.target.checked)}
                       className="sr-only peer"
                       aria-label="Toggle Guided Audio Course"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                  </label>
-                </div>
-
-                {/* Narrow Listening Toggle */}
-                <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-base font-semibold text-navy">Narrow Listening Packs</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      The same story told 5 different ways—deeply internalize patterns
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="toggle-narrow-listening"
-                    className="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      id="toggle-narrow-listening"
-                      type="checkbox"
-                      checked={featureFlags.narrowListeningEnabled}
-                      onChange={(e) =>
-                        updateFeatureFlag('narrowListeningEnabled', e.target.checked)
-                      }
-                      className="sr-only peer"
-                      aria-label="Toggle Narrow Listening Packs"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>

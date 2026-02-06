@@ -33,8 +33,6 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
     'welcome.dialogues.description': () => 'Practice conversations',
     'welcome.audioCourses.title': () => 'Audio Courses',
     'welcome.audioCourses.description': () => 'Learn with audio',
-    'welcome.narrowListening.title': () => 'Narrow Listening',
-    'welcome.narrowListening.description': () => 'Improve comprehension',
     'welcome.button': () => 'Get Started',
     'welcome.help': () => 'Need help? Contact us',
     'welcome.footer': () => 'ConvoLab Team',
@@ -104,8 +102,6 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
     'welcome.dialogues.description': () => 'تدرب على المحادثات',
     'welcome.audioCourses.title': () => 'دورات صوتية',
     'welcome.audioCourses.description': () => 'تعلم بالصوت',
-    'welcome.narrowListening.title': () => 'الاستماع الضيق',
-    'welcome.narrowListening.description': () => 'تحسين الفهم',
     'welcome.button': () => 'ابدأ الآن',
     'welcome.help': () => 'هل تحتاج مساعدة؟ اتصل بنا',
     'welcome.footer': () => 'فريق ConvoLab',
@@ -377,7 +373,6 @@ describe('emailTemplates - XSS Prevention', () => {
       expect(html).toContain('What You Can Create');
       expect(html).toContain('AI Dialogues');
       expect(html).toContain('Audio Courses');
-      expect(html).toContain('Narrow Listening');
     });
 
     it('should generate RTL email for Arabic locale', () => {

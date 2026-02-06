@@ -23,7 +23,6 @@ describe('useLibraryData', () => {
       expect(libraryKeys.all).toEqual(['library']);
       expect(libraryKeys.episodes()).toEqual(['library', 'episodes']);
       expect(libraryKeys.courses()).toEqual(['library', 'courses']);
-      expect(libraryKeys.narrowListening()).toEqual(['library', 'narrowListening']);
     });
   });
 
@@ -70,7 +69,6 @@ describe('useLibraryData', () => {
 
       expect(result.current.episodes).toEqual([]);
       expect(result.current.courses).toEqual([]);
-      expect(result.current.narrowListeningPacks).toEqual([]);
     });
   });
 
@@ -107,24 +105,6 @@ describe('useLibraryData', () => {
         expect(mockFetch).toHaveBeenCalledWith(
           'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
           expect.objectContaining({ credentials: 'include' })
-        );
-      });
-    });
-
-    it('should fetch narrow listening packs', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
-
-      renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith(
-          'http://localhost:3001/api/narrow-listening?library=true&limit=20&offset=0',
-          expect.any(Object)
         );
       });
     });
@@ -203,7 +183,6 @@ describe('useLibraryData', () => {
 
       expect(typeof result.current.deleteEpisode).toBe('function');
       expect(typeof result.current.deleteCourse).toBe('function');
-      expect(typeof result.current.deleteNarrowListeningPack).toBe('function');
     });
 
     it('should provide mutation pending states', () => {
@@ -218,7 +197,6 @@ describe('useLibraryData', () => {
 
       expect(result.current.isDeletingEpisode).toBe(false);
       expect(result.current.isDeletingCourse).toBe(false);
-      expect(result.current.isDeletingNarrowListening).toBe(false);
     });
 
     it('should call delete episode API', async () => {
@@ -274,54 +252,6 @@ describe('useLibraryData', () => {
       );
     });
 
-    it('should call delete narrow listening pack API', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve([]),
-      });
-
-      const { result } = renderHook(() => useLibraryData(), {
-        wrapper: createWrapper(),
-      });
-
-      await waitFor(() => {
-        expect(result.current.isLoading).toBe(false);
-      });
-
-      mockFetch.mockClear();
-      mockFetch.mockResolvedValueOnce({ ok: true });
-
-      await result.current.deleteNarrowListeningPack('pack-123');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3001/api/narrow-listening/pack-123',
-        expect.objectContaining({ method: 'DELETE' })
-      );
-    });
-
   });
 
-  describe('Type Definitions', () => {
-    it('should define NarrowListeningPack type correctly', () => {
-      // Type check - this validates the interface
-      const pack = {
-        id: 'pack-1',
-        title: 'Test Pack',
-        topic: 'Cafe',
-        targetLanguage: 'ja',
-        jlptLevel: 'N4' as string | null,
-        hskLevel: null,
-        cefrLevel: null,
-        status: 'ready',
-        createdAt: '2024-01-01',
-
-        _count: { versions: 3 },
-      };
-
-      expect(pack.id).toBe('pack-1');
-       
-      expect(pack._count.versions).toBe(3);
-    });
-
-  });
 });

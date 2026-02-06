@@ -3,8 +3,7 @@
   "filters": {
     "all": "All",
     "dialogues": "Dialogues",
-    "courses": "Audio Courses",
-    "narrowListening": "Narrow Listening"
+    "courses": "Audio Courses"
   },
   "empty": {
     "title": "No content yet",
@@ -15,7 +14,6 @@
     "confirmTitle": "Delete Content",
     "confirmEpisode": "Are you sure you want to delete this dialogue?",
     "confirmCourse": "Are you sure you want to delete this course?",
-    "confirmNarrowListening": "Are you sure you want to delete this narrow listening pack?",
     "confirmButton": "Yes, Delete",
     "cancelButton": "Cancel",
     "deleting": "Deleting...",
@@ -41,18 +39,12 @@
       "description": "Build guided audio courses with structured lessons and pronunciation practice",
       "button": "Get Started"
     },
-    "narrowListening": {
-      "title": "Create Your First Narrow Listening Pack",
-      "description": "Practice with story variations at your level for focused listening comprehension",
-      "button": "Get Started"
-    },
     "all": {
       "description": "No content yet. Get started by creating your first learning material!",
       "button": "Browse All Options"
     }
   },
   "sidebar": {
-    "course": "Audio\nCourse",
-    "narrowListening": "Narrow\nListening"
+    "course": "Audio\nCourse"
   }
 }

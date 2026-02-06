@@ -53,7 +53,6 @@ describe('useFeatureFlags', () => {
         id: 'flags-1',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: false,
         updatedAt: '2024-01-01',
       };
 
@@ -98,7 +97,6 @@ describe('useFeatureFlags', () => {
         id: 'flags-1',
         dialoguesEnabled: true,
         audioCourseEnabled: false,
-        narrowListeningEnabled: true,
         updatedAt: '2024-01-01',
       };
 
@@ -116,7 +114,6 @@ describe('useFeatureFlags', () => {
       });
 
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
-      expect(result.current.isFeatureEnabled('narrowListeningEnabled')).toBe(true);
     });
 
     it('should return false for disabled features', async () => {
@@ -124,7 +121,6 @@ describe('useFeatureFlags', () => {
         id: 'flags-1',
         dialoguesEnabled: true,
         audioCourseEnabled: false,
-        narrowListeningEnabled: false,
         updatedAt: '2024-01-01',
       };
 
@@ -142,7 +138,6 @@ describe('useFeatureFlags', () => {
       });
 
       expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(false);
-      expect(result.current.isFeatureEnabled('narrowListeningEnabled')).toBe(false);
     });
 
     it('should return true by default when flags not loaded', () => {
@@ -165,7 +160,6 @@ describe('useFeatureFlags', () => {
         id: 'flags-1',
         dialoguesEnabled: false,
         audioCourseEnabled: false,
-        narrowListeningEnabled: false,
         updatedAt: '2024-01-01',
       };
 
@@ -185,7 +179,6 @@ describe('useFeatureFlags', () => {
       // Even though all flags are false, admin should see true
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
       expect(result.current.isFeatureEnabled('audioCourseEnabled')).toBe(true);
-      expect(result.current.isFeatureEnabled('narrowListeningEnabled')).toBe(true);
     });
 
     it('should set isAdmin to true for admin users', async () => {
@@ -287,7 +280,6 @@ describe('useFeatureFlags', () => {
         id: 'flags-1',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
@@ -295,7 +287,6 @@ describe('useFeatureFlags', () => {
       expect(validFlags.id).toBeDefined();
       expect(typeof validFlags.dialoguesEnabled).toBe('boolean');
       expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
-      expect(typeof validFlags.narrowListeningEnabled).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });
   });

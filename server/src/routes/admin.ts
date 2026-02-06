@@ -41,14 +41,12 @@ router.get('/stats', async (req: AuthRequest, res, next) => {
       userCount,
       episodeCount,
       courseCount,
-      narrowListeningCount,
       inviteCodeCount,
       usedInviteCodeCount,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.episode.count(),
       prisma.course.count(),
-      prisma.narrowListeningPack.count(),
       prisma.inviteCode.count(),
       prisma.inviteCode.count({ where: { usedBy: { not: null } } }),
     ]);
@@ -57,7 +55,6 @@ router.get('/stats', async (req: AuthRequest, res, next) => {
       users: userCount,
       episodes: episodeCount,
       courses: courseCount,
-      narrowListeningPacks: narrowListeningCount,
       inviteCodes: {
         total: inviteCodeCount,
         used: usedInviteCodeCount,
@@ -113,7 +110,6 @@ router.get('/users', async (req: AuthRequest, res, next) => {
             select: {
               episodes: true,
               courses: true,
-              narrowListeningPacks: true,
             },
           },
         },
@@ -663,7 +659,6 @@ router.get('/feature-flags', async (req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
-          narrowListeningEnabled: true,
         },
       });
     }
@@ -680,7 +675,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const {
       dialoguesEnabled,
       audioCourseEnabled,
-      narrowListeningEnabled,
     } = req.body;
 
     // Validate boolean values
@@ -692,7 +686,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
 
     validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
-    validateBoolean(narrowListeningEnabled, 'narrowListeningEnabled');
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -703,7 +696,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: dialoguesEnabled ?? true,
           audioCourseEnabled: audioCourseEnabled ?? true,
-          narrowListeningEnabled: narrowListeningEnabled ?? true,
         },
       });
     } else {
@@ -713,7 +705,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
         data: {
           ...(dialoguesEnabled !== undefined && { dialoguesEnabled }),
           ...(audioCourseEnabled !== undefined && { audioCourseEnabled }),
-          ...(narrowListeningEnabled !== undefined && { narrowListeningEnabled }),
         },
       });
     }

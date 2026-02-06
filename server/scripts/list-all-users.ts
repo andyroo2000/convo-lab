@@ -27,7 +27,6 @@ async function listAllUsers() {
           select: {
             episodes: true,
             courses: true,
-            narrowListeningPacks: true,
             generationLogs: true,
           }
         }
@@ -52,7 +51,7 @@ async function listAllUsers() {
       }
       console.log(`   Role: ${user.role} | Tier: ${user.tier}`);
       console.log(`   Created: ${user.createdAt.toISOString()}`);
-      console.log(`   Content: ${user._count.episodes} dialogs, ${user._count.courses} courses, ${user._count.narrowListeningPacks} narrow packs`);
+      console.log(`   Content: ${user._count.episodes} dialogs, ${user._count.courses} courses`);
       console.log(`   Generation logs: ${user._count.generationLogs}`);
       console.log();
     });

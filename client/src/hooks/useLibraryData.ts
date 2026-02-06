@@ -9,27 +9,11 @@ export type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {
   };
 };
 
-export interface NarrowListeningPack {
-  id: string;
-  title: string;
-  topic: string;
-  targetLanguage: string;
-  jlptLevel: string | null;
-  hskLevel: string | null;
-  cefrLevel: string | null;
-  status: string;
-  createdAt: string;
-  _count: {
-    versions: number;
-  };
-}
-
 // Query keys for cache management
 export const libraryKeys = {
   all: ['library'] as const,
   episodes: () => [...libraryKeys.all, 'episodes'] as const,
   courses: () => [...libraryKeys.all, 'courses'] as const,
-  narrowListening: () => [...libraryKeys.all, 'narrowListening'] as const,
 };
 
 // Invalidate library cache - call this after creating new content
@@ -78,26 +62,6 @@ async function fetchCourses(offset: number = 0, viewAsUserId?: string): Promise<
   return response.json();
 }
 
-async function fetchNarrowListeningPacks(
-  offset: number = 0,
-  viewAsUserId?: string
-): Promise<NarrowListeningPack[]> {
-  const params = new URLSearchParams({
-    library: 'true',
-    limit: '20',
-    offset: String(offset),
-  });
-  if (viewAsUserId) params.append('viewAs', viewAsUserId);
-
-  const response = await fetch(`${API_URL}/api/narrow-listening?${params}`, {
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to fetch narrow listening packs');
-  }
-  return response.json();
-}
-
 // Delete functions
 async function deleteEpisodeRequest(episodeId: string): Promise<void> {
   const response = await fetch(`${API_URL}/api/episodes/${episodeId}`, {
@@ -117,16 +81,6 @@ async function deleteCourseRequest(courseId: string): Promise<void> {
   });
   if (!response.ok) {
     throw new Error('Failed to delete course');
-  }
-}
-
-async function deleteNarrowListeningPackRequest(packId: string): Promise<void> {
-  const response = await fetch(`${API_URL}/api/narrow-listening/${packId}`, {
-    method: 'DELETE',
-    credentials: 'include',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to delete pack');
   }
 }
 
@@ -158,14 +112,6 @@ export function useLibraryData(viewAsUserId?: string) {
     },
   });
 
-  const narrowListeningQuery = useInfiniteQuery({
-    queryKey: [...libraryKeys.narrowListening(), viewAsUserId],
-    queryFn: ({ pageParam = 0 }) => fetchNarrowListeningPacks(pageParam, viewAsUserId),
-    getNextPageParam: (lastPage, allPages) =>
-      lastPage.length === 20 ? allPages.length * 20 : undefined,
-    initialPageParam: 0,
-  });
-
   // Delete mutations with optimistic updates
   const deleteEpisodeMutation = useMutation({
     mutationFn: deleteEpisodeRequest,
@@ -181,18 +127,10 @@ export function useLibraryData(viewAsUserId?: string) {
     },
   });
 
-  const deleteNarrowListeningMutation = useMutation({
-    mutationFn: deleteNarrowListeningPackRequest,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: libraryKeys.narrowListening() });
-    },
-  });
-
   // Combined loading state - only show loading on initial load
   const isLoading =
     episodesQuery.isLoading ||
-    coursesQuery.isLoading ||
-    narrowListeningQuery.isLoading;
+    coursesQuery.isLoading;
 
   // Error state - only show error if episodes fail (primary content)
   const error = episodesQuery.error?.message || null;
@@ -200,32 +138,27 @@ export function useLibraryData(viewAsUserId?: string) {
   // Flatten paginated data
   const episodes = episodesQuery.data?.pages.flat() ?? [];
   const courses = coursesQuery.data?.pages.flat() ?? [];
-  const narrowListeningPacks = narrowListeningQuery.data?.pages.flat() ?? [];
 
   // Check if we're fetching more data
   const isFetchingNextPage =
     episodesQuery.isFetchingNextPage ||
-    coursesQuery.isFetchingNextPage ||
-    narrowListeningQuery.isFetchingNextPage;
+    coursesQuery.isFetchingNextPage;
 
   // Check if there's more data to load
   const hasNextPage =
     episodesQuery.hasNextPage ||
-    coursesQuery.hasNextPage ||
-    narrowListeningQuery.hasNextPage;
+    coursesQuery.hasNextPage;
 
   // Fetch next page for all queries
   const fetchNextPage = () => {
     if (episodesQuery.hasNextPage) episodesQuery.fetchNextPage();
     if (coursesQuery.hasNextPage) coursesQuery.fetchNextPage();
-    if (narrowListeningQuery.hasNextPage) narrowListeningQuery.fetchNextPage();
   };
 
   return {
     // Data
     episodes,
     courses,
-    narrowListeningPacks,
 
     // Status
     isLoading,
@@ -239,11 +172,9 @@ export function useLibraryData(viewAsUserId?: string) {
     // Delete actions
     deleteEpisode: deleteEpisodeMutation.mutateAsync,
     deleteCourse: deleteCourseMutation.mutateAsync,
-    deleteNarrowListeningPack: deleteNarrowListeningMutation.mutateAsync,
 
     // Mutation states for UI feedback
     isDeletingEpisode: deleteEpisodeMutation.isPending,
     isDeletingCourse: deleteCourseMutation.isPending,
-    isDeletingNarrowListening: deleteNarrowListeningMutation.isPending,
   };
 }

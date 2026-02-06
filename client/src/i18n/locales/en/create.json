@@ -10,10 +10,6 @@
       "title": "Audio Course",
       "description": "Audio-only lessons built from your dialogues—perfect for your commute or morning walk"
     },
-    "narrowListening": {
-      "title": "Narrow Listening",
-      "description": "The same story told 5 different ways—deeply internalize patterns through repetition"
-    },
   },
   "buttons": {
     "create": "Create",

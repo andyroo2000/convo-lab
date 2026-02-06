@@ -68,7 +68,7 @@ async function runI18nHarness(options: HarnessOptions = {}) {
   const prompt = `
 You are running an autonomous i18n translation checker for ConvoLab.
 
-## CRITICAL: You MUST process ALL 13 locale files
+## CRITICAL: You MUST process ALL 12 locale files
 
 Process EVERY file in this EXACT order. Do NOT skip any file:
 
@@ -80,15 +80,14 @@ Process EVERY file in this EXACT order. Do NOT skip any file:
 6. errors.json
 7. landing.json
 8. library.json
-9. narrowListening.json
-10. notFound.json
-11. onboarding.json
-12. pricing.json
-13. settings.json
+9. notFound.json
+10. onboarding.json
+11. pricing.json
+12. settings.json
 
 ## Your Task
 
-For EACH of the 13 files above, you must:
+For EACH of the 12 files above, you must:
 
 ### 1. Read the English source file
 - Read client/src/i18n/locales/en/[filename]
@@ -155,7 +154,7 @@ Create /tmp/i18n-progress.json to track your work:
 {
   "startedAt": "ISO timestamp",
   "currentFile": 1,
-  "totalFiles": 13,
+  "totalFiles": 12,
   "localesComplete": {
     "audioCourse.json": ["en", "ar", "es", "fr", "ja", "zh"],
     "auth.json": []
@@ -171,25 +170,25 @@ Update this file after completing each locale. Report progress every 5 files:
 
 ## Your Workflow - MANDATORY STEPS
 
-1. **Process files sequentially** - Go through files 1-13 in order
+1. **Process files sequentially** - Go through files 1-12 in order
 2. **Announce each file** - State "Processing [filename]..." before working on it
 3. **Read systematically** - Read en/[file], then ar/[file], es/[file], fr/[file], ja/[file], zh/[file]
 4. **Deep scan** - Check EVERY string value for English text
 5. **${dryRun ? 'Report' : 'Fix'}** - ${dryRun ? 'Report all issues found' : 'Translate all English text immediately'}
-6. **Track progress** - After each file, update /tmp/i18n-progress.json and state "Completed X of 13 files"
-7. **Verify completion** - At the end, confirm all 13 files were processed
+6. **Track progress** - After each file, update /tmp/i18n-progress.json and state "Completed X of 12 files"
+7. **Verify completion** - At the end, confirm all 12 files were processed
 ${!dryRun ? '8. **Commit once** - Use /commit once at the very end with all changes' : ''}
 
 ## Important Notes
 
-- **DO NOT skip files** - Process all 13 files even if some appear translated
+- **DO NOT skip files** - Process all 12 files even if some appear translated
 - **DO NOT skip strings** - Check every single string value for English
 - **DO NOT use shortcuts** - Read each locale file individually
 - **DO NOT leave English text** - Translate everything except proper nouns
-- State your progress clearly: "Processing file X of 13: [filename]"
+- State your progress clearly: "Processing file X of 12: [filename]"
 - For each file, report: "Found X untranslated strings in [locale]"
 ${!dryRun ? '- Only use /commit once at the end with all changes' : ''}
-- At the end, provide a summary showing all 13 files were processed and all English text was translated
+- At the end, provide a summary showing all 12 files were processed and all English text was translated
 
 ${!dryRun ? `
 ## Pre-Commit Hook Awareness
@@ -204,14 +203,14 @@ JSON files should pass linting if properly formatted (2-space indent, no trailin
 ## Session Completion Rules
 
 You are in AUTONOMOUS MODE. This means:
-- ✅ Process ALL 13 translation files automatically without stopping
-- ✅ Move from file 1 → file 2 → ... → file 13 without asking
+- ✅ Process ALL 12 translation files automatically without stopping
+- ✅ Move from file 1 → file 2 → ... → file 12 without asking
 - ✅ Only create ONE commit at the very end
 - ❌ Do NOT stop after completing a few files
 - ❌ Do NOT ask "should I continue?"
 - ❌ Do NOT create "Recommendations for Next Session"
 - ❌ Do NOT provide suggestions for follow-up work
-- ❌ Do NOT stop until all 13 files complete OR you hit turn limit (${maxTurns})
+- ❌ Do NOT stop until all 12 files complete OR you hit turn limit (${maxTurns})
 
 If you find yourself thinking "let me stop here and suggest next steps", STOP THAT THOUGHT and continue to the next file instead.
 ` : ''}
