@@ -19,9 +19,8 @@ model User {
   avatarColor              String?   @default("indigo")
   avatarUrl                String?   // Custom profile avatar URL
   role                     String    @default("user") // "user", "moderator", "admin"
-  preferredStudyLanguage   String    @default("ja") // 'ja' or 'zh'
+  preferredStudyLanguage   String    @default("ja") // Always 'ja' (Japanese only)
   preferredNativeLanguage  String    @default("en")
-  pinyinDisplayMode        String    @default("toneMarks") // DEPRECATED - was for Chinese pinyin display
   proficiencyLevel         String    @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
   onboardingCompleted      Boolean   @default(false)
   seenSampleContentGuide   Boolean   @default(false) // Pulse point: Has user seen the sample content guide?
@@ -48,9 +47,6 @@ model User {
 
   episodes                 Episode[]
   courses                  Course[]
-  // DEPRECATED - Feature removed, relation retained for data preservation
-  narrowListeningPacks     NarrowListeningPack[]
-  chunkPacks               ChunkPack[]
   inviteCode               InviteCode?
   generationLogs           GenerationLog[]
   emailVerificationTokens  EmailVerificationToken[]
@@ -134,7 +130,7 @@ model Episode {
   userId         String
   title          String
   sourceText     String   @db.Text
-  targetLanguage String   // Language code: 'ja', 'zh', etc.
+  targetLanguage String   // Language code: 'ja'
   nativeLanguage String   // User's native language
   status         String   @default("draft") // draft, generating, ready, error
   isSampleContent Boolean @default(false) // Pre-generated sample content
@@ -200,7 +196,7 @@ model Sentence {
   translation String   @db.Text
 
   // Language-specific metadata stored as JSON
-  // Structure: { japanese?: { kanji, kana, furigana }, chinese?: { characters, pinyin }, ... }
+  // Structure: { japanese?: { kanji, kana, furigana } }
   metadata    Json
 
   // Legacy single-speed timing (for backward compatibility)
@@ -255,13 +251,11 @@ model Course {
   status                   String   @default("draft") // draft, generating, ready, error
   isSampleContent          Boolean  @default(false) // Pre-generated sample content
   nativeLanguage           String   // L1 (e.g., 'en')
-  targetLanguage           String   // L2 (e.g., 'ja', 'zh')
+  targetLanguage           String   // L2 (always 'ja')
   maxLessonDurationMinutes Int      @default(30)
   l1VoiceId                String   // English narrator voice
   l1VoiceProvider          String?  @default("google") // "google" | "polly"
   jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
-  hskLevel                 String?  // DEPRECATED - was for Chinese HSK levels
-  cefrLevel                String?  // DEPRECATED - was for CEFR levels (Spanish/French)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
   speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
@@ -301,7 +295,7 @@ model CourseCoreItem {
   id                String  @id @default(uuid())
   courseId          String
   textL2            String
-  readingL2         String? // kana/pinyin
+  readingL2         String? // kana
   translationL1     String
   complexityScore   Float
   sourceEpisodeId   String?
@@ -314,197 +308,6 @@ model CourseCoreItem {
   @@index([courseId])
 }
 
-// DEPRECATED - Feature removed, tables retained for data preservation
-// Narrow Listening Models
-
-model NarrowListeningPack {
-  id             String   @id @default(uuid())
-  userId         String
-  title          String
-  topic          String   @db.Text
-  targetLanguage String   @default("ja") // ISO 639-1 code (ja, zh, es)
-  jlptLevel      String?  // N5, N4, N3, N2, N1 (for Japanese)
-  hskLevel       String?  // DEPRECATED - was for Chinese HSK levels
-  cefrLevel      String?  // DEPRECATED - was for CEFR levels
-  grammarFocus   String?  @db.Text
-  status         String   @default("draft") // draft, generating, ready, error
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  versions       StoryVersion[]
-
-  @@index([userId])
-  @@index([status])
-}
-
-model StoryVersion {
-  id             String   @id @default(uuid())
-  packId         String
-  variationType  String   // PAST_CASUAL, PRESENT_POLITE, FUTURE_POLITE, PARTICLE_FOCUS, etc.
-  title          String   // Brief description (e.g., "Past, casual")
-  voiceId        String   // Edge TTS voice ID for this version
-  order          Int
-  audioUrl_0_7   String?  // Slow audio (0.7x speed)
-  audioUrl_0_85  String?  // Medium audio (0.85x speed)
-  audioUrl_1_0   String?  // Normal audio (1.0x speed)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  pack           NarrowListeningPack @relation(fields: [packId], references: [id], onDelete: Cascade)
-  segments       StorySegment[]
-
-  @@index([packId])
-  @@index([order])
-}
-
-model StorySegment {
-  id                  String   @id @default(uuid())
-  versionId           String
-  order               Int
-  targetText          String   @db.Text // Target language text (Japanese/Chinese)
-  englishTranslation  String   @db.Text
-  reading             String?  @db.Text // Furigana (Japanese) or Pinyin (Chinese)
-  voiceId             String?  // Voice for this specific segment (for randomized speakers)
-  voiceProvider       String?  @default("google") // "google" | "polly"
-  audioUrl_0_7        String?  // Slow segment audio
-  audioUrl_0_85       String?  // Medium segment audio
-  audioUrl_1_0        String?  // Normal segment audio
-  startTime_0_7       Int?     // milliseconds for 0.7x combined audio
-  endTime_0_7         Int?     // milliseconds for 0.7x combined audio
-  startTime_0_85      Int?     // milliseconds for 0.85x combined audio
-  endTime_0_85        Int?     // milliseconds for 0.85x combined audio
-  startTime_1_0       Int?     // milliseconds for 1.0x combined audio
-  endTime_1_0         Int?     // milliseconds for 1.0x combined audio
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  version             StoryVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
-
-  @@index([versionId])
-  @@index([order])
-  @@index([voiceId])
-}
-
-// Lexical Chunk Pack Models
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model ChunkPack {
-  id             String   @id @default(uuid())
-  userId         String
-  title          String
-  theme          String   // e.g., "daily_routine", "travel", "business"
-  targetLanguage String   @default("ja") // ISO 639-1 code (ja, es, fr, etc.)
-  jlptLevel      String   // N5, N4, N3
-  status         String   @default("draft") // draft, generating, ready, error
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chunks         Chunk[]
-  examples       ChunkExample[]
-  stories        ChunkStory[]
-  exercises      ChunkExercise[]
-
-  @@index([userId])
-  @@index([status])
-  @@index([jlptLevel])
-}
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model Chunk {
-  id            String  @id @default(uuid())
-  packId        String
-  order         Int
-  form          String  // The chunk in Japanese (e.g., 「〜ておきます」)
-  translation   String  // Natural English gloss
-  literalGloss  String? // Optional literal meaning
-  register      String  // "polite", "casual", "neutral"
-  function      String  // Short usage description
-  notes         String  @db.Text // 1-2 notes on nuance
-
-  pack          ChunkPack      @relation(fields: [packId], references: [id], onDelete: Cascade)
-  examples      ChunkExample[]
-
-  @@index([packId])
-  @@index([order])
-}
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model ChunkExample {
-  id           String  @id @default(uuid())
-  packId       String
-  chunkId      String
-  order        Int
-  sentence     String  @db.Text // Japanese sentence using the chunk
-  english      String  @db.Text // Translation
-  contextNote  String? // Optional context (e.g., "friend to friend")
-  audioUrl     String? // Deprecated: use audioUrl_0_85 instead
-  audioUrl_0_7 String? // Audio at 0.7x speed
-  audioUrl_0_85 String? // Audio at 0.85x speed
-  audioUrl_1_0 String? // Audio at 1.0x speed
-
-  pack        ChunkPack @relation(fields: [packId], references: [id], onDelete: Cascade)
-  chunk       Chunk     @relation(fields: [chunkId], references: [id], onDelete: Cascade)
-
-  @@index([packId])
-  @@index([chunkId])
-  @@index([order])
-}
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model ChunkStory {
-  id        String   @id @default(uuid())
-  packId    String
-  title     String
-  type      String   // "narrative" or "dialogue"
-  storyText String   @db.Text // Full Japanese text
-  english   String   @db.Text // Full translation
-  audioUrl  String?  // Full story audio
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  pack      ChunkPack           @relation(fields: [packId], references: [id], onDelete: Cascade)
-  segments  ChunkStorySegment[]
-
-  @@index([packId])
-}
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model ChunkStorySegment {
-  id                 String  @id @default(uuid())
-  storyId            String
-  order              Int
-  japaneseText       String  @db.Text
-  englishTranslation String  @db.Text
-  audioUrl           String?
-  startTime          Int?    // milliseconds
-  endTime            Int?    // milliseconds
-
-  story              ChunkStory @relation(fields: [storyId], references: [id], onDelete: Cascade)
-
-  @@index([storyId])
-  @@index([order])
-}
-
-// DEPRECATED - Feature removed, tables retained for data preservation
-model ChunkExercise {
-  id            String   @id @default(uuid())
-  packId        String
-  order         Int
-  exerciseType  String   // "chunk_to_meaning" | "meaning_to_chunk" | "gap_fill_mc"
-  prompt        String   @db.Text // What user sees
-  options       Json     // Array of option strings (2-3 options)
-  correctOption String   // The correct answer
-  explanation   String   @db.Text // Usage-based explanation
-  audioUrl      String?  // For gap-fill exercises with audio
-
-  pack          ChunkPack @relation(fields: [packId], references: [id], onDelete: Cascade)
-
-  @@index([packId])
-  @@index([order])
-}
-
 // Speaker Avatar Models - Store avatars in GCS
 
 model SpeakerAvatar {
@@ -512,7 +315,7 @@ model SpeakerAvatar {
   filename    String   @unique // e.g., "ja-female-casual.jpg"
   croppedUrl  String   // GCS public URL for cropped avatar
   originalUrl String   // GCS public URL for original/uncropped version
-  language    String   // Language code: 'ja', 'zh', etc.
+  language    String   // Language code: 'ja'
   gender      String   // 'male' or 'female'
   tone        String   // 'casual', 'polite', 'formal'
   createdAt   DateTime @default(now())
@@ -528,12 +331,6 @@ model FeatureFlag {
   id                           String   @id @default(uuid())
   dialoguesEnabled             Boolean  @default(true)
   audioCourseEnabled           Boolean  @default(true)
-  // DEPRECATED - Feature removed, column retained for data preservation
-  narrowListeningEnabled       Boolean  @default(true)
-  // DEPRECATED - Feature removed, column retained for data preservation
-  processingInstructionEnabled Boolean  @default(true)
-  // DEPRECATED - Feature removed, column retained for data preservation
-  lexicalChunksEnabled         Boolean  @default(true)
   updatedAt                    DateTime @updatedAt
 
   @@map("feature_flags")
@@ -563,7 +360,7 @@ model AdminAuditLog {
 model GenerationLog {
   id          String   @id @default(uuid())
   userId      String
-  contentType String   // "dialogue", "course", "narrow_listening"
+  contentType String   // "dialogue" or "course"
   contentId   String?  // Optional reference to generated content
   createdAt   DateTime @default(now())
 

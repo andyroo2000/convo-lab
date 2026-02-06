@@ -220,7 +220,9 @@ describe('batchedTTSClient', () => {
 
       const ssml = buildBatchSSML(batch, 'google');
 
-      expect(ssml).toBe('<speak><mark name="unit_0"/>Hello<break time="300ms"/><mark name="unit_1"/>World<break time="300ms"/></speak>');
+      expect(ssml).toBe(
+        '<speak><mark name="unit_0"/>Hello<break time="300ms"/><mark name="unit_1"/>World<break time="300ms"/></speak>'
+      );
     });
 
     it('should wrap content in prosody tag for Polly provider', () => {
@@ -340,37 +342,37 @@ describe('batchedTTSClient', () => {
       // Simulate a lesson script that alternates between narrator and L2 speaker
       const units: LessonScriptUnit[] = [
         { type: 'narration_L1', text: 'Hello', voiceId: 'en-US-Neural2-J' },
-        { type: 'L2', text: 'Bonjour', voiceId: 'Lea', speed: 1.0 },
+        { type: 'L2', text: 'こんにちは', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
         { type: 'pause', seconds: 1 },
         { type: 'narration_L1', text: 'How are you?', voiceId: 'en-US-Neural2-J' },
-        { type: 'L2', text: 'Comment allez-vous?', voiceId: 'Lea', speed: 1.0 },
+        { type: 'L2', text: 'お元気ですか？', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
         { type: 'pause', seconds: 1 },
         { type: 'narration_L1', text: 'Goodbye', voiceId: 'en-US-Neural2-J' },
-        { type: 'L2', text: 'Au revoir', voiceId: 'Lea', speed: 1.0 },
+        { type: 'L2', text: 'さようなら', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
       ];
 
-      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'fr-FR');
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
-      // Should create only 2 batches (all English together, all French together)
+      // Should create only 2 batches (all English together, all Japanese together)
       // Instead of 6 batches if processing sequentially
       expect(batches).toHaveLength(2);
 
-      // Find English and French batches
+      // Find English and Japanese batches
       const englishBatch = batches.find((b) => b.voiceId === 'en-US-Neural2-J');
-      const frenchBatch = batches.find((b) => b.voiceId === 'Lea');
+      const japaneseBatch = batches.find((b) => b.voiceId === 'ja-JP-Neural2-B');
 
       expect(englishBatch).toBeDefined();
-      expect(frenchBatch).toBeDefined();
+      expect(japaneseBatch).toBeDefined();
       expect(englishBatch!.units).toHaveLength(3); // 3 English narrations
-      expect(frenchBatch!.units).toHaveLength(3); // 3 French phrases
+      expect(japaneseBatch!.units).toHaveLength(3); // 3 Japanese phrases
 
       // Verify original indices are preserved for correct reassembly
       expect(englishBatch!.units[0].originalIndex).toBe(0);
       expect(englishBatch!.units[1].originalIndex).toBe(3);
       expect(englishBatch!.units[2].originalIndex).toBe(6);
-      expect(frenchBatch!.units[0].originalIndex).toBe(1);
-      expect(frenchBatch!.units[1].originalIndex).toBe(4);
-      expect(frenchBatch!.units[2].originalIndex).toBe(7);
+      expect(japaneseBatch!.units[0].originalIndex).toBe(1);
+      expect(japaneseBatch!.units[1].originalIndex).toBe(4);
+      expect(japaneseBatch!.units[2].originalIndex).toBe(7);
     });
 
     it('should split large batches that exceed byte limit', () => {

@@ -16,6 +16,8 @@ interface CourseCreatorProps {
 
 const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCreatorProps) => {
   const { t } = useTranslation('audioCourse');
+  const nativeLanguage: LanguageCode = 'en';
+  const targetLanguage: LanguageCode = 'ja';
   const [title, setTitle] = useState('');
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
@@ -31,8 +33,8 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
       setTitle(`${episode.title} - Audio Course`);
 
       const { narratorVoice, speakerVoices } = getCourseSpeakerVoices(
-        episode.targetLanguage as LanguageCode,
-        episode.nativeLanguage as LanguageCode,
+        targetLanguage,
+        nativeLanguage,
         2
       );
 
@@ -91,8 +93,8 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
         body: JSON.stringify({
           title: title.trim(),
           episodeIds: [episode.id],
-          nativeLanguage: episode.nativeLanguage,
-          targetLanguage: episode.targetLanguage,
+          nativeLanguage,
+          targetLanguage,
           maxLessonDurationMinutes: maxDuration,
           l1VoiceId: selectedVoice,
           jlptLevel,
@@ -134,7 +136,6 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
   if (!isOpen) return null;
 
-  const nativeLanguage = episode.nativeLanguage as keyof typeof TTS_VOICES;
   const availableVoices = TTS_VOICES[nativeLanguage]?.voices || [];
 
   return (
@@ -219,7 +220,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
           {/* Dialogue Voice Selection */}
           <div className="border-t pt-5">
             <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              {t('creator.dialogueVoices', { language: episode.targetLanguage.toUpperCase() })}
+              {t('creator.dialogueVoices', { language: targetLanguage.toUpperCase() })}
             </h3>
             <div className="grid grid-cols-2 gap-4">
               {/* Speaker 1 Voice */}
@@ -237,13 +238,13 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(
-                    TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
-                  ).map((voice: { id: string; description: string; gender: string }) => (
-                    <option key={voice.id} value={voice.id}>
-                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                    </option>
-                  ))}
+                  {(TTS_VOICES[targetLanguage]?.voices || []).map(
+                    (voice: { id: string; description: string; gender: string }) => (
+                      <option key={voice.id} value={voice.id}>
+                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
 
@@ -262,13 +263,13 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(
-                    TTS_VOICES[episode.targetLanguage as keyof typeof TTS_VOICES]?.voices || []
-                  ).map((voice: { id: string; description: string; gender: string }) => (
-                    <option key={voice.id} value={voice.id}>
-                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                    </option>
-                  ))}
+                  {(TTS_VOICES[targetLanguage]?.voices || []).map(
+                    (voice: { id: string; description: string; gender: string }) => (
+                      <option key={voice.id} value={voice.id}>
+                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      </option>
+                    )
+                  )}
                 </select>
               </div>
             </div>

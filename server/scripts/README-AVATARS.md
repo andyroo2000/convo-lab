@@ -4,9 +4,8 @@ This script generates realistic speaker avatars using Google's Imagen 3 (via Ver
 
 ## Features
 
-- Generates avatars for 12 different speaker types:
+- Generates avatars for 6 different speaker types:
   - Japanese: male/female × casual/polite/formal (6 avatars)
-  - Chinese: male/female × casual/polite/formal (6 avatars)
 - Automatically crops full-body images to headshots (top 60%)
 - Resizes to 256×256px for optimal performance
 - Optimizes JPEG quality for small file sizes
@@ -33,7 +32,6 @@ Avatars are named using the pattern: `{language}-{gender}-{tone}.jpg`
 Examples:
 
 - `ja-female-casual.jpg` - Japanese female, casual tone
-- `zh-male-formal.jpg` - Chinese male, formal tone
 
 ## How It Works
 
@@ -110,7 +108,7 @@ To use these avatars in your application, you can map speakers to avatar URLs:
 
 ```typescript
 function getSpeakerAvatarUrl(
-  language: 'ja' | 'zh',
+  language: 'ja',
   gender: 'male' | 'female',
   tone: 'casual' | 'polite' | 'formal'
 ) {

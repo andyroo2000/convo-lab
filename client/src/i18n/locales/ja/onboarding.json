@@ -1,22 +1,12 @@
 {
   "welcome": "ConvoLabへようこそ！🎉",
   "subtitle": "学習設定をカスタマイズしましょう",
-  "step1": {
-    "title": "母国語は何ですか？",
-    "description": "翻訳と説明に使用されます"
-  },
-  "step2": {
-    "title": "何語を学習していますか？",
-    "description": "ターゲット言語を選択してください"
-  },
   "step3": {
     "title": "あなたの習熟度は？",
     "description": "適切な難易度のコンテンツを作成するために使用されます",
     "levels": {}
   },
   "buttons": {
-    "next": "次へ →",
-    "back": "← 戻る",
     "finish": "始める"
   }
 }

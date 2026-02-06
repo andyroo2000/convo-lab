@@ -21,7 +21,7 @@ async function getAccessToken(): Promise<string> {
 interface AvatarConfig {
   gender: 'male' | 'female';
   tone: 'casual' | 'polite' | 'formal';
-  language: 'ja' | 'zh' | 'es';
+  language: 'ja';
   outputFilename: string;
 }
 
@@ -42,42 +42,6 @@ const AVATAR_PROMPTS = {
         'Professional headshot portrait of a courteous Japanese man in his late 20s, warm smile, smart casual attire, clean background, respectful and thoughtful expression, natural lighting, photorealistic, upper body shot',
       formal:
         'Professional headshot portrait of a professional Japanese businessman in his 30s, composed expression, formal business suit, neutral background, dignified and authoritative demeanor, studio lighting, photorealistic, upper body shot',
-    },
-  },
-  zh: {
-    female: {
-      casual:
-        'Professional headshot portrait of a friendly young Chinese woman in her 20s, bright smile, modern casual clothing, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
-      polite:
-        'Professional headshot portrait of a polite Chinese woman in her late 20s, gentle smile, business casual attire, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
-      formal:
-        'Professional headshot portrait of a professional Chinese woman in her 30s, subtle smile, formal business attire, neutral background, poised and dignified expression, studio lighting, photorealistic, upper body shot',
-    },
-    male: {
-      casual:
-        'Professional headshot portrait of a friendly young Chinese man in his 20s, relaxed smile, casual modern clothing, natural lighting, soft background, laid-back and approachable demeanor, photorealistic, upper body shot',
-      polite:
-        'Professional headshot portrait of a courteous Chinese man in his late 20s, warm smile, smart casual attire, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
-      formal:
-        'Professional headshot portrait of a professional Chinese businessman in his 30s, composed expression, formal business suit, neutral background, distinguished and authoritative demeanor, studio lighting, photorealistic, upper body shot',
-    },
-  },
-  es: {
-    female: {
-      casual:
-        'Professional headshot portrait of a friendly young Spanish woman in her 20s, warm smile, modern casual clothing, Mediterranean features, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot',
-      polite:
-        'Professional headshot portrait of a polite Spanish woman in her late 20s, gentle smile, business casual attire, Mediterranean features, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot',
-      formal:
-        'Professional headshot portrait of a professional Spanish woman in her 30s, subtle smile, formal business attire, Mediterranean features, neutral background, elegant and dignified expression, studio lighting, photorealistic, upper body shot',
-    },
-    male: {
-      casual:
-        'Professional headshot portrait of a friendly young Spanish man in his 20s, relaxed smile, casual modern clothing, Mediterranean features, natural lighting, soft background, approachable and easygoing demeanor, photorealistic, upper body shot',
-      polite:
-        'Professional headshot portrait of a courteous Spanish man in his late 20s, warm smile, smart casual attire, Mediterranean features, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot',
-      formal:
-        'Professional headshot portrait of a professional Spanish businessman in his 30s, composed expression, formal business suit, Mediterranean features, neutral background, distinguished and confident demeanor, studio lighting, photorealistic, upper body shot',
     },
   },
 };
@@ -193,22 +157,6 @@ async function main() {
     { gender: 'male', tone: 'casual', language: 'ja', outputFilename: 'ja-male-casual.jpg' },
     { gender: 'male', tone: 'polite', language: 'ja', outputFilename: 'ja-male-polite.jpg' },
     { gender: 'male', tone: 'formal', language: 'ja', outputFilename: 'ja-male-formal.jpg' },
-
-    // Chinese avatars
-    { gender: 'female', tone: 'casual', language: 'zh', outputFilename: 'zh-female-casual.jpg' },
-    { gender: 'female', tone: 'polite', language: 'zh', outputFilename: 'zh-female-polite.jpg' },
-    { gender: 'female', tone: 'formal', language: 'zh', outputFilename: 'zh-female-formal.jpg' },
-    { gender: 'male', tone: 'casual', language: 'zh', outputFilename: 'zh-male-casual.jpg' },
-    { gender: 'male', tone: 'polite', language: 'zh', outputFilename: 'zh-male-polite.jpg' },
-    { gender: 'male', tone: 'formal', language: 'zh', outputFilename: 'zh-male-formal.jpg' },
-
-    // Spanish avatars
-    { gender: 'female', tone: 'casual', language: 'es', outputFilename: 'es-female-casual.jpg' },
-    { gender: 'female', tone: 'polite', language: 'es', outputFilename: 'es-female-polite.jpg' },
-    { gender: 'female', tone: 'formal', language: 'es', outputFilename: 'es-female-formal.jpg' },
-    { gender: 'male', tone: 'casual', language: 'es', outputFilename: 'es-male-casual.jpg' },
-    { gender: 'male', tone: 'polite', language: 'es', outputFilename: 'es-male-polite.jpg' },
-    { gender: 'male', tone: 'formal', language: 'es', outputFilename: 'es-male-formal.jpg' },
   ];
 
   for (const config of avatars) {

@@ -45,8 +45,8 @@ async function createAndGenerateDialogForYuriy() {
     const episode = await prisma.episode.create({
       data: {
         userId: user.id,
-        title: 'Conversation with flight attendants on the way to France',
-        sourceText: 'Casual conversations with flight attendants on the way to France',
+        title: 'Conversation with flight attendants on the way to Japan',
+        sourceText: 'Casual conversations with flight attendants on the way to Japan',
         targetLanguage: user.preferredStudyLanguage,
         nativeLanguage: user.preferredNativeLanguage,
         audioSpeed: 'medium',
@@ -57,11 +57,11 @@ async function createAndGenerateDialogForYuriy() {
     console.log(`✅ Episode created: ${episode.id}`);
     console.log(`   Title: "${episode.title}"\n`);
 
-    // Define speakers for A1 French dialogue
+    // Define speakers for a Japanese dialogue
     const speakers = [
       {
         name: 'Flight Attendant',
-        voiceId: 'fr-FR-Neural2-A', // Female French voice
+        voiceId: 'ja-JP-Neural2-B', // Female Japanese voice
         voiceProvider: 'google',
         proficiency: 'intermediate',
         tone: 'polite',
@@ -69,7 +69,7 @@ async function createAndGenerateDialogForYuriy() {
       },
       {
         name: 'You',
-        voiceId: 'fr-FR-Neural2-D', // Male French voice
+        voiceId: 'ja-JP-Neural2-C', // Male Japanese voice
         voiceProvider: 'google',
         proficiency: 'beginner',
         tone: 'casual',

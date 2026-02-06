@@ -44,7 +44,7 @@ const PlaybackPage = () => {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [selectedSpeed, setSelectedSpeed] = useState<AudioSpeed>('medium');
-  const [showReadings, setShowReadings] = useState(false); // Hide furigana/pinyin by default
+  const [showReadings, setShowReadings] = useState(false); // Hide furigana by default
   const [showTranslations, setShowTranslations] = useState(true); // Show English translations by default
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');

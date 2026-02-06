@@ -20,8 +20,6 @@ async function main() {
       title: true,
       targetLanguage: true,
       jlptLevel: true,
-      hskLevel: true,
-      cefrLevel: true,
     },
   });
 
@@ -35,7 +33,7 @@ async function main() {
 
   // Display what we found
   failedCourses.forEach((course, idx) => {
-    const level = course.jlptLevel || course.hskLevel || course.cefrLevel || 'unknown';
+    const level = course.jlptLevel || 'unknown';
     console.log(`${idx + 1}. ${course.targetLanguage} ${level}`);
   });
 
@@ -45,7 +43,7 @@ async function main() {
   let errorCount = 0;
 
   for (const course of failedCourses) {
-    const level = course.jlptLevel || course.hskLevel || course.cefrLevel || 'unknown';
+    const level = course.jlptLevel || 'unknown';
 
     try {
       // Reset course to draft

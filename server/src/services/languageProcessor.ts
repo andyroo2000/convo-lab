@@ -55,19 +55,13 @@ export async function processJapanese(text: string): Promise<JapaneseMetadata> {
 }
 
 /**
- * Main language processor that routes to appropriate language handler
+ * Main language processor — always processes Japanese text
  */
 export async function processLanguageText(
   text: string,
-  languageCode: string
+  _languageCode: string
 ): Promise<LanguageMetadata> {
-  const metadata: LanguageMetadata = {};
-
-  if (languageCode === 'ja') {
-    metadata.japanese = await processJapanese(text);
-  }
-
-  return metadata;
+  return { japanese: await processJapanese(text) };
 }
 
 /**
@@ -109,24 +103,18 @@ export async function processJapaneseBatch(texts: string[]): Promise<JapaneseMet
 }
 
 /**
- * Process multiple texts in a single batch request
- * Routes to appropriate language handler based on language code
+ * Process multiple texts in a single batch request — always processes Japanese
  */
 export async function processLanguageTextBatch(
   texts: string[],
-  languageCode: string
+  _languageCode: string
 ): Promise<LanguageMetadata[]> {
   if (texts.length === 0) {
     return [];
   }
 
-  if (languageCode === 'ja') {
-    const japaneseResults = await processJapaneseBatch(texts);
-    return japaneseResults.map((japanese) => ({ japanese }));
-  }
-
-  // For languages without special processing, return empty metadata
-  return texts.map(() => ({}));
+  const japaneseResults = await processJapaneseBatch(texts);
+  return japaneseResults.map((japanese) => ({ japanese }));
 }
 
 /**

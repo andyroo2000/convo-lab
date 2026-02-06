@@ -42,8 +42,6 @@ async function main() {
   console.log('\nSettings:');
   console.log('  Max lesson duration:', course.maxLessonDurationMinutes, 'minutes');
   console.log('  JLPT Level:', course.jlptLevel || 'N/A');
-  console.log('  HSK Level:', course.hskLevel || 'N/A');
-  console.log('  CEFR Level:', course.cefrLevel || 'N/A');
   console.log('\nVoices:');
   console.log('  L1 Voice:', course.l1VoiceId, `(${course.l1VoiceProvider})`);
   console.log('  Speaker 1:', course.speaker1VoiceId, `(${course.speaker1VoiceProvider}, ${course.speaker1Gender})`);

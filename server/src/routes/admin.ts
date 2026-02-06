@@ -1,9 +1,12 @@
-import { Router } from 'express';
+/* eslint-disable @typescript-eslint/no-explicit-any, import/no-named-as-default-member */
 import crypto from 'crypto';
+
+import { Router } from 'express';
 import multer from 'multer';
+
 import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../middleware/errorHandler.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
 import {
   uploadUserAvatar,
@@ -37,19 +40,14 @@ router.use(requireAuth, requireAdmin);
 // Get analytics stats
 router.get('/stats', async (req: AuthRequest, res, next) => {
   try {
-    const [
-      userCount,
-      episodeCount,
-      courseCount,
-      inviteCodeCount,
-      usedInviteCodeCount,
-    ] = await Promise.all([
-      prisma.user.count(),
-      prisma.episode.count(),
-      prisma.course.count(),
-      prisma.inviteCode.count(),
-      prisma.inviteCode.count({ where: { usedBy: { not: null } } }),
-    ]);
+    const [userCount, episodeCount, courseCount, inviteCodeCount, usedInviteCodeCount] =
+      await Promise.all([
+        prisma.user.count(),
+        prisma.episode.count(),
+        prisma.course.count(),
+        prisma.inviteCode.count(),
+        prisma.inviteCode.count({ where: { usedBy: { not: null } } }),
+      ]);
 
     res.json({
       users: userCount,
@@ -487,11 +485,7 @@ router.get('/avatars/speaker/:filename/original', async (req: AuthRequest, res, 
     const { filename } = req.params;
 
     // Validate filename format (language-gender-tone.jpg)
-    if (
-      !/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
-        filename
-      )
-    ) {
+    if (!/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
@@ -511,7 +505,7 @@ router.post(
       const { filename } = req.params;
 
       // Validate filename format
-      if (!/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
+      if (!/^ja-(male|female)-(casual|polite|formal)\.jpg$/i.test(filename)) {
         throw new AppError('Invalid avatar filename format', 400);
       }
 
@@ -555,11 +549,7 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
     const { filename } = req.params;
 
     // Validate filename format
-    if (
-      !/^(ja|zh|es|fr|ar)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(
-        filename
-      )
-    ) {
+    if (!/^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename)) {
       throw new AppError('Invalid avatar filename format', 400);
     }
 
@@ -672,10 +662,7 @@ router.get('/feature-flags', async (req: AuthRequest, res, next) => {
 // Update feature flags
 router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
   try {
-    const {
-      dialoguesEnabled,
-      audioCourseEnabled,
-    } = req.body;
+    const { dialoguesEnabled, audioCourseEnabled } = req.body;
 
     // Validate boolean values
     const validateBoolean = (val: any, name: string) => {

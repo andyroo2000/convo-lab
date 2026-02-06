@@ -192,17 +192,6 @@ Stored as JSON in `Sentence.metadata`:
 }
 ```
 
-For Chinese:
-
-```json
-{
-  "chinese": {
-    "characters": "今天天气很好",
-    "pinyin": "jīntiān tiānqì hěn hǎo"
-  }
-}
-```
-
 ## API Endpoints
 
 ### Authentication
@@ -272,42 +261,11 @@ const worker = new Worker('queue-name', async (job) => {
 
 ## Language Processing Architecture
 
-### Extensible Design
-
-The language processor is designed to easily add new languages:
-
-```typescript
-// languageProcessor.ts
-export async function processLanguageText(
-  text: string,
-  languageCode: string
-): Promise<LanguageMetadata> {
-  switch (languageCode) {
-    case 'ja':
-      return { japanese: await processJapanese(text) };
-    case 'zh':
-      return { chinese: await processChinese(text) };
-    // Add new languages here
-    default:
-      return {};
-  }
-}
-```
-
 ### Japanese Processing (Kuroshiro)
 
 1. Convert kanji to hiragana (kana reading)
 2. Generate bracket-style furigana
 3. Return structured metadata
-
-### Future Languages
-
-To add a new language:
-
-1. Create processor function (e.g., `processSpanish`)
-2. Define metadata interface (e.g., `SpanishMetadata`)
-3. Add to `LanguageMetadata` type
-4. Update `processLanguageText` switch
 
 ## Google Cloud Services
 
@@ -422,9 +380,7 @@ To add a new language:
    - CSV format
    - APKG generation with media
 
-4. **Multi-language Support**
-   - Chinese, Spanish, French, Arabic, Hebrew
-   - RTL language support
+4. **Japanese-Only Support**
 
 5. **Collaborative Features**
    - Share episodes

@@ -5,7 +5,11 @@ import LandingPage from '../LandingPage';
 
 // Mock Logo component
 vi.mock('../../components/common/Logo', () => ({
-  default: () => <div data-testid="logo"><span>ConvoLab</span></div>,
+  default: () => (
+    <div data-testid="logo">
+      <span>ConvoLab</span>
+    </div>
+  ),
 }));
 
 // Mock useNavigate
@@ -127,7 +131,9 @@ describe('LandingPage', () => {
     it('should render description', () => {
       renderPage();
       expect(
-        screen.getByText(/Create custom content grounded in linguistics and SLA research/)
+        screen.getByText(
+          /Create custom Japanese study material grounded in linguistics and SLA research/
+        )
       ).toBeInTheDocument();
     });
   });
@@ -145,14 +151,14 @@ describe('LandingPage', () => {
       expect(screen.getByText('Comprehensible Input')).toBeInTheDocument();
     });
 
-    it('should render Narrow Listening feature', () => {
+    it('should render Guided Audio Courses feature', () => {
       renderPage();
-      expect(screen.getByText('Narrow Listening')).toBeInTheDocument();
+      expect(screen.getByText('Guided Audio Courses')).toBeInTheDocument();
     });
 
-    it('should render Processing Instruction feature', () => {
+    it('should render Focused Practice feature', () => {
       renderPage();
-      expect(screen.getByText('Processing Instruction & Chunks')).toBeInTheDocument();
+      expect(screen.getByText('Focused Practice')).toBeInTheDocument();
     });
 
     it('should render feature descriptions', () => {
@@ -161,11 +167,9 @@ describe('LandingPage', () => {
         screen.getByText(/Generate AI dialogues calibrated to your proficiency level/)
       ).toBeInTheDocument();
       expect(
-        screen.getByText(/Build fluency through repetition with variation/)
+        screen.getByText(/Turn your dialogues into Pimsleur-style lessons/)
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(/Acquire grammar through structured input activities/)
-      ).toBeInTheDocument();
+      expect(screen.getByText(/Listen, shadow, and replay with furigana/)).toBeInTheDocument();
     });
   });
 

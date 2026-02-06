@@ -3,7 +3,7 @@
  * i18n Consistency Checker Harness
  *
  * Autonomously checks and fixes i18n consistency issues in ConvoLab:
- * - Missing translations across locales (ar, en, es, fr, ja, zh)
+ * - Missing translations across locales (en, ja)
  * - Inconsistent translation keys
  * - Formatting issues in JSON files
  * - Unused translation keys
@@ -94,14 +94,14 @@ For EACH of the 12 files above, you must:
 - Note all translation keys, structure, and English values
 
 ### 2. DEEP SCAN each target locale for English text
-For each of ar, es, fr, ja, zh:
-- Read client/src/i18n/locales/[locale]/[filename]
+For ja:
+- Read client/src/i18n/locales/ja/[filename]
 - **SCAN EVERY STRING VALUE** for English words
 - Identify:
   - Missing keys (keys in en but not in this locale)
   - Extra keys (keys in this locale but not in en)
-  - **ENGLISH TEXT in translation values** (e.g., "Delete" instead of "Eliminar")
-  - Partial translations (e.g., "Click here para continuar")
+  - **ENGLISH TEXT in translation values** (e.g., "Delete" instead of "削除")
+  - Partial translations (e.g., "Click here して開始")
   - Placeholder text like "[NEEDS_TRANSLATION]"
 - Check JSON structure matches exactly
 
@@ -135,11 +135,7 @@ ${
 - Ensure consistent JSON structure
 
 **IMPORTANT TRANSLATION RULES:**
-- ar (Arabic): Translate to Modern Standard Arabic (العربية)
-- es (Spanish): Translate to Spanish (Español)
-- fr (French): Translate to French (Français)
 - ja (Japanese): Translate to Japanese (日本語)
-- zh (Chinese): Translate to Simplified Chinese (简体中文)
 - Use natural, native-sounding translations
 - Preserve variable placeholders like {{count}}, {{name}}
 - Keep technical terms (ConvoLab, TTS, API) unchanged
@@ -156,7 +152,7 @@ Create /tmp/i18n-progress.json to track your work:
   "currentFile": 1,
   "totalFiles": 12,
   "localesComplete": {
-    "audioCourse.json": ["en", "ar", "es", "fr", "ja", "zh"],
+    "audioCourse.json": ["en", "ja"],
     "auth.json": []
   },
   "issuesFound": 0,
@@ -172,7 +168,7 @@ Update this file after completing each locale. Report progress every 5 files:
 
 1. **Process files sequentially** - Go through files 1-12 in order
 2. **Announce each file** - State "Processing [filename]..." before working on it
-3. **Read systematically** - Read en/[file], then ar/[file], es/[file], fr/[file], ja/[file], zh/[file]
+3. **Read systematically** - Read en/[file], then ja/[file]
 4. **Deep scan** - Check EVERY string value for English text
 5. **${dryRun ? 'Report' : 'Fix'}** - ${dryRun ? 'Report all issues found' : 'Translate all English text immediately'}
 6. **Track progress** - After each file, update /tmp/i18n-progress.json and state "Completed X of 12 files"

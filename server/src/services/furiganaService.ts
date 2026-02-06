@@ -47,24 +47,11 @@ export async function addFuriganaBrackets(text: string): Promise<string> {
 }
 
 /**
- * Add furigana to Chinese text (pinyin)
- * TODO: Implement pinyin generation for Chinese
- * For now, returns original text
- */
-export async function addPinyinBrackets(text: string): Promise<string> {
-  console.warn('[Furigana] Pinyin generation not yet implemented');
-  return text;
-}
-
-/**
- * Add reading notation (furigana/pinyin) based on language
+ * Add reading notation (furigana) based on language
  */
 export async function addReadingBrackets(text: string, language: string): Promise<string> {
   if (language === 'ja') {
     return addFuriganaBrackets(text);
-  }
-  if (language === 'zh') {
-    return addPinyinBrackets(text);
   }
   // For other languages, return original text
   return text;

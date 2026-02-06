@@ -137,7 +137,6 @@ const AdminPage = () => {
     // Map language codes
     const languageMap: { [key: string]: string } = {
       ja: 'Japanese',
-      en: 'English',
     };
 
     // Capitalize first letter
@@ -152,12 +151,6 @@ const AdminPage = () => {
 
   // Speaker avatar filenames for initial upload (when no avatars in DB)
   const DEFAULT_SPEAKER_AVATARS = [
-    'en-female-casual.jpg',
-    'en-female-polite.jpg',
-    'en-female-formal.jpg',
-    'en-male-casual.jpg',
-    'en-male-polite.jpg',
-    'en-male-formal.jpg',
     'ja-female-casual.jpg',
     'ja-female-polite.jpg',
     'ja-female-formal.jpg',
@@ -739,9 +732,7 @@ const AdminPage = () => {
                         {u.tier === 'pro' ? '30/week' : '5/week'}
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {u._count.episodes +
-                          u._count.courses}{' '}
-                        items
+                        {u._count.episodes + u._count.courses} items
                       </td>
                       <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
                         {formatDate(u.createdAt)}
@@ -962,8 +953,7 @@ const AdminPage = () => {
           <div className="mb-8">
             <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
             <p className="text-sm text-gray-600 mb-6">
-              Manage the 12 speaker avatar images used in dialogues and courses (2 languages × 6
-              avatars each)
+              Manage the 6 speaker avatar images used in dialogues and courses
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1251,7 +1241,6 @@ const AdminPage = () => {
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                   </label>
                 </div>
-
               </div>
 
               <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">

@@ -12,10 +12,10 @@ async function main() {
     {
       courseId,
       userId: '738cbf95-20d0-4e59-a32c-cb6cde970d46',
-      prompt: 'Conversation with flight attendants on the way to France',
+      prompt: 'Conversation with flight attendants on the way to Japan',
       nativeLanguage: 'en',
-      targetLanguage: 'fr',
-      cefrLevel: 'A1',
+      targetLanguage: 'ja',
+      jlptLevel: 'N4',
       maxLessonDurationMinutes: 30,
     },
     {

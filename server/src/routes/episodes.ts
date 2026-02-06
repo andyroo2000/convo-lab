@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { blockDemoUser, getLibraryUserId } from '../middleware/demoAuth.js';
-import { getEffectiveUserId } from '../middleware/impersonation.js';
+
 import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
 import i18next from '../i18n/index.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { blockDemoUser } from '../middleware/demoAuth.js';
+import { AppError } from '../middleware/errorHandler.js';
+import { getEffectiveUserId } from '../middleware/impersonation.js';
 
 const router = Router();
 
@@ -116,7 +117,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
       throw new AppError(i18next.t('server:content.notFound', { type: 'Episode' }), 404);
     }
 
-    // Metadata (furigana/pinyin) is already stored in the database
+    // Metadata (furigana) is already stored in the database
     // Enable caching to improve performance
     res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
     res.json(episode);
@@ -132,6 +133,14 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
 
     if (!title || !sourceText || !targetLanguage || !nativeLanguage) {
       throw new AppError(i18next.t('server:content.missingFields'), 400);
+    }
+
+    if (targetLanguage !== 'ja') {
+      throw new AppError(i18next.t('server:validation.invalidTargetLanguage'), 400);
+    }
+
+    if (nativeLanguage !== 'en') {
+      throw new AppError(i18next.t('server:validation.invalidNativeLanguage'), 400);
     }
 
     const episode = await prisma.episode.create({

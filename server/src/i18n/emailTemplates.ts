@@ -5,10 +5,10 @@ interface BaseEmailOptions {
   name: string;
 }
 
-function getBaseStyles(isRTL: boolean) {
+function getBaseStyles() {
   return {
-    direction: isRTL ? 'rtl' : 'ltr',
-    textAlign: isRTL ? 'right' : 'left',
+    direction: 'ltr',
+    textAlign: 'left',
     fontFamily: `-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`,
   };
 }
@@ -27,8 +27,7 @@ export function generateVerificationEmail(
 ): string {
   const { locale, name, verificationUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -38,7 +37,7 @@ export function generateVerificationEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('verification.title')}</h1>
         </div>
 
@@ -65,8 +64,7 @@ export function generatePasswordResetEmail(
 ): string {
   const { locale, name, resetUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -76,7 +74,7 @@ export function generatePasswordResetEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('passwordReset.title')}</h1>
         </div>
 
@@ -101,8 +99,7 @@ export function generatePasswordResetEmail(
 export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: string }): string {
   const { locale, name, appUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -112,7 +109,7 @@ export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: strin
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('welcome.title')}</h1>
         </div>
 
@@ -122,7 +119,7 @@ export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: strin
 
           <h2 style="font-size: 18px; margin-top: 25px; text-align: ${styles.textAlign};">${t('welcome.whatYouCanCreate')}</h2>
 
-          <ul style="text-align: ${styles.textAlign}; padding-${isRTL ? 'right' : 'left'}: 20px;">
+          <ul style="text-align: ${styles.textAlign}; padding-left: 20px;">
             <li style="margin-bottom: 10px;"><strong>${t('welcome.dialogues.title')}</strong> ${t('welcome.dialogues.description')}</li>
             <li style="margin-bottom: 10px;"><strong>${t('welcome.audioCourses.title')}</strong> ${t('welcome.audioCourses.description')}</li>
           </ul>
@@ -145,8 +142,7 @@ export function generatePasswordChangedEmail(
 ): string {
   const { locale, name, supportEmail } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -156,7 +152,7 @@ export function generatePasswordChangedEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('passwordChanged.title')}</h1>
         </div>
 
@@ -165,7 +161,7 @@ export function generatePasswordChangedEmail(
           <p style="font-size: 16px; text-align: ${styles.textAlign};">${t('passwordChanged.body')}</p>
           <p style="font-size: 16px; text-align: ${styles.textAlign};">${t('passwordChanged.ifYou')}</p>
 
-          <div style="background: #fff3cd; border-${isRTL ? 'right' : 'left'}: 4px solid #ffc107; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
+          <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
             <p style="margin: 0; font-size: 16px;"><strong>${t('passwordChanged.warningTitle')}</strong></p>
             <p style="margin: 10px 0 0; font-size: 14px;">${t('passwordChanged.warningBody', { email: supportEmail })}</p>
           </div>
@@ -182,8 +178,7 @@ export function generateSubscriptionConfirmedEmail(
 ): string {
   const { locale, name, tier, weeklyLimit, appUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
   const tierDisplay = tier.charAt(0).toUpperCase() + tier.slice(1);
 
   return `
@@ -194,7 +189,7 @@ export function generateSubscriptionConfirmedEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('subscriptionConfirmed.title', { tier: tierDisplay })}</h1>
         </div>
 
@@ -204,7 +199,7 @@ export function generateSubscriptionConfirmedEmail(
 
           <h2 style="font-size: 18px; margin-top: 25px; text-align: ${styles.textAlign};">${t('subscriptionConfirmed.benefitsTitle', { tier: tierDisplay })}</h2>
 
-          <ul style="text-align: ${styles.textAlign}; padding-${isRTL ? 'right' : 'left'}: 20px;">
+          <ul style="text-align: ${styles.textAlign}; padding-left: 20px;">
             <li style="margin-bottom: 10px;">${t('subscriptionConfirmed.generations', { count: weeklyLimit })}</li>
             <li style="margin-bottom: 10px;">${t('subscriptionConfirmed.contentTypes')}</li>
             <li style="margin-bottom: 10px;">${t('subscriptionConfirmed.tts')}</li>
@@ -229,8 +224,7 @@ export function generatePaymentFailedEmail(
 ): string {
   const { locale, name, billingUrl, supportEmail } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -240,7 +234,7 @@ export function generatePaymentFailedEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #dc3545 0%, #c82333 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('paymentFailed.title')}</h1>
         </div>
 
@@ -248,13 +242,13 @@ export function generatePaymentFailedEmail(
           <p style="font-size: 16px; margin-top: 0; text-align: ${styles.textAlign};">${t('paymentFailed.greeting', { name: escapeHtml(name) })}</p>
           <p style="font-size: 16px; text-align: ${styles.textAlign};">${t('paymentFailed.body')}</p>
 
-          <ul style="text-align: ${styles.textAlign}; padding-${isRTL ? 'right' : 'left'}: 20px;">
+          <ul style="text-align: ${styles.textAlign}; padding-left: 20px;">
             <li>${t('paymentFailed.reasonFunds')}</li>
             <li>${t('paymentFailed.reasonExpired')}</li>
             <li>${t('paymentFailed.reasonVerification')}</li>
           </ul>
 
-          <div style="background: #f8d7da; border-${isRTL ? 'right' : 'left'}: 4px solid #dc3545; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
+          <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
             <p style="margin: 0; font-size: 16px;"><strong>${t('paymentFailed.warningTitle')}</strong></p>
             <p style="margin: 10px 0 0; font-size: 14px;">${t('paymentFailed.warningBody')}</p>
           </div>
@@ -277,8 +271,7 @@ export function generateSubscriptionCanceledEmail(
 ): string {
   const { locale, name, billingUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
 
   return `
     <!DOCTYPE html>
@@ -288,7 +281,7 @@ export function generateSubscriptionCanceledEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('subscriptionCanceled.title')}</h1>
         </div>
 
@@ -298,7 +291,7 @@ export function generateSubscriptionCanceledEmail(
 
           <h2 style="font-size: 18px; margin-top: 25px; text-align: ${styles.textAlign};">${t('subscriptionCanceled.freeTierTitle')}</h2>
 
-          <ul style="text-align: ${styles.textAlign}; padding-${isRTL ? 'right' : 'left'}: 20px;">
+          <ul style="text-align: ${styles.textAlign}; padding-left: 20px;">
             <li style="margin-bottom: 10px;">${t('subscriptionCanceled.generations', { count: 5 })}</li>
             <li style="margin-bottom: 10px;">${t('subscriptionCanceled.contentTypes')}</li>
             <li style="margin-bottom: 10px;">${t('subscriptionCanceled.support')}</li>
@@ -329,8 +322,7 @@ export function generateQuotaWarningEmail(
 ): string {
   const { locale, name, used, limit, percentage, tier, pricingUrl } = options;
   const t = i18next.getFixedT(locale, 'email');
-  const isRTL = locale === 'ar';
-  const styles = getBaseStyles(isRTL);
+  const styles = getBaseStyles();
   const remaining = limit - used;
 
   return `
@@ -341,7 +333,7 @@ export function generateQuotaWarningEmail(
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: ${styles.fontFamily}; direction: ${styles.direction}; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background: linear-gradient(${isRTL ? '225deg' : '135deg'}, #ffc107 0%, #ff9800 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <div style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
           <h1 style="color: white; margin: 0; font-size: 28px;">${t('quotaWarning.title')}</h1>
         </div>
 
@@ -358,7 +350,7 @@ export function generateQuotaWarningEmail(
           ${
             tier === 'free'
               ? `
-          <div style="background: #e7f3ff; border-${isRTL ? 'right' : 'left'}: 4px solid #667eea; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
+          <div style="background: #e7f3ff; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; text-align: ${styles.textAlign};">
             <p style="margin: 0; font-size: 16px;"><strong>${t('quotaWarning.upgradeTitle')}</strong></p>
             <p style="margin: 10px 0 0; font-size: 14px;">${t('quotaWarning.upgradeBody', { count: 30 })}</p>
           </div>

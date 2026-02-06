@@ -2,19 +2,19 @@
 /* eslint-disable no-console */
 /**
  * Manually copy sample content to a user
- * Usage: PROD_DATABASE_URL="..." npx tsx scripts/copy-sample-content-to-user.ts <email> <language> <level>
+ * Usage: PROD_DATABASE_URL="..." npx tsx scripts/copy-sample-content-to-user.ts <email> <level>
  */
 
 import { PrismaClient } from '@prisma/client';
 
 const email = process.argv[2];
-const targetLanguage = process.argv[3];
-const proficiencyLevel = process.argv[4];
+const targetLanguage = 'ja';
+const proficiencyLevel = process.argv[3];
 
-if (!email || !targetLanguage || !proficiencyLevel) {
+if (!email || !proficiencyLevel) {
   console.error('❌ Error: Missing arguments');
-  console.log('Usage: npx tsx scripts/copy-sample-content-to-user.ts <email> <language> <level>');
-  console.log('Example: npx tsx scripts/copy-sample-content-to-user.ts user@example.com ja N4');
+  console.log('Usage: npx tsx scripts/copy-sample-content-to-user.ts <email> <level>');
+  console.log('Example: npx tsx scripts/copy-sample-content-to-user.ts user@example.com N4');
   process.exit(1);
 }
 
@@ -186,16 +186,12 @@ async function copySampleCourses(
   );
 
   try {
-    // Get proficiency level field name based on language
-    const levelField =
-      targetLanguage === 'ja' ? 'jlptLevel' : targetLanguage === 'zh' ? 'hskLevel' : 'cefrLevel';
-
     // Get all sample courses for the target language and proficiency level
     const sampleCourses = await prodPrisma.course.findMany({
       where: {
         isSampleContent: true,
         targetLanguage,
-        [levelField]: proficiencyLevel,
+        jlptLevel: proficiencyLevel,
       },
       include: {
         coreItems: true,
@@ -257,8 +253,6 @@ async function copySampleCourses(
           l1VoiceId: sampleCourse.l1VoiceId,
           l1VoiceProvider: sampleCourse.l1VoiceProvider,
           jlptLevel: sampleCourse.jlptLevel,
-          hskLevel: sampleCourse.hskLevel,
-          cefrLevel: sampleCourse.cefrLevel,
           speaker1Gender: sampleCourse.speaker1Gender,
           speaker2Gender: sampleCourse.speaker2Gender,
           speaker1VoiceId: sampleCourse.speaker1VoiceId,

@@ -14,7 +14,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock AuthContext
-let mockUser: any = null;
+type MockUser = { id: string; email: string; tier: 'free' | 'pro' } | null;
+let mockUser: MockUser = null;
 vi.mock('../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,
@@ -22,11 +23,15 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn();
+const mockFetch = vi.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
 
 // Mock window.location
-delete (window as any).location;
-(window as any).location = { href: '' };
+const mockLocation = { href: '' } as unknown as Location;
+Object.defineProperty(window, 'location', {
+  writable: true,
+  value: mockLocation,
+});
 
 function renderWithRouter() {
   return render(
@@ -39,9 +44,9 @@ function renderWithRouter() {
 describe('PricingPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockClear();
+    mockFetch.mockClear();
     mockUser = null;
-    (window as any).location.href = '';
+    window.location.href = '';
   });
 
   describe('Rendering', () => {
@@ -64,7 +69,7 @@ describe('PricingPage', () => {
     it('should show free tier features', () => {
       renderWithRouter();
 
-      expect(screen.getByText('5 generations per week')).toBeInTheDocument();
+      expect(screen.getByText('2 dialogues + 1 audio course (lifetime)')).toBeInTheDocument();
       expect(screen.getByText('$0')).toBeInTheDocument();
       expect(screen.getByText(/Perfect for trying out ConvoLab/)).toBeInTheDocument();
     });
@@ -72,8 +77,8 @@ describe('PricingPage', () => {
     it('should show pro tier features', () => {
       renderWithRouter();
 
-      expect(screen.getByText('30 generations per week')).toBeInTheDocument();
-      expect(screen.getByText('$7')).toBeInTheDocument();
+      expect(screen.getByText('30 generations per month')).toBeInTheDocument();
+      expect(screen.getByText('$10')).toBeInTheDocument();
       expect(screen.getByText(/For serious language learners/)).toBeInTheDocument();
       expect(screen.getByText('Priority support')).toBeInTheDocument();
       expect(screen.getByText('Early access to new features')).toBeInTheDocument();
@@ -139,7 +144,7 @@ describe('PricingPage', () => {
     it('should create checkout session when logged in user clicks upgrade', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: 'https://checkout.stripe.com/session-123' }),
       });
@@ -164,7 +169,7 @@ describe('PricingPage', () => {
     it('should redirect to Stripe checkout on successful session creation', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: 'https://checkout.stripe.com/session-123' }),
       });
@@ -175,14 +180,14 @@ describe('PricingPage', () => {
       fireEvent.click(upgradeButton);
 
       await waitFor(() => {
-        expect((window as any).location.href).toBe('https://checkout.stripe.com/session-123');
+        expect(window.location.href).toBe('https://checkout.stripe.com/session-123');
       });
     });
 
     it('should show loading state during checkout session creation', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockImplementationOnce(
+      mockFetch.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
             setTimeout(resolve, 1000);
@@ -201,7 +206,7 @@ describe('PricingPage', () => {
     it('should show error message when checkout session creation fails', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: { message: 'Invalid price ID' } }),
       });
@@ -219,7 +224,7 @@ describe('PricingPage', () => {
     it('should handle network errors gracefully', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       renderWithRouter();
 
@@ -234,7 +239,7 @@ describe('PricingPage', () => {
     it('should handle generic errors with fallback message', async () => {
       mockUser = { id: '1', email: 'test@example.com', tier: 'free' };
 
-      (global.fetch as any).mockRejectedValueOnce('Unknown error');
+      mockFetch.mockRejectedValueOnce('Unknown error');
 
       renderWithRouter();
 
@@ -252,13 +257,14 @@ describe('PricingPage', () => {
       renderWithRouter();
 
       // Common features
-      expect(screen.getAllByText('All content types')).toHaveLength(2);
       expect(screen.getAllByText('High-quality TTS audio')).toHaveLength(2);
 
       // Free tier specific
+      expect(screen.getByText('Sample content included')).toBeInTheDocument();
       expect(screen.getByText('Standard support')).toBeInTheDocument();
 
       // Pro tier specific
+      expect(screen.getByText('All content types')).toBeInTheDocument();
       expect(screen.getByText('Priority support')).toBeInTheDocument();
       expect(screen.getByText('Early access to new features')).toBeInTheDocument();
     });
@@ -267,8 +273,8 @@ describe('PricingPage', () => {
       renderWithRouter();
 
       // Verify features are displayed by checking for feature text that exists
-      expect(screen.getByText(/5 generations per week/i)).toBeInTheDocument();
-      expect(screen.getByText(/30 generations per week/i)).toBeInTheDocument();
+      expect(screen.getByText(/2 dialogues \+ 1 audio course \(lifetime\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/30 generations per month/i)).toBeInTheDocument();
     });
   });
 });

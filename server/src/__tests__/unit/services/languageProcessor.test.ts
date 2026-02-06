@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
 import {
@@ -91,11 +91,19 @@ describe('languageProcessor', () => {
       expect(result.japanese).toEqual(mockResponse);
     });
 
-    it('should return empty metadata for non-Japanese language codes', async () => {
+    it('should always process text as Japanese regardless of language code', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ kanji: 'Hello', kana: 'Hello', furigana: 'Hello' }),
+      });
+
       const result = await processLanguageText('Hello', 'en');
 
-      expect(result).toEqual({});
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result.japanese).toEqual({
+        kanji: 'Hello',
+        kana: 'Hello',
+        furigana: 'Hello',
+      });
     });
   });
 
@@ -173,11 +181,22 @@ describe('languageProcessor', () => {
       ]);
     });
 
-    it('should return empty metadata for non-Japanese language codes', async () => {
+    it('should always process batch as Japanese regardless of language code', async () => {
+      const mockResponse = [
+        { kanji: 'Hello', kana: 'Hello', furigana: 'Hello' },
+        { kanji: 'World', kana: 'World', furigana: 'World' },
+      ];
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse),
+      });
+
       const result = await processLanguageTextBatch(['Hello', 'World'], 'en');
 
-      expect(result).toEqual([{}, {}]);
-      expect(mockFetch).not.toHaveBeenCalled();
+      expect(result).toEqual([
+        { japanese: { kanji: 'Hello', kana: 'Hello', furigana: 'Hello' } },
+        { japanese: { kanji: 'World', kana: 'World', furigana: 'World' } },
+      ]);
     });
   });
 

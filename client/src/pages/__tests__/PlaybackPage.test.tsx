@@ -48,7 +48,7 @@ vi.mock('../../hooks/useSpeakerAvatars', () => ({
 
 // Mock the AudioPlayer component
 vi.mock('../../components/AudioPlayer', () => ({
-  default: ({ src }: { src: string; audioRef: any }) => (
+  default: ({ src }: { src: string; audioRef: unknown }) => (
     <div data-testid="mock-audio-player" data-src={src}>
       Mock Audio Player
     </div>
@@ -266,7 +266,6 @@ describe('PlaybackPage', () => {
         expect(screen.getByText('English')).toBeInTheDocument();
       });
     });
-
   });
 
   describe('sentence interaction', () => {
@@ -333,7 +332,7 @@ describe('PlaybackPage', () => {
       renderPlaybackPage('episode-123');
 
       await waitFor(() => {
-        expect(mockGetEpisode).toHaveBeenCalledWith('episode-123', false);
+        expect(mockGetEpisode).toHaveBeenCalledWith('episode-123', false, undefined);
       });
     });
   });

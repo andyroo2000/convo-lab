@@ -7,13 +7,13 @@
 
 ## Problem Statement
 
-Our current architecture runs 6 BullMQ workers continuously in the main Cloud Run service, polling Redis every 5 seconds when idle. This results in approximately **100,000 Redis commands per day**, which significantly exceeds the Upstash free tier limit of 10,000 commands/day.
+Our current architecture runs 4 BullMQ workers continuously in the main Cloud Run service, polling Redis every 5 seconds when idle. This results in approximately **70,000 Redis commands per day**, which significantly exceeds the Upstash free tier limit of 10,000 commands/day.
 
 ### Current Cost Impact
 
 - **Redis (Upstash):** ~$10-15/month on pay-as-you-go
 - **Cloud Run:** Workers consume CPU/memory even when no jobs are pending
-- **Scalability:** All 6 workers must scale together with the API service
+- **Scalability:** All 4 workers must scale together with the API service
 
 ### Current Architecture
 
@@ -22,7 +22,7 @@ Our current architecture runs 6 BullMQ workers continuously in the main Cloud Ru
 │   Cloud Run: convolab                   │
 │                                         │
 │  ┌──────────┐     ┌────────────────┐   │
-│  │   API    │────▶│  6 Workers     │   │
+│  │   API    │────▶│  4 Workers     │   │
 │  │  Routes  │     │  (Always On)   │   │
 │  └──────────┘     └────────────────┘   │
 │                          │              │
@@ -42,13 +42,11 @@ Our current architecture runs 6 BullMQ workers continuously in the main Cloud Ru
 2. `dialogueWorker` - Dialogue generation
 3. `imageWorker` - Image generation
 4. `courseWorker` - Course generation
-5. `narrowListeningWorker` - Narrow listening packs
-6. `chunkPackWorker` - Chunk packs
 
 **Polling calculation:**
 
-- 6 workers × 12 polls/minute (every 5 sec) = 72 polls/minute
-- 72 × 60 × 24 = **103,680 polls/day**
+- 4 workers × 12 polls/minute (every 5 sec) = 48 polls/minute
+- 48 × 60 × 24 = **69,120 polls/day**
 - Each poll = 1-2 Redis commands
 
 ## Proposed Solution: Separate Worker Service
@@ -63,7 +61,7 @@ Split the application into two independent Cloud Run services:
 │       (API)          │         │   (Job Processing)   │
 │                      │         │                      │
 │  ┌────────────────┐  │         │  ┌────────────────┐  │
-│  │  API Routes    │  │         │  │  6 Workers     │  │
+│  │  API Routes    │  │         │  │  4 Workers     │  │
 │  │  - Add jobs    │  │         │  │  (Auto-scale)  │  │
 │  │  - Job status  │  │         │  └────────────────┘  │
 │  └────────────────┘  │         │         │            │
@@ -97,7 +95,7 @@ Split the application into two independent Cloud Run services:
 
 2. **Worker Service** (`convolab-workers`):
    - Same codebase, different entry point
-   - Runs all 6 workers
+   - Runs all 4 workers
    - Cloud Run scales to **zero instances** when no jobs
    - Wakes up when:
      - API service makes HTTP call to wake endpoint
@@ -121,16 +119,12 @@ Split the application into two independent Cloud Run services:
    import { dialogueWorker } from './jobs/dialogueQueue.js';
    import { imageWorker } from './jobs/imageQueue.js';
    import { courseWorker } from './jobs/courseQueue.js';
-   import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
-   import { chunkPackWorker } from './jobs/chunkPackQueue.js';
 
    console.log('Workers started:', {
      audioWorker,
      dialogueWorker,
      imageWorker,
      courseWorker,
-     narrowListeningWorker,
-     chunkPackWorker,
    });
 
    // Keep process alive
@@ -303,8 +297,8 @@ If issues arise:
 
 **Single General-Purpose Worker:**
 
-- Consolidate 6 workers into 1 worker handling all job types
-- Reduces polling by 83% (6 workers → 1 worker)
+- Consolidate 4 workers into 1 worker handling all job types
+- Reduces polling by 75% (4 workers → 1 worker)
 - **Pros:** Simpler to implement, no new service
 - **Cons:** Jobs queue sequentially, still polls 24/7, doesn't optimize Cloud Run costs
 - **Verdict:** Good short-term fix, but separate service is better long-term

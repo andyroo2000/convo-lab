@@ -11,11 +11,11 @@ dotenv.config({ path: path.join(__dirname, '../../', '.env.production'), overrid
 const episodeId = 'ab187492-32f5-4639-b056-2ba0fdcc0fb7';
 const userEmail = 'nemtsov@gmail.com';
 
-// Speakers configuration for French A1 dialogue
+// Speakers configuration for a Japanese dialogue
 const speakers = [
   {
     name: 'Flight Attendant',
-    voiceId: 'fr-FR-Neural2-A',
+    voiceId: 'ja-JP-Neural2-B',
     voiceProvider: 'google',
     proficiency: 'intermediate',
     tone: 'polite',
@@ -23,7 +23,7 @@ const speakers = [
   },
   {
     name: 'You',
-    voiceId: 'fr-FR-Neural2-D',
+    voiceId: 'ja-JP-Neural2-C',
     voiceProvider: 'google',
     proficiency: 'beginner',
     tone: 'casual',

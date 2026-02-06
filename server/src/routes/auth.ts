@@ -14,9 +14,9 @@ import { emailQueue } from '../jobs/emailQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
+import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
-import { revokeGoogleTokens } from '../services/oauth.js';
 
 const router = Router();
 
@@ -108,7 +108,6 @@ router.post('/signup', async (req, res, next) => {
           tier: existingUser.tier,
           preferredStudyLanguage: existingUser.preferredStudyLanguage,
           preferredNativeLanguage: existingUser.preferredNativeLanguage,
-          pinyinDisplayMode: existingUser.pinyinDisplayMode,
           proficiencyLevel: existingUser.proficiencyLevel,
           onboardingCompleted: existingUser.onboardingCompleted,
           emailVerified: existingUser.emailVerified,
@@ -150,7 +149,6 @@ router.post('/signup', async (req, res, next) => {
           tier: true,
           preferredStudyLanguage: true,
           preferredNativeLanguage: true,
-          pinyinDisplayMode: true,
           proficiencyLevel: true,
           onboardingCompleted: true,
           emailVerified: true,
@@ -271,7 +269,6 @@ router.post('/login', async (req, res, next) => {
       tier: updatedUser.tier,
       preferredStudyLanguage: updatedUser.preferredStudyLanguage,
       preferredNativeLanguage: updatedUser.preferredNativeLanguage,
-      pinyinDisplayMode: updatedUser.pinyinDisplayMode,
       proficiencyLevel: updatedUser.proficiencyLevel,
       onboardingCompleted: updatedUser.onboardingCompleted,
       emailVerified: updatedUser.emailVerified,
@@ -306,7 +303,6 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
         tier: true,
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
-        pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
         seenSampleContentGuide: true,
@@ -338,7 +334,6 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       avatarUrl,
       preferredStudyLanguage,
       preferredNativeLanguage,
-      pinyinDisplayMode,
       proficiencyLevel,
       onboardingCompleted,
       seenSampleContentGuide,
@@ -352,7 +347,7 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
     }
 
     // Validate language codes if provided
-    const validLanguages = ['ja', 'zh', 'es', 'fr', 'ar', 'en'];
+    const validLanguages = ['ja', 'en'];
     if (preferredStudyLanguage && !validLanguages.includes(preferredStudyLanguage)) {
       throw new AppError('Invalid study language', 400);
     }
@@ -360,19 +355,12 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError('Invalid native language', 400);
     }
 
-    // Validate that study and native languages are different
-    if (
-      preferredStudyLanguage &&
-      preferredNativeLanguage &&
-      preferredStudyLanguage === preferredNativeLanguage
-    ) {
-      throw new AppError('Study language and native language must be different', 400);
+    // Enforce fixed language pairing (study Japanese, native English)
+    if (preferredStudyLanguage && preferredStudyLanguage !== 'ja') {
+      throw new AppError('Study language must be Japanese', 400);
     }
-
-    // Validate pinyin display mode if provided
-    const validPinyinModes = ['toneMarks', 'toneNumbers'];
-    if (pinyinDisplayMode && !validPinyinModes.includes(pinyinDisplayMode)) {
-      throw new AppError('Invalid pinyin display mode', 400);
+    if (preferredNativeLanguage && preferredNativeLanguage !== 'en') {
+      throw new AppError('Native language must be English', 400);
     }
 
     // Validate proficiency level if provided
@@ -382,18 +370,6 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       'N3',
       'N2',
       'N1', // JLPT (Japanese)
-      'HSK1',
-      'HSK2',
-      'HSK3',
-      'HSK4',
-      'HSK5',
-      'HSK6', // HSK (Chinese)
-      'A1',
-      'A2',
-      'B1',
-      'B2',
-      'C1',
-      'C2', // CEFR (Spanish/European languages)
     ];
     if (proficiencyLevel && !validProficiencyLevels.includes(proficiencyLevel)) {
       throw new AppError('Invalid proficiency level', 400);
@@ -408,7 +384,6 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
       updateData.preferredStudyLanguage = preferredStudyLanguage;
     if (preferredNativeLanguage !== undefined)
       updateData.preferredNativeLanguage = preferredNativeLanguage;
-    if (pinyinDisplayMode !== undefined) updateData.pinyinDisplayMode = pinyinDisplayMode;
     if (proficiencyLevel !== undefined) updateData.proficiencyLevel = proficiencyLevel;
     if (onboardingCompleted !== undefined) updateData.onboardingCompleted = onboardingCompleted;
     if (seenSampleContentGuide !== undefined)
@@ -438,7 +413,6 @@ router.patch('/me', requireAuth, async (req: AuthRequest, res, next) => {
         tier: true,
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
-        pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
         seenSampleContentGuide: true,
@@ -733,7 +707,6 @@ router.post('/claim-invite', async (req, res, next) => {
         role: true,
         preferredStudyLanguage: true,
         preferredNativeLanguage: true,
-        pinyinDisplayMode: true,
         proficiencyLevel: true,
         onboardingCompleted: true,
         seenSampleContentGuide: true,

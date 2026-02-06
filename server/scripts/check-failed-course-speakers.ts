@@ -4,8 +4,6 @@ const prisma = new PrismaClient();
 
 async function main() {
   const targets = [
-    { lang: 'ar', level: 'A2', field: 'cefrLevel' },
-    { lang: 'ar', level: 'B1', field: 'cefrLevel' },
     { lang: 'ja', level: 'N4', field: 'jlptLevel' },
   ];
 

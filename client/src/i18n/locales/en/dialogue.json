@@ -30,24 +30,6 @@
       "n2": "N2 (Upper Intermediate)",
       "n1": "N1 (Advanced)"
     },
-    "targetHSK": "Target HSK Level",
-    "hsk": {
-      "hsk1": "HSK 1 (Beginner)",
-      "hsk2": "HSK 2 (Upper Beginner)",
-      "hsk3": "HSK 3 (Intermediate)",
-      "hsk4": "HSK 4 (Upper Intermediate)",
-      "hsk5": "HSK 5 (Advanced)",
-      "hsk6": "HSK 6 (Mastery)"
-    },
-    "targetCEFR": "Target CEFR Level",
-    "cefr": {
-      "a1": "A1 (Beginner)",
-      "a2": "A2 (Elementary)",
-      "b1": "B1 (Intermediate)",
-      "b2": "B2 (Upper Intermediate)",
-      "c1": "C1 (Advanced)",
-      "c2": "C2 (Mastery)"
-    },
     "tone": "Tone",
     "tones": {
       "casual": "Casual",

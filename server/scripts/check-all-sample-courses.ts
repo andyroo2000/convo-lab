@@ -16,8 +16,6 @@ async function main() {
       id: true,
       targetLanguage: true,
       jlptLevel: true,
-      hskLevel: true,
-      cefrLevel: true,
       status: true,
       audioUrl: true,
       approxDurationSeconds: true,
@@ -25,8 +23,6 @@ async function main() {
     orderBy: [
       { targetLanguage: 'asc' },
       { jlptLevel: 'asc' },
-      { hskLevel: 'asc' },
-      { cefrLevel: 'asc' },
     ],
   });
 
@@ -68,7 +64,7 @@ async function main() {
     .forEach(([lang, langCourses]) => {
       console.log(`${lang.toUpperCase()}:`);
       langCourses.forEach((course) => {
-        const level = course.jlptLevel || course.hskLevel || course.cefrLevel || '?';
+        const level = course.jlptLevel || '?';
         const duration = course.approxDurationSeconds
           ? `${Math.round(course.approxDurationSeconds / 60)}m`
           : '-';

@@ -1,6 +1,8 @@
-import { generateWithGemini } from './geminiClient.js';
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
 import { prisma } from '../db/client.js';
+
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
+import { generateWithGemini } from './geminiClient.js';
 import { processLanguageTextBatch } from './languageProcessor.js';
 
 interface Speaker {
@@ -133,7 +135,7 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
 }
 
 /**
- * Remove furigana/pinyin notation from text
+ * Remove furigana notation from text
  * Example: "田中[たなか]さくら" → "田中さくら"
  */
 function stripPhoneticNotation(text: string): string {
@@ -147,7 +149,7 @@ function buildSystemInstruction(
 ): string {
   const languageName = getLanguageName(targetLanguage);
 
-  // Strip furigana/pinyin from speaker names for cleaner prompts
+  // Strip furigana from speaker names for cleaner prompts
   const speakerNames = speakers.map((s) => stripPhoneticNotation(s.name));
 
   return `You are a dialogue generation expert for language learning. Your task is to create natural, engaging conversations in ${languageName} based on user stories.
@@ -174,7 +176,7 @@ function buildDialoguePrompt(
   variationCount: number,
   dialogueLength: number
 ): string {
-  // Strip furigana/pinyin from speaker names for cleaner prompts
+  // Strip furigana from speaker names for cleaner prompts
   const speakerNames = speakers.map((s) => stripPhoneticNotation(s.name));
 
   return `Based on this story/experience, create a natural dialogue:
@@ -218,7 +220,7 @@ async function createDialogueInDB(
   speakers: Speaker[],
   dialogueData: any,
   targetLanguage: string,
-  nativeLanguage: string
+  _nativeLanguage: string
 ) {
   // Create dialogue
   const dialogue = await prisma.dialogue.create({

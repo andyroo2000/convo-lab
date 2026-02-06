@@ -6,14 +6,14 @@ interface VocabularyWord {
   word: string;
   translation: string;
   partOfSpeech?: string;
-  reading?: string; // For Japanese kana, Chinese pinyin
+  reading?: string; // For Japanese kana
   example?: string;
 }
 
 interface VocabularyData {
   language: string;
   level: string;
-  framework: 'JLPT' | 'HSK' | 'CEFR';
+  framework: 'JLPT';
   vocabulary: VocabularyWord[];
 }
 
@@ -29,7 +29,7 @@ interface GrammarPoint {
 interface GrammarData {
   language: string;
   level: string;
-  framework: 'JLPT' | 'HSK' | 'CEFR';
+  framework: 'JLPT';
   grammarPoints: GrammarPoint[];
 }
 
@@ -86,27 +86,20 @@ export async function sampleVocabulary(
   return shuffled.slice(0, Math.min(count, allWords.length));
 }
 
-export function formatWordsForPrompt(words: VocabularyWord[], language: string): string {
+export function formatWordsForPrompt(words: VocabularyWord[], _language: string): string {
   if (words.length === 0) return '';
 
-  if (language === 'ja') {
-    return words.map((w) => `${w.word} (${w.reading || ''}) - ${w.translation}`).join(', ');
-  }
-  return words.map((w) => `${w.word} - ${w.translation}`).join(', ');
+  return words.map((w) => `${w.word} (${w.reading || ''}) - ${w.translation}`).join(', ');
 }
 
 // Get proficiency framework name for display
-export function getProficiencyFramework(language: string): string {
-  if (language === 'ja') return 'JLPT';
-  return 'proficiency level';
+export function getProficiencyFramework(_language: string): string {
+  return 'JLPT';
 }
 
 // ===== Grammar Seeding Functions =====
 
-export async function getGrammarForLevel(
-  language: string,
-  level: string
-): Promise<GrammarPoint[]> {
+export async function getGrammarForLevel(language: string, level: string): Promise<GrammarPoint[]> {
   const cacheKey = `${language}:${level}`;
   if (grammarCache.has(cacheKey)) {
     return grammarCache.get(cacheKey)!;

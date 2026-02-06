@@ -1,10 +1,13 @@
-import sharp from 'sharp';
-import fs from 'fs/promises';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import path from 'path';
 import { fileURLToPath } from 'url';
+
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
-import { uploadToGCS } from './storageClient.js';
+import sharp from 'sharp';
+
 import { prisma } from '../db/client.js';
+
+import { uploadToGCS } from './storageClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -202,15 +205,6 @@ export async function getSpeakerAvatar(filename: string) {
 }
 
 /**
- * Language code normalization mapping
- * Maps TTS language codes to avatar filename language codes (ISO 639-1)
- */
-const LANGUAGE_CODE_MAP: Record<string, string> = {
-  cmn: 'zh', // Mandarin Chinese -> zh
-  // Add other mappings as needed
-};
-
-/**
  * Get gender from TTS_VOICES configuration (single source of truth)
  * @param voiceId - The voice ID to look up
  * @returns The gender of the voice or 'female' as fallback
@@ -230,7 +224,7 @@ function getVoiceGenderFromConfig(voiceId: string): string {
  * Extract language and gender from TTS voiceId (Google Cloud TTS or Amazon Polly)
  * Examples:
  * - Google: ja-JP-Wavenet-A -> { language: 'ja', gender: 'female' }
- * - Polly: Lucia -> { language: 'es', gender: 'female' }
+ * - Polly: Takumi -> { language: 'ja', gender: 'male' }
  */
 function parseVoiceId(voiceId: string): { language: string; gender: string } {
   let language: string;
@@ -240,9 +234,6 @@ function parseVoiceId(voiceId: string): { language: string; gender: string } {
     // Google Cloud TTS voice: Extract language code (first 2-3 chars before hyphen)
     const parts = voiceId.split('-');
     language = parts[0].toLowerCase();
-
-    // Normalize language code for avatar filename matching (e.g., 'cmn' -> 'zh')
-    language = LANGUAGE_CODE_MAP[language] || language;
   } else {
     // Amazon Polly voice: Look up language from TTS_VOICES configuration
     let found = false;

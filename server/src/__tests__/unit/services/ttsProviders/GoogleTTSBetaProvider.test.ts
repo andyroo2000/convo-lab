@@ -55,10 +55,6 @@ describe('GoogleTTSBetaProvider', () => {
       expect(provider.extractLanguageCode('en-US-Neural2-A')).toBe('en-US');
     });
 
-    it('should extract es-ES from Spanish voice ID', () => {
-      expect(provider.extractLanguageCode('es-ES-Wavenet-C')).toBe('es-ES');
-    });
-
     it('should default to en-US for unrecognized patterns', () => {
       expect(provider.extractLanguageCode('custom-voice')).toBe('en-US');
     });

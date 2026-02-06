@@ -1,22 +1,14 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  User,
-  Trash2,
-  Lock,
-  Languages,
-  Camera,
-  CreditCard,
-} from 'lucide-react';
+import { User, Trash2, Lock, Camera, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
-import { LanguageCode } from '../types';
 import { API_URL } from '../config';
 
-type Tab = 'profile' | 'language' | 'security' | 'billing' | 'danger';
+type Tab = 'profile' | 'security' | 'billing' | 'danger';
 
 const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
@@ -81,9 +73,6 @@ const SettingsPage = () => {
 
   const [displayName, setDisplayName] = useState('');
   const [selectedColor, setSelectedColor] = useState('indigo');
-  const [preferredStudyLanguage, setPreferredStudyLanguage] = useState<LanguageCode>('ja');
-  const [preferredNativeLanguage, setPreferredNativeLanguage] = useState<LanguageCode>('en');
-  const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -98,11 +87,6 @@ const SettingsPage = () => {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
 
-  // Language preferences save states
-  const [proficiencySaveMessage, setProficiencySaveMessage] = useState<string | null>(null);
-  const [studyLanguageSaveMessage, setStudyLanguageSaveMessage] = useState<string | null>(null);
-  const [nativeLanguageSaveMessage, setNativeLanguageSaveMessage] = useState<string | null>(null);
-
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
@@ -113,7 +97,9 @@ const SettingsPage = () => {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   // Billing state
-  const [subscriptionStatus, setSubscriptionStatus] = useState<any>(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<Record<string, unknown> | null>(
+    null
+  );
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
 
@@ -123,53 +109,14 @@ const SettingsPage = () => {
     setToastVisible(true);
   };
 
-  // Auto-save study language when it changes
-  const handleStudyLanguageChange = async (lang: LanguageCode) => {
-    setPreferredStudyLanguage(lang);
-    setStudyLanguageSaveMessage(null);
-
-    try {
-      await updateUser({ preferredStudyLanguage: lang });
-      setStudyLanguageSaveMessage(t('settings:messages.saved'));
-      setTimeout(() => setStudyLanguageSaveMessage(null), 2000);
-    } catch (err: any) {
-      setStudyLanguageSaveMessage(t('settings:messages.failedToSave'));
-      setTimeout(() => setStudyLanguageSaveMessage(null), 3000);
+  useEffect(() => {
+    if (tab === 'language') {
+      navigate('/app/settings/profile', { replace: true });
     }
-  };
-
-  // Auto-save native language when it changes
-  const handleNativeLanguageChange = async (lang: LanguageCode) => {
-    setPreferredNativeLanguage(lang);
-    setNativeLanguageSaveMessage(null);
-
-    try {
-      await updateUser({ preferredNativeLanguage: lang });
-      setNativeLanguageSaveMessage(t('settings:messages.saved'));
-      setTimeout(() => setNativeLanguageSaveMessage(null), 2000);
-    } catch (err: any) {
-      setNativeLanguageSaveMessage(t('settings:messages.failedToSave'));
-      setTimeout(() => setNativeLanguageSaveMessage(null), 3000);
-    }
-  };
-
-  // Auto-save proficiency level when it changes
-  const handleProficiencyLevelChange = async (level: string) => {
-    setJlptLevel(level);
-    setProficiencySaveMessage(null);
-
-    try {
-      await updateUser({ proficiencyLevel: level });
-      setProficiencySaveMessage(t('settings:messages.saved'));
-      setTimeout(() => setProficiencySaveMessage(null), 2000);
-    } catch (err: any) {
-      setProficiencySaveMessage(t('settings:messages.failedToSave'));
-      setTimeout(() => setProficiencySaveMessage(null), 3000);
-    }
-  };
+  }, [tab, navigate]);
 
   // Fetch subscription status
-  const fetchSubscriptionStatus = async () => {
+  const fetchSubscriptionStatus = useCallback(async () => {
     setLoadingSubscription(true);
     setBillingError(null);
 
@@ -189,7 +136,7 @@ const SettingsPage = () => {
     } finally {
       setLoadingSubscription(false);
     }
-  };
+  }, [t]);
 
   // Open Stripe customer portal
   const handleManageSubscription = async () => {
@@ -226,14 +173,6 @@ const SettingsPage = () => {
     if (user) {
       setDisplayName(user.displayName || user.name);
       setSelectedColor(user.avatarColor || 'indigo');
-      setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
-      setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
-
-      // Initialize JLPT proficiency level
-      const storedLevel = user.proficiencyLevel;
-      if (storedLevel && storedLevel.startsWith('N')) {
-        setJlptLevel(storedLevel);
-      }
     }
   }, [user]);
 
@@ -244,21 +183,14 @@ const SettingsPage = () => {
       refreshUser();
       fetchSubscriptionStatus();
     }
-  }, [activeTab]);
+  }, [activeTab, fetchSubscriptionStatus, refreshUser]);
 
   const hasChanges = () => {
     if (!user) return false;
     const currentDisplayName = user.displayName || user.name;
     const currentColor = user.avatarColor || 'indigo';
-    const currentStudyLang = user.preferredStudyLanguage || 'ja';
-    const currentNativeLang = user.preferredNativeLanguage || 'en';
 
-    return (
-      displayName !== currentDisplayName ||
-      selectedColor !== currentColor ||
-      preferredStudyLanguage !== currentStudyLang ||
-      preferredNativeLanguage !== currentNativeLang
-    );
+    return displayName !== currentDisplayName || selectedColor !== currentColor;
   };
 
   const handleSave = async () => {
@@ -275,13 +207,11 @@ const SettingsPage = () => {
       await updateUser({
         displayName: displayName.trim() || undefined,
         avatarColor: selectedColor,
-        preferredStudyLanguage,
-        preferredNativeLanguage,
       });
       setSuccess(t('settings:messages.saveSuccess'));
       setTimeout(() => setSuccess(null), 3000);
-    } catch (err: any) {
-      setError(err.message || t('settings:messages.failedToSave'));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('settings:messages.failedToSave'));
     } finally {
       setIsSaving(false);
     }
@@ -291,14 +221,6 @@ const SettingsPage = () => {
     if (user) {
       setDisplayName(user.displayName || user.name);
       setSelectedColor(user.avatarColor || 'indigo');
-      setPreferredStudyLanguage(user.preferredStudyLanguage || 'ja');
-      setPreferredNativeLanguage(user.preferredNativeLanguage || 'en');
-
-      // Reset JLPT proficiency level
-      const storedLevel = user.proficiencyLevel;
-      if (storedLevel && storedLevel.startsWith('N')) {
-        setJlptLevel(storedLevel);
-      }
 
       setError(null);
       setSuccess(null);
@@ -310,8 +232,8 @@ const SettingsPage = () => {
     try {
       await deleteAccount();
       navigate('/login');
-    } catch (err: any) {
-      setError(err.message || t('settings:messages.deleteError'));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : t('settings:messages.deleteError'));
       setShowDeleteModal(false);
       setIsDeleting(false);
     }
@@ -346,8 +268,8 @@ const SettingsPage = () => {
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => setPasswordSuccess(null), 3000);
-    } catch (err: any) {
-      setPasswordError(err.message || t('settings:messages.failedToSave'));
+    } catch (err: unknown) {
+      setPasswordError(err instanceof Error ? err.message : t('settings:messages.failedToSave'));
     } finally {
       setIsChangingPassword(false);
     }
@@ -372,7 +294,7 @@ const SettingsPage = () => {
     input.click();
   };
 
-  const handleSaveAvatarCrop = async (blob: Blob, cropArea: any) => {
+  const handleSaveAvatarCrop = async (blob: Blob, cropArea: Record<string, unknown>) => {
     try {
       if (!user) return;
 
@@ -420,7 +342,8 @@ const SettingsPage = () => {
 
       {/* Tab Navigation */}
       <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
-        <button type="button"
+        <button
+          type="button"
           onClick={() => navigate('/app/settings/profile')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'profile'
@@ -434,21 +357,8 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.profile')}</span>
           </div>
         </button>
-        <button type="button"
-          onClick={() => navigate('/app/settings/language')}
-          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
-            activeTab === 'language'
-              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
-          }`}
-          data-testid="settings-tab-language"
-        >
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Languages className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('settings:tabs.language')}</span>
-          </div>
-        </button>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => navigate('/app/settings/security')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'security'
@@ -462,7 +372,8 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.security')}</span>
           </div>
         </button>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => navigate('/app/settings/billing')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'billing'
@@ -476,7 +387,8 @@ const SettingsPage = () => {
             <span className="hidden xs:inline">{t('settings:tabs.billing')}</span>
           </div>
         </button>
-        <button type="button"
+        <button
+          type="button"
           onClick={() => navigate('/app/settings/danger')}
           className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
             activeTab === 'danger'
@@ -540,7 +452,8 @@ const SettingsPage = () => {
                 )}
 
                 {/* Upload Button */}
-                <button type="button"
+                <button
+                  type="button"
                   onClick={handleAvatarUpload}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
                   data-testid="settings-button-upload-avatar"
@@ -552,7 +465,8 @@ const SettingsPage = () => {
                 </button>
 
                 {user?.avatarUrl && (
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={async () => {
                       try {
                         await updateUser({ avatarUrl: null });
@@ -574,7 +488,10 @@ const SettingsPage = () => {
 
             {/* Display Name Section */}
             <div className="mb-8">
-              <label htmlFor="settings-display-name" className="block text-base font-bold text-dark-brown mb-3">
+              <label
+                htmlFor="settings-display-name"
+                className="block text-base font-bold text-dark-brown mb-3"
+              >
                 {t('settings:profile.displayName.label')}
               </label>
               <input
@@ -594,7 +511,8 @@ const SettingsPage = () => {
 
             {/* Save/Cancel Buttons */}
             <div className="flex gap-3 pt-4 border-t">
-              <button type="button"
+              <button
+                type="button"
                 onClick={handleSave}
                 disabled={!hasChanges() || isSaving}
                 className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -602,7 +520,8 @@ const SettingsPage = () => {
               >
                 {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
               </button>
-              <button type="button"
+              <button
+                type="button"
                 onClick={handleCancel}
                 disabled={!hasChanges() || isSaving}
                 className="px-8 py-3 border-2 border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
@@ -611,114 +530,6 @@ const SettingsPage = () => {
                 {t('settings:profile.cancelButton')}
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Language Preferences Card */}
-      {activeTab === 'language' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-            <h2 className="text-2xl font-bold text-dark-brown mb-6">
-              {t('settings:language.title')}
-            </h2>
-
-            {/* Study Language */}
-            <div className="mb-6">
-              <label htmlFor="settings-study-language" className="block text-base font-bold text-dark-brown mb-3">
-                {t('settings:language.study.label')}
-              </label>
-              <select
-                id="settings-study-language"
-                value={preferredStudyLanguage}
-                onChange={(e) => handleStudyLanguageChange(e.target.value as LanguageCode)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                data-testid="settings-select-study-language"
-              >
-                {preferredNativeLanguage !== 'en' && (
-                  <option value="en">{t('settings:language.names.en')}</option>
-                )}
-                {preferredNativeLanguage !== 'ja' && (
-                  <option value="ja">{t('settings:language.names.ja')}</option>
-                )}
-              </select>
-              {studyLanguageSaveMessage && (
-                <p
-                  className={`text-sm font-medium mt-2 ${studyLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {studyLanguageSaveMessage}
-                </p>
-              )}
-              {!studyLanguageSaveMessage && (
-                <p className="text-sm text-gray-500 mt-2">{t('settings:language.study.helper')}</p>
-              )}
-            </div>
-
-            {/* Native Language */}
-            <div className="mb-6">
-              <label htmlFor="settings-native-language" className="block text-base font-bold text-dark-brown mb-3">
-                {t('settings:language.native.label')}
-              </label>
-              <select
-                id="settings-native-language"
-                value={preferredNativeLanguage}
-                onChange={(e) => handleNativeLanguageChange(e.target.value as LanguageCode)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                data-testid="settings-select-native-language"
-              >
-                {preferredStudyLanguage !== 'en' && (
-                  <option value="en">{t('settings:language.names.en')}</option>
-                )}
-                {preferredStudyLanguage !== 'ja' && (
-                  <option value="ja">{t('settings:language.names.ja')}</option>
-                )}
-              </select>
-              {nativeLanguageSaveMessage && (
-                <p
-                  className={`text-sm font-medium mt-2 ${nativeLanguageSaveMessage === 'Saved!' ? 'text-green-600' : 'text-red-600'}`}
-                >
-                  {nativeLanguageSaveMessage}
-                </p>
-              )}
-              {!nativeLanguageSaveMessage && (
-                <p className="text-sm text-gray-500 mt-2">{t('settings:language.native.helper')}</p>
-              )}
-            </div>
-
-            {/* Proficiency Level */}
-            {preferredStudyLanguage === 'ja' && (
-              <div className="mb-6">
-                <label htmlFor="settings-jlpt-level" className="block text-base font-bold text-dark-brown mb-3">
-                  {t('settings:language.proficiency.jlpt.label')}
-                </label>
-                <select
-                  id="settings-jlpt-level"
-                  value={jlptLevel}
-                  onChange={(e) => handleProficiencyLevelChange(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="settings-select-jlpt-level"
-                >
-                  <option value="N5">{t('settings:language.proficiency.jlpt.n5')}</option>
-                  <option value="N4">{t('settings:language.proficiency.jlpt.n4')}</option>
-                  <option value="N3">{t('settings:language.proficiency.jlpt.n3')}</option>
-                  <option value="N2">{t('settings:language.proficiency.jlpt.n2')}</option>
-                  <option value="N1">{t('settings:language.proficiency.jlpt.n1')}</option>
-                </select>
-                {proficiencySaveMessage && (
-                  <p
-                    className={`text-sm font-medium mt-2 ${proficiencySaveMessage === t('settings:messages.saved') ? 'text-green-600' : 'text-red-600'}`}
-                  >
-                    {proficiencySaveMessage}
-                  </p>
-                )}
-                {!proficiencySaveMessage && (
-                  <p className="text-sm text-gray-500 mt-2">
-                    {t('settings:language.proficiency.jlpt.helper')}
-                  </p>
-                )}
-              </div>
-            )}
-
           </div>
         </div>
       )}
@@ -745,7 +556,10 @@ const SettingsPage = () => {
 
             {/* Current Password */}
             <div className="mb-4">
-              <label htmlFor="settings-current-password" className="block text-base font-bold text-dark-brown mb-3">
+              <label
+                htmlFor="settings-current-password"
+                className="block text-base font-bold text-dark-brown mb-3"
+              >
                 {t('settings:security.currentPassword.label')}
               </label>
               <input
@@ -762,7 +576,10 @@ const SettingsPage = () => {
 
             {/* New Password */}
             <div className="mb-4">
-              <label htmlFor="settings-new-password" className="block text-base font-bold text-dark-brown mb-3">
+              <label
+                htmlFor="settings-new-password"
+                className="block text-base font-bold text-dark-brown mb-3"
+              >
                 {t('settings:security.newPassword.label')}
               </label>
               <input
@@ -779,7 +596,10 @@ const SettingsPage = () => {
 
             {/* Confirm New Password */}
             <div className="mb-6">
-              <label htmlFor="settings-confirm-password" className="block text-base font-bold text-dark-brown mb-3">
+              <label
+                htmlFor="settings-confirm-password"
+                className="block text-base font-bold text-dark-brown mb-3"
+              >
                 {t('settings:security.confirmPassword.label')}
               </label>
               <input
@@ -796,7 +616,8 @@ const SettingsPage = () => {
 
             {/* Change Password Button */}
             <div className="pt-4 border-t">
-              <button type="button"
+              <button
+                type="button"
                 onClick={handleChangePassword}
                 disabled={isChangingPassword}
                 className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -855,8 +676,10 @@ const SettingsPage = () => {
                       {subscriptionStatus?.status && (
                         <span
                           className={`px-3 py-1 rounded-full text-sm font-semibold ${(() => {
-                            if (subscriptionStatus.status === 'active') return 'bg-green-100 text-green-700';
-                            if (subscriptionStatus.status === 'past_due') return 'bg-yellow-100 text-yellow-700';
+                            if (subscriptionStatus.status === 'active')
+                              return 'bg-green-100 text-green-700';
+                            if (subscriptionStatus.status === 'past_due')
+                              return 'bg-yellow-100 text-yellow-700';
                             return 'bg-gray-100 text-gray-700';
                           })()}`}
                         >
@@ -889,7 +712,11 @@ const SettingsPage = () => {
                 <div className="space-y-4">
                   {user?.tier === 'free' ? (
                     <div>
-                      <button type="button" onClick={handleUpgradeToPro} className="btn-primary w-full">
+                      <button
+                        type="button"
+                        onClick={handleUpgradeToPro}
+                        className="btn-primary w-full"
+                      >
                         {t('settings:billing.actions.upgrade')}
                       </button>
                       <p className="text-sm text-medium-brown mt-2 text-center">
@@ -898,7 +725,8 @@ const SettingsPage = () => {
                     </div>
                   ) : (
                     <div>
-                      <button type="button"
+                      <button
+                        type="button"
                         onClick={handleManageSubscription}
                         disabled={loadingSubscription}
                         className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
@@ -919,7 +747,8 @@ const SettingsPage = () => {
                   <h3 className="text-lg font-semibold text-dark-brown mb-4">
                     {t('settings:billing.comparison.title')}
                   </h3>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => navigate('/pricing')}
                     className="text-periwinkle hover:text-dark-periwinkle font-medium"
                   >
@@ -954,7 +783,8 @@ const SettingsPage = () => {
                     <li>{t('settings:danger.deleteAccount.items.courses')}</li>
                     <li>{t('settings:danger.deleteAccount.items.account')}</li>
                   </ul>
-                  <button type="button"
+                  <button
+                    type="button"
                     onClick={() => setShowDeleteModal(true)}
                     className="px-6 py-3 bg-strawberry text-white rounded-lg hover:bg-strawberry-dark transition-colors font-bold"
                     data-testid="settings-button-delete-account"

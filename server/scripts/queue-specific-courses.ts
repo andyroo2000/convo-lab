@@ -5,12 +5,6 @@ const prisma = new PrismaClient();
 
 async function queueSpecificCourses() {
   const targets = [
-    { lang: 'ar', level: 'A2', field: 'cefrLevel' as const },
-    { lang: 'ar', level: 'B1', field: 'cefrLevel' as const },
-    { lang: 'fr', level: 'A1', field: 'cefrLevel' as const },
-    { lang: 'fr', level: 'B1', field: 'cefrLevel' as const },
-    { lang: 'fr', level: 'C2', field: 'cefrLevel' as const },
-    { lang: 'es', level: 'B2', field: 'cefrLevel' as const },
     { lang: 'ja', level: 'N4', field: 'jlptLevel' as const },
   ];
 

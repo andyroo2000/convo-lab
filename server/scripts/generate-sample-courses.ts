@@ -1,45 +1,30 @@
 /**
- * Script to generate sample audio courses for all language/level combinations
+ * Script to generate sample audio courses for Japanese JLPT levels
  *
  * Creates 1 Pimsleur-style audio course per language/level combination from the 3 sample dialogues
  *
- * Languages & Levels:
+ * Levels:
  * - Japanese: N5, N4, N3, N2, N1 (5 courses)
- * - Chinese: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (6 courses)
- * - Spanish: A1, A2, B1, B2, C1, C2 (6 courses)
- * - French: A1, A2, B1, B2, C1, C2 (6 courses)
- * - Arabic: A1, A2, B1, B2, C1, C2 (6 courses)
  *
- * Total: 29 courses
- *
- * Usage: npx tsx scripts/generate-sample-courses.ts [language] [level]
+ * Usage: npx tsx scripts/generate-sample-courses.ts [level]
  * Examples:
  *   npx tsx scripts/generate-sample-courses.ts          # Generate all
- *   npx tsx scripts/generate-sample-courses.ts ja       # All Japanese levels
- *   npx tsx scripts/generate-sample-courses.ts ja N5    # Just Japanese N5
+ *   npx tsx scripts/generate-sample-courses.ts N5       # Just Japanese N5
  */
 
 import { prisma } from '../src/db/client.js';
 import { courseQueue } from '../src/jobs/courseQueue.js';
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 
-type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar';
+type LanguageCode = 'ja';
 
 // Language-specific level configurations
-const LANGUAGE_LEVELS = {
+const LANGUAGE_LEVELS: Record<LanguageCode, string[]> = {
   ja: ['N5', 'N4', 'N3', 'N2', 'N1'],
-  zh: ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'],
-  es: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  fr: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  ar: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
 };
 
-const LANGUAGE_NAMES = {
+const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   ja: 'Japanese',
-  zh: 'Chinese',
-  es: 'Spanish',
-  fr: 'French',
-  ar: 'Arabic',
 };
 
 const COURSE_TITLE = 'Travel & Transportation';
@@ -79,15 +64,12 @@ async function generateSampleCourse(
   console.log(`\n📚 Creating course: "${fullTitle}"...`);
 
   // Check if this course already exists
-  const levelField =
-    language === 'ja' ? 'jlptLevel' : language === 'zh' ? 'hskLevel' : 'cefrLevel';
-
   const existing = await prisma.course.findFirst({
     where: {
       title: COURSE_TITLE,
       targetLanguage: language,
       isSampleContent: true,
-      [levelField]: level,
+      jlptLevel: level,
     },
   });
 
@@ -150,13 +132,6 @@ async function generateSampleCourse(
   const speaker2Gender = (speakers[1]?.gender as 'male' | 'female') || 'female';
 
   // Create course
-  const levelData =
-    language === 'ja'
-      ? { jlptLevel: level }
-      : language === 'zh'
-        ? { hskLevel: level }
-        : { cefrLevel: level };
-
   const course = await prisma.course.create({
     data: {
       userId: systemUserId,
@@ -168,7 +143,7 @@ async function generateSampleCourse(
       targetLanguage: language,
       maxLessonDurationMinutes: 15,
       l1VoiceId: narratorVoice,
-      ...levelData,
+      jlptLevel: level,
       speaker1Gender,
       speaker2Gender,
     },
@@ -205,23 +180,14 @@ async function generateSampleCourse(
 
 async function main() {
   const args = process.argv.slice(2);
-  const targetLanguage = args[0] as LanguageCode | undefined;
-  const targetLevel = args[1];
+  const targetLevel = args[0];
 
   console.log('🚀 Starting sample course generation...\n');
-
-  if (targetLanguage && !LANGUAGE_LEVELS[targetLanguage]) {
-    console.error(`❌ Invalid language: ${targetLanguage}`);
-    console.log(`Valid languages: ${Object.keys(LANGUAGE_LEVELS).join(', ')}`);
-    process.exit(1);
-  }
 
   try {
     const systemUser = await findOrCreateSystemUser();
 
-    const languages = targetLanguage
-      ? [targetLanguage]
-      : (Object.keys(LANGUAGE_LEVELS) as LanguageCode[]);
+    const languages = Object.keys(LANGUAGE_LEVELS) as LanguageCode[];
     let totalGenerated = 0;
     let totalSkipped = 0;
     let totalErrors = 0;

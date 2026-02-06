@@ -21,14 +21,10 @@ async function main() {
       title: true,
       targetLanguage: true,
       jlptLevel: true,
-      hskLevel: true,
-      cefrLevel: true,
     },
     orderBy: [
       { targetLanguage: 'asc' },
       { jlptLevel: 'asc' },
-      { hskLevel: 'asc' },
-      { cefrLevel: 'asc' },
     ],
   });
 
@@ -54,7 +50,7 @@ async function main() {
   Object.entries(byLanguage).forEach(([lang, courses]) => {
     console.log(`${lang}:`);
     courses.forEach((course, idx) => {
-      const level = course.jlptLevel || course.hskLevel || course.cefrLevel || 'unknown';
+      const level = course.jlptLevel || 'unknown';
       console.log(`  ${idx + 1}. ${level}`);
     });
     console.log('');
@@ -66,7 +62,7 @@ async function main() {
   let errorCount = 0;
 
   for (const course of draftCourses) {
-    const level = course.jlptLevel || course.hskLevel || course.cefrLevel || 'unknown';
+    const level = course.jlptLevel || 'unknown';
     const lang = course.targetLanguage.toUpperCase();
 
     try {

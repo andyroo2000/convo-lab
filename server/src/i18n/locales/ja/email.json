@@ -52,7 +52,7 @@
     "body": "ConvoLab {{tier}}サブスクリプションが有効になりました！言語学習をより没入的で効果的にするという私たちのミッションをサポートしていただき、ありがとうございます。",
     "benefitsTitle": "{{tier}}の特典",
     "generations": "週{{count}}回の生成",
-    "contentTypes": "すべてのコンテンツタイプ（ダイアログ、コース、ナローリスニング、チャンク）",
+    "contentTypes": "すべてのコンテンツタイプ（ダイアログ、オーディオコース）",
     "tts": "高品質Google Cloud TTS音声",
     "support": "優先サポート",
     "button": "作成を開始",

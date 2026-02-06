@@ -2,7 +2,7 @@
  * Backfill metadata for existing sentences
  *
  * This script processes all sentences that have empty metadata and computes
- * furigana/pinyin data for them. Safe to run multiple times (idempotent).
+ * furigana data for them. Safe to run multiple times (idempotent).
  *
  * Usage:
  *   npm run backfill:metadata
@@ -50,8 +50,8 @@ async function backfillMetadata() {
     const sentences = allSentences.filter((s) => {
       const lang = s.dialogue.episode.targetLanguage;
 
-      // For non-Japanese/Chinese languages, skip
-      if (lang !== 'ja' && lang !== 'zh') {
+      // For non-Japanese languages, skip
+      if (lang !== 'ja') {
         return false;
       }
 
@@ -64,14 +64,6 @@ async function backfillMetadata() {
       if (lang === 'ja') {
         const japanese = s.metadata?.japanese;
         if (!japanese || !japanese.furigana || japanese.furigana === s.text) {
-          return true;
-        }
-      }
-
-      // Check for Chinese sentences with missing or empty pinyin
-      if (lang === 'zh') {
-        const chinese = s.metadata?.chinese;
-        if (!chinese || !chinese.pinyinToneMarks || chinese.pinyinToneMarks === '') {
           return true;
         }
       }
@@ -102,42 +94,16 @@ async function backfillMetadata() {
       );
 
       try {
-        // Group sentences by target language
-        const byLanguage = new Map<
-          string,
-          Array<{ index: number; sentence: SentenceWithEpisode }>
-        >();
-
-        batch.forEach((sentence, idx) => {
-          const lang = sentence.dialogue.episode.targetLanguage;
-          if (!byLanguage.has(lang)) {
-            byLanguage.set(lang, []);
-          }
-          byLanguage.get(lang)!.push({ index: idx, sentence });
-        });
-
-        // Process each language group with a single batch call
+        // Batch process all texts for Japanese
         const metadataResults = new Map<number, any>();
+        const texts = batch.map((item) => item.text);
+        console.log(`  [BATCH] Processing ${texts.length} ja sentences in 1 call`);
 
-        for (const [lang, items] of byLanguage) {
-          // Skip languages that don't need processing
-          if (lang !== 'ja' && lang !== 'zh') {
-            items.forEach((item) => {
-              metadataResults.set(item.index, null); // null = skip
-            });
-            continue;
-          }
+        const results = await processLanguageTextBatch(texts, 'ja');
 
-          // Batch process all texts for this language
-          const texts = items.map((item) => item.sentence.text);
-          console.log(`  [BATCH] Processing ${texts.length} ${lang} sentences in 1 call`);
-
-          const results = await processLanguageTextBatch(texts, lang);
-
-          items.forEach((item, idx) => {
-            metadataResults.set(item.index, results[idx]);
-          });
-        }
+        results.forEach((result, idx) => {
+          metadataResults.set(idx, result);
+        });
 
         // Update database with results
         let batchUpdated = 0;
@@ -146,13 +112,6 @@ async function backfillMetadata() {
         for (let idx = 0; idx < batch.length; idx++) {
           const sentence = batch[idx];
           const metadata = metadataResults.get(idx);
-
-          if (metadata === null) {
-            // Skipped language
-            batchSkipped++;
-            processed++;
-            continue;
-          }
 
           try {
             await prisma.sentence.update({
