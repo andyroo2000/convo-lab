@@ -69,9 +69,13 @@ describe('SettingsPage', () => {
       renderWithRouter();
 
       expect(screen.getByTestId('settings-tab-profile')).toBeInTheDocument();
-      expect(screen.getByTestId('settings-tab-language')).toBeInTheDocument();
       expect(screen.getByTestId('settings-tab-security')).toBeInTheDocument();
       expect(screen.getByTestId('settings-tab-danger')).toBeInTheDocument();
+    });
+
+    it('should redirect language tab to profile', () => {
+      renderWithRouter('/app/settings/language');
+      expect(mockNavigate).toHaveBeenCalledWith('/app/settings/profile', { replace: true });
     });
   });
 
@@ -128,56 +132,6 @@ describe('SettingsPage', () => {
       renderWithRouter('/app/settings/profile');
 
       expect(screen.getByTestId('settings-button-upload-avatar')).toBeInTheDocument();
-    });
-  });
-
-  describe('Language Tab', () => {
-    it('should display language settings', () => {
-      renderWithRouter('/app/settings/language');
-
-      expect(screen.getByText('Language Preferences')).toBeInTheDocument();
-    });
-
-    it('should show study language selector', () => {
-      renderWithRouter('/app/settings/language');
-
-      expect(screen.getByTestId('settings-select-study-language')).toBeInTheDocument();
-    });
-
-    it('should show native language selector', () => {
-      renderWithRouter('/app/settings/language');
-
-      expect(screen.getByTestId('settings-select-native-language')).toBeInTheDocument();
-    });
-
-    it('should show JLPT level selector for Japanese', () => {
-      renderWithRouter('/app/settings/language');
-
-      expect(screen.getByTestId('settings-select-jlpt-level')).toBeInTheDocument();
-    });
-
-    it('should auto-save when study language changes', async () => {
-      renderWithRouter('/app/settings/language');
-
-      const select = screen.getByTestId('settings-select-study-language');
-      fireEvent.change(select, { target: { value: 'ja' } });
-
-      await waitFor(() => {
-        expect(mockUpdateUser).toHaveBeenCalledWith({
-          preferredStudyLanguage: 'ja',
-        });
-      });
-    });
-
-    it('should show saved message after auto-save', async () => {
-      renderWithRouter('/app/settings/language');
-
-      const select = screen.getByTestId('settings-select-study-language');
-      fireEvent.change(select, { target: { value: 'ja' } });
-
-      await waitFor(() => {
-        expect(screen.getByText('Saved!')).toBeInTheDocument();
-      });
     });
   });
 
@@ -306,7 +260,6 @@ describe('SettingsPage', () => {
 
       expect(screen.getByText('All your dialogues and episodes')).toBeInTheDocument();
       expect(screen.getByText('All your audio courses')).toBeInTheDocument();
-      expect(screen.getByText('All your narrow listening packs')).toBeInTheDocument();
     });
 
     it('should show confirmation modal on delete click', async () => {
@@ -327,14 +280,6 @@ describe('SettingsPage', () => {
       fireEvent.click(screen.getByTestId('settings-tab-profile'));
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/settings/profile');
-    });
-
-    it('should navigate to language tab', () => {
-      renderWithRouter('/app/settings/profile');
-
-      fireEvent.click(screen.getByTestId('settings-tab-language'));
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/settings/language');
     });
 
     it('should navigate to security tab', () => {

@@ -5,7 +5,7 @@ interface ViewToggleButtonsProps {
   showTranslations: boolean;
   onToggleReadings: () => void;
   onToggleTranslations: () => void;
-  readingsLabel?: string; // e.g., "Furigana" or "Pinyin"
+  readingsLabel?: string; // e.g., "Furigana"
 }
 
 const ViewToggleButtons = ({
@@ -16,7 +16,7 @@ const ViewToggleButtons = ({
   readingsLabel = 'Furigana',
 }: ViewToggleButtonsProps) => (
   <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm">
-    {/* Readings Toggle (Furigana/Pinyin) */}
+    {/* Readings Toggle (Furigana) */}
     <button
       type="button"
       onClick={onToggleReadings}

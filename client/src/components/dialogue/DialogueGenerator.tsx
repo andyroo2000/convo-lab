@@ -12,7 +12,6 @@ import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
-import useEffectiveUser from '../../hooks/useEffectiveUser';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 
@@ -31,7 +30,6 @@ const DEFAULT_SPEAKER_COLORS = SPEAKER_COLORS;
 const DialogueGenerator = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
-  const { effectiveUser } = useEffectiveUser();
   const isDemo = useIsDemo();
   const {
     createEpisode,
@@ -48,20 +46,11 @@ const DialogueGenerator = () => {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
 
   const [sourceText, setSourceText] = useState('');
-  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
-  const [nativeLanguage] = useState<LanguageCode>('en');
+  const targetLanguage: LanguageCode = 'ja';
+  const nativeLanguage: LanguageCode = 'en';
   const [dialogueLength, setDialogueLength] = useState(8);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [tone, setTone] = useState<ToneStyle>('casual');
-
-  // Initialize from effective user preferences (respects impersonation)
-  useEffect(() => {
-    if (effectiveUser) {
-      setTargetLanguage(effectiveUser.preferredStudyLanguage || 'ja');
-      // Initialize language-specific proficiency levels from user settings if available
-      // For now, defaults to N5/HSK1 since we don't have user JLPT/HSK preferences yet
-    }
-  }, [effectiveUser]);
 
   // Initialize speakers based on target language with unique voices
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => {
@@ -94,7 +83,7 @@ const DialogueGenerator = () => {
         color: DEFAULT_SPEAKER_COLORS[index],
       }))
     );
-  }, [targetLanguage, tone]);
+  }, [tone]);
 
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
@@ -156,9 +145,7 @@ const DialogueGenerator = () => {
   ]);
 
   // Helper function to get proficiency level
-  const getProficiencyLevel = () => {
-    return jlptLevel;
-  };
+  const getProficiencyLevel = () => jlptLevel;
 
   const handleGenerate = async () => {
     // Block demo users from generating content

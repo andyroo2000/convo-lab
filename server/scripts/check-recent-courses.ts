@@ -125,35 +125,10 @@ async function checkRecentCourses() {
       orderBy: { createdAt: 'desc' }
     });
 
-    const narrowPacks = await prisma.narrowListeningPack.findMany({
-      where: {
-        createdAt: { gte: thirtyDaysAgo }
-      },
-      select: {
-        title: true,
-        status: true,
-        createdAt: true,
-        user: {
-          select: {
-            email: true,
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
     console.log(`📝 Dialogs: ${episodes.length}`);
     if (episodes.length > 0) {
       episodes.forEach(ep => {
         console.log(`  - "${ep.title}" (${ep.status}) by ${ep.user.email} - ${ep.createdAt.toISOString()}`);
-      });
-    }
-    console.log();
-
-    console.log(`🎧 Narrow Listening: ${narrowPacks.length}`);
-    if (narrowPacks.length > 0) {
-      narrowPacks.forEach(pack => {
-        console.log(`  - "${pack.title}" (${pack.status}) by ${pack.user.email} - ${pack.createdAt.toISOString()}`);
       });
     }
     console.log();

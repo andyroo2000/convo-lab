@@ -6,6 +6,16 @@ import { BrowserRouter } from 'react-router-dom';
 import CreatePage from '../CreatePage';
 
 const mockNavigate = vi.fn();
+const mockUpdateUser = vi.fn();
+const mockUser = {
+  id: 'user-1',
+  name: 'Test User',
+  email: 'test@example.com',
+  onboardingCompleted: false,
+  seenCustomContentGuide: false,
+  preferredStudyLanguage: 'ja',
+  preferredNativeLanguage: 'en',
+};
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -25,6 +35,13 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
     error: null,
     isFeatureEnabled: () => true,
     isAdmin: false,
+  }),
+}));
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: mockUser,
+    updateUser: mockUpdateUser,
   }),
 }));
 
@@ -115,7 +132,6 @@ describe('CreatePage', () => {
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/audio-course');
     });
-
   });
 
   describe('Card structure', () => {

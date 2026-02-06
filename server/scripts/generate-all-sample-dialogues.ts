@@ -1,25 +1,17 @@
 /**
- * Script to generate ALL sample dialogues for all language/level combinations
+ * Script to generate sample dialogues for Japanese JLPT levels
  *
- * Generates 3 dialogues per language/level combination:
+ * Generates 3 dialogues per level (5 levels × 3 templates = 15 dialogues):
  * 1. Meeting Someone New
  * 2. At a Café/Restaurant
  * 3. Making Weekend Plans
  *
- * Languages & Levels:
- * - Japanese: N5, N4, N3, N2, N1 (15 dialogues)
- * - Chinese: HSK1, HSK2, HSK3, HSK4, HSK5, HSK6 (18 dialogues)
- * - Spanish: A1, A2, B1, B2, C1, C2 (18 dialogues)
- * - French: A1, A2, B1, B2, C1, C2 (18 dialogues)
- * - Arabic: A1, A2, B1, B2, C1, C2 (18 dialogues)
+ * JLPT Levels: N5, N4, N3, N2, N1
  *
- * Total: 87 dialogues
- *
- * Usage: npx tsx scripts/generate-all-sample-dialogues.ts [language] [level]
+ * Usage: npx tsx scripts/generate-all-sample-dialogues.ts [level]
  * Examples:
- *   npx tsx scripts/generate-all-sample-dialogues.ts          # Generate all
- *   npx tsx scripts/generate-all-sample-dialogues.ts ja       # All Japanese levels
- *   npx tsx scripts/generate-all-sample-dialogues.ts ja N4   # Just Japanese N4
+ *   npx tsx scripts/generate-all-sample-dialogues.ts          # Generate all 15
+ *   npx tsx scripts/generate-all-sample-dialogues.ts N4       # Just N4 (3 dialogues)
  */
 
 import { prisma } from '../src/db/client.js';
@@ -27,7 +19,7 @@ import { generateDialogue } from '../src/services/dialogueGenerator.js';
 import { getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
 
-type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar';
+type LanguageCode = 'ja';
 type ToneStyle = 'casual' | 'polite' | 'formal';
 
 interface DialogueTemplate {
@@ -37,48 +29,36 @@ interface DialogueTemplate {
 }
 
 // Language-specific level configurations
-const LANGUAGE_LEVELS = {
+const LANGUAGE_LEVELS: Record<LanguageCode, string[]> = {
   ja: ['N5', 'N4', 'N3', 'N2', 'N1'],
-  zh: ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'],
-  es: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  fr: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  ar: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
 };
 
-const LANGUAGE_NAMES = {
+const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   ja: 'Japanese',
-  zh: 'Chinese',
-  es: 'Spanish',
-  fr: 'French',
-  ar: 'Arabic',
 };
 
 // Location names for cultural adaptation
-const LOCATIONS = {
+const LOCATIONS: Record<LanguageCode, string> = {
   ja: 'Tokyo',
-  zh: 'Beijing',
-  es: 'Madrid',
-  fr: 'Paris',
-  ar: 'Cairo',
 };
 
 // Get appropriate dialogue length for level (beginner = shorter, advanced = longer)
 function getDialogueLength(level: string): number {
-  // Beginner levels (N5, HSK1, A1)
-  if (level === 'N5' || level === 'HSK1' || level === 'A1') return 8;
-  // Elementary levels (N4, HSK2, A2)
-  if (level === 'N4' || level === 'HSK2' || level === 'A2') return 10;
-  // Intermediate levels (N3, HSK3-4, B1-B2)
-  if (level === 'N3' || level.startsWith('HSK3') || level.startsWith('HSK4') || level === 'B1' || level === 'B2') return 12;
-  // Advanced levels (N2-N1, HSK5-6, C1-C2)
+  // Beginner levels (N5)
+  if (level === 'N5') return 8;
+  // Elementary levels (N4)
+  if (level === 'N4') return 10;
+  // Intermediate levels (N3)
+  if (level === 'N3') return 12;
+  // Advanced levels (N2-N1)
   return 14;
 }
 
 // Get complexity descriptor for the level
 function getLevelComplexity(level: string): string {
-  if (level === 'N5' || level === 'HSK1' || level === 'A1') return 'very simple, basic';
-  if (level === 'N4' || level === 'HSK2' || level === 'A2') return 'simple, elementary';
-  if (level === 'N3' || level.startsWith('HSK3') || level.startsWith('HSK4') || level === 'B1' || level === 'B2') return 'intermediate, moderately complex';
+  if (level === 'N5') return 'very simple, basic';
+  if (level === 'N4') return 'simple, elementary';
+  if (level === 'N3') return 'intermediate, moderately complex';
   return 'advanced, sophisticated';
 }
 
@@ -220,21 +200,14 @@ async function generateSampleDialogue(
 
 async function main() {
   const args = process.argv.slice(2);
-  const targetLanguage = args[0] as LanguageCode | undefined;
-  const targetLevel = args[1];
+  const targetLevel = args[0];
 
   console.log('🚀 Starting sample dialogue generation...\n');
-
-  if (targetLanguage && !LANGUAGE_LEVELS[targetLanguage]) {
-    console.error(`❌ Invalid language: ${targetLanguage}`);
-    console.log(`Valid languages: ${Object.keys(LANGUAGE_LEVELS).join(', ')}`);
-    process.exit(1);
-  }
 
   try {
     const systemUser = await findOrCreateSystemUser();
 
-    const languages = targetLanguage ? [targetLanguage] : Object.keys(LANGUAGE_LEVELS) as LanguageCode[];
+    const languages = Object.keys(LANGUAGE_LEVELS) as LanguageCode[];
     let totalGenerated = 0;
     let totalSkipped = 0;
 

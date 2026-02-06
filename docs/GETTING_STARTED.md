@@ -317,4 +317,4 @@ lsof -ti:5173 | xargs kill
 - Review error logs in terminal
 - Verify all environment variables are set
 
-Enjoy learning languages with ConvoLab!
+Enjoy learning Japanese with ConvoLab!

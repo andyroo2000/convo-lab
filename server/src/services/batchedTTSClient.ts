@@ -66,8 +66,8 @@ export interface BatchProcessingOptions {
  * This function groups ALL units with the same voice/speed/language together into single batches,
  * regardless of their position in the script. This dramatically reduces API calls.
  *
- * Example: If a script alternates between English narrator and French speaker 100 times,
- * instead of creating 200 batches, we create just 2 batches (1 for all English, 1 for all French).
+ * Example: If a script alternates between English narrator and Japanese speaker 100 times,
+ * instead of creating 200 batches, we create just 2 batches (1 for all English, 1 for all Japanese).
  *
  * Units are tracked by originalIndex so they can be reassembled in the correct order later.
  */
@@ -258,11 +258,11 @@ function escapeSSML(text: string): string {
 
 /**
  * Extract language code from voice ID
- * e.g., "ja-JP-Neural2-B" -> "ja-JP", "fr-FR-Neural2-A" -> "fr-FR"
+ * e.g., "ja-JP-Neural2-B" -> "ja-JP", "en-US-Neural2-A" -> "en-US"
  * Falls back to languageCode if extraction fails (for providers like Polly)
  */
 function extractLanguageCodeFromVoice(voiceId: string, fallbackCode: string): string {
-  // Match pattern: xx-XX at the start (e.g., ja-JP, fr-FR, en-US)
+  // Match pattern: xx-XX at the start (e.g., ja-JP, en-US)
   const match = voiceId.match(/^([a-z]{2}-[A-Z]{2})/);
   return match ? match[1] : fallbackCode;
 }

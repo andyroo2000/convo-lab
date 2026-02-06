@@ -36,8 +36,6 @@ const mockCourse: Course = {
   targetLanguage: 'ja',
   nativeLanguage: 'en',
   jlptLevel: 'N4',
-  hskLevel: null,
-  cefrLevel: null,
   status: 'ready',
   audioUrl: 'https://example.com/course.mp3',
   approxDurationSeconds: 300,

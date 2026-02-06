@@ -95,8 +95,6 @@ async function checkUserContent() {
         updatedAt: true,
         description: true,
         jlptLevel: true,
-        hskLevel: true,
-        cefrLevel: true,
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -108,8 +106,6 @@ async function checkUserContent() {
         console.log(`    Status: ${course.status}`);
         console.log(`    Language: ${course.targetLanguage}`);
         if (course.jlptLevel) console.log(`    JLPT Level: ${course.jlptLevel}`);
-        if (course.hskLevel) console.log(`    HSK Level: ${course.hskLevel}`);
-        if (course.cefrLevel) console.log(`    CEFR Level: ${course.cefrLevel}`);
         if (course.description) {
           console.log(`    Description: ${course.description.substring(0, 150)}${course.description.length > 150 ? '...' : ''}`);
         }

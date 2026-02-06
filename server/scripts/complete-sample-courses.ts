@@ -20,23 +20,15 @@ import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.
 import * as fs from 'fs';
 import * as path from 'path';
 
-type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar';
+type LanguageCode = 'ja';
 
 // Language-specific level configurations
-const LANGUAGE_LEVELS = {
+const LANGUAGE_LEVELS: Record<LanguageCode, string[]> = {
   ja: ['N5', 'N4', 'N3', 'N2', 'N1'],
-  zh: ['HSK1', 'HSK2', 'HSK3', 'HSK4', 'HSK5', 'HSK6'],
-  es: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  fr: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
-  ar: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'],
 };
 
-const LANGUAGE_NAMES = {
+const LANGUAGE_NAMES: Record<LanguageCode, string> = {
   ja: 'Japanese',
-  zh: 'Chinese',
-  es: 'Spanish',
-  fr: 'French',
-  ar: 'Arabic',
 };
 
 const COURSE_TITLE = 'Travel & Transportation';
@@ -78,14 +70,11 @@ async function findOrCreateSystemUser() {
  * Check if a course exists for this language/level combination
  */
 async function findExistingCourse(language: LanguageCode, level: string) {
-  const levelField =
-    language === 'ja' ? 'jlptLevel' : language === 'zh' ? 'hskLevel' : 'cefrLevel';
-
   const course = await prisma.course.findFirst({
     where: {
       title: COURSE_TITLE,
       targetLanguage: language,
-      [levelField]: level,
+      jlptLevel: level,
     },
     include: {
       _count: {
@@ -230,13 +219,6 @@ async function generateSampleCourse(
     const speaker2Gender = (speakers[1]?.gender as 'male' | 'female') || 'female';
 
     // Create course
-    const levelData =
-      language === 'ja'
-        ? { jlptLevel: level }
-        : language === 'zh'
-          ? { hskLevel: level }
-          : { cefrLevel: level };
-
     const course = await prisma.course.create({
       data: {
         userId: systemUserId,
@@ -247,7 +229,7 @@ async function generateSampleCourse(
         targetLanguage: language,
         maxLessonDurationMinutes: 15,
         l1VoiceId: narratorVoice,
-        ...levelData,
+        jlptLevel: level,
         speaker1Gender,
         speaker2Gender,
       },

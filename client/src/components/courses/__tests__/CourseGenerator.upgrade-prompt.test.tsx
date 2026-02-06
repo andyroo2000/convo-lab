@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import CourseGenerator from '../CourseGenerator';
 
@@ -142,7 +142,7 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     fireEvent.click(createButton);
 
     // Modal should appear
-    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
+    await screen.findByText(/Quota Limit Reached/i);
     expect(screen.getByText(/You've used 5 of 5 generations/)).toBeInTheDocument();
   });
 
@@ -178,6 +178,9 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     const createButton = screen.getByRole('button', { name: /create/i });
     fireEvent.click(createButton);
 
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
     expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
   });
 
@@ -214,6 +217,9 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     const createButton = screen.getByRole('button', { name: /create/i });
     fireEvent.click(createButton);
 
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
     expect(screen.queryByText(/Quota Limit Reached/i)).not.toBeInTheDocument();
   });
 
@@ -254,7 +260,7 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     const createButton = screen.getByRole('button', { name: /create/i });
     fireEvent.click(createButton);
 
-    expect(screen.getByText(/Quota Limit Reached/i)).toBeInTheDocument();
+    await screen.findByText(/Quota Limit Reached/i);
 
     // Click close button
     const closeButton = screen.getByLabelText('Close');
@@ -302,6 +308,6 @@ describe('CourseGenerator - Upgrade Prompt', () => {
     fireEvent.click(createButton);
 
     // Check that correct quota values are displayed
-    expect(screen.getByText(/You've used 3 of 5 generations/)).toBeInTheDocument();
+    await screen.findByText(/You've used 3 of 5 generations/);
   });
 });

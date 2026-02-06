@@ -52,7 +52,7 @@
     "body": "Your ConvoLab {{tier}} subscription is now active! Thank you for supporting our mission to make language learning more immersive and effective.",
     "benefitsTitle": "Your {{tier}} Benefits",
     "generations": "{{count}} generations per week",
-    "contentTypes": "All content types (dialogues, courses, narrow listening, chunks)",
+    "contentTypes": "All content types (dialogues, audio courses)",
     "tts": "High-quality Google Cloud TTS audio",
     "support": "Priority support",
     "button": "Start Creating",

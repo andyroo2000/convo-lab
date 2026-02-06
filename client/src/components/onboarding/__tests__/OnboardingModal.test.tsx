@@ -1,5 +1,5 @@
 /* eslint-disable testing-library/no-node-access */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import OnboardingModal from '../OnboardingModal';
 
@@ -16,7 +16,6 @@ describe('OnboardingModal', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUpdateUser.mockResolvedValue(undefined);
-    // Mock window.alert for jsdom
     vi.spyOn(window, 'alert').mockImplementation(() => {});
   });
 
@@ -25,100 +24,52 @@ describe('OnboardingModal', () => {
   });
 
   describe('Rendering', () => {
-    it('should render modal with welcome message', () => {
+    it('should render welcome message', () => {
       render(<OnboardingModal />);
-
       expect(screen.getByText(/Welcome to ConvoLab!/)).toBeInTheDocument();
     });
 
-    it('should render step 1 initially', () => {
+    it('should show all JLPT levels', () => {
       render(<OnboardingModal />);
-
-      // Step 1 asks for native language
-      expect(screen.getByText(/What's your native language?/i)).toBeInTheDocument();
+      expect(screen.getByText('N5 (Beginner)')).toBeInTheDocument();
+      expect(screen.getByText('N4 (Upper Beginner)')).toBeInTheDocument();
+      expect(screen.getByText('N3 (Intermediate)')).toBeInTheDocument();
+      expect(screen.getByText('N2 (Upper Intermediate)')).toBeInTheDocument();
+      expect(screen.getByText('N1 (Advanced)')).toBeInTheDocument();
     });
 
-    it('should render Next button on step 1', () => {
+    it('should have N5 selected by default', () => {
       render(<OnboardingModal />);
-
-      expect(screen.getByText('Next →')).toBeInTheDocument();
+      const n5Button = screen.getByText('N5 (Beginner)').closest('button');
+      expect(n5Button?.className).toContain('border-coral');
     });
 
-    it('should render progress indicator with 3 steps', () => {
+    it('should render as fixed overlay with z-50', () => {
       render(<OnboardingModal />);
-
-      // Three progress dots for 3 steps
-      const progressDots = document.querySelectorAll('.h-2.w-24.rounded-full');
-      expect(progressDots).toHaveLength(3);
-    });
-  });
-
-  describe('Language Selection', () => {
-    it('should have English selected by default as native language', () => {
-      render(<OnboardingModal />);
-
-      const englishButton = screen.getByText('English').closest('button');
-      expect(englishButton).toHaveClass('border-indigo-600');
-    });
-
-    it('should navigate to step 2 on Next click', () => {
-      render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-
-      // Step 2 asks for target language
-      expect(screen.getByText(/What language are you learning?/i)).toBeInTheDocument();
-    });
-
-    it('should navigate back to step 1 on Back click', () => {
-      render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('← Back'));
-
-      expect(screen.getByText(/What's your native language?/i)).toBeInTheDocument();
+      const overlay = screen.getByText(/Welcome to ConvoLab!/).closest('.fixed');
+      expect(overlay).toHaveClass('inset-0');
+      expect(overlay).toHaveClass('z-50');
     });
   });
 
-  describe('Step Navigation', () => {
-    it('should show target language selection on step 2', () => {
+  describe('Level Selection', () => {
+    it('should change selection when clicking a different level', () => {
       render(<OnboardingModal />);
 
-      fireEvent.click(screen.getByText('Next →'));
+      fireEvent.click(screen.getByText('N3 (Intermediate)'));
 
-      expect(screen.getByText(/What language are you learning?/i)).toBeInTheDocument();
-    });
+      const n3Button = screen.getByText('N3 (Intermediate)').closest('button');
+      expect(n3Button?.className).toContain('border-coral');
 
-    it('should show proficiency level selection on step 3', () => {
-      render(<OnboardingModal />);
-
-      // Navigate to step 2
-      fireEvent.click(screen.getByText('Next →'));
-
-      // Navigate to step 3
-      fireEvent.click(screen.getByText('Next →'));
-
-      expect(screen.getByText(/What's your proficiency level?/i)).toBeInTheDocument();
-    });
-
-    it('should show Get Started button on step 3', () => {
-      render(<OnboardingModal />);
-
-      // Navigate to step 3
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('Next →'));
-
-      expect(screen.getByText('Get Started')).toBeInTheDocument();
+      const n5Button = screen.getByText('N5 (Beginner)').closest('button');
+      expect(n5Button?.className).not.toContain('border-coral');
     });
   });
 
   describe('Form Submission', () => {
-    it('should call updateUser on Get Started click', async () => {
+    it('should call updateUser with default N5 on Get Started click', async () => {
       render(<OnboardingModal />);
 
-      // Navigate through all steps
-      fireEvent.click(screen.getByText('Next →')); // to step 2
-      fireEvent.click(screen.getByText('Next →')); // to step 3
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
@@ -131,8 +82,25 @@ describe('OnboardingModal', () => {
       });
     });
 
+    it('should call updateUser with selected level', async () => {
+      render(<OnboardingModal />);
+
+      fireEvent.click(screen.getByText('N3 (Intermediate)'));
+      fireEvent.click(screen.getByText('Get Started'));
+
+      await waitFor(() => {
+        expect(mockUpdateUser).toHaveBeenCalledWith({
+          preferredNativeLanguage: 'en',
+          preferredStudyLanguage: 'ja',
+          proficiencyLevel: 'N3',
+          onboardingCompleted: true,
+        });
+      });
+    });
+  });
+
+  describe('Loading State', () => {
     it('should show Loading... during submission', async () => {
-      // Use a long-delayed promise instead of one that never resolves
       mockUpdateUser.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -141,9 +109,6 @@ describe('OnboardingModal', () => {
       );
 
       render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
@@ -151,8 +116,7 @@ describe('OnboardingModal', () => {
       });
     });
 
-    it('should disable buttons during submission', async () => {
-      // Use a long-delayed promise instead of one that never resolves
+    it('should disable button during submission', async () => {
       mockUpdateUser.mockImplementation(
         () =>
           new Promise((resolve) => {
@@ -161,14 +125,10 @@ describe('OnboardingModal', () => {
       );
 
       render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
         expect(screen.getByText('Loading...')).toBeDisabled();
-        expect(screen.getByText('← Back')).toBeDisabled();
       });
     });
   });
@@ -178,9 +138,6 @@ describe('OnboardingModal', () => {
       mockUpdateUser.mockRejectedValue(new Error('Network error'));
 
       render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
@@ -188,35 +145,15 @@ describe('OnboardingModal', () => {
       });
     });
 
-    it('should re-enable buttons after error', async () => {
+    it('should re-enable button after error', async () => {
       mockUpdateUser.mockRejectedValue(new Error('Network error'));
 
       render(<OnboardingModal />);
-
-      fireEvent.click(screen.getByText('Next →'));
-      fireEvent.click(screen.getByText('Next →'));
       fireEvent.click(screen.getByText('Get Started'));
 
       await waitFor(() => {
         expect(screen.getByText('Get Started')).not.toBeDisabled();
-        expect(screen.getByText('← Back')).not.toBeDisabled();
       });
-    });
-  });
-
-  describe('Modal Structure', () => {
-    it('should render as fixed overlay', () => {
-      render(<OnboardingModal />);
-
-      const overlay = screen.getByText(/Welcome to ConvoLab!/).closest('.fixed');
-      expect(overlay).toHaveClass('inset-0');
-    });
-
-    it('should have proper z-index', () => {
-      render(<OnboardingModal />);
-
-      const overlay = screen.getByText(/Welcome to ConvoLab!/).closest('.fixed');
-      expect(overlay).toHaveClass('z-50');
     });
   });
 });

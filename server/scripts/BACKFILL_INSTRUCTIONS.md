@@ -2,11 +2,11 @@
 
 ## Overview
 
-This migration script processes all existing sentences in the database that have empty metadata and computes furigana (Japanese) or pinyin (Chinese) data for them.
+This migration script processes all existing sentences in the database that have empty metadata and computes furigana (Japanese) data for them.
 
 ## Why is this needed?
 
-Previously, furigana/pinyin was computed on-the-fly for every request. Now, we store this metadata in the database during dialogue generation for better performance. This script backfills metadata for dialogues created before this optimization.
+Previously, furigana was computed on-the-fly for every request. Now, we store this metadata in the database during dialogue generation for better performance. This script backfills metadata for dialogues created before this optimization.
 
 ## Running Locally
 
@@ -17,8 +17,7 @@ npm run backfill:metadata
 
 **Prerequisites:**
 
-- Furigana service running on port 8000 (for Japanese)
-- Pinyin service running on port 8001 (for Chinese)
+- Furigana service running on port 8000
 
 ## Running in Production (Cloud Run)
 
@@ -91,12 +90,12 @@ npm run backfill:metadata
    gcloud run services describe convo-lab --format='value(spec.template.spec.containers[0].env[?name=="DATABASE_URL"].value)'
    ```
 
-2. **Make sure language services are accessible:**
+2. **Make sure the furigana service is accessible:**
 
    ```bash
    # Either:
-   # - Run language services locally
-   # - Or set FURIGANA_SERVICE_URL and PINYIN_SERVICE_URL to production endpoints
+   # - Run the furigana service locally
+   # - Or set FURIGANA_SERVICE_URL to the production endpoint
    ```
 
 3. **Run the migration:**
@@ -120,7 +119,7 @@ npm run backfill:metadata
 - ✅ **Resumable**: If it fails, just run it again
 - ✅ **Progress tracking**: Shows batch progress and overall statistics
 - ✅ **Error handling**: Continues processing even if some sentences fail
-- ✅ **Language detection**: Only processes Japanese and Chinese sentences
+- ✅ **Language detection**: Only processes Japanese sentences
 - ✅ **Batch processing**: Processes 10 sentences at a time for optimal performance
 
 ## Expected Output
@@ -158,7 +157,7 @@ npm run backfill:metadata
 
 **Error:** `Furigana service unavailable, using fallback`
 
-**Solution:** Make sure the furigana/pinyin microservices are running and accessible.
+**Solution:** Make sure the furigana service is running and accessible.
 
 ### Database connection issues
 

@@ -207,7 +207,7 @@ const CoursePage = () => {
                   showTranslations={showTranslations}
                   onToggleReadings={() => setShowReadings(!showReadings)}
                   onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                  readingsLabel={course.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
+                  readingsLabel="Furigana"
                 />
               </div>
             )}

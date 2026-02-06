@@ -16,7 +16,7 @@ interface CurrentTextDisplayProps {
  * - Only shows when L2 is actively speaking (currentUnit non-null)
  * - Large, prominent text display with subtle background
  * - Smooth fade-in/fade-out transition (200ms)
- * - Supports furigana (Japanese) and pinyin (Chinese) with toggle
+ * - Supports furigana (Japanese) with toggle
  */
 const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
   currentUnit,

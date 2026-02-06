@@ -9,7 +9,6 @@ import { LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
-import useEffectiveUser from '../../hooks/useEffectiveUser';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 
@@ -31,14 +30,13 @@ const CourseGenerator = () => {
   const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['audioCourse']);
   const { user } = useAuth(); // For role checking
-  const { effectiveUser } = useEffectiveUser(); // For language preferences
   const isDemo = useIsDemo();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
-  const [nativeLanguage, setNativeLanguage] = useState<LanguageCode>('en');
-  const [targetLanguage, setTargetLanguage] = useState<LanguageCode>('ja');
+  const nativeLanguage: LanguageCode = 'en';
+  const targetLanguage: LanguageCode = 'ja';
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
@@ -50,14 +48,6 @@ const CourseGenerator = () => {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
-
-  // Initialize from effective user preferences (respects impersonation)
-  useEffect(() => {
-    if (effectiveUser) {
-      setTargetLanguage(effectiveUser.preferredStudyLanguage || 'ja');
-      setNativeLanguage(effectiveUser.preferredNativeLanguage || 'en');
-    }
-  }, [effectiveUser]);
 
   // Show upgrade prompt when quota is exceeded
   useEffect(() => {
@@ -378,7 +368,6 @@ const CourseGenerator = () => {
               </p>
             </div>
           )}
-
         </div>
       </div>
 

@@ -3,7 +3,6 @@
   "subtitle": "Manage your account preferences",
   "tabs": {
     "profile": "Profile",
-    "language": "Language",
     "security": "Security",
     "billing": "Billing",
     "danger": "Danger Zone"
@@ -41,65 +40,6 @@
     "saveButton": "Save Changes",
     "saving": "Saving...",
     "cancelButton": "Cancel"
-  },
-  "language": {
-    "title": "Language Preferences",
-    "names": {
-      "en": "English",
-      "ja": "Japanese (日本語)",
-      "zh": "Mandarin Chinese (中文)",
-      "es": "Spanish (Español)",
-      "fr": "French (Français)",
-      "ar": "Arabic (العربية)"
-    },
-    "study": {
-      "label": "Study Language",
-      "helper": "Your primary target language for learning"
-    },
-    "native": {
-      "label": "Primary Language",
-      "helper": "Your first language, used for translations"
-    },
-    "proficiency": {
-      "jlpt": {
-        "label": "Current JLPT Level",
-        "helper": "This helps us generate content at the right difficulty level",
-        "n5": "N5 (Beginner)",
-        "n4": "N4 (Upper Beginner)",
-        "n3": "N3 (Intermediate)",
-        "n2": "N2 (Upper Intermediate)",
-        "n1": "N1 (Advanced)"
-      },
-      "hsk": {
-        "label": "Current HSK Level",
-        "helper": "This helps us generate content at the right difficulty level",
-        "hsk1": "HSK 1 (Beginner)",
-        "hsk2": "HSK 2 (Upper Beginner)",
-        "hsk3": "HSK 3 (Intermediate)",
-        "hsk4": "HSK 4 (Upper Intermediate)",
-        "hsk5": "HSK 5 (Advanced)",
-        "hsk6": "HSK 6 (Mastery)"
-      },
-      "cefr": {
-        "spanish": "Spanish Proficiency Level (CEFR)",
-        "french": "French Proficiency Level (CEFR)",
-        "arabic": "Arabic Proficiency Level (CEFR)",
-        "english": "English Proficiency Level (CEFR)",
-        "helper": "This helps us generate content at the right difficulty level",
-        "a1": "A1 - Beginner",
-        "a2": "A2 - Elementary",
-        "b1": "B1 - Intermediate",
-        "b2": "B2 - Upper Intermediate",
-        "c1": "C1 - Advanced",
-        "c2": "C2 - Mastery"
-      }
-    },
-    "pinyin": {
-      "label": "Pinyin Display Format",
-      "toneMarks": "Tone marks (nǐ hǎo)",
-      "toneNumbers": "Tone numbers (ni3 hao3)",
-      "helper": "Choose how pinyin is displayed above Chinese characters"
-    }
   },
   "security": {
     "title": "Change Password",
@@ -166,7 +106,7 @@
       },
       "button": "Delete My Account",
       "confirmTitle": "Delete Account",
-      "confirmMessage": "Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes, courses, narrow listening packs, and chunk packs.",
+      "confirmMessage": "Are you absolutely sure you want to delete your account? This action cannot be undone and will permanently delete all of your data including episodes and audio courses.",
       "confirmButton": "Yes, Delete My Account",
       "cancelButton": "Cancel"
     }

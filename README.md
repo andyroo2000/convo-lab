@@ -10,8 +10,6 @@ A modern, adult-friendly language-learning and dialogue-generation tool designed
 
 - **Dialogue Generation**: AI-powered natural dialogue creation from user input
 - **Audio Courses**: Multi-episode immersive audio courses (up to 15 minutes)
-- **Narrow Listening**: Focused listening practice with variations
-- **Lexical Chunk Packs**: Contextualized phrase learning with examples and exercises
 
 ### Learning Experience
 
@@ -176,11 +174,7 @@ To test subscription flows in local development:
 
 ## Language Support
 
-Currently supports Japanese with extensible architecture for:
-
-- Chinese (Mandarin)
-- Romance languages
-- Right-to-left languages
+Currently supports Japanese only.
 
 ## License
 

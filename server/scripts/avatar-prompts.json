@@ -7,13 +7,5 @@
     "male-polite": "Professional headshot portrait of a courteous Japanese man in his late 20s, warm smile, smart casual attire, clean background, respectful and thoughtful expression, natural lighting, photorealistic, upper body shot, passport photo style",
     "male-formal": "Professional headshot portrait of a professional Japanese businessman in his 30s, composed expression, formal business suit, neutral background, dignified and authoritative demeanor, studio lighting, photorealistic, upper body shot, passport photo style"
   },
-  "chinese": {
-    "female-casual": "Professional headshot portrait of a friendly young Chinese woman in her 20s, bright smile, modern casual clothing, natural lighting, soft focus background, cheerful and relaxed expression, photorealistic, upper body shot, passport photo style",
-    "female-polite": "Professional headshot portrait of a polite Chinese woman in her late 20s, gentle smile, business casual attire, clean background, graceful and respectful demeanor, natural soft lighting, photorealistic, upper body shot, passport photo style",
-    "female-formal": "Professional headshot portrait of a professional Chinese woman in her 30s, subtle smile, formal business attire, neutral background, poised and dignified expression, studio lighting, photorealistic, upper body shot, passport photo style",
-    "male-casual": "Professional headshot portrait of a friendly young Chinese man in his 20s, relaxed smile, casual modern clothing, natural lighting, soft background, laid-back and approachable demeanor, photorealistic, upper body shot, passport photo style",
-    "male-polite": "Professional headshot portrait of a courteous Chinese man in his late 20s, warm smile, smart casual attire, clean background, respectful and considerate expression, natural lighting, photorealistic, upper body shot, passport photo style",
-    "male-formal": "Professional headshot portrait of a professional Chinese businessman in his 30s, composed expression, formal business suit, neutral background, distinguished and authoritative demeanor, studio lighting, photorealistic, upper body shot, passport photo style"
-  },
   "negativePrompt": "blurry, low quality, distorted, cartoon, anime, illustration, painting, drawing, full body, legs, feet, multiple people, children, text, watermark"
 }

@@ -107,7 +107,6 @@ export interface Sentence {
 
 export interface LanguageMetadata {
   japanese?: JapaneseMetadata;
-  chinese?: ChineseMetadata;
   // Future languages can be added here
 }
 
@@ -115,12 +114,6 @@ export interface JapaneseMetadata {
   kanji: string;
   kana: string;
   furigana: string; // Bracket-style: 漢[かん]字[じ]
-}
-
-export interface ChineseMetadata {
-  characters: string;
-  pinyinToneMarks: string; // nǐ hǎo
-  pinyinToneNumbers: string; // ni3 hao3
 }
 
 export interface Image {
@@ -197,7 +190,6 @@ export interface Course {
   maxLessonDurationMinutes: number;
   l1VoiceId: string;
   jlptLevel?: string; // N5, N4, N3, N2, N1
-  hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender: 'male' | 'female';
   speaker2Gender: 'male' | 'female';
   createdAt: Date;
@@ -232,7 +224,14 @@ export interface CourseCoreItem {
 
 export type LessonScriptUnit =
   | { type: 'narration_L1'; text: string; voiceId: string }
-  | { type: 'L2'; text: string; reading?: string; translation?: string; voiceId: string; speed?: number }
+  | {
+      type: 'L2';
+      text: string;
+      reading?: string;
+      translation?: string;
+      voiceId: string;
+      speed?: number;
+    }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
 
@@ -247,7 +246,6 @@ export interface CreateCourseRequest {
   maxLessonDurationMinutes?: number;
   l1VoiceId?: string;
   jlptLevel?: string; // N5, N4, N3, N2, N1
-  hskLevel?: string; // HSK1, HSK2, HSK3, HSK4, HSK5, HSK6
   speaker1Gender?: 'male' | 'female';
   speaker2Gender?: 'male' | 'female';
   speaker1VoiceId?: string; // Specific voice ID for Speaker 1

@@ -1,3 +1,4 @@
+/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
 /**
  * Service for managing sample content for new users
  */
@@ -243,8 +244,6 @@ async function copySampleCourses(
           l1VoiceId: sampleCourse.l1VoiceId,
           l1VoiceProvider: sampleCourse.l1VoiceProvider,
           jlptLevel: sampleCourse.jlptLevel,
-          hskLevel: sampleCourse.hskLevel,
-          cefrLevel: sampleCourse.cefrLevel,
           speaker1Gender: sampleCourse.speaker1Gender,
           speaker2Gender: sampleCourse.speaker2Gender,
           speaker1VoiceId: sampleCourse.speaker1VoiceId,

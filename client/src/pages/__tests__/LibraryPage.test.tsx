@@ -5,6 +5,17 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import LibraryPage from '../LibraryPage';
 
+const mockUpdateUser = vi.fn();
+const mockUser = {
+  id: 'user-1',
+  name: 'Test User',
+  email: 'test@example.com',
+  onboardingCompleted: false,
+  seenSampleContentGuide: false,
+  preferredStudyLanguage: 'ja',
+  preferredNativeLanguage: 'en',
+};
+
 // Mock hooks
 vi.mock('../../hooks/useLibraryData', () => ({
   useLibraryData: () => ({
@@ -33,6 +44,13 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
     error: null,
     isFeatureEnabled: () => true,
     isAdmin: false,
+  }),
+}));
+
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: mockUser,
+    updateUser: mockUpdateUser,
   }),
 }));
 
@@ -107,7 +125,7 @@ describe('LibraryPage', () => {
       renderLibraryPage();
 
       const dialoguesButton = screen.getByTestId('library-filter-dialogues');
-      expect(dialoguesButton).toHaveClass('px-3', 'sm:px-4', 'py-1.5', 'sm:py-2', 'rounded-full');
+      expect(dialoguesButton).toHaveClass('px-3', 'sm:px-4', 'py-3.5', 'sm:py-2', 'rounded-full');
     });
 
     it('should display empty state message when no content exists', () => {
