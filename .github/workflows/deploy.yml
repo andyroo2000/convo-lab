@@ -110,7 +110,7 @@ jobs:
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
-            docker-compose -f docker-compose.prod.yml --env-file .env.production down
+            docker-compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
