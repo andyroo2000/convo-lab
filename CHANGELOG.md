@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Chunk loading errors after deployments — added proper cache headers to prevent service worker from caching stale references to old chunk files; Express now sets `no-cache` on index.html/service worker/manifest, caches hashed assets immutably, and uses `NetworkFirst` strategy for JS/CSS chunks; added global error handler and ErrorBoundary logic to detect chunk loading failures and prompt hard reload
 - **[fix]** Type-safety harness skips already-closed cards — checks beads DB status before spawning sessions so completed work isn't re-processed
 - **[fix]** Type-safety harness post-session verification — harness now verifies files are actually clean (0 `any` types) after a session reports success, and directly closes beads cards via SQLite if the Claude session failed to; iterator exhaustion no longer optimistically returns success
 - **[chore]** Closed 28 completed type-safety cards that had 0 `any` types remaining but were never closed by harness sessions
