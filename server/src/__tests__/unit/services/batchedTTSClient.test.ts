@@ -141,14 +141,30 @@ describe('batchedTTSClient', () => {
       expect(batches[0].units).toHaveLength(2);
     });
 
-    it('should use text field for TTS (reading is for display only)', () => {
+    it('should use Japanese reading for TTS when available', () => {
       const units: LessonScriptUnit[] = [
-        { type: 'L2', text: '漢字', reading: 'かんじ', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
+        {
+          type: 'L2',
+          text: '漢字',
+          reading: '漢字[かんじ]',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
       ];
 
       const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
 
-      // Reading field is for display only, TTS uses the text field
+      // Use furigana reading for Japanese TTS
+      expect(batches[0].units[0].text).toBe('かんじ');
+    });
+
+    it('should keep text field for non-Japanese target language', () => {
+      const units: LessonScriptUnit[] = [
+        { type: 'L2', text: '漢字', reading: 'かんじ', voiceId: 'en-US-Neural2-A', speed: 1.0 },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'en-US');
+
       expect(batches[0].units[0].text).toBe('漢字');
     });
 

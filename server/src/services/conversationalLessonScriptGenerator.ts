@@ -20,9 +20,16 @@ export interface GeneratedConversationalScript {
  * Generate a Pimsleur-style conversational lesson script
  * Follows the format: scenario setup → dialogue exchange → vocabulary breakdown → build up response → next exchange
  */
+const REVIEW_ANTICIPATION_SECONDS = 5.0;
+const REVIEW_REPEAT_PAUSE_SECONDS = 2.5;
+const REVIEW_SLOW_SPEED = 0.85;
+const MIN_DURATION_RATIO = 0.9;
+const MAX_REVIEW_ROUNDS = 5;
+
 export async function generateConversationalLessonScript(
   exchanges: DialogueExchange[],
-  context: ConversationalScriptContext
+  context: ConversationalScriptContext,
+  targetDurationSeconds?: number
 ): Promise<GeneratedConversationalScript> {
   // eslint-disable-next-line no-console
   console.log('🚀 Generating conversational Pimsleur-style lesson script...');
@@ -113,14 +120,36 @@ Write only the scenario setup, no additional formatting:`;
   );
   totalSeconds += 10;
 
+  let finalUnits = units;
+  let finalSeconds = totalSeconds;
+
+  if (
+    targetDurationSeconds &&
+    finalSeconds < targetDurationSeconds * MIN_DURATION_RATIO &&
+    exchanges.length > 0
+  ) {
+    const padded = padScriptToTargetDuration(units, exchanges, context, targetDurationSeconds);
+    finalUnits = padded.units;
+    finalSeconds = padded.estimatedDurationSeconds;
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `⏱️  Added ${padded.reviewRounds} review round(s) to reach target duration (${Math.round(
+        targetDurationSeconds / 60
+      )} min)`
+    );
+  }
+
   // eslint-disable-next-line no-console
   console.log(
-    `✅ Generated conversational script with ${units.length} units, ~${Math.round(totalSeconds / 60)} minutes`
+    `✅ Generated conversational script with ${finalUnits.length} units, ~${Math.round(
+      finalSeconds / 60
+    )} minutes`
   );
 
   return {
-    units,
-    estimatedDurationSeconds: totalSeconds,
+    units: finalUnits,
+    estimatedDurationSeconds: Math.round(finalSeconds),
   };
 }
 
@@ -575,4 +604,92 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
   }
 
   return duration;
+}
+
+function padScriptToTargetDuration(
+  units: LessonScriptUnit[],
+  exchanges: DialogueExchange[],
+  context: ConversationalScriptContext,
+  targetDurationSeconds: number
+): { units: LessonScriptUnit[]; estimatedDurationSeconds: number; reviewRounds: number } {
+  if (exchanges.length === 0) {
+    return { units, estimatedDurationSeconds: estimateUnitsDuration(units), reviewRounds: 0 };
+  }
+
+  const baseSeconds = estimateUnitsDuration(units);
+  if (baseSeconds >= targetDurationSeconds * MIN_DURATION_RATIO) {
+    return { units, estimatedDurationSeconds: baseSeconds, reviewRounds: 0 };
+  }
+
+  const reviewRound = buildReviewRoundUnits(exchanges, context, 1);
+  const reviewSeconds = estimateUnitsDuration(reviewRound);
+  if (reviewSeconds <= 0) {
+    return { units, estimatedDurationSeconds: baseSeconds, reviewRounds: 0 };
+  }
+
+  const missingSeconds = targetDurationSeconds - baseSeconds;
+  const requiredRounds = Math.max(1, Math.ceil(missingSeconds / reviewSeconds));
+  const roundsToAdd = Math.min(MAX_REVIEW_ROUNDS, requiredRounds);
+
+  const paddedUnits = [...units];
+  for (let round = 1; round <= roundsToAdd; round++) {
+    paddedUnits.push(...buildReviewRoundUnits(exchanges, context, round));
+  }
+
+  const finalSeconds = estimateUnitsDuration(paddedUnits);
+
+  return {
+    units: paddedUnits,
+    estimatedDurationSeconds: finalSeconds,
+    reviewRounds: roundsToAdd,
+  };
+}
+
+function buildReviewRoundUnits(
+  exchanges: DialogueExchange[],
+  context: ConversationalScriptContext,
+  roundNumber: number
+): LessonScriptUnit[] {
+  const units: LessonScriptUnit[] = [];
+
+  units.push(
+    { type: 'marker', label: `Review Round ${roundNumber}` },
+    {
+      type: 'narration_L1',
+      text: "Let's review some key phrases.",
+      voiceId: context.l1VoiceId,
+    },
+    { type: 'pause', seconds: 1.0 }
+  );
+
+  for (const exchange of exchanges) {
+    units.push(
+      {
+        type: 'narration_L1',
+        text: normalizeNarratorText(`How do you say: "${exchange.translationL1}"?`),
+        voiceId: context.l1VoiceId,
+      },
+      { type: 'pause', seconds: REVIEW_ANTICIPATION_SECONDS },
+      {
+        type: 'L2',
+        text: exchange.textL2,
+        reading: exchange.readingL2 || undefined,
+        translation: exchange.translationL1,
+        voiceId: exchange.speakerVoiceId,
+        speed: REVIEW_SLOW_SPEED,
+      },
+      { type: 'pause', seconds: REVIEW_REPEAT_PAUSE_SECONDS },
+      {
+        type: 'L2',
+        text: exchange.textL2,
+        reading: exchange.readingL2 || undefined,
+        translation: exchange.translationL1,
+        voiceId: exchange.speakerVoiceId,
+        speed: 1.0,
+      },
+      { type: 'pause', seconds: REVIEW_REPEAT_PAUSE_SECONDS }
+    );
+  }
+
+  return units;
 }

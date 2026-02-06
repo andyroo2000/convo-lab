@@ -9,6 +9,7 @@ import { prisma } from '../db/client.js';
 import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
 import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
 import { extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
+import { addReadingBrackets } from '../services/furiganaService.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
 
 const connection = createRedisConnection();
@@ -152,34 +153,52 @@ async function processCourseGeneration(job: {
       l2VoiceIds[exchange.speakerName] = exchange.speakerVoiceId;
     }
 
-    const generatedScript = await generateConversationalLessonScript(dialogueExchanges, {
-      episodeTitle: firstEpisode.title,
-      targetLanguage: course.targetLanguage,
-      nativeLanguage: course.nativeLanguage,
-      l1VoiceId: course.l1VoiceId,
-      l2VoiceIds,
-      jlptLevel: course.jlptLevel || undefined,
-    });
+    const generatedScript = await generateConversationalLessonScript(
+      dialogueExchanges,
+      {
+        episodeTitle: firstEpisode.title,
+        targetLanguage: course.targetLanguage,
+        nativeLanguage: course.nativeLanguage,
+        l1VoiceId: course.l1VoiceId,
+        l2VoiceIds,
+        jlptLevel: course.jlptLevel || undefined,
+      },
+      course.maxLessonDurationMinutes * 60
+    );
 
     console.log(`Generated conversational script with ${generatedScript.units.length} units`);
     await job.updateProgress(60);
+
+    // STEP 3.25: Proofread the generated script
+    console.log('Proofreading generated script...');
+    let scriptUnits = generatedScript.units;
+    const proofResult = await proofreadScript(scriptUnits, course.jlptLevel || undefined);
+    console.log(
+      `Proofreading score: ${proofResult.score}/10, issues: ${proofResult.issues.length}`
+    );
+
+    // Normalize Japanese readings for display + TTS
+    if (course.targetLanguage === 'ja') {
+      console.log('Normalizing Japanese readings with furigana service...');
+      scriptUnits = await Promise.all(
+        scriptUnits.map(async (unit) => {
+          if (unit.type !== 'L2' || !unit.text.trim()) {
+            return unit;
+          }
+          const reading = await addReadingBrackets(unit.text, 'ja');
+          return { ...unit, reading };
+        })
+      );
+    }
 
     // Update course with script (flattened from lesson)
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptJson: generatedScript.units as unknown as Prisma.JsonValue,
+        scriptJson: scriptUnits as unknown as Prisma.JsonValue,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });
-
-    // STEP 3.25: Proofread the generated script
-    console.log('Proofreading generated script...');
-    const proofResult = await proofreadScript(
-      generatedScript.units,
-      course.jlptLevel || undefined
-    );
-    console.log(`Proofreading score: ${proofResult.score}/10, issues: ${proofResult.issues.length}`);
 
     // STEP 3.5: Extract vocabulary from dialogue exchanges and map to script units
     console.log('Extracting vocabulary from dialogue exchanges...');
@@ -201,7 +220,7 @@ async function processCourseGeneration(job: {
           // Search for an L2 unit that:
           // 1. Contains this vocabulary word
           // 2. Is NOT just the vocabulary word itself (must be longer)
-          const unitIndex = generatedScript.units.findIndex(
+          const unitIndex = scriptUnits.findIndex(
             (unit: { type: string; text?: string }) =>
               unit.type === 'L2' &&
               unit.text &&
@@ -211,7 +230,7 @@ async function processCourseGeneration(job: {
 
           if (unitIndex !== -1) {
             sourceUnitIndex = unitIndex;
-            const unit = generatedScript.units[unitIndex];
+            const unit = scriptUnits[unitIndex];
             const unitText = 'text' in unit ? unit.text : '';
             console.log(
               `Found vocab "${vocab.textL2}" in sentence unit ${unitIndex}: "${unitText}"`
@@ -255,7 +274,7 @@ async function processCourseGeneration(job: {
 
     const assembledAudio = await assembleLessonAudio({
       lessonId: course.id, // Using courseId (lessonId parameter name kept for backward compatibility)
-      scriptUnits: generatedScript.units,
+      scriptUnits,
       targetLanguage: course.targetLanguage,
       nativeLanguage: course.nativeLanguage,
       onProgress: (current, total) => {
