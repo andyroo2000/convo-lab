@@ -11,6 +11,7 @@ const workerEventHandlers = vi.hoisted(
 const mockExtractDialogueExchangesFromSourceText = vi.hoisted(() => vi.fn());
 const mockGenerateConversationalLessonScript = vi.hoisted(() => vi.fn());
 const mockAssembleLessonAudio = vi.hoisted(() => vi.fn());
+const mockAddReadingBrackets = vi.hoisted(() => vi.fn());
 const mockPrisma = vi.hoisted(() => ({
   course: {
     findUnique: vi.fn(),
@@ -84,6 +85,10 @@ vi.mock('../../../services/lessonScriptGenerator.js', () => ({
 
 vi.mock('../../../services/conversationalLessonScriptGenerator.js', () => ({
   generateConversationalLessonScript: mockGenerateConversationalLessonScript,
+}));
+
+vi.mock('../../../services/furiganaService.js', () => ({
+  addReadingBrackets: mockAddReadingBrackets,
 }));
 
 vi.mock('../../../services/audioCourseAssembler.js', () => ({
@@ -197,6 +202,7 @@ describe('courseQueue', () => {
     mockExtractDialogueExchangesFromSourceText.mockResolvedValue(mockDialogueExchanges);
     mockGenerateConversationalLessonScript.mockResolvedValue(mockGeneratedScript);
     mockAssembleLessonAudio.mockResolvedValue(mockAssembledAudio);
+    mockAddReadingBrackets.mockImplementation(async (text: string) => text);
   });
 
   describe('queue setup', () => {
@@ -298,7 +304,8 @@ describe('courseQueue', () => {
           nativeLanguage: 'en',
           l1VoiceId: 'en-US-Neural2-D',
           jlptLevel: 'N4',
-        })
+        }),
+        900
       );
     });
 
