@@ -145,7 +145,7 @@ async function fixFuriganaErrors() {
     console.log(`   - Total sentences: ${totalSentences}`);
     console.log(`   - Fixed: ${fixed}`);
     console.log(`   - Unchanged: ${unchanged}`);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Fix failed:', error);
     throw error;
   } finally {
@@ -158,7 +158,7 @@ fixFuriganaErrors()
     console.log('\n🎉 Done!');
     process.exit(0);
   })
-  .catch((error) => {
+  .catch((error: unknown) => {
     console.error('\n💥 Error:', error);
     process.exit(1);
   });

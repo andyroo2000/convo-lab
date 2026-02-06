@@ -1,5 +1,8 @@
+/* eslint-disable no-console */
 import Stripe from 'stripe';
+
 import { prisma } from '../db/client.js';
+
 import {
   sendSubscriptionConfirmedEmail,
   sendPaymentFailedEmail,
@@ -10,11 +13,27 @@ if (!process.env.STRIPE_SECRET_KEY) {
   console.warn('STRIPE_SECRET_KEY not set - Stripe functionality will not work');
 }
 
+const STRIPE_API_VERSION = '2024-12-18.acacia';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: '2024-12-18.acacia' as any,
+  apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
 });
 
 const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+type SubscriptionPeriodFields = {
+  current_period_start: number;
+  current_period_end: number;
+};
+
+const getSubscriptionPeriodFields = (
+  subscription: Stripe.Subscription
+): SubscriptionPeriodFields => {
+  const { current_period_start, current_period_end } = subscription as Stripe.Subscription &
+    SubscriptionPeriodFields;
+
+  return { current_period_start, current_period_end };
+};
 
 /**
  * Create a Stripe checkout session for subscription
@@ -109,6 +128,7 @@ export async function createCustomerPortalSession(userId: string): Promise<{ url
 export async function handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
   const _customerId = subscription.customer as string;
   const { userId } = subscription.metadata;
+  const { current_period_start, current_period_end } = getSubscriptionPeriodFields(subscription);
 
   if (!userId) {
     console.error('No userId in subscription metadata');
@@ -127,8 +147,8 @@ export async function handleSubscriptionCreated(subscription: Stripe.Subscriptio
       stripeSubscriptionId: subscription.id,
       stripeSubscriptionStatus: subscription.status,
       stripePriceId: priceId,
-      subscriptionStartedAt: new Date((subscription as any).current_period_start * 1000),
-      subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
+      subscriptionStartedAt: new Date(current_period_start * 1000),
+      subscriptionExpiresAt: new Date(current_period_end * 1000),
       subscriptionCanceledAt: null,
     },
   });
@@ -162,6 +182,7 @@ export async function handleSubscriptionCreated(subscription: Stripe.Subscriptio
  */
 export async function handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {
   const { userId } = subscription.metadata;
+  const { current_period_end } = getSubscriptionPeriodFields(subscription);
 
   if (!userId) {
     // Try to find user by customer ID
@@ -185,10 +206,10 @@ export async function handleSubscriptionUpdated(subscription: Stripe.Subscriptio
     data: {
       stripeSubscriptionStatus: subscription.status,
       stripePriceId: priceId,
-      subscriptionExpiresAt: new Date((subscription as any).current_period_end * 1000),
+      subscriptionExpiresAt: new Date(current_period_end * 1000),
       // If subscription was canceled, mark when it will end
-      ...((subscription as any).cancel_at_period_end && {
-        subscriptionCanceledAt: new Date((subscription as any).current_period_end * 1000),
+      ...(subscription.cancel_at_period_end && {
+        subscriptionCanceledAt: new Date(current_period_end * 1000),
       }),
     },
   });

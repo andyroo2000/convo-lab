@@ -276,6 +276,18 @@ If you CANNOT fix all \`any\` types (tsc fails, etc.):
 
 // ─── Post-Session Verification ──────────────────────────────────────────────
 
+function getCardStatus(cardId: string): string | null {
+  const dbPath = join(PROJECT_ROOT, '.beads', 'beads.db');
+  try {
+    return execFileSync('sqlite3', [
+      dbPath,
+      `SELECT status FROM issues WHERE id='${cardId}'`,
+    ], { encoding: 'utf-8' }).trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function countRemainingAny(file: string): number {
   try {
     const result = execFileSync('grep', [
@@ -557,6 +569,17 @@ async function main() {
   }
   if (options.categoryFilter) {
     tasks = tasks.filter((t) => t.category === options.categoryFilter);
+  }
+
+  // Filter out already-closed cards (no need to spawn sessions for completed work)
+  const beforeFilter = tasks.length;
+  tasks = tasks.filter((t) => {
+    const status = getCardStatus(t.cardId);
+    return status === 'open' || status === 'in_progress';
+  });
+  const skippedClosed = beforeFilter - tasks.length;
+  if (skippedClosed > 0) {
+    console.log(`⏭️  Skipping ${skippedClosed} already-closed card(s)\n`);
   }
 
   // Sort by anyCount ascending (quick wins first)

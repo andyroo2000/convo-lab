@@ -91,7 +91,7 @@ async function main() {
         console.log('\nWaiting 1 second before next generation...');
         await new Promise((resolve) => setTimeout(resolve, 1000));
       }
-    } catch (error) {
+    } catch (error: unknown) {
       failCount++;
       console.error(`\nSkipping ${config.filename} due to error\n`);
     }
