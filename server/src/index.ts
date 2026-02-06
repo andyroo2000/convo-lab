@@ -1,24 +1,27 @@
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
+/* eslint-disable import/no-named-as-default-member */
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import express from 'express';
+
 import passport from './config/passport.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import { requestLogger } from './middleware/requestLogger.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
-import authRoutes from './routes/auth.js';
-import verificationRoutes from './routes/verification.js';
-import billingRoutes from './routes/billing.js';
-import episodeRoutes from './routes/episodes.js';
-import dialogueRoutes from './routes/dialogue.js';
-import audioRoutes from './routes/audio.js';
-import imageRoutes from './routes/images.js';
-import courseRoutes from './routes/courses.js';
+import { errorHandler } from './middleware/errorHandler.js';
+import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
+import audioRoutes from './routes/audio.js';
+import authRoutes from './routes/auth.js';
+import billingRoutes from './routes/billing.js';
+import courseRoutes from './routes/courses.js';
+import dialogueRoutes from './routes/dialogue.js';
+import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
+import imageRoutes from './routes/images.js';
+import verificationRoutes from './routes/verification.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
 
@@ -111,10 +114,43 @@ app.use('/api/feature-flags', featureFlagRoutes);
 if (process.env.NODE_ENV === 'production') {
   // In production, client files are at /app/public/client
   const clientPath = path.join('/app/public/client');
-  app.use(express.static(clientPath));
+
+  // Serve static files with proper cache headers
+  app.use(
+    express.static(clientPath, {
+      setHeaders: (res, filepath) => {
+        // Don't cache index.html, service worker, or manifest - always revalidate
+        if (
+          filepath.endsWith('index.html') ||
+          filepath.includes('sw.js') ||
+          filepath.includes('workbox') ||
+          filepath.endsWith('manifest.webmanifest') ||
+          filepath.endsWith('manifest.json')
+        ) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+        // Cache hashed assets forever (they have content hashes in filenames)
+        else if (
+          filepath.match(/\.[a-f0-9]{8,}\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico|webp)$/i)
+        ) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+        // Cache other assets for 1 hour
+        else {
+          res.setHeader('Cache-Control', 'public, max-age=3600');
+        }
+      },
+    })
+  );
 
   // Handle client-side routing - return index.html for all non-API routes
   app.get('*', (req, res) => {
+    // Always send fresh index.html with no-cache headers
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.sendFile(path.join(clientPath, 'index.html'));
   });
 }
@@ -123,17 +159,21 @@ if (process.env.NODE_ENV === 'production') {
 app.use(errorHandler);
 
 app.listen(PORT, () => {
+  // eslint-disable-next-line no-console
   console.log(`🚀 LanguageFlow Studio server running on http://localhost:${PORT}`);
+  // eslint-disable-next-line no-console
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
+  // eslint-disable-next-line no-console
   console.log('SIGTERM received, shutting down gracefully...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
+  // eslint-disable-next-line no-console
   console.log('SIGINT received, shutting down gracefully...');
   process.exit(0);
 });
