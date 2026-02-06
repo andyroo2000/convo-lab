@@ -9,7 +9,7 @@
     "course": {
       "title": "Audio Course",
       "description": "Audio-only lessons built from your dialogues—perfect for your commute or morning walk"
-    },
+    }
   },
   "buttons": {
     "create": "Create",
