@@ -345,11 +345,15 @@ function extractLanguageCodeFromVoice(voiceId: string, fallbackCode: string): st
  * Based on empirical analysis, marks consistently fire 0.5-1.5 seconds late.
  * This correction helps align splits with actual speech boundaries.
  */
-function applyTimingCorrection(markTime: number): number {
+function applyStartTimingCorrection(markTime: number): number {
   // With <break> tags between units, marks fire during silence gaps.
   // Small correction to split slightly before the mark (into trailing silence of prev unit).
-  const correctedTime = Math.max(0, markTime - 0.1);
-  return correctedTime;
+  return Math.max(0, markTime - 0.1);
+}
+
+function applyEndTimingCorrection(markTime: number, totalDuration: number): number {
+  // Keep the end aligned to the next mark to avoid trimming trailing syllables.
+  return Math.min(totalDuration, markTime);
 }
 
 /**
@@ -388,13 +392,13 @@ async function splitAudioAtTimepoints(
     }
 
     // Apply timing correction to align with actual speech
-    let startTime = applyTimingCorrection(markTime);
+    let startTime = applyStartTimingCorrection(markTime);
 
     // End time is based on the next unit's mark (or end of audio)
     let endTime: number;
     if (i < batch.units.length - 1) {
       const nextMarkTime = timepointMap.get(batch.units[i + 1].markName) || totalDuration;
-      endTime = applyTimingCorrection(nextMarkTime);
+      endTime = applyEndTimingCorrection(nextMarkTime, totalDuration);
     } else {
       endTime = totalDuration;
     }
