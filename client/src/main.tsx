@@ -4,6 +4,30 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './styles/index.css';
 
+// Global error handler for chunk loading failures
+// This catches errors that might not be caught by ErrorBoundary
+window.addEventListener('error', (event) => {
+  const chunkFailedMessage =
+    /Failed to fetch dynamically imported module|Loading chunk.*failed|ChunkLoadError/i;
+  if (
+    chunkFailedMessage.test(event.message) ||
+    (event.error && chunkFailedMessage.test(event.error.message))
+  ) {
+    console.warn('Chunk loading error detected - likely due to new deployment. Prompting reload.');
+    event.preventDefault();
+
+    // Show a simple alert and reload
+    // eslint-disable-next-line no-alert
+    if (
+      window.confirm(
+        'A new version of ConvoLab is available. Reload now to get the latest updates?'
+      )
+    ) {
+      window.location.reload();
+    }
+  }
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
