@@ -61,6 +61,11 @@
     "harness:mobile": "npx ts-node scripts/mobile-harness.ts",
     "harness:mobile:dry-run": "npx ts-node scripts/mobile-harness.ts --dry-run",
     "harness:mobile:responsive": "npx ts-node scripts/mobile-harness.ts --responsive-only",
+    "harness:type-safety": "npx ts-node scripts/type-safety-harness.ts",
+    "harness:type-safety:dry-run": "npx ts-node scripts/type-safety-harness.ts --dry-run",
+    "harness:type-safety:source": "npx ts-node scripts/type-safety-harness.ts --category source",
+    "harness:type-safety:tests": "npx ts-node scripts/type-safety-harness.ts --category test",
+    "harness:type-safety:scripts": "npx ts-node scripts/type-safety-harness.ts --category script",
     "kanban": "cd tools/kanban && npm install --silent && npx tsx server.ts",
     "prepare": "husky"
   },

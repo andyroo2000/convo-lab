@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[chore]** Type safety harness (`scripts/type-safety-harness.ts`) — autonomous Claude Agent SDK harness that removes `any` types from 86 files in parallel; two-pass strategy (Sonnet first, Opus auto-retry for failures); beads integration for card coordination (claim/close/revert); supports `--concurrency`, `--category`, `--file`, `--no-retry`, `--dry-run` flags; created 86 beads chore cards under epic `convo-lab-7oj` tracking 314 `any` occurrences across the codebase
+
 ### Fixed
 
 - **[fix]** Fixed deploy health check failure caused by incorrect table name in japanese_only_cleanup migration — `"FeatureFlag"` should be `"feature_flags"` (Prisma `@@map`); also added `prisma migrate resolve --rolled-back` to Dockerfile CMD to recover from failed migration state in production
