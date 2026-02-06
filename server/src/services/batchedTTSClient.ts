@@ -152,8 +152,11 @@ function normalizeJapaneseReading(reading: string): string {
 }
 
 function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): string {
-  if (unit.type !== 'L2') {
+  if (unit.type === 'narration_L1') {
     return unit.text;
+  }
+  if (unit.type !== 'L2') {
+    return '';
   }
 
   const useJapaneseReading = targetLanguageCode.toLowerCase().startsWith('ja');
