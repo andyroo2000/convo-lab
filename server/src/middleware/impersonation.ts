@@ -1,7 +1,9 @@
-import { Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
+
+import { prisma } from '../db/client.js';
+
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
-import { prisma } from '../db/client.js';
 
 /**
  * Get the effective user ID for a request.
@@ -11,7 +13,8 @@ import { prisma } from '../db/client.js';
  * This enables admin impersonation for QA purposes.
  */
 export async function getEffectiveUserId(req: AuthRequest): Promise<string> {
-  const viewAsUserId = req.query.viewAs as string;
+  const viewAsParam = req.query.viewAs;
+  const viewAsUserId = typeof viewAsParam === 'string' ? viewAsParam : undefined;
 
   if (viewAsUserId) {
     // Verify requester is authenticated
@@ -92,7 +95,7 @@ export async function getAuditLogs(params: {
 }) {
   const { adminUserId, action, startDate, endDate, limit = 50, offset = 0 } = params;
 
-  const where: any = {};
+  const where: Prisma.AdminAuditLogWhereInput = {};
 
   if (adminUserId) where.adminUserId = adminUserId;
   if (action) where.action = action;

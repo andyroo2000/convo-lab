@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import type { LanguageMetadata } from '../src/services/languageProcessor.js';
 
 const userIdArg = process.argv.find((arg) => arg.startsWith('--user-id='));
 const userId = userIdArg ? userIdArg.split('=')[1] : undefined;
@@ -57,7 +58,7 @@ async function backfillDialogueFurigana() {
       for (const sentence of episode.dialogue.sentences) {
         totalSentences++;
 
-        const metadata = sentence.metadata as any;
+        const metadata = sentence.metadata as LanguageMetadata;
 
         // Check if furigana already has brackets (properly generated)
         if (

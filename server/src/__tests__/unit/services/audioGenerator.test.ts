@@ -32,7 +32,11 @@ const mockFfmpeg = vi.hoisted(() => {
     audioBitrate: vi.fn().mockReturnThis(),
     audioFrequency: vi.fn().mockReturnThis(),
     audioChannels: vi.fn().mockReturnThis(),
-    on: vi.fn().mockImplementation(function (this: any, event: string, callback: any) {
+    on: vi.fn().mockImplementation(function (
+      this: typeof mockInstance,
+      event: string,
+      callback: () => void
+    ) {
       if (event === 'end') {
         setTimeout(() => callback(), 0);
       }
@@ -41,11 +45,18 @@ const mockFfmpeg = vi.hoisted(() => {
     run: vi.fn(),
   };
   const ffmpegFn = vi.fn(() => mockInstance);
-  (ffmpegFn as any).ffprobe = vi.fn((path, cb) => {
+  (
+    ffmpegFn as unknown as {
+      ffprobe: (
+        path: string,
+        cb: (err: unknown, data: { format: { duration: number } }) => void
+      ) => void;
+    }
+  ).ffprobe = vi.fn((path, cb) => {
     cb(null, { format: { duration: 2.5 } }); // 2.5 seconds
   });
-  (ffmpegFn as any).setFfprobePath = vi.fn();
-  (ffmpegFn as any).setFfmpegPath = vi.fn();
+  (ffmpegFn as unknown as { setFfprobePath: (path: string) => void }).setFfprobePath = vi.fn();
+  (ffmpegFn as unknown as { setFfmpegPath: (path: string) => void }).setFfmpegPath = vi.fn();
   return { ffmpegFn, mockInstance };
 });
 const mockFs = vi.hoisted(() => ({
@@ -411,7 +422,7 @@ describe('audioGenerator', () => {
       await generateEpisodeAudio({
         episodeId: 'episode-123',
         dialogueId: 'dialogue-123',
-        speed: 'unknown' as any,
+        speed: 'unknown' as unknown as 'slow' | 'medium' | 'normal',
       });
 
       expect(mockSynthesizeSpeech.mock.calls[0][0].speed).toBe(1.0);

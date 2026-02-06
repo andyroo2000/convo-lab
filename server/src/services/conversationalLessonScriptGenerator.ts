@@ -1,5 +1,5 @@
-import { generateWithGemini } from './geminiClient.js';
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
+import { generateWithGemini } from './geminiClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 
 interface ConversationalScriptContext {
@@ -24,6 +24,7 @@ export async function generateConversationalLessonScript(
   exchanges: DialogueExchange[],
   context: ConversationalScriptContext
 ): Promise<GeneratedConversationalScript> {
+  // eslint-disable-next-line no-console
   console.log('🚀 Generating conversational Pimsleur-style lesson script...');
 
   const units: LessonScriptUnit[] = [];
@@ -84,6 +85,7 @@ Write only the scenario setup, no additional formatting:`;
     const exchange = exchanges[i];
     const isUserResponse = i % 2 === 1; // Alternate: other person asks, you respond
 
+    // eslint-disable-next-line no-console
     console.log(`  Processing exchange ${i + 1}/${exchanges.length}: ${exchange.speakerName}`);
 
     if (isUserResponse) {
@@ -111,6 +113,7 @@ Write only the scenario setup, no additional formatting:`;
   );
   totalSeconds += 10;
 
+  // eslint-disable-next-line no-console
   console.log(
     `✅ Generated conversational script with ${units.length} units, ~${Math.round(totalSeconds / 60)} minutes`
   );
@@ -299,10 +302,30 @@ Return ONLY a JSON array (no markdown, no explanation):
       return [];
     }
 
-    return parsed.map((item: any) => ({
-      textL2: item.phrase || item.textL2 || item.text,
-      translation: item.translation,
-    }));
+    return parsed.map((item: unknown) => {
+      if (
+        typeof item === 'object' &&
+        item !== null &&
+        'translation' in item &&
+        typeof item.translation === 'string'
+      ) {
+        const obj = item as Record<string, unknown>;
+        const textL2 =
+          (typeof obj.phrase === 'string' && obj.phrase) ||
+          (typeof obj.textL2 === 'string' && obj.textL2) ||
+          (typeof obj.text === 'string' && obj.text) ||
+          '';
+        return {
+          textL2,
+          translation: item.translation,
+        };
+      }
+      // Fallback for malformed items
+      return {
+        textL2: '',
+        translation: '',
+      };
+    });
   } catch (err) {
     console.error('Failed to generate progressive phrase chunks:', err);
     return [];

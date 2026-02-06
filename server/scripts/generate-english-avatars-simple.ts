@@ -64,8 +64,9 @@ async function generateAndUploadAvatar(config: (typeof AVATAR_CONFIGS)[0]): Prom
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${config.filename}:`, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${config.filename}:`, message);
     throw error;
   }
 }

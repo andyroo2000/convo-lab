@@ -13,12 +13,12 @@ const isProd = process.env.NODE_ENV === 'production';
 const basePath = isProd ? '../dist/server/src' : '../src';
 
 const { prisma } = await import(`${basePath}/db/client.js`);
-const { processLanguageTextBatch } = await import(`${basePath}/services/languageProcessor.js`);
+const { processLanguageTextBatch, type LanguageMetadata } = await import(`${basePath}/services/languageProcessor.js`);
 
 interface SentenceWithEpisode {
   id: string;
   text: string;
-  metadata: any;
+  metadata: LanguageMetadata | null;
   dialogue: {
     episode: {
       targetLanguage: string;
@@ -95,7 +95,7 @@ async function backfillMetadata() {
 
       try {
         // Batch process all texts for Japanese
-        const metadataResults = new Map<number, any>();
+        const metadataResults = new Map<number, LanguageMetadata>();
         const texts = batch.map((item) => item.text);
         console.log(`  [BATCH] Processing ${texts.length} ja sentences in 1 call`);
 
@@ -116,7 +116,7 @@ async function backfillMetadata() {
           try {
             await prisma.sentence.update({
               where: { id: sentence.id },
-              data: { metadata: metadata as any },
+              data: { metadata },
             });
             batchUpdated++;
             updated++;

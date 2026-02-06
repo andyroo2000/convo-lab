@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -8,12 +8,12 @@ async function main() {
   ];
 
   for (const target of targets) {
-    const where: any = {
+    const where: Prisma.CourseWhereInput = {
       title: 'Travel & Transportation',
       targetLanguage: target.lang,
       isSampleContent: true,
     };
-    where[target.field] = target.level;
+    (where as Record<string, unknown>)[target.field] = target.level;
 
     const course = await prisma.course.findFirst({
       where,

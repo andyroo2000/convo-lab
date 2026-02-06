@@ -142,8 +142,8 @@ describe('Courses Route Logic', () => {
 
   describe('POST / - Create Course', () => {
     it('should require episodeId', () => {
-      const validateCreateCourse = (body: any): string | null => {
-        if (!body.episodeId) {
+      const validateCreateCourse = (body: unknown): string | null => {
+        if (!body || typeof body !== 'object' || !('episodeId' in body) || !body.episodeId) {
           return 'episodeId is required';
         }
         return null;

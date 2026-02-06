@@ -9,7 +9,14 @@ vi.mock('../../../services/courseItemExtractor.js', () => ({
   extractDialogueExchanges: vi.fn(),
 }));
 
-// Define CoreItem interface locally
+// Define CoreItem and PhraseComponent interfaces locally
+interface PhraseComponent {
+  textL2: string;
+  readingL2?: string;
+  translationL1: string;
+  order: number;
+}
+
 interface CoreItem {
   id: string;
   textL2: string;
@@ -19,7 +26,7 @@ interface CoreItem {
   sourceEpisodeId: string;
   sourceSentenceId: string;
   order: number;
-  components?: any[];
+  components?: PhraseComponent[];
 }
 
 // Factory function to create mock core items

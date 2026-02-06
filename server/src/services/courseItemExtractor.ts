@@ -1,7 +1,8 @@
-import { Episode, Sentence } from '@prisma/client';
+import { Episode, Sentence, Speaker } from '@prisma/client';
 
 import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
 import { generateWithGemini } from './geminiClient.js';
+import { LanguageMetadata } from './languageProcessor.js';
 import {
   sampleVocabulary,
   formatWordsForPrompt,
@@ -52,10 +53,8 @@ export interface VocabularyItem {
 }
 
 interface SentenceWithMetadata extends Sentence {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  speaker?: any;
+  metadata: LanguageMetadata;
+  speaker?: Speaker;
 }
 
 /**
@@ -147,8 +146,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
 
   if (targetLang === 'ja') {
     // Japanese-specific scoring
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const metadata = sentence.metadata as any;
+    const metadata = sentence.metadata;
 
     if (metadata?.japanese?.kanji) {
       // Count kanji characters (more complex than kana)
@@ -193,8 +191,7 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
  * Extract phonetic reading from sentence metadata
  */
 function extractReading(sentence: SentenceWithMetadata, targetLang: string): string | null {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const metadata = sentence.metadata as any;
+  const metadata = sentence.metadata;
 
   if (targetLang === 'ja' && metadata?.japanese?.kana) {
     return metadata.japanese.kana;
@@ -335,13 +332,22 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
 
         if (decomposition && decomposition.components) {
           results.push(
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            decomposition.components.map((comp: any) => ({
-              textL2: comp.textL2 || comp.text,
-              readingL2: comp.reading || comp.readingL2,
-              translationL1: comp.translation || comp.translationL1,
-              order: comp.order || 0,
-            }))
+            decomposition.components.map(
+              (comp: {
+                textL2?: string;
+                text?: string;
+                reading?: string;
+                readingL2?: string;
+                translation?: string;
+                translationL1?: string;
+                order?: number;
+              }) => ({
+                textL2: comp.textL2 || comp.text || '',
+                readingL2: comp.reading || comp.readingL2,
+                translationL1: comp.translation || comp.translationL1 || '',
+                order: comp.order || 0,
+              })
+            )
           );
         } else {
           // Fallback: return full phrase as single component
@@ -457,13 +463,22 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
     }
 
     // Convert to PhraseComponent format
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return parsed.map((comp: any) => ({
-      textL2: comp.textL2 || comp.text,
-      readingL2: comp.reading || comp.readingL2,
-      translationL1: comp.translation || comp.translationL1,
-      order: comp.order || 0,
-    }));
+    return parsed.map(
+      (comp: {
+        textL2?: string;
+        text?: string;
+        reading?: string;
+        readingL2?: string;
+        translation?: string;
+        translationL1?: string;
+        order?: number;
+      }) => ({
+        textL2: comp.textL2 || comp.text || '',
+        readingL2: comp.reading || comp.readingL2,
+        translationL1: comp.translation || comp.translationL1 || '',
+        order: comp.order || 0,
+      })
+    );
   } catch (err) {
     console.error('Failed to decompose phrase, using fallback:', err);
 
@@ -484,13 +499,10 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
  * This keeps each turn to one sentence/question for better Pimsleur pacing
  */
 async function splitLongSentences(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  sentences: (SentenceWithMetadata & { speaker: any })[],
+  sentences: (SentenceWithMetadata & { speaker: Speaker })[],
   targetLang: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): Promise<(SentenceWithMetadata & { speaker: any })[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result: (SentenceWithMetadata & { speaker: any })[] = [];
+): Promise<(SentenceWithMetadata & { speaker: Speaker })[]> {
+  const result: (SentenceWithMetadata & { speaker: Speaker })[] = [];
 
   for (const sentence of sentences) {
     // Check if sentence has multiple questions or statements
@@ -570,8 +582,7 @@ Return ONLY a JSON array (no markdown, no explanation):
  */
 export async function extractDialogueExchanges(
   episode: Episode & {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    dialogue: { sentences: (SentenceWithMetadata & { speaker: any })[] } | null;
+    dialogue: { sentences: (SentenceWithMetadata & { speaker: Speaker })[] } | null;
   },
   targetDurationMinutes: number = 15
 ): Promise<DialogueExchange[]> {

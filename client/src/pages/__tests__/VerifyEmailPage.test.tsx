@@ -30,7 +30,7 @@ vi.mock('../../contexts/AuthContext', () => ({
 }));
 
 // Mock global fetch
-global.fetch = vi.fn();
+global.fetch = vi.fn() as unknown as typeof fetch;
 
 function renderWithRouter(initialRoute = '/verify-email') {
   return render(
@@ -49,7 +49,7 @@ describe('VerifyEmailPage', () => {
     vi.clearAllMocks();
     // Reset mockUser to a fresh object
     mockUser = { id: '1', email: 'test@example.com', emailVerified: false };
-    (global.fetch as any).mockClear();
+    (global.fetch as ReturnType<typeof vi.fn>).mockClear();
   });
 
   afterEach(() => {
@@ -68,7 +68,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should successfully verify valid token', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Email verified successfully' }),
       });
@@ -90,7 +90,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should redirect to library after successful verification', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Email verified successfully' }),
       });
@@ -110,29 +110,34 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show error for invalid token', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid or expired verification token' }),
       });
 
       renderWithRouter('/verify-email/invalid-token');
 
-      await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith(
-          `${API_URL}/api/verification/invalid-token`,
-          { credentials: 'include' }
-        );
-      }, { timeout: 10000 });
+      await waitFor(
+        () => {
+          expect(global.fetch).toHaveBeenCalledWith(`${API_URL}/api/verification/invalid-token`, {
+            credentials: 'include',
+          });
+        },
+        { timeout: 10000 }
+      );
 
-      await waitFor(() => {
-        expect(screen.getByText('Verification Failed')).toBeInTheDocument();
-      }, { timeout: 10000 });
+      await waitFor(
+        () => {
+          expect(screen.getByText('Verification Failed')).toBeInTheDocument();
+        },
+        { timeout: 10000 }
+      );
 
       expect(screen.getByText('Invalid or expired verification token')).toBeInTheDocument();
     });
 
     it('should show error for expired token', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Token has expired' }),
       });
@@ -147,7 +152,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Network error'));
 
       renderWithRouter('/verify-email/network-fail-token');
 
@@ -161,7 +166,7 @@ describe('VerifyEmailPage', () => {
 
   describe('Resend Verification Email', () => {
     it('should show resend button when verification fails', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Token has expired' }),
       });
@@ -177,7 +182,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should successfully resend verification email', async () => {
-      (global.fetch as any)
+      (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: false,
           json: async () => ({ error: 'Token has expired' }),
@@ -207,7 +212,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show sending state while resending email', async () => {
-      (global.fetch as any)
+      (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: false,
           json: async () => ({ error: 'Token has expired' }),
@@ -233,7 +238,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should handle resend email errors', async () => {
-      (global.fetch as any)
+      (global.fetch as ReturnType<typeof vi.fn>)
         .mockResolvedValueOnce({
           ok: false,
           json: async () => ({ error: 'Token has expired' }),
@@ -285,7 +290,7 @@ describe('VerifyEmailPage', () => {
     it('should allow resending verification email from no-token state', async () => {
       mockUser.emailVerified = false;
 
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Verification email sent' }),
       });
@@ -303,7 +308,7 @@ describe('VerifyEmailPage', () => {
     it('should show error when resend fails in no-token state', async () => {
       mockUser.emailVerified = false;
 
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Server error' }),
       });
@@ -336,7 +341,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show success icon on successful verification', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Email verified successfully' }),
       });
@@ -354,7 +359,7 @@ describe('VerifyEmailPage', () => {
     });
 
     it('should show error icon on verification failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid token' }),
       });

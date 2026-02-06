@@ -1,4 +1,11 @@
+import Stripe from 'stripe';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import {
+  sendSubscriptionConfirmedEmail,
+  sendPaymentFailedEmail,
+  sendSubscriptionCanceledEmail,
+} from '../../../services/emailService.js';
 import {
   handleSubscriptionCreated,
   handleSubscriptionUpdated,
@@ -6,12 +13,6 @@ import {
   handleInvoicePaymentFailed,
 } from '../../../services/stripeService.js';
 import { mockPrisma } from '../../setup.js';
-
-import {
-  sendSubscriptionConfirmedEmail,
-  sendPaymentFailedEmail,
-  sendSubscriptionCanceledEmail,
-} from '../../../services/emailService.js';
 
 // Mock email service
 vi.mock('../../../services/emailService.js', () => ({
@@ -42,7 +43,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_start: Math.floor(Date.now() / 1000),
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({
         id: mockUserId,
@@ -99,7 +100,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         items: {
           data: [{ price: { id: mockPriceId } }],
         },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       await handleSubscriptionCreated(subscription);
 
@@ -121,7 +122,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
         cancel_at_period_end: false,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -147,7 +148,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
         cancel_at_period_end: false,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -182,7 +183,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: periodEnd,
         cancel_at_period_end: true,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -208,7 +209,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000),
         cancel_at_period_end: false,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
@@ -225,7 +226,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: { userId: mockUserId },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -271,7 +272,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: {}, // No userId
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -305,7 +306,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: {},
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
@@ -321,7 +322,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: { userId: mockUserId },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -351,7 +352,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const invoice = {
         id: 'inv_123',
         customer: mockCustomerId,
-      } as any;
+      } as unknown as Stripe.Invoice;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -375,7 +376,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const invoice = {
         id: 'inv_123',
         customer: mockCustomerId,
-      } as any;
+      } as unknown as Stripe.Invoice;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
@@ -389,7 +390,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
       const invoice = {
         id: 'inv_123',
         customer: mockCustomerId,
-      } as any;
+      } as unknown as Stripe.Invoice;
 
       mockPrisma.user.findUnique.mockResolvedValue({
         id: mockUserId,
@@ -416,7 +417,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000),
         cancel_at_period_end: false,
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -435,7 +436,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: {},
-      } as any;
+      } as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
@@ -455,7 +456,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000),
         cancel_at_period_end: false,
-      } as any;
+      } as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 

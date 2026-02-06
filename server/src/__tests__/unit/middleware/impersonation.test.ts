@@ -1,7 +1,11 @@
+import type { Socket } from 'net';
+
+import type { AdminAuditLog } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { AuthRequest } from '../../../middleware/auth.js';
-import { getEffectiveUserId, getAuditLogs } from '../../../middleware/impersonation.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { getEffectiveUserId, getAuditLogs } from '../../../middleware/impersonation.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -123,7 +127,7 @@ describe('Impersonation Middleware', () => {
         mockPrisma.user.findUnique
           .mockResolvedValueOnce({ role: 'admin' })
           .mockResolvedValueOnce({ id: 'target-user-123' });
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -137,7 +141,7 @@ describe('Impersonation Middleware', () => {
         mockPrisma.user.findUnique
           .mockResolvedValueOnce({ role: 'admin' })
           .mockResolvedValueOnce({ id: 'target-user-123' });
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -188,7 +192,7 @@ describe('Impersonation Middleware', () => {
 
       it('should log IP address from req.ip', async () => {
         mockReq.ip = '10.0.0.1';
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -203,8 +207,8 @@ describe('Impersonation Middleware', () => {
 
       it('should fallback to socket.remoteAddress if req.ip is undefined', async () => {
         mockReq.ip = undefined;
-        mockReq.socket = { remoteAddress: '172.16.0.1' } as any;
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockReq.socket = { remoteAddress: '172.16.0.1' } as unknown as Socket;
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -219,8 +223,8 @@ describe('Impersonation Middleware', () => {
 
       it('should use null for IP if neither source is available', async () => {
         mockReq.ip = undefined;
-        mockReq.socket = { remoteAddress: undefined } as any;
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockReq.socket = { remoteAddress: undefined } as unknown as Socket;
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -235,7 +239,7 @@ describe('Impersonation Middleware', () => {
 
       it('should log user-agent from headers', async () => {
         mockReq.headers = { 'user-agent': 'Chrome/91.0' };
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -250,7 +254,7 @@ describe('Impersonation Middleware', () => {
 
       it('should use null for user-agent if not present', async () => {
         mockReq.headers = {};
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 
@@ -267,7 +271,7 @@ describe('Impersonation Middleware', () => {
         mockReq.path = '/api/courses';
         mockReq.method = 'POST';
         mockReq.query = { viewAs: 'target-user-123', someParam: 'value' };
-        mockPrisma.adminAuditLog.create.mockResolvedValue({} as any);
+        mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
 

@@ -1,4 +1,5 @@
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import { Prisma } from '@prisma/client';
 import { Router } from 'express';
 
 import { prisma } from '../db/client.js';
@@ -154,8 +155,9 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
 
     // Get or create episode(s)
     let finalEpisodeIds: string[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let episodes: any[];
+    let episodes: Prisma.EpisodeGetPayload<{
+      include: { dialogue: true };
+    }>[];
 
     if (sourceText) {
       // Create a new episode from sourceText
@@ -167,6 +169,9 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
           targetLanguage,
           nativeLanguage,
           status: 'draft',
+        },
+        include: {
+          dialogue: true,
         },
       });
       finalEpisodeIds = [episode.id];

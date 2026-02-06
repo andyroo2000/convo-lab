@@ -70,8 +70,9 @@ async function main() {
 
       console.log(`✅ ${course.targetLanguage} ${level} - Reset and queued (Job #${job.id})`);
       successCount++;
-    } catch (error: any) {
-      console.log(`❌ ${course.targetLanguage} ${level} - Error: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.log(`❌ ${course.targetLanguage} ${level} - Error: ${message}`);
       errorCount++;
     }
 

@@ -50,8 +50,9 @@ async function generateAndSaveAvatar(config: (typeof AVATAR_CONFIGS)[0]): Promis
     await fs.writeFile(filePath, imageBuffer);
 
     console.log(`✓ Saved to: ${filePath}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${config.filename}:`, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${config.filename}:`, message);
     throw error;
   }
 }
@@ -69,7 +70,7 @@ async function main() {
     try {
       await generateAndSaveAvatar(config);
       successCount++;
-    } catch (error) {
+    } catch (error: unknown) {
       failCount++;
       console.error(`\nSkipping ${config.filename} due to error\n`);
     }

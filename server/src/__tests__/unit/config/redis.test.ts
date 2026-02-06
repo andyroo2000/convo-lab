@@ -1,12 +1,15 @@
+import { RedisOptions } from 'ioredis';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { Redis } from 'ioredis';
 import { createRedisConnection, defaultWorkerSettings } from '../../../config/redis.js';
 
 // Mock ioredis
 const mockRedisInstance = vi.fn();
 vi.mock('ioredis', () => ({
-  Redis: vi.fn().mockImplementation(function (this: any, config: any) {
+  Redis: vi.fn().mockImplementation(function (
+    this: { config: RedisOptions; disconnect: () => void },
+    config: RedisOptions
+  ) {
     this.config = config;
     this.disconnect = vi.fn();
     mockRedisInstance(config);

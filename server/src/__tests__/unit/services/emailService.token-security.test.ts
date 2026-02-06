@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -306,11 +307,9 @@ describe('Email Service - Token Security Tests', () => {
 
       // First request (token: old-token)
       await sendVerificationEmail(mockUserId, mockEmail, mockName);
-      const firstToken = 'old-token';
 
       // Second request (token: new-token) - should invalidate first
       await sendVerificationEmail(mockUserId, mockEmail, mockName);
-      const secondToken = 'new-token';
 
       // Verify deleteMany was called on second request
       expect(mockPrisma.emailVerificationToken.deleteMany).toHaveBeenCalledTimes(2);
@@ -362,7 +361,7 @@ describe('Email Service - Token Security Tests', () => {
             emails: {
               send: vi.fn().mockRejectedValue(new Error('Email service down')),
             },
-          }) as any
+          }) as unknown as InstanceType<typeof resendMock.Resend>
       );
 
       // In dev mode, should not throw (logs to console instead)

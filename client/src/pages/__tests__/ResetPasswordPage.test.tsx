@@ -16,7 +16,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock global fetch
-global.fetch = vi.fn();
+const mockFetch = vi.fn() as unknown as typeof fetch;
+global.fetch = mockFetch;
 
 function renderWithRouter(initialRoute = '/reset-password/test-token') {
   return render(
@@ -33,7 +34,7 @@ function renderWithRouter(initialRoute = '/reset-password/test-token') {
 describe('ResetPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockClear();
+    mockFetch.mockClear();
   });
 
   afterEach(() => {
@@ -43,7 +44,7 @@ describe('ResetPasswordPage', () => {
 
   describe('Token Validation', () => {
     it('should validate token on mount', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
       });
@@ -58,7 +59,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show loading state during validation', () => {
-      (global.fetch as any).mockImplementationOnce(
+      mockFetch.mockImplementationOnce(
         () => new Promise(() => {}) // Never resolves
       );
 
@@ -68,7 +69,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show form with email when token is valid', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
       });
@@ -85,7 +86,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show error for invalid token', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid or expired token' }),
       });
@@ -108,7 +109,7 @@ describe('ResetPasswordPage', () => {
 
   describe('Password Reset Form', () => {
     beforeEach(() => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
       });
@@ -165,7 +166,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should successfully reset password', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Password reset successfully' }),
       });
@@ -190,7 +191,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should call API with token and new password', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Password reset successfully' }),
       });
@@ -224,7 +225,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show loading state during submission', async () => {
-      (global.fetch as any).mockImplementationOnce(
+      mockFetch.mockImplementationOnce(
         () =>
           new Promise((resolve) => {
             setTimeout(resolve, 1000);
@@ -252,7 +253,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should redirect to login after successful reset', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Password reset successfully' }),
       });
@@ -295,7 +296,7 @@ describe('ResetPasswordPage', () => {
     it('should handle API errors gracefully', async () => {
       vi.useRealTimers(); // Ensure real timers are active after previous test
 
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Token already used' }),
       });
@@ -322,7 +323,7 @@ describe('ResetPasswordPage', () => {
 
   describe('UI Elements', () => {
     it('should render logo and title', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
       });
@@ -333,7 +334,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should render back to login link', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: true,
         json: async () => ({ valid: true, email: 'test@example.com' }),
       });
@@ -346,7 +347,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show success icon after successful reset', async () => {
-      (global.fetch as any)
+      mockFetch
         .mockResolvedValueOnce({
           ok: true,
           json: async () => ({ valid: true, email: 'test@example.com' }),
@@ -382,7 +383,7 @@ describe('ResetPasswordPage', () => {
     });
 
     it('should show error icon for invalid token', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      mockFetch.mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Invalid token' }),
       });

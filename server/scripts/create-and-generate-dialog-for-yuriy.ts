@@ -89,7 +89,7 @@ async function createAndGenerateDialogForYuriy() {
 
     const dialogue = await generateDialogue({
       episodeId: episode.id,
-      speakers: speakers as any,
+      speakers,
       variationCount: 3,
       dialogueLength: 8,
     });

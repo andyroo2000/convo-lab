@@ -5,7 +5,7 @@
  * Usage: PROD_DATABASE_URL="..." npx tsx scripts/copy-sample-content-to-user.ts <email> <level>
  */
 
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const email = process.argv[2];
 const targetLanguage = 'ja';
@@ -138,7 +138,7 @@ async function copySampleContentToUser(
               order: sentence.order,
               text: sentence.text,
               translation: sentence.translation,
-              metadata: sentence.metadata as any,
+              metadata: sentence.metadata as Prisma.InputJsonValue,
               audioUrl: sentence.audioUrl,
               startTime: sentence.startTime,
               endTime: sentence.endTime,
@@ -148,7 +148,7 @@ async function copySampleContentToUser(
               endTime_0_85: sentence.endTime_0_85,
               startTime_1_0: sentence.startTime_1_0,
               endTime_1_0: sentence.endTime_1_0,
-              variations: sentence.variations as any,
+              variations: sentence.variations as Prisma.InputJsonValue | null,
               selected: sentence.selected,
             },
           });
@@ -259,10 +259,10 @@ async function copySampleCourses(
           speaker1VoiceProvider: sampleCourse.speaker1VoiceProvider,
           speaker2VoiceId: sampleCourse.speaker2VoiceId,
           speaker2VoiceProvider: sampleCourse.speaker2VoiceProvider,
-          scriptJson: sampleCourse.scriptJson as any,
+          scriptJson: sampleCourse.scriptJson as Prisma.InputJsonValue | null,
           approxDurationSeconds: sampleCourse.approxDurationSeconds,
           audioUrl: sampleCourse.audioUrl,
-          timingData: sampleCourse.timingData as any,
+          timingData: sampleCourse.timingData as Prisma.InputJsonValue | null,
         },
       });
 
@@ -298,7 +298,7 @@ async function copySampleCourses(
             complexityScore: coreItem.complexityScore,
             sourceEpisodeId: coreItem.sourceEpisodeId,
             sourceSentenceId: coreItem.sourceSentenceId,
-            components: coreItem.components as any,
+            components: coreItem.components as Prisma.InputJsonValue | null,
           },
         });
       }

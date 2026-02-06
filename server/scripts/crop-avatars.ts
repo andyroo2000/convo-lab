@@ -92,8 +92,9 @@ async function cropAvatar(inputPath: string, outputFilename: string): Promise<vo
 
     const stats = await fs.stat(outputPath);
     console.log(`  ✓ Saved to: ${outputFilename} (${(stats.size / 1024).toFixed(1)}KB)\n`);
-  } catch (error: any) {
-    console.error(`  ✗ Failed: ${error.message}\n`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`  ✗ Failed: ${message}\n`);
     throw error;
   }
 }

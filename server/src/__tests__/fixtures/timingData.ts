@@ -111,8 +111,8 @@ export const mockCourseCoreItem = {
   readingL2: 'こんにちは',
   translationL1: 'hello',
   sourceUnitIndex: 1, // Points to unit index 1 in timing data
-  sourceSentenceId: null,
-  sourceEpisodeId: null,
+  sourceSentenceId: null as string | null,
+  sourceEpisodeId: null as string | null,
   createdAt: new Date(),
   updatedAt: new Date(),
   course: mockCourseWithTimingData,
@@ -127,9 +127,9 @@ export const mockLegacyCourseCoreItem = {
   textL2: '食べる',
   readingL2: '食[た]べる',
   translationL1: 'to eat',
-  sourceUnitIndex: null,
+  sourceUnitIndex: null as number | null,
   sourceSentenceId: 'sentence-456',
-  sourceEpisodeId: null,
+  sourceEpisodeId: null as string | null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };
@@ -141,8 +141,7 @@ export const corruptTimingData = [
   { unitIndex: 0, startTime: 0, endTime: 2000 },
   { unitIndex: 1, startTime: 2000 }, // Missing endTime
   { unitIndex: 2, startTime: 'invalid', endTime: 5000 }, // Invalid type
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-] as any;
+] as unknown;
 
 /**
  * Out of bounds scenarios
@@ -161,6 +160,6 @@ export const outOfBoundsScenarios = {
   // Empty timing data
   emptyTimingData: {
     sourceUnitIndex: 0,
-    timingData: [],
+    timingData: [] as TimingDataUnit[],
   },
 };

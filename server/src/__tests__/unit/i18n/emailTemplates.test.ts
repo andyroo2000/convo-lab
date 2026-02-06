@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi } from 'vitest';
 
 import {
@@ -12,22 +11,32 @@ import {
   generateQuotaWarningEmail,
 } from '../../../i18n/emailTemplates.js';
 
+interface TranslationParams {
+  name?: string;
+  tier?: string;
+  supportEmail?: string;
+  count?: number;
+  percentage?: number;
+  remaining?: number;
+  resetDate?: string;
+}
+
 // Mock i18n
-const mockTranslations: Record<string, Record<string, (params?: any) => string>> = {
+const mockTranslations: Record<string, Record<string, (params?: TranslationParams) => string>> = {
   en: {
-    'verification.greeting': (p: any) => `Hello ${p.name}`,
+    'verification.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'verification.title': () => 'Verify Your Email',
     'verification.body': () => 'Please verify your email address',
     'verification.button': () => 'Verify Email',
     'verification.linkInstructions': () => 'Or copy and paste this link',
     'verification.expiry': () => 'Link expires in 24 hours',
-    'passwordReset.greeting': (p: any) => `Hello ${p.name}`,
+    'passwordReset.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'passwordReset.title': () => 'Reset Your Password',
     'passwordReset.body': () => 'Reset your password',
     'passwordReset.button': () => 'Reset Password',
     'passwordReset.linkInstructions': () => 'Or copy and paste this link',
     'passwordReset.expiry': () => 'Link expires in 1 hour',
-    'welcome.greeting': (p: any) => `Welcome ${p.name}`,
+    'welcome.greeting': (p: TranslationParams) => `Welcome ${p.name}`,
     'welcome.title': () => 'Welcome to ConvoLab!',
     'welcome.body': () => 'Start your language journey',
     'welcome.whatYouCanCreate': () => 'What You Can Create',
@@ -38,21 +47,21 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
     'welcome.button': () => 'Get Started',
     'welcome.help': () => 'Need help? Contact us',
     'welcome.footer': () => 'ConvoLab Team',
-    'passwordChanged.greeting': (p: any) => `Hello ${p.name}`,
+    'passwordChanged.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'passwordChanged.title': () => 'Password Changed',
     'passwordChanged.body': () => 'Your password was changed',
     'passwordChanged.warning': () => 'Contact support if not you',
-    'passwordChanged.supportEmail': (p: any) => p.supportEmail,
-    'subscriptionConfirmed.greeting': (p: any) => `Hello ${p.name}`,
+    'passwordChanged.supportEmail': (p: TranslationParams) => p.supportEmail ?? '',
+    'subscriptionConfirmed.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'subscriptionConfirmed.title': () => 'Subscription Confirmed',
-    'subscriptionConfirmed.body': (p: any) => `Welcome to ${p.tier} tier`,
+    'subscriptionConfirmed.body': (p: TranslationParams) => `Welcome to ${p.tier} tier`,
     'subscriptionConfirmed.benefits': () => 'Your Benefits',
     'subscriptionConfirmed.benefit1': () => '30 generations per week',
     'subscriptionConfirmed.benefit2': () => 'Priority support',
     'subscriptionConfirmed.benefit3': () => 'All features included',
     'subscriptionConfirmed.button': () => 'Start Creating',
     'subscriptionConfirmed.footer': () => 'ConvoLab Team',
-    'paymentFailed.greeting': (p: any) => `Hello ${p.name}`,
+    'paymentFailed.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'paymentFailed.title': () => 'Payment Failed',
     'paymentFailed.body': () => 'Payment could not be processed',
     'paymentFailed.reasons': () => 'Common reasons',
@@ -62,12 +71,12 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
     'paymentFailed.action': () => 'Update payment method',
     'paymentFailed.button': () => 'Update Payment',
     'paymentFailed.footer': () => 'ConvoLab Team',
-    'subscriptionCanceled.greeting': (p: any) => `Hello ${p.name}`,
+    'subscriptionCanceled.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'subscriptionCanceled.title': () => 'Subscription Canceled',
     'subscriptionCanceled.body': () =>
       'Your premium access will continue until the end of your billing period',
     'subscriptionCanceled.freeTierTitle': () => 'Free Tier Benefits',
-    'subscriptionCanceled.generations': (p: any) => `${p.count} generations per week`,
+    'subscriptionCanceled.generations': (p: TranslationParams) => `${p.count} generations per week`,
     'subscriptionCanceled.contentTypes': () => 'All content types available',
     'subscriptionCanceled.support': () => 'Community support',
     'subscriptionCanceled.sorryToSeeYouGo': () => "We're sorry to see you go",
@@ -75,11 +84,11 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
       'You can reactivate anytime from your billing page',
     'subscriptionCanceled.button': () => 'Manage Billing',
     'subscriptionCanceled.footer': () => 'ConvoLab Team',
-    'quotaWarning.greeting': (p: any) => `Hello ${p.name}`,
+    'quotaWarning.greeting': (p: TranslationParams) => `Hello ${p.name}`,
     'quotaWarning.title': () => 'Quota Warning',
-    'quotaWarning.body': (p: any) => `${p.percentage}% of quota used`,
-    'quotaWarning.remaining': (p: any) => `${p.remaining} generations left`,
-    'quotaWarning.reset': (p: any) => `Resets on ${p.resetDate}`,
+    'quotaWarning.body': (p: TranslationParams) => `${p.percentage}% of quota used`,
+    'quotaWarning.remaining': (p: TranslationParams) => `${p.remaining} generations left`,
+    'quotaWarning.reset': (p: TranslationParams) => `Resets on ${p.resetDate}`,
     'quotaWarning.upgradeTitle': () => 'Upgrade to Pro',
     'quotaWarning.upgradeBody': () => 'Get 30 generations per week',
     'quotaWarning.upgradeButton': () => 'Upgrade Now',
@@ -89,13 +98,15 @@ const mockTranslations: Record<string, Record<string, (params?: any) => string>>
 
 vi.mock('../../../i18n/index.js', () => ({
   default: {
-    getFixedT: vi.fn((locale: string, namespace: string) => (key: string, params?: any) => {
-      // Only handle 'email' namespace, return key for others
-      if (namespace !== 'email') return key;
-      const translations = mockTranslations[locale] || mockTranslations.en;
-      const translator = translations[key];
-      return translator ? translator(params) : key;
-    }),
+    getFixedT: vi.fn(
+      (locale: string, namespace: string) => (key: string, params?: TranslationParams) => {
+        // Only handle 'email' namespace, return key for others
+        if (namespace !== 'email') return key;
+        const translations = mockTranslations[locale] || mockTranslations.en;
+        const translator = translations[key];
+        return translator ? translator(params) : key;
+      }
+    ),
   },
 }));
 

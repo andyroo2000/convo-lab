@@ -11,6 +11,15 @@ dotenv.config({ path: path.join(__dirname, '../../', '.env.production'), overrid
 const { PrismaClient } = await import('@prisma/client');
 const { generateDialogue } = await import('../src/services/dialogueGenerator.js');
 
+interface Speaker {
+  name: string;
+  voiceId: string;
+  voiceProvider: string;
+  proficiency: string;
+  tone: string;
+  gender: string;
+}
+
 const prisma = new PrismaClient();
 
 const episodeIdToDelete = '6907b53c-dc8a-4ce8-a354-63216e1924e2';
@@ -97,7 +106,7 @@ async function recreateDialogLonger() {
 
     const dialogue = await generateDialogue({
       episodeId: episode.id,
-      speakers: speakers as any,
+      speakers: speakers,
       variationCount: 3,
       dialogueLength: 30, // 30 turns instead of 8
     });

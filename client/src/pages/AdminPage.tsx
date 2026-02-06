@@ -1,4 +1,4 @@
-/* eslint-disable no-nested-ternary, no-restricted-globals, no-alert, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
+/* eslint-disable no-nested-ternary, no-restricted-globals, no-alert, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
@@ -14,6 +14,7 @@ import {
   Settings,
   Eye,
 } from 'lucide-react';
+import { Area } from 'react-easy-crop';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import Toast from '../components/common/Toast';
@@ -112,7 +113,7 @@ const AdminPage = () => {
   const [cropperImageUrl, setCropperImageUrl] = useState('');
   const [cropperTitle, setCropperTitle] = useState('');
   const [cropperSaveHandler, setCropperSaveHandler] = useState<
-    ((blob: Blob, cropArea: any) => Promise<void>) | null
+    ((blob: Blob, cropArea: Area) => Promise<void>) | null
   >(null);
 
   // Toast state
@@ -348,7 +349,7 @@ const AdminPage = () => {
     });
 
   // Avatar handler functions
-  const handleSaveSpeakerRecrop = async (filename: string, cropArea: any) => {
+  const handleSaveSpeakerRecrop = async (filename: string, cropArea: Area) => {
     try {
       const response = await fetch(`${API_URL}/api/admin/avatars/speaker/${filename}/recrop`, {
         method: 'POST',
@@ -382,7 +383,7 @@ const AdminPage = () => {
 
       setCropperImageUrl(data.originalUrl);
       setCropperTitle(`Re-crop ${filename}`);
-      setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
+      setCropperSaveHandler(() => async (blob: Blob, cropArea: Area) => {
         await handleSaveSpeakerRecrop(filename, cropArea);
       });
       setCropperOpen(true);
@@ -392,7 +393,7 @@ const AdminPage = () => {
     }
   };
 
-  const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: any) => {
+  const handleSaveSpeakerCrop = async (filename: string, originalFile: File, cropArea: Area) => {
     try {
       const formData = new FormData();
       formData.append('image', originalFile, filename);
@@ -427,7 +428,7 @@ const AdminPage = () => {
         setCropperImageUrl(url);
         setCropperTitle(`Upload New ${filename}`);
         // Capture the file in the closure directly instead of relying on state
-        setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
+        setCropperSaveHandler(() => async (blob: Blob, cropArea: Area) => {
           await handleSaveSpeakerCrop(filename, file, cropArea);
         });
         setCropperOpen(true);
@@ -1123,37 +1124,39 @@ const AdminPage = () => {
                                   setCropperImageUrl(url);
                                   setCropperTitle(`Upload Avatar for ${u.displayName || u.name}`);
                                   // Capture the file in the closure directly
-                                  setCropperSaveHandler(() => async (blob: Blob, cropArea: any) => {
-                                    try {
-                                      const formData = new FormData();
-                                      formData.append('image', file, `avatar.jpg`);
-                                      formData.append('cropArea', JSON.stringify(cropArea));
+                                  setCropperSaveHandler(
+                                    () => async (blob: Blob, cropArea: Area) => {
+                                      try {
+                                        const formData = new FormData();
+                                        formData.append('image', file, `avatar.jpg`);
+                                        formData.append('cropArea', JSON.stringify(cropArea));
 
-                                      const response = await fetch(
-                                        `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
-                                        {
-                                          method: 'POST',
-                                          credentials: 'include',
-                                          body: formData,
-                                        }
-                                      );
+                                        const response = await fetch(
+                                          `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
+                                          {
+                                            method: 'POST',
+                                            credentials: 'include',
+                                            body: formData,
+                                          }
+                                        );
 
-                                      if (!response.ok)
-                                        throw new Error('Failed to upload user avatar');
+                                        if (!response.ok)
+                                          throw new Error('Failed to upload user avatar');
 
-                                      alert('User avatar updated successfully');
-                                      setCropperOpen(false);
+                                        alert('User avatar updated successfully');
+                                        setCropperOpen(false);
 
-                                      // Reload users to show updated avatar
-                                      fetchUsers();
-                                    } catch (err) {
-                                      alert(
-                                        err instanceof Error
-                                          ? err.message
-                                          : 'Failed to upload user avatar'
-                                      );
+                                        // Reload users to show updated avatar
+                                        fetchUsers();
+                                      } catch (err) {
+                                        alert(
+                                          err instanceof Error
+                                            ? err.message
+                                            : 'Failed to upload user avatar'
+                                        );
+                                      }
                                     }
-                                  });
+                                  );
                                   setCropperOpen(true);
                                 }
                               };

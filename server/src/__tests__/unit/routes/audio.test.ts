@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+interface JobData {
+  episodeId: string;
+  dialogueId: string;
+  userId?: string;
+  speed?: string;
+  pauseMode?: boolean;
+}
+
+interface MockJob {
+  id: string;
+  name: string;
+  data: JobData;
+}
+
 // Create hoisted mocks
 const mockAudioQueue = vi.hoisted(() => ({
   add: vi.fn(),
@@ -18,7 +32,10 @@ describe('Audio Route Logic', () => {
 
   describe('POST /generate - Generate Audio', () => {
     it('should require episodeId and dialogueId', () => {
-      const validateGenerateAudio = (body: any): string | null => {
+      const validateGenerateAudio = (body: {
+        episodeId?: string;
+        dialogueId?: string;
+      }): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -55,7 +72,7 @@ describe('Audio Route Logic', () => {
     });
 
     it('should use default speed of normal', () => {
-      const getSpeed = (body: any) => body.speed || 'normal';
+      const getSpeed = (body: { speed?: string }) => body.speed || 'normal';
 
       expect(getSpeed({})).toBe('normal');
       expect(getSpeed({ speed: 'slow' })).toBe('slow');
@@ -63,7 +80,7 @@ describe('Audio Route Logic', () => {
     });
 
     it('should use default pauseMode of false', () => {
-      const getPauseMode = (body: any) => body.pauseMode || false;
+      const getPauseMode = (body: { pauseMode?: boolean }) => body.pauseMode || false;
 
       expect(getPauseMode({})).toBe(false);
       expect(getPauseMode({ pauseMode: true })).toBe(true);
@@ -82,7 +99,10 @@ describe('Audio Route Logic', () => {
 
   describe('POST /generate-all-speeds - Multi-Speed Audio Generation', () => {
     it('should require episodeId and dialogueId', () => {
-      const validateGenerateAllSpeeds = (body: any): string | null => {
+      const validateGenerateAllSpeeds = (body: {
+        episodeId?: string;
+        dialogueId?: string;
+      }): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -105,7 +125,7 @@ describe('Audio Route Logic', () => {
 
       const existingJobs = await mockAudioQueue.getJobs(['active', 'waiting']);
       const duplicateJob = existingJobs.find(
-        (job: any) =>
+        (job: MockJob) =>
           job.name === 'generate-all-speeds' &&
           job.data.episodeId === 'ep-1' &&
           job.data.dialogueId === 'd-1'
@@ -126,7 +146,7 @@ describe('Audio Route Logic', () => {
 
       const existingJobs = await mockAudioQueue.getJobs(['active', 'waiting']);
       const duplicateJob = existingJobs.find(
-        (job: any) =>
+        (job: MockJob) =>
           job.name === 'generate-all-speeds' &&
           job.data.episodeId === 'ep-1' &&
           job.data.dialogueId === 'd-1'
@@ -149,7 +169,7 @@ describe('Audio Route Logic', () => {
 
       const existingJobs = await mockAudioQueue.getJobs(['active', 'waiting']);
       const duplicateJob = existingJobs.find(
-        (job: any) =>
+        (job: MockJob) =>
           job.name === 'generate-all-speeds' &&
           job.data.episodeId === 'ep-2' &&
           job.data.dialogueId === 'd-2'
@@ -176,7 +196,7 @@ describe('Audio Route Logic', () => {
 
       const existingJobs = await mockAudioQueue.getJobs(['active', 'waiting']);
       const duplicateJob = existingJobs.find(
-        (job: any) =>
+        (job: MockJob) =>
           job.name === 'generate-all-speeds' &&
           job.data.episodeId === 'ep-2' &&
           job.data.dialogueId === 'd-1'
@@ -196,7 +216,7 @@ describe('Audio Route Logic', () => {
 
       const existingJobs = await mockAudioQueue.getJobs(['active', 'waiting']);
       const duplicateJob = existingJobs.find(
-        (job: any) =>
+        (job: MockJob) =>
           job.name === 'generate-all-speeds' &&
           job.data.episodeId === 'ep-1' &&
           job.data.dialogueId === 'd-1'
@@ -294,7 +314,10 @@ describe('Audio Route Logic', () => {
     });
 
     it('should format job status response correctly', () => {
-      const formatJobStatusResponse = (job: any, state: string) => ({
+      const formatJobStatusResponse = (
+        job: { id: string; progress: number; returnvalue: unknown },
+        state: string
+      ) => ({
         id: job.id,
         state,
         progress: job.progress,

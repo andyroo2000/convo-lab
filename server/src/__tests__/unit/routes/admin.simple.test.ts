@@ -1,6 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import express, { type Router } from 'express';
+import express, {
+  json as expressJson,
+  type Router,
+  type Request,
+  type Response,
+  type NextFunction,
+  type ErrorRequestHandler,
+} from 'express';
 import request from 'supertest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock Prisma client
 const mockPrisma = vi.hoisted(() => ({
@@ -39,13 +46,14 @@ vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 
 // Mock auth middleware to inject test user
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
-    req.user = {
-      id: 'admin-user-id',
-      role: 'admin',
-      email: 'admin@example.com',
-    };
-    req.userId = 'admin-user-id'; // Add userId property
+  requireAuth: (req: Request, res: Response, next: NextFunction) => {
+    (req as Request & { user: { id: string; role: string; email: string }; userId: string }).user =
+      {
+        id: 'admin-user-id',
+        role: 'admin',
+        email: 'admin@example.com',
+      };
+    (req as Request & { userId: string }).userId = 'admin-user-id'; // Add userId property
     next();
   },
   AuthRequest: class {},
@@ -53,7 +61,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 // Mock role auth middleware
 vi.mock('../../../middleware/roleAuth.js', () => ({
-  requireAdmin: (req: any, res: any, next: any) => next(),
+  requireAdmin: (req: Request, res: Response, next: NextFunction) => next(),
 }));
 
 // Mock avatar service
@@ -68,7 +76,10 @@ vi.mock('../../../services/avatarService.js', () => ({
 // Mock AppError
 vi.mock('../../../middleware/errorHandler.js', () => ({
   AppError: class AppError extends Error {
-    constructor(message: string, public statusCode: number = 500) {
+    constructor(
+      message: string,
+      public statusCode: number = 500
+    ) {
       super(message);
       this.name = 'AppError';
     }
@@ -84,20 +95,21 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
     // Create Express app with admin routes
     app = express();
-    app.use(express.json());
+    app.use(expressJson());
 
     // Import router after mocks are set up
-    const adminModule = await import('../../../routes/admin.ts');
+    const adminModule = await import('../../../routes/admin.js');
     adminRouter = adminModule.default;
     app.use('/admin', adminRouter);
 
     // Error handler
-    app.use((err: any, req: any, res: any, _next: any) => {
-      res.status(err.statusCode || 500).json({
-        error: err.message,
-        statusCode: err.statusCode,
+    app.use(((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+      const error = err as { statusCode?: number; message: string };
+      res.status(error.statusCode || 500).json({
+        error: error.message,
+        statusCode: error.statusCode,
       });
-    });
+    }) as ErrorRequestHandler);
   });
 
   describe('DELETE /users/:id - Self-deletion prevention', () => {
@@ -203,9 +215,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
-            OR: expect.arrayContaining([
-              { email: { contains: 'john', mode: 'insensitive' } },
-            ]),
+            OR: expect.arrayContaining([{ email: { contains: 'john', mode: 'insensitive' } }]),
           },
         })
       );
@@ -620,7 +630,15 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         tier: 'free',
       });
 
-      mockPrisma.subscriptionEvent.create.mockResolvedValue({} as any);
+      mockPrisma.subscriptionEvent.create.mockResolvedValue({
+        id: 'event-id',
+        userId: 'user-id',
+        eventType: 'admin_override',
+        fromTier: 'pro',
+        toTier: 'free',
+        stripeEventId: 'admin:admin-user-id:abuse',
+        createdAt: new Date(),
+      });
 
       const response = await request(app)
         .post('/admin/users/user-id/tier')

@@ -132,7 +132,7 @@ describe('AdminPage', () => {
     vi.clearAllMocks();
     mockUser.value = { id: 'admin-1', email: 'admin@test.com', role: 'admin' };
     global.fetch = vi.fn();
-    (global.confirm as any).mockReturnValue(true);
+    (global.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
   const renderPage = (tab = 'users') =>
@@ -155,7 +155,7 @@ describe('AdminPage', () => {
     });
 
     it('should render admin dashboard for admin users', async () => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ users: [] }),
       });
@@ -170,7 +170,7 @@ describe('AdminPage', () => {
 
   describe('tab navigation', () => {
     beforeEach(() => {
-      (global.fetch as any).mockResolvedValue({
+      (global.fetch as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve({ users: [] }),
       });
@@ -200,7 +200,7 @@ describe('AdminPage', () => {
 
   describe('users tab', () => {
     beforeEach(() => {
-      (global.fetch as any).mockImplementation((url: string) => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
         if (url.includes('/api/admin/users')) {
           return Promise.resolve({
             ok: true,
@@ -221,7 +221,7 @@ describe('AdminPage', () => {
     });
 
     it('should show loading state while fetching users', () => {
-      (global.fetch as any).mockImplementation(() => new Promise(() => {}));
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(() => new Promise(() => {}));
 
       renderPage('users');
 
@@ -269,21 +269,23 @@ describe('AdminPage', () => {
     });
 
     it('should handle user deletion', async () => {
-      (global.fetch as any).mockImplementation((url: string, options: any) => {
-        if (url.includes('/api/admin/users/user-1') && options?.method === 'DELETE') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({}),
-          });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options: RequestInit | undefined) => {
+          if (url.includes('/api/admin/users/user-1') && options?.method === 'DELETE') {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve({}),
+            });
+          }
+          if (url.includes('/api/admin/users')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve({ users: mockUsers }),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
         }
-        if (url.includes('/api/admin/users')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({ users: mockUsers }),
-          });
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
+      );
 
       renderPage('users');
 
@@ -323,7 +325,7 @@ describe('AdminPage', () => {
 
   describe('invite codes tab', () => {
     beforeEach(() => {
-      (global.fetch as any).mockImplementation((url: string) => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
         if (url.includes('/api/admin/invite-codes')) {
           return Promise.resolve({
             ok: true,
@@ -352,21 +354,23 @@ describe('AdminPage', () => {
     });
 
     it('should handle creating new invite code', async () => {
-      (global.fetch as any).mockImplementation((url: string, options: any) => {
-        if (url.includes('/api/admin/invite-codes') && options?.method === 'POST') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({}),
-          });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options: RequestInit | undefined) => {
+          if (url.includes('/api/admin/invite-codes') && options?.method === 'POST') {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve({}),
+            });
+          }
+          if (url.includes('/api/admin/invite-codes')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockInviteCodes),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
         }
-        if (url.includes('/api/admin/invite-codes')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockInviteCodes),
-          });
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
+      );
 
       renderPage('invite-codes');
 
@@ -401,21 +405,23 @@ describe('AdminPage', () => {
     });
 
     it('should handle deleting invite code', async () => {
-      (global.fetch as any).mockImplementation((url: string, options: any) => {
-        if (url.includes('/api/admin/invite-codes/code-1') && options?.method === 'DELETE') {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve({}),
-          });
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options: RequestInit | undefined) => {
+          if (url.includes('/api/admin/invite-codes/code-1') && options?.method === 'DELETE') {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve({}),
+            });
+          }
+          if (url.includes('/api/admin/invite-codes')) {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockInviteCodes),
+            });
+          }
+          return Promise.reject(new Error('Unknown endpoint'));
         }
-        if (url.includes('/api/admin/invite-codes')) {
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockInviteCodes),
-          });
-        }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
+      );
 
       renderPage('invite-codes');
 
@@ -456,7 +462,7 @@ describe('AdminPage', () => {
 
   describe('analytics tab', () => {
     beforeEach(() => {
-      (global.fetch as any).mockImplementation((url: string) => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
         if (url.includes('/api/admin/stats')) {
           return Promise.resolve({
             ok: true,
@@ -490,7 +496,7 @@ describe('AdminPage', () => {
 
   describe('avatars tab', () => {
     beforeEach(() => {
-      (global.fetch as any).mockImplementation((url: string) => {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
         if (url.includes('/api/admin/avatars/speakers')) {
           return Promise.resolve({
             ok: true,
@@ -528,21 +534,23 @@ describe('AdminPage', () => {
 
   describe('settings tab', () => {
     beforeEach(() => {
-      (global.fetch as any).mockImplementation((url: string, options: any) => {
-        if (url.includes('/api/admin/feature-flags')) {
-          if (options?.method === 'PATCH') {
+      (global.fetch as ReturnType<typeof vi.fn>).mockImplementation(
+        (url: string, options: RequestInit | undefined) => {
+          if (url.includes('/api/admin/feature-flags')) {
+            if (options?.method === 'PATCH') {
+              return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve(mockFeatureFlags),
+              });
+            }
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve(mockFeatureFlags),
             });
           }
-          return Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve(mockFeatureFlags),
-          });
+          return Promise.reject(new Error('Unknown endpoint'));
         }
-        return Promise.reject(new Error('Unknown endpoint'));
-      });
+      );
     });
 
     it('should fetch and display feature flags', async () => {
@@ -578,7 +586,9 @@ describe('AdminPage', () => {
 
   describe('error handling', () => {
     it('should display error message when fetch fails', async () => {
-      (global.fetch as any).mockRejectedValue(new Error('Failed to fetch users'));
+      (global.fetch as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error('Failed to fetch users')
+      );
 
       renderPage('users');
 

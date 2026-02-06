@@ -1,4 +1,6 @@
+import Stripe from 'stripe';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import * as stripeService from '../../../services/stripeService.js';
 
 // Create hoisted mocks
@@ -193,7 +195,7 @@ describe('Stripe Service', () => {
         metadata: {
           userId: 'user-123',
         },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       const mockUser = {
         email: 'test@example.com',
@@ -246,7 +248,7 @@ describe('Stripe Service', () => {
         current_period_start: 1672531200,
         current_period_end: 1675209600,
         metadata: {},
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       await stripeService.handleSubscriptionCreated(mockSubscription);
 
@@ -269,7 +271,7 @@ describe('Stripe Service', () => {
         metadata: {
           userId: 'user-123',
         },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -296,7 +298,7 @@ describe('Stripe Service', () => {
         current_period_end: 1675209600,
         cancel_at_period_end: false,
         metadata: {},
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'user-123' });
       mockPrisma.user.update.mockResolvedValue({});
@@ -324,7 +326,7 @@ describe('Stripe Service', () => {
         metadata: {
           userId: 'user-123',
         },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 
@@ -347,7 +349,7 @@ describe('Stripe Service', () => {
         metadata: {
           userId: 'user-123',
         },
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       const mockUser = {
         tier: 'pro',
@@ -394,7 +396,7 @@ describe('Stripe Service', () => {
         id: 'sub_123',
         customer: 'cus_123',
         metadata: {},
-      } as any;
+      } as unknown as Stripe.Subscription;
 
       const mockUser = {
         id: 'user-123',
@@ -425,7 +427,7 @@ describe('Stripe Service', () => {
       const mockInvoice = {
         id: 'in_123',
         customer: 'cus_123',
-      } as any;
+      } as unknown as Stripe.Invoice;
 
       const mockUser = {
         id: 'user-123',
@@ -453,7 +455,7 @@ describe('Stripe Service', () => {
       const mockInvoice = {
         id: 'in_123',
         customer: 'cus_nonexistent',
-      } as any;
+      } as unknown as Stripe.Invoice;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 

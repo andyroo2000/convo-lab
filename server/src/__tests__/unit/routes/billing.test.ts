@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
-import express from 'express';
-import billingRouter from '../../../routes/billing.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import billingRouter from '../../../routes/billing.js';
 
 // Create hoisted mocks
 const mockStripeService = vi.hoisted(() => ({
@@ -34,7 +36,7 @@ vi.mock('stripe', () => {
 
 // Mock auth middleware
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: AuthRequest, res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   },
@@ -47,7 +49,7 @@ describe('Billing Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     app = express();
-    app.use(express.json());
+    app.use(expressJson());
     app.use('/api', billingRouter);
     app.use(errorHandler);
   });

@@ -1,5 +1,6 @@
-import { Polly, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly';
 import { Readable } from 'stream';
+
+import { Polly, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly';
 
 export interface SynthesizeWithTimepointsResult {
   audioBuffer: Buffer;
@@ -33,7 +34,7 @@ interface PollySpeechMark {
  * Convert a stream to buffer
  */
 async function streamToBuffer(
-  stream: Readable | ReadableStream<any> | Blob | undefined
+  stream: Readable | ReadableStream<Uint8Array> | Blob | undefined
 ): Promise<Buffer> {
   if (!stream) {
     return Buffer.alloc(0);
@@ -122,7 +123,9 @@ export class PollyTTSProvider {
   ): Promise<SynthesizeWithTimepointsResult> {
     const { ssml, voiceId, speed = 1.0 } = options;
 
+    // eslint-disable-next-line no-console
     console.log(`[TTS POLLY] Synthesizing with timepoints: voice=${voiceId}, speed=${speed}`);
+    // eslint-disable-next-line no-console
     console.log(`[TTS POLLY] SSML preview: ${ssml.substring(0, 200)}...`);
 
     // Note: Polly handles speed via <prosody rate="X%"> in SSML,
@@ -131,6 +134,7 @@ export class PollyTTSProvider {
 
     try {
       // CALL 1: Synthesize audio
+      // eslint-disable-next-line no-console
       console.log(`[TTS POLLY] Requesting audio synthesis...`);
       const audioCommand = new SynthesizeSpeechCommand({
         Text: ssml,
@@ -147,9 +151,11 @@ export class PollyTTSProvider {
         throw new Error('No audio content received from Amazon Polly');
       }
 
+      // eslint-disable-next-line no-console
       console.log(`[TTS POLLY] Audio received: ${audioBuffer.length} bytes`);
 
       // CALL 2: Get speech marks (timing data)
+      // eslint-disable-next-line no-console
       console.log(`[TTS POLLY] Requesting speech marks...`);
       const marksCommand = new SynthesizeSpeechCommand({
         Text: ssml,
@@ -175,6 +181,7 @@ export class PollyTTSProvider {
         .map((line) => JSON.parse(line))
         .filter((mark) => mark.type === 'ssml'); // Only SSML marks
 
+      // eslint-disable-next-line no-console
       console.log(`[TTS POLLY] Got ${speechMarks.length} speech marks`);
 
       // Validate we got marks back
@@ -191,6 +198,7 @@ export class PollyTTSProvider {
         timeSeconds: mark.time / 1000, // Convert ms to seconds
       }));
 
+      // eslint-disable-next-line no-console
       console.log(`[TTS POLLY] Converted ${timepoints.length} timepoints`);
 
       return {
