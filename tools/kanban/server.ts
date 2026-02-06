@@ -29,7 +29,8 @@ interface Issue {
 }
 
 function queryIssues(): Issue[] {
-  const db = new Database(DB_PATH, { readonly: true });
+  const db = new Database(DB_PATH);
+  db.pragma("query_only = ON");
   try {
     const rows = db
       .prepare(
