@@ -41,7 +41,7 @@ describe('OnboardingModal', () => {
     it('should have N5 selected by default', () => {
       render(<OnboardingModal />);
       const n5Button = screen.getByText('N5 (Beginner)').closest('button');
-      expect(n5Button?.className).toContain('border-coral');
+      expect(n5Button?.className).toContain('ring-coral');
     });
 
     it('should render as fixed overlay with z-50', () => {
@@ -59,10 +59,10 @@ describe('OnboardingModal', () => {
       fireEvent.click(screen.getByText('N3 (Intermediate)'));
 
       const n3Button = screen.getByText('N3 (Intermediate)').closest('button');
-      expect(n3Button?.className).toContain('border-coral');
+      expect(n3Button?.className).toContain('ring-coral');
 
       const n5Button = screen.getByText('N5 (Beginner)').closest('button');
-      expect(n5Button?.className).not.toContain('border-coral');
+      expect(n5Button?.className).not.toContain('ring-coral');
     });
   });
 

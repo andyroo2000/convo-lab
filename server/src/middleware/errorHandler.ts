@@ -2,6 +2,32 @@ import { Request, Response, NextFunction } from 'express';
 
 import i18next from '../i18n/index.js';
 
+type QuotaMetadata = {
+  limit: number;
+  remaining: number;
+  resetsAt: Date;
+};
+
+type CooldownMetadata = {
+  remainingSeconds: number;
+};
+
+const isQuotaMetadata = (value: unknown): value is QuotaMetadata => {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.limit === 'number' &&
+    typeof record.remaining === 'number' &&
+    record.resetsAt instanceof Date
+  );
+};
+
+const isCooldownMetadata = (value: unknown): value is CooldownMetadata => {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  return typeof record.remainingSeconds === 'number';
+};
+
 export class AppError extends Error {
   statusCode: number;
 
@@ -27,18 +53,16 @@ export function errorHandler(
   if (err instanceof AppError) {
     // Add rate limit headers for 429 errors
     if (err.statusCode === 429 && err.metadata) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const quota = err.metadata.quota as any;
-      if (quota) {
+      const quota = err.metadata.quota;
+      if (isQuotaMetadata(quota)) {
         res.set({
           'X-RateLimit-Limit': quota.limit.toString(),
           'X-RateLimit-Remaining': quota.remaining.toString(),
           'X-RateLimit-Reset': quota.resetsAt.toISOString(),
         });
       }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const cooldown = err.metadata.cooldown as any;
-      if (cooldown) {
+      const cooldown = err.metadata.cooldown;
+      if (isCooldownMetadata(cooldown)) {
         res.set({
           'Retry-After': cooldown.remainingSeconds.toString(),
         });

@@ -80,7 +80,7 @@ describe('Admin Route Validation Logic', () => {
   });
 
   describe('Feature Flag Validation', () => {
-    const isValidBoolean = (val: any): boolean => typeof val === 'boolean';
+    const isValidBoolean = (val: unknown): boolean => typeof val === 'boolean';
 
     it('should accept boolean values', () => {
       expect(isValidBoolean(true)).toBe(true);
@@ -96,13 +96,14 @@ describe('Admin Route Validation Logic', () => {
   });
 
   describe('Crop Area Validation', () => {
-    const isValidCropArea = (cropArea: any): boolean => {
-      if (!cropArea) return false;
+    const isValidCropArea = (cropArea: unknown): boolean => {
+      if (!cropArea || typeof cropArea !== 'object') return false;
+      const record = cropArea as Record<string, unknown>;
       return (
-        typeof cropArea.x === 'number' &&
-        typeof cropArea.y === 'number' &&
-        typeof cropArea.width === 'number' &&
-        typeof cropArea.height === 'number'
+        typeof record.x === 'number' &&
+        typeof record.y === 'number' &&
+        typeof record.width === 'number' &&
+        typeof record.height === 'number'
       );
     };
 

@@ -11,6 +11,14 @@ interface AvatarConfig {
   prompt: string;
 }
 
+type GeneratedImageResponse = {
+  generatedImages?: Array<{
+    image?: {
+      imageBytes?: string;
+    };
+  }>;
+};
+
 const ENGLISH_AVATARS: AvatarConfig[] = [
   {
     filename: 'en-female-casual.jpg',
@@ -73,15 +81,16 @@ async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
     throw new Error(`Google AI API error: ${response.status} - ${errorText}`);
   }
 
-  const result: any = await response.json();
+  const result = (await response.json()) as GeneratedImageResponse;
+  const [generated] = result.generatedImages ?? [];
+  const imageBytes = generated?.image?.imageBytes;
 
-  if (!result.generatedImages || result.generatedImages.length === 0) {
+  if (!imageBytes) {
     throw new Error('No images generated');
   }
 
   // Get the first image (base64 encoded)
-  const imageData = result.generatedImages[0].image.imageBytes;
-  return Buffer.from(imageData, 'base64');
+  return Buffer.from(imageBytes, 'base64');
 }
 
 async function generateAndSaveAvatar(config: AvatarConfig): Promise<void> {
@@ -120,8 +129,9 @@ async function generateAndSaveAvatar(config: AvatarConfig): Promise<void> {
     await fs.writeFile(filePath, croppedBuffer);
 
     console.log(`✓ Saved to: ${filePath}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${config.filename}:`, error.message);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${config.filename}:`, message);
     throw error;
   }
 }

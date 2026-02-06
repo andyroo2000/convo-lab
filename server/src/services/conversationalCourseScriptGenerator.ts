@@ -1,6 +1,6 @@
-import { generateWithGemini } from './geminiClient.js';
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { LessonScriptUnit } from './courseScriptGenerator.js';
+import { generateWithGemini } from './geminiClient.js';
 
 interface ConversationalScriptContext {
   episodeTitle: string;
@@ -24,6 +24,7 @@ export async function generateConversationalCourseScript(
   exchanges: DialogueExchange[],
   context: ConversationalScriptContext
 ): Promise<GeneratedConversationalScript> {
+  // eslint-disable-next-line no-console
   console.log('🚀 Generating conversational Pimsleur-style lesson script...');
 
   const units: LessonScriptUnit[] = [];
@@ -84,6 +85,7 @@ Write only the scenario setup, no additional formatting:`;
     const exchange = exchanges[i];
     const isUserResponse = i % 2 === 1; // Alternate: other person asks, you respond
 
+    // eslint-disable-next-line no-console
     console.log(`  Processing exchange ${i + 1}/${exchanges.length}: ${exchange.speakerName}`);
 
     if (isUserResponse) {
@@ -111,6 +113,7 @@ Write only the scenario setup, no additional formatting:`;
   );
   totalSeconds += 10;
 
+  // eslint-disable-next-line no-console
   console.log(
     `✅ Generated conversational script with ${units.length} units, ~${Math.round(totalSeconds / 60)} minutes`
   );
@@ -288,16 +291,28 @@ Return ONLY a JSON array (no markdown, no explanation):
       }
     }
 
-    const parsed = JSON.parse(jsonText);
+    const parsed: unknown = JSON.parse(jsonText);
 
     if (!Array.isArray(parsed) || parsed.length === 0) {
       return [];
     }
 
-    return parsed.map((item: any) => ({
-      textL2: item.phrase || item.textL2 || item.text,
-      translation: item.translation,
-    }));
+    return parsed
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+      .map((item) => {
+        const textL2 = item.phrase ?? item.textL2 ?? item.text;
+        const translation = item.translation;
+
+        if (typeof textL2 !== 'string' || typeof translation !== 'string') {
+          return null;
+        }
+
+        return {
+          textL2,
+          translation,
+        };
+      })
+      .filter((item): item is { textL2: string; translation: string } => item !== null);
   } catch (err) {
     console.error('Failed to generate progressive phrase chunks:', err);
     return [];

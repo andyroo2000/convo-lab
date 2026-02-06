@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { triggerWorkerJob } from '../../../services/workerTrigger.js';
 
+type ApiError = Error & { code?: number };
+
 // Mock Google Auth - must be before imports
 const mockRequest = vi.fn();
 const mockGetClient = vi.fn();
@@ -186,8 +188,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
     });
 
     it('should handle Cloud Run API 404 (job not found)', async () => {
-      const notFoundError = new Error('Job not found');
-      (notFoundError as any).code = 404;
+      const notFoundError: ApiError = Object.assign(new Error('Job not found'), { code: 404 });
       mockRequest.mockRejectedValue(notFoundError);
 
       const errorSpy = vi.spyOn(console, 'error');
@@ -232,8 +233,7 @@ describe('Worker Trigger Service - Unit Tests', () => {
     });
 
     it('should handle permission denied errors', async () => {
-      const permError = new Error('Permission denied');
-      (permError as any).code = 403;
+      const permError: ApiError = Object.assign(new Error('Permission denied'), { code: 403 });
       mockRequest.mockRejectedValue(permError);
 
       const errorSpy = vi.spyOn(console, 'error');

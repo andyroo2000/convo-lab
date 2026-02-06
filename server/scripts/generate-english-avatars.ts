@@ -10,6 +10,14 @@ interface AvatarConfig {
   prompt: string;
 }
 
+type GoogleAiPrediction = {
+  bytesBase64Encoded: string;
+};
+
+type GoogleAiResponse = {
+  predictions?: GoogleAiPrediction[];
+};
+
 const ENGLISH_AVATARS: AvatarConfig[] = [
   {
     filename: 'en-female-casual.jpg',
@@ -76,14 +84,15 @@ async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
     throw new Error(`Google AI API error: ${response.status} - ${errorText}`);
   }
 
-  const result: any = await response.json();
+  const result = (await response.json()) as GoogleAiResponse;
+  const [prediction] = result.predictions ?? [];
 
-  if (!result.predictions || result.predictions.length === 0) {
+  if (!prediction?.bytesBase64Encoded) {
     throw new Error('No images generated');
   }
 
   // Get the first image (base64 encoded)
-  const imageData = result.predictions[0].bytesBase64Encoded;
+  const imageData = prediction.bytesBase64Encoded;
   return Buffer.from(imageData, 'base64');
 }
 
@@ -120,8 +129,9 @@ async function generateAndUploadAvatar(config: AvatarConfig): Promise<void> {
     console.log(`✓ Uploaded successfully!`);
     console.log(`  Cropped: ${result.croppedUrl}`);
     console.log(`  Original: ${result.originalUrl}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${config.filename}:`, error.message);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${config.filename}:`, message);
     throw error;
   }
 }

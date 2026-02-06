@@ -20,6 +20,30 @@ vi.mock('../../../jobs/dialogueQueue.js', () => ({
   dialogueQueue: mockDialogueQueue,
 }));
 
+type GenerateDialogueBody = {
+  episodeId?: string;
+  variationCount?: number;
+  dialogueLength?: number;
+};
+
+type SpeakerPayload = {
+  name: string;
+  voiceId: string;
+  proficiency: string;
+  tone: string;
+};
+
+const isSpeakerPayload = (speaker: unknown): speaker is SpeakerPayload => {
+  if (!speaker || typeof speaker !== 'object') return false;
+  const record = speaker as Record<string, unknown>;
+  return (
+    typeof record.name === 'string' &&
+    typeof record.voiceId === 'string' &&
+    typeof record.proficiency === 'string' &&
+    typeof record.tone === 'string'
+  );
+};
+
 describe('Dialogue Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -27,7 +51,7 @@ describe('Dialogue Route Logic', () => {
 
   describe('POST /generate - Generate Dialogue', () => {
     it('should require episodeId', () => {
-      const validateGenerateDialogue = (body: any): string | null => {
+      const validateGenerateDialogue = (body: GenerateDialogueBody): string | null => {
         if (!body.episodeId) {
           return 'episodeId is required';
         }
@@ -107,7 +131,7 @@ describe('Dialogue Route Logic', () => {
     });
 
     it('should use default values for variationCount and dialogueLength', () => {
-      const getDefaults = (body: any) => ({
+      const getDefaults = (body: GenerateDialogueBody) => ({
         variationCount: body.variationCount || 3,
         dialogueLength: body.dialogueLength || 6,
       });
@@ -182,11 +206,7 @@ describe('Dialogue Route Logic', () => {
 
   describe('Speaker Validation', () => {
     it('should validate speaker structure', () => {
-      const validateSpeaker = (speaker: any): boolean =>
-        typeof speaker.name === 'string' &&
-        typeof speaker.voiceId === 'string' &&
-        typeof speaker.proficiency === 'string' &&
-        typeof speaker.tone === 'string';
+      const validateSpeaker = (speaker: unknown): boolean => isSpeakerPayload(speaker);
 
       expect(
         validateSpeaker({

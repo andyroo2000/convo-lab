@@ -9,6 +9,14 @@ interface AvatarConfig {
   prompt: string;
 }
 
+type VertexPrediction = {
+  bytesBase64Encoded: string;
+};
+
+type VertexResponse = {
+  predictions?: VertexPrediction[];
+};
+
 const ENGLISH_AVATARS: AvatarConfig[] = [
   {
     filename: 'en-female-casual.jpg',
@@ -94,14 +102,15 @@ async function generateImageWithVertexAI(prompt: string, accessToken: string): P
     throw new Error(`Vertex AI API error: ${response.status} - ${errorText}`);
   }
 
-  const result: any = await response.json();
+  const result = (await response.json()) as VertexResponse;
+  const [prediction] = result.predictions ?? [];
 
-  if (!result.predictions || result.predictions.length === 0) {
+  if (!prediction?.bytesBase64Encoded) {
     throw new Error('No images generated');
   }
 
   // Get the first image (base64 encoded)
-  const imageData = result.predictions[0].bytesBase64Encoded;
+  const imageData = prediction.bytesBase64Encoded;
   return Buffer.from(imageData, 'base64');
 }
 
@@ -140,8 +149,9 @@ async function generateAndSaveAvatar(config: AvatarConfig, accessToken: string):
     await fs.writeFile(filePath, croppedBuffer);
 
     console.log(`✓ Saved to: ${filePath}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${config.filename}:`, error.message);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${config.filename}:`, message);
     throw error;
   }
 }

@@ -1,8 +1,15 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express, {
+  json as expressJson,
+  type Request,
+  type Response,
+  type NextFunction,
+} from 'express';
 import request from 'supertest';
-import express from 'express';
-import adminRouter from '../../../routes/admin.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+// eslint-disable-next-line import/no-named-as-default-member
+
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import adminRouter from '../../../routes/admin.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -36,7 +43,7 @@ vi.mock('stripe', () => {
 
 // Mock auth middleware to simulate admin user
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: Request & { userId?: string }, _res: Response, next: NextFunction) => {
     req.userId = 'admin-user-id';
     next();
   },
@@ -45,10 +52,10 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 // Mock role auth middleware
 vi.mock('../../../middleware/roleAuth.js', () => ({
-  requireAdmin: (req: any, res: any, next: any) => {
+  requireAdmin: (_req: Request, _res: Response, next: NextFunction) => {
     next();
   },
-  requireRole: (role: string) => (req: any, res: any, next: any) => {
+  requireRole: (_role: string) => (_req: Request, _res: Response, next: NextFunction) => {
     next();
   },
 }));
@@ -59,7 +66,7 @@ describe('Admin Subscription Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     app = express();
-    app.use(express.json());
+    app.use(expressJson());
     app.use('/api/admin', adminRouter);
     app.use(errorHandler);
   });

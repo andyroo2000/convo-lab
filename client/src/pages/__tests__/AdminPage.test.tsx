@@ -565,21 +565,16 @@ describe('AdminPage', () => {
     it('should toggle feature flags', async () => {
       renderPage('settings');
 
-      await waitFor(async () => {
-        const toggles = screen.getAllByRole('checkbox');
+      const dialoguesToggle = await screen.findByLabelText('Toggle AI-Generated Dialogues');
+      fireEvent.click(dialoguesToggle);
 
-        if (toggles.length > 0) {
-          fireEvent.click(toggles[0]);
-
-          await waitFor(() => {
-            expect(global.fetch).toHaveBeenCalledWith(
-              expect.stringContaining('/api/admin/feature-flags'),
-              expect.objectContaining({
-                method: 'PATCH',
-              })
-            );
-          });
-        }
+      await waitFor(() => {
+        expect(global.fetch).toHaveBeenCalledWith(
+          expect.stringContaining('/api/admin/feature-flags'),
+          expect.objectContaining({
+            method: 'PATCH',
+          })
+        );
       });
     });
   });
