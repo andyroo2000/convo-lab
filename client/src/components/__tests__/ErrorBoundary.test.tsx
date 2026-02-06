@@ -12,8 +12,7 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 
 describe('ErrorBoundary', () => {
   // Suppress console.error for these tests
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn<any, any>>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -113,10 +112,9 @@ describe('ErrorBoundary', () => {
     const originalLocation = window.location;
 
     // Mock window.location.href
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    delete (window as any).location;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (window as any).location = { href: '' };
+    const windowWithLocation = window as unknown as { location?: Location };
+    delete windowWithLocation.location;
+    (window as unknown as { location: Location }).location = { href: '' } as Location;
 
     render(
       <ErrorBoundary>

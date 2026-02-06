@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   const targets = [
-    { lang: 'ja', level: 'N4', field: 'jlptLevel' },
+    { lang: 'ja', level: 'N4', field: 'jlptLevel' as const },
   ];
 
   for (const target of targets) {

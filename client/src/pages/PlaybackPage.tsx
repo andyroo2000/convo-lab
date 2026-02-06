@@ -236,8 +236,7 @@ const PlaybackPage = () => {
         const currentTimeMs = currentTime * 1000;
 
         // Helper function to get effective start time for current speed
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const getEffectiveStartTime = (sentence: any) => {
+        const getEffectiveStartTime = (sentence: Sentence) => {
           /* eslint-disable no-nested-ternary */
           const startTime =
             speedKey === 'slow'
@@ -250,8 +249,7 @@ const PlaybackPage = () => {
         };
 
         // Helper function to get effective end time for current speed
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const getEffectiveEndTime = (sentence: any) => {
+        const getEffectiveEndTime = (sentence: Sentence) => {
           /* eslint-disable no-nested-ternary */
           const endTime =
             speedKey === 'slow'
