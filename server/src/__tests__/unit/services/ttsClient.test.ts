@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   createSSMLWithPauses,
   createSSMLSlow,
@@ -155,7 +156,7 @@ describe('synthesizeSpeech', () => {
   });
 
   it('should throw error when audio buffer is null', async () => {
-    mockProvider.synthesizeSpeech.mockResolvedValue(null as any);
+    mockProvider.synthesizeSpeech.mockResolvedValue(null as unknown as Buffer);
 
     await expect(
       synthesizeSpeech({
@@ -205,9 +206,7 @@ describe('synthesizeSpeech', () => {
       expect.stringContaining('[TTS] Using provider: GoogleTTS for voice: en-US-Neural2-D')
     );
     // eslint-disable-next-line no-console
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('[TTS] Generated')
-    );
+    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('[TTS] Generated'));
   });
 });
 

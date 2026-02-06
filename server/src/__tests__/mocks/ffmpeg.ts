@@ -1,8 +1,16 @@
 import { vi } from 'vitest';
 
+interface FfprobeFormat {
+  duration?: number | string;
+}
+
+interface FfprobeMetadata {
+  format: FfprobeFormat;
+}
+
 // Mock ffprobe function
 export const mockFfprobe = vi.fn(
-  (filePath: string, callback: (err: Error | null, metadata: any) => void) => {
+  (filePath: string, callback: (err: Error | null, metadata: FfprobeMetadata) => void) => {
     callback(null, {
       format: {
         duration: 120, // 120 seconds

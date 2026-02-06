@@ -1,5 +1,15 @@
 import { PrismaClient } from '@prisma/client';
 
+interface JapaneseMetadata {
+  kanji?: string;
+  kana?: string;
+  furigana?: string;
+}
+
+interface LanguageMetadata {
+  japanese?: JapaneseMetadata;
+}
+
 const prisma = new PrismaClient({
   datasources: {
     db: {
@@ -44,7 +54,7 @@ async function main() {
 
         if (latestEpisode.dialogue.sentences.length > 0) {
           console.log(`\n  First sentence: ${latestEpisode.dialogue.sentences[0].text}`);
-          const metadata = latestEpisode.dialogue.sentences[0].metadata as any;
+          const metadata = latestEpisode.dialogue.sentences[0].metadata as unknown as LanguageMetadata;
           if (metadata?.japanese?.furigana) {
             console.log(`  Furigana: ${metadata.japanese.furigana}`);
           }

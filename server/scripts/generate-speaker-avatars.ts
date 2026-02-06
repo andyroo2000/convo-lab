@@ -139,8 +139,9 @@ async function generateAvatar(config: AvatarConfig): Promise<void> {
 
     const stats = await fs.stat(avatarPath);
     console.log(`✓ Generated ${outputFilename} (${(stats.size / 1024).toFixed(1)}KB)`);
-  } catch (error: any) {
-    console.error(`✗ Failed to generate ${outputFilename}:`, error.message);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to generate ${outputFilename}:`, errorMessage);
     throw error;
   }
 }

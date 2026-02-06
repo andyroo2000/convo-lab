@@ -8,9 +8,19 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      retry: (failureCount, error: any) => {
+      retry: (failureCount, error: unknown) => {
         // Don't retry on 4xx errors (client errors)
-        if (error?.response?.status >= 400 && error?.response?.status < 500) {
+        if (
+          typeof error === 'object' &&
+          error !== null &&
+          'response' in error &&
+          typeof error.response === 'object' &&
+          error.response !== null &&
+          'status' in error.response &&
+          typeof error.response.status === 'number' &&
+          error.response.status >= 400 &&
+          error.response.status < 500
+        ) {
           return false;
         }
         // Retry up to 2 times for network/server errors

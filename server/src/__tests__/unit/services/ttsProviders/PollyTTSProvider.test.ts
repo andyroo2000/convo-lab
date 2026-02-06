@@ -1,5 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Readable } from 'stream';
+
+import type { SynthesizeSpeechCommandInput } from '@aws-sdk/client-polly';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
 import {
@@ -15,7 +17,7 @@ vi.mock('@aws-sdk/client-polly', () => ({
     send = mockSend;
   },
   SynthesizeSpeechCommand: class {
-    constructor(public params: any) {}
+    constructor(public params: SynthesizeSpeechCommandInput) {}
   },
 }));
 

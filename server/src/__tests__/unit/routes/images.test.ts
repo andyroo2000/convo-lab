@@ -10,6 +10,29 @@ vi.mock('../../../jobs/imageQueue.js', () => ({
   imageQueue: mockImageQueue,
 }));
 
+// Type definitions for test
+interface GenerateImagesBody {
+  episodeId?: string;
+  dialogueId?: string;
+  imageCount?: number;
+}
+
+interface JobProgress {
+  step?: string;
+  progress?: number;
+}
+
+interface JobResult {
+  images: string[];
+}
+
+interface MockJob {
+  id: string;
+  getState: () => Promise<string>;
+  progress: number | JobProgress;
+  returnvalue: JobResult | null;
+}
+
 describe('Images Route Logic', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -17,7 +40,7 @@ describe('Images Route Logic', () => {
 
   describe('POST /generate - Generate Images', () => {
     it('should require episodeId', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -29,7 +52,7 @@ describe('Images Route Logic', () => {
     });
 
     it('should require dialogueId', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -41,7 +64,7 @@ describe('Images Route Logic', () => {
     });
 
     it('should pass validation with both required fields', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -94,7 +117,7 @@ describe('Images Route Logic', () => {
     });
 
     it('should use default imageCount of 3', () => {
-      const getImageCount = (body: any) => body.imageCount || 3;
+      const getImageCount = (body: GenerateImagesBody) => body.imageCount || 3;
 
       expect(getImageCount({})).toBe(3);
       expect(getImageCount({ imageCount: 5 })).toBe(5);
@@ -181,17 +204,18 @@ describe('Images Route Logic', () => {
     });
 
     it('should format job status response correctly for active job', () => {
-      const formatJobStatusResponse = (job: any, state: string) => ({
+      const formatJobStatusResponse = (job: MockJob, state: string) => ({
         id: job.id,
         state,
         progress: job.progress,
         result: state === 'completed' ? job.returnvalue : null,
       });
 
-      const activeJob = {
+      const activeJob: MockJob = {
         id: 'job-123',
         progress: 50,
         returnvalue: { images: ['url1', 'url2'] },
+        getState: vi.fn().mockResolvedValue('active'),
       };
 
       const response = formatJobStatusResponse(activeJob, 'active');
@@ -201,28 +225,31 @@ describe('Images Route Logic', () => {
     });
 
     it('should format job status response correctly for completed job', () => {
-      const formatJobStatusResponse = (job: any, state: string) => ({
+      const formatJobStatusResponse = (job: MockJob, state: string) => ({
         id: job.id,
         state,
         progress: job.progress,
         result: state === 'completed' ? job.returnvalue : null,
       });
 
-      const completedJob = {
+      const completedJob: MockJob = {
         id: 'job-123',
         progress: 100,
         returnvalue: { images: ['url1', 'url2', 'url3'] },
+        getState: vi.fn().mockResolvedValue('completed'),
       };
 
       const response = formatJobStatusResponse(completedJob, 'completed');
       expect(response.result).toBeDefined();
-      expect(response.result.images).toHaveLength(3);
+      expect(response.result!.images).toHaveLength(3);
     });
   });
 
   describe('Validation', () => {
     it('should reject empty body', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (
+        body: GenerateImagesBody | null | undefined
+      ): string | null => {
         const { episodeId, dialogueId } = body || {};
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -236,7 +263,7 @@ describe('Images Route Logic', () => {
     });
 
     it('should validate that episodeId is not empty string', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';
@@ -250,7 +277,7 @@ describe('Images Route Logic', () => {
     });
 
     it('should validate that dialogueId is not empty string', () => {
-      const validateGenerateImages = (body: any): string | null => {
+      const validateGenerateImages = (body: GenerateImagesBody): string | null => {
         const { episodeId, dialogueId } = body;
         if (!episodeId || !dialogueId) {
           return 'Missing required fields';

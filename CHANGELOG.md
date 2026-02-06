@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Type-safety harness post-session verification — harness now verifies files are actually clean (0 `any` types) after a session reports success, and directly closes beads cards via SQLite if the Claude session failed to; iterator exhaustion no longer optimistically returns success
+- **[chore]** Closed 28 completed type-safety cards that had 0 `any` types remaining but were never closed by harness sessions
+
 ### Added
 
 - **[chore]** Type safety harness (`scripts/type-safety-harness.ts`) — autonomous Claude Agent SDK harness that removes `any` types from 86 files in parallel; two-pass strategy (Sonnet first, Opus auto-retry for failures); beads integration for card coordination (claim/close/revert); supports `--concurrency`, `--category`, `--file`, `--no-retry`, `--dry-run` flags; created 86 beads chore cards under epic `convo-lab-7oj` tracking 314 `any` occurrences across the codebase

@@ -1,4 +1,6 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console */
+import { Prisma } from '@prisma/client';
+
 import { prisma } from '../db/client.js';
 
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
@@ -18,6 +20,18 @@ interface GenerateDialogueRequest {
   speakers: Speaker[];
   variationCount?: number;
   dialogueLength?: number;
+}
+
+interface DialogueSentence {
+  speaker: string;
+  text: string;
+  translation: string;
+  variations: string[];
+}
+
+interface DialogueData {
+  title: string;
+  sentences: DialogueSentence[];
 }
 
 export async function generateDialogue(request: GenerateDialogueRequest) {
@@ -56,7 +70,7 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
     // Retry logic for Gemini API calls (handles transient JSON parsing errors)
     const MAX_RETRIES = 3;
     let lastError: Error | null = null;
-    let dialogueData: any = null;
+    let dialogueData: DialogueData | null = null;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -218,7 +232,7 @@ Requirements:
 async function createDialogueInDB(
   episodeId: string,
   speakers: Speaker[],
-  dialogueData: any,
+  dialogueData: DialogueData,
   targetLanguage: string,
   _nativeLanguage: string
 ) {
@@ -257,14 +271,14 @@ async function createDialogueInDB(
   const speakerMap = new Map(speakerRecords.map((s) => [stripPhoneticNotation(s.name), s.id]));
 
   // Batch process all sentence metadata in a single request
-  const sentenceTexts = dialogueData.sentences.map((sent: any) => sent.text);
+  const sentenceTexts = dialogueData.sentences.map((sent) => sent.text);
   console.log(`[DIALOGUE] Batching metadata for ${sentenceTexts.length} sentences`);
   const allMetadata = await processLanguageTextBatch(sentenceTexts, targetLanguage);
   console.log(`[DIALOGUE] Metadata batch complete (1 call instead of ${sentenceTexts.length})`);
 
   // Create sentences with precomputed metadata
   const sentences = await Promise.all(
-    dialogueData.sentences.map(async (sent: any, index: number) => {
+    dialogueData.sentences.map(async (sent, index) => {
       // Strip phonetic notation from the speaker name for matching
       const normalizedSpeakerName = stripPhoneticNotation(sent.speaker);
       const speakerId = speakerMap.get(normalizedSpeakerName);
@@ -284,7 +298,7 @@ async function createDialogueInDB(
           order: index,
           text: sent.text,
           translation: sent.translation,
-          metadata: metadata as any, // Store precomputed metadata (cast for Prisma JSON type)
+          metadata: metadata as Prisma.JsonValue, // Store precomputed metadata (cast for Prisma JSON type)
           variations: sent.variations || [],
           selected: false,
         },

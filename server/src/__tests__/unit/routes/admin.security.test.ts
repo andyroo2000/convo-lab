@@ -1,13 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express, { Request, Response, NextFunction, json as expressJson } from 'express';
 import request from 'supertest';
-import express from 'express';
-import adminRouter from '../../../routes/admin.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import adminRouter from '../../../routes/admin.js';
+
+interface AuthRequest extends Request {
+  userId?: string;
+}
 
 // Mock auth middleware to set userId from test context
 let currentUserId: string | undefined;
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: AuthRequest, res: Response, next: NextFunction) => {
     req.userId = currentUserId;
     next();
   },
@@ -56,7 +61,7 @@ describe('Admin Security Tests', () => {
     vi.clearAllMocks();
     currentUserId = undefined; // Reset user ID before each test
     app = express();
-    app.use(express.json());
+    app.use(expressJson());
     app.use('/api/admin', adminRouter); // Admin router includes requireAuth and requireAdmin
     app.use(errorHandler);
   });

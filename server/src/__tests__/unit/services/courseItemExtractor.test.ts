@@ -1,12 +1,15 @@
+import type { Episode, Sentence, Speaker } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Import after mocking
 import {
   extractCoreItems,
   extractDialogueExchanges,
   extractDialogueExchangesFromSourceText,
   extractVocabularyFromSentence,
 } from '../../../services/courseItemExtractor.js';
+import type { LanguageMetadata } from '../../../services/languageProcessor.js';
+
+// Import after mocking
 
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
@@ -50,53 +53,80 @@ describe('courseItemExtractor', () => {
     mockGetProficiencyFramework.mockReturnValue('JLPT');
   });
 
+  // Type definitions for test mocks
+  type SentenceWithMetadata = Sentence & {
+    metadata: LanguageMetadata;
+    speaker: Speaker;
+  };
+
+  type MockEpisode = Episode & {
+    dialogue: {
+      sentences: SentenceWithMetadata[];
+    };
+  };
+
   // Helper to create mock episode with dialogue
-  const createMockEpisode = (sentences: any[]) => ({
+  const createMockEpisode = (sentences: SentenceWithMetadata[]): MockEpisode => ({
     id: 'episode-123',
     title: 'Test Episode',
     sourceText: 'Two friends talking about their weekend',
     targetLanguage: 'ja',
     nativeLanguage: 'en',
     status: 'ready',
+    userId: 'user-123',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     dialogue: {
       sentences,
     },
   });
 
   // Helper to create mock sentence
-  const createMockSentence = (id: string, text: string, translation: string, metadata?: any) => ({
+  const createMockSentence = (
+    id: string,
+    text: string,
+    translation: string,
+    metadata?: LanguageMetadata
+  ): SentenceWithMetadata => ({
     id,
     text,
     translation,
     order: 0,
+    episodeId: 'episode-123',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     metadata: metadata || {},
     speaker: {
       id: 'speaker-1',
       name: '田中',
       voiceId: 'ja-JP-Neural2-B',
+      createdAt: new Date(),
+      updatedAt: new Date(),
     },
   });
 
   describe('extractCoreItems', () => {
     it('should throw error when episode has no dialogue', async () => {
-      const episode = {
+      const episode: Episode & { dialogue: { sentences: SentenceWithMetadata[] } | null } = {
         id: 'episode-123',
         title: 'Test',
+        sourceText: '',
         targetLanguage: 'ja',
+        nativeLanguage: 'en',
+        status: 'ready',
+        userId: 'user-123',
+        createdAt: new Date(),
+        updatedAt: new Date(),
         dialogue: null,
       };
 
-      await expect(extractCoreItems(episode as any)).rejects.toThrow(
-        'Episode has no dialogue sentences'
-      );
+      await expect(extractCoreItems(episode)).rejects.toThrow('Episode has no dialogue sentences');
     });
 
     it('should throw error when episode has empty sentences', async () => {
       const episode = createMockEpisode([]);
 
-      await expect(extractCoreItems(episode as any)).rejects.toThrow(
-        'Episode has no dialogue sentences'
-      );
+      await expect(extractCoreItems(episode)).rejects.toThrow('Episode has no dialogue sentences');
     });
 
     it('should extract core items from dialogue sentences', async () => {
@@ -126,7 +156,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any);
+      const result = await extractCoreItems(episode);
 
       expect(result.length).toBeGreaterThan(0);
       expect(result[0]).toHaveProperty('textL2');
@@ -150,7 +180,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any, 8);
+      const result = await extractCoreItems(episode, 8);
 
       expect(result.length).toBeGreaterThanOrEqual(8);
     });
@@ -174,7 +204,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any);
+      const result = await extractCoreItems(episode);
 
       expect(result[0].readingL2).toBe('かんじ');
     });
@@ -212,7 +242,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any);
+      const result = await extractCoreItems(episode);
 
       expect(result[0].components).toBeDefined();
       expect(result[0].components?.length).toBe(3);
@@ -228,7 +258,7 @@ describe('courseItemExtractor', () => {
 
       mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
 
-      const result = await extractCoreItems(episode as any, 3, 5);
+      const result = await extractCoreItems(episode, 3, 5);
 
       // Should still return items with fallback single components
       expect(result.length).toBeGreaterThan(0);
@@ -267,7 +297,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any, 2, 4);
+      const result = await extractCoreItems(episode, 2, 4);
 
       // Results should include at least one item
       expect(result.length).toBeGreaterThan(0);
@@ -300,7 +330,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any, 1, 3);
+      const result = await extractCoreItems(episode, 1, 3);
 
       // Result should have items
       expect(result.length).toBeGreaterThan(0);
@@ -340,7 +370,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractCoreItems(episode as any, 1, 3);
+      const result = await extractCoreItems(episode, 1, 3);
 
       // Result should have items
       expect(result.length).toBeGreaterThan(0);
@@ -364,7 +394,7 @@ describe('courseItemExtractor', () => {
         dialogue: null,
       };
 
-      await expect(extractDialogueExchanges(episode as any)).rejects.toThrow(
+      await expect(extractDialogueExchanges(episode)).rejects.toThrow(
         'Episode has no dialogue sentences'
       );
     });
@@ -385,7 +415,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractDialogueExchanges(episode as any);
+      const result = await extractDialogueExchanges(episode);
 
       expect(result.length).toBe(2);
       expect(result[0]).toHaveProperty('textL2');
@@ -403,7 +433,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractDialogueExchanges(episode as any);
+      const result = await extractDialogueExchanges(episode);
 
       expect(result[0].speakerName).toBe('田中');
       expect(result[0].speakerVoiceId).toBe('ja-JP-Neural2-B');
@@ -415,7 +445,7 @@ describe('courseItemExtractor', () => {
 
       mockGenerateWithGemini.mockRejectedValue(new Error('API error'));
 
-      const result = await extractDialogueExchanges(episode as any);
+      const result = await extractDialogueExchanges(episode);
 
       // Should return exchanges without vocabulary
       expect(result.length).toBe(1);
@@ -437,7 +467,7 @@ describe('courseItemExtractor', () => {
         })
       );
 
-      const result = await extractDialogueExchanges(episode as any, 15); // 15 minute target
+      const result = await extractDialogueExchanges(episode, 15); // 15 minute target
 
       // Should limit to approximately 15 minutes worth of exchanges
       // At ~35 seconds per exchange, 15 minutes = ~25-26 exchanges
@@ -675,7 +705,7 @@ describe('courseItemExtractor', () => {
         })}\n\`\`\``
       );
 
-      const result = await extractCoreItems(episode as any, 3, 5);
+      const result = await extractCoreItems(episode, 3, 5);
 
       // Should have extracted items successfully despite markdown wrapping
       expect(result.length).toBeGreaterThan(0);

@@ -76,8 +76,9 @@ async function main() {
 
       // Small delay to avoid overwhelming the queue
       await new Promise((resolve) => setTimeout(resolve, 300));
-    } catch (error: any) {
-      console.log(`❌ ${lang} ${level} - Error: ${error.message}`);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.log(`❌ ${lang} ${level} - Error: ${errorMsg}`);
       errorCount++;
     }
   }

@@ -1,5 +1,7 @@
+import { User } from '@prisma/client';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+
 import { prisma } from '../db/client.js';
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -123,9 +125,11 @@ passport.use(
 );
 
 // Serialize user for session
-passport.serializeUser((user: any, done) => {
-  done(null, user.id);
-});
+passport.serializeUser(
+  (user: User & { isExistingUser?: boolean; isNewOAuthUser?: boolean }, done) => {
+    done(null, user.id);
+  }
+);
 
 // Deserialize user from session
 passport.deserializeUser(async (id: string, done) => {

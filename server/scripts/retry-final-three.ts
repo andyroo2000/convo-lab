@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { courseQueue } from '../src/jobs/courseQueue.js';
 
 const prisma = new PrismaClient();
@@ -9,14 +9,14 @@ async function main() {
   ];
 
   for (const target of targets) {
-    const where: any = {
+    const where: Record<string, unknown> = {
       title: 'Travel & Transportation',
       targetLanguage: target.lang,
       isSampleContent: true,
     };
     where[target.field] = target.level;
 
-    const course = await prisma.course.findFirst({ where });
+    const course = await prisma.course.findFirst({ where: where as Prisma.CourseWhereInput });
 
     if (course) {
       // Clean up any corrupt data

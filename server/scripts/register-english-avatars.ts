@@ -39,8 +39,9 @@ async function registerAvatar(config: (typeof ENGLISH_AVATARS)[0]) {
     });
 
     console.log(`✓ Registered: ${config.filename}`);
-  } catch (error: any) {
-    console.error(`✗ Failed to register ${config.filename}:`, error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`✗ Failed to register ${config.filename}:`, message);
     throw error;
   }
 }

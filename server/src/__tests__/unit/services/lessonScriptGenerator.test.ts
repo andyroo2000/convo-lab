@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
-import {
-  generateLessonScript,
-  LessonScriptUnit,
-  GeneratedScript,
-} from '../../../services/lessonScriptGenerator.js';
-import { LessonPlan, LessonSection, DrillEvent } from '../../../services/lessonPlanner.js';
 import { CoreItem } from '../../../services/courseItemExtractor.js';
+import { LessonPlan, LessonSection, DrillEvent } from '../../../services/lessonPlanner.js';
+import { generateLessonScript, LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
 
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
@@ -131,8 +127,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const markers = result.units.filter((u) => u.type === 'marker');
-      const markerLabels = markers.map((m) => (m as any).label);
+      const markers = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'marker' }> => u.type === 'marker'
+      );
+      const markerLabels = markers.map((m) => m.label);
 
       expect(markerLabels).toContain('Lesson 1 Start');
       expect(markerLabels).toContain('Lesson 1 End');
@@ -144,8 +142,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const markers = result.units.filter((u) => u.type === 'marker');
-      const markerLabels = markers.map((m) => (m as any).label);
+      const markers = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'marker' }> => u.type === 'marker'
+      );
+      const markerLabels = markers.map((m) => m.label);
 
       expect(markerLabels).toContain('Introduction');
       expect(markerLabels).toContain('New Vocabulary');
@@ -167,9 +167,11 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1');
+      const narrations = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'narration_L1' }> => u.type === 'narration_L1'
+      );
       expect(narrations.length).toBeGreaterThan(0);
-      expect((narrations[0] as any).voiceId).toBe('en-US-Neural2-A');
+      expect(narrations[0].voiceId).toBe('en-US-Neural2-A');
     });
 
     it('should include L2 audio units', async () => {
@@ -178,9 +180,11 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter((u) => u.type === 'L2');
+      const l2Units = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'L2' }> => u.type === 'L2'
+      );
       expect(l2Units.length).toBeGreaterThan(0);
-      expect((l2Units[0] as any).voiceId).toBe('ja-JP-Neural2-B');
+      expect(l2Units[0].voiceId).toBe('ja-JP-Neural2-B');
     });
 
     it('should include pause units', async () => {
@@ -189,9 +193,11 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const pauses = result.units.filter((u) => u.type === 'pause');
+      const pauses = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'pause' }> => u.type === 'pause'
+      );
       expect(pauses.length).toBeGreaterThan(0);
-      expect((pauses[0] as any).seconds).toBeGreaterThan(0);
+      expect(pauses[0].seconds).toBeGreaterThan(0);
     });
 
     it('should include drill events in the script', async () => {
@@ -201,13 +207,15 @@ describe('lessonScriptGenerator', () => {
       const result = await generateLessonScript(lessonPlan, mockContext);
 
       // Drill events should generate narration asking "How do you say..."
-      const narrations = result.units.filter((u) => u.type === 'narration_L1');
+      const narrations = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'narration_L1' }> => u.type === 'narration_L1'
+      );
       const drillNarrations = narrations.filter(
         (n) =>
-          (n as any).text.includes('How do you say') ||
-          (n as any).text.includes('Try saying') ||
-          (n as any).text.includes('One more time') ||
-          (n as any).text.includes('Remember')
+          n.text.includes('How do you say') ||
+          n.text.includes('Try saying') ||
+          n.text.includes('One more time') ||
+          n.text.includes('Remember')
       );
 
       expect(drillNarrations.length).toBeGreaterThan(0);
@@ -296,7 +304,8 @@ describe('lessonScriptGenerator', () => {
 
       // Find intro section units (between intro marker and next marker)
       const introMarkerIndex = result.units.findIndex(
-        (u) => u.type === 'marker' && (u as any).label === 'Introduction'
+        (u): u is Extract<LessonScriptUnit, { type: 'marker' }> =>
+          u.type === 'marker' && u.label === 'Introduction'
       );
       expect(introMarkerIndex).toBeGreaterThanOrEqual(0);
 
@@ -313,7 +322,9 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter((u) => u.type === 'L2') as any[];
+      const l2Units = result.units.filter(
+        (u): u is Extract<LessonScriptUnit, { type: 'L2' }> => u.type === 'L2'
+      );
 
       // Should have L2 units at normal speed (1.0) and slow speed (0.75)
       const normalSpeed = l2Units.filter((u) => u.speed === 1.0);
@@ -329,7 +340,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const howDoYouSay = narrations.filter((n) => n.text.includes('How do you say'));
 
       expect(howDoYouSay.length).toBeGreaterThan(0);
@@ -342,7 +356,10 @@ describe('lessonScriptGenerator', () => {
       const lessonPlan = createMockLessonPlan(coreItems);
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const l2Units = result.units.filter((u) => u.type === 'L2') as any[];
+      const l2Units = result.units.filter((u) => u.type === 'L2') as Extract<
+        LessonScriptUnit,
+        { type: 'L2' }
+      >[];
       const withReading = l2Units.filter((u) => u.reading !== undefined);
 
       expect(withReading.length).toBeGreaterThan(0);
@@ -366,7 +383,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const recallPrompt = narrations.find((n) => n.text.includes('How do you say'));
 
       expect(recallPrompt).toBeDefined();
@@ -387,7 +407,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const transformPrompt = narrations.find((n) => n.text.includes('Try saying'));
 
       expect(transformPrompt).toBeDefined();
@@ -408,7 +431,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const expandPrompt = narrations.find((n) => n.text.includes('One more time'));
 
       expect(expandPrompt).toBeDefined();
@@ -429,7 +455,10 @@ describe('lessonScriptGenerator', () => {
 
       const result = await generateLessonScript(lessonPlan, mockContext);
 
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const contextPrompt = narrations.find((n) => n.text.includes('Remember'));
 
       expect(contextPrompt).toBeDefined();
@@ -459,7 +488,10 @@ describe('lessonScriptGenerator', () => {
       const result = await generateLessonScript(lessonPlan, mockContext);
 
       // Should have narrations that introduce each component
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const componentIntros = narrations.filter((n) => n.text.includes('Listen for'));
 
       // Should have 3 "Listen for" prompts, one for each component
@@ -474,7 +506,10 @@ describe('lessonScriptGenerator', () => {
       const result = await generateLessonScript(lessonPlan, mockContext);
 
       // Should not have "Listen for" prompts (used only for backward-build)
-      const narrations = result.units.filter((u) => u.type === 'narration_L1') as any[];
+      const narrations = result.units.filter((u) => u.type === 'narration_L1') as Extract<
+        LessonScriptUnit,
+        { type: 'narration_L1' }
+      >[];
       const componentIntros = narrations.filter((n) => n.text.includes('Listen for'));
 
       expect(componentIntros.length).toBe(0);

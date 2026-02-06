@@ -631,14 +631,14 @@ ${dryRun ? 'This is a dry run - REPORT ONLY, make NO changes.' : 'Fix lint error
           // Log messages
           if (message.type === 'assistant' && message.message?.content) {
             for (const block of message.message.content) {
-              if ('text' in block && block.text) {
+              if (block.type === 'text' && block.text) {
                 lastMessage = block.text;
                 if (verbose) {
                   console.log(`\n💬 Claude: ${block.text}`);
                 }
               }
-              if ('tool_use' in block && verbose) {
-                console.log(`\n🔧 Using tool: ${block.tool_use.name}`);
+              if (block.type === 'tool_use' && verbose) {
+                console.log(`\n🔧 Using tool: ${block.name}`);
               }
             }
           }

@@ -1,4 +1,4 @@
-/* eslint-disable no-console, @typescript-eslint/no-explicit-any */
+/* eslint-disable no-console */
 /**
  * Service for managing sample content for new users
  */
@@ -122,7 +122,7 @@ export async function copySampleContentToUser(
               order: sentence.order,
               text: sentence.text,
               translation: sentence.translation,
-              metadata: sentence.metadata as any,
+              metadata: sentence.metadata,
               audioUrl: sentence.audioUrl,
               startTime: sentence.startTime,
               endTime: sentence.endTime,
@@ -132,7 +132,7 @@ export async function copySampleContentToUser(
               endTime_0_85: sentence.endTime_0_85,
               startTime_1_0: sentence.startTime_1_0,
               endTime_1_0: sentence.endTime_1_0,
-              variations: sentence.variations as any,
+              variations: sentence.variations,
               selected: sentence.selected,
             },
           });
@@ -250,10 +250,10 @@ async function copySampleCourses(
           speaker1VoiceProvider: sampleCourse.speaker1VoiceProvider,
           speaker2VoiceId: sampleCourse.speaker2VoiceId,
           speaker2VoiceProvider: sampleCourse.speaker2VoiceProvider,
-          scriptJson: sampleCourse.scriptJson as any,
+          scriptJson: sampleCourse.scriptJson,
           approxDurationSeconds: sampleCourse.approxDurationSeconds,
           audioUrl: sampleCourse.audioUrl,
-          timingData: sampleCourse.timingData as any,
+          timingData: sampleCourse.timingData,
         },
       });
 
@@ -291,7 +291,7 @@ async function copySampleCourses(
             sourceEpisodeId: coreItem.sourceEpisodeId,
             sourceSentenceId: coreItem.sourceSentenceId,
             sourceUnitIndex: coreItem.sourceUnitIndex,
-            components: coreItem.components as any,
+            components: coreItem.components,
           },
         });
       }

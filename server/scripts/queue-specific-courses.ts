@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { courseQueue } from '../src/jobs/courseQueue.js';
 
 const prisma = new PrismaClient();
@@ -9,7 +9,7 @@ async function queueSpecificCourses() {
   ];
 
   for (const target of targets) {
-    const where: any = {
+    const where: Prisma.CourseWhereInput = {
       title: 'Travel & Transportation',
       targetLanguage: target.lang,
       isSampleContent: true,

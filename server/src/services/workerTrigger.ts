@@ -6,6 +6,7 @@ import { GoogleAuth } from 'google-auth-library';
  */
 export async function triggerWorkerJob(): Promise<void> {
   if (process.env.NODE_ENV !== 'production') {
+    // eslint-disable-next-line no-console
     console.log('⏭️  Skipping worker trigger (not in production)');
     return;
   }
@@ -26,8 +27,10 @@ export async function triggerWorkerJob(): Promise<void> {
     const url = `https://${region}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/${projectId}/jobs/${jobName}:run`;
 
     await client.request({ url, method: 'POST' });
+    // eslint-disable-next-line no-console
     console.log('✅ Worker job triggered via API');
-  } catch (error: any) {
-    console.error('Failed to trigger worker job:', error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Failed to trigger worker job:', message);
   }
 }

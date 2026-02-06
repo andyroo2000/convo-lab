@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Import emailService AFTER mocks
 import * as emailService from '../../../services/emailService.js';
@@ -50,9 +50,9 @@ vi.mock('resend', () => ({
 
 // Mock i18next (required by emailService)
 vi.mock('../../../i18n/index.js', () => {
-  const mockT = vi.fn((key: string, params?: any) => {
+  const mockT = vi.fn((key: string, params?: Record<string, unknown>) => {
     // Return translated strings matching test expectations with interpolation
-    const translations: Record<string, (p?: any) => string> = {
+    const translations: Record<string, (p?: Record<string, unknown>) => string> = {
       'verification.subject': () => 'Verify your ConvoLab email',
       'passwordReset.subject': () => 'Reset your ConvoLab password',
       'welcome.subject': () => 'Welcome to ConvoLab!',
@@ -78,41 +78,62 @@ vi.mock('../../../i18n/index.js', () => {
 // Mock email templates
 vi.mock('../../../i18n/emailTemplates.js', () => ({
   generateVerificationEmail: vi.fn(
-    (params: any) =>
+    (params: { locale: string; name: string; verificationUrl: string }) =>
       `<html>Verification Email for ${params.name} - ${params.verificationUrl}</html>`
   ),
   generatePasswordResetEmail: vi.fn(
-    (params: any) => `<html>Password Reset Email for ${params.name} - ${params.resetUrl}</html>`
+    (params: { locale: string; name: string; resetUrl: string }) =>
+      `<html>Password Reset Email for ${params.name} - ${params.resetUrl}</html>`
   ),
-  generateWelcomeEmail: vi.fn((params: any) => `<html>Welcome Email for ${params.name}</html>`),
+  generateWelcomeEmail: vi.fn(
+    (params: { locale: string; name: string; appUrl: string }) =>
+      `<html>Welcome Email for ${params.name}</html>`
+  ),
   generatePasswordChangedEmail: vi.fn(
-    (params: any) => `<html>Password Changed for ${params.name}</html>`
+    (params: { locale: string; name: string; supportEmail: string }) =>
+      `<html>Password Changed for ${params.name}</html>`
   ),
   generateSubscriptionConfirmedEmail: vi.fn(
-    (params: any) =>
+    (params: { locale: string; name: string; tier: string; weeklyLimit: number; appUrl: string }) =>
       `<html>Subscription Confirmed for ${params.tier} - ${params.weeklyLimit} generations per week</html>`
   ),
   generatePaymentFailedEmail: vi.fn(
-    (params: any) => `<html>Payment Failed for ${params.name}</html>`
+    (params: { locale: string; name: string; billingUrl: string; supportEmail: string }) =>
+      `<html>Payment Failed for ${params.name}</html>`
   ),
   generateSubscriptionCanceledEmail: vi.fn(
-    (params: any) =>
+    (params: { locale: string; name: string; billingUrl: string }) =>
       `<html>Subscription Canceled for ${params.name} - downgraded to the Free tier</html>`
   ),
-  generateQuotaWarningEmail: vi.fn((params: any) => {
-    const upgradeText = params.tier === 'free' ? 'Upgrade to Pro for 30 generations per week' : '';
-    return `<html>Quota Warning ${params.percentage}% for ${params.name} - Used: ${params.used}/${params.limit} - ${params.tier} tier - quota resets every Monday${upgradeText ? ` - ${upgradeText}` : ''}</html>`;
-  }),
+  generateQuotaWarningEmail: vi.fn(
+    (params: {
+      locale: string;
+      name: string;
+      used: number;
+      limit: number;
+      percentage: number;
+      tier: string;
+      pricingUrl: string;
+    }) => {
+      const upgradeText =
+        params.tier === 'free' ? 'Upgrade to Pro for 30 generations per week' : '';
+      return `<html>Quota Warning ${params.percentage}% for ${params.name} - Used: ${params.used}/${params.limit} - ${params.tier} tier - quota resets every Monday${upgradeText ? ` - ${upgradeText}` : ''}</html>`;
+    }
+  ),
 }));
 
 // Mock console methods
+// eslint-disable-next-line no-console
 const originalConsoleLog = console.log;
+// eslint-disable-next-line no-console
 const originalConsoleError = console.error;
 
 describe('Email Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line no-console
     console.log = vi.fn();
+    // eslint-disable-next-line no-console
     console.error = vi.fn();
 
     // Mock user lookup for getUserLocaleByEmail
@@ -123,7 +144,9 @@ describe('Email Service', () => {
   });
 
   afterEach(() => {
+    // eslint-disable-next-line no-console
     console.log = originalConsoleLog;
+    // eslint-disable-next-line no-console
     console.error = originalConsoleError;
   });
 
@@ -145,6 +168,7 @@ describe('Email Service', () => {
         where: { userId: 'test-user-id' },
       });
       expect(mockPrisma.emailVerificationToken.create).toHaveBeenCalled();
+      // eslint-disable-next-line no-console
       expect(console.log).toHaveBeenCalled();
 
       process.env.NODE_ENV = originalEnv;
@@ -206,7 +230,7 @@ describe('Email Service', () => {
       await emailService.sendVerificationEmail('test-user-id', 'test@example.com', 'Test User');
 
       expect(mockPrisma.emailVerificationToken.deleteMany).toHaveBeenCalledBefore(
-        mockPrisma.emailVerificationToken.create as any
+        mockPrisma.emailVerificationToken.create as unknown as ReturnType<typeof vi.fn>
       );
 
       process.env.NODE_ENV = originalEnv;
@@ -231,6 +255,7 @@ describe('Email Service', () => {
         where: { userId: 'test-user-id' },
       });
       expect(mockPrisma.passwordResetToken.create).toHaveBeenCalled();
+      // eslint-disable-next-line no-console
       expect(console.log).toHaveBeenCalled();
 
       process.env.NODE_ENV = originalEnv;

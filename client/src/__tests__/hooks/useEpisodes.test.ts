@@ -146,13 +146,12 @@ describe('useEpisodes', () => {
         },
       ];
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let response: any = null;
+      let response!: { jobId: string };
       await act(async () => {
         response = await result.current.generateDialogue('ep-123', speakers, 3, 6);
       });
 
-      expect(response?.jobId).toBe('job-123');
+      expect(response.jobId).toBe('job-123');
       expect(mockFetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/dialogue/generate',
         expect.objectContaining({

@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import type { Mock } from 'vitest';
 import ForgotPasswordPage from '../ForgotPasswordPage';
 
 const API_URL = 'http://localhost:3001';
 
 // Mock global fetch
-global.fetch = vi.fn();
+global.fetch = vi.fn() as Mock;
 
 function renderWithRouter() {
   return render(
@@ -19,7 +20,7 @@ function renderWithRouter() {
 describe('ForgotPasswordPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as any).mockClear();
+    (global.fetch as Mock).mockClear();
   });
 
   describe('Rendering', () => {
@@ -66,7 +67,7 @@ describe('ForgotPasswordPage', () => {
 
   describe('Form Submission', () => {
     it('should submit email and show success message', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });
@@ -89,7 +90,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should call API with correct email', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });
@@ -116,7 +117,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show loading state during submission', async () => {
-      (global.fetch as any).mockImplementationOnce(
+      (global.fetch as Mock).mockImplementationOnce(
         () =>
           new Promise((resolve) => {
             setTimeout(resolve, 1000);
@@ -136,7 +137,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show error message on API failure', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: false,
         json: async () => ({ error: 'Server error' }),
       });
@@ -155,7 +156,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-      (global.fetch as any).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as Mock).mockRejectedValueOnce(new Error('Network error'));
 
       renderWithRouter();
 
@@ -171,7 +172,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should handle generic errors with fallback message', async () => {
-      (global.fetch as any).mockRejectedValueOnce('Unknown error');
+      (global.fetch as Mock).mockRejectedValueOnce('Unknown error');
 
       renderWithRouter();
 
@@ -189,7 +190,7 @@ describe('ForgotPasswordPage', () => {
 
   describe('Success State', () => {
     it('should show mail icon on success', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });
@@ -211,7 +212,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show back to login button in success state', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });
@@ -230,7 +231,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should display submitted email in success message', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });
@@ -250,7 +251,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('should show expiration reminder in success state', async () => {
-      (global.fetch as any).mockResolvedValueOnce({
+      (global.fetch as Mock).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ message: 'Reset email sent' }),
       });

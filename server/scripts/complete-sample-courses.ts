@@ -91,7 +91,7 @@ async function findExistingCourse(language: LanguageCode, level: string) {
 /**
  * Check if we should generate this course
  */
-function shouldGenerateCourse(course: any): { shouldGenerate: boolean; reason: string } {
+function shouldGenerateCourse(course: Awaited<ReturnType<typeof findExistingCourse>>): { shouldGenerate: boolean; reason: string } {
   if (!course) {
     return { shouldGenerate: true, reason: 'Course does not exist' };
   }
@@ -263,9 +263,10 @@ async function generateSampleCourse(
 
     log(`  ✅ Job queued: ${job.id}`);
     return { status: 'queued', courseId, jobId: job.id };
-  } catch (error: any) {
-    log(`  ❌ Error queuing job: ${error.message}`);
-    return { status: 'error', reason: error.message };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    log(`  ❌ Error queuing job: ${message}`);
+    return { status: 'error', reason: message };
   }
 }
 
@@ -282,7 +283,14 @@ async function main() {
       queued: 0,
       skipped: 0,
       errors: 0,
-      details: [] as any[],
+      details: [] as Array<{
+        language: LanguageCode;
+        level: string;
+        status: string;
+        reason?: string;
+        courseId?: string;
+        jobId?: string | number;
+      }>,
     };
 
     // Process all language/level combinations
@@ -315,14 +323,15 @@ async function main() {
 
           // Small delay to avoid overwhelming the system
           await new Promise((resolve) => setTimeout(resolve, 2000));
-        } catch (error: any) {
-          log(`  ❌ Error processing ${language} ${level}: ${error.message}`);
+        } catch (error: unknown) {
+          const message = error instanceof Error ? error.message : String(error);
+          log(`  ❌ Error processing ${language} ${level}: ${message}`);
           stats.errors++;
           stats.details.push({
             language,
             level,
             status: 'error',
-            reason: error.message,
+            reason: message,
           });
         }
       }
@@ -350,9 +359,13 @@ async function main() {
 
     await prisma.$disconnect();
     process.exit(0);
-  } catch (error: any) {
-    log(`❌ Fatal error: ${error.message}`);
-    log(error.stack);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : '';
+    log(`❌ Fatal error: ${message}`);
+    if (stack) {
+      log(stack);
+    }
     await prisma.$disconnect();
     process.exit(1);
   }

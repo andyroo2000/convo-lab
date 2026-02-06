@@ -18,6 +18,8 @@
  *   npm run harness:type-safety -- --category scripts    # Only script files
  */
 
+import { execFileSync } from 'child_process';
+import { join } from 'path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { formatDuration } from './utils/format-duration.js';
 
@@ -51,6 +53,8 @@ interface HarnessOptions {
   fileFilter?: string;
   categoryFilter?: 'source' | 'test' | 'script';
 }
+
+const PROJECT_ROOT = '/Users/andrewlandry/source/convo-lab';
 
 // ─── File Registry ──────────────────────────────────────────────────────────
 // All 86 files with `any` types, their beads card IDs, and occurrence counts.
@@ -270,6 +274,40 @@ If you CANNOT fix all \`any\` types (tsc fails, etc.):
 `.trim();
 }
 
+// ─── Post-Session Verification ──────────────────────────────────────────────
+
+function countRemainingAny(file: string): number {
+  try {
+    const result = execFileSync('grep', [
+      '-cE',
+      ': any\\b|as any\\b|\\bany\\[|\\bany>|<any\\b|, any\\b|\\bany \\|',
+      join(PROJECT_ROOT, file),
+    ], { encoding: 'utf-8' }).trim();
+    return parseInt(result, 10) || 0;
+  } catch {
+    // grep returns exit code 1 when no matches found
+    return 0;
+  }
+}
+
+function ensureCardClosed(cardId: string): void {
+  const dbPath = join(PROJECT_ROOT, '.beads', 'beads.db');
+  try {
+    const status = execFileSync('sqlite3', [
+      dbPath,
+      `SELECT status FROM issues WHERE id='${cardId}'`,
+    ], { encoding: 'utf-8' }).trim();
+    if (status !== 'closed') {
+      execFileSync('sqlite3', [
+        dbPath,
+        `UPDATE issues SET status='closed', closed_at=datetime('now'), close_reason='All any types replaced — verified by harness' WHERE id='${cardId}'`,
+      ]);
+    }
+  } catch {
+    // Non-fatal: card closure is best-effort
+  }
+}
+
 // ─── Session Runner ─────────────────────────────────────────────────────────
 
 async function runFileSession(
@@ -341,6 +379,22 @@ async function runFileSession(
       if (message.type === 'result') {
         const elapsed = formatDuration(Date.now() - startTime);
         if (message.subtype === 'success') {
+          // Post-session verification: confirm the file is actually clean
+          if (!options.dryRun) {
+            const remaining = countRemainingAny(task.file);
+            if (remaining > 0) {
+              console.log(`  ⚠️  [${shortFile}] session reported success but ${remaining} \`any\` types remain (${elapsed})`);
+              return {
+                file: task.file,
+                cardId: task.cardId,
+                status: 'failure',
+                durationMs: Date.now() - startTime,
+                turns: messageCount,
+                error: `Verification failed: ${remaining} \`any\` types still present`,
+              };
+            }
+            ensureCardClosed(task.cardId);
+          }
           console.log(`  ✅ [${shortFile}] done in ${messageCount} turns (${elapsed})`);
           return {
             file: task.file,
@@ -363,13 +417,29 @@ async function runFileSession(
       }
     }
 
-    // If we exhaust the iterator without a result message
+    // If we exhaust the iterator without a result message, don't assume success
+    console.log(`  ⚠️  [${shortFile}] iterator exhausted after ${messageCount} turns — verifying`);
+    if (!options.dryRun) {
+      const remaining = countRemainingAny(task.file);
+      if (remaining === 0) {
+        ensureCardClosed(task.cardId);
+        console.log(`  ✅ [${shortFile}] verified clean after iterator exhaustion`);
+        return {
+          file: task.file,
+          cardId: task.cardId,
+          status: 'success',
+          durationMs: Date.now() - startTime,
+          turns: messageCount,
+        };
+      }
+    }
     return {
       file: task.file,
       cardId: task.cardId,
-      status: 'success',
+      status: 'failure',
       durationMs: Date.now() - startTime,
       turns: messageCount,
+      error: 'Iterator exhausted without result message',
     };
   } catch (error) {
     return {

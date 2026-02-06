@@ -26,8 +26,7 @@ vi.mock('child_process', () => ({
   exec: vi.fn((cmd, callback) => {
     mockExecAsync(cmd)
       .then(() => callback(null, { stdout: '', stderr: '' }))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .catch((err: any) => callback(err));
+      .catch((err: unknown) => callback(err));
   }),
 }));
 

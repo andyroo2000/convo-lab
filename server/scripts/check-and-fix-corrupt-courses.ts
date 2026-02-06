@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { courseQueue } from '../src/jobs/courseQueue.js';
+import { LessonScriptUnit } from '../src/services/lessonScriptGenerator.js';
 
 const prisma = new PrismaClient();
 
@@ -31,9 +32,9 @@ async function main() {
     // Check for corrupt voice data in script
     let hasCorruptVoices = false;
     if (course.scriptJson) {
-      const units = course.scriptJson as any[];
+      const units = course.scriptJson as LessonScriptUnit[];
       const voiceIds = units
-        .filter(u => u.voiceId)
+        .filter((u): u is Extract<LessonScriptUnit, { voiceId: string }> => 'voiceId' in u)
         .map(u => u.voiceId);
       
       // Check for language mismatch (e.g., non-Japanese voices in a Japanese course)

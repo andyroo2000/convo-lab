@@ -2,7 +2,7 @@
  * Clean up duplicate waiting jobs from the Redis queue
  */
 
-import { Queue } from 'bullmq';
+import { Queue, Job } from 'bullmq';
 import { createRedisConnection } from '../src/config/redis.js';
 
 async function cleanupDuplicates() {
@@ -17,7 +17,7 @@ async function cleanupDuplicates() {
     console.log(`Found ${waitingJobs.length} waiting jobs\n`);
 
     // Group jobs by episodeId+dialogueId
-    const jobsByEpisode = new Map<string, any[]>();
+    const jobsByEpisode = new Map<string, Job[]>();
 
     for (const job of waitingJobs) {
       if (job.name === 'generate-all-speeds') {

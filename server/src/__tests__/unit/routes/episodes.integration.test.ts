@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable import/no-named-as-default-member */
-import express from 'express';
+import express, { Response, NextFunction } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import episodesRouter from '../../../routes/episodes.js';
 
@@ -20,7 +20,9 @@ const mockPrisma = vi.hoisted(() => ({
 
 const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
 const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
-const mockBlockDemoUser = vi.hoisted(() => vi.fn((req: any, res: any, next: any) => next()));
+const mockBlockDemoUser = vi.hoisted(() =>
+  vi.fn((req: AuthRequest, res: Response, next: NextFunction) => next())
+);
 
 vi.mock('../../../db/client.js', () => ({
   prisma: mockPrisma,
@@ -36,7 +38,7 @@ vi.mock('../../../middleware/impersonation.js', () => ({
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: vi.fn((req: any, res: any, next: any) => {
+  requireAuth: vi.fn((req: AuthRequest, res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   }),
@@ -45,7 +47,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 vi.mock('../../../i18n/index.js', () => ({
   default: {
-    t: (key: string, params?: any) => {
+    t: (key: string, params?: Record<string, unknown>) => {
       if (key === 'server:content.notFound') return `${params?.type} not found`;
       if (key === 'server:content.missingFields') return 'Missing required fields';
       if (key === 'server:content.updateSuccess') return `${params?.type} updated successfully`;
@@ -62,7 +64,9 @@ describe('Episodes Routes Integration', () => {
     vi.clearAllMocks();
     mockGetLibraryUserId.mockResolvedValue('test-user-id');
     mockGetEffectiveUserId.mockResolvedValue('test-user-id');
-    mockBlockDemoUser.mockImplementation((req: any, res: any, next: any) => next());
+    mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response, next: NextFunction) =>
+      next()
+    );
 
     app = express();
     app.use(express.json());
@@ -383,7 +387,7 @@ describe('Episodes Routes Integration', () => {
     });
 
     it('should block demo users from creating episodes', async () => {
-      mockBlockDemoUser.mockImplementation((req: any, res: any) => {
+      mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response) => {
         res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
       });
 
@@ -493,7 +497,7 @@ describe('Episodes Routes Integration', () => {
     });
 
     it('should block demo users from deleting episodes', async () => {
-      mockBlockDemoUser.mockImplementation((req: any, res: any) => {
+      mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response) => {
         res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
       });
 

@@ -1,5 +1,8 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import Stripe from 'stripe';
+
+import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import {
   createCheckoutSession,
@@ -10,8 +13,6 @@ import {
   handleSubscriptionDeleted,
   handleInvoicePaymentFailed,
 } from '../services/stripeService.js';
-import { prisma } from '../db/client.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -20,7 +21,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-  apiVersion: '2024-12-18.acacia' as any,
+  apiVersion: '2024-12-18.acacia' as unknown as Stripe.LatestApiVersion,
 });
 
 /**
@@ -122,7 +123,7 @@ router.get('/billing/subscription-status', requireAuth, async (req: AuthRequest,
  * This endpoint receives events from Stripe webhooks and processes them.
  * Authentication is done via Stripe signature verification.
  */
-router.post('/webhooks/stripe', async (req, res) => {
+router.post('/webhooks/stripe', async (req: Request, res: Response) => {
   const signature = req.headers['stripe-signature'];
 
   if (!signature) {
@@ -174,6 +175,7 @@ router.post('/webhooks/stripe', async (req, res) => {
         break;
 
       default:
+        // eslint-disable-next-line no-console
         console.log(`Unhandled event type: ${event.type}`);
     }
 

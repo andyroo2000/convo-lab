@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
-import express from 'express';
-import bcrypt from 'bcrypt';
-import verificationRouter from '../../../routes/verification.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import verificationRouter from '../../../routes/verification.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -44,7 +45,7 @@ vi.mock('../../../services/emailService.js', () => mockEmailService);
 
 // Mock auth middleware
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: any, res: any, next: any) => {
+  requireAuth: (req: AuthRequest, res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   },
@@ -57,7 +58,7 @@ describe('Verification Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     app = express();
-    app.use(express.json());
+    app.use(expressJson());
     app.use('/api', verificationRouter);
     app.use(errorHandler);
   });

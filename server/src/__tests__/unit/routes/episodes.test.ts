@@ -1,4 +1,7 @@
+import { Response, NextFunction } from 'express';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { AuthRequest } from '../../../middleware/auth.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -19,7 +22,7 @@ vi.mock('../../../db/client.js', () => ({
 }));
 
 vi.mock('../../../middleware/demoAuth.js', () => ({
-  blockDemoUser: vi.fn((req, res, next) => next()),
+  blockDemoUser: vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next()),
   getLibraryUserId: mockGetLibraryUserId,
 }));
 
@@ -28,7 +31,7 @@ vi.mock('../../../middleware/impersonation.js', () => ({
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: vi.fn((req, res, next) => {
+  requireAuth: vi.fn((req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   }),
@@ -130,7 +133,7 @@ describe('Episodes Route Logic', () => {
     });
 
     it('should use default pagination values when not provided (library mode)', async () => {
-      const router = await import('../../../routes/episodes.js');
+      await import('../../../routes/episodes.js');
 
       // Simulate query with library=true but no limit/offset
       await mockPrisma.episode.findMany({
@@ -364,7 +367,12 @@ describe('Episodes Route Logic', () => {
 
   describe('POST / - Create Episode', () => {
     it('should require all mandatory fields', () => {
-      const validateCreateEpisode = (body: any): string | null => {
+      const validateCreateEpisode = (body: {
+        title?: string;
+        sourceText?: string;
+        targetLanguage?: string;
+        nativeLanguage?: string;
+      }): string | null => {
         const { title, sourceText, targetLanguage, nativeLanguage } = body;
         if (!title || !sourceText || !targetLanguage || !nativeLanguage) {
           return 'Missing required fields';
