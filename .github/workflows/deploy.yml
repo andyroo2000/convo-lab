@@ -29,9 +29,6 @@ jobs:
           - name: furigana
             dockerfile: furigana-service/Dockerfile
             context: ./furigana-service
-          - name: pinyin
-            dockerfile: pinyin-service/Dockerfile
-            context: ./pinyin-service
 
     steps:
       - name: Checkout code
