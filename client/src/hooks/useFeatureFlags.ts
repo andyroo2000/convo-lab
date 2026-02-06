@@ -6,7 +6,6 @@ export interface FeatureFlags {
   id: string;
   dialoguesEnabled: boolean;
   audioCourseEnabled: boolean;
-  narrowListeningEnabled: boolean;
   updatedAt: string;
 }
 

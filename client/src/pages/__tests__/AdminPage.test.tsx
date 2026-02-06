@@ -57,7 +57,7 @@ const mockUsers = [
     displayName: 'User 1',
     role: 'user',
     createdAt: new Date('2024-01-01').toISOString(),
-    _count: { episodes: 5, courses: 2, narrowListeningPacks: 1 },
+    _count: { episodes: 5, courses: 2 },
   },
   {
     id: 'user-2',
@@ -66,7 +66,7 @@ const mockUsers = [
     displayName: 'User 2',
     role: 'user',
     createdAt: new Date('2024-01-15').toISOString(),
-    _count: { episodes: 3, courses: 1, narrowListeningPacks: 0 },
+    _count: { episodes: 3, courses: 1 },
   },
 ];
 
@@ -92,7 +92,6 @@ const mockStats = {
   users: 150,
   episodes: 523,
   courses: 234,
-  narrowListeningPacks: 145,
   inviteCodes: { total: 50, used: 30, available: 20 },
 };
 
@@ -125,7 +124,6 @@ const mockFeatureFlags = {
   id: 'flags-1',
   dialoguesEnabled: true,
   audioCourseEnabled: true,
-  narrowListeningEnabled: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -315,9 +313,9 @@ describe('AdminPage', () => {
       renderPage('users');
 
       await waitFor(() => {
-        // User 1 has 5 episodes + 2 courses + 1 narrow = 8 items
-        expect(screen.getByText('8 items')).toBeInTheDocument();
-        // User 2 has 3 episodes + 1 course + 0 narrow = 4 items
+        // User 1 has 5 episodes + 2 courses = 7 items
+        expect(screen.getByText('7 items')).toBeInTheDocument();
+        // User 2 has 3 episodes + 1 course = 4 items
         expect(screen.getByText('4 items')).toBeInTheDocument();
       });
     });
@@ -476,7 +474,6 @@ describe('AdminPage', () => {
         expect(screen.getByText('150')).toBeInTheDocument(); // users
         expect(screen.getByText('523')).toBeInTheDocument(); // episodes
         expect(screen.getByText('234')).toBeInTheDocument(); // courses
-        expect(screen.getByText('145')).toBeInTheDocument(); // narrow listening packs
       });
     });
 
@@ -554,7 +551,6 @@ describe('AdminPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
-        expect(screen.getByText('Narrow Listening Packs')).toBeInTheDocument();
       });
     });
 
@@ -563,20 +559,15 @@ describe('AdminPage', () => {
 
       await waitFor(async () => {
         const toggles = screen.getAllByRole('checkbox');
-        const narrowListeningToggle = toggles.find(
-          (toggle) =>
-            !toggle.getAttribute('checked') && toggle.getAttribute('aria-label')?.includes('narrow')
-        );
 
-        if (narrowListeningToggle) {
-          fireEvent.click(narrowListeningToggle);
+        if (toggles.length > 0) {
+          fireEvent.click(toggles[0]);
 
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/api/admin/feature-flags'),
               expect.objectContaining({
                 method: 'PATCH',
-                body: expect.stringContaining('narrowListeningEnabled'),
               })
             );
           });

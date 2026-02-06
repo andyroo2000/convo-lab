@@ -5,7 +5,6 @@ import { courseWorker } from './jobs/courseQueue.js';
 import { dialogueWorker } from './jobs/dialogueQueue.js';
 import { emailWorker } from './jobs/emailQueue.js';
 import { imageWorker } from './jobs/imageQueue.js';
-import { narrowListeningWorker } from './jobs/narrowListeningQueue.js';
 
 console.log('🚀 BullMQ Workers Starting...');
 console.log('Workers initialized:', {
@@ -13,7 +12,6 @@ console.log('Workers initialized:', {
   dialogueWorker: !!dialogueWorker,
   imageWorker: !!imageWorker,
   courseWorker: !!courseWorker,
-  narrowListeningWorker: !!narrowListeningWorker,
   emailWorker: !!emailWorker,
 });
 
@@ -22,7 +20,6 @@ const workers = [
   dialogueWorker,
   imageWorker,
   courseWorker,
-  narrowListeningWorker,
   emailWorker,
 ];
 
@@ -33,7 +30,6 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { dialogueQueue } = await import('./jobs/dialogueQueue.js');
     const { imageQueue } = await import('./jobs/imageQueue.js');
     const { courseQueue } = await import('./jobs/courseQueue.js');
-    const { narrowListeningQueue } = await import('./jobs/narrowListeningQueue.js');
     const { emailQueue } = await import('./jobs/emailQueue.js');
 
     const queues = [
@@ -41,7 +37,6 @@ async function areQueuesEmpty(): Promise<boolean> {
       dialogueQueue,
       imageQueue,
       courseQueue,
-      narrowListeningQueue,
       emailQueue,
     ];
 

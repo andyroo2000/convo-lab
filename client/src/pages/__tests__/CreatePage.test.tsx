@@ -20,7 +20,6 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
     flags: {
       dialoguesEnabled: true,
       audioCourseEnabled: true,
-      narrowListeningEnabled: true,
     },
     isLoading: false,
     error: null,
@@ -75,7 +74,6 @@ describe('CreatePage', () => {
 
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
       expect(screen.getByTestId('create-card-audio-course')).toBeTruthy();
-      expect(screen.getByTestId('create-card-narrow-listening')).toBeTruthy();
     });
   });
 
@@ -116,15 +114,6 @@ describe('CreatePage', () => {
       fireEvent.click(audioCourseCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/audio-course');
-    });
-
-    it('should navigate to narrow listening creation on click', () => {
-      renderCreatePage();
-
-      const narrowListeningCard = screen.getByTestId('create-card-narrow-listening');
-      fireEvent.click(narrowListeningCard);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/create/narrow-listening');
     });
 
   });

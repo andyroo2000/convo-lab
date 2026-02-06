@@ -121,36 +121,6 @@ async function checkUserContent() {
       console.log('  (none)\n');
     }
 
-    // Check Narrow Listening Packs
-    const narrowPacks = await prisma.narrowListeningPack.findMany({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        targetLanguage: true,
-        topic: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    console.log(`🎧 Narrow Listening Packs: ${narrowPacks.length}`);
-    if (narrowPacks.length > 0) {
-      narrowPacks.forEach(pack => {
-        console.log(`  - "${pack.title}"`);
-        console.log(`    Status: ${pack.status}`);
-        console.log(`    Language: ${pack.targetLanguage}`);
-        console.log(`    Topic: ${pack.topic.substring(0, 100)}${pack.topic.length > 100 ? '...' : ''}`);
-        console.log(`    Created: ${pack.createdAt.toISOString()}`);
-        console.log(`    Updated: ${pack.updatedAt.toISOString()}`);
-        console.log();
-      });
-    } else {
-      console.log('  (none)\n');
-    }
-
     // Check Generation Logs
     const genLogs = await prisma.generationLog.findMany({
       where: { userId: user.id },
@@ -187,7 +157,7 @@ async function checkUserContent() {
     console.log();
 
     // Summary
-    const totalContent = episodes.length + courses.length + narrowPacks.length;
+    const totalContent = episodes.length + courses.length;
     console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
     console.log(`📊 Summary for ${user.email}:`);
     console.log(`  Total content pieces: ${totalContent}`);

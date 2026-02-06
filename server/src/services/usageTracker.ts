@@ -10,7 +10,6 @@ import { getMonthStart, getNextMonthStart } from '../utils/dateUtils.js';
 const FREE_TIER_LIFETIME_LIMITS: Record<string, number> = {
   dialogue: 2, // 2 dialogues ever
   course: 1, // 1 audio course ever
-  narrow_listening: 0, // Not available in free tier for MVP
 };
 
 // Paid tier: Monthly quota (all content types combined)
@@ -27,7 +26,7 @@ export interface QuotaStatus {
   unlimited?: boolean;
 }
 
-export type ContentType = 'dialogue' | 'course' | 'narrow_listening';
+export type ContentType = 'dialogue' | 'course';
 
 /**
  * Check if user can generate content (quota check only)

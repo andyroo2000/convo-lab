@@ -54,8 +54,7 @@ const Layout = () => {
     location.pathname === '/app/library' ||
     location.pathname.startsWith('/app/playback') ||
     location.pathname.startsWith('/app/practice') ||
-    location.pathname.startsWith('/app/courses') ||
-    location.pathname.startsWith('/app/narrow-listening');
+    location.pathname.startsWith('/app/courses');
   const isCreateActive =
     location.pathname.startsWith('/app/create');
 

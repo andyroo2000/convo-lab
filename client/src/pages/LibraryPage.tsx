@@ -6,7 +6,6 @@ import { Episode, Course } from '../types';
 import {
   useLibraryData,
   LibraryCourse,
-  NarrowListeningPack,
 } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
@@ -22,7 +21,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
 import { API_URL } from '../config';
 
-type FilterType = 'all' | 'dialogues' | 'courses' | 'narrowListening';
+type FilterType = 'all' | 'dialogues' | 'courses';
 
 const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
@@ -32,7 +31,6 @@ const LibraryPage = () => {
   const {
     episodes,
     courses,
-    narrowListeningPacks,
     isLoading,
     error,
     hasNextPage,
@@ -40,10 +38,8 @@ const LibraryPage = () => {
     isFetchingNextPage,
     deleteEpisode,
     deleteCourse,
-    deleteNarrowListeningPack,
     isDeletingEpisode,
     isDeletingCourse,
-    isDeletingNarrowListening,
   } = useLibraryData(viewAsUserId);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
@@ -97,25 +93,22 @@ const LibraryPage = () => {
   }, [viewAsUserId]);
   const [episodeToDelete, setEpisodeToDelete] = useState<Episode | null>(null);
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
-  const [packToDelete, setPackToDelete] = useState<NarrowListeningPack | null>(null);
 
   // Combined deleting state for modal
   const isDeleting =
-    isDeletingEpisode || isDeletingCourse || isDeletingNarrowListening;
+    isDeletingEpisode || isDeletingCourse;
 
   // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
     all: 'all',
     dialogues: 'dialogues',
     courses: 'courses',
-    'narrow-listening': 'narrowListening',
   };
 
   const filterTypeToParam: Record<FilterType, string> = {
     all: 'all',
     dialogues: 'dialogues',
     courses: 'courses',
-    narrowListening: 'narrow-listening',
   };
 
   // Get filter from URL or default to 'all'
@@ -170,30 +163,10 @@ const LibraryPage = () => {
     }
   };
 
-  const handleDeletePackClick = (pack: NarrowListeningPack, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setPackToDelete(pack);
-  };
-
-  const handleConfirmDeletePack = async () => {
-    if (!packToDelete) return;
-
-    try {
-      await deleteNarrowListeningPack(packToDelete.id);
-      setPackToDelete(null);
-    } catch (err) {
-      console.error('Failed to delete pack:', err);
-      // eslint-disable-next-line no-alert
-      alert(t('library:delete.alertError', { type: 'pack' }));
-    }
-  };
-
   const handleCancelDelete = () => {
     if (!isDeleting) {
       setEpisodeToDelete(null);
       setCourseToDelete(null);
-      setPackToDelete(null);
     }
   };
 
@@ -220,17 +193,13 @@ const LibraryPage = () => {
   const allItems = useMemo(() => {
     // Filter content based on selected filter
     const filteredEpisodes =
-      filter === 'courses' || filter === 'narrowListening'
+      filter === 'courses'
         ? []
         : episodes;
     const filteredCourses =
-      filter === 'dialogues' || filter === 'narrowListening'
+      filter === 'dialogues'
         ? []
         : courses;
-    const filteredPacks =
-      filter === 'dialogues' || filter === 'courses'
-        ? []
-        : narrowListeningPacks;
 
     // Combine and sort by date
     return [
@@ -244,13 +213,8 @@ const LibraryPage = () => {
         data: course,
         date: new Date(course.createdAt),
       })),
-      ...filteredPacks.map((pack) => ({
-        type: 'narrowListening' as const,
-        data: pack,
-        date: new Date(pack.createdAt),
-      })),
     ].sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [filter, episodes, courses, narrowListeningPacks]);
+  }, [filter, episodes, courses]);
 
   if (isLoading) {
     return <LoadingSkeleton />;
@@ -309,21 +273,6 @@ const LibraryPage = () => {
               {t('library:filters.courses')}
             </button>
           )}
-          {isFeatureEnabled('narrowListeningEnabled') && (
-            <button
-              type="button"
-              onClick={() => handleFilterChange('narrowListening')}
-              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-                filter === 'narrowListening'
-                  ? 'bg-strawberry text-white'
-                  : 'bg-strawberry-light text-strawberry-dark hover:bg-strawberry/20'
-              }`}
-              data-testid="library-filter-narrow-listening"
-            >
-              <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {t('library:filters.narrowListening')}
-            </button>
-          )}
         </div>
       </div>
 
@@ -358,22 +307,6 @@ const LibraryPage = () => {
                 text: 'text-coral-dark',
                 border: 'border-coral',
                 button: 'bg-coral hover:bg-coral-dark',
-              }}
-            />
-          )}
-          {filter === 'narrowListening' && (
-            <EmptyStateCard
-              icon={Sparkles}
-              title={t('library:emptyStates.narrowListening.title')}
-              description={t('library:emptyStates.narrowListening.description')}
-              buttonText={t('library:emptyStates.narrowListening.button')}
-              route="/app/create/narrow-listening"
-              viewAsUserId={viewAsUserId}
-              colorTheme={{
-                bg: 'bg-strawberry-light',
-                text: 'text-strawberry-dark',
-                border: 'border-strawberry',
-                button: 'bg-strawberry hover:bg-strawberry-dark',
               }}
             />
           )}
@@ -564,75 +497,6 @@ const LibraryPage = () => {
                 </Link>
               );
             }
-            if (item.type === 'narrowListening') {
-              const pack = item.data as NarrowListeningPack;
-
-              return (
-                <Link
-                  key={pack.id}
-                  to={`/app/narrow-listening/${pack.id}`}
-                  className="group relative flex items-stretch bg-white hover:bg-strawberry-light transition-all duration-200 hover:shadow-lg"
-                  data-testid={`library-pack-card-${pack.id}`}
-                >
-                  {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-strawberry flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
-                    <Sparkles className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span
-                      className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
-                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
-                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.narrowListening') }}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-strawberry transition-colors truncate mb-1 sm:mb-2">
-                          {pack.title}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
-                          {pack.topic}
-                        </p>
-                      </div>
-
-                      {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        <LanguageLevelPill
-                          className="hidden sm:inline-flex"
-                          language={pack.targetLanguage}
-                          level={pack.jlptLevel}
-                        />
-                        {pack.status === 'generating' && (
-                          <Pill color="yellow" className="animate-pulse">
-                            {t('common:status.generating')}
-                          </Pill>
-                        )}
-                        {!isDemo && !viewAsUserId && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeletePackClick(pack, e)}
-                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete pack"
-                            data-testid={`library-delete-pack-${pack.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Language/Level Sidebar (mobile only) */}
-                  <LanguageLevelSidebar
-                    className="sm:hidden"
-                    language={pack.targetLanguage.toUpperCase()}
-                    level={pack.jlptLevel}
-                  />
-                </Link>
-              );
-            }
             return null;
           })}
         </div>
@@ -672,18 +536,6 @@ const LibraryPage = () => {
         onConfirm={handleConfirmDeleteCourse}
         onCancel={handleCancelDelete}
         isLoading={isDeletingCourse}
-      />
-
-      {/* Delete Narrow Listening Pack Confirmation Modal */}
-      <ConfirmModal
-        isOpen={packToDelete !== null}
-        title={t('library:delete.confirmTitle')}
-        message={t('library:delete.confirmNarrowListening', { title: packToDelete?.title })}
-        confirmLabel={t('library:delete.confirmButton')}
-        cancelLabel={t('library:delete.cancelButton')}
-        onConfirm={handleConfirmDeletePack}
-        onCancel={handleCancelDelete}
-        isLoading={isDeletingNarrowListening}
       />
 
       {/* Sample Content Guide Pulse Point */}

@@ -3,8 +3,7 @@
   "filters": {
     "all": "すべて",
     "dialogues": "対話",
-    "courses": "オーディオコース",
-    "narrowListening": "ナローリスニング"
+    "courses": "オーディオコース"
   },
   "empty": {
     "title": "まだコンテンツがありません",
@@ -15,7 +14,6 @@
     "confirmTitle": "コンテンツを削除",
     "confirmEpisode": "この対話を削除してもよろしいですか？",
     "confirmCourse": "このコースを削除してもよろしいですか？",
-    "confirmNarrowListening": "このナローリスニングパックを削除してもよろしいですか？",
     "confirmButton": "はい、削除します",
     "cancelButton": "キャンセル",
     "deleting": "削除中...",
@@ -41,18 +39,12 @@
       "description": "構造化されたレッスンと発音練習を含むガイド付きオーディオコースを構築",
       "button": "始める"
     },
-    "narrowListening": {
-      "title": "最初のナローリスニングパックを作成",
-      "description": "あなたのレベルのストーリーバリエーションで集中的なリスニング理解を練習",
-      "button": "始める"
-    },
     "all": {
       "description": "まだコンテンツがありません。最初の学習教材を作成して始めましょう！",
       "button": "すべてのオプションを見る"
     }
   },
   "sidebar": {
-    "course": "オーディオ\nコース",
-    "narrowListening": "ナロー\nリスニング"
+    "course": "オーディオ\nコース"
   }
 }

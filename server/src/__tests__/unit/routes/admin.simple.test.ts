@@ -26,7 +26,6 @@ const mockPrisma = vi.hoisted(() => ({
   },
   episode: { count: vi.fn() },
   course: { count: vi.fn() },
-  narrowListeningPack: { count: vi.fn() },
   subscription: {
     findFirst: vi.fn(),
     update: vi.fn(),
@@ -281,7 +280,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: false,
       });
 
       const response = await request(app).get('/admin/feature-flags');
@@ -297,7 +295,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'new-flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       const response = await request(app).get('/admin/feature-flags');
@@ -307,7 +304,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
-          narrowListeningEnabled: true,
         },
       });
     });
@@ -319,14 +315,12 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       mockPrisma.featureFlag.update.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       const response = await request(app)
@@ -344,7 +338,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'new-flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       const response = await request(app)
@@ -361,7 +354,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
-        narrowListeningEnabled: true,
       });
 
       const response = await request(app)
@@ -457,7 +449,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.user.count.mockResolvedValue(42);
       mockPrisma.episode.count.mockResolvedValue(150);
       mockPrisma.course.count.mockResolvedValue(25);
-      mockPrisma.narrowListeningPack.count.mockResolvedValue(10);
       mockPrisma.inviteCode.count
         .mockResolvedValueOnce(100) // total
         .mockResolvedValueOnce(60); // used
@@ -469,7 +460,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         users: 42,
         episodes: 150,
         courses: 25,
-        narrowListeningPacks: 10,
         inviteCodes: {
           total: 100,
           used: 60,
@@ -482,7 +472,6 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       mockPrisma.user.count.mockResolvedValue(0);
       mockPrisma.episode.count.mockResolvedValue(0);
       mockPrisma.course.count.mockResolvedValue(0);
-      mockPrisma.narrowListeningPack.count.mockResolvedValue(0);
       mockPrisma.inviteCode.count.mockResolvedValue(0);
 
       const response = await request(app).get('/admin/stats');

@@ -214,26 +214,6 @@ test.describe('Library Pagination', () => {
       }
     });
 
-    test('should paginate Narrow Listening tab correctly', async ({ page }) => {
-      await loginAsUser(page);
-
-      await page.goto('/app/library');
-      await navigateToTab(page, 'Narrow Listening');
-      await waitForLoadingComplete(page);
-
-      const itemCount = await getLibraryItemCount(page);
-
-      if (itemCount > 0) {
-        // All items should be narrow listening
-        const allAreNarrowListening = await page
-          .locator('[data-testid="library-item"]')
-          .evaluateAll((items) =>
-            items.every((item) => item.getAttribute('data-content-type') === 'narrowListening')
-          );
-        expect(allAreNarrowListening).toBe(true);
-      }
-    });
-
     test('should cache content when switching tabs', async ({ page }) => {
       await loginAsUser(page);
 

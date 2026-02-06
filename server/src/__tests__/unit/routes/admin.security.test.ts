@@ -28,9 +28,6 @@ const mockPrisma = vi.hoisted(() => ({
   course: {
     count: vi.fn(),
   },
-  narrowListeningPack: {
-    count: vi.fn(),
-  },
   inviteCode: {
     findMany: vi.fn(),
     count: vi.fn(),
@@ -94,7 +91,6 @@ describe('Admin Security Tests', () => {
       mockPrisma.user.count.mockResolvedValue(10);
       mockPrisma.episode.count.mockResolvedValue(50);
       mockPrisma.course.count.mockResolvedValue(20);
-      mockPrisma.narrowListeningPack.count.mockResolvedValue(5);
       mockPrisma.inviteCode.count
         .mockResolvedValueOnce(15) // total
         .mockResolvedValueOnce(8); // used
@@ -269,7 +265,6 @@ describe('Admin Security Tests', () => {
       mockPrisma.user.count.mockResolvedValue(0);
       mockPrisma.episode.count.mockResolvedValue(0);
       mockPrisma.course.count.mockResolvedValue(0);
-      mockPrisma.narrowListeningPack.count.mockResolvedValue(0);
       mockPrisma.inviteCode.count.mockResolvedValue(0);
 
       await request(app).get('/api/admin/stats').expect(200);

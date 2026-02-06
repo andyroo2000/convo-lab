@@ -48,6 +48,7 @@ model User {
 
   episodes                 Episode[]
   courses                  Course[]
+  // DEPRECATED - Feature removed, relation retained for data preservation
   narrowListeningPacks     NarrowListeningPack[]
   chunkPacks               ChunkPack[]
   inviteCode               InviteCode?
@@ -313,6 +314,7 @@ model CourseCoreItem {
   @@index([courseId])
 }
 
+// DEPRECATED - Feature removed, tables retained for data preservation
 // Narrow Listening Models
 
 model NarrowListeningPack {
@@ -526,6 +528,7 @@ model FeatureFlag {
   id                           String   @id @default(uuid())
   dialoguesEnabled             Boolean  @default(true)
   audioCourseEnabled           Boolean  @default(true)
+  // DEPRECATED - Feature removed, column retained for data preservation
   narrowListeningEnabled       Boolean  @default(true)
   // DEPRECATED - Feature removed, column retained for data preservation
   processingInstructionEnabled Boolean  @default(true)

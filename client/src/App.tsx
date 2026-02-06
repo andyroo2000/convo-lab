@@ -23,9 +23,6 @@ const PlaybackPage = lazy(() => import('./pages/PlaybackPage'));
 const PracticePage = lazy(() => import('./pages/PracticePage'));
 const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
-const NarrowListeningLibraryPage = lazy(() => import('./pages/NarrowListeningLibraryPage'));
-const NarrowListeningCreatorPage = lazy(() => import('./pages/NarrowListeningCreatorPage'));
-const NarrowListeningPlaybackPage = lazy(() => import('./pages/NarrowListeningPlaybackPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
@@ -72,14 +69,11 @@ const App = () => (
                   <Route path="create" element={<CreatePage />} />
                   <Route path="create/dialogue" element={<DialogueCreatorPage />} />
                   <Route path="create/audio-course" element={<CourseCreatorPage />} />
-                  <Route path="create/narrow-listening" element={<NarrowListeningCreatorPage />} />
 
                   {/* Playback & Practice */}
                   <Route path="playback/:episodeId" element={<PlaybackPage />} />
                   <Route path="practice/:episodeId" element={<PracticePage />} />
                   <Route path="courses/:courseId" element={<CoursePage />} />
-                  <Route path="narrow-listening" element={<NarrowListeningLibraryPage />} />
-                  <Route path="narrow-listening/:id" element={<NarrowListeningPlaybackPage />} />
                 </Route>
 
                 {/* 404 Catch-all Route */}

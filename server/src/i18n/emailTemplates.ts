@@ -125,7 +125,6 @@ export function generateWelcomeEmail(options: BaseEmailOptions & { appUrl: strin
           <ul style="text-align: ${styles.textAlign}; padding-${isRTL ? 'right' : 'left'}: 20px;">
             <li style="margin-bottom: 10px;"><strong>${t('welcome.dialogues.title')}</strong> ${t('welcome.dialogues.description')}</li>
             <li style="margin-bottom: 10px;"><strong>${t('welcome.audioCourses.title')}</strong> ${t('welcome.audioCourses.description')}</li>
-            <li style="margin-bottom: 10px;"><strong>${t('welcome.narrowListening.title')}</strong> ${t('welcome.narrowListening.description')}</li>
           </ul>
 
           <div style="text-align: center; margin: 30px 0;">

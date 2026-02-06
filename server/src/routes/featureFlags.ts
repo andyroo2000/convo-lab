@@ -16,7 +16,6 @@ router.get('/', requireAuth, async (req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
-          narrowListeningEnabled: true,
         },
       });
     }

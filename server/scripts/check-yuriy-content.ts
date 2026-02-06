@@ -172,29 +172,6 @@ async function checkYuriyContent() {
       }
       console.log();
 
-      // Check Narrow Listening Packs
-      const narrowPacks = await prisma.narrowListeningPack.findMany({
-        where: { userId: user.id },
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          targetLanguage: true,
-          topic: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: 'desc' }
-      });
-
-      console.log(`🎧 Narrow Listening Packs: ${narrowPacks.length}`);
-      if (narrowPacks.length > 0) {
-        narrowPacks.forEach(pack => {
-          console.log(`  - "${pack.title}" (${pack.status}) - ${pack.targetLanguage} - Created: ${pack.createdAt.toISOString()}`);
-          console.log(`    Topic: ${pack.topic.substring(0, 100)}${pack.topic.length > 100 ? '...' : ''}`);
-        });
-      }
-      console.log();
-
       // Check Generation Logs to see all attempts
       const genLogs = await prisma.generationLog.findMany({
         where: { userId: user.id },
@@ -227,7 +204,7 @@ async function checkYuriyContent() {
       console.log();
 
       // Summary
-      const totalContent = episodes.length + courses.length + narrowPacks.length;
+      const totalContent = episodes.length + courses.length;
       console.log(`\n📊 Summary for ${user.email}:`);
       console.log(`  Total content pieces: ${totalContent}`);
       console.log(`  Total generation attempts: ${genLogs.length}`);

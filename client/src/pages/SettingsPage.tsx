@@ -952,7 +952,6 @@ const SettingsPage = () => {
                   <ul className="text-base text-gray-700 list-disc list-inside space-y-1 mb-4">
                     <li>{t('settings:danger.deleteAccount.items.dialogues')}</li>
                     <li>{t('settings:danger.deleteAccount.items.courses')}</li>
-                    <li>{t('settings:danger.deleteAccount.items.narrowListening')}</li>
                     <li>{t('settings:danger.deleteAccount.items.account')}</li>
                   </ul>
                   <button type="button"

@@ -17,7 +17,6 @@ import dialogueRoutes from './routes/dialogue.js';
 import audioRoutes from './routes/audio.js';
 import imageRoutes from './routes/images.js';
 import courseRoutes from './routes/courses.js';
-import narrowListeningRoutes from './routes/narrowListening.js';
 import adminRoutes from './routes/admin.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 
@@ -105,7 +104,6 @@ app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
-app.use('/api/narrow-listening', narrowListeningRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
 

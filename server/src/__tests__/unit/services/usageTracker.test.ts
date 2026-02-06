@@ -84,7 +84,6 @@ describe('Usage Tracker Service', () => {
         const contentTypes: ContentType[] = [
           'dialogue',
           'course',
-          'narrow_listening',
         ];
 
         for (const contentType of contentTypes) {
@@ -184,22 +183,6 @@ describe('Usage Tracker Service', () => {
         });
       });
 
-      describe('Premium content types (not available for free)', () => {
-        it('should block narrow_listening content', async () => {
-          const result = await checkGenerationLimit(userId, 'narrow_listening');
-
-          expect(result).toEqual({
-            allowed: false,
-            used: 0,
-            limit: 0,
-            remaining: 0,
-            resetsAt: new Date('9999-12-31'),
-          });
-          expect(mockPrisma.generationLog.count).not.toHaveBeenCalled();
-        });
-
-      });
-
       describe('Per-content-type limits are independent', () => {
         it('should track dialogue and course limits separately', async () => {
           // User has created 2 dialogues (at limit)
@@ -293,7 +276,7 @@ describe('Usage Tracker Service', () => {
       it('should reset quota at start of next month', async () => {
         mockPrisma.generationLog.count.mockResolvedValue(15);
 
-        const result = await checkGenerationLimit(userId, 'narrow_listening');
+        const result = await checkGenerationLimit(userId, 'dialogue');
 
         expect(result.resetsAt).toEqual(nextMonthStart);
       });
@@ -301,7 +284,7 @@ describe('Usage Tracker Service', () => {
       it('should handle exactly 30 generations', async () => {
         mockPrisma.generationLog.count.mockResolvedValue(30);
 
-        const result = await checkGenerationLimit(userId, 'narrow_listening');
+        const result = await checkGenerationLimit(userId, 'dialogue');
 
         expect(result.allowed).toBe(false);
         expect(result.remaining).toBe(0);
@@ -313,7 +296,6 @@ describe('Usage Tracker Service', () => {
         const contentTypes: ContentType[] = [
           'dialogue',
           'course',
-          'narrow_listening',
         ];
 
         for (const contentType of contentTypes) {
@@ -364,14 +346,13 @@ describe('Usage Tracker Service', () => {
       const contentTypes: ContentType[] = [
         'dialogue',
         'course',
-        'narrow_listening',
       ];
 
       for (const contentType of contentTypes) {
         await logGeneration(userId, contentType);
       }
 
-      expect(mockPrisma.generationLog.create).toHaveBeenCalledTimes(3);
+      expect(mockPrisma.generationLog.create).toHaveBeenCalledTimes(2);
     });
 
     it('should persist even if content is deleted (quota gaming prevention)', async () => {
