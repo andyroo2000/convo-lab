@@ -54,8 +54,6 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: false,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: true,
         updatedAt: '2024-01-01',
       };
 
@@ -101,8 +99,6 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: false,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: true,
         updatedAt: '2024-01-01',
       };
 
@@ -121,7 +117,6 @@ describe('useFeatureFlags', () => {
 
       expect(result.current.isFeatureEnabled('dialoguesEnabled')).toBe(true);
       expect(result.current.isFeatureEnabled('narrowListeningEnabled')).toBe(true);
-      expect(result.current.isFeatureEnabled('lexicalChunksEnabled')).toBe(true);
     });
 
     it('should return false for disabled features', async () => {
@@ -130,8 +125,6 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: false,
         narrowListeningEnabled: false,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: false,
         updatedAt: '2024-01-01',
       };
 
@@ -173,8 +166,6 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: false,
         audioCourseEnabled: false,
         narrowListeningEnabled: false,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: false,
         updatedAt: '2024-01-01',
       };
 
@@ -297,8 +288,6 @@ describe('useFeatureFlags', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: true,
-        lexicalChunksEnabled: true,
         updatedAt: '2024-01-01T00:00:00Z',
       };
 
@@ -307,8 +296,6 @@ describe('useFeatureFlags', () => {
       expect(typeof validFlags.dialoguesEnabled).toBe('boolean');
       expect(typeof validFlags.audioCourseEnabled).toBe('boolean');
       expect(typeof validFlags.narrowListeningEnabled).toBe('boolean');
-      expect(typeof validFlags.processingInstructionEnabled).toBe('boolean');
-      expect(typeof validFlags.lexicalChunksEnabled).toBe('boolean');
       expect(typeof validFlags.updatedAt).toBe('string');
     });
   });

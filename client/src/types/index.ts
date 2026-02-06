@@ -1,6 +1,6 @@
 // Core type definitions for LanguageFlow Studio
 
-export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar' | 'en';
+export type LanguageCode = 'ja' | 'en';
 
 export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'native';
 
@@ -19,7 +19,6 @@ export interface User {
   tier: 'free' | 'pro';
   preferredStudyLanguage?: LanguageCode;
   preferredNativeLanguage?: LanguageCode;
-  pinyinDisplayMode?: 'toneMarks' | 'toneNumbers';
   proficiencyLevel?: ProficiencyLevel;
   onboardingCompleted?: boolean;
   emailVerified?: boolean;

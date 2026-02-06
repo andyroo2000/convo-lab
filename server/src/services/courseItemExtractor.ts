@@ -14,7 +14,7 @@ import {
 export interface CoreItem {
   id: string;
   textL2: string;
-  readingL2: string | null; // kana for Japanese, pinyin for Chinese
+  readingL2: string | null; // kana for Japanese
   translationL1: string;
   complexityScore: number;
   sourceEpisodeId: string;
@@ -166,20 +166,6 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
     if (commonParticles.some((p) => text.includes(p))) {
       score -= 3;
     }
-  } else if (targetLang === 'zh') {
-    // Chinese-specific scoring
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const metadata = sentence.metadata as any;
-
-    if (metadata?.chinese?.pinyin) {
-      // Count syllables (pinyin words)
-      const syllableCount = metadata.chinese.pinyin.split(/\s+/).length;
-      score += syllableCount;
-    }
-
-    if (text.includes('？') || text.includes('?')) {
-      score -= 5;
-    }
   } else {
     // For other languages, use word count as proxy
     const wordCount = text.split(/\s+/).length;
@@ -212,9 +198,6 @@ function extractReading(sentence: SentenceWithMetadata, targetLang: string): str
 
   if (targetLang === 'ja' && metadata?.japanese?.kana) {
     return metadata.japanese.kana;
-  }
-  if (targetLang === 'zh' && metadata?.chinese?.pinyin) {
-    return metadata.chinese.pinyin;
   }
 
   // For languages without phonetic systems, return null
@@ -902,7 +885,7 @@ Generate ${targetExchangeCount} dialogue exchanges in ${targetLanguage.toUpperCa
 
 For each exchange:
 1. Write the line in ${targetLanguage.toUpperCase()} as plain text (this goes in "textL2")
-2. ${targetLanguage === 'ja' ? 'Provide a SEPARATE reading in BRACKET NOTATION - put hiragana in brackets after each kanji (this goes in "reading"). Example textL2: "北海道に行きました", reading: "北[ほっ]海[かい]道[どう]に行[い]きました"' : targetLanguage === 'zh' ? 'Provide the pinyin for the full sentence (with tone marks like nǐ hǎo) in "reading"' : ''}
+2. ${targetLanguage === 'ja' ? 'Provide a SEPARATE reading in BRACKET NOTATION - put hiragana in brackets after each kanji (this goes in "reading"). Example textL2: "北海道に行きました", reading: "北[ほっ]海[かい]道[どう]に行[い]きました"' : ''}
 3. Provide an English translation
 4. Identify the speaker (give them a name like "Kenji", "Maria", "Bartender", etc.)
 5. Provide a relationship description for narration (e.g., "Your friend", "The bartender", "Your colleague")
@@ -962,9 +945,9 @@ Return ONLY a JSON object (no markdown, no explanation):
       "speakerName": "Kenji",
       "relationshipName": "Your friend",
       "textL2": "${targetLanguage === 'ja' ? '北海道に行きました' : '...'}",${
-        targetLanguage === 'ja' || targetLanguage === 'zh'
+        targetLanguage === 'ja'
           ? `
-      "reading": "${targetLanguage === 'ja' ? '北[ほっ]海[かい]道[どう]に行[い]きました' : '...'}",`
+      "reading": "北[ほっ]海[かい]道[どう]に行[い]きました",`
           : ''
       }
       "translation": "...",
@@ -1003,20 +986,10 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Use provided voice IDs if available, otherwise use language-appropriate defaults
     // Speaker 1 (friend) defaults to female voice, Speaker 2 (listener) defaults to male voice
     const getDefaultVoices = (lang: string): [string, string] => {
-      switch (lang.toLowerCase()) {
-        case 'ja':
-          return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
-        case 'zh':
-          return ['zh-CN-Wavenet-A', 'zh-CN-Wavenet-B'];
-        case 'es':
-          return ['es-ES-Wavenet-C', 'es-ES-Wavenet-B'];
-        case 'fr':
-          return ['fr-FR-Wavenet-A', 'fr-FR-Wavenet-B'];
-        case 'ar':
-          return ['ar-XA-Wavenet-A', 'ar-XA-Wavenet-B'];
-        default:
-          return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
+      if (lang.toLowerCase() === 'ja') {
+        return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
       }
+      return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
     };
 
     const [defaultFemale, defaultMale] = getDefaultVoices(targetLanguage);

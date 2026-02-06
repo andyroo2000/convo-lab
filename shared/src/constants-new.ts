@@ -6,27 +6,6 @@ export const SUPPORTED_LANGUAGES: Record<LanguageCode, LanguageInfo> = {
     name: 'Japanese',
     nativeName: '日本語',
   },
-  zh: {
-    code: 'zh',
-    name: 'Chinese',
-    nativeName: '中文',
-  },
-  es: {
-    code: 'es',
-    name: 'Spanish',
-    nativeName: 'Español',
-  },
-  fr: {
-    code: 'fr',
-    name: 'French',
-    nativeName: 'Français',
-  },
-  ar: {
-    code: 'ar',
-    name: 'Arabic',
-    nativeName: 'العربية',
-    rtl: true,
-  },
   en: {
     code: 'en',
     name: 'English',
@@ -35,41 +14,6 @@ export const SUPPORTED_LANGUAGES: Record<LanguageCode, LanguageInfo> = {
 };
 
 export const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'native'] as const;
-
-// CEFR (Common European Framework of Reference) Proficiency Levels
-// Used for Spanish and other European languages
-export const CEFR_LEVELS = {
-  A1: {
-    code: 'A1',
-    name: 'Beginner (A1)',
-    description: 'Can understand and use familiar everyday expressions',
-  },
-  A2: {
-    code: 'A2',
-    name: 'Elementary (A2)',
-    description: 'Can communicate in simple routine tasks',
-  },
-  B1: {
-    code: 'B1',
-    name: 'Intermediate (B1)',
-    description: 'Can deal with most situations while traveling',
-  },
-  B2: {
-    code: 'B2',
-    name: 'Upper Intermediate (B2)',
-    description: 'Can interact with fluency and spontaneity',
-  },
-  C1: {
-    code: 'C1',
-    name: 'Advanced (C1)',
-    description: 'Can use language flexibly and effectively',
-  },
-  C2: {
-    code: 'C2',
-    name: 'Mastery (C2)',
-    description: 'Can understand virtually everything heard or read',
-  },
-} as const;
 
 export const TONE_STYLES = ['casual', 'polite', 'formal'] as const;
 
@@ -205,114 +149,17 @@ export const TTS_VOICES = {
       },
     ],
   },
-  zh: {
-    languageCode: 'cmn-CN',
-    voices: [
-      // Google voices (Wavenet - Neural2 not available for Mandarin)
-      {
-        id: 'cmn-CN-Wavenet-A',
-        gender: 'female',
-        description: 'Xiaomei - Warm and friendly',
-        provider: 'google',
-      },
-      {
-        id: 'cmn-CN-Wavenet-D',
-        gender: 'female',
-        description: 'Xiaoli - Clear and gentle',
-        provider: 'google',
-      },
-      {
-        id: 'cmn-CN-Wavenet-B',
-        gender: 'male',
-        description: 'Wei - Natural and conversational',
-        provider: 'google',
-      },
-      {
-        id: 'cmn-CN-Wavenet-C',
-        gender: 'male',
-        description: 'Jun - Professional and clear',
-        provider: 'google',
-      },
-      // Polly voices (Neural)
-      {
-        id: 'Zhiyu',
-        gender: 'female',
-        description: 'Zhiyu - Professional and natural',
-        provider: 'polly',
-      },
-    ],
-  },
-  es: {
-    languageCode: 'es-ES',
-    voices: [
-      // Polly voices (Neural) - Spain Spanish
-      {
-        id: 'Lucia',
-        gender: 'female',
-        description: 'Lucia - Clear and natural',
-        provider: 'polly',
-      },
-      {
-        id: 'Sergio',
-        gender: 'male',
-        description: 'Sergio - Professional and warm',
-        provider: 'polly',
-      },
-    ],
-  },
-  fr: {
-    languageCode: 'fr-FR',
-    voices: [
-      // Polly voices (Neural) - France French
-      { id: 'Lea', gender: 'female', description: 'Lea - Natural and pleasant', provider: 'polly' },
-      {
-        id: 'Remi',
-        gender: 'male',
-        description: 'Remi - Clear and professional',
-        provider: 'polly',
-      },
-      // Polly voices (Neural) - Canadian French
-      {
-        id: 'Gabrielle',
-        gender: 'female',
-        description: 'Gabrielle - Warm and friendly',
-        provider: 'polly',
-      },
-      { id: 'Liam', gender: 'male', description: 'Liam - Natural and engaging', provider: 'polly' },
-    ],
-  },
-  ar: {
-    languageCode: 'arb',
-    voices: [
-      // Polly voices (Neural) - Gulf Arabic
-      { id: 'Hala', gender: 'female', description: 'Hala - Clear and natural', provider: 'polly' },
-      {
-        id: 'Zayd',
-        gender: 'male',
-        description: 'Zayd - Professional and warm',
-        provider: 'polly',
-      },
-    ],
-  },
 } as const;
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
   en: 'en-US-Neural2-J', // Guy - Male
   ja: 'ja-JP-Wavenet-C', // Shohei - Male
-  zh: 'cmn-CN-Wavenet-B', // Wei - Male
-  es: 'Sergio', // Male
-  fr: 'Remi', // Male
-  ar: 'Zayd', // Male Gulf Arabic
 } as const;
 
 // Language abbreviations for UI display
 export const LANGUAGE_ABBREVIATIONS = {
   ja: 'JA',
-  zh: 'ZH',
-  es: 'ES',
-  fr: 'FR',
-  ar: 'AR',
   en: 'EN',
 } as const;
 

@@ -365,11 +365,11 @@ describe('dialogueGenerator', () => {
     });
   });
 
-  describe('different target languages', () => {
-    it('should handle Chinese language', async () => {
+  describe('target language', () => {
+    it('should handle Japanese language', async () => {
       mockPrisma.episode.findUnique.mockResolvedValue({
         ...mockEpisode,
-        targetLanguage: 'zh',
+        targetLanguage: 'ja',
       });
 
       await generateDialogue({
@@ -378,37 +378,7 @@ describe('dialogueGenerator', () => {
       });
 
       const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
-      expect(systemInstruction).toContain('Chinese');
-    });
-
-    it('should handle Spanish language', async () => {
-      mockPrisma.episode.findUnique.mockResolvedValue({
-        ...mockEpisode,
-        targetLanguage: 'es',
-      });
-
-      await generateDialogue({
-        episodeId: 'episode-123',
-        speakers: mockSpeakers,
-      });
-
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
-      expect(systemInstruction).toContain('Spanish');
-    });
-
-    it('should handle French language', async () => {
-      mockPrisma.episode.findUnique.mockResolvedValue({
-        ...mockEpisode,
-        targetLanguage: 'fr',
-      });
-
-      await generateDialogue({
-        episodeId: 'episode-123',
-        speakers: mockSpeakers,
-      });
-
-      const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
-      expect(systemInstruction).toContain('French');
+      expect(systemInstruction).toContain('Japanese');
     });
   });
 });

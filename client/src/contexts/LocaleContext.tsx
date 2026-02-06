@@ -15,7 +15,6 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
   const { i18n } = useTranslation();
   const [locale, setLocale] = useState<LanguageCode>('en');
-  const [isRTL, setIsRTL] = useState(false);
 
   // Sync locale with user's preferred native language
   useEffect(() => {
@@ -23,13 +22,7 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
       const newLocale = user.preferredNativeLanguage as LanguageCode;
       setLocale(newLocale);
       i18n.changeLanguage(newLocale);
-
-      // Update RTL status (only Arabic is RTL)
-      const rtl = newLocale === 'ar';
-      setIsRTL(rtl);
-
-      // Update HTML dir attribute
-      document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+      document.documentElement.dir = 'ltr';
       document.documentElement.lang = newLocale;
     }
   }, [user?.preferredNativeLanguage, i18n]);
@@ -37,20 +30,14 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
   const changeLocale = (newLocale: LanguageCode) => {
     setLocale(newLocale);
     i18n.changeLanguage(newLocale);
-
-    // Update RTL status
-    const rtl = newLocale === 'ar';
-    setIsRTL(rtl);
-
-    // Update HTML dir attribute
-    document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+    document.documentElement.dir = 'ltr';
     document.documentElement.lang = newLocale;
   };
 
   const value = useMemo(
-    () => ({ locale, changeLocale, isRTL }),
+    () => ({ locale, changeLocale, isRTL: false }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale, isRTL]
+    [locale]
   );
 
   return (

@@ -14,14 +14,6 @@
       "title": "ナローリスニング",
       "description": "同じ物語を5つの異なる方法で語る—繰り返しを通じてパターンを深く内在化"
     },
-    "processingInstruction": {
-      "title": "文法",
-      "description": "構造化されたインプットを通じて文法を学ぶ—意味ベースの質問に答える"
-    },
-    "chunkPack": {
-      "title": "チャンクパック",
-      "description": "フレーズを完全な単位として習得—例を通じて高頻度のチャンクを学ぶ"
-    }
   },
   "buttons": {
     "create": "作成",

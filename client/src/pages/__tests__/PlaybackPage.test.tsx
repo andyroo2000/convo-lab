@@ -55,13 +55,9 @@ vi.mock('../../components/AudioPlayer', () => ({
   ),
 }));
 
-// Mock JapaneseText and ChineseText to avoid rendering issues
+// Mock JapaneseText to avoid rendering issues
 vi.mock('../../components/JapaneseText', () => ({
   default: ({ text }: { text: string }) => <span data-testid="japanese-text">{text}</span>,
-}));
-
-vi.mock('../../components/ChineseText', () => ({
-  default: ({ text }: { text: string }) => <span data-testid="chinese-text">{text}</span>,
 }));
 
 // Mock fetch for job polling
@@ -137,68 +133,6 @@ const mockEpisode: Episode = {
         endTime_0_85: 4706,
         startTime_1_0: 2000,
         endTime_1_0: 4000,
-      },
-    ],
-  },
-};
-
-const mockChineseEpisode: Episode = {
-  ...mockEpisode,
-  id: 'episode-456',
-  targetLanguage: 'zh',
-  dialogue: {
-    ...mockEpisode.dialogue!,
-    id: 'dialogue-456',
-    speakers: [
-      {
-        id: 'speaker-1',
-        name: '小明',
-        voiceId: 'cmn-CN-Standard-A',
-        proficiency: 'HSK4',
-        tone: 'casual',
-        gender: 'male',
-      },
-    ],
-    sentences: [
-      {
-        id: 'sentence-1',
-        text: '你好',
-        translation: 'Hello',
-        speakerId: 'speaker-1',
-        order: 0,
-        startTime: 0,
-        endTime: 1500,
-      },
-    ],
-  },
-};
-
-const mockSpanishEpisode: Episode = {
-  ...mockEpisode,
-  id: 'episode-789',
-  targetLanguage: 'es',
-  dialogue: {
-    ...mockEpisode.dialogue!,
-    id: 'dialogue-789',
-    speakers: [
-      {
-        id: 'speaker-1',
-        name: 'María',
-        voiceId: 'es-ES-Neural2-A',
-        proficiency: 'B1',
-        tone: 'casual',
-        gender: 'female',
-      },
-    ],
-    sentences: [
-      {
-        id: 'sentence-1',
-        text: 'Hola',
-        translation: 'Hello',
-        speakerId: 'speaker-1',
-        order: 0,
-        startTime: 0,
-        endTime: 1000,
       },
     ],
   },
@@ -333,26 +267,6 @@ describe('PlaybackPage', () => {
       });
     });
 
-    it('should show Pinyin toggle for Chinese episodes', async () => {
-      mockGetEpisode.mockResolvedValue(mockChineseEpisode);
-
-      renderPlaybackPage('episode-456');
-
-      await waitFor(() => {
-        expect(screen.getByText('Pinyin')).toBeInTheDocument();
-      });
-    });
-
-    it('should not show readings toggle for Spanish episodes', async () => {
-      mockGetEpisode.mockResolvedValue(mockSpanishEpisode);
-
-      renderPlaybackPage('episode-789');
-
-      await waitFor(() => {
-        expect(screen.queryByText('Furigana')).not.toBeInTheDocument();
-        expect(screen.queryByText('Pinyin')).not.toBeInTheDocument();
-      });
-    });
   });
 
   describe('sentence interaction', () => {
@@ -485,33 +399,13 @@ describe('PlaybackPage', () => {
     });
   });
 
-  describe('multi-language support', () => {
+  describe('Japanese text rendering', () => {
     it('should render Japanese text with JapaneseText component', async () => {
       renderPlaybackPage();
 
       await waitFor(() => {
         // Sentences should be rendered
         expect(screen.getByText('Hello')).toBeInTheDocument();
-      });
-    });
-
-    it('should render Chinese text with ChineseText component', async () => {
-      mockGetEpisode.mockResolvedValue(mockChineseEpisode);
-
-      renderPlaybackPage('episode-456');
-
-      await waitFor(() => {
-        expect(screen.getByText('Hello')).toBeInTheDocument();
-      });
-    });
-
-    it('should render Spanish text as plain text', async () => {
-      mockGetEpisode.mockResolvedValue(mockSpanishEpisode);
-
-      renderPlaybackPage('episode-789');
-
-      await waitFor(() => {
-        expect(screen.getByText('Hola')).toBeInTheDocument();
       });
     });
   });

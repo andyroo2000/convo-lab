@@ -7,7 +7,6 @@ import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
-import ChineseText from '../components/ChineseText';
 import AudioPlayer from '../components/AudioPlayer';
 import Toast from '../components/common/Toast';
 import SpeedSelector from '../components/common/SpeedSelector';
@@ -485,14 +484,14 @@ const PlaybackPage = () => {
               {/* Controls: Toggles and Speed Selector - Stack on mobile, side-by-side on desktop */}
               {!isGeneratingAudio && currentAudioUrl && (
                 <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
-                  {/* Row 1: Furigana & English Toggles - Only show for Japanese and Chinese */}
-                  {(episode?.targetLanguage === 'ja' || episode?.targetLanguage === 'zh') && (
+                  {/* Row 1: Furigana & English Toggles - Only show for Japanese */}
+                  {episode?.targetLanguage === 'ja' && (
                     <ViewToggleButtons
                       showReadings={showReadings}
                       showTranslations={showTranslations}
                       onToggleReadings={() => setShowReadings(!showReadings)}
                       onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                      readingsLabel={episode?.targetLanguage === 'ja' ? 'Furigana' : 'Pinyin'}
+                      readingsLabel="Furigana"
                     />
                   )}
 
@@ -637,13 +636,9 @@ const PlaybackPage = () => {
                       />
                     </div>
                     <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
-                      {/* eslint-disable-next-line no-nested-ternary */}
-                      {episode.targetLanguage === 'zh' ? (
-                        <ChineseText text={speaker.name} showPinyin={showReadings} />
-                      ) : episode.targetLanguage === 'ja' ? (
+                      {episode.targetLanguage === 'ja' ? (
                         <JapaneseText text={speaker.name} showFurigana={showReadings} />
                       ) : (
-                        // Spanish and other languages: plain text
                         <span>{speaker.name}</span>
                       )}
                     </span>
@@ -654,21 +649,13 @@ const PlaybackPage = () => {
                     {/* Target Language Text - Flexible Column */}
                     <div className={showTranslations ? 'flex-1 sm:pr-6' : 'w-full'}>
                       <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
-                        {/* eslint-disable-next-line no-nested-ternary */}
-                        {episode.targetLanguage === 'zh' ? (
-                          <ChineseText
-                            text={sentence.text}
-                            metadata={sentence.metadata}
-                            showPinyin={showReadings}
-                          />
-                        ) : episode.targetLanguage === 'ja' ? (
+                        {episode.targetLanguage === 'ja' ? (
                           <JapaneseText
                             text={sentence.text}
                             metadata={sentence.metadata}
                             showFurigana={showReadings}
                           />
                         ) : (
-                          // Spanish and other languages: plain text
                           <span className="text-xl sm:text-2xl">{sentence.text}</span>
                         )}
                       </p>

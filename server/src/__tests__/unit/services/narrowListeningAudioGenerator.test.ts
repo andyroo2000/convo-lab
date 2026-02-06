@@ -258,13 +258,13 @@ describe('narrowListeningAudioGenerator', () => {
         ['voice-female-1'],
         1.0,
         0,
-        'zh' // Chinese
+        'ja' // Japanese
       );
 
       expect(mockSynthesizeBatchedTexts).toHaveBeenCalledWith(
         expect.any(Array),
         expect.objectContaining({
-          languageCode: 'zh-CN',
+          languageCode: 'ja-JP',
         })
       );
     });

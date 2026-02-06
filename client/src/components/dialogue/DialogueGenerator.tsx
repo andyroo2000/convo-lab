@@ -52,8 +52,6 @@ const DialogueGenerator = () => {
   const [nativeLanguage] = useState<LanguageCode>('en');
   const [dialogueLength, setDialogueLength] = useState(8);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
-  const [hskLevel, setHskLevel] = useState<string>('HSK1');
-  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [tone, setTone] = useState<ToneStyle>('casual');
 
   // Initialize from effective user preferences (respects impersonation)
@@ -157,11 +155,9 @@ const DialogueGenerator = () => {
     navigate,
   ]);
 
-  // Helper function to get proficiency level based on target language
+  // Helper function to get proficiency level
   const getProficiencyLevel = () => {
-    if (targetLanguage === 'ja') return jlptLevel;
-    if (targetLanguage === 'zh') return hskLevel;
-    return cefrLevel;
+    return jlptLevel;
   };
 
   const handleGenerate = async () => {
@@ -346,56 +342,6 @@ const DialogueGenerator = () => {
                   <option value="N3">{t('dialogue:form.jlpt.n3')}</option>
                   <option value="N2">{t('dialogue:form.jlpt.n2')}</option>
                   <option value="N1">{t('dialogue:form.jlpt.n1')}</option>
-                </select>
-              </div>
-            )}
-
-            {targetLanguage === 'zh' && (
-              <div>
-                <label
-                  htmlFor="dialogue-hsk-level"
-                  className="block text-base font-bold text-dark-brown mb-2"
-                >
-                  {t('dialogue:form.targetHSK')}
-                </label>
-                <select
-                  id="dialogue-hsk-level"
-                  value={hskLevel}
-                  onChange={(e) => setHskLevel(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="dialogue-select-hsk-level"
-                >
-                  <option value="HSK1">{t('dialogue:form.hsk.hsk1')}</option>
-                  <option value="HSK2">{t('dialogue:form.hsk.hsk2')}</option>
-                  <option value="HSK3">{t('dialogue:form.hsk.hsk3')}</option>
-                  <option value="HSK4">{t('dialogue:form.hsk.hsk4')}</option>
-                  <option value="HSK5">{t('dialogue:form.hsk.hsk5')}</option>
-                  <option value="HSK6">{t('dialogue:form.hsk.hsk6')}</option>
-                </select>
-              </div>
-            )}
-
-            {(targetLanguage === 'es' || targetLanguage === 'fr') && (
-              <div>
-                <label
-                  htmlFor="dialogue-cefr-level"
-                  className="block text-base font-bold text-dark-brown mb-2"
-                >
-                  {t('dialogue:form.targetCEFR')}
-                </label>
-                <select
-                  id="dialogue-cefr-level"
-                  value={cefrLevel}
-                  onChange={(e) => setCefrLevel(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                  data-testid="dialogue-select-cefr-level"
-                >
-                  <option value="A1">{t('dialogue:form.cefr.a1')}</option>
-                  <option value="A2">{t('dialogue:form.cefr.a2')}</option>
-                  <option value="B1">{t('dialogue:form.cefr.b1')}</option>
-                  <option value="B2">{t('dialogue:form.cefr.b2')}</option>
-                  <option value="C1">{t('dialogue:form.cefr.c1')}</option>
-                  <option value="C2">{t('dialogue:form.cefr.c2')}</option>
                 </select>
               </div>
             )}

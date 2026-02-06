@@ -87,7 +87,7 @@ describe('Episodes Routes Integration', () => {
           id: 'ep-2',
           title: 'Episode 2',
           sourceText: 'Source 2',
-          targetLanguage: 'es',
+          targetLanguage: 'ja',
           status: 'ready',
           createdAt: new Date('2024-01-03'),
           updatedAt: new Date('2024-01-04'),

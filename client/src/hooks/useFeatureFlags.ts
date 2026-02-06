@@ -7,8 +7,6 @@ export interface FeatureFlags {
   dialoguesEnabled: boolean;
   audioCourseEnabled: boolean;
   narrowListeningEnabled: boolean;
-  processingInstructionEnabled: boolean;
-  lexicalChunksEnabled: boolean;
   updatedAt: string;
 }
 

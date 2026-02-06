@@ -1,7 +1,6 @@
 /* eslint-disable no-console */
 // Console logging is necessary for worker monitoring
 import { audioWorker } from './jobs/audioQueue.js';
-import { chunkPackWorker } from './jobs/chunkPackQueue.js';
 import { courseWorker } from './jobs/courseQueue.js';
 import { dialogueWorker } from './jobs/dialogueQueue.js';
 import { emailWorker } from './jobs/emailQueue.js';
@@ -15,7 +14,6 @@ console.log('Workers initialized:', {
   imageWorker: !!imageWorker,
   courseWorker: !!courseWorker,
   narrowListeningWorker: !!narrowListeningWorker,
-  chunkPackWorker: !!chunkPackWorker,
   emailWorker: !!emailWorker,
 });
 
@@ -25,7 +23,6 @@ const workers = [
   imageWorker,
   courseWorker,
   narrowListeningWorker,
-  chunkPackWorker,
   emailWorker,
 ];
 
@@ -37,7 +34,6 @@ async function areQueuesEmpty(): Promise<boolean> {
     const { imageQueue } = await import('./jobs/imageQueue.js');
     const { courseQueue } = await import('./jobs/courseQueue.js');
     const { narrowListeningQueue } = await import('./jobs/narrowListeningQueue.js');
-    const { chunkPackQueue } = await import('./jobs/chunkPackQueue.js');
     const { emailQueue } = await import('./jobs/emailQueue.js');
 
     const queues = [
@@ -46,7 +42,6 @@ async function areQueuesEmpty(): Promise<boolean> {
       imageQueue,
       courseQueue,
       narrowListeningQueue,
-      chunkPackQueue,
       emailQueue,
     ];
 

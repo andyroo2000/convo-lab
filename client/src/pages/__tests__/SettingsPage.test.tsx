@@ -22,7 +22,6 @@ const mockUser = {
   avatarColor: 'indigo',
   preferredStudyLanguage: 'ja',
   preferredNativeLanguage: 'en',
-  pinyinDisplayMode: 'toneMarks',
   proficiencyLevel: 'N4',
   role: 'user',
 };
@@ -161,11 +160,11 @@ describe('SettingsPage', () => {
       renderWithRouter('/app/settings/language');
 
       const select = screen.getByTestId('settings-select-study-language');
-      fireEvent.change(select, { target: { value: 'zh' } });
+      fireEvent.change(select, { target: { value: 'ja' } });
 
       await waitFor(() => {
         expect(mockUpdateUser).toHaveBeenCalledWith({
-          preferredStudyLanguage: 'zh',
+          preferredStudyLanguage: 'ja',
         });
       });
     });
@@ -174,7 +173,7 @@ describe('SettingsPage', () => {
       renderWithRouter('/app/settings/language');
 
       const select = screen.getByTestId('settings-select-study-language');
-      fireEvent.change(select, { target: { value: 'zh' } });
+      fireEvent.change(select, { target: { value: 'ja' } });
 
       await waitFor(() => {
         expect(screen.getByText('Saved!')).toBeInTheDocument();

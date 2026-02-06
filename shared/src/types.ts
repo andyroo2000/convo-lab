@@ -1,6 +1,6 @@
 // Shared type definitions used across client and server
 
-export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar' | 'en';
+export type LanguageCode = 'ja' | 'en';
 
 export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'native';
 
@@ -14,5 +14,4 @@ export interface LanguageInfo {
   code: LanguageCode;
   name: string;
   nativeName: string;
-  rtl?: boolean;
 }

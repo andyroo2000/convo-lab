@@ -55,11 +55,9 @@ const Layout = () => {
     location.pathname.startsWith('/app/playback') ||
     location.pathname.startsWith('/app/practice') ||
     location.pathname.startsWith('/app/courses') ||
-    location.pathname.startsWith('/app/narrow-listening') ||
-    location.pathname.startsWith('/app/chunk-packs') ||
-    location.pathname.startsWith('/app/pi/session');
+    location.pathname.startsWith('/app/narrow-listening');
   const isCreateActive =
-    location.pathname.startsWith('/app/create') || location.pathname.startsWith('/app/pi');
+    location.pathname.startsWith('/app/create');
 
   // Pages that should have no horizontal padding on mobile for full-width cards
   const isFullWidthMobilePage =

@@ -14,14 +14,6 @@
       "title": "Narrow Listening",
       "description": "The same story told 5 different ways—deeply internalize patterns through repetition"
     },
-    "processingInstruction": {
-      "title": "Grammar",
-      "description": "Learn grammar through structured input—answer meaning-based questions"
-    },
-    "chunkPack": {
-      "title": "Chunk Pack",
-      "description": "Acquire phrases as complete units—learn high-frequency chunks through examples"
-    }
   },
   "buttons": {
     "create": "Create",

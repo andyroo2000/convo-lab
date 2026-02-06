@@ -42,7 +42,6 @@ router.get('/stats', async (req: AuthRequest, res, next) => {
       episodeCount,
       courseCount,
       narrowListeningCount,
-      chunkPackCount,
       inviteCodeCount,
       usedInviteCodeCount,
     ] = await Promise.all([
@@ -50,7 +49,6 @@ router.get('/stats', async (req: AuthRequest, res, next) => {
       prisma.episode.count(),
       prisma.course.count(),
       prisma.narrowListeningPack.count(),
-      prisma.chunkPack.count(),
       prisma.inviteCode.count(),
       prisma.inviteCode.count({ where: { usedBy: { not: null } } }),
     ]);
@@ -60,7 +58,6 @@ router.get('/stats', async (req: AuthRequest, res, next) => {
       episodes: episodeCount,
       courses: courseCount,
       narrowListeningPacks: narrowListeningCount,
-      chunkPacks: chunkPackCount,
       inviteCodes: {
         total: inviteCodeCount,
         used: usedInviteCodeCount,
@@ -117,7 +114,6 @@ router.get('/users', async (req: AuthRequest, res, next) => {
               episodes: true,
               courses: true,
               narrowListeningPacks: true,
-              chunkPacks: true,
             },
           },
         },
@@ -668,8 +664,6 @@ router.get('/feature-flags', async (req: AuthRequest, res, next) => {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
           narrowListeningEnabled: true,
-          processingInstructionEnabled: true,
-          lexicalChunksEnabled: true,
         },
       });
     }
@@ -687,8 +681,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
       dialoguesEnabled,
       audioCourseEnabled,
       narrowListeningEnabled,
-      processingInstructionEnabled,
-      lexicalChunksEnabled,
     } = req.body;
 
     // Validate boolean values
@@ -701,8 +693,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
     validateBoolean(narrowListeningEnabled, 'narrowListeningEnabled');
-    validateBoolean(processingInstructionEnabled, 'processingInstructionEnabled');
-    validateBoolean(lexicalChunksEnabled, 'lexicalChunksEnabled');
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -714,8 +704,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           dialoguesEnabled: dialoguesEnabled ?? true,
           audioCourseEnabled: audioCourseEnabled ?? true,
           narrowListeningEnabled: narrowListeningEnabled ?? true,
-          processingInstructionEnabled: processingInstructionEnabled ?? true,
-          lexicalChunksEnabled: lexicalChunksEnabled ?? true,
         },
       });
     } else {
@@ -726,8 +714,6 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(dialoguesEnabled !== undefined && { dialoguesEnabled }),
           ...(audioCourseEnabled !== undefined && { audioCourseEnabled }),
           ...(narrowListeningEnabled !== undefined && { narrowListeningEnabled }),
-          ...(processingInstructionEnabled !== undefined && { processingInstructionEnabled }),
-          ...(lexicalChunksEnabled !== undefined && { lexicalChunksEnabled }),
         },
       });
     }

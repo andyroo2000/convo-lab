@@ -88,6 +88,8 @@ function calculateSSMLSize(batch: TTSBatch): number {
     size += `<mark name="${unit.markName}"/>`.length;
     // Text content (use Buffer to get accurate byte count for Unicode)
     size += Buffer.byteLength(unit.text, 'utf8');
+    // <break time="300ms"/> after each unit
+    size += '<break time="300ms"/>'.length;
   }
 
   return size;
@@ -231,6 +233,7 @@ export function buildBatchSSML(batch: TTSBatch, provider: 'google' | 'polly'): s
     // This makes the mark fire at the START of the unit's audio
     ssml += `<mark name="${unit.markName}"/>`;
     ssml += escapeSSML(unit.text);
+    ssml += '<break time="300ms"/>'; // Silence gap for clean splitting
   }
 
   if (provider === 'polly') {
@@ -271,9 +274,9 @@ function extractLanguageCodeFromVoice(voiceId: string, fallbackCode: string): st
  * This correction helps align splits with actual speech boundaries.
  */
 function applyTimingCorrection(markTime: number): number {
-  // Subtract 0.7 seconds to compensate for TTS processing delay
-  // This value was determined by analyzing actual silence patterns vs mark times
-  const correctedTime = Math.max(0, markTime - 0.7);
+  // With <break> tags between units, marks fire during silence gaps.
+  // Small correction to split slightly before the mark (into trailing silence of prev unit).
+  const correctedTime = Math.max(0, markTime - 0.1);
   return correctedTime;
 }
 
@@ -597,11 +600,6 @@ function getLanguageCode(language: string): string {
   const languageMap: Record<string, string> = {
     en: 'en-US',
     ja: 'ja-JP',
-    zh: 'zh-CN',
-    es: 'es-ES',
-    fr: 'fr-FR',
-    ar: 'ar-XA',
-    he: 'he-IL',
   };
 
   return languageMap[language] || 'en-US';
@@ -653,6 +651,7 @@ export async function synthesizeBatchedTexts(
   for (let i = 0; i < texts.length; i++) {
     ssml += `<mark name="text_${i}"/>`;
     ssml += escapeSSML(texts[i]);
+    ssml += '<break time="300ms"/>'; // Silence gap for clean splitting
   }
 
   if (providerType === 'polly') {

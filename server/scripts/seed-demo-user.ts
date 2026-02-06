@@ -74,7 +74,6 @@ async function seedDemoUser() {
             episodes: true,
             courses: true,
             narrowListeningPacks: true,
-            chunkPacks: true,
           },
         },
       },
@@ -84,8 +83,7 @@ async function seedDemoUser() {
       const totalContent =
         adminUser._count.episodes +
         adminUser._count.courses +
-        adminUser._count.narrowListeningPacks +
-        adminUser._count.chunkPacks;
+        adminUser._count.narrowListeningPacks;
 
       console.log('📚 Demo user will see content from admin: ' + adminUser.email);
       console.log('   Total content items: ' + totalContent);

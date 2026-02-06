@@ -14,7 +14,6 @@ interface AuthContextType {
     avatarUrl?: string | null;
     preferredStudyLanguage?: string;
     preferredNativeLanguage?: string;
-    pinyinDisplayMode?: string;
     proficiencyLevel?: string;
     onboardingCompleted?: boolean;
     seenSampleContentGuide?: boolean;
@@ -101,7 +100,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     avatarUrl?: string | null;
     preferredStudyLanguage?: string;
     preferredNativeLanguage?: string;
-    pinyinDisplayMode?: string;
     proficiencyLevel?: string;
     onboardingCompleted?: boolean;
     seenSampleContentGuide?: boolean;

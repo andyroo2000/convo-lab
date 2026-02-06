@@ -45,38 +45,6 @@ const LEVEL_FILE_MAP: Record<string, Record<string, string>> = {
     N2: 'n2',
     N1: 'n1',
   },
-  zh: {
-    HSK1: 'hsk1',
-    HSK2: 'hsk2',
-    HSK3: 'hsk3',
-    HSK4: 'hsk4',
-    HSK5: 'hsk5',
-    HSK6: 'hsk6',
-  },
-  es: {
-    A1: 'a1',
-    A2: 'a2',
-    B1: 'b1',
-    B2: 'b2',
-    C1: 'c1',
-    C2: 'c2',
-  },
-  fr: {
-    A1: 'a1',
-    A2: 'a2',
-    B1: 'b1',
-    B2: 'b2',
-    C1: 'c1',
-    C2: 'c2',
-  },
-  ar: {
-    A1: 'a1',
-    A2: 'a2',
-    B1: 'b1',
-    B2: 'b2',
-    C1: 'c1',
-    C2: 'c2',
-  },
 };
 
 export async function getVocabularyForLevel(
@@ -121,27 +89,16 @@ export async function sampleVocabulary(
 export function formatWordsForPrompt(words: VocabularyWord[], language: string): string {
   if (words.length === 0) return '';
 
-  // Format based on language
   if (language === 'ja') {
     return words.map((w) => `${w.word} (${w.reading || ''}) - ${w.translation}`).join(', ');
-  } else if (language === 'zh') {
-    return words.map((w) => `${w.word} (${w.reading || ''}) - ${w.translation}`).join(', ');
-  } else {
-    // Spanish, French, Arabic - just word and translation
-    return words.map((w) => `${w.word} - ${w.translation}`).join(', ');
   }
+  return words.map((w) => `${w.word} - ${w.translation}`).join(', ');
 }
 
 // Get proficiency framework name for display
 export function getProficiencyFramework(language: string): string {
-  const frameworks: Record<string, string> = {
-    ja: 'JLPT',
-    zh: 'HSK',
-    es: 'CEFR',
-    fr: 'CEFR',
-    ar: 'CEFR',
-  };
-  return frameworks[language] || 'proficiency level';
+  if (language === 'ja') return 'JLPT';
+  return 'proficiency level';
 }
 
 // ===== Grammar Seeding Functions =====

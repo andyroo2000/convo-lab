@@ -71,15 +71,6 @@ export const mockPrisma = {
     delete: vi.fn(),
     count: vi.fn(),
   },
-  chunkPack: {
-    findUnique: vi.fn(),
-    findFirst: vi.fn(),
-    findMany: vi.fn(),
-    create: vi.fn(),
-    update: vi.fn(),
-    delete: vi.fn(),
-    count: vi.fn(),
-  },
   featureFlag: {
     findUnique: vi.fn(),
     findFirst: vi.fn(),

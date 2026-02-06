@@ -14,7 +14,6 @@ describe('NarrowListeningLibraryPage', () => {
       topic: 'Tanaka working in an office',
       targetLanguage: 'ja',
       jlptLevel: 'N4',
-      hskLevel: null,
       status: 'ready',
       createdAt: '2024-01-15T10:00:00Z',
       versions: [
@@ -26,9 +25,8 @@ describe('NarrowListeningLibraryPage', () => {
       id: 'pack-2',
       title: 'Weekend Shopping',
       topic: 'Shopping at a mall',
-      targetLanguage: 'zh',
-      jlptLevel: null,
-      hskLevel: 'HSK3',
+      targetLanguage: 'ja',
+      jlptLevel: 'N3',
       status: 'generating',
       createdAt: '2024-01-16T10:00:00Z',
       versions: [],
@@ -112,8 +110,8 @@ describe('NarrowListeningLibraryPage', () => {
       renderPage();
 
       await waitFor(() => {
-        expect(screen.getByText('Japanese')).toBeInTheDocument();
-        expect(screen.getByText('Chinese')).toBeInTheDocument();
+        const badges = screen.getAllByText('Japanese');
+        expect(badges.length).toBeGreaterThan(0);
       });
     });
 
@@ -122,7 +120,7 @@ describe('NarrowListeningLibraryPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('N4')).toBeInTheDocument();
-        expect(screen.getByText('HSK3')).toBeInTheDocument();
+        expect(screen.getByText('N3')).toBeInTheDocument();
       });
     });
 

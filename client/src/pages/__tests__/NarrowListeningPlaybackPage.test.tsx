@@ -50,10 +50,6 @@ vi.mock('../../components/JapaneseText', () => ({
   default: ({ text }: { text: string }) => <span data-testid="japanese-text">{text}</span>,
 }));
 
-vi.mock('../../components/ChineseText', () => ({
-  default: ({ text }: { text: string }) => <span data-testid="chinese-text">{text}</span>,
-}));
-
 vi.mock('../../components/common/SpeedSelector', () => ({
   default: ({
     selectedSpeed,
@@ -117,8 +113,6 @@ const mockPack = {
   topic: 'daily_life',
   targetLanguage: 'ja',
   jlptLevel: 'N5',
-  hskLevel: null,
-  cefrLevel: null,
   grammarFocus: 'Particle は vs が',
   status: 'ready',
   versions: [

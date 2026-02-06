@@ -16,8 +16,6 @@ vi.mock('../../../services/geminiClient.js', () => ({
 vi.mock('../../../../../shared/src/constants-new.js', () => ({
   SUPPORTED_LANGUAGES: {
     ja: { name: 'Japanese', code: 'ja' },
-    zh: { name: 'Chinese', code: 'zh' },
-    es: { name: 'Spanish', code: 'es' },
   },
 }));
 
@@ -201,43 +199,6 @@ describe('narrowListeningGenerator', () => {
       });
     });
 
-    describe('Chinese', () => {
-      it('should include Chinese variation types in prompt', async () => {
-        await generateNarrowListeningPack('Test topic', 'zh', 'HSK3', 3);
-
-        const prompt = mockGenerateWithGemini.mock.calls[0][0];
-        expect(prompt).toContain('ASPECT_MARKERS');
-        expect(prompt).toContain('BA_CONSTRUCTION');
-      });
-
-      it('should include constraint about no pinyin', async () => {
-        await generateNarrowListeningPack('Test topic', 'zh', 'HSK3', 3);
-
-        const systemInstruction = mockGenerateWithGemini.mock.calls[0][1];
-        expect(systemInstruction).toContain('Do NOT include pinyin');
-      });
-
-      it('should map HSK1/HSK2 to beginner level', async () => {
-        await generateNarrowListeningPack('Test topic', 'zh', 'HSK1', 3);
-
-        const prompt = mockGenerateWithGemini.mock.calls[0][0];
-        expect(prompt).toContain('beginner level');
-      });
-
-      it('should map HSK3/HSK4 to intermediate level', async () => {
-        await generateNarrowListeningPack('Test topic', 'zh', 'HSK4', 3);
-
-        const prompt = mockGenerateWithGemini.mock.calls[0][0];
-        expect(prompt).toContain('intermediate level');
-      });
-
-      it('should map HSK5/HSK6 to advanced level', async () => {
-        await generateNarrowListeningPack('Test topic', 'zh', 'HSK6', 3);
-
-        const prompt = mockGenerateWithGemini.mock.calls[0][0];
-        expect(prompt).toContain('advanced level');
-      });
-    });
   });
 
   describe('system instruction', () => {

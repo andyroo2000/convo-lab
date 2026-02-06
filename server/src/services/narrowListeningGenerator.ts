@@ -42,20 +42,6 @@ function getProficiencyDescription(targetLanguage: string, level: string): strin
       default:
         return 'intermediate level';
     }
-  } else if (targetLanguage === 'zh') {
-    switch (level) {
-      case 'HSK1':
-      case 'HSK2':
-        return 'beginner level - simple grammar and basic vocabulary (150-300 words)';
-      case 'HSK3':
-      case 'HSK4':
-        return 'intermediate level - more complex sentence structures (600-1200 words)';
-      case 'HSK5':
-      case 'HSK6':
-        return 'advanced level - sophisticated expressions and formal vocabulary (2500+ words)';
-      default:
-        return 'intermediate level';
-    }
   }
   return 'intermediate level';
 }
@@ -72,14 +58,6 @@ function getVariationTypes(targetLanguage: string): string {
 - PARTICLE_FOCUS: Emphasize は vs が、に vs で contrasts
 - FORMALITY_CONTRAST: Mix of casual and formal speech`;
   }
-  if (targetLanguage === 'zh') {
-    return `Example variation types for Chinese:
-- ASPECT_MARKERS: Variations using 了/过/着 aspect markers
-- MEASURE_WORDS: Different classifier/measure word usage
-- FORMAL_REGISTER: 您 vs 你, formal vs casual vocabulary
-- BA_CONSTRUCTION: 把 sentence patterns vs standard SVO
-- DIRECTIONAL_COMPLEMENTS: Using 来/去 and directional verb complements`;
-  }
   return '';
 }
 
@@ -89,9 +67,6 @@ function getVariationTypes(targetLanguage: string): string {
 function getLanguageConstraints(targetLanguage: string): string {
   if (targetLanguage === 'ja') {
     return '- Do NOT use furigana or romaji. Use standard Japanese orthography and natural punctuation.';
-  }
-  if (targetLanguage === 'zh') {
-    return '- Use simplified Chinese characters. Do NOT include pinyin. Use natural Chinese punctuation (。！？).';
   }
   return '';
 }

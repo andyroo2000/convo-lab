@@ -10,7 +10,7 @@ export interface GeminiMessage {
 // Rate limiting: Gemini 2.5 Flash has higher rate limits than 2.0
 // Track last request time to enforce gaps between requests
 let lastRequestTime = 0;
-const MIN_REQUEST_INTERVAL_MS = 6500; // 6.5 seconds to be safe
+const MIN_REQUEST_INTERVAL_MS = 3000; // 3 seconds - Gemini 2.5 Flash has higher rate limits
 
 async function waitForRateLimit() {
   const now = Date.now();

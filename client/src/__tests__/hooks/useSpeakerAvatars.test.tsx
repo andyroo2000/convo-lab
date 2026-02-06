@@ -318,11 +318,11 @@ describe('useSpeakerAvatars', () => {
   });
 
   describe('Language and Gender Filtering', () => {
-    it('should return avatars with different languages', async () => {
-      const multiLanguageAvatars = [
+    it('should return avatars with different genders and tones', async () => {
+      const japaneseAvatars = [
         {
           id: '1',
-          filename: 'ja.png',
+          filename: 'ja-male-casual.png',
           croppedUrl: 'url1',
           originalUrl: 'url1',
           language: 'ja',
@@ -331,19 +331,19 @@ describe('useSpeakerAvatars', () => {
         },
         {
           id: '2',
-          filename: 'zh.png',
+          filename: 'ja-female-polite.png',
           croppedUrl: 'url2',
           originalUrl: 'url2',
-          language: 'zh',
+          language: 'ja',
           gender: 'female',
           tone: 'polite',
         },
         {
           id: '3',
-          filename: 'es.png',
+          filename: 'ja-male-formal.png',
           croppedUrl: 'url3',
           originalUrl: 'url3',
-          language: 'es',
+          language: 'ja',
           gender: 'male',
           tone: 'formal',
         },
@@ -351,7 +351,7 @@ describe('useSpeakerAvatars', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(multiLanguageAvatars),
+        json: () => Promise.resolve(japaneseAvatars),
       });
 
       const { result } = renderHook(() => useSpeakerAvatars(), {
@@ -363,9 +363,7 @@ describe('useSpeakerAvatars', () => {
       });
 
       const languages = result.current.avatars.map((a) => a.language);
-      expect(languages).toContain('ja');
-      expect(languages).toContain('zh');
-      expect(languages).toContain('es');
+      expect(languages.every((l) => l === 'ja')).toBe(true);
     });
   });
 });

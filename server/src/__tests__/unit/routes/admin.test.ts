@@ -36,13 +36,13 @@ describe('Admin Route Validation Logic', () => {
 
   describe('Avatar Filename Validation', () => {
     const isValidAvatarFilename = (filename: string): boolean =>
-      /^(ja|zh|es)-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
+      /^ja-(male|female)-(casual|polite|formal)\.(jpg|jpeg|png|webp)$/i.test(filename);
 
     it('should accept valid avatar filenames', () => {
       const validFilenames = [
         'ja-male-casual.jpg',
-        'zh-female-polite.png',
-        'es-male-formal.webp',
+        'ja-female-polite.png',
+        'ja-male-formal.webp',
         'JA-FEMALE-CASUAL.jpeg',
       ];
       validFilenames.forEach((filename) => {
@@ -51,28 +51,28 @@ describe('Admin Route Validation Logic', () => {
     });
 
     it('should reject invalid language codes', () => {
-      const invalidFilenames = ['en-male-casual.jpg', 'fr-female-polite.jpg', 'de-male-formal.jpg'];
+      const invalidFilenames = ['en-male-casual.jpg', 'zh-female-polite.jpg', 'de-male-formal.jpg'];
       invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid gender values', () => {
-      const invalidFilenames = ['ja-other-casual.jpg', 'zh-neutral-polite.jpg'];
+      const invalidFilenames = ['ja-other-casual.jpg', 'ja-neutral-polite.jpg'];
       invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid tone values', () => {
-      const invalidFilenames = ['ja-male-informal.jpg', 'zh-female-professional.jpg'];
+      const invalidFilenames = ['ja-male-informal.jpg', 'ja-female-professional.jpg'];
       invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });
     });
 
     it('should reject invalid file extensions', () => {
-      const invalidFilenames = ['ja-male-casual.gif', 'zh-female-polite.bmp', 'es-male-formal.svg'];
+      const invalidFilenames = ['ja-male-casual.gif', 'ja-female-polite.bmp', 'ja-male-formal.svg'];
       invalidFilenames.forEach((filename) => {
         expect(isValidAvatarFilename(filename)).toBe(false);
       });

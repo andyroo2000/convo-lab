@@ -85,8 +85,6 @@ describe('Usage Tracker Service', () => {
           'dialogue',
           'course',
           'narrow_listening',
-          'chunk_pack',
-          'pi_session',
         ];
 
         for (const contentType of contentTypes) {
@@ -200,19 +198,6 @@ describe('Usage Tracker Service', () => {
           expect(mockPrisma.generationLog.count).not.toHaveBeenCalled();
         });
 
-        it('should block chunk_pack content', async () => {
-          const result = await checkGenerationLimit(userId, 'chunk_pack');
-
-          expect(result.allowed).toBe(false);
-          expect(result.limit).toBe(0);
-        });
-
-        it('should block pi_session content', async () => {
-          const result = await checkGenerationLimit(userId, 'pi_session');
-
-          expect(result.allowed).toBe(false);
-          expect(result.limit).toBe(0);
-        });
       });
 
       describe('Per-content-type limits are independent', () => {
@@ -316,7 +301,7 @@ describe('Usage Tracker Service', () => {
       it('should handle exactly 30 generations', async () => {
         mockPrisma.generationLog.count.mockResolvedValue(30);
 
-        const result = await checkGenerationLimit(userId, 'chunk_pack');
+        const result = await checkGenerationLimit(userId, 'narrow_listening');
 
         expect(result.allowed).toBe(false);
         expect(result.remaining).toBe(0);
@@ -329,8 +314,6 @@ describe('Usage Tracker Service', () => {
           'dialogue',
           'course',
           'narrow_listening',
-          'chunk_pack',
-          'pi_session',
         ];
 
         for (const contentType of contentTypes) {
@@ -382,15 +365,13 @@ describe('Usage Tracker Service', () => {
         'dialogue',
         'course',
         'narrow_listening',
-        'chunk_pack',
-        'pi_session',
       ];
 
       for (const contentType of contentTypes) {
         await logGeneration(userId, contentType);
       }
 
-      expect(mockPrisma.generationLog.create).toHaveBeenCalledTimes(5);
+      expect(mockPrisma.generationLog.create).toHaveBeenCalledTimes(3);
     });
 
     it('should persist even if content is deleted (quota gaming prevention)', async () => {

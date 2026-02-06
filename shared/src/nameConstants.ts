@@ -1,8 +1,6 @@
 /**
  * Common names for dialogue speakers by language and gender
  * Japanese names include furigana in bracket notation
- * Chinese names include pinyin in bracket notation
- * Spanish names are plain text (Spanish is phonetic)
  */
 
 export const SPEAKER_NAMES = {
@@ -30,110 +28,6 @@ export const SPEAKER_NAMES = {
       '中村[なかむら]樹[いつき]',
       '小林[こばやし]湊[みなと]',
       '加藤[かとう]拓海[たくみ]',
-    ],
-  },
-  zh: {
-    female: [
-      '王[wáng]美[měi]',
-      '李[lǐ]娜[nà]',
-      '张[zhāng]静[jìng]',
-      '刘[liú]芳[fāng]',
-      '陈[chén]丽[lì]',
-      '杨[yáng]敏[mǐn]',
-      '黄[huáng]婷[tíng]',
-      '赵[zhào]雪[xuě]',
-      '周[zhōu]梅[méi]',
-      '吴[wú]玲[líng]',
-    ],
-    male: [
-      '王[wáng]伟[wěi]',
-      '李[lǐ]强[qiáng]',
-      '张[zhāng]军[jūn]',
-      '刘[liú]杰[jié]',
-      '陈[chén]涛[tāo]',
-      '杨[yáng]磊[lěi]',
-      '黄[huáng]鹏[péng]',
-      '赵[zhào]勇[yǒng]',
-      '周[zhōu]明[míng]',
-      '吴[wú]刚[gāng]',
-    ],
-  },
-  es: {
-    female: [
-      'María',
-      'Carmen',
-      'Isabel',
-      'Ana',
-      'Lucía',
-      'Elena',
-      'Rosa',
-      'Paula',
-      'Sara',
-      'Laura',
-    ],
-    male: [
-      'Carlos',
-      'Antonio',
-      'José',
-      'Juan',
-      'Manuel',
-      'Francisco',
-      'Luis',
-      'Miguel',
-      'Pedro',
-      'Rafael',
-    ],
-  },
-  fr: {
-    female: [
-      'Sophie',
-      'Camille',
-      'Léa',
-      'Amina',
-      'Marie',
-      'Yasmine',
-      'Chloé',
-      'Fatima',
-      'Julie',
-      'Nadia',
-    ],
-    male: [
-      'Thomas',
-      'Lucas',
-      'Mathieu',
-      'Karim',
-      'Pierre',
-      'Malik',
-      'Antoine',
-      'Youssef',
-      'Alexandre',
-      'Omar',
-    ],
-  },
-  ar: {
-    female: [
-      'فاطمة', // Fatima
-      'نورة', // Noura
-      'مريم', // Maryam
-      'سارة', // Sarah
-      'عائشة', // Aisha
-      'ليلى', // Layla
-      'زينب', // Zainab
-      'هند', // Hind
-      'لطيفة', // Latifa
-      'منى', // Muna
-    ],
-    male: [
-      'محمد', // Mohammed
-      'أحمد', // Ahmed
-      'عبدالله', // Abdullah
-      'خالد', // Khalid
-      'سالم', // Salem
-      'عمر', // Omar
-      'يوسف', // Youssef
-      'حسن', // Hassan
-      'علي', // Ali
-      'راشد', // Rashid
     ],
   },
   en: {
@@ -164,7 +58,7 @@ export const SPEAKER_NAMES = {
   },
 } as const;
 
-export type LanguageCode = 'ja' | 'zh' | 'es' | 'fr' | 'ar' | 'en';
+export type LanguageCode = 'ja' | 'en';
 export type Gender = 'male' | 'female';
 
 /**

@@ -13,8 +13,6 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: false,
-        processingInstructionEnabled: true,
-        lexicalChunksEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -36,8 +34,6 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: true,
-        lexicalChunksEnabled: true,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -52,8 +48,6 @@ describe('Feature Flags Route Logic', () => {
             dialoguesEnabled: true,
             audioCourseEnabled: true,
             narrowListeningEnabled: true,
-            processingInstructionEnabled: true,
-            lexicalChunksEnabled: true,
           },
         });
       }
@@ -63,8 +57,6 @@ describe('Feature Flags Route Logic', () => {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
           narrowListeningEnabled: true,
-          processingInstructionEnabled: true,
-          lexicalChunksEnabled: true,
         },
       });
       expect(flags.dialoguesEnabled).toBe(true);
@@ -78,8 +70,6 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: false,
         audioCourseEnabled: true,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: true,
       };
 
       mockPrisma.featureFlag.findFirst.mockResolvedValue(existingFlags);
@@ -92,15 +82,12 @@ describe('Feature Flags Route Logic', () => {
             dialoguesEnabled: true,
             audioCourseEnabled: true,
             narrowListeningEnabled: true,
-            processingInstructionEnabled: true,
-            lexicalChunksEnabled: true,
           },
         });
       }
 
       expect(mockPrisma.featureFlag.create).not.toHaveBeenCalled();
       expect(flags.dialoguesEnabled).toBe(false);
-      expect(flags.processingInstructionEnabled).toBe(false);
     });
 
     it('should handle database errors gracefully', async () => {
@@ -124,8 +111,6 @@ describe('Feature Flags Route Logic', () => {
               dialoguesEnabled: true,
               audioCourseEnabled: true,
               narrowListeningEnabled: true,
-              processingInstructionEnabled: true,
-              lexicalChunksEnabled: true,
             },
           })
         ).rejects.toThrow('Unique constraint violation');
@@ -139,15 +124,11 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: true,
-        lexicalChunksEnabled: true,
       };
 
       expect(defaultFlags.dialoguesEnabled).toBe(true);
       expect(defaultFlags.audioCourseEnabled).toBe(true);
       expect(defaultFlags.narrowListeningEnabled).toBe(true);
-      expect(defaultFlags.processingInstructionEnabled).toBe(true);
-      expect(defaultFlags.lexicalChunksEnabled).toBe(true);
     });
   });
 
@@ -157,16 +138,12 @@ describe('Feature Flags Route Logic', () => {
         'dialoguesEnabled',
         'audioCourseEnabled',
         'narrowListeningEnabled',
-        'processingInstructionEnabled',
-        'lexicalChunksEnabled',
       ];
 
       const flagKeys = Object.keys({
         dialoguesEnabled: true,
         audioCourseEnabled: true,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: true,
-        lexicalChunksEnabled: true,
       });
 
       expectedFlags.forEach((flag) => {
@@ -179,8 +156,6 @@ describe('Feature Flags Route Logic', () => {
         dialoguesEnabled: true,
         audioCourseEnabled: false,
         narrowListeningEnabled: true,
-        processingInstructionEnabled: false,
-        lexicalChunksEnabled: true,
       };
 
       Object.values(mockFlags).forEach((value) => {

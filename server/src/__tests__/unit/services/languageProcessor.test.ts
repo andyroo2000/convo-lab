@@ -3,10 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Import after mocking
 import {
   processJapanese,
-  processChinese,
   processLanguageText,
   processJapaneseBatch,
-  processChineseBatch,
   processLanguageTextBatch,
   furiganaToRuby,
   extractKanjiFromFurigana,
@@ -76,59 +74,6 @@ describe('languageProcessor', () => {
     });
   });
 
-  describe('processChinese', () => {
-    it('should call pinyin service and return metadata', async () => {
-      const mockResponse = {
-        characters: '你好',
-        pinyinToneMarks: 'nǐ hǎo',
-        pinyinToneNumbers: 'ni3 hao3',
-      };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await processChinese('你好');
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/pinyin'),
-        expect.objectContaining({
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: '你好' }),
-        })
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should return fallback when service returns error status', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        statusText: 'Internal Server Error',
-      });
-
-      const result = await processChinese('你好');
-
-      expect(result).toEqual({
-        characters: '你好',
-        pinyinToneMarks: '',
-        pinyinToneNumbers: '',
-      });
-    });
-
-    it('should return fallback when service is unavailable', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      const result = await processChinese('中文');
-
-      expect(result).toEqual({
-        characters: '中文',
-        pinyinToneMarks: '',
-        pinyinToneNumbers: '',
-      });
-    });
-  });
-
   describe('processLanguageText', () => {
     it('should process Japanese text', async () => {
       const mockResponse = {
@@ -144,34 +89,9 @@ describe('languageProcessor', () => {
       const result = await processLanguageText('日本語', 'ja');
 
       expect(result.japanese).toEqual(mockResponse);
-      expect(result.chinese).toBeUndefined();
     });
 
-    it('should process Chinese text', async () => {
-      const mockResponse = {
-        characters: '中文',
-        pinyinToneMarks: 'zhōng wén',
-        pinyinToneNumbers: 'zhong1 wen2',
-      };
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await processLanguageText('中文', 'zh');
-
-      expect(result.chinese).toEqual(mockResponse);
-      expect(result.japanese).toBeUndefined();
-    });
-
-    it('should return empty metadata for Spanish (phonetic language)', async () => {
-      const result = await processLanguageText('Hola', 'es');
-
-      expect(result).toEqual({});
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should return empty metadata for unknown language codes', async () => {
+    it('should return empty metadata for non-Japanese language codes', async () => {
       const result = await processLanguageText('Hello', 'en');
 
       expect(result).toEqual({});
@@ -232,48 +152,6 @@ describe('languageProcessor', () => {
     });
   });
 
-  describe('processChineseBatch', () => {
-    it('should return empty array for empty input', async () => {
-      const result = await processChineseBatch([]);
-
-      expect(result).toEqual([]);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should process multiple texts in batch', async () => {
-      const mockResponse = [
-        { characters: '你好', pinyinToneMarks: 'nǐ hǎo', pinyinToneNumbers: 'ni3 hao3' },
-        { characters: '中国', pinyinToneMarks: 'zhōng guó', pinyinToneNumbers: 'zhong1 guo2' },
-      ];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await processChineseBatch(['你好', '中国']);
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/pinyin/batch'),
-        expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({ texts: ['你好', '中国'] }),
-        })
-      );
-      expect(result).toEqual(mockResponse);
-    });
-
-    it('should return fallback for all texts when batch service fails', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Service unavailable'));
-
-      const result = await processChineseBatch(['你好', '中国']);
-
-      expect(result).toEqual([
-        { characters: '你好', pinyinToneMarks: '', pinyinToneNumbers: '' },
-        { characters: '中国', pinyinToneMarks: '', pinyinToneNumbers: '' },
-      ]);
-    });
-  });
-
   describe('processLanguageTextBatch', () => {
     it('should return empty array for empty input', async () => {
       const result = await processLanguageTextBatch([], 'ja');
@@ -295,32 +173,7 @@ describe('languageProcessor', () => {
       ]);
     });
 
-    it('should process Chinese batch and wrap in metadata', async () => {
-      const mockResponse = [
-        { characters: '你好', pinyinToneMarks: 'nǐ hǎo', pinyinToneNumbers: 'ni3 hao3' },
-      ];
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const result = await processLanguageTextBatch(['你好'], 'zh');
-
-      expect(result).toEqual([
-        {
-          chinese: { characters: '你好', pinyinToneMarks: 'nǐ hǎo', pinyinToneNumbers: 'ni3 hao3' },
-        },
-      ]);
-    });
-
-    it('should return empty metadata for Spanish texts', async () => {
-      const result = await processLanguageTextBatch(['Hola', 'Mundo'], 'es');
-
-      expect(result).toEqual([{}, {}]);
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should return empty metadata for unknown language codes', async () => {
+    it('should return empty metadata for non-Japanese language codes', async () => {
       const result = await processLanguageTextBatch(['Hello', 'World'], 'en');
 
       expect(result).toEqual([{}, {}]);

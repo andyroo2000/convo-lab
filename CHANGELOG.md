@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Removed
+
+- **[refactor]** Removed ChunkPack (Lexical Chunks) and Processing Instruction features entirely — deleted 34+ standalone files (services, routes, jobs, types, pages, tests, i18n locales), cleaned up all references across server entry points, client routing, library/create/admin/settings pages, hooks, i18n configs, feature flags, usage tracking, utility scripts, and tests; Prisma schema models and columns retained with DEPRECATED comments (no database migration); all 1175 server tests pass
+
 ### Fixed
 
 - **[fix]** Google OAuth refresh token not being returned - added `accessType: 'offline'` and `prompt: 'consent'` parameters to OAuth configuration; without offline access mode, Google only returns access tokens and never sends refresh tokens, causing sync failures after the initial authentication expires

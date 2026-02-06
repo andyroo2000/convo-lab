@@ -57,7 +57,7 @@ const mockUsers = [
     displayName: 'User 1',
     role: 'user',
     createdAt: new Date('2024-01-01').toISOString(),
-    _count: { episodes: 5, courses: 2, narrowListeningPacks: 1, chunkPacks: 3 },
+    _count: { episodes: 5, courses: 2, narrowListeningPacks: 1 },
   },
   {
     id: 'user-2',
@@ -66,7 +66,7 @@ const mockUsers = [
     displayName: 'User 2',
     role: 'user',
     createdAt: new Date('2024-01-15').toISOString(),
-    _count: { episodes: 3, courses: 1, narrowListeningPacks: 0, chunkPacks: 2 },
+    _count: { episodes: 3, courses: 1, narrowListeningPacks: 0 },
   },
 ];
 
@@ -93,7 +93,6 @@ const mockStats = {
   episodes: 523,
   courses: 234,
   narrowListeningPacks: 145,
-  chunkPacks: 298,
   inviteCodes: { total: 50, used: 30, available: 20 },
 };
 
@@ -127,8 +126,6 @@ const mockFeatureFlags = {
   dialoguesEnabled: true,
   audioCourseEnabled: true,
   narrowListeningEnabled: false,
-  processingInstructionEnabled: true,
-  lexicalChunksEnabled: false,
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
@@ -318,10 +315,10 @@ describe('AdminPage', () => {
       renderPage('users');
 
       await waitFor(() => {
-        // User 1 has 5 episodes + 2 courses + 1 narrow + 3 chunks = 11 items
-        expect(screen.getByText('11 items')).toBeInTheDocument();
-        // User 2 has 3 episodes + 1 course + 0 narrow + 2 chunks = 6 items
-        expect(screen.getByText('6 items')).toBeInTheDocument();
+        // User 1 has 5 episodes + 2 courses + 1 narrow = 8 items
+        expect(screen.getByText('8 items')).toBeInTheDocument();
+        // User 2 has 3 episodes + 1 course + 0 narrow = 4 items
+        expect(screen.getByText('4 items')).toBeInTheDocument();
       });
     });
   });
@@ -480,7 +477,6 @@ describe('AdminPage', () => {
         expect(screen.getByText('523')).toBeInTheDocument(); // episodes
         expect(screen.getByText('234')).toBeInTheDocument(); // courses
         expect(screen.getByText('145')).toBeInTheDocument(); // narrow listening packs
-        expect(screen.getByText('298')).toBeInTheDocument(); // chunk packs
       });
     });
 
@@ -559,8 +555,6 @@ describe('AdminPage', () => {
         expect(screen.getByText('Comprehensible Input Dialogues')).toBeInTheDocument();
         expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
         expect(screen.getByText('Narrow Listening Packs')).toBeInTheDocument();
-        expect(screen.getByText('Processing Instruction Activities')).toBeInTheDocument();
-        expect(screen.getByText('Lexical Chunk Packs')).toBeInTheDocument();
       });
     });
 

@@ -9,6 +9,7 @@ import { prisma } from '../db/client.js';
 import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
 import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
 import { extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
+import { proofreadScript } from '../services/scriptProofreader.js';
 
 const connection = createRedisConnection();
 
@@ -98,6 +99,18 @@ async function processCourseGeneration(job: {
     );
 
     console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from source text`);
+
+    // Save intermediate state so we can debug/retry without regenerating exchanges
+    await prisma.course.update({
+      where: { id: course.id },
+      data: {
+        scriptJson: {
+          _pipelineStage: 'exchanges',
+          _exchanges: dialogueExchanges,
+        } as unknown as Prisma.JsonValue,
+      },
+    });
+
     await job.updateProgress(20);
 
     // For now, create a single lesson per episode
@@ -159,6 +172,14 @@ async function processCourseGeneration(job: {
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });
+
+    // STEP 3.25: Proofread the generated script
+    console.log('Proofreading generated script...');
+    const proofResult = await proofreadScript(
+      generatedScript.units,
+      course.jlptLevel || undefined
+    );
+    console.log(`Proofreading score: ${proofResult.score}/10, issues: ${proofResult.issues.length}`);
 
     // STEP 3.5: Extract vocabulary from dialogue exchanges and map to script units
     console.log('Extracting vocabulary from dialogue exchanges...');

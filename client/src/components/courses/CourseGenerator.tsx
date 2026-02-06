@@ -42,8 +42,6 @@ const CourseGenerator = () => {
   const [maxDuration, setMaxDuration] = useState(30);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
-  const [hskLevel, setHskLevel] = useState<string>('HSK1');
-  const [cefrLevel, setCefrLevel] = useState<string>('A1');
   const [speaker1VoiceId, setSpeaker1VoiceId] = useState('');
   const [speaker2VoiceId, setSpeaker2VoiceId] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -115,9 +113,7 @@ const CourseGenerator = () => {
           targetLanguage,
           maxLessonDurationMinutes: maxDuration,
           l1VoiceId: selectedVoice,
-          jlptLevel: targetLanguage === 'ja' ? jlptLevel : undefined,
-          hskLevel: targetLanguage === 'zh' ? hskLevel : undefined,
-          cefrLevel: targetLanguage === 'es' || targetLanguage === 'fr' ? cefrLevel : undefined,
+          jlptLevel,
           speaker1Gender: 'male',
           speaker2Gender: 'female',
           speaker1VoiceId,
@@ -383,59 +379,6 @@ const CourseGenerator = () => {
             </div>
           )}
 
-          {targetLanguage === 'zh' && (
-            <div>
-              <label
-                htmlFor="generator-hsk-level"
-                className="block text-base font-bold text-dark-brown mb-2"
-              >
-                {t('audioCourse:courseSettings.targetHSK')}
-              </label>
-              <select
-                id="generator-hsk-level"
-                value={hskLevel}
-                onChange={(e) => setHskLevel(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-              >
-                <option value="HSK1">{t('audioCourse:courseSettings.hsk.hsk1')}</option>
-                <option value="HSK2">{t('audioCourse:courseSettings.hsk.hsk2')}</option>
-                <option value="HSK3">{t('audioCourse:courseSettings.hsk.hsk3')}</option>
-                <option value="HSK4">{t('audioCourse:courseSettings.hsk.hsk4')}</option>
-                <option value="HSK5">{t('audioCourse:courseSettings.hsk.hsk5')}</option>
-                <option value="HSK6">{t('audioCourse:courseSettings.hsk.hsk6')}</option>
-              </select>
-              <p className="text-sm text-gray-500 mt-2">
-                {t('audioCourse:courseSettings.levelHelper')}
-              </p>
-            </div>
-          )}
-
-          {(targetLanguage === 'es' || targetLanguage === 'fr') && (
-            <div>
-              <label
-                htmlFor="generator-cefr-level"
-                className="block text-base font-bold text-dark-brown mb-2"
-              >
-                {t('audioCourse:courseSettings.targetCEFR')}
-              </label>
-              <select
-                id="generator-cefr-level"
-                value={cefrLevel}
-                onChange={(e) => setCefrLevel(e.target.value)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
-              >
-                <option value="A1">{t('audioCourse:courseSettings.cefr.a1')}</option>
-                <option value="A2">{t('audioCourse:courseSettings.cefr.a2')}</option>
-                <option value="B1">{t('audioCourse:courseSettings.cefr.b1')}</option>
-                <option value="B2">{t('audioCourse:courseSettings.cefr.b2')}</option>
-                <option value="C1">{t('audioCourse:courseSettings.cefr.c1')}</option>
-                <option value="C2">{t('audioCourse:courseSettings.cefr.c2')}</option>
-              </select>
-              <p className="text-sm text-gray-500 mt-2">
-                {t('audioCourse:courseSettings.levelHelper')}
-              </p>
-            </div>
-          )}
         </div>
       </div>
 
