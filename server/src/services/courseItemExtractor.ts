@@ -840,8 +840,10 @@ export async function buildDialogueExtractionPrompt(
   // Sample vocabulary to seed the dialogue if proficiency level is specified
   let vocabularySeed = '';
   if (jlptLevel && targetLanguage) {
+    console.log(`[PromptBuilder] Attempting to sample vocabulary for ${targetLanguage}:${jlptLevel}`);
     try {
       const seedWords = await sampleVocabulary(targetLanguage, jlptLevel, 30);
+      console.log(`[PromptBuilder] Got ${seedWords.length} vocabulary seed words`);
       if (seedWords.length > 0) {
         const framework = getProficiencyFramework(targetLanguage);
         vocabularySeed = `
@@ -851,17 +853,22 @@ Try to naturally use some of these ${framework} ${jlptLevel}-level words in the 
 ${formatWordsForPrompt(seedWords, targetLanguage)}
 
 You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
+        console.log(`[PromptBuilder] Generated vocabulary seed section (${vocabularySeed.length} chars)`);
       }
     } catch (error) {
-      console.warn(`Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
+      console.warn(`[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
     }
+  } else {
+    console.log(`[PromptBuilder] Skipping vocabulary seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`);
   }
 
   // Sample grammar to seed the dialogue if proficiency level is specified
   let grammarSeed = '';
   if (jlptLevel && targetLanguage) {
+    console.log(`[PromptBuilder] Attempting to sample grammar for ${targetLanguage}:${jlptLevel}`);
     try {
       const seedGrammar = await sampleGrammar(targetLanguage, jlptLevel, 5);
+      console.log(`[PromptBuilder] Got ${seedGrammar.length} grammar seed patterns`);
       if (seedGrammar.length > 0) {
         const framework = getProficiencyFramework(targetLanguage);
         grammarSeed = `
@@ -871,10 +878,13 @@ Try to naturally use 2-3 of these ${framework} ${jlptLevel}-level grammar patter
 ${formatGrammarForPrompt(seedGrammar)}
 
 Use these patterns where they naturally fit the conversation flow.`;
+        console.log(`[PromptBuilder] Generated grammar seed section (${grammarSeed.length} chars)`);
       }
     } catch (error) {
-      console.warn(`Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
+      console.warn(`[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
     }
+  } else {
+    console.log(`[PromptBuilder] Skipping grammar seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`);
   }
 
   // Build JLPT level constraint if specified
@@ -980,7 +990,7 @@ Return ONLY a JSON object (no markdown, no explanation):
   ]
 }`;
 
-  return {
+  const result = {
     prompt,
     metadata: {
       targetExchangeCount,
@@ -988,6 +998,16 @@ Return ONLY a JSON object (no markdown, no explanation):
       grammarSeeds: grammarSeed,
     },
   };
+
+  console.log(`[PromptBuilder] Returning prompt with metadata:`, {
+    targetExchangeCount: result.metadata.targetExchangeCount,
+    hasVocabularySeeds: result.metadata.vocabularySeeds.length > 0,
+    hasGrammarSeeds: result.metadata.grammarSeeds.length > 0,
+    vocabularySeedLength: result.metadata.vocabularySeeds.length,
+    grammarSeedLength: result.metadata.grammarSeeds.length,
+  });
+
+  return result;
 }
 
 /**
