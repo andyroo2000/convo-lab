@@ -2,6 +2,130 @@ import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { generateWithGemini } from './geminiClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 
+/**
+ * Extract the reading for a vocabulary word from the parent exchange's reading
+ * This ensures we use the correct pronunciation in context rather than isolated
+ *
+ * Example:
+ * - Exchange text: "北海道に行きました"
+ * - Exchange reading: "北[ほっ]海[かい]道[どう]に行[い]きました"
+ * - Vocab word: "北海道"
+ * - Returns: "北[ほっ]海[かい]道[どう]"
+ */
+function extractVocabReadingFromContext(
+  vocabWord: string,
+  exchangeText: string,
+  exchangeReading: string | null
+): string | undefined {
+  if (!exchangeReading || !vocabWord || !exchangeText) {
+    return undefined;
+  }
+
+  // Find the position of the vocab word in the exchange text
+  const vocabIndex = exchangeText.indexOf(vocabWord);
+  if (vocabIndex === -1) {
+    return undefined;
+  }
+
+  // Strip furigana brackets to get just kana from reading for length calculation
+  const stripBrackets = (text: string): string => {
+    return text.replace(/\[([^\]]+)\]/g, '$1');
+  };
+
+  // Build a position map from exchange text to reading positions
+  let readingPos = 0;
+  let textPos = 0;
+  const readingParts: string[] = [];
+
+  // Parse the reading character by character
+  let i = 0;
+  while (i < exchangeReading.length && textPos < exchangeText.length) {
+    if (exchangeReading[i] === '[') {
+      // Found furigana - consume until ]
+      let furigana = '';
+      i++; // Skip [
+      while (i < exchangeReading.length && exchangeReading[i] !== ']') {
+        furigana += exchangeReading[i];
+        i++;
+      }
+      i++; // Skip ]
+
+      // Add the previous kanji with its furigana
+      if (readingParts.length > 0) {
+        const lastPart = readingParts[readingParts.length - 1];
+        if (!lastPart.includes('[')) {
+          readingParts[readingParts.length - 1] = `${lastPart}[${furigana}]`;
+        }
+      }
+
+      textPos++; // The kanji in the original text
+      continue;
+    }
+
+    // Regular character
+    if (textPos >= vocabIndex && textPos < vocabIndex + vocabWord.length) {
+      readingParts.push(exchangeReading[i]);
+    }
+
+    if (exchangeText[textPos] === exchangeReading[i]) {
+      // Characters match - advance both
+      textPos++;
+      i++;
+    } else {
+      // Mismatch - might be a kanji with furigana coming
+      if (textPos >= vocabIndex && textPos < vocabIndex + vocabWord.length) {
+        readingParts.push(exchangeText[textPos]);
+      }
+      textPos++;
+      i++;
+    }
+  }
+
+  // Extract the portion of the reading that corresponds to the vocab word
+  // This is a simplified approach - for production, use a proper furigana parser
+  const vocabEndIndex = vocabIndex + vocabWord.length;
+
+  // Try to extract the substring with furigana intact
+  let extractedReading = '';
+  let currentTextPos = 0;
+  let readingIndex = 0;
+
+  while (readingIndex < exchangeReading.length && currentTextPos < vocabEndIndex) {
+    if (exchangeReading[readingIndex] === '[') {
+      // Copy the furigana if we're in the vocab range
+      if (currentTextPos >= vocabIndex && currentTextPos < vocabEndIndex) {
+        let furiganaPart = '[';
+        readingIndex++;
+        while (readingIndex < exchangeReading.length && exchangeReading[readingIndex] !== ']') {
+          furiganaPart += exchangeReading[readingIndex];
+          readingIndex++;
+        }
+        furiganaPart += ']';
+        readingIndex++; // Skip ]
+        extractedReading += furiganaPart;
+      } else {
+        // Skip furigana outside vocab range
+        while (readingIndex < exchangeReading.length && exchangeReading[readingIndex] !== ']') {
+          readingIndex++;
+        }
+        readingIndex++; // Skip ]
+      }
+      currentTextPos++;
+      continue;
+    }
+
+    // Regular character
+    if (currentTextPos >= vocabIndex && currentTextPos < vocabEndIndex) {
+      extractedReading += exchangeReading[readingIndex];
+    }
+
+    currentTextPos++;
+    readingIndex++;
+  }
+
+  return extractedReading.trim() || undefined;
+}
+
 interface ConversationalScriptContext {
   episodeTitle: string;
   targetLanguage: string;
@@ -201,6 +325,11 @@ function generateQuestionUnits(
     );
 
     for (const vocabItem of vocabToTeach) {
+      // Extract context-aware reading from the parent exchange
+      const contextReading =
+        extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
+        vocabItem.readingL2;
+
       units.push(
         {
           type: 'narration_L1',
@@ -212,7 +341,7 @@ function generateQuestionUnits(
         {
           type: 'L2',
           text: vocabItem.textL2,
-          reading: vocabItem.readingL2,
+          reading: contextReading,
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
@@ -222,7 +351,7 @@ function generateQuestionUnits(
         {
           type: 'L2',
           text: vocabItem.textL2,
-          reading: vocabItem.readingL2,
+          reading: contextReading,
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
@@ -391,6 +520,11 @@ async function generateResponseTeachingUnits(
 
     // STEP 1: Teach each vocabulary item individually
     for (const vocabItem of vocabToTeach) {
+      // Extract context-aware reading from the parent exchange
+      const contextReading =
+        extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
+        vocabItem.readingL2;
+
       units.push(
         // Introduce the word/phrase
         {
@@ -403,7 +537,7 @@ async function generateResponseTeachingUnits(
         {
           type: 'L2',
           text: vocabItem.textL2,
-          reading: vocabItem.readingL2,
+          reading: contextReading,
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
@@ -413,7 +547,7 @@ async function generateResponseTeachingUnits(
         {
           type: 'L2',
           text: vocabItem.textL2,
-          reading: vocabItem.readingL2,
+          reading: contextReading,
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
