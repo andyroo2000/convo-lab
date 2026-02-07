@@ -18,14 +18,28 @@ export const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'nati
 export const TONE_STYLES = ['casual', 'polite', 'formal'] as const;
 
 // TTS Voice Configuration
-// Supports both Google Cloud TTS and Amazon Polly providers
+// Supports Google Cloud TTS, Amazon Polly, and ElevenLabs providers
 // Google: Neural2 and Wavenet voices (support enableTimePointing for batched TTS)
 // Polly: Neural voices (support Speech Marks for batched TTS)
+// ElevenLabs: voice names map to ElevenLabs voice IDs at runtime
 // Journey and Studio voices do NOT support timepointing and have been removed
 export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
     voices: [
+      // ElevenLabs narrator voices
+      {
+        id: 'Spuds Oxley',
+        gender: 'male',
+        description: 'Spuds Oxley - Warm and authoritative',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Cassidy',
+        gender: 'female',
+        description: 'Cassidy - Bright and confident',
+        provider: 'elevenlabs',
+      },
       // Male Neural2 voices (Google)
       {
         id: 'en-US-Neural2-J',
@@ -81,6 +95,43 @@ export const TTS_VOICES = {
   ja: {
     languageCode: 'ja-JP',
     voices: [
+      // ElevenLabs voices
+      {
+        id: 'Saanu',
+        gender: 'female',
+        description: 'Saanu - Natural and expressive',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Kaori',
+        gender: 'female',
+        description: 'Kaori - Clear and friendly',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Kanika',
+        gender: 'female',
+        description: 'Kanika - Smooth and calm',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Otani',
+        gender: 'male',
+        description: 'Otani - Confident and natural',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Ishibashi',
+        gender: 'male',
+        description: 'Ishibashi - Warm and steady',
+        provider: 'elevenlabs',
+      },
+      {
+        id: 'Leo',
+        gender: 'male',
+        description: 'Leo - Clear and conversational',
+        provider: 'elevenlabs',
+      },
       // Google voices - Verified from Google Cloud TTS API (npx tsx check-google-voices.ts)
       // Wavenet FEMALE voices
       {
@@ -153,7 +204,7 @@ export const TTS_VOICES = {
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
-  en: 'en-US-Neural2-J', // Guy - Male
+  en: 'Spuds Oxley', // ElevenLabs - Male
   ja: 'ja-JP-Wavenet-C', // Shohei - Male
 } as const;
 

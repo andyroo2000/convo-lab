@@ -136,7 +136,10 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
   if (!isOpen) return null;
 
-  const availableVoices = TTS_VOICES[nativeLanguage]?.voices || [];
+  const narratorVoices = TTS_VOICES[nativeLanguage]?.voices || [];
+  const narratorVoiceOptions = narratorVoices.some((voice) => voice.provider === 'elevenlabs')
+    ? narratorVoices.filter((voice) => voice.provider === 'elevenlabs')
+    : narratorVoices;
 
   return (
     <div
@@ -206,11 +209,13 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
-              {availableVoices.map((voice: { id: string; description: string; gender: string }) => (
-                <option key={voice.id} value={voice.id}>
-                  {voice.description} ({voice.gender})
-                </option>
-              ))}
+              {narratorVoiceOptions.map(
+                (voice: { id: string; description: string; gender: string }) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.description} ({voice.gender})
+                  </option>
+                )
+              )}
             </select>
             <p className="text-xs text-gray-500 mt-1">
               {t('creator.narratorHelper', { language: episode.nativeLanguage.toUpperCase() })}

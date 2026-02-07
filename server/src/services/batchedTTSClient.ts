@@ -2,27 +2,24 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
+import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
 
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { generateSilence } from './ttsClient.js';
+import {
+  resolveElevenLabsVoiceId,
+  synthesizeElevenLabsWithTimestamps,
+  type ElevenLabsAlignment,
+} from './ttsProviders/ElevenLabsTTSProvider.js';
 import {
   getGoogleTTSBetaProvider,
   SynthesizeWithTimepointsResult,
 } from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 
-/**
- * Detect TTS provider from voice ID format
- * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
- * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu", "Lucia", "Sergio")
- */
-function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' {
-  if (voiceId.includes('-')) {
-    return 'google';
-  }
-  return 'polly';
-}
+const ELEVENLABS_MAX_CHARS = Number(process.env.ELEVENLABS_MAX_CHARS || 9000);
+const ELEVENLABS_DELIMITER = '\n';
 
 /**
  * A batch of units that share the same voice and speed settings
@@ -93,6 +90,109 @@ function calculateSSMLSize(batch: TTSBatch): number {
   }
 
   return size;
+}
+
+interface ElevenLabsUnitRange {
+  unitIndex: number;
+  startIndex: number;
+  endIndex: number;
+}
+
+interface ElevenLabsSegmentTime {
+  unitIndex: number;
+  startTime: number;
+  endTime: number;
+}
+
+function getElevenLabsLanguageCode(languageCode: string): string | undefined {
+  if (!languageCode) return undefined;
+  return languageCode.split('-')[0] || undefined;
+}
+
+function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTSBatch[] {
+  if (maxChars <= 0) return [batch];
+
+  const chunks: TTSBatch[] = [];
+  let current: TTSBatch | null = null;
+  let currentLength = 0;
+
+  for (const unit of batch.units) {
+    const unitLength = unit.text.length;
+    const delimiterLength = current && current.units.length > 0 ? ELEVENLABS_DELIMITER.length : 0;
+    const nextLength = currentLength + delimiterLength + unitLength;
+
+    if (current && nextLength > maxChars) {
+      chunks.push(current);
+      current = null;
+      currentLength = 0;
+    }
+
+    if (!current) {
+      current = {
+        voiceId: batch.voiceId,
+        languageCode: batch.languageCode,
+        speed: batch.speed,
+        pitch: batch.pitch,
+        units: [],
+      };
+    }
+
+    current.units.push(unit);
+    currentLength += delimiterLength + unitLength;
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+
+  return chunks;
+}
+
+function buildElevenLabsBatchText(batch: TTSBatch): {
+  text: string;
+  unitRanges: ElevenLabsUnitRange[];
+} {
+  const parts: string[] = [];
+  const unitRanges: ElevenLabsUnitRange[] = [];
+  let cursor = 0;
+
+  batch.units.forEach((unit, index) => {
+    const startIndex = cursor;
+    const text = unit.text || '';
+    const endIndex = Math.max(startIndex + text.length - 1, startIndex);
+
+    parts.push(text);
+    cursor += text.length;
+
+    unitRanges.push({
+      unitIndex: unit.originalIndex,
+      startIndex,
+      endIndex,
+    });
+
+    if (index < batch.units.length - 1) {
+      parts.push(ELEVENLABS_DELIMITER);
+      cursor += ELEVENLABS_DELIMITER.length;
+    }
+  });
+
+  return {
+    text: parts.join(''),
+    unitRanges,
+  };
+}
+
+function getAlignmentTime(
+  alignment: ElevenLabsAlignment,
+  index: number,
+  type: 'start' | 'end'
+): number {
+  const times =
+    type === 'start'
+      ? alignment.character_start_times_seconds
+      : alignment.character_end_times_seconds;
+  const safeIndex = Math.min(Math.max(index, 0), times.length - 1);
+  return times[safeIndex] ?? 0;
 }
 
 function isHiragana(char: string): boolean {
@@ -449,13 +549,62 @@ async function splitAudioAtTimepoints(
 }
 
 /**
+ * Split audio using explicit segment start/end times (ElevenLabs alignment)
+ */
+async function splitAudioAtSegments(
+  audioBuffer: Buffer,
+  segmentsToExtract: ElevenLabsSegmentTime[],
+  tempDir: string,
+  speed: number
+): Promise<Map<number, Buffer>> {
+  const segments = new Map<number, Buffer>();
+
+  const combinedPath = path.join(tempDir, `batch-combined-${Date.now()}-elevenlabs.mp3`);
+  await fs.writeFile(combinedPath, audioBuffer);
+
+  const totalDuration = await getAudioDuration(combinedPath);
+
+  const extractionPromises = segmentsToExtract.map(async (segment) => {
+    const startTime = Math.max(0, segment.startTime);
+    let endTime = Math.min(totalDuration, segment.endTime);
+
+    if (endTime <= startTime) {
+      endTime = Math.min(totalDuration, startTime + 0.05);
+    }
+
+    const segmentPath = path.join(
+      tempDir,
+      `segment-${segment.unitIndex}-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
+    );
+
+    await extractAudioSegment(combinedPath, segmentPath, startTime, endTime, speed);
+
+    const segmentBuffer = await fs.readFile(segmentPath);
+    await fs.unlink(segmentPath).catch(() => {});
+
+    return [segment.unitIndex, segmentBuffer] as const;
+  });
+
+  const results = await Promise.all(extractionPromises);
+
+  for (const [index, buffer] of results) {
+    segments.set(index, buffer);
+  }
+
+  await fs.unlink(combinedPath).catch(() => {});
+
+  return segments;
+}
+
+/**
  * Extract a segment from an audio file using ffmpeg
  */
 async function extractAudioSegment(
   inputPath: string,
   outputPath: string,
   startSeconds: number,
-  endSeconds: number
+  endSeconds: number,
+  speed: number = 1.0
 ): Promise<void> {
   const duration = endSeconds - startSeconds;
 
@@ -466,7 +615,7 @@ async function extractAudioSegment(
   }
 
   return new Promise((resolve, reject) => {
-    ffmpeg(inputPath)
+    const command = ffmpeg(inputPath)
       .setStartTime(startSeconds)
       .setDuration(duration)
       .audioCodec('libmp3lame')
@@ -475,8 +624,13 @@ async function extractAudioSegment(
       .audioChannels(2)
       .output(outputPath)
       .on('end', () => resolve())
-      .on('error', (err) => reject(new Error(`ffmpeg segment extraction failed: ${err.message}`)))
-      .run();
+      .on('error', (err) => reject(new Error(`ffmpeg segment extraction failed: ${err.message}`)));
+
+    if (speed !== 1.0) {
+      command.audioFilters([`atempo=${speed}`]);
+    }
+
+    command.run();
   });
 }
 
@@ -514,6 +668,49 @@ async function getAudioDurationFromBuffer(buffer: Buffer, tempDir: string): Prom
   }
 }
 
+async function synthesizeElevenLabsBatch(
+  batch: TTSBatch,
+  tempDir: string
+): Promise<Map<number, Buffer>> {
+  const { text, unitRanges } = buildElevenLabsBatchText(batch);
+
+  if (!text.trim()) {
+    return new Map();
+  }
+
+  const resolvedVoiceId = await resolveElevenLabsVoiceId(batch.voiceId);
+  const languageCode = getElevenLabsLanguageCode(batch.languageCode);
+
+  const { audioBuffer, alignment } = await synthesizeElevenLabsWithTimestamps({
+    voiceId: resolvedVoiceId,
+    text,
+    languageCode,
+  });
+
+  if (
+    !alignment ||
+    alignment.characters.length === 0 ||
+    alignment.character_start_times_seconds.length !== alignment.characters.length ||
+    alignment.character_end_times_seconds.length !== alignment.characters.length
+  ) {
+    throw new Error(
+      `Invalid ElevenLabs alignment data for voice ${batch.voiceId} (${alignment?.characters.length || 0} chars)`
+    );
+  }
+
+  const segmentTimes: ElevenLabsSegmentTime[] = unitRanges.map((range) => {
+    const startTime = getAlignmentTime(alignment, range.startIndex, 'start');
+    const endTime = getAlignmentTime(alignment, range.endIndex, 'end');
+    return {
+      unitIndex: range.unitIndex,
+      startTime,
+      endTime: endTime <= startTime ? startTime + 0.05 : endTime,
+    };
+  });
+
+  return splitAudioAtSegments(audioBuffer, segmentTimes, tempDir, batch.speed);
+}
+
 /**
  * Process all script units using batched TTS
  *
@@ -541,8 +738,17 @@ export async function processBatches(
     targetLanguageCode
   );
 
+  // Split ElevenLabs batches to respect character limits
+  const expandedBatches = batches.flatMap((batch) => {
+    const providerType = getProviderFromVoiceId(batch.voiceId);
+    if (providerType !== 'elevenlabs') {
+      return [batch];
+    }
+    return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+  });
+
   // eslint-disable-next-line no-console
-  console.log(`[TTS BATCH] Grouped ${units.length} units into ${batches.length} batches`);
+  console.log(`[TTS BATCH] Grouped ${units.length} units into ${expandedBatches.length} batches`);
   // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Pause units: ${pauseIndices.size}`);
 
@@ -550,48 +756,56 @@ export async function processBatches(
   const pauseSegments = new Map<number, Buffer>();
 
   // Process each batch
-  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-    const batch = batches[batchIndex];
+  for (let batchIndex = 0; batchIndex < expandedBatches.length; batchIndex++) {
+    const batch = expandedBatches[batchIndex];
 
     // Detect provider from voice ID
     const providerType = getProviderFromVoiceId(batch.voiceId);
-    const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
     // eslint-disable-next-line no-console
     console.log(
-      `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
+      `[TTS BATCH] Batch ${batchIndex + 1}/${expandedBatches.length}: ` +
         `provider=${providerType}, voiceId=${batch.voiceId}, speed=${batch.speed}, units=${batch.units.length}`
     );
 
-    // Build SSML with marks (provider-aware for speed handling)
-    const ssml = buildBatchSSML(batch, providerType);
+    let batchSegments: Map<number, Buffer>;
 
-    // Extract language code from voice ID (e.g., "fr-FR-Neural2-A" -> "fr-FR")
-    // This ensures the format matches what Google TTS expects
-    const languageCode = extractLanguageCodeFromVoice(batch.voiceId, batch.languageCode);
+    if (providerType === 'elevenlabs') {
+      batchSegments = await synthesizeElevenLabsBatch(batch, tempDir);
+    } else {
+      const provider =
+        providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
-    // Synthesize with timepoints
-    const result = await provider.synthesizeSpeechWithTimepoints({
-      ssml,
-      voiceId: batch.voiceId,
-      languageCode,
-      speed: batch.speed,
-      pitch: batch.pitch,
-    });
+      // Build SSML with marks (provider-aware for speed handling)
+      const ssml = buildBatchSSML(batch, providerType);
 
-    // eslint-disable-next-line no-console
-    console.log(
-      `[TTS BATCH] Batch ${batchIndex + 1}/${batches.length}: ` +
-        `Got ${result.timepoints.length} timepoints, splitting audio...`
-    );
+      // Extract language code from voice ID (e.g., "fr-FR-Neural2-A" -> "fr-FR")
+      // This ensures the format matches what Google TTS expects
+      const languageCode = extractLanguageCodeFromVoice(batch.voiceId, batch.languageCode);
 
-    // Split audio at timepoints
-    const batchSegments = await splitAudioAtTimepoints(
-      result.audioBuffer,
-      batch,
-      result.timepoints,
-      tempDir
-    );
+      // Synthesize with timepoints
+      const result = await provider.synthesizeSpeechWithTimepoints({
+        ssml,
+        voiceId: batch.voiceId,
+        languageCode,
+        speed: batch.speed,
+        pitch: batch.pitch,
+      });
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `[TTS BATCH] Batch ${batchIndex + 1}/${expandedBatches.length}: ` +
+          `Got ${result.timepoints.length} timepoints, splitting audio...`
+      );
+
+      // Split audio at timepoints
+      batchSegments = await splitAudioAtTimepoints(
+        result.audioBuffer,
+        batch,
+        result.timepoints,
+        tempDir
+      );
+    }
 
     // Merge into main segments map
     for (const [idx, buffer] of batchSegments) {
@@ -600,7 +814,7 @@ export async function processBatches(
 
     // Report progress
     if (onProgress) {
-      onProgress(batchIndex + 1, batches.length);
+      onProgress(batchIndex + 1, expandedBatches.length);
     }
   }
 
@@ -652,7 +866,7 @@ export async function processBatches(
     cumulativeTime += durationSeconds;
   }
 
-  const totalTTSCalls = batches.length + pauseIndices.size; // batches + silence calls
+  const totalTTSCalls = expandedBatches.length + pauseIndices.size; // batches + silence calls
   // eslint-disable-next-line no-console
   console.log(
     `[TTS BATCH] Complete: ${totalTTSCalls} TTS calls ` +
@@ -713,6 +927,45 @@ export async function synthesizeBatchedTexts(
 
   // Detect provider from voice ID
   const providerType = getProviderFromVoiceId(voiceId);
+  if (providerType === 'elevenlabs') {
+    const tempDir = path.join(process.cwd(), 'tmp', `batch-simple-elevenlabs-${Date.now()}`);
+    await fs.mkdir(tempDir, { recursive: true });
+
+    try {
+      const batch: TTSBatch = {
+        voiceId,
+        languageCode,
+        speed,
+        pitch,
+        units: texts.map((text, index) => ({
+          originalIndex: index,
+          markName: `text_${index}`,
+          text,
+        })),
+      };
+
+      const batches = splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+      const segments = new Map<number, Buffer>();
+
+      for (const subBatch of batches) {
+        const subSegments = await synthesizeElevenLabsBatch(subBatch, tempDir);
+        for (const [index, buffer] of subSegments) {
+          segments.set(index, buffer);
+        }
+      }
+
+      return texts.map((_, index) => {
+        const buffer = segments.get(index);
+        if (!buffer) {
+          throw new Error(`[TTS BATCH SIMPLE] Missing ElevenLabs segment for index ${index}`);
+        }
+        return buffer;
+      });
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+    }
+  }
+
   const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
 
   // Build SSML with marks (provider-aware for speed handling)

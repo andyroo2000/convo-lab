@@ -19,6 +19,8 @@
   },
   "voiceConfig": {
     "title": "Voice Configuration",
+    "narrator": "Narrator Voice",
+    "narratorLabel": "Narrator",
     "dialogueVoices": "Dialogue Voices",
     "speaker1": "Speaker 1 (Friend)",
     "speaker2": "Speaker 2 (Listener)",

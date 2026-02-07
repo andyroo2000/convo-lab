@@ -1,3 +1,4 @@
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Episode, Sentence, Speaker } from '@prisma/client';
 
 import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
@@ -887,6 +888,14 @@ Use these patterns where they naturally fit the conversation flow.`;
 - Focus on practical, conversational language at this proficiency level${vocabularySeed}${grammarSeed}`
     : '';
 
+  const speakerGenderConstraint = `
+
+SPEAKERS:
+- Use exactly TWO speakers throughout the dialogue
+- Speaker 1 is ${_speaker1Gender}; choose a name that matches this gender
+- Speaker 2 is ${_speaker2Gender}; choose a name that matches this gender
+- Start the conversation with Speaker 1 and alternate turns`;
+
   const prompt = `You are creating a Pimsleur-style language lesson based on this scenario:
 
 Title: "${episodeTitle}"
@@ -907,6 +916,7 @@ ${jlptConstraint}
 Guidelines:
 - Make the conversation natural and realistic
 - Vary between questions and statements
+- Keep the two speaker names consistent across all exchanges
 - IMPORTANT: Keep each turn SHORT - one simple sentence, or at most one sentence + a tiny follow-up interjection/question
 - AVOID run-on sentences or multiple topics in one turn
 - Each turn should focus on ONE idea that's easy to hold in working memory
@@ -923,6 +933,8 @@ Examples of GOOD turn length:
 Examples of BAD turn length (TOO LONG):
 - "I went to Hokkaido last month and stayed for two weeks cycling around the island, and the weather was perfect except for one rainy day." (too many ideas)
 - "That sounds wonderful! I've always wanted to visit Hokkaido. Did you enjoy the food there and what was your favorite place?" (multiple topics)
+
+${speakerGenderConstraint}
 
 ${
   targetLanguage === 'ja'
@@ -991,23 +1003,54 @@ Return ONLY a JSON object (no markdown, no explanation):
     // Build dialogue exchanges
     const exchanges: DialogueExchange[] = [];
 
-    // Get voices from TTS_VOICES constant (centralized voice management)
-    // const languageVoices = getVoicesByGender(targetLanguage as LanguageCode);
+    const voicesConfig = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
+      []) as Array<{
+      id: string;
+      gender: 'male' | 'female';
+      provider?: string;
+    }>;
+    const preferredProvider = voicesConfig.some((voice) => voice.provider === 'elevenlabs')
+      ? 'elevenlabs'
+      : undefined;
 
-    // Use provided voice IDs if available, otherwise use language-appropriate defaults
-    // Speaker 1 (friend) defaults to female voice, Speaker 2 (listener) defaults to male voice
-    const getDefaultVoices = (lang: string): [string, string] => {
+    const getFallbackVoices = (lang: string): [string, string] => {
       if (lang.toLowerCase() === 'ja') {
         return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
       }
       return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
     };
 
-    const [defaultFemale, defaultMale] = getDefaultVoices(targetLanguage);
-    const availableVoices = [
-      speaker1VoiceId || defaultFemale, // Speaker 1 (friend) - female default
-      speaker2VoiceId || defaultMale, // Speaker 2 (listener) - male default
-    ];
+    const [fallbackFemale, fallbackMale] = getFallbackVoices(targetLanguage);
+
+    const pickVoiceByGender = (
+      gender: 'male' | 'female',
+      fallbackId: string,
+      excludeId?: string
+    ): string => {
+      const preferredVoices = voicesConfig.filter(
+        (voice) =>
+          voice.gender === gender && (!preferredProvider || voice.provider === preferredProvider)
+      );
+      const fallbackVoices = voicesConfig.filter((voice) => voice.gender === gender);
+      const candidates = (preferredVoices.length ? preferredVoices : fallbackVoices).filter(
+        (voice) => voice.id !== excludeId
+      );
+
+      if (candidates.length > 0) {
+        return candidates[Math.floor(Math.random() * candidates.length)].id;
+      }
+
+      return fallbackId;
+    };
+
+    const speaker1Fallback = _speaker1Gender === 'female' ? fallbackFemale : fallbackMale;
+    const speaker2Fallback = _speaker2Gender === 'female' ? fallbackFemale : fallbackMale;
+
+    const speaker1Default = speaker1VoiceId || pickVoiceByGender(_speaker1Gender, speaker1Fallback);
+    const speaker2Default =
+      speaker2VoiceId || pickVoiceByGender(_speaker2Gender, speaker2Fallback, speaker1Default);
+
+    const availableVoices = [speaker1Default, speaker2Default];
 
     // Track unique speakers and assign voices
     const speakerVoiceMap = new Map<string, string>();
