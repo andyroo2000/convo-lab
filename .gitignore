@@ -53,5 +53,9 @@ storage/
 .gcloudignore
 gcloud-key.json
 
+# Script caches and output
+scripts/.cache/
+scripts/output/
+
 # Docker
 .dockerignore
