@@ -5,7 +5,22 @@ import { CoreItem } from './courseItemExtractor.js';
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
   | { type: 'narration_L1'; text: string; voiceId: string; pitch?: number }
-  | { type: 'L2'; text: string; reading?: string; translation?: string; voiceId: string; speed?: number; pitch?: number; phraseContext?: string }
+  | {
+      type: 'L2';
+      text: string;
+      reading?: string;
+      translation?: string;
+      voiceId: string;
+      speed?: number;
+      pitch?: number;
+      /**
+       * Parent sentence context for pronunciation disambiguation (ElevenLabs only).
+       * Passed as previous_text to help TTS choose correct reading for isolated words.
+       * E.g., for isolated "食べる", set phraseContext to full sentence "私は寿司を食べる".
+       * This field only affects ElevenLabs TTS; Google Cloud and AWS Polly ignore it.
+       */
+      phraseContext?: string;
+    }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
 

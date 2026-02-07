@@ -216,6 +216,61 @@ describe('batchedTTSClient', () => {
       expect(batches[0].units[1].originalIndex).toBe(3); // After pause, but same batch
       expect(batches[0].units[1].markName).toBe('unit_3');
     });
+
+    it('should propagate phraseContext to batch units for isolated vocabulary', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '食べる',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+          phraseContext: '私は寿司を食べる',
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches).toHaveLength(1);
+      expect(batches[0].units).toHaveLength(1);
+      expect(batches[0].units[0].phraseContext).toBe('私は寿司を食べる');
+    });
+
+    it('should preserve phraseContext even with reading field', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '食べる',
+          reading: '食[た]べる',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+          phraseContext: '私は寿司を食べる',
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches).toHaveLength(1);
+      // Text should be extracted from reading for TTS
+      expect(batches[0].units[0].text).toBe('たべる');
+      // But phraseContext should be preserved
+      expect(batches[0].units[0].phraseContext).toBe('私は寿司を食べる');
+    });
+
+    it('should handle units without phraseContext', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: 'こんにちは',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches).toHaveLength(1);
+      expect(batches[0].units[0].phraseContext).toBeUndefined();
+    });
   });
 
   describe('buildBatchSSML', () => {

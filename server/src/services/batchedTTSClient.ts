@@ -483,6 +483,8 @@ export function groupUnitsIntoBatches(
     }
 
     // Add unit to batch (preserving original index for reassembly)
+    // Note: phraseContext only used by ElevenLabs provider (passed as previous_text).
+    // Google Cloud and AWS Polly follow different code paths and don't support this feature.
     batch.units.push({
       originalIndex: i,
       markName: `unit_${i}`,
@@ -866,11 +868,21 @@ async function synthesizeElevenLabsBatch(
   const resolvedVoiceId = await resolveElevenLabsVoiceId(batch.voiceId);
   const languageCode = getElevenLabsLanguageCode(batch.languageCode);
 
-  // For single-unit batches (always the case for Japanese), pass phraseContext
-  // as previous_text so ElevenLabs has surrounding sentence context for pronunciation
-  const previousText = batch.units.length === 1
-    ? batch.units[0].phraseContext
-    : undefined;
+  // Pass phraseContext as previous_text so ElevenLabs has surrounding sentence context for pronunciation.
+  // For Japanese, batches are always single-unit due to ELEVENLABS_FORCE_SINGLE_UNIT.
+  // Use first unit's context if available; warn if batching with mixed contexts.
+  let previousText: string | undefined;
+  if (batch.units.length === 1) {
+    previousText = batch.units[0].phraseContext;
+  } else {
+    const contexts = batch.units.map(u => u.phraseContext).filter(Boolean);
+    if (contexts.length > 0) {
+      if (contexts.length < batch.units.length) {
+        console.warn(`Mixed phraseContext in batch - only first context will be used`);
+      }
+      previousText = batch.units[0].phraseContext;
+    }
+  }
 
   const { audioBuffer, alignment } = await synthesizeElevenLabsWithTimestamps({
     voiceId: resolvedVoiceId,
