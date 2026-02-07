@@ -50,6 +50,7 @@ const mockFs = vi.hoisted(() => ({
   mkdir: vi.fn(),
   writeFile: vi.fn(),
   rm: vi.fn(),
+  unlink: vi.fn(),
 }));
 
 // Mock dependencies
@@ -96,6 +97,7 @@ describe('audioCourseAssembler', () => {
     mockFs.mkdir.mockResolvedValue(undefined);
     mockFs.writeFile.mockResolvedValue(undefined);
     mockFs.rm.mockResolvedValue(undefined);
+    mockFs.unlink.mockResolvedValue(undefined);
     mockProcessBatches.mockResolvedValue(mockBatchResult);
     mockUploadFileToGCS.mockResolvedValue('https://storage.example.com/lesson-123.mp3');
     mockFfprobe.mockImplementation((filePath, callback) => {

@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 // Console logging is necessary in this background job worker for monitoring and debugging
 
+import { DEFAULT_SPEAKER_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Prisma } from '@prisma/client';
 import { Queue, Worker } from 'bullmq';
 
@@ -85,6 +86,11 @@ async function processCourseGeneration(job: {
 
     // STEP 1: Extract dialogue exchanges from source text (with JLPT level targeting)
     // This uses the original prompt which has richer context than the generated dialogue
+    // Use explicit voice IDs from the course, or fall back to language defaults
+    const langDefaults = DEFAULT_SPEAKER_VOICES[course.targetLanguage];
+    const speaker1Voice = course.speaker1VoiceId || langDefaults?.speaker1 || undefined;
+    const speaker2Voice = course.speaker2VoiceId || langDefaults?.speaker2 || undefined;
+
     const dialogueExchanges = await extractDialogueExchangesFromSourceText(
       firstEpisode.sourceText,
       firstEpisode.title,
@@ -95,8 +101,8 @@ async function processCourseGeneration(job: {
       speakerVoices,
       course.speaker1Gender as 'male' | 'female',
       course.speaker2Gender as 'male' | 'female',
-      course.speaker1VoiceId || undefined,
-      course.speaker2VoiceId || undefined
+      speaker1Voice,
+      speaker2Voice
     );
 
     console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from source text`);

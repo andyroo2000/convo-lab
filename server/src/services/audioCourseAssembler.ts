@@ -1,8 +1,11 @@
-import ffmpeg from 'fluent-ffmpeg';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
+/* eslint-disable no-console, import/no-named-as-default-member */
 import { execSync } from 'child_process';
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+
+import ffmpeg from 'fluent-ffmpeg';
+
 import { processBatches } from './batchedTTSClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { uploadFileToGCS } from './storageClient.js';
@@ -83,7 +86,9 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
       if (buffer) {
         // Validate segment buffer is non-empty before writing
         if (buffer.length === 0) {
-          console.warn(`[ASSEMBLER] Empty buffer for unit ${i} (type: ${unit.type}, voice: ${'voiceId' in unit ? unit.voiceId : 'N/A'}) - skipping`);
+          console.warn(
+            `[ASSEMBLER] Empty buffer for unit ${i} (type: ${unit.type}, voice: ${'voiceId' in unit ? unit.voiceId : 'N/A'}) - skipping`
+          );
           continue;
         }
         const segmentPath = path.join(tempDir, `segment-${i}.mp3`);
@@ -140,7 +145,8 @@ async function getAudioDurationFromFile(filePath: string): Promise<number> {
 
       // Ensure duration is always a number (ffprobe can sometimes return string)
       const duration = metadata.format.duration;
-      const durationSeconds = typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
+      const durationSeconds =
+        typeof duration === 'number' ? duration : parseFloat(String(duration)) || 0;
       resolve(durationSeconds * 1000); // Convert to milliseconds
     });
   });
@@ -148,6 +154,13 @@ async function getAudioDurationFromFile(filePath: string): Promise<number> {
 
 /**
  * Concatenate multiple audio files into a single MP3 (file-based, memory-efficient)
+ *
+ * Uses a two-pass approach to avoid MP3 frame boundary artifacts:
+ * 1. Decode all segments to raw PCM via concat demuxer
+ * 2. Encode the continuous PCM stream to MP3 once
+ *
+ * This prevents trailing audio loss and glitches that occur when the MP3
+ * encoder/decoder handles partial frames at segment boundaries.
  */
 async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Promise<string> {
   if (audioFiles.length === 0) {
@@ -163,18 +176,42 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
   const listContent = audioFiles.map((f) => `file '${f}'`).join('\n');
   await fs.writeFile(listFile, listContent);
 
-  // Concatenate with ffmpeg
-  const outputFile = path.join(tempDir, 'final-output.mp3');
+  // Pass 1: Decode all MP3 segments to a single raw PCM WAV via concat demuxer
+  const rawPcmFile = path.join(tempDir, 'concat-raw.wav');
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error('ffmpeg concatenation timed out after 60 seconds'));
-    }, 60000);
+      reject(new Error('ffmpeg PCM decode timed out after 120 seconds'));
+    }, 120000);
 
     ffmpeg()
       .input(listFile)
       .inputOptions(['-f concat', '-safe 0'])
-      // Re-encode to ensure consistent format (fixes issues with mixed sources)
+      .audioCodec('pcm_s16le')
+      .audioFrequency(44100)
+      .audioChannels(2)
+      .output(rawPcmFile)
+      .on('end', () => {
+        clearTimeout(timeout);
+        resolve();
+      })
+      .on('error', (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      })
+      .run();
+  });
+
+  // Pass 2: Encode the continuous PCM to MP3 (single encode = no frame boundary issues)
+  const outputFile = path.join(tempDir, 'final-output.mp3');
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error('ffmpeg MP3 encode timed out after 120 seconds'));
+    }, 120000);
+
+    ffmpeg()
+      .input(rawPcmFile)
       .audioCodec('libmp3lame')
       .audioBitrate('128k')
       .audioFrequency(44100)
@@ -190,6 +227,9 @@ async function concatenateAudioFiles(audioFiles: string[], tempDir: string): Pro
       })
       .run();
   });
+
+  // Clean up intermediate PCM file
+  await fs.unlink(rawPcmFile).catch(() => {});
 
   return outputFile;
 }
