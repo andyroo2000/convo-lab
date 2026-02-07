@@ -20,6 +20,8 @@ import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 
 const ELEVENLABS_MAX_CHARS = Number(process.env.ELEVENLABS_MAX_CHARS || 9000);
 const ELEVENLABS_DELIMITER = '\n';
+const ELEVENLABS_START_PAD_SECONDS = Number(process.env.ELEVENLABS_START_PAD_SECONDS || 0.02);
+const ELEVENLABS_END_PAD_SECONDS = Number(process.env.ELEVENLABS_END_PAD_SECONDS || 0.08);
 
 /**
  * A batch of units that share the same voice and speed settings
@@ -55,6 +57,7 @@ export interface BatchProcessingOptions {
   nativeLanguage: string;
   tempDir: string;
   onProgress?: (batchIndex: number, totalBatches: number) => void;
+  generateSilence?: (seconds: number) => Promise<Buffer>;
 }
 
 /**
@@ -111,6 +114,15 @@ function getElevenLabsLanguageCode(languageCode: string): string | undefined {
 
 function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTSBatch[] {
   if (maxChars <= 0) return [batch];
+  if (batch.speed !== 1) {
+    return batch.units.map((unit) => ({
+      voiceId: batch.voiceId,
+      languageCode: batch.languageCode,
+      speed: batch.speed,
+      pitch: batch.pitch,
+      units: [unit],
+    }));
+  }
 
   const chunks: TTSBatch[] = [];
   let current: TTSBatch | null = null;
@@ -698,27 +710,42 @@ async function synthesizeElevenLabsBatch(
     );
   }
 
-  const segmentTimes: ElevenLabsSegmentTime[] = unitRanges.map((range, index) => {
-    const startTime = getAlignmentTime(alignment, range.startIndex, 'start');
-    let endTime: number;
+  const padScale = batch.speed < 1 ? 1 / Math.max(0.5, batch.speed) : 1;
+  const startPad = ELEVENLABS_START_PAD_SECONDS * padScale;
+  const endPad = ELEVENLABS_END_PAD_SECONDS * padScale;
+
+  const segmentTimes: ElevenLabsSegmentTime[] = [];
+  let previousEnd = 0;
+
+  for (let index = 0; index < unitRanges.length; index++) {
+    const range = unitRanges[index];
+    const startRaw = getAlignmentTime(alignment, range.startIndex, 'start');
+    let startTime = Math.max(0, startRaw - startPad);
+    startTime = Math.max(startTime, previousEnd);
+
+    const endRaw = getAlignmentTime(alignment, range.endIndex, 'end') + endPad;
+    let endTime = endRaw;
 
     if (index < unitRanges.length - 1) {
       const nextRange = unitRanges[index + 1];
-      endTime = getAlignmentTime(alignment, nextRange.startIndex, 'start');
-    } else {
-      endTime = getAlignmentTime(alignment, range.endIndex, 'end') + 0.12;
+      const nextStart = getAlignmentTime(alignment, nextRange.startIndex, 'start');
+      if (endTime > nextStart) {
+        endTime = nextStart;
+      }
     }
 
     if (endTime <= startTime) {
       endTime = startTime + 0.05;
     }
 
-    return {
+    segmentTimes.push({
       unitIndex: range.unitIndex,
       startTime,
       endTime,
-    };
-  });
+    });
+
+    previousEnd = endTime;
+  }
 
   return splitAudioAtSegments(audioBuffer, segmentTimes, tempDir, batch.speed);
 }
@@ -830,11 +857,13 @@ export async function processBatches(
     }
   }
 
+  const silenceGenerator = options.generateSilence || generateSilence;
+
   // Generate silence for pause units
   // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Generating ${pauseIndices.size} silence segments...`);
   for (const [idx, seconds] of pauseIndices) {
-    const silenceBuffer = await generateSilence(seconds);
+    const silenceBuffer = await silenceGenerator(seconds);
     pauseSegments.set(idx, silenceBuffer);
   }
 
