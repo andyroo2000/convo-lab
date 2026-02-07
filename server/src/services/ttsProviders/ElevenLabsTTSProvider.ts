@@ -65,18 +65,34 @@ async function getVoiceCache(): Promise<Map<string, string>> {
 }
 
 export async function resolveElevenLabsVoiceId(voiceIdOrName: string): Promise<string> {
+  const voices = await getVoiceCache();
+
+  // Accept explicit voice IDs (ElevenLabs IDs are not UUIDs, so check the values we fetched).
+  for (const voiceId of voices.values()) {
+    if (voiceId === voiceIdOrName) {
+      return voiceId;
+    }
+  }
+
+  const normalized = voiceIdOrName.toLowerCase();
+  const exact = voices.get(normalized);
+  if (exact) {
+    return exact;
+  }
+
+  // Fallback: match by prefix to handle configured shorthand names like "Spuds Oxley".
+  for (const [name, voiceId] of voices.entries()) {
+    if (name.startsWith(normalized)) {
+      return voiceId;
+    }
+  }
+
+  // Legacy UUID-like IDs (if any) still pass through.
   if (isLikelyElevenLabsId(voiceIdOrName)) {
     return voiceIdOrName;
   }
 
-  const voices = await getVoiceCache();
-  const resolved = voices.get(voiceIdOrName.toLowerCase());
-
-  if (!resolved) {
-    throw new Error(`ElevenLabs voice not found: ${voiceIdOrName}`);
-  }
-
-  return resolved;
+  throw new Error(`ElevenLabs voice not found: ${voiceIdOrName}`);
 }
 
 export async function synthesizeElevenLabsWithTimestamps(options: {
