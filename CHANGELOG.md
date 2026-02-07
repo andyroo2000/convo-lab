@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **[fix]** Force per-unit ElevenLabs synthesis for all Japanese (not just slowed) — kanji/mixed-script alignment data is unreliable, causing batched audio segments to bleed into adjacent turns; each Japanese turn now gets its own API call for clean segment boundaries
+- **[fix]** Generate silence with ffmpeg instead of Google Cloud TTS — eliminates format mismatch (sample rate, encoding params) between silence segments and ElevenLabs speech that caused audio cutoffs and glitches at segment boundaries during concat
 - **[test]** Added `scripts/test-elevenlabs-segmentation.ts` — standalone script to generate and compare per-unit vs batched Japanese audio with API response caching
 
 ### Fixed
