@@ -19,6 +19,8 @@
   },
   "voiceConfig": {
     "title": "音声設定",
+    "narrator": "ナレーター音声",
+    "narratorLabel": "ナレーター",
     "dialogueVoices": "対話音声",
     "speaker1": "話者1（友人）",
     "speaker2": "話者2（聞き手）",

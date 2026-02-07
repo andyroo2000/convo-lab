@@ -198,8 +198,10 @@ const CourseGenerator = () => {
     );
   }
 
-  // Native voices available for future use
-  // const nativeVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const narratorVoiceOptions = narratorVoices.some((voice) => voice.provider === 'elevenlabs')
+    ? narratorVoices.filter((voice) => voice.provider === 'elevenlabs')
+    : narratorVoices;
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
@@ -256,6 +258,33 @@ const CourseGenerator = () => {
         </h2>
 
         <div className="space-y-6">
+          {/* Narrator Voice */}
+          <div className="border-t-2 border-gray-200 pt-6">
+            <h3 className="text-base font-bold text-dark-brown mb-4">
+              {t('audioCourse:voiceConfig.narrator')} ({nativeLanguage.toUpperCase()})
+            </h3>
+            <div>
+              <label
+                htmlFor="generator-narrator-voice"
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
+                {t('audioCourse:voiceConfig.narratorLabel')}
+              </label>
+              <select
+                id="generator-narrator-voice"
+                value={selectedVoice}
+                onChange={(e) => setSelectedVoice(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+              >
+                {narratorVoiceOptions.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    {voice.description} ({voice.gender})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Dialogue Voices */}
           <div className="border-t-2 border-gray-200 pt-6">
             <h3 className="text-base font-bold text-dark-brown mb-4">
