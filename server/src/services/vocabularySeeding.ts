@@ -1,5 +1,10 @@
 import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Generic vocabulary word interface
 interface VocabularyWord {
@@ -64,11 +69,13 @@ export async function getVocabularyForLevel(
 
   try {
     const filePath = join(__dirname, '../data/vocabulary', language, `${fileName}.json`);
+    console.log(`[VocabSeeding] Attempting to load vocabulary from: ${filePath}`);
     const data: VocabularyData = JSON.parse(await readFile(filePath, 'utf-8'));
+    console.log(`[VocabSeeding] Successfully loaded ${data.vocabulary.length} words for ${language}:${level}`);
     vocabularyCache.set(cacheKey, data.vocabulary);
     return data.vocabulary;
   } catch (error) {
-    console.error(`Failed to load vocabulary for ${language}:${level}:`, error);
+    console.error(`[VocabSeeding] Failed to load vocabulary for ${language}:${level} from ${join(__dirname, '../data/vocabulary', language, `${fileName}.json`)}:`, error);
     return [];
   }
 }
@@ -113,11 +120,13 @@ export async function getGrammarForLevel(language: string, level: string): Promi
 
   try {
     const filePath = join(__dirname, '../data/grammar', language, `${fileName}.json`);
+    console.log(`[GrammarSeeding] Attempting to load grammar from: ${filePath}`);
     const data: GrammarData = JSON.parse(await readFile(filePath, 'utf-8'));
+    console.log(`[GrammarSeeding] Successfully loaded ${data.grammarPoints.length} grammar points for ${language}:${level}`);
     grammarCache.set(cacheKey, data.grammarPoints);
     return data.grammarPoints;
   } catch (error) {
-    console.warn(`Failed to load grammar for ${language}:${level}:`, error);
+    console.error(`[GrammarSeeding] Failed to load grammar for ${language}:${level} from ${join(__dirname, '../data/grammar', language, `${fileName}.json`)}:`, error);
     return [];
   }
 }
