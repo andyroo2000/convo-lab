@@ -231,15 +231,14 @@ describe('conversationalLessonScriptGenerator', () => {
       expect(vocabL2Units.length).toBeLessThanOrEqual(2); // At most 2 repetitions from first teaching
     });
 
-    it('should include slow and normal speed versions', async () => {
+    it('should include all L2 units at normal speed', async () => {
       const result = await generateConversationalLessonScript(mockExchanges, mockContext);
 
       const l2Units = result.units.filter((u) => u.type === 'L2');
       const speeds = l2Units.map((u) => u.speed);
 
-      // Should have both slow (0.75) and normal (1.0) speeds
-      expect(speeds).toContain(0.75);
-      expect(speeds).toContain(1.0);
+      // All L2 units should be at normal speed (1.0)
+      expect(speeds.every((s) => s === 1.0 || s === undefined)).toBe(true);
     });
 
     it('should work with empty exchanges', async () => {
