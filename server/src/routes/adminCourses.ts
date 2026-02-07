@@ -15,6 +15,11 @@ import {
 } from '../services/courseItemExtractor.js';
 import { addReadingBrackets } from '../services/furiganaService.js';
 import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
+import {
+  DEFAULT_SCRIPT_CONFIG,
+  buildScriptConfig,
+  ScriptGenerationConfig,
+} from '../services/scriptGenerationConfig.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
@@ -60,6 +65,41 @@ router.post('/:id/build-prompt', async (req: AuthRequest, res, next) => {
     );
 
     res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /:id/build-script-config
+ * Build and return the script generation configuration with course-specific values
+ */
+router.post('/:id/build-script-config', async (req: AuthRequest, res, next) => {
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id: req.params.id },
+      include: {
+        courseEpisodes: {
+          include: { episode: true },
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    if (!course) {
+      throw new AppError('Course not found', 404);
+    }
+
+    const firstEpisode = course.courseEpisodes[0]?.episode;
+
+    const config = buildScriptConfig(DEFAULT_SCRIPT_CONFIG, {
+      targetLanguage: course.targetLanguage,
+      nativeLanguage: course.nativeLanguage,
+      episodeTitle: firstEpisode?.title || course.title,
+      jlptLevel: course.jlptLevel || undefined,
+    });
+
+    res.json({ config });
   } catch (error) {
     next(error);
   }

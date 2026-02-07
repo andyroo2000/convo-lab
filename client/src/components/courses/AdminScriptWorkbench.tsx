@@ -36,11 +36,44 @@ interface PromptMetadata {
   grammarSeeds: string;
 }
 
+interface ScriptConfig {
+  // Timing constants
+  reviewAnticipationSeconds: number;
+  reviewRepeatPauseSeconds: number;
+  reviewSlowSpeed: number;
+  pauseAfterScenarioIntro: number;
+  pauseAfterSpeakerIntro: number;
+  pauseAfterL2Playback: number;
+  pauseAfterTranslation: number;
+  pauseAfterVocabItem: number;
+  pauseAfterFullPhrase: number;
+  pauseForLearnerResponse: number;
+  pauseBetweenRepetitions: number;
+
+  // AI Prompts
+  scenarioIntroPrompt: string;
+  progressivePhrasePrompt: string;
+
+  // Narration templates
+  speakerSaysTemplate: string;
+  translationTemplate: string;
+  vocabIntroTemplate: string;
+  responseIntroTemplate: string;
+  vocabTeachTemplate: string;
+  progressiveChunkTemplate: string;
+  fullPhraseTemplate: string;
+  fullPhraseReplayTemplate: string;
+  noVocabTeachTemplate: string;
+  reviewIntroTemplate: string;
+  reviewQuestionTemplate: string;
+  outroTemplate: string;
+}
+
 interface AdminScriptWorkbenchProps {
   courseId: string;
 }
 
-type PipelineStage = 'prompt' | 'exchanges' | 'script' | 'audio';
+type PipelineStage = 'prompt' | 'exchanges' | 'config' | 'script' | 'audio';
 
 function getStepButtonClass(stepKey: PipelineStage, activeStep: PipelineStage, enabled: boolean) {
   if (activeStep === stepKey) return 'bg-coral text-white';
@@ -61,6 +94,9 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
   const [exchanges, setExchanges] = useState<DialogueExchange[] | null>(null);
   const [editingExchange, setEditingExchange] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<DialogueExchange | null>(null);
+
+  // Step 2.5: Script Config
+  const [scriptConfig, setScriptConfig] = useState<ScriptConfig | null>(null);
 
   // Step 3: Script
   const [scriptUnits, setScriptUnits] = useState<ScriptUnit[] | null>(null);
@@ -116,6 +152,9 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
           setScriptUnits(data.scriptUnits);
           setExchanges(data.exchanges);
           setEstimatedDuration(data.approxDurationSeconds);
+          if (data.scriptConfig) {
+            setScriptConfig(data.scriptConfig);
+          }
           setActiveStep(data.audioUrl ? 'audio' : 'script');
         } else if (data.stage === 'exchanges' && data.exchanges) {
           setExchanges(data.exchanges);
@@ -188,6 +227,33 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
       setLoading(null);
     }
   };
+
+  const handleBuildScriptConfig = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading('Building script configuration...');
+      setError(null);
+
+      try {
+        const res = await fetch(`/api/admin/courses/${courseId}/build-script-config`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || 'Failed to build script config');
+        }
+
+        const data = await res.json();
+        setScriptConfig(data.config);
+      } catch (err) {
+        if (!silent) setError(err instanceof Error ? err.message : 'Failed to build script config');
+      } finally {
+        if (!silent) setLoading(null);
+      }
+    },
+    [courseId]
+  );
 
   const handleGenerateScript = async () => {
     setLoading('Generating script (this may take 30-60s)...');
@@ -272,10 +338,11 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
   const stepConfig = [
     { key: 'prompt' as const, label: '1. Prompt', enabled: true },
     { key: 'exchanges' as const, label: '2. Dialogue', enabled: !!exchanges },
-    { key: 'script' as const, label: '3. Script', enabled: !!scriptUnits },
+    { key: 'config' as const, label: '3. Config', enabled: !!scriptConfig },
+    { key: 'script' as const, label: '4. Script', enabled: !!scriptUnits },
     {
       key: 'audio' as const,
-      label: '4. Audio',
+      label: '5. Audio',
       enabled: courseStatus === 'generating' || courseStatus === 'ready',
     },
   ];
@@ -390,11 +457,14 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
               </button>
               <button
                 type="button"
-                onClick={handleGenerateScript}
+                onClick={async () => {
+                  await handleBuildScriptConfig();
+                  setActiveStep('config');
+                }}
                 disabled={!!loading}
                 className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
               >
-                Generate Script
+                Configure Script
               </button>
             </div>
           </div>
@@ -568,7 +638,128 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
         </div>
       )}
 
-      {/* Step 3: Script Preview */}
+      {/* Step 3: Script Configuration */}
+      {activeStep === 'config' && scriptConfig && (
+        <div className="bg-white border-l-8 border-yellow-500 p-6 shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-bold text-dark-brown">Script Generation Configuration</h3>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setActiveStep('exchanges')}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+              >
+                Back to Dialogue
+              </button>
+              <button
+                type="button"
+                onClick={() => handleBuildScriptConfig()}
+                disabled={!!loading}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+              >
+                Reset to Defaults
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateScript}
+                disabled={!!loading}
+                className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+              >
+                Generate Script
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-6 max-h-[600px] overflow-y-auto">
+            {/* Timing Configuration */}
+            <div className="border-2 border-gray-200 rounded-lg p-4">
+              <h4 className="font-bold text-gray-800 mb-3">Pause Durations (seconds)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {Object.entries(scriptConfig)
+                  .filter(([key]) => key.includes('pause') || key.includes('Seconds'))
+                  .map(([key, value]) => (
+                    <label key={key} className="block">
+                      <span className="block text-xs font-medium text-gray-600 mb-1">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}
+                      </span>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={value as number}
+                        onChange={(e) =>
+                          setScriptConfig({
+                            ...scriptConfig,
+                            [key]: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm"
+                      />
+                    </label>
+                  ))}
+              </div>
+            </div>
+
+            {/* AI Prompts */}
+            <div className="border-2 border-gray-200 rounded-lg p-4">
+              <h4 className="font-bold text-gray-800 mb-3">AI Prompts</h4>
+              <div className="space-y-4">
+                <label className="block">
+                  <span className="block text-xs font-medium text-gray-600 mb-1">
+                    Scenario Introduction Prompt
+                  </span>
+                  <textarea
+                    value={scriptConfig.scenarioIntroPrompt}
+                    onChange={(e) =>
+                      setScriptConfig({ ...scriptConfig, scenarioIntroPrompt: e.target.value })
+                    }
+                    className="w-full h-40 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
+                  />
+                </label>
+                <label className="block">
+                  <span className="block text-xs font-medium text-gray-600 mb-1">
+                    Progressive Phrase Building Prompt
+                  </span>
+                  <textarea
+                    value={scriptConfig.progressivePhrasePrompt}
+                    onChange={(e) =>
+                      setScriptConfig({ ...scriptConfig, progressivePhrasePrompt: e.target.value })
+                    }
+                    className="w-full h-40 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Narration Templates */}
+            <div className="border-2 border-gray-200 rounded-lg p-4">
+              <h4 className="font-bold text-gray-800 mb-3">
+                Narration Templates (use {'{'}translation{'}'}, {'{'}relationshipName{'}'} as placeholders)
+              </h4>
+              <div className="grid grid-cols-1 gap-3">
+                {Object.entries(scriptConfig)
+                  .filter(([key]) => key.includes('Template'))
+                  .map(([key, value]) => (
+                    <label key={key} className="block">
+                      <span className="block text-xs font-medium text-gray-600 mb-1">
+                        {key.replace(/([A-Z])/g, ' $1').replace('Template', '').trim()}
+                      </span>
+                      <input
+                        type="text"
+                        value={value as string}
+                        onChange={(e) =>
+                          setScriptConfig({ ...scriptConfig, [key]: e.target.value })
+                        }
+                        className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
+                      />
+                    </label>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: Script Preview */}
       {activeStep === 'script' && scriptUnits && (
         <div className="bg-white border-l-8 border-yellow-500 p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
@@ -579,10 +770,10 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setActiveStep('exchanges')}
+                onClick={() => setActiveStep('config')}
                 className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
               >
-                Back to Dialogue
+                Back to Config
               </button>
               <button
                 type="button"
@@ -708,13 +899,22 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => setActiveStep('script')}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-          >
-            Back to Script
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveStep('config')}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+            >
+              Back to Config
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveStep('script')}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+            >
+              Back to Script
+            </button>
+          </div>
         </div>
       )}
     </div>
