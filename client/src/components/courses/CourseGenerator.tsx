@@ -11,6 +11,7 @@ import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
+import AdminScriptWorkbench from './AdminScriptWorkbench';
 
 interface QuotaInfo {
   limit: number;
@@ -48,6 +49,8 @@ const CourseGenerator = () => {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [_generatedCourseId, setGeneratedCourseId] = useState<string | null>(null);
+  const [adminMode, setAdminMode] = useState(false);
+  const [adminDraftCourseId, setAdminDraftCourseId] = useState<string | null>(null);
 
   // Show upgrade prompt when quota is exceeded
   useEffect(() => {
@@ -166,6 +169,61 @@ const CourseGenerator = () => {
     } catch (err) {
       console.error('Course creation error:', err);
       setError(err instanceof Error ? err.message : 'Failed to create course');
+      setIsCreating(false);
+    }
+  };
+
+  const handleCreateDraft = async () => {
+    if (!title.trim() || !sourceText.trim()) {
+      setError(t('audioCourse:alerts.fillRequired'));
+      return;
+    }
+
+    if (!selectedVoice) {
+      setError(t('audioCourse:alerts.selectVoice'));
+      return;
+    }
+
+    setIsCreating(true);
+    setError(null);
+
+    try {
+      const viewAsParam = viewAsUserId ? `?viewAs=${viewAsUserId}` : '';
+      const createResponse = await fetch(`/api/courses${viewAsParam}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: title.trim(),
+          sourceText: sourceText.trim(),
+          nativeLanguage,
+          targetLanguage,
+          maxLessonDurationMinutes: maxDuration,
+          l1VoiceId: selectedVoice,
+          jlptLevel,
+          speaker1Gender: 'male',
+          speaker2Gender: 'female',
+          speaker1VoiceId,
+          speaker2VoiceId,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        const errorMessage =
+          errorData.message ||
+          errorData.error?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          'Failed to create course';
+        throw new Error(errorMessage);
+      }
+
+      const course = await createResponse.json();
+      setAdminDraftCourseId(course.id);
+    } catch (err) {
+      console.error('Course draft creation error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create course draft');
+    } finally {
       setIsCreating(false);
     }
   };
@@ -408,32 +466,70 @@ const CourseGenerator = () => {
         </div>
       </div>
 
-      {/* Generate Button */}
+      {/* Admin Mode Toggle */}
+      {user?.role === 'admin' && !adminDraftCourseId && (
+        <div className="bg-white border-l-8 border-purple-500 p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-base font-bold text-dark-brown">Script Lab (Admin)</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Step through the pipeline: prompt, dialogue, script, then audio
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setAdminMode(!adminMode)}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
+                adminMode ? 'bg-purple-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                  adminMode ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Generate Button / Create Draft Button */}
       <div className="bg-coral-light border-l-8 border-coral p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
           <div className="flex-1">
             <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-2 sm:mb-3">
-              {t('audioCourse:generate.ready')}
+              {adminMode ? 'Create Draft Course' : t('audioCourse:generate.ready')}
             </h3>
             <p className="text-sm sm:text-base text-gray-700 mb-3 sm:mb-4">
-              {t('audioCourse:generate.description')}
+              {adminMode
+                ? 'Creates the course record without starting generation. You can then step through each pipeline stage.'
+                : t('audioCourse:generate.description')}
             </p>
-            <ul className="text-sm sm:text-base text-gray-700 space-y-1.5 sm:space-y-2">
-              <li className="font-medium">• {t('audioCourse:generate.features.duration')}</li>
-              <li className="font-medium">• {t('audioCourse:generate.features.narration')}</li>
-              <li className="font-medium">• {t('audioCourse:generate.features.pauses')}</li>
-              <li className="font-medium">
-                • {t('audioCourse:generate.features.level', { level: jlptLevel })}
-              </li>
-            </ul>
+            {!adminMode && (
+              <ul className="text-sm sm:text-base text-gray-700 space-y-1.5 sm:space-y-2">
+                <li className="font-medium">• {t('audioCourse:generate.features.duration')}</li>
+                <li className="font-medium">• {t('audioCourse:generate.features.narration')}</li>
+                <li className="font-medium">• {t('audioCourse:generate.features.pauses')}</li>
+                <li className="font-medium">
+                  • {t('audioCourse:generate.features.level', { level: jlptLevel })}
+                </li>
+              </ul>
+            )}
           </div>
           <button
             type="button"
-            onClick={handleCreate}
+            onClick={adminMode ? handleCreateDraft : handleCreate}
             disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
-            {isCreating ? t('audioCourse:generate.creating') : t('audioCourse:generate.button')}
+            {/* eslint-disable-next-line no-nested-ternary */}
+            {isCreating
+              ? adminMode
+                ? 'Creating Draft...'
+                : t('audioCourse:generate.creating')
+              : adminMode
+                ? 'Create Draft'
+                : t('audioCourse:generate.button')}
           </button>
         </div>
 
@@ -443,6 +539,9 @@ const CourseGenerator = () => {
           </div>
         )}
       </div>
+
+      {/* Admin Script Workbench */}
+      {adminDraftCourseId && <AdminScriptWorkbench courseId={adminDraftCourseId} />}
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** Admin Script Lab — step-by-step course generation debugging workflow for admins; splits the monolithic pipeline into inspectable stages (prompt preview/edit, dialogue extraction, script generation, audio assembly) with the ability to re-run any step
+
 ### Fixed
 
 - **[fix]** Force per-unit ElevenLabs synthesis for all Japanese (not just slowed) — kanji/mixed-script alignment data is unreliable, causing batched audio segments to bleed into adjacent turns; each Japanese turn now gets its own API call for clean segment boundaries

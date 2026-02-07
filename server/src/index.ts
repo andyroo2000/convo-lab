@@ -13,6 +13,7 @@ import { prisma } from './db/client.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
+import adminCourseRoutes from './routes/adminCourses.js';
 import audioRoutes from './routes/audio.js';
 import authRoutes from './routes/auth.js';
 import billingRoutes from './routes/billing.js';
@@ -108,6 +109,7 @@ app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/courses', adminCourseRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
 
 // Serve client static files in production

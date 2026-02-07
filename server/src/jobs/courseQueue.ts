@@ -11,6 +11,7 @@ import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
 import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
 import { extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
 import { addReadingBrackets } from '../services/furiganaService.js';
+import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
 
 const connection = createRedisConnection();
@@ -18,13 +19,15 @@ const connection = createRedisConnection();
 export const courseQueue = new Queue('course-generation', { connection });
 
 async function processCourseGeneration(job: {
-  data: { courseId: string };
+  data: { courseId: string; audioOnly?: boolean };
   updateProgress: (progress: number) => Promise<void>;
 }) {
-  const { courseId } = job.data;
+  const { courseId, audioOnly } = job.data;
 
   try {
-    console.log(`Starting course generation for course ${courseId}`);
+    console.log(
+      `Starting course generation for course ${courseId}${audioOnly ? ' (audio only)' : ''}`
+    );
 
     // Update course status
     await prisma.course.update({
@@ -68,6 +71,62 @@ async function processCourseGeneration(job: {
     // For MVP: Use first episode only
     // Future: combine multiple episodes
     const firstEpisode = course.courseEpisodes[0].episode;
+
+    // audioOnly mode: skip dialogue extraction and script generation,
+    // read scriptJson from existing course record, jump to audio assembly
+    if (audioOnly) {
+      console.log('Audio-only mode: reading script from existing course record');
+
+      const scriptJson = course.scriptJson as unknown;
+      if (!scriptJson || !Array.isArray(scriptJson)) {
+        throw new Error(
+          'Course has no script data (scriptJson must be an array of script units for audio-only mode)'
+        );
+      }
+
+      const scriptUnits = scriptJson as LessonScriptUnit[];
+      console.log(`Loaded ${scriptUnits.length} script units from course record`);
+      await job.updateProgress(60);
+
+      // Assemble audio
+      console.log('Assembling course audio...');
+      const assembledAudio = await assembleLessonAudio({
+        lessonId: course.id,
+        scriptUnits,
+        targetLanguage: course.targetLanguage,
+        nativeLanguage: course.nativeLanguage,
+        onProgress: (current, total) => {
+          const audioProgress = 60 + Math.floor((current / total) * 30);
+          job.updateProgress(audioProgress);
+        },
+      });
+
+      console.log(`Audio assembled: ${assembledAudio.audioUrl}`);
+      await job.updateProgress(95);
+
+      // Update course with audio URL, actual duration, and timing data
+      await prisma.course.update({
+        where: { id: course.id },
+        data: {
+          audioUrl: assembledAudio.audioUrl,
+          approxDurationSeconds: assembledAudio.actualDurationSeconds,
+          timingData: assembledAudio.timingData as unknown as Prisma.JsonValue,
+          status: 'ready',
+        },
+      });
+
+      await job.updateProgress(100);
+      console.log(`Audio-only course generation complete: ${courseId}`);
+
+      return {
+        courseId,
+        lessonCount: 1,
+        vocabularyItemCount: 0,
+        exchangeCount: 0,
+      };
+    }
+
+    // Full pipeline below (non-audioOnly)
 
     if (!firstEpisode.sourceText) {
       throw new Error('Episode has no source text');
