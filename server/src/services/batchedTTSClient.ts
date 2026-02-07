@@ -698,13 +698,25 @@ async function synthesizeElevenLabsBatch(
     );
   }
 
-  const segmentTimes: ElevenLabsSegmentTime[] = unitRanges.map((range) => {
+  const segmentTimes: ElevenLabsSegmentTime[] = unitRanges.map((range, index) => {
     const startTime = getAlignmentTime(alignment, range.startIndex, 'start');
-    const endTime = getAlignmentTime(alignment, range.endIndex, 'end');
+    let endTime: number;
+
+    if (index < unitRanges.length - 1) {
+      const nextRange = unitRanges[index + 1];
+      endTime = getAlignmentTime(alignment, nextRange.startIndex, 'start');
+    } else {
+      endTime = getAlignmentTime(alignment, range.endIndex, 'end') + 0.12;
+    }
+
+    if (endTime <= startTime) {
+      endTime = startTime + 0.05;
+    }
+
     return {
       unitIndex: range.unitIndex,
       startTime,
-      endTime: endTime <= startTime ? startTime + 0.05 : endTime,
+      endTime,
     };
   });
 

@@ -140,6 +140,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
   const narratorVoiceOptions = narratorVoices.some((voice) => voice.provider === 'elevenlabs')
     ? narratorVoices.filter((voice) => voice.provider === 'elevenlabs')
     : narratorVoices;
+  const narratorVoiceAllowlist =
+    nativeLanguage === 'en' ? new Set(['Jon - Relaxed, Deep and Approachable', 'Cassidy']) : null;
+  const narratorVoiceChoices = narratorVoiceAllowlist
+    ? narratorVoiceOptions.filter((voice) => narratorVoiceAllowlist.has(voice.id))
+    : narratorVoiceOptions;
 
   return (
     <div
@@ -209,10 +214,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
               disabled={isCreating}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
             >
-              {narratorVoiceOptions.map(
-                (voice: { id: string; description: string; gender: string }) => (
+              {narratorVoiceChoices.map(
+                (voice: { id: string; description: string; gender: string; provider?: string }) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.description} ({voice.gender})
+                    {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                   </option>
                 )
               )}
@@ -244,9 +250,15 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
                   {(TTS_VOICES[targetLanguage]?.voices || []).map(
-                    (voice: { id: string; description: string; gender: string }) => (
+                    (voice: {
+                      id: string;
+                      description: string;
+                      gender: string;
+                      provider?: string;
+                    }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                        {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                       </option>
                     )
                   )}
@@ -269,9 +281,15 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
                   {(TTS_VOICES[targetLanguage]?.voices || []).map(
-                    (voice: { id: string; description: string; gender: string }) => (
+                    (voice: {
+                      id: string;
+                      description: string;
+                      gender: string;
+                      provider?: string;
+                    }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                        {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                       </option>
                     )
                   )}

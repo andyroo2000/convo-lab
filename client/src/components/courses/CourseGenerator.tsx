@@ -202,6 +202,11 @@ const CourseGenerator = () => {
   const narratorVoiceOptions = narratorVoices.some((voice) => voice.provider === 'elevenlabs')
     ? narratorVoices.filter((voice) => voice.provider === 'elevenlabs')
     : narratorVoices;
+  const narratorVoiceAllowlist =
+    nativeLanguage === 'en' ? new Set(['Jon - Relaxed, Deep and Approachable', 'Cassidy']) : null;
+  const narratorVoiceChoices = narratorVoiceAllowlist
+    ? narratorVoiceOptions.filter((voice) => narratorVoiceAllowlist.has(voice.id))
+    : narratorVoiceOptions;
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
@@ -276,9 +281,10 @@ const CourseGenerator = () => {
                 onChange={(e) => setSelectedVoice(e.target.value)}
                 className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
               >
-                {narratorVoiceOptions.map((voice) => (
+                {narratorVoiceChoices.map((voice) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.description} ({voice.gender})
+                    {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                   </option>
                 ))}
               </select>
@@ -308,6 +314,7 @@ const CourseGenerator = () => {
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                     </option>
                   ))}
                 </select>
@@ -330,6 +337,7 @@ const CourseGenerator = () => {
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                      {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                     </option>
                   ))}
                 </select>
