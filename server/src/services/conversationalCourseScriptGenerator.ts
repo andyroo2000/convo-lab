@@ -184,6 +184,7 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
+          phraseContext: exchange.textL2,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -193,6 +194,7 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
+          phraseContext: exchange.textL2,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -365,6 +367,7 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
+          phraseContext: exchange.textL2,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -374,6 +377,7 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
+          phraseContext: exchange.textL2,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -410,6 +414,7 @@ async function generateResponseTeachingUnits(
           reading: undefined, // Could enhance to get reading
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
+          phraseContext: exchange.textL2,
         },
         { type: 'pause', seconds: 1.5 }
       );
