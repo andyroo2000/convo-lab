@@ -1,6 +1,8 @@
 // eslint-disable-next-line import/no-named-as-default-member
+import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
+import { promisify } from 'util';
 
 import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
@@ -22,6 +24,19 @@ const ELEVENLABS_MAX_CHARS = Number(process.env.ELEVENLABS_MAX_CHARS || 9000);
 const ELEVENLABS_DELIMITER = '\n';
 const ELEVENLABS_START_PAD_SECONDS = Number(process.env.ELEVENLABS_START_PAD_SECONDS || 0.02);
 const ELEVENLABS_END_PAD_SECONDS = Number(process.env.ELEVENLABS_END_PAD_SECONDS || 0.08);
+const ELEVENLABS_SNAP_SEARCH_MS = Number(process.env.ELEVENLABS_SNAP_SEARCH_MS || 160);
+const ELEVENLABS_SNAP_WINDOW_MS = Number(process.env.ELEVENLABS_SNAP_WINDOW_MS || 20);
+const ELEVENLABS_SNAP_STEP_MS = Number(process.env.ELEVENLABS_SNAP_STEP_MS || 5);
+const ELEVENLABS_SNAP_MIN_RMS = Number(process.env.ELEVENLABS_SNAP_MIN_RMS || 0.003);
+const ELEVENLABS_SNAP_RELATIVE_THRESHOLD = Number(
+  process.env.ELEVENLABS_SNAP_RELATIVE_THRESHOLD || 0.2
+);
+const ELEVENLABS_SNAP_MIN_DURATION_MS = Number(process.env.ELEVENLABS_SNAP_MIN_DURATION_MS || 40);
+const ELEVENLABS_SNAP_DEBUG = process.env.ELEVENLABS_SNAP_DEBUG === '1';
+const ELEVENLABS_SNAP_SAMPLE_RATE = 44100;
+const ELEVENLABS_FORCE_SINGLE_UNIT = process.env.ELEVENLABS_FORCE_SINGLE_UNIT === '1';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * A batch of units that share the same voice and speed settings
@@ -107,6 +122,143 @@ interface ElevenLabsSegmentTime {
   endTime: number;
 }
 
+async function convertMp3ToPcm(inputPath: string, outputPath: string): Promise<void> {
+  await execFileAsync('ffmpeg', [
+    '-y',
+    '-i',
+    inputPath,
+    '-f',
+    's16le',
+    '-ac',
+    '1',
+    '-ar',
+    String(ELEVENLABS_SNAP_SAMPLE_RATE),
+    outputPath,
+  ]);
+}
+
+function rmsInt16(samples: Int16Array, start: number, length: number): number {
+  if (length <= 0) return 0;
+  const safeStart = Math.max(0, Math.min(start, samples.length - 1));
+  const end = Math.min(samples.length, safeStart + length);
+  const total = Math.max(0, end - safeStart);
+  if (total === 0) return 0;
+  let sum = 0;
+  for (let i = safeStart; i < safeStart + total; i += 1) {
+    const value = samples[i] / 32768;
+    sum += value * value;
+  }
+  return Math.sqrt(sum / total);
+}
+
+function findMinRmsAround(
+  samples: Int16Array,
+  centerSample: number,
+  searchSamples: number,
+  windowSamples: number,
+  stepSamples: number
+): { minSample: number; minRms: number; boundaryRms: number } {
+  const boundaryStart = Math.max(0, centerSample - Math.floor(windowSamples / 2));
+  const boundaryRms = rmsInt16(samples, boundaryStart, windowSamples);
+
+  const searchStart = Math.max(0, centerSample - searchSamples);
+  const searchEnd = Math.min(samples.length - windowSamples, centerSample + searchSamples);
+  if (searchEnd <= searchStart) {
+    return { minSample: centerSample, minRms: boundaryRms, boundaryRms };
+  }
+
+  let minSample = centerSample;
+  let minRms = boundaryRms;
+  for (let pos = searchStart; pos <= searchEnd; pos += stepSamples) {
+    const currentRms = rmsInt16(samples, pos, windowSamples);
+    if (currentRms < minRms) {
+      minRms = currentRms;
+      minSample = pos;
+    }
+  }
+
+  return { minSample, minRms, boundaryRms };
+}
+
+function snapElevenLabsBoundaries(
+  segments: ElevenLabsSegmentTime[],
+  samples: Int16Array
+): ElevenLabsSegmentTime[] {
+  if (segments.length < 2 || ELEVENLABS_SNAP_SEARCH_MS <= 0) {
+    return segments;
+  }
+
+  const adjusted = segments.map((segment) => ({ ...segment }));
+  const windowSamples = Math.max(
+    1,
+    Math.round((ELEVENLABS_SNAP_WINDOW_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE)
+  );
+  const searchSamples = Math.round(
+    (ELEVENLABS_SNAP_SEARCH_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE
+  );
+  const stepSamples = Math.max(
+    1,
+    Math.round((ELEVENLABS_SNAP_STEP_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE)
+  );
+  const minDurationSamples = Math.round(
+    (ELEVENLABS_SNAP_MIN_DURATION_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE
+  );
+
+  const segmentRms = adjusted.map((segment) => {
+    const startSample = Math.round(segment.startTime * ELEVENLABS_SNAP_SAMPLE_RATE);
+    const endSample = Math.round(segment.endTime * ELEVENLABS_SNAP_SAMPLE_RATE);
+    const length = Math.max(1, endSample - startSample);
+    return rmsInt16(samples, startSample, length);
+  });
+
+  for (let i = 0; i < adjusted.length - 1; i += 1) {
+    const boundarySample = Math.round(adjusted[i].endTime * ELEVENLABS_SNAP_SAMPLE_RATE);
+    const { minSample, minRms, boundaryRms } = findMinRmsAround(
+      samples,
+      boundarySample,
+      searchSamples,
+      windowSamples,
+      stepSamples
+    );
+
+    const threshold = Math.max(
+      ELEVENLABS_SNAP_MIN_RMS,
+      Math.min(segmentRms[i], segmentRms[i + 1]) * ELEVENLABS_SNAP_RELATIVE_THRESHOLD
+    );
+
+    if (boundaryRms <= threshold || minRms >= threshold) {
+      continue;
+    }
+
+    const minAllowed =
+      Math.round(adjusted[i].startTime * ELEVENLABS_SNAP_SAMPLE_RATE) + minDurationSamples;
+    const maxAllowed =
+      Math.round(adjusted[i + 1].endTime * ELEVENLABS_SNAP_SAMPLE_RATE) - minDurationSamples;
+    if (maxAllowed <= minAllowed) {
+      continue;
+    }
+
+    const clampedSample = Math.max(minAllowed, Math.min(maxAllowed, minSample));
+    const clampedTime = clampedSample / ELEVENLABS_SNAP_SAMPLE_RATE;
+
+    if (clampedSample !== boundarySample) {
+      adjusted[i].endTime = clampedTime;
+      adjusted[i + 1].startTime = clampedTime;
+      if (ELEVENLABS_SNAP_DEBUG) {
+        // eslint-disable-next-line no-console
+        console.log(
+          `[TTS BATCH] Snapped boundary ${i} by ${(
+            (clampedSample - boundarySample) /
+            ELEVENLABS_SNAP_SAMPLE_RATE
+          ).toFixed(3)}s (rms ${boundaryRms.toFixed(4)} -> ${minRms.toFixed(4)})`
+        );
+      }
+    }
+  }
+
+  return adjusted;
+}
+
 function getElevenLabsLanguageCode(languageCode: string): string | undefined {
   if (!languageCode) return undefined;
   return languageCode.split('-')[0] || undefined;
@@ -114,7 +266,10 @@ function getElevenLabsLanguageCode(languageCode: string): string | undefined {
 
 function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTSBatch[] {
   if (maxChars <= 0) return [batch];
-  if (batch.speed !== 1) {
+  const languageCode = batch.languageCode.toLowerCase();
+  const forceSingleUnit =
+    ELEVENLABS_FORCE_SINGLE_UNIT || batch.speed !== 1 || languageCode.startsWith('ja');
+  if (forceSingleUnit) {
     return batch.units.map((unit) => ({
       voiceId: batch.voiceId,
       languageCode: batch.languageCode,
@@ -575,8 +730,25 @@ async function splitAudioAtSegments(
   await fs.writeFile(combinedPath, audioBuffer);
 
   const totalDuration = await getAudioDuration(combinedPath);
+  let adjustedSegments = segmentsToExtract;
 
-  const extractionPromises = segmentsToExtract.map(async (segment) => {
+  if (segmentsToExtract.length > 1 && ELEVENLABS_SNAP_SEARCH_MS > 0) {
+    const pcmPath = path.join(tempDir, `batch-combined-${Date.now()}-elevenlabs.pcm`);
+    try {
+      await convertMp3ToPcm(combinedPath, pcmPath);
+      const pcmBuffer = await fs.readFile(pcmPath);
+      const samples = new Int16Array(
+        pcmBuffer.buffer,
+        pcmBuffer.byteOffset,
+        Math.floor(pcmBuffer.byteLength / 2)
+      );
+      adjustedSegments = snapElevenLabsBoundaries(segmentsToExtract, samples);
+    } finally {
+      await fs.unlink(pcmPath).catch(() => {});
+    }
+  }
+
+  const extractionPromises = adjustedSegments.map(async (segment) => {
     const startTime = Math.max(0, segment.startTime);
     let endTime = Math.min(totalDuration, segment.endTime);
 
@@ -698,6 +870,23 @@ async function synthesizeElevenLabsBatch(
     text,
     languageCode,
   });
+
+  if (batch.units.length === 1) {
+    const unitIndex = batch.units[0].originalIndex;
+    if (batch.speed === 1) {
+      return new Map([[unitIndex, audioBuffer]]);
+    }
+
+    const inputPath = path.join(tempDir, `segment-single-${unitIndex}-${Date.now()}.mp3`);
+    const outputPath = path.join(tempDir, `segment-single-${unitIndex}-${Date.now()}-speed.mp3`);
+    await fs.writeFile(inputPath, audioBuffer);
+    const duration = await getAudioDuration(inputPath);
+    await extractAudioSegment(inputPath, outputPath, 0, duration, batch.speed);
+    const segmentBuffer = await fs.readFile(outputPath);
+    await fs.unlink(inputPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+    return new Map([[unitIndex, segmentBuffer]]);
+  }
 
   if (
     !alignment ||

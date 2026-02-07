@@ -21,6 +21,11 @@ const RMS_RELATIVE_THRESHOLD = 0.2;
 const EARLY_CUT_RATIO = 0.5;
 const LATE_CUT_RATIO = 0.8;
 const BOUNDARY_JUMP_THRESHOLD = 0.1;
+const SNAP_SEARCH_MS = 160;
+const SNAP_WINDOW_MS = 20;
+const SNAP_STEP_MS = 5;
+const SNAP_MIN_RMS = 0.003;
+const SNAP_RELATIVE_THRESHOLD = 0.2;
 
 type TimingEntry = { unitIndex: number; startTime: number; endTime: number };
 
@@ -99,6 +104,35 @@ function median(values: number[]): number {
     return (sorted[mid - 1] + sorted[mid]) / 2;
   }
   return sorted[mid];
+}
+
+function findMinRmsAround(
+  samples: Int16Array,
+  centerSample: number,
+  searchSamples: number,
+  windowSamples: number,
+  stepSamples: number
+): { minSample: number; minRms: number; boundaryRms: number } {
+  const boundaryStart = Math.max(0, centerSample - Math.floor(windowSamples / 2));
+  const boundaryRms = rms(samples, boundaryStart, windowSamples);
+
+  const searchStart = Math.max(0, centerSample - searchSamples);
+  const searchEnd = Math.min(samples.length - windowSamples, centerSample + searchSamples);
+  if (searchEnd <= searchStart) {
+    return { minSample: centerSample, minRms: boundaryRms, boundaryRms };
+  }
+
+  let minSample = centerSample;
+  let minRms = boundaryRms;
+  for (let pos = searchStart; pos <= searchEnd; pos += stepSamples) {
+    const currentRms = rms(samples, pos, windowSamples);
+    if (currentRms < minRms) {
+      minRms = currentRms;
+      minSample = pos;
+    }
+  }
+
+  return { minSample, minRms, boundaryRms };
 }
 
 function formatLabelTime(ms: number): string {
@@ -245,6 +279,9 @@ async function main() {
   const medianSegmentRms = median(l2SegmentRms);
   const energyThreshold = Math.max(MIN_RMS_THRESHOLD, medianSegmentRms * RMS_RELATIVE_THRESHOLD);
   const windowSamples = Math.round((WINDOW_MS / 1000) * SAMPLE_RATE);
+  const snapWindowSamples = Math.max(1, Math.round((SNAP_WINDOW_MS / 1000) * SAMPLE_RATE));
+  const snapSearchSamples = Math.round((SNAP_SEARCH_MS / 1000) * SAMPLE_RATE);
+  const snapStepSamples = Math.max(1, Math.round((SNAP_STEP_MS / 1000) * SAMPLE_RATE));
 
   const results: Array<Record<string, unknown>> = [];
   const summary = new Map<
@@ -253,6 +290,7 @@ async function main() {
       total: number;
       cutEarly: number;
       cutLate: number;
+      needsSnap: number;
       rmsEndSum: number;
       rmsNextSum: number;
     }
@@ -289,6 +327,23 @@ async function main() {
       rmsNextStart > energyThreshold * LATE_CUT_RATIO &&
       boundaryJump > BOUNDARY_JUMP_THRESHOLD;
 
+    const boundarySample = Math.max(0, Math.min(samples.length - 1, endSample));
+    const { minSample, minRms, boundaryRms } = findMinRmsAround(
+      samples,
+      boundarySample,
+      snapSearchSamples,
+      snapWindowSamples,
+      snapStepSamples
+    );
+    const segmentRms = segmentRmsByIndex.get(i) || 0;
+    const nextSegmentRms = segmentRmsByIndex.get(nextTiming.unitIndex) || 0;
+    const snapThreshold = Math.max(
+      SNAP_MIN_RMS,
+      Math.min(segmentRms, nextSegmentRms) * SNAP_RELATIVE_THRESHOLD
+    );
+    const needsSnap = boundaryRms > snapThreshold && minRms < snapThreshold;
+    const snapOffsetMs = Math.round(((minSample - boundarySample) / SAMPLE_RATE) * 1000);
+
     results.push({
       unitIndex: i,
       voiceId: unit.voiceId,
@@ -300,6 +355,11 @@ async function main() {
       boundaryJump,
       cutEarly,
       cutLate,
+      boundaryRms,
+      minRms,
+      snapOffsetMs,
+      snapThreshold,
+      needsSnap,
       textPreview: unit.text.slice(0, 48),
     });
 
@@ -307,12 +367,14 @@ async function main() {
       total: 0,
       cutEarly: 0,
       cutLate: 0,
+      needsSnap: 0,
       rmsEndSum: 0,
       rmsNextSum: 0,
     };
     summaryEntry.total += 1;
     summaryEntry.cutEarly += cutEarly ? 1 : 0;
     summaryEntry.cutLate += cutLate ? 1 : 0;
+    summaryEntry.needsSnap += needsSnap ? 1 : 0;
     summaryEntry.rmsEndSum += rmsEnd;
     summaryEntry.rmsNextSum += rmsNextStart;
     summary.set(unit.voiceId, summaryEntry);
@@ -323,6 +385,7 @@ async function main() {
     total: entry.total,
     cutEarly: entry.cutEarly,
     cutLate: entry.cutLate,
+    needsSnap: entry.needsSnap,
     avgRmsEnd: entry.total ? entry.rmsEndSum / entry.total : 0,
     avgRmsNextStart: entry.total ? entry.rmsNextSum / entry.total : 0,
   }));
@@ -344,13 +407,19 @@ async function main() {
   for (const result of results) {
     const cutEarly = Boolean(result.cutEarly);
     const cutLate = Boolean(result.cutLate);
-    if (!cutEarly && !cutLate) continue;
+    const needsSnap = Boolean(result.needsSnap);
+    if (!cutEarly && !cutLate && !needsSnap) continue;
 
     const endTimeMs = result.endTimeMs as number;
     const labelTime = formatLabelTime(endTimeMs);
     const voiceId = result.voiceId as string;
     const unitIndex = result.unitIndex as number;
-    const labelTags = [cutEarly ? 'cut_early' : null, cutLate ? 'cut_late' : null]
+    const snapOffset = result.snapOffsetMs as number;
+    const labelTags = [
+      cutEarly ? 'cut_early' : null,
+      cutLate ? 'cut_late' : null,
+      needsSnap ? `snap_${snapOffset}ms` : null,
+    ]
       .filter(Boolean)
       .join('+');
     labels.push(`${labelTime} ${labelTime} "${labelTags} unit_${unitIndex} voice=${voiceId}"`);
