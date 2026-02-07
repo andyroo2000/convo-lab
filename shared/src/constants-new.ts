@@ -127,6 +127,12 @@ export const TTS_VOICES = {
         provider: 'elevenlabs',
       },
       {
+        id: 'Hiro',
+        gender: 'male',
+        description: 'Hiro - Calm and articulate',
+        provider: 'elevenlabs',
+      },
+      {
         id: 'Ishibashi',
         gender: 'male',
         description: 'Ishibashi - Warm and steady',
@@ -213,6 +219,11 @@ export const DEFAULT_NARRATOR_VOICES = {
   en: 'Jon - Relaxed, Deep and Approachable', // ElevenLabs - Male
   ja: 'ja-JP-Wavenet-C', // Shohei - Male
 } as const;
+
+// Default L2 speaker voices for courses (used when no voice is specified at course creation)
+export const DEFAULT_SPEAKER_VOICES: Record<string, { speaker1: string; speaker2: string }> = {
+  ja: { speaker1: 'Otani', speaker2: 'Hiro' },
+};
 
 // Language abbreviations for UI display
 export const LANGUAGE_ABBREVIATIONS = {
