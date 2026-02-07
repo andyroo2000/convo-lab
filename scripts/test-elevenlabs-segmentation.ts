@@ -45,7 +45,7 @@ function parseArgs() {
   return {
     compare: args.includes('--compare'),
     noCache: args.includes('--no-cache'),
-    voice: args[args.indexOf('--voice') + 1] || 'Kaori',
+    voice: args[args.indexOf('--voice') + 1] || 'Hiro',
   };
 }
 

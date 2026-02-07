@@ -1,4 +1,12 @@
+import { execFile } from 'child_process';
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+import { promisify } from 'util';
+
 import { getTTSProvider } from './ttsProviders/TTSProvider.js';
+
+const execFileAsync = promisify(execFile);
 
 export interface TTSOptions {
   text: string;
@@ -16,6 +24,7 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
     // Get the Google TTS provider
     const provider = await getTTSProvider();
 
+    // eslint-disable-next-line no-console
     console.log(`[TTS] Using provider: ${provider.getName()} for voice: ${voiceId}`);
 
     // Synthesize speech using the selected provider
@@ -36,6 +45,7 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
       throw new Error('TTS returned empty audio buffer');
     }
 
+    // eslint-disable-next-line no-console
     console.log(`[TTS] Generated ${audioBuffer.length} bytes for voice: ${voiceId}`);
     return audioBuffer;
   } catch (error) {
@@ -73,15 +83,36 @@ export function createAnticipationPromptSSML(text: string): string {
 
 /**
  * Generate silence audio buffer (for pause units)
+ * Uses ffmpeg locally to produce silence with the same encoding parameters as
+ * ElevenLabs (44100 Hz, stereo, 128 kbps MP3) so concat has no format mismatch.
  */
 export async function generateSilence(durationSeconds: number): Promise<Buffer> {
-  // Google TTS handles SSML breaks well
-  const ssml = `<speak><break time="${durationSeconds}s"/></speak>`;
-
-  return synthesizeSpeech({
-    text: ssml,
-    voiceId: 'en-US-Neural2-D', // Voice doesn't matter for silence
-    languageCode: 'en-US',
-    useSSML: true,
-  });
+  const tmpDir = os.tmpdir();
+  const silencePath = path.join(
+    tmpDir,
+    `silence-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
+  );
+  try {
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-f',
+      'lavfi',
+      '-i',
+      'anullsrc=r=44100:cl=stereo',
+      '-ac',
+      '2',
+      '-ar',
+      '44100',
+      '-t',
+      String(durationSeconds),
+      '-c:a',
+      'libmp3lame',
+      '-b:a',
+      '128k',
+      silencePath,
+    ]);
+    return await fs.readFile(silencePath);
+  } finally {
+    await fs.unlink(silencePath).catch(() => {});
+  }
 }

@@ -217,42 +217,16 @@ describe('generateSilence', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('should generate silence using SSML break', async () => {
-    const mockAudioBuffer = Buffer.from('silence audio');
-    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
-
-    const result = await generateSilence(2);
-
-    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
-      text: '<speak><break time="2s"/></speak>',
-      voiceId: 'en-US-Neural2-D',
-      languageCode: 'en-US',
-      speed: 1.0,
-      pitch: 0,
-      ssml: true,
-    });
-    expect(result).toBe(mockAudioBuffer);
+  it('should generate silence using ffmpeg and return a buffer', async () => {
+    const result = await generateSilence(1);
+    expect(result).toBeInstanceOf(Buffer);
+    expect(result.length).toBeGreaterThan(0);
   });
 
-  it('should handle different durations', async () => {
-    const mockAudioBuffer = Buffer.from('silence audio');
-    mockProvider.synthesizeSpeech.mockResolvedValue(mockAudioBuffer);
-
-    await generateSilence(5);
-
-    expect(mockProvider.synthesizeSpeech).toHaveBeenCalledWith({
-      text: '<speak><break time="5s"/></speak>',
-      voiceId: 'en-US-Neural2-D',
-      languageCode: 'en-US',
-      speed: 1.0,
-      pitch: 0,
-      ssml: true,
-    });
-  });
-
-  it('should propagate errors from synthesizeSpeech', async () => {
-    mockProvider.synthesizeSpeech.mockRejectedValue(new Error('TTS error'));
-
-    await expect(generateSilence(1)).rejects.toThrow('Failed to synthesize speech: TTS error');
+  it('should generate different lengths of silence', async () => {
+    const short = await generateSilence(0.5);
+    const long = await generateSilence(2);
+    // Longer silence should produce a larger file
+    expect(long.length).toBeGreaterThan(short.length);
   });
 });
