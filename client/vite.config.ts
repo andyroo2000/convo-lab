@@ -40,6 +40,10 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Workbox's Rollup + terser pipeline is failing in this build; force
+        // development mode to skip terser until we can upgrade the toolchain.
+        mode: 'development',
+        disableDevLogs: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Skip waiting and claim clients immediately on update
         skipWaiting: true,
