@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **[feat]** Admin Script Lab — step-by-step course generation debugging workflow for admins; splits the monolithic pipeline into inspectable stages (prompt preview/edit, dialogue extraction, script generation, audio assembly) with the ability to re-run any step
 - **[feat]** Editable script generation configuration in Admin Script Lab — exposes all timing parameters, AI prompts, and narration templates for tweaking pause durations, scenario generation, and teaching phrasing
+- **[test]** Unit tests for phraseContext propagation through batching pipeline — verifies phraseContext is correctly preserved when grouping TTS units and handled properly with/without reading fields
+
+### Changed
+
+- **[refactor]** Improved phraseContext batch logic robustness — now handles edge cases where multi-unit batches may have mixed contexts; warns when only partial contexts present and consistently uses first unit's context
+- **[docs]** Added JSDoc documentation for phraseContext field — explains usage, ElevenLabs-only behavior, and provides examples for pronunciation disambiguation
+- **[docs]** Added inline comments clarifying provider-specific phraseContext behavior — notes that Google Cloud and AWS Polly don't use this field
 
 ### Fixed
 
