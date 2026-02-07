@@ -35,6 +35,12 @@ export const TTS_VOICES = {
         provider: 'elevenlabs',
       },
       {
+        id: 'Jon - Relaxed, Deep and Approachable',
+        gender: 'male',
+        description: 'Jon - Relaxed, Deep and Approachable',
+        provider: 'elevenlabs',
+      },
+      {
         id: 'Cassidy',
         gender: 'female',
         description: 'Cassidy - Bright and confident',
@@ -204,7 +210,7 @@ export const TTS_VOICES = {
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
-  en: 'Spuds Oxley', // ElevenLabs - Male
+  en: 'Jon - Relaxed, Deep and Approachable', // ElevenLabs - Male
   ja: 'ja-JP-Wavenet-C', // Shohei - Male
 } as const;
 
