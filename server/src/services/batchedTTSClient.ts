@@ -50,6 +50,7 @@ interface TTSBatch {
     originalIndex: number; // Position in original script
     markName: string; // e.g., "unit_42"
     text: string; // Text content to speak
+    phraseContext?: string; // Parent phrase for pronunciation context (used as previous_text in ElevenLabs)
   }>;
 }
 
@@ -486,6 +487,7 @@ export function groupUnitsIntoBatches(
       originalIndex: i,
       markName: `unit_${i}`,
       text,
+      phraseContext: unit.type === 'L2' ? unit.phraseContext : undefined,
     });
   }
 
@@ -864,10 +866,17 @@ async function synthesizeElevenLabsBatch(
   const resolvedVoiceId = await resolveElevenLabsVoiceId(batch.voiceId);
   const languageCode = getElevenLabsLanguageCode(batch.languageCode);
 
+  // For single-unit batches (always the case for Japanese), pass phraseContext
+  // as previous_text so ElevenLabs has surrounding sentence context for pronunciation
+  const previousText = batch.units.length === 1
+    ? batch.units[0].phraseContext
+    : undefined;
+
   const { audioBuffer, alignment } = await synthesizeElevenLabsWithTimestamps({
     voiceId: resolvedVoiceId,
     text,
     languageCode,
+    previousText,
   });
 
   if (batch.units.length === 1) {

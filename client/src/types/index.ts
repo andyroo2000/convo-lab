@@ -231,6 +231,7 @@ export type LessonScriptUnit =
       translation?: string;
       voiceId: string;
       speed?: number;
+      phraseContext?: string;
     }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };

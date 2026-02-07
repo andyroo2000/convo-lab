@@ -99,6 +99,7 @@ export async function synthesizeElevenLabsWithTimestamps(options: {
   voiceId: string;
   text: string;
   languageCode?: string;
+  previousText?: string;
 }): Promise<{ audioBuffer: Buffer; alignment: ElevenLabsAlignment }> {
   const apiKey = getApiKey();
   const response = await fetch(
@@ -116,6 +117,7 @@ export async function synthesizeElevenLabsWithTimestamps(options: {
         language_code: options.languageCode,
         output_format: 'mp3_44100_128',
         apply_text_normalization: 'off',
+        ...(options.previousText ? { previous_text: options.previousText } : {}),
       }),
     }
   );
