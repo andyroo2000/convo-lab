@@ -10,9 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **[feat]** Admin Script Lab — step-by-step course generation debugging workflow for admins; splits the monolithic pipeline into inspectable stages (prompt preview/edit, dialogue extraction, script generation, audio assembly) with the ability to re-run any step
+- **[feat]** Editable script generation configuration in Admin Script Lab — exposes all timing parameters, AI prompts, and narration templates for tweaking pause durations, scenario generation, and teaching phrasing
 
 ### Fixed
 
+- **[fix]** Extract vocabulary readings from parent exchange context for accurate TTS pronunciation — vocabulary words spoken in isolation now use readings extracted from the parent sentence's furigana to prevent ElevenLabs from using wrong readings or Chinese pronunciations
+- **[fix]** ES module `__dirname` issue preventing vocab/grammar seeding in production — switched to `import.meta.url` with `fileURLToPath` for ES module compatibility
 - **[fix]** Include vocabulary/grammar seed JSON files in Docker production image — files were missing from `dist/` because TypeScript doesn't copy non-TS files, causing JLPT vocabulary and grammar seeds to silently fail for all courses
 
 - **[fix]** Force per-unit ElevenLabs synthesis for all Japanese (not just slowed) — kanji/mixed-script alignment data is unreliable, causing batched audio segments to bleed into adjacent turns; each Japanese turn now gets its own API call for clean segment boundaries
