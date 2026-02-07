@@ -87,6 +87,9 @@ COPY server/gcloud-key.json ./gcloud-key.json
 # Copy built server and shared modules
 COPY --from=server-builder /app/server/dist ./dist
 
+# Copy server data files (vocabulary/grammar JSON) that TypeScript doesn't emit
+COPY --from=server-builder /app/server/src/data ./dist/server/src/data
+
 # Copy server scripts for migrations
 COPY server/scripts ./scripts
 
