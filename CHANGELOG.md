@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Include vocabulary/grammar seed JSON files in Docker production image — files were missing from `dist/` because TypeScript doesn't copy non-TS files, causing JLPT vocabulary and grammar seeds to silently fail for all courses
+
 - **[fix]** Force per-unit ElevenLabs synthesis for all Japanese (not just slowed) — kanji/mixed-script alignment data is unreliable, causing batched audio segments to bleed into adjacent turns; each Japanese turn now gets its own API call for clean segment boundaries
 - **[fix]** Generate silence with ffmpeg instead of Google Cloud TTS — eliminates format mismatch (sample rate, encoding params) between silence segments and ElevenLabs speech that caused audio cutoffs and glitches at segment boundaries during concat
 - **[fix]** Two-pass audio concatenation (PCM decode then MP3 encode) — prevents MP3 frame boundary artifacts that caused mid-syllable cutoffs when stitching per-unit audio segments together
