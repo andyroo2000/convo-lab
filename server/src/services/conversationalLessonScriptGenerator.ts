@@ -3,6 +3,43 @@ import { generateWithGemini } from './geminiClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 
 /**
+ * Convert furigana notation to pure kana for TTS
+ * Example: "北[ほっ]海[かい]道[どう]に行[い]きました" → "ほっかいどうにいきました"
+ */
+function stripFuriganaToKana(text: string): string {
+  let output = '';
+  let inBracket = false;
+
+  for (const char of text) {
+    if (char === '[') {
+      inBracket = true;
+      continue;
+    }
+    if (char === ']') {
+      inBracket = false;
+      continue;
+    }
+
+    if (inBracket) {
+      // Inside brackets - this is the kana reading
+      output += char;
+      continue;
+    }
+
+    // Outside brackets - only include if it's already kana or punctuation
+    const isHiragana = char >= '\u3040' && char <= '\u309F';
+    const isKatakana = char >= '\u30A0' && char <= '\u30FF';
+    const isPunctuation = /[、。！？\s]/.test(char);
+
+    if (isHiragana || isKatakana || isPunctuation) {
+      output += char;
+    }
+  }
+
+  return output;
+}
+
+/**
  * Extract the reading for a vocabulary word from the parent exchange's reading
  * This ensures we use the correct pronunciation in context rather than isolated
  *
@@ -330,6 +367,12 @@ function generateQuestionUnits(
         extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
         vocabItem.readingL2;
 
+      // Convert phrase context to kana for ElevenLabs previous_text
+      // Sending kanji can cause mispronunciations; kana provides correct context
+      const phraseContextKana = exchange.readingL2
+        ? stripFuriganaToKana(exchange.readingL2)
+        : undefined;
+
       units.push(
         {
           type: 'narration_L1',
@@ -345,7 +388,7 @@ function generateQuestionUnits(
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -356,7 +399,7 @@ function generateQuestionUnits(
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -527,6 +570,12 @@ async function generateResponseTeachingUnits(
         extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
         vocabItem.readingL2;
 
+      // Convert phrase context to kana for ElevenLabs previous_text
+      // Sending kanji can cause mispronunciations; kana provides correct context
+      const phraseContextKana = exchange.readingL2
+        ? stripFuriganaToKana(exchange.readingL2)
+        : undefined;
+
       units.push(
         // Introduce the word/phrase
         {
@@ -543,7 +592,7 @@ async function generateResponseTeachingUnits(
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -554,7 +603,7 @@ async function generateResponseTeachingUnits(
           translation: vocabItem.translationL1,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -576,6 +625,11 @@ async function generateResponseTeachingUnits(
           )
         : [];
 
+    // Convert phrase context to kana for ElevenLabs previous_text
+    const phraseContextKana = exchange.readingL2
+      ? stripFuriganaToKana(exchange.readingL2)
+      : undefined;
+
     // Teach each progressive chunk
     for (const chunk of progressiveChunks) {
       units.push(
@@ -592,7 +646,7 @@ async function generateResponseTeachingUnits(
           translation: chunk.translation,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -756,33 +810,6 @@ function isKatakana(char: string): boolean {
 
 function isKana(char: string): boolean {
   return isHiragana(char) || isKatakana(char);
-}
-
-function stripFuriganaToKana(text: string): string {
-  let output = '';
-  let inBracket = false;
-
-  for (const char of text) {
-    if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
-      continue;
-    }
-
-    if (inBracket) {
-      output += char;
-      continue;
-    }
-
-    if (isKana(char) || /\s/.test(char)) {
-      output += char;
-    }
-  }
-
-  return output;
 }
 
 function normalizeL2TextForEstimate(unit: LessonScriptUnit): string {

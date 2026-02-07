@@ -884,6 +884,15 @@ async function synthesizeElevenLabsBatch(
     }
   }
 
+  // Debug logging for Japanese TTS to diagnose pronunciation issues
+  if (languageCode === 'ja' && previousText) {
+    console.log('[ElevenLabs JP Debug] Sending to TTS:', {
+      text,
+      previousText,
+      voiceId: resolvedVoiceId,
+    });
+  }
+
   const { audioBuffer, alignment } = await synthesizeElevenLabsWithTimestamps({
     voiceId: resolvedVoiceId,
     text,

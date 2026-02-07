@@ -2,6 +2,43 @@ import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { LessonScriptUnit } from './courseScriptGenerator.js';
 import { generateWithGemini } from './geminiClient.js';
 
+/**
+ * Convert furigana notation to pure kana for TTS
+ * Example: "北[ほっ]海[かい]道[どう]に行[い]きました" → "ほっかいどうにいきました"
+ */
+function stripFuriganaToKana(text: string): string {
+  let output = '';
+  let inBracket = false;
+
+  for (const char of text) {
+    if (char === '[') {
+      inBracket = true;
+      continue;
+    }
+    if (char === ']') {
+      inBracket = false;
+      continue;
+    }
+
+    if (inBracket) {
+      // Inside brackets - this is the kana reading
+      output += char;
+      continue;
+    }
+
+    // Outside brackets - only include if it's already kana or punctuation
+    const isHiragana = char >= '\u3040' && char <= '\u309F';
+    const isKatakana = char >= '\u30A0' && char <= '\u30FF';
+    const isPunctuation = /[、。！？\s]/.test(char);
+
+    if (isHiragana || isKatakana || isPunctuation) {
+      output += char;
+    }
+  }
+
+  return output;
+}
+
 interface ConversationalScriptContext {
   episodeTitle: string;
   targetLanguage: string;
@@ -169,6 +206,12 @@ function generateQuestionUnits(
       context.jlptLevel
     );
 
+    // Convert phrase context to kana for ElevenLabs previous_text
+    // Sending kanji can cause mispronunciations; kana provides correct context
+    const phraseContextKana = exchange.readingL2
+      ? stripFuriganaToKana(exchange.readingL2)
+      : undefined;
+
     for (const vocabItem of vocabToTeach) {
       units.push(
         {
@@ -184,7 +227,7 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -194,7 +237,7 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -350,6 +393,12 @@ async function generateResponseTeachingUnits(
       context.jlptLevel
     );
 
+    // Convert phrase context to kana for ElevenLabs previous_text
+    // Sending kanji can cause mispronunciations; kana provides correct context
+    const phraseContextKana = exchange.readingL2
+      ? stripFuriganaToKana(exchange.readingL2)
+      : undefined;
+
     // STEP 1: Teach each vocabulary item individually
     for (const vocabItem of vocabToTeach) {
       units.push(
@@ -367,7 +416,7 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -377,7 +426,7 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -414,7 +463,7 @@ async function generateResponseTeachingUnits(
           reading: undefined, // Could enhance to get reading
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: exchange.textL2,
+          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
