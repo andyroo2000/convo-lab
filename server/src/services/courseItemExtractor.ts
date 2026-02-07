@@ -809,32 +809,30 @@ function extractReadingForText(
   return undefined;
 }
 
+export interface PromptBuildResult {
+  prompt: string;
+  metadata: {
+    targetExchangeCount: number;
+    vocabularySeeds: string;
+    grammarSeeds: string;
+  };
+}
+
 /**
- * Extract dialogue exchanges directly from episode sourceText (the original prompt)
- * This provides richer context than using pre-generated dialogue
- * Optionally targets a specific JLPT level for Japanese
+ * Build the dialogue extraction prompt with vocabulary/grammar seeds.
+ * Extracted from extractDialogueExchangesFromSourceText for admin Script Lab use.
  */
-export async function extractDialogueExchangesFromSourceText(
+export async function buildDialogueExtractionPrompt(
   sourceText: string,
   episodeTitle: string,
   targetLanguage: string,
-  nativeLanguage: string,
+  _nativeLanguage: string,
   targetDurationMinutes: number = 15,
   jlptLevel?: string,
-  speakerVoices?: { speakerName: string; voiceId: string }[],
-  _speaker1Gender: 'male' | 'female' = 'male',
-  _speaker2Gender: 'male' | 'female' = 'female',
-  speaker1VoiceId?: string,
-  speaker2VoiceId?: string
-): Promise<DialogueExchange[]> {
-  console.warn(`Extracting dialogue from source text for episode: ${episodeTitle}`);
-  console.warn(
-    `Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`
-  );
-
+  speaker1Gender: 'male' | 'female' = 'male',
+  speaker2Gender: 'male' | 'female' = 'female'
+): Promise<PromptBuildResult> {
   // Estimate how many exchanges we need for target duration
-  // Each exchange takes ~90 seconds (with vocab breakdown, anticipation drills, and spaced repetition)
-  // This includes: introduction, vocabulary breakdown, anticipation prompts, and review cycles
   const estimatedSecondsPerExchange = 90;
   const targetSeconds = targetDurationMinutes * 60;
   const targetExchangeCount = Math.max(6, Math.floor(targetSeconds / estimatedSecondsPerExchange));
@@ -892,8 +890,8 @@ Use these patterns where they naturally fit the conversation flow.`;
 
 SPEAKERS:
 - Use exactly TWO speakers throughout the dialogue
-- Speaker 1 is ${_speaker1Gender}; choose a name that matches this gender
-- Speaker 2 is ${_speaker2Gender}; choose a name that matches this gender
+- Speaker 1 is ${speaker1Gender}; choose a name that matches this gender
+- Speaker 2 is ${speaker2Gender}; choose a name that matches this gender
 - Start the conversation with Speaker 1 and alternate turns`;
 
   const prompt = `You are creating a Pimsleur-style language lesson based on this scenario:
@@ -982,131 +980,205 @@ Return ONLY a JSON object (no markdown, no explanation):
   ]
 }`;
 
-  try {
-    const response = await generateWithGemini(prompt);
+  return {
+    prompt,
+    metadata: {
+      targetExchangeCount,
+      vocabularySeeds: vocabularySeed,
+      grammarSeeds: grammarSeed,
+    },
+  };
+}
 
-    // Parse JSON
-    let jsonText = response.trim();
-    if (jsonText.includes('```')) {
-      const match = jsonText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-      if (match && match[1]) {
-        jsonText = match[1].trim();
-      }
+/**
+ * Run dialogue extraction: send prompt to Gemini, parse response, assign voices.
+ * Extracted from extractDialogueExchangesFromSourceText for admin Script Lab use.
+ * Does NOT include the automatic review/edit pass — the admin IS the reviewer.
+ */
+export async function runDialogueExtraction(
+  prompt: string,
+  targetLanguage: string,
+  speaker1Gender: 'male' | 'female' = 'male',
+  speaker2Gender: 'male' | 'female' = 'female',
+  speakerVoices?: { speakerName: string; voiceId: string }[],
+  speaker1VoiceId?: string,
+  speaker2VoiceId?: string
+): Promise<DialogueExchange[]> {
+  const response = await generateWithGemini(prompt);
+
+  // Parse JSON
+  let jsonText = response.trim();
+  if (jsonText.includes('```')) {
+    const match = jsonText.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+    if (match && match[1]) {
+      jsonText = match[1].trim();
+    }
+  }
+
+  const parsed = JSON.parse(jsonText);
+
+  if (!parsed.exchanges || !Array.isArray(parsed.exchanges)) {
+    throw new Error('Invalid response format: missing exchanges array');
+  }
+
+  // Build dialogue exchanges
+  const exchanges: DialogueExchange[] = [];
+
+  const voicesConfig = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
+    []) as Array<{
+    id: string;
+    gender: 'male' | 'female';
+    provider?: string;
+  }>;
+  const preferredProvider = voicesConfig.some((voice) => voice.provider === 'elevenlabs')
+    ? 'elevenlabs'
+    : undefined;
+
+  const getFallbackVoices = (lang: string): [string, string] => {
+    if (lang.toLowerCase() === 'ja') {
+      return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
+    }
+    return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
+  };
+
+  const [fallbackFemale, fallbackMale] = getFallbackVoices(targetLanguage);
+
+  const pickVoiceByGender = (
+    gender: 'male' | 'female',
+    fallbackId: string,
+    excludeId?: string
+  ): string => {
+    const preferredVoices = voicesConfig.filter(
+      (voice) =>
+        voice.gender === gender && (!preferredProvider || voice.provider === preferredProvider)
+    );
+    const fallbackVoices = voicesConfig.filter((voice) => voice.gender === gender);
+    const candidates = (preferredVoices.length ? preferredVoices : fallbackVoices).filter(
+      (voice) => voice.id !== excludeId
+    );
+
+    if (candidates.length > 0) {
+      return candidates[Math.floor(Math.random() * candidates.length)].id;
     }
 
-    const parsed = JSON.parse(jsonText);
+    return fallbackId;
+  };
 
-    if (!parsed.exchanges || !Array.isArray(parsed.exchanges)) {
-      throw new Error('Invalid response format: missing exchanges array');
-    }
+  const speaker1Fallback = speaker1Gender === 'female' ? fallbackFemale : fallbackMale;
+  const speaker2Fallback = speaker2Gender === 'female' ? fallbackFemale : fallbackMale;
 
-    // Build dialogue exchanges
-    const exchanges: DialogueExchange[] = [];
+  const speaker1Default = speaker1VoiceId || pickVoiceByGender(speaker1Gender, speaker1Fallback);
+  const speaker2Default =
+    speaker2VoiceId || pickVoiceByGender(speaker2Gender, speaker2Fallback, speaker1Default);
 
-    const voicesConfig = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
-      []) as Array<{
-      id: string;
-      gender: 'male' | 'female';
-      provider?: string;
-    }>;
-    const preferredProvider = voicesConfig.some((voice) => voice.provider === 'elevenlabs')
-      ? 'elevenlabs'
-      : undefined;
+  const availableVoices = [speaker1Default, speaker2Default];
 
-    const getFallbackVoices = (lang: string): [string, string] => {
-      if (lang.toLowerCase() === 'ja') {
-        return ['ja-JP-Wavenet-B', 'ja-JP-Wavenet-C'];
-      }
-      return ['en-US-Wavenet-F', 'en-US-Wavenet-D'];
-    };
+  // Track unique speakers and assign voices
+  const speakerVoiceMap = new Map<string, string>();
+  let voiceIndex = 0;
 
-    const [fallbackFemale, fallbackMale] = getFallbackVoices(targetLanguage);
+  for (const exchange of parsed.exchanges) {
+    // Check if we've already assigned a voice to this speaker
+    let voiceId = speakerVoiceMap.get(exchange.speakerName);
 
-    const pickVoiceByGender = (
-      gender: 'male' | 'female',
-      fallbackId: string,
-      excludeId?: string
-    ): string => {
-      const preferredVoices = voicesConfig.filter(
-        (voice) =>
-          voice.gender === gender && (!preferredProvider || voice.provider === preferredProvider)
-      );
-      const fallbackVoices = voicesConfig.filter((voice) => voice.gender === gender);
-      const candidates = (preferredVoices.length ? preferredVoices : fallbackVoices).filter(
-        (voice) => voice.id !== excludeId
-      );
+    if (!voiceId) {
+      // Try to find voice from original dialogue speakers if names match
+      voiceId = speakerVoices?.find(
+        (v) => v.speakerName.toLowerCase() === exchange.speakerName.toLowerCase()
+      )?.voiceId;
 
-      if (candidates.length > 0) {
-        return candidates[Math.floor(Math.random() * candidates.length)].id;
-      }
-
-      return fallbackId;
-    };
-
-    const speaker1Fallback = _speaker1Gender === 'female' ? fallbackFemale : fallbackMale;
-    const speaker2Fallback = _speaker2Gender === 'female' ? fallbackFemale : fallbackMale;
-
-    const speaker1Default = speaker1VoiceId || pickVoiceByGender(_speaker1Gender, speaker1Fallback);
-    const speaker2Default =
-      speaker2VoiceId || pickVoiceByGender(_speaker2Gender, speaker2Fallback, speaker1Default);
-
-    const availableVoices = [speaker1Default, speaker2Default];
-
-    // Track unique speakers and assign voices
-    const speakerVoiceMap = new Map<string, string>();
-    let voiceIndex = 0;
-
-    for (const exchange of parsed.exchanges) {
-      // Check if we've already assigned a voice to this speaker
-      let voiceId = speakerVoiceMap.get(exchange.speakerName);
-
+      // Otherwise assign next available voice
       if (!voiceId) {
-        // Try to find voice from original dialogue speakers if names match
-        voiceId = speakerVoices?.find(
-          (v) => v.speakerName.toLowerCase() === exchange.speakerName.toLowerCase()
-        )?.voiceId;
-
-        // Otherwise assign next available voice
-        if (!voiceId) {
-          voiceId = availableVoices[voiceIndex % availableVoices.length];
-          voiceIndex++;
-        }
-
-        speakerVoiceMap.set(exchange.speakerName, voiceId);
+        voiceId = availableVoices[voiceIndex % availableVoices.length];
+        voiceIndex++;
       }
 
-      const vocabularyItems: VocabularyItem[] = [];
-      if (exchange.vocabulary && Array.isArray(exchange.vocabulary)) {
-        for (const vocab of exchange.vocabulary) {
-          // Clean up word text - remove any romanization in parentheses
-          let cleanedWord = vocab.word;
-          // Remove patterns like " (romaji)" or "（romaji）"
-          cleanedWord = cleanedWord.replace(/\s*[（(][^)）]*[)）]\s*/g, '').trim();
-
-          vocabularyItems.push({
-            textL2: cleanedWord,
-            readingL2: vocab.reading || undefined,
-            translationL1: vocab.translation,
-            jlptLevel: vocab.jlptLevel || undefined,
-          });
-        }
-      }
-
-      exchanges.push({
-        order: exchange.order,
-        speakerName: exchange.speakerName,
-        relationshipName: exchange.relationshipName || exchange.speakerName, // Fallback to speakerName if not provided
-        speakerVoiceId: voiceId,
-        textL2: exchange.textL2,
-        readingL2: exchange.reading || null,
-        translationL1: exchange.translation,
-        vocabularyItems,
-      });
+      speakerVoiceMap.set(exchange.speakerName, voiceId);
     }
+
+    const vocabularyItems: VocabularyItem[] = [];
+    if (exchange.vocabulary && Array.isArray(exchange.vocabulary)) {
+      for (const vocab of exchange.vocabulary) {
+        // Clean up word text - remove any romanization in parentheses
+        let cleanedWord = vocab.word;
+        // Remove patterns like " (romaji)" or "（romaji）"
+        cleanedWord = cleanedWord.replace(/\s*[（(][^)）]*[)）]\s*/g, '').trim();
+
+        vocabularyItems.push({
+          textL2: cleanedWord,
+          readingL2: vocab.reading || undefined,
+          translationL1: vocab.translation,
+          jlptLevel: vocab.jlptLevel || undefined,
+        });
+      }
+    }
+
+    exchanges.push({
+      order: exchange.order,
+      speakerName: exchange.speakerName,
+      relationshipName: exchange.relationshipName || exchange.speakerName,
+      speakerVoiceId: voiceId,
+      textL2: exchange.textL2,
+      readingL2: exchange.reading || null,
+      translationL1: exchange.translation,
+      vocabularyItems,
+    });
+  }
+
+  console.warn(`Generated ${exchanges.length} dialogue exchanges from prompt`);
+  return exchanges;
+}
+
+/**
+ * Extract dialogue exchanges directly from episode sourceText (the original prompt)
+ * This provides richer context than using pre-generated dialogue
+ * Optionally targets a specific JLPT level for Japanese
+ */
+export async function extractDialogueExchangesFromSourceText(
+  sourceText: string,
+  episodeTitle: string,
+  targetLanguage: string,
+  nativeLanguage: string,
+  targetDurationMinutes: number = 15,
+  jlptLevel?: string,
+  speakerVoices?: { speakerName: string; voiceId: string }[],
+  _speaker1Gender: 'male' | 'female' = 'male',
+  _speaker2Gender: 'male' | 'female' = 'female',
+  speaker1VoiceId?: string,
+  speaker2VoiceId?: string
+): Promise<DialogueExchange[]> {
+  console.warn(`Extracting dialogue from source text for episode: ${episodeTitle}`);
+  console.warn(
+    `Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`
+  );
+
+  // Step 1: Build the prompt
+  const { prompt } = await buildDialogueExtractionPrompt(
+    sourceText,
+    episodeTitle,
+    targetLanguage,
+    nativeLanguage,
+    targetDurationMinutes,
+    jlptLevel,
+    _speaker1Gender,
+    _speaker2Gender
+  );
+
+  try {
+    // Step 2: Run extraction
+    const exchanges = await runDialogueExtraction(
+      prompt,
+      targetLanguage,
+      _speaker1Gender,
+      _speaker2Gender,
+      speakerVoices,
+      speaker1VoiceId,
+      speaker2VoiceId
+    );
 
     console.warn(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
 
-    // MULTI-PASS GENERATION: Review and edit if needed
+    // Step 3: MULTI-PASS GENERATION: Review and edit if needed
     if (jlptLevel && exchanges.length > 0) {
       console.warn('Reviewing dialogue quality...');
       const review = await reviewDialogue(exchanges, jlptLevel, targetLanguage);
