@@ -5,7 +5,7 @@ import { CoreItem } from './courseItemExtractor.js';
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
   | { type: 'narration_L1'; text: string; voiceId: string; pitch?: number }
-  | { type: 'L2'; text: string; reading?: string; translation?: string; voiceId: string; speed?: number; pitch?: number }
+  | { type: 'L2'; text: string; reading?: string; translation?: string; voiceId: string; speed?: number; pitch?: number; phraseContext?: string }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
 
