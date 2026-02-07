@@ -267,8 +267,7 @@ function getElevenLabsLanguageCode(languageCode: string): string | undefined {
 function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTSBatch[] {
   if (maxChars <= 0) return [batch];
   const languageCode = batch.languageCode.toLowerCase();
-  const forceSingleUnit =
-    ELEVENLABS_FORCE_SINGLE_UNIT || (batch.speed !== 1 && languageCode.startsWith('ja'));
+  const forceSingleUnit = ELEVENLABS_FORCE_SINGLE_UNIT || languageCode.startsWith('ja');
   if (forceSingleUnit) {
     return batch.units.map((unit) => ({
       voiceId: batch.voiceId,
