@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** Add Hiro as Japanese ElevenLabs voice option
 - **[feat]** Default L2 speaker voices for Japanese courses (Otani + Hiro) — no longer randomly picks voices when none specified at course creation
 
+### Changed
+
+- **[chore]** Inject ELEVENLABS_API_KEY in deploy workflow — prevents key loss when `git reset --hard` overwrites `.env.production`
+
 ### Fixed
 
 - **[fix]** Chunk loading errors after deployments — added proper cache headers to prevent service worker from caching stale references to old chunk files; Express now sets `no-cache` on index.html/service worker/manifest, caches hashed assets immutably, and uses `NetworkFirst` strategy for JS/CSS chunks; added global error handler and ErrorBoundary logic to detect chunk loading failures and prompt hard reload
