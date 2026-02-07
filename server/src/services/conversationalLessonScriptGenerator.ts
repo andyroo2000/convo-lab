@@ -242,17 +242,15 @@ function generateQuestionUnits(
         voiceId: context.l1VoiceId,
       },
       { type: 'pause', seconds: 0.5 },
-      // Slowly
       {
         type: 'L2',
         text: exchange.textL2,
         reading: exchange.readingL2 || undefined,
         translation: exchange.translationL1,
         voiceId: exchange.speakerVoiceId,
-        speed: 0.75,
+        speed: 1.0,
       },
       { type: 'pause', seconds: 1.5 },
-      // Normal speed
       {
         type: 'L2',
         text: exchange.textL2,
@@ -469,17 +467,15 @@ async function generateResponseTeachingUnits(
         voiceId: context.l1VoiceId,
       },
       { type: 'pause', seconds: 0.5 },
-      // Play slowly first
       {
         type: 'L2',
         text: exchange.textL2,
         reading: exchange.readingL2 || undefined,
         translation: exchange.translationL1,
         voiceId: exchange.speakerVoiceId,
-        speed: 0.75,
+        speed: 1.0,
       },
       { type: 'pause', seconds: 2.5 }, // Pause for learner to try
-      // Then at normal speed
       {
         type: 'L2',
         text: exchange.textL2,
@@ -499,14 +495,13 @@ async function generateResponseTeachingUnits(
         voiceId: context.l1VoiceId,
       },
       { type: 'pause', seconds: 0.5 },
-      // Slow then normal
       {
         type: 'L2',
         text: exchange.textL2,
         reading: exchange.readingL2 || undefined,
         translation: exchange.translationL1,
         voiceId: exchange.speakerVoiceId,
-        speed: 0.75,
+        speed: 1.0,
       },
       { type: 'pause', seconds: 2.5 },
       {

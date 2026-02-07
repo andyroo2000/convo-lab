@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **[chore]** Inject ELEVENLABS_API_KEY in deploy workflow — prevents key loss when `git reset --hard` overwrites `.env.production`
+- **[fix]** Remove slow-speed L2 repetitions from conversational lessons — slow versions (0.75x) were getting cut off during audio stitching; replaced with normal-speed repetitions to maintain the same drill count without audio artifacts
 
 ### Fixed
 
