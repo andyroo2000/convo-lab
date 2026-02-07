@@ -268,7 +268,7 @@ function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTS
   if (maxChars <= 0) return [batch];
   const languageCode = batch.languageCode.toLowerCase();
   const forceSingleUnit =
-    ELEVENLABS_FORCE_SINGLE_UNIT || batch.speed !== 1 || languageCode.startsWith('ja');
+    ELEVENLABS_FORCE_SINGLE_UNIT || (batch.speed !== 1 && languageCode.startsWith('ja'));
   if (forceSingleUnit) {
     return batch.units.map((unit) => ({
       voiceId: batch.voiceId,
