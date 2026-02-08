@@ -542,10 +542,11 @@ router.post('/:id/synthesize-line', async (req: AuthRequest, res, next) => {
     }
 
     const referenceId = resolveFishAudioVoiceId(voiceId);
+    const DEFAULT_SPEED = 1.0;
     const audioBuffer = await synthesizeFishAudioSpeech({
       referenceId,
       text,
-      speed: speed || 1.0,
+      speed: speed || DEFAULT_SPEED,
     });
 
     const audioUrl = await uploadToGCS({
@@ -560,7 +561,7 @@ router.post('/:id/synthesize-line', async (req: AuthRequest, res, next) => {
         courseId: course.id,
         unitIndex,
         text,
-        speed: speed || 1.0,
+        speed: speed || DEFAULT_SPEED,
         voiceId,
         audioUrl,
       },

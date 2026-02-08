@@ -28,6 +28,11 @@ interface LineTTSTesterProps {
   onRenderingDeleted: (renderingId: string) => void;
 }
 
+const SPEED_MIN = 0.5;
+const SPEED_MAX = 2.0;
+const SPEED_STEP = 0.05;
+const SPEED_DEFAULT = 1.0;
+
 const LineTTSTester = ({
   courseId,
   unit,
@@ -37,7 +42,7 @@ const LineTTSTester = ({
   onRenderingDeleted,
 }: LineTTSTesterProps) => {
   const [text, setText] = useState(unit.text || '');
-  const [speed, setSpeed] = useState(unit.speed || 1.0);
+  const [speed, setSpeed] = useState(unit.speed || SPEED_DEFAULT);
   const [synthesizing, setSynthesizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [playingUrl, setPlayingUrl] = useState<string | null>(null);
@@ -61,7 +66,7 @@ const LineTTSTester = ({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.message || 'Synthesis failed');
+        throw new Error(data.message || 'Line synthesis failed');
       }
 
       const data = await res.json();
@@ -78,7 +83,7 @@ const LineTTSTester = ({
       // Auto-play the result
       setPlayingUrl(data.audioUrl);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Synthesis failed');
+      setError(err instanceof Error ? err.message : 'Line synthesis failed');
     } finally {
       setSynthesizing(false);
     }
@@ -150,17 +155,17 @@ const LineTTSTester = ({
         <input
           id={`line-speed-${unitIndex}`}
           type="range"
-          min="0.5"
-          max="2.0"
-          step="0.05"
+          min={SPEED_MIN}
+          max={SPEED_MAX}
+          step={SPEED_STEP}
           value={speed}
           onChange={(e) => setSpeed(parseFloat(e.target.value))}
           className="w-full accent-coral"
         />
         <div className="flex justify-between text-xs text-gray-400 mt-1">
-          <span>0.5x</span>
-          <span>1.0x</span>
-          <span>2.0x</span>
+          <span>{SPEED_MIN}x</span>
+          <span>{SPEED_DEFAULT}x</span>
+          <span>{SPEED_MAX}x</span>
         </div>
       </div>
 
