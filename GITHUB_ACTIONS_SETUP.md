@@ -92,6 +92,7 @@ To avoid authentication issues, make your GitHub Container Registry packages pub
 4. `server/.env.staging`
 
 For both production and staging:
+
 - Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for PostgreSQL
 - Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for Redis
 - Use separate passwords for staging vs production
@@ -222,13 +223,13 @@ docker exec health-caddy caddy reload --config /etc/caddy/Caddyfile
 
 Add A records pointing to your droplet's IP address:
 
-1. `convolab.andrewlandry.com`
+1. `convo-lab.com`
 2. `stage.convo-lab.com`
 
 Wait 5-10 minutes for DNS propagation:
 
 ```bash
-nslookup convolab.andrewlandry.com
+nslookup convo-lab.com
 ```
 
 ### 5. Migrate Database
@@ -282,7 +283,7 @@ After GitHub Actions completes:
 
 ```bash
 # Check health endpoint
-curl https://convolab.andrewlandry.com/health
+curl https://convo-lab.com/health
 
 # Check containers on droplet
 ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml ps'
@@ -336,7 +337,7 @@ ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-c
 **Manual health check:**
 
 ```bash
-curl -v https://convolab.andrewlandry.com/health
+curl -v https://convo-lab.com/health
 curl -v https://stage.convo-lab.com/health
 ```
 
