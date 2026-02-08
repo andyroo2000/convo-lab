@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **[refactor]** Voice selection preference order updated — Fish Audio voices are now preferred over ElevenLabs when available, with fallback chain: fishaudio → elevenlabs → google/polly
 - **[refactor]** Default Japanese speaker voices updated to Fish Audio (Nakamura + Rina Mama) and default English narrator updated to Fish Audio Visual Trails voice
+- **[ux]** Provider labels added to all voice descriptions (Fish Audio:, ElevenLabs:, Google:, Polly:) for clear identification in dropdowns
+- **[ux]** Fish Audio English voices now available as narrator options alongside ElevenLabs; removed hardcoded ElevenLabs-only allowlist
 
 ### Added
 
