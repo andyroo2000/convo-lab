@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Response, NextFunction } from 'express';
-import { requireAdmin, requireRole, isAdminEmail } from '../../../middleware/roleAuth.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { AuthRequest } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { requireAdmin, requireRole, isAdminEmail } from '../../../middleware/roleAuth.js';
 import { mockPrisma } from '../../setup.js';
 
 describe('requireAdmin middleware', () => {
@@ -59,6 +60,26 @@ describe('requireAdmin middleware', () => {
     await requireAdmin(mockReq as AuthRequest, mockRes as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it('should allow access when role is on the request without querying database', async () => {
+    mockReq.userId = 'admin-123';
+    mockReq.role = 'admin';
+
+    await requireAdmin(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it('should deny access when role on request is not admin', async () => {
+    mockReq.userId = 'user-123';
+    mockReq.role = 'user';
+
+    await requireAdmin(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
   });
 });
 
@@ -129,6 +150,28 @@ describe('requireRole middleware', () => {
     await middleware(mockReq as AuthRequest, mockRes as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it('should allow access when role is on the request without querying database', async () => {
+    mockReq.userId = 'user-123';
+    mockReq.role = 'user';
+
+    const middleware = requireRole(['user', 'admin']);
+    await middleware(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith();
+  });
+
+  it('should deny access when role on request is not allowed', async () => {
+    mockReq.userId = 'demo-123';
+    mockReq.role = 'demo';
+
+    const middleware = requireRole(['user', 'admin']);
+    await middleware(mockReq as AuthRequest, mockRes as Response, mockNext);
+
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
   });
 });
 
