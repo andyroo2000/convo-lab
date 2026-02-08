@@ -3,9 +3,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { execSync } from 'child_process';
+import { normalizeSegmentLoudness, applySweeteningChainToBuffer } from './audioProcessing.js';
 import { uploadAudio } from './storageClient.js';
 import { synthesizeBatchedTexts } from './batchedTTSClient.js';
-import { synthesizeSpeech, createSSMLWithPauses, createSSMLSlow } from './ttsClient.js';
+import { synthesizeSpeech, createSSMLWithPauses } from './ttsClient.js';
 import { prisma } from '../db/client.js';
 
 // Configure ffmpeg/ffprobe paths
@@ -98,13 +99,16 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
     }
 
     // Generate audio
-    const audioBuffer = await synthesizeSpeech({
+    const rawAudioBuffer = await synthesizeSpeech({
       text,
       voiceId: speaker.voiceId,
       languageCode: episode.targetLanguage === 'ja' ? 'ja-JP' : episode.targetLanguage,
       speed: numericSpeed,
       useSSML,
     });
+
+    // Normalize loudness so all voices match
+    const audioBuffer = await normalizeSegmentLoudness(rawAudioBuffer);
 
     // Get duration (estimate based on buffer size, or use actual audio analysis)
     const duration = await getAudioDuration(audioBuffer);
@@ -135,8 +139,9 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
     }
   }
 
-  // Concatenate all audio files
-  const finalAudioBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
+  // Concatenate all audio files and apply sweetening chain
+  const concatenatedBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
+  const finalAudioBuffer = await applySweeteningChainToBuffer(concatenatedBuffer);
 
   // Upload to GCS
   const audioUrl = await uploadAudio(
@@ -384,9 +389,10 @@ async function generateSingleSpeedAudio(
       }
     );
 
-    // Map buffers back to original sentence indices
+    // Normalize loudness and map buffers back to original sentence indices
     for (let i = 0; i < audioBuffers.length; i++) {
-      audioBuffersByIndex.set(sentences[i].index, audioBuffers[i]);
+      const normalizedBuffer = await normalizeSegmentLoudness(audioBuffers[i]);
+      audioBuffersByIndex.set(sentences[i].index, normalizedBuffer);
     }
 
     completedVoices++;
@@ -445,8 +451,9 @@ async function generateSingleSpeedAudio(
     onProgress(90);
   }
 
-  // Concatenate all audio files
-  const finalAudioBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
+  // Concatenate all audio files and apply sweetening chain
+  const concatenatedBuffer = await concatenateAudio(audioFiles.map((f) => f.buffer));
+  const finalAudioBuffer = await applySweeteningChainToBuffer(concatenatedBuffer);
 
   // Upload to GCS
   const audioUrl = await uploadAudio(finalAudioBuffer, episodeId, config.key);
