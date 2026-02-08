@@ -16,7 +16,7 @@ interface VoiceConfig {
   id: string;
   gender: string;
   description: string;
-  provider?: 'google' | 'polly' | 'elevenlabs';
+  provider?: 'google' | 'polly' | 'elevenlabs' | 'fishaudio';
 }
 
 export function getCourseSpeakerVoices(
@@ -31,9 +31,13 @@ export function getCourseSpeakerVoices(
   // Get speaker voices (target language)
   const allTargetVoices = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
     []) as ReadonlyArray<VoiceConfig>;
-  const preferredVoices = allTargetVoices.some((voice) => voice.provider === 'elevenlabs')
-    ? allTargetVoices.filter((voice) => voice.provider === 'elevenlabs')
-    : allTargetVoices;
+  const hasFishAudio = allTargetVoices.some((voice) => voice.provider === 'fishaudio');
+  const hasElevenLabs = allTargetVoices.some((voice) => voice.provider === 'elevenlabs');
+  const preferredVoices = hasFishAudio
+    ? allTargetVoices.filter((voice) => voice.provider === 'fishaudio')
+    : hasElevenLabs
+      ? allTargetVoices.filter((voice) => voice.provider === 'elevenlabs')
+      : allTargetVoices;
 
   let speakerVoices: string[] = [];
 
@@ -106,7 +110,12 @@ export function getDialogueSpeakerVoices(
  * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
  * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu")
  */
-export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' | 'elevenlabs' {
+export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' | 'elevenlabs' | 'fishaudio' {
+  // Fish Audio voice IDs are prefixed with "fishaudio:"
+  if (voiceId.startsWith('fishaudio:')) {
+    return 'fishaudio';
+  }
+
   // First try to resolve via known voice config (preferred for ElevenLabs)
   for (const [, config] of Object.entries(TTS_VOICES)) {
     const voice = config.voices.find((v: VoiceConfig) => v.id === voiceId);
