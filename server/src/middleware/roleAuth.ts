@@ -1,7 +1,9 @@
 import { Response, NextFunction } from 'express';
+
+import { prisma } from '../db/client.js';
+
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
-import { prisma } from '../db/client.js';
 
 /**
  * Middleware to require admin role
@@ -10,6 +12,14 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
   try {
     if (!req.userId) {
       throw new AppError('Authentication required', 401);
+    }
+
+    if (req.role) {
+      if (req.role !== 'admin') {
+        throw new AppError('Admin access required', 403);
+      }
+      next();
+      return;
     }
 
     const user = await prisma.user.findUnique({
@@ -39,6 +49,14 @@ export function requireRole(roles: string[]) {
     try {
       if (!req.userId) {
         throw new AppError('Authentication required', 401);
+      }
+
+      if (req.role) {
+        if (!roles.includes(req.role)) {
+          throw new AppError(`Access denied. Required role: ${roles.join(' or ')}`, 403);
+        }
+        next();
+        return;
       }
 
       const user = await prisma.user.findUnique({

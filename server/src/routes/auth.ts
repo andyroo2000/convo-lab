@@ -59,9 +59,13 @@ router.post('/signup', async (req, res, next) => {
         // Idempotent retry - recreate session and return success
         console.log(`[SIGNUP] Idempotent retry detected: ${email} (id: ${existingUser.id})`);
 
-        const token = jwt.sign({ userId: existingUser.id }, process.env.JWT_SECRET!, {
-          expiresIn: '7d',
-        });
+        const token = jwt.sign(
+          { userId: existingUser.id, role: existingUser.role },
+          process.env.JWT_SECRET!,
+          {
+            expiresIn: '7d',
+          }
+        );
 
         res.cookie('token', token, {
           httpOnly: true,
@@ -174,7 +178,7 @@ router.post('/signup', async (req, res, next) => {
     console.log(`[SIGNUP] User created: ${user.id} ${email}`);
 
     // Create JWT
-    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+    const token = jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET!, {
       expiresIn: '7d',
     });
 
@@ -247,9 +251,13 @@ router.post('/login', async (req, res, next) => {
     }
 
     // Create JWT
-    const token = jwt.sign({ userId: updatedUser.id }, process.env.JWT_SECRET!, {
-      expiresIn: '7d',
-    });
+    const token = jwt.sign(
+      { userId: updatedUser.id, role: updatedUser.role },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: '7d',
+      }
+    );
 
     // Set cookie
     res.cookie('token', token, {
@@ -557,7 +565,7 @@ router.get(
   async (req, res) => {
     try {
       // Passport attaches the user object with custom properties
-      const user = req.user as { id: string; isExistingUser?: boolean } | undefined;
+      const user = req.user as { id: string; role?: string; isExistingUser?: boolean } | undefined;
 
       if (!user) {
         return res.redirect(
@@ -565,10 +573,24 @@ router.get(
         );
       }
 
+      let role = user.role;
+      if (!role) {
+        const roleRecord = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { role: true },
+        });
+        if (!roleRecord) {
+          return res.redirect(
+            `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`
+          );
+        }
+        role = roleRecord.role;
+      }
+
       // If this is an existing user (not newly created via OAuth), skip invite code check
       // Existing users already have access to the system
       if (user.isExistingUser) {
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+        const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET!, {
           expiresIn: '7d',
         });
 
@@ -602,7 +624,7 @@ router.get(
       }
 
       // New user has invite code, create session
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET!, {
+      const token = jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET!, {
         expiresIn: '7d',
       });
 
@@ -681,19 +703,6 @@ router.post('/claim-invite', async (req, res, next) => {
       },
     });
 
-    // Create session token
-    const sessionToken = jwt.sign({ userId: decoded.userId }, process.env.JWT_SECRET!, {
-      expiresIn: '7d',
-    });
-
-    // Set cookie
-    res.cookie('token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
-
     // Get user data
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
@@ -716,6 +725,27 @@ router.post('/claim-invite', async (req, res, next) => {
         createdAt: true,
         updatedAt: true,
       },
+    });
+
+    if (!user) {
+      throw new AppError('User not found', 404);
+    }
+
+    // Create session token
+    const sessionToken = jwt.sign(
+      { userId: decoded.userId, role: user.role },
+      process.env.JWT_SECRET!,
+      {
+        expiresIn: '7d',
+      }
+    );
+
+    // Set cookie
+    res.cookie('token', sessionToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.json(user);
