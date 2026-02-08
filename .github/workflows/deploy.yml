@@ -113,7 +113,7 @@ jobs:
 
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
-            docker-compose -f docker-compose.prod.yml pull
+            docker-compose -f docker-compose.prod.yml --env-file .env.production pull
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
@@ -124,6 +124,29 @@ jobs:
             # Start containers with environment file
             echo "♻️  Starting containers..."
             docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+            # Wait for server health to avoid external health check flaps
+            echo "⏳ Waiting for convolab-server to become healthy..."
+            for i in {1..60}; do
+              status=$(docker inspect -f '{{.State.Health.Status}}' convolab-server 2>/dev/null || echo "missing")
+              echo "Server health: $status"
+              if [ "$status" = "healthy" ]; then
+                echo "✅ convolab-server is healthy."
+                break
+              fi
+              if [ "$status" = "unhealthy" ]; then
+                echo "❌ convolab-server reported unhealthy. Recent logs:"
+                docker logs --tail=200 convolab-server || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            if [ "$status" != "healthy" ]; then
+              echo "❌ convolab-server did not become healthy in time. Recent logs:"
+              docker logs --tail=200 convolab-server || true
+              exit 1
+            fi
 
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
