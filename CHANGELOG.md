@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Fish Audio TTS provider for Japanese and English voices — adds Fish Audio as a fourth TTS provider alongside Google, Polly, and ElevenLabs; Fish Audio is now the preferred provider for Japanese voices with native speed control via `prosody.speed`, eliminating ffmpeg post-processing; includes 3 English narrator voices, 4 Japanese male voices, and 5 Japanese female voices with `fishaudio:` prefix convention to prevent voice ID collisions
+
+### Changed
+
+- **[refactor]** Voice selection preference order updated — Fish Audio voices are now preferred over ElevenLabs when available, with fallback chain: fishaudio → elevenlabs → google/polly
+- **[refactor]** Default Japanese speaker voices updated to Fish Audio (Nakamura + Rina Mama) and default English narrator updated to Fish Audio Visual Trails voice
+
+### Added
+
 - **[feat]** Admin Script Lab — step-by-step course generation debugging workflow for admins; splits the monolithic pipeline into inspectable stages (prompt preview/edit, dialogue extraction, script generation, audio assembly) with the ability to re-run any step
 - **[feat]** Editable script generation configuration in Admin Script Lab — exposes all timing parameters, AI prompts, and narration templates for tweaking pause durations, scenario generation, and teaching phrasing
 - **[test]** Unit tests for phraseContext propagation through batching pipeline — verifies phraseContext is correctly preserved when grouping TTS units and handled properly with/without reading fields

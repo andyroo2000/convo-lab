@@ -18,7 +18,7 @@ export const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'nati
 export const TONE_STYLES = ['casual', 'polite', 'formal'] as const;
 
 // TTS Voice Configuration
-// Supports Google Cloud TTS, Amazon Polly, and ElevenLabs providers
+// Supports Google Cloud TTS, Amazon Polly, ElevenLabs, and Fish Audio providers
 // Google: Neural2 and Wavenet voices (support enableTimePointing for batched TTS)
 // Polly: Neural voices (support Speech Marks for batched TTS)
 // ElevenLabs: voice names map to ElevenLabs voice IDs at runtime
@@ -27,6 +27,25 @@ export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
     voices: [
+      // Fish Audio narrator voices (preferred)
+      {
+        id: 'fishaudio:ac934b39586e475b83f3277cd97b5cd4',
+        gender: 'male',
+        description: 'Visual Trails - Deep and authoritative',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:1f638e52c8274648bf8c0427f1688205',
+        gender: 'male',
+        description: 'Calm Pro - Smooth and professional',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:6810b0ea7c094d6c9d8cd1cb871dc82a',
+        gender: 'male',
+        description: 'Prvi - Calm and introspective',
+        provider: 'fishaudio',
+      },
       // ElevenLabs narrator voices
       {
         id: 'Spuds Oxley',
@@ -101,6 +120,63 @@ export const TTS_VOICES = {
   ja: {
     languageCode: 'ja-JP',
     voices: [
+      // Fish Audio voices (preferred for Japanese)
+      // Male voices
+      {
+        id: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
+        gender: 'male',
+        description: 'Nakamura - Professional and measured',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:875668667eb94c20b09856b971d9ca2f',
+        gender: 'male',
+        description: 'Sample - Calm narrator',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
+        gender: 'male',
+        description: 'Watashi no Boisu - Warm and gentle',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+        gender: 'male',
+        description: 'Otani-san - Confident and professional',
+        provider: 'fishaudio',
+      },
+      // Female voices
+      {
+        id: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32',
+        gender: 'female',
+        description: 'Rina Mama - Gentle and warm',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:e6e20195abee4187bddfd1a2609a04f9',
+        gender: 'female',
+        description: 'Yu-san - Warm and empathetic',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0',
+        gender: 'female',
+        description: 'Ken Mama - Soft and intimate',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
+        gender: 'female',
+        description: 'Voice Clone Demo - Soothing and friendly',
+        provider: 'fishaudio',
+      },
+      {
+        id: 'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
+        gender: 'female',
+        description: 'Ken Mama 2 - Gentle and conversational',
+        provider: 'fishaudio',
+      },
       // ElevenLabs voices
       {
         id: 'Saanu',
@@ -216,13 +292,13 @@ export const TTS_VOICES = {
 
 // Default narrator voices for Pimsleur-style courses
 export const DEFAULT_NARRATOR_VOICES = {
-  en: 'Jon - Relaxed, Deep and Approachable', // ElevenLabs - Male
-  ja: 'ja-JP-Wavenet-C', // Shohei - Male
+  en: 'fishaudio:ac934b39586e475b83f3277cd97b5cd4', // Visual Trails - Deep and authoritative
+  ja: 'ja-JP-Wavenet-C', // Shohei - Male (Google)
 } as const;
 
 // Default L2 speaker voices for courses (used when no voice is specified at course creation)
 export const DEFAULT_SPEAKER_VOICES: Record<string, { speaker1: string; speaker2: string }> = {
-  ja: { speaker1: 'Otani', speaker2: 'Hiro' },
+  ja: { speaker1: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25', speaker2: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32' },
 };
 
 // Language abbreviations for UI display
