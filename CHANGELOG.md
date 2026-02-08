@@ -14,6 +14,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **[feat]** `AudioPreviewContext` — shared React context managing a single audio element for all voice previews, with busyRef guard against rapid-click race conditions
 - **[test]** VoicePreview component tests — 11 tests covering playback, error handling, accessibility, lazy loading, and shared context behavior
 - **[test]** voiceIdToFilename tests — 16 tests including security (path traversal, backslash), edge cases, and all voice ID formats
+- **[test]** Unit tests for line TTS synthesis endpoints — validates required fields, Fish Audio voice restriction, GCS upload paths, and LineAudioRendering CRUD operations
+- **[test]** Unit tests for draft status filtering logic — covers admin vs non-admin access, status=all/draft query params, and where clause construction
+- **[test]** Unit tests for showDrafts parameter in useLibraryData hook — verifies status=all query param is passed when showDrafts is true, omitted when false/undefined, and combined with viewAs
+- **[test]** Unit tests for pipeline data stage detection — covers exchanges/script stage parsing and scriptUnitsJson fallback for legacy courses
+
+### Changed
+
+- **[refactor]** Extract speed slider magic numbers to named constants in LineTTSTester (SPEED_MIN, SPEED_MAX, SPEED_STEP, SPEED_DEFAULT) and DEFAULT_SPEED in adminCourses synthesize-line handler
+
+### Fixed
+
+- **[fix]** Inconsistent error messages in LineTTSTester — standardized "Synthesis failed" to "Line synthesis failed" for clarity
 - **[feat]** Fish Audio TTS provider for Japanese and English voices — adds Fish Audio as a fourth TTS provider alongside Google, Polly, and ElevenLabs; Fish Audio is now the preferred provider for Japanese voices with native speed control via `prosody.speed`, eliminating ffmpeg post-processing; includes 3 English narrator voices, 4 Japanese male voices, and 5 Japanese female voices with `fishaudio:` prefix convention to prevent voice ID collisions
 
 ### Removed
