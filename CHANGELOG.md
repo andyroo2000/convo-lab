@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **[fix]** Fish Audio → ElevenLabs fallback now remaps voice IDs — when `FISH_AUDIO_API_KEY` is not configured, Fish Audio voice IDs are remapped to matching ElevenLabs voices (by gender and language) instead of being passed directly, which caused `ElevenLabs voice not found` errors
+- **[fix]** `FISH_AUDIO_API_KEY` now passed to server and worker Docker containers in production — the key was injected into `.env.production` but not mapped into the container environment, so Fish Audio was always unavailable
 
 ### Changed
 
