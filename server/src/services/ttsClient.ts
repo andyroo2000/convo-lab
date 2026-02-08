@@ -84,7 +84,7 @@ export function createAnticipationPromptSSML(text: string): string {
 /**
  * Generate silence audio buffer (for pause units)
  * Uses ffmpeg locally to produce silence with the same encoding parameters as
- * ElevenLabs (44100 Hz, stereo, 128 kbps MP3) so concat has no format mismatch.
+ * the TTS providers (44100 Hz, stereo, 128 kbps MP3) so concat has no format mismatch.
  */
 export async function generateSilence(durationSeconds: number): Promise<Buffer> {
   const tmpDir = os.tmpdir();

@@ -1050,8 +1050,8 @@ export async function runDialogueExtraction(
     gender: 'male' | 'female';
     provider?: string;
   }>;
-  const preferredProvider = voicesConfig.some((voice) => voice.provider === 'elevenlabs')
-    ? 'elevenlabs'
+  const preferredProvider = voicesConfig.some((voice) => voice.provider === 'fishaudio')
+    ? 'fishaudio'
     : undefined;
 
   const getFallbackVoices = (lang: string): [string, string] => {

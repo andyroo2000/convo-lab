@@ -1,6 +1,5 @@
 import { generateWithGemini } from './geminiClient.js';
 import { LessonPlan, LessonSection, DrillEvent } from './lessonPlanner.js';
-import { CoreItem } from './courseItemExtractor.js';
 
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
@@ -13,13 +12,6 @@ export type LessonScriptUnit =
       voiceId: string;
       speed?: number;
       pitch?: number;
-      /**
-       * Parent sentence context for pronunciation disambiguation (ElevenLabs only).
-       * Passed as previous_text to help TTS choose correct reading for isolated words.
-       * E.g., for isolated "食べる", set phraseContext to full sentence "私は寿司を食べる".
-       * This field only affects ElevenLabs TTS; Google Cloud and AWS Polly ignore it.
-       */
-      phraseContext?: string;
     }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };
@@ -477,7 +469,7 @@ async function generateSectionScriptBatched(
 /**
  * Generate script units for a specific section
  */
-async function generateSectionScript(
+async function _generateSectionScript(
   section: LessonSection,
   context: ScriptGenerationContext
 ): Promise<LessonScriptUnit[]> {
@@ -1162,7 +1154,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
   for (const unit of units) {
     switch (unit.type) {
       case 'narration_L1':
-      case 'L2':
+      case 'L2': {
         // Estimate speech duration: ~150 words per minute (2.5 words/sec)
         // For CJK languages, ~3 characters per second
         const { text } = unit;
@@ -1180,6 +1172,7 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
           total /= unit.speed;
         }
         break;
+      }
 
       case 'pause':
         total += unit.seconds;
