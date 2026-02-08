@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Audio sweetening chain for loudness normalization and quality enhancement — adds two-stage audio processing: per-segment loudness normalization (EBU R128 LUFS) to match voice levels before assembly, and final mix sweetening (highpass filter + compression + presence EQ + loudness limiting) to improve clarity and consistency; includes standalone test script (`test-audio-sweetening.ts`) for A/B comparison and tuning before deployment; all parameters configurable via env vars with sensible defaults; can be toggled off entirely with `AUDIO_SWEETENING_ENABLED=0`
 - **[feat]** Fish Audio TTS provider for Japanese and English voices — adds Fish Audio as a fourth TTS provider alongside Google, Polly, and ElevenLabs; Fish Audio is now the preferred provider for Japanese voices with native speed control via `prosody.speed`, eliminating ffmpeg post-processing; includes 3 English narrator voices, 4 Japanese male voices, and 5 Japanese female voices with `fishaudio:` prefix convention to prevent voice ID collisions
 
 ### Fixed

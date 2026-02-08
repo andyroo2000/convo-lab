@@ -84,6 +84,11 @@ vi.mock('../../../services/batchedTTSClient.js', () => ({
   synthesizeBatchedTexts: mockSynthesizeBatchedTexts,
 }));
 
+vi.mock('../../../services/audioProcessing.js', () => ({
+  normalizeSegmentLoudness: vi.fn((buf: Buffer) => Promise.resolve(buf)),
+  applySweeteningChainToBuffer: vi.fn((buf: Buffer) => Promise.resolve(buf)),
+}));
+
 vi.mock('../../../services/storageClient.js', () => ({
   uploadAudio: mockUploadAudio,
 }));

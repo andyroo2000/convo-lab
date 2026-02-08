@@ -54,6 +54,11 @@ const mockFs = vi.hoisted(() => ({
 }));
 
 // Mock dependencies
+vi.mock('../../../services/audioProcessing.js', () => ({
+  normalizeSegmentLoudness: vi.fn((buf: Buffer) => Promise.resolve(buf)),
+  applySweeteningChain: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../../services/storageClient.js', () => ({
   uploadFileToGCS: mockUploadFileToGCS,
 }));
