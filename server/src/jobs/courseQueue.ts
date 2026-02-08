@@ -146,7 +146,7 @@ async function processCourseGeneration(job: {
     if (firstEpisode.dialogue?.sentences?.length) {
       console.log(`Using existing dialogue for course generation: ${firstEpisode.title}`);
       dialogueExchanges = await extractDialogueExchanges(
-        firstEpisode,
+        firstEpisode as unknown as Parameters<typeof extractDialogueExchanges>[0],
         course.maxLessonDurationMinutes
       );
       console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from dialogue`);
