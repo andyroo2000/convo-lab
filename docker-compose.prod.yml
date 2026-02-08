@@ -111,6 +111,7 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:
@@ -155,6 +156,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
       AWS_REGION: ${AWS_REGION}
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY}
+      FISH_AUDIO_API_KEY: ${FISH_AUDIO_API_KEY}
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:
