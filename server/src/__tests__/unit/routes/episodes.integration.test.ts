@@ -238,6 +238,11 @@ describe('Episodes Routes Integration', () => {
             },
           },
           images: { orderBy: { order: 'asc' } },
+          courseEpisodes: {
+            select: {
+              courseId: true,
+            },
+          },
         },
       });
     });
@@ -281,6 +286,8 @@ describe('Episodes Routes Integration', () => {
         nativeLanguage: 'en',
         audioSpeed: 'medium',
         status: 'draft',
+        jlptLevel: null,
+        autoGenerateAudio: true,
       };
 
       mockPrisma.episode.create.mockResolvedValue(newEpisode);
@@ -305,6 +312,8 @@ describe('Episodes Routes Integration', () => {
           nativeLanguage: 'en',
           audioSpeed: 'medium',
           status: 'draft',
+          jlptLevel: null,
+          autoGenerateAudio: true,
         },
       });
     });

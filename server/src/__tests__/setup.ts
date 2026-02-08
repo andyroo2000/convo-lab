@@ -33,7 +33,7 @@ i18next.init({
           passwordResetSuccess: 'Password reset successfully',
         },
         validation: {
-          jlptLevel: 'Invalid JLPT level. Must be N5, N4, N3, or N2.',
+          jlptLevel: 'Invalid JLPT level. Must be N5, N4, N3, N2, or N1.',
           itemCount: 'Invalid item count. Must be 10 or 15.',
           grammarPoint: 'Invalid grammar point.',
           grammarPointMismatch:

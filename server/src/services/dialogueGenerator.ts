@@ -78,13 +78,15 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
       speakers
     );
 
+    const effectiveJlptLevel = jlptLevel || episode.jlptLevel || undefined;
+
     const prompt = await buildDialoguePrompt(
       episode.sourceText,
       speakers,
       variationCount,
       dialogueLength,
       episode.targetLanguage,
-      jlptLevel,
+      effectiveJlptLevel,
       vocabSeedOverride,
       grammarSeedOverride
     );
@@ -254,7 +256,10 @@ ${formatWordsForPrompt(seedWords, targetLanguage)}
 You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
       }
     } catch (error) {
-      console.warn(`[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
+      console.warn(
+        `[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`,
+        error
+      );
     }
   }
 
@@ -278,7 +283,10 @@ ${formatGrammarForPrompt(seedGrammar)}
 Use these patterns where they naturally fit the conversation flow.`;
       }
     } catch (error) {
-      console.warn(`[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
+      console.warn(
+        `[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`,
+        error
+      );
     }
   }
 

@@ -90,7 +90,6 @@ describe('CreatePage', () => {
       renderCreatePage();
 
       expect(screen.getByTestId('create-card-dialogues')).toBeTruthy();
-      expect(screen.getByTestId('create-card-audio-course')).toBeTruthy();
     });
   });
 
@@ -122,15 +121,6 @@ describe('CreatePage', () => {
       fireEvent.click(dialogueCard);
 
       expect(mockNavigate).toHaveBeenCalledWith('/app/create/dialogue');
-    });
-
-    it('should navigate to audio course creation on click', () => {
-      renderCreatePage();
-
-      const audioCourseCard = screen.getByTestId('create-card-audio-course');
-      fireEvent.click(audioCourseCard);
-
-      expect(mockNavigate).toHaveBeenCalledWith('/app/create/audio-course');
     });
   });
 

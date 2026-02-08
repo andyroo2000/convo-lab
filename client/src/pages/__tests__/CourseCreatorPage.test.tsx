@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter, Routes, Route } from 'react-router-dom';
 
 import CourseCreatorPage from '../CourseCreatorPage';
 
@@ -13,20 +13,22 @@ vi.mock('../../components/courses/CourseGenerator', () => ({
 describe('CourseCreatorPage', () => {
   const renderPage = () =>
     render(
-      <BrowserRouter>
-        <CourseCreatorPage />
-      </BrowserRouter>
+      <MemoryRouter initialEntries={['/app/create/audio-course/episode-123']}>
+        <Routes>
+          <Route path="/app/create/audio-course/:episodeId" element={<CourseCreatorPage />} />
+        </Routes>
+      </MemoryRouter>
     );
 
   it('should render page title', () => {
     renderPage();
-    expect(screen.getByText('Guided Audio Course')).toBeInTheDocument();
+    expect(screen.getByText('Create Audio Course')).toBeInTheDocument();
   });
 
   it('should render page description', () => {
     renderPage();
     expect(
-      screen.getByText('Audio-only lessons perfect for your commute or morning walk')
+      screen.getByText('Build a guided audio course from an existing dialogue')
     ).toBeInTheDocument();
   });
 

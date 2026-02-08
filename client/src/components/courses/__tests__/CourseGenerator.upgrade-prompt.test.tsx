@@ -44,14 +44,20 @@ vi.mock('../../../../../shared/src/voiceSelection', () => ({
 // Mock TTS voices constants
 vi.mock('../../../../../shared/src/constants-new', () => ({
   TTS_VOICES: {
-    ja: [
-      { id: 'ja-voice-1', name: 'Voice 1', gender: 'male' },
-      { id: 'ja-voice-2', name: 'Voice 2', gender: 'female' },
-    ],
-    en: [
-      { id: 'en-voice-1', name: 'Voice 1', gender: 'male' },
-      { id: 'en-voice-2', name: 'Voice 2', gender: 'female' },
-    ],
+    ja: {
+      languageCode: 'ja-JP',
+      voices: [
+        { id: 'ja-voice-1', description: 'Voice 1', gender: 'male' },
+        { id: 'ja-voice-2', description: 'Voice 2', gender: 'female' },
+      ],
+    },
+    en: {
+      languageCode: 'en-US',
+      voices: [
+        { id: 'en-voice-1', description: 'Voice 1', gender: 'male', provider: 'fishaudio' },
+        { id: 'en-voice-2', description: 'Voice 2', gender: 'female', provider: 'fishaudio' },
+      ],
+    },
   },
 }));
 

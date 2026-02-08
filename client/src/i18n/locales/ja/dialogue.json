@@ -4,7 +4,8 @@
   "alerts": {
     "fillRequired": "すべての必須フィールドに入力してください",
     "twoSpeakers": "少なくとも2人のスピーカーを追加してください",
-    "generationFailed": "対話の生成に失敗しました。もう一度お試しください。"
+    "generationFailed": "対話の生成に失敗しました。もう一度お試しください。",
+    "courseFields": "オーディオコースのタイトルとナレーター音声を入力してください"
   },
   "placeholderTitle": "対話を生成中...",
   "generating": {
@@ -35,7 +36,39 @@
       "casual": "カジュアル",
       "polite": "丁寧",
       "formal": "フォーマル"
-    }
+    },
+    "seedOverrides": "任意のシード上書き",
+    "vocabSeeds": "語彙シード（上書き）",
+    "vocabSeedsPlaceholder": "例：予約, 週末, 美味しい",
+    "grammarSeeds": "文法シード（上書き）",
+    "grammarSeedsPlaceholder": "例：〜たい, 〜てみる, 〜ながら",
+    "seedHelper": "入力したシードは、そのカテゴリのJLPT候補を上書きします。"
+  },
+  "voiceConfig": {
+    "title": "対話の音声",
+    "speaker": "スピーカー{{number}}の音声",
+    "helper": "これらの音声は対話の再生とオーディオコース作成に使用されます。"
+  },
+  "audioSettings": {
+    "title": "対話オーディオ",
+    "autoTitle": "全速度の音声を自動生成",
+    "autoHelper": "対話の生成完了後に低速・中速・通常の音声を自動で作成します。"
+  },
+  "audioCourse": {
+    "title": "任意のオーディオコース",
+    "toggleTitle": "対話の後にオーディオコースを作成する",
+    "toggleHelper": "生成された対話を元にガイド付き音声コースを作成します。",
+    "courseTitle": "オーディオコースのタイトル",
+    "courseTitlePlaceholder": "例：週末の予定 - オーディオコース",
+    "narratorLabel": "ナレーター音声（EN）",
+    "maxDuration": "レッスンの最大時間",
+    "durationOptions": {
+      "10": "10分",
+      "15": "15分",
+      "20": "20分",
+      "30": "30分"
+    },
+    "helper": "対話の音声は一貫性のために再利用されます。"
   },
   "generate": {
     "ready": "生成の準備ができましたか？",

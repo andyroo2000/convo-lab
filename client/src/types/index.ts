@@ -2,7 +2,16 @@
 
 export type LanguageCode = 'ja' | 'en';
 
-export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'native';
+export type ProficiencyLevel =
+  | 'beginner'
+  | 'intermediate'
+  | 'advanced'
+  | 'native'
+  | 'N5'
+  | 'N4'
+  | 'N3'
+  | 'N2'
+  | 'N1';
 
 export type ToneStyle = 'casual' | 'polite' | 'formal';
 

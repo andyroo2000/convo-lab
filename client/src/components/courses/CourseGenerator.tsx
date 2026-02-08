@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
-import { LanguageCode } from '../../types';
+import { Episode, LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
+import { useEpisodes } from '../../hooks/useEpisodes';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
@@ -26,17 +27,25 @@ interface ErrorMetadata {
   status?: number;
 }
 
-const CourseGenerator = () => {
+interface CourseGeneratorProps {
+  episodeId?: string;
+}
+
+const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { t } = useTranslation(['audioCourse']);
   const { user } = useAuth(); // For role checking
+  const { getEpisode } = useEpisodes();
   const isDemo = useIsDemo();
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [title, setTitle] = useState('');
   const [sourceText, setSourceText] = useState('');
+  const [episode, setEpisode] = useState<Episode | null>(null);
+  const [episodeLoading, setEpisodeLoading] = useState(false);
+  const [episodeError, setEpisodeError] = useState<string | null>(null);
   const nativeLanguage: LanguageCode = 'en';
   const targetLanguage: LanguageCode = 'ja';
   const [maxDuration, setMaxDuration] = useState(30);
@@ -73,6 +82,44 @@ const CourseGenerator = () => {
     setSpeaker2VoiceId(speakerVoices[1] || '');
   }, [nativeLanguage, targetLanguage]);
 
+  // Load episode details when creating a course from an existing dialogue
+  useEffect(() => {
+    if (!episodeId) return undefined;
+    let isActive = true;
+
+    const loadEpisode = async () => {
+      try {
+        setEpisodeLoading(true);
+        setEpisodeError(null);
+        const data = await getEpisode(episodeId, false, viewAsUserId);
+        if (!isActive) return;
+
+        setEpisode(data);
+        setTitle((prev) => prev || `${data.title} - Audio Course`);
+        if (data.jlptLevel) {
+          setJlptLevel(data.jlptLevel);
+        }
+
+        if (data.dialogue?.speakers?.length) {
+          const [first, second] = data.dialogue.speakers;
+          if (first?.voiceId) setSpeaker1VoiceId(first.voiceId);
+          if (second?.voiceId) setSpeaker2VoiceId(second.voiceId);
+        }
+      } catch (err) {
+        if (!isActive) return;
+        setEpisodeError(err instanceof Error ? err.message : 'Failed to load dialogue');
+      } finally {
+        if (isActive) setEpisodeLoading(false);
+      }
+    };
+
+    loadEpisode();
+
+    return () => {
+      isActive = false;
+    };
+  }, [episodeId, getEpisode, viewAsUserId]);
+
   const handleCreate = async () => {
     // Block demo users from creating content
     if (isDemo) {
@@ -80,7 +127,7 @@ const CourseGenerator = () => {
       return;
     }
 
-    if (!title.trim() || !sourceText.trim()) {
+    if (!title.trim() || (!episodeId && !sourceText.trim())) {
       setError(t('audioCourse:alerts.fillRequired'));
       return;
     }
@@ -102,7 +149,7 @@ const CourseGenerator = () => {
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
-          sourceText: sourceText.trim(),
+          ...(episodeId ? { episodeIds: [episodeId] } : { sourceText: sourceText.trim() }),
           nativeLanguage,
           targetLanguage,
           maxLessonDurationMinutes: maxDuration,
@@ -175,7 +222,7 @@ const CourseGenerator = () => {
   };
 
   const handleCreateDraft = async () => {
-    if (!title.trim() || !sourceText.trim()) {
+    if (!title.trim() || (!episodeId && !sourceText.trim())) {
       setError(t('audioCourse:alerts.fillRequired'));
       return;
     }
@@ -196,7 +243,7 @@ const CourseGenerator = () => {
         credentials: 'include',
         body: JSON.stringify({
           title: title.trim(),
-          sourceText: sourceText.trim(),
+          ...(episodeId ? { episodeIds: [episodeId] } : { sourceText: sourceText.trim() }),
           nativeLanguage,
           targetLanguage,
           maxLessonDurationMinutes: maxDuration,
@@ -229,6 +276,19 @@ const CourseGenerator = () => {
     }
   };
 
+  const dialoguePreview = useMemo(() => {
+    if (!episode?.dialogue?.sentences?.length) return '';
+    const speakerMap = new Map(
+      episode.dialogue.speakers?.map((speaker) => [speaker.id, speaker.name]) || []
+    );
+    return episode.dialogue.sentences
+      .map((sentence) => {
+        const speakerName = speakerMap.get(sentence.speakerId) || 'Speaker';
+        return `${speakerName}: ${sentence.text}`;
+      })
+      .join('\n');
+  }, [episode]);
+
   if (step === 'complete') {
     return (
       <div className="max-w-4xl mx-auto">
@@ -258,9 +318,7 @@ const CourseGenerator = () => {
   }
 
   const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  const narratorVoiceChoices = narratorVoices.filter(
-    (voice) => voice.provider === 'fishaudio'
-  );
+  const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
@@ -294,18 +352,44 @@ const CourseGenerator = () => {
               htmlFor="course-generator-story"
               className="block text-base font-bold text-dark-brown mb-3"
             >
-              {t('audioCourse:courseDetails.yourStory')} *
+              {episodeId
+                ? t('audioCourse:courseDetails.dialoguePreview')
+                : t('audioCourse:courseDetails.yourStory')}{' '}
+              {!episodeId && '*'}
             </label>
-            <textarea
-              id="course-generator-story"
-              value={sourceText}
-              onChange={(e) => setSourceText(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base h-40"
-              placeholder={t('audioCourse:courseDetails.storyPlaceholder')}
-            />
-            <p className="text-sm text-gray-500 mt-2">
-              {t('audioCourse:courseDetails.storyHelper')}
-            </p>
+            {episodeId ? (
+              <>
+                <textarea
+                  id="course-generator-story"
+                  value={dialoguePreview}
+                  readOnly
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg bg-gray-50 text-base h-40"
+                  placeholder={t('audioCourse:courseDetails.dialoguePlaceholder')}
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  {t('audioCourse:courseDetails.dialogueHelper')}
+                </p>
+                {episodeLoading && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    {t('audioCourse:courseDetails.loadingDialogue')}
+                  </p>
+                )}
+                {episodeError && <p className="text-sm text-red-600 mt-2">{episodeError}</p>}
+              </>
+            ) : (
+              <>
+                <textarea
+                  id="course-generator-story"
+                  value={sourceText}
+                  onChange={(e) => setSourceText(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base h-40"
+                  placeholder={t('audioCourse:courseDetails.storyPlaceholder')}
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  {t('audioCourse:courseDetails.storyHelper')}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -368,7 +452,7 @@ const CourseGenerator = () => {
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
+                    </option>
                   ))}
                 </select>
                 <VoicePreview voiceId={speaker1VoiceId} />
@@ -391,7 +475,7 @@ const CourseGenerator = () => {
                   {targetVoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
                       ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
+                    </option>
                   ))}
                 </select>
                 <VoicePreview voiceId={speaker2VoiceId} />
@@ -515,7 +599,9 @@ const CourseGenerator = () => {
           <button
             type="button"
             onClick={adminMode ? handleCreateDraft : handleCreate}
-            disabled={isCreating || !title.trim() || !sourceText.trim() || !selectedVoice}
+            disabled={
+              isCreating || !title.trim() || (!episodeId && !sourceText.trim()) || !selectedVoice
+            }
             className="w-full sm:w-auto bg-coral hover:bg-coral-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
           >
             {/* eslint-disable-next-line no-nested-ternary */}

@@ -70,7 +70,11 @@ const App = () => (
                     {/* Create - Content Creation Hub */}
                     <Route path="create" element={<CreatePage />} />
                     <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-                    <Route path="create/audio-course" element={<CourseCreatorPage />} />
+                    <Route
+                      path="create/audio-course"
+                      element={<Navigate to="/app/create/dialogue" replace />}
+                    />
+                    <Route path="create/audio-course/:episodeId" element={<CourseCreatorPage />} />
 
                     {/* Playback & Practice */}
                     <Route path="playback/:episodeId" element={<PlaybackPage />} />

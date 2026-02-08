@@ -46,6 +46,12 @@ vi.mock('../../hooks/useSpeakerAvatars', () => ({
   }),
 }));
 
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    isFeatureEnabled: () => true,
+  }),
+}));
+
 // Mock the AudioPlayer component
 vi.mock('../../components/AudioPlayer', () => ({
   default: ({ src }: { src: string; audioRef: unknown }) => (
@@ -73,18 +79,22 @@ const mockEpisode: Episode = {
   id: 'episode-123',
   title: 'Test Episode',
   targetLanguage: 'ja',
-  sourceLanguage: 'en',
-  status: 'completed',
+  nativeLanguage: 'en',
+  sourceText: 'Test source text',
+  status: 'ready',
   audioUrl: 'https://storage.example.com/audio.mp3',
   audioUrl_0_7: 'https://storage.example.com/audio-0.7.mp3',
   audioUrl_0_85: 'https://storage.example.com/audio-0.85.mp3',
   audioUrl_1_0: 'https://storage.example.com/audio-1.0.mp3',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  createdAt: new Date(),
+  updatedAt: new Date(),
   userId: 'user-123',
+  autoGenerateAudio: true,
   dialogue: {
     id: 'dialogue-123',
     episodeId: 'episode-123',
+    createdAt: new Date(),
+    updatedAt: new Date(),
     speakers: [
       {
         id: 'speaker-1',
@@ -106,10 +116,15 @@ const mockEpisode: Episode = {
     sentences: [
       {
         id: 'sentence-1',
+        dialogueId: 'dialogue-123',
         text: 'こんにちは',
         translation: 'Hello',
         speakerId: 'speaker-1',
         order: 0,
+        metadata: { japanese: { kanji: 'こんにちは', kana: 'こんにちは', furigana: '' } },
+        selected: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         startTime: 0,
         endTime: 2000,
         startTime_0_7: 0,
@@ -121,10 +136,15 @@ const mockEpisode: Episode = {
       },
       {
         id: 'sentence-2',
+        dialogueId: 'dialogue-123',
         text: 'お元気ですか',
         translation: 'How are you?',
         speakerId: 'speaker-2',
         order: 1,
+        metadata: { japanese: { kanji: 'お元気ですか', kana: 'おげんきですか', furigana: '' } },
+        selected: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
         startTime: 2000,
         endTime: 4000,
         startTime_0_7: 2857,

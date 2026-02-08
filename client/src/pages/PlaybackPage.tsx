@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES, getSpeakerColor } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
+import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
 import JapaneseText from '../components/JapaneseText';
 import AudioPlayer from '../components/AudioPlayer';
@@ -38,6 +39,7 @@ const PlaybackPage = () => {
     pollJobStatus: _pollJobStatus,
     loading,
   } = useEpisodes();
+  const { isFeatureEnabled } = useFeatureFlags();
   const { audioRef, currentTime, isPlaying, seek, play, pause } = useAudioPlayer();
   const { avatarUrlMap } = useSpeakerAvatars();
   const [episode, setEpisode] = useState<Episode | null>(null);
@@ -50,6 +52,7 @@ const PlaybackPage = () => {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('info');
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
 
   // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
   // Must be defined before useEffect hooks that reference speedKey
@@ -175,6 +178,7 @@ const PlaybackPage = () => {
   // Auto-generate missing audio speeds
   useEffect(() => {
     if (!episode || !episode.dialogue) return;
+    if (episode.autoGenerateAudio === false) return;
 
     // Already processed this episode in this session
     if (lastProcessedEpisodeRef.current === episode.id) return;
@@ -433,16 +437,25 @@ const PlaybackPage = () => {
   // Create speaker index map for color assignment
   const speakerIndexMap = new Map(speakers.map((s, index) => [s.id, index]));
 
+  const hasAudioCourse = Boolean(episode.courseEpisodes?.length);
+  const hasAllSpeeds = Boolean(
+    episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
+  );
+  const hasAnyAudio = Boolean(
+    episode.audioUrl_0_7 || episode.audioUrl_0_85 || episode.audioUrl_1_0 || episode.audioUrl
+  );
+  const needsAudioGeneration = !hasAllSpeeds;
+  const autoGenerationEnabled = episode.autoGenerateAudio !== false;
+
   // Get current audio URL based on selected speed
   /* eslint-disable no-nested-ternary */
-  const currentAudioUrl =
-    episode.audioUrl_0_7 && episode.audioUrl_0_85 && episode.audioUrl_1_0
-      ? speedKey === 'slow'
-        ? episode.audioUrl_0_7
-        : speedKey === 'medium'
-          ? episode.audioUrl_0_85
-          : episode.audioUrl_1_0
-      : episode.audioUrl; // Fallback to legacy for old episodes
+  const currentAudioUrl = hasAllSpeeds
+    ? speedKey === 'slow'
+      ? episode.audioUrl_0_7
+      : speedKey === 'medium'
+        ? episode.audioUrl_0_85
+        : episode.audioUrl_1_0
+    : episode.audioUrl; // Fallback to legacy for old episodes
   /* eslint-enable no-nested-ternary */
 
   return (
@@ -479,28 +492,43 @@ const PlaybackPage = () => {
                 </div>
               </div>
 
-              {/* Controls: Toggles and Speed Selector - Stack on mobile, side-by-side on desktop */}
-              {!isGeneratingAudio && currentAudioUrl && (
-                <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
-                  {/* Row 1: Furigana & English Toggles - Only show for Japanese */}
-                  {episode?.targetLanguage === 'ja' && (
-                    <ViewToggleButtons
-                      showReadings={showReadings}
-                      showTranslations={showTranslations}
-                      onToggleReadings={() => setShowReadings(!showReadings)}
-                      onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                      readingsLabel="Furigana"
-                    />
-                  )}
+              {/* Controls: Toggles, Speed, and Conversion CTA */}
+              <div className="flex flex-col items-start sm:items-end gap-2 sm:ml-6">
+                {!isGeneratingAudio && currentAudioUrl && (
+                  <>
+                    {/* Row 1: Furigana & English Toggles - Only show for Japanese */}
+                    {episode?.targetLanguage === 'ja' && (
+                      <ViewToggleButtons
+                        showReadings={showReadings}
+                        showTranslations={showTranslations}
+                        onToggleReadings={() => setShowReadings(!showReadings)}
+                        onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                        readingsLabel="Furigana"
+                      />
+                    )}
 
-                  {/* Row 2: Speed Selector */}
-                  <SpeedSelector
-                    selectedSpeed={selectedSpeed}
-                    onSpeedChange={(speed) => setSelectedSpeed(speed as AudioSpeed)}
-                    showLabels
-                  />
-                </div>
-              )}
+                    {/* Row 2: Speed Selector */}
+                    <SpeedSelector
+                      selectedSpeed={selectedSpeed}
+                      onSpeedChange={(speed) => setSelectedSpeed(speed as AudioSpeed)}
+                      showLabels
+                    />
+                  </>
+                )}
+
+                {audioCourseEnabled && !hasAudioCourse && (
+                  <Link
+                    to={
+                      viewAsUserId
+                        ? `/app/create/audio-course/${episode.id}?viewAs=${viewAsUserId}`
+                        : `/app/create/audio-course/${episode.id}`
+                    }
+                    className="btn-outline text-sm px-3 py-2"
+                  >
+                    Convert to Audio Course
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -528,6 +556,30 @@ const PlaybackPage = () => {
                   </span>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {!isGeneratingAudio && needsAudioGeneration && (
+          <div className="bg-yellow border-b border-gray-200">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-dark-brown">
+                  {hasAnyAudio ? 'More audio speeds are available.' : 'Audio isn’t generated yet.'}
+                </p>
+                <p className="text-xs text-gray-600">
+                  {autoGenerationEnabled
+                    ? 'Generate audio to enable slow, medium, and normal playback.'
+                    : 'Auto-generation is off for this dialogue. Generate audio to enable playback.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleGenerateAllSpeeds}
+                className="btn-secondary text-sm px-3 py-2"
+              >
+                Generate Audio
+              </button>
             </div>
           </div>
         )}
