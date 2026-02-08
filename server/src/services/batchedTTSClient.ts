@@ -19,6 +19,7 @@ import {
   SynthesizeWithTimepointsResult,
 } from './ttsProviders/GoogleTTSBetaProvider.js';
 import {
+  isFishAudioAvailable,
   resolveFishAudioVoiceId,
   synthesizeFishAudioSpeech,
 } from './ttsProviders/FishAudioTTSProvider.js';
@@ -1046,6 +1047,11 @@ export async function processBatches(
   const expandedBatches = batches.flatMap((batch) => {
     const providerType = getProviderFromVoiceId(batch.voiceId);
     if (providerType === 'fishaudio') {
+      if (!isFishAudioAvailable()) {
+        // eslint-disable-next-line no-console
+        console.warn('[TTS BATCH] Fish Audio API key not configured, falling back to ElevenLabs');
+        return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+      }
       return splitFishAudioBatch(batch);
     }
     if (providerType === 'elevenlabs') {
@@ -1077,9 +1083,9 @@ export async function processBatches(
 
     let batchSegments: Map<number, Buffer>;
 
-    if (providerType === 'fishaudio') {
+    if (providerType === 'fishaudio' && isFishAudioAvailable()) {
       batchSegments = await synthesizeFishAudioBatch(batch);
-    } else if (providerType === 'elevenlabs') {
+    } else if (providerType === 'fishaudio' || providerType === 'elevenlabs') {
       batchSegments = await synthesizeElevenLabsBatch(batch, tempDir);
     } else {
       const provider =
@@ -1238,7 +1244,7 @@ export async function synthesizeBatchedTexts(
 
   // Detect provider from voice ID
   const providerType = getProviderFromVoiceId(voiceId);
-  if (providerType === 'fishaudio') {
+  if (providerType === 'fishaudio' && isFishAudioAvailable()) {
     const batch: TTSBatch = {
       voiceId,
       languageCode,
