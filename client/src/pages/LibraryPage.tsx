@@ -311,7 +311,7 @@ const LibraryPage = () => {
               title={t('library:emptyStates.course.title')}
               description={t('library:emptyStates.course.description')}
               buttonText={t('library:emptyStates.course.button')}
-              route="/app/create/audio-course"
+              route="/app/create/dialogue"
               viewAsUserId={viewAsUserId}
               colorTheme={{
                 bg: 'bg-coral-light',

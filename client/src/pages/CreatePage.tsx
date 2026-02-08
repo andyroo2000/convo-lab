@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { MessageSquare, Headphones } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
@@ -78,35 +78,6 @@ const CreatePage = () => {
             </div>
           </button>
         )}
-
-        {/* Course Content Type */}
-        {isFeatureEnabled('audioCourseEnabled') && (
-          <button
-            type="button"
-            onClick={() => navigateWithViewAs('/app/create/audio-course')}
-            className="w-full flex items-center bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-xl group"
-            data-testid="create-card-audio-course"
-          >
-            <div className="w-20 sm:w-32 flex-shrink-0 bg-coral flex flex-col items-center justify-center py-6 sm:py-8">
-              <Headphones className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide text-center leading-tight">
-                {t('create:types.course.title').split(' ')[0]}
-                <br />
-                {t('create:types.course.title').split(' ')[1]}
-              </span>
-            </div>
-            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-coral transition-colors mb-1 sm:mb-2">
-                {t('create:types.course.title')}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                {t('create:types.course.description')}
-              </p>
-            </div>
-          </button>
-        )}
-
-
       </div>
 
       <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>

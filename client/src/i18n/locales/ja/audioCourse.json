@@ -1,6 +1,8 @@
 {
   "pageTitle": "ガイド付きオーディオコース",
   "pageSubtitle": "通勤や朝の散歩に最適な音声のみのレッスン",
+  "pageTitleFromDialogue": "オーディオコースを作成",
+  "pageSubtitleFromDialogue": "既存の対話からガイド付きオーディオコースを作成します",
   "alerts": {
     "fillRequired": "すべての必須フィールドに入力してください",
     "selectVoice": "ナレーターの音声を選択してください"
@@ -15,7 +17,11 @@
     "courseTitlePlaceholder": "例：日本のレストランでの会話",
     "yourStory": "あなたのストーリーまたは体験",
     "storyPlaceholder": "学習したい体験、会話、または状況を説明してください。AIがあなたの説明に基づいてインタラクティブなオーディオコースを作成します。",
-    "storyHelper": "文脈と設定について具体的に記述してください。これにより、より本格的な学習教材が作成されます。"
+    "storyHelper": "文脈と設定について具体的に記述してください。これにより、より本格的な学習教材が作成されます。",
+    "dialoguePreview": "対話プレビュー",
+    "dialoguePlaceholder": "対話を読み込み中...",
+    "dialogueHelper": "このコースは既存の対話を使用して生成します。",
+    "loadingDialogue": "対話の詳細を読み込み中..."
   },
   "voiceConfig": {
     "title": "音声設定",

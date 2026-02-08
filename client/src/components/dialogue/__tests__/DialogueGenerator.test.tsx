@@ -15,7 +15,7 @@ const mockPollJobStatus = vi.fn();
 const mockNavigate = vi.fn();
 const mockInvalidateLibrary = vi.fn();
 let mockErrorMetadata: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any = null;
+any = null;
 
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom');
@@ -46,6 +46,12 @@ vi.mock('../../../hooks/useDemo', () => ({
   useIsDemo: () => false,
 }));
 
+vi.mock('../../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    isFeatureEnabled: () => true,
+  }),
+}));
+
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: {
@@ -63,11 +69,24 @@ vi.mock('../../../../../shared/src/constants-new', () => ({
     en: { name: 'English', nativeName: 'English' },
   },
   SPEAKER_COLORS: ['#6366f1', '#ec4899', '#10b981', '#f59e0b'],
+  TTS_VOICES: {
+    ja: {
+      voices: [
+        { id: 'ja-voice-1', gender: 'male', description: 'JP Voice 1', provider: 'fishaudio' },
+        { id: 'ja-voice-2', gender: 'female', description: 'JP Voice 2', provider: 'fishaudio' },
+      ],
+    },
+    en: {
+      voices: [
+        { id: 'en-voice-1', gender: 'male', description: 'EN Voice 1', provider: 'fishaudio' },
+        { id: 'en-voice-2', gender: 'female', description: 'EN Voice 2', provider: 'fishaudio' },
+      ],
+    },
+  },
 }));
 
 vi.mock('../../../../../shared/src/nameConstants', () => ({
-  getRandomName: (_language: string, gender: string) =>
-    gender === 'male' ? '田中' : '鈴木',
+  getRandomName: (_language: string, gender: string) => (gender === 'male' ? '田中' : '鈴木'),
 }));
 
 vi.mock('../../../../../shared/src/voiceSelection', () => ({
@@ -76,6 +95,16 @@ vi.mock('../../../../../shared/src/voiceSelection', () => ({
       { voiceId: `${language}-voice-1`, gender: 'male' },
       { voiceId: `${language}-voice-2`, gender: 'female' },
     ].slice(0, count),
+  getCourseSpeakerVoices: (_targetLanguage: string, _nativeLanguage: string, _count: number) => ({
+    narratorVoice: 'en-voice-1',
+    speakerVoices: ['ja-voice-1', 'ja-voice-2'],
+  }),
+}));
+
+vi.mock('../../common/VoicePreview', () => ({
+  default: ({ voiceId }: { voiceId: string }) => (
+    <div data-testid={`voice-preview-${voiceId}`}>Voice Preview</div>
+  ),
 }));
 
 vi.mock('../../common/DemoRestrictionModal', () => ({
@@ -299,7 +328,8 @@ describe('DialogueGenerator', () => {
         'episode-123',
         expect.any(Array),
         3, // variations per sentence
-        8 // default dialogue length
+        8, // default dialogue length
+        expect.objectContaining({ jlptLevel: 'N5' })
       );
     });
 
@@ -318,7 +348,13 @@ describe('DialogueGenerator', () => {
         fireEvent.click(button);
       });
 
-      expect(mockGenerateDialogue).toHaveBeenCalledWith('episode-123', expect.any(Array), 3, 30);
+      expect(mockGenerateDialogue).toHaveBeenCalledWith(
+        'episode-123',
+        expect.any(Array),
+        3,
+        30,
+        expect.objectContaining({ jlptLevel: 'N5' })
+      );
     });
   });
 
@@ -906,8 +942,6 @@ describe('DialogueGenerator - Demo User', () => {
     );
 
     // Modal should not be visible initially
-    expect(
-      screen.queryByTestId('demo-restriction-modal')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId('demo-restriction-modal')).not.toBeInTheDocument();
   });
 });

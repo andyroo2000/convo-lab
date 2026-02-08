@@ -9,7 +9,11 @@ import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js
 import { prisma } from '../db/client.js';
 import { assembleLessonAudio } from '../services/audioCourseAssembler.js';
 import { generateConversationalLessonScript } from '../services/conversationalLessonScriptGenerator.js';
-import { extractDialogueExchangesFromSourceText } from '../services/courseItemExtractor.js';
+import {
+  extractDialogueExchanges,
+  extractDialogueExchangesFromSourceText,
+} from '../services/courseItemExtractor.js';
+import type { DialogueExchange } from '../services/courseItemExtractor.js';
 import { addReadingBrackets } from '../services/furiganaService.js';
 import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
@@ -48,6 +52,12 @@ async function processCourseGeneration(job: {
                 dialogue: {
                   include: {
                     speakers: true,
+                    sentences: {
+                      include: {
+                        speaker: true,
+                      },
+                      orderBy: { order: 'asc' },
+                    },
                   },
                 },
               },
@@ -129,43 +139,54 @@ async function processCourseGeneration(job: {
 
     // Full pipeline below (non-audioOnly)
 
-    if (!firstEpisode.sourceText) {
-      throw new Error('Episode has no source text');
-    }
-
-    console.log(`Generating dialogue exchanges from episode source text: ${firstEpisode.title}`);
     console.log(`Target duration: ${course.maxLessonDurationMinutes} minutes`);
     console.log(`JLPT Level: ${course.jlptLevel || 'unspecified'}`);
+    let dialogueExchanges: DialogueExchange[];
 
-    // Get speaker voices from existing dialogue if available
-    const speakerVoices =
-      firstEpisode.dialogue?.speakers?.map((speaker) => ({
-        speakerName: speaker.name,
-        voiceId: speaker.voiceId,
-      })) || [];
+    if (firstEpisode.dialogue?.sentences?.length) {
+      console.log(`Using existing dialogue for course generation: ${firstEpisode.title}`);
+      dialogueExchanges = await extractDialogueExchanges(
+        firstEpisode,
+        course.maxLessonDurationMinutes
+      );
+      console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from dialogue`);
+    } else {
+      if (!firstEpisode.sourceText) {
+        throw new Error('Episode has no source text');
+      }
 
-    // STEP 1: Extract dialogue exchanges from source text (with JLPT level targeting)
-    // This uses the original prompt which has richer context than the generated dialogue
-    // Use explicit voice IDs from the course, or fall back to language defaults
-    const langDefaults = DEFAULT_SPEAKER_VOICES[course.targetLanguage];
-    const speaker1Voice = course.speaker1VoiceId || langDefaults?.speaker1 || undefined;
-    const speaker2Voice = course.speaker2VoiceId || langDefaults?.speaker2 || undefined;
+      console.log(`Generating dialogue exchanges from episode source text: ${firstEpisode.title}`);
 
-    const dialogueExchanges = await extractDialogueExchangesFromSourceText(
-      firstEpisode.sourceText,
-      firstEpisode.title,
-      course.targetLanguage,
-      course.nativeLanguage,
-      course.maxLessonDurationMinutes,
-      course.jlptLevel || undefined,
-      speakerVoices,
-      course.speaker1Gender as 'male' | 'female',
-      course.speaker2Gender as 'male' | 'female',
-      speaker1Voice,
-      speaker2Voice
-    );
+      // Get speaker voices from existing dialogue if available
+      const speakerVoices =
+        firstEpisode.dialogue?.speakers?.map((speaker) => ({
+          speakerName: speaker.name,
+          voiceId: speaker.voiceId,
+        })) || [];
 
-    console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from source text`);
+      // STEP 1: Extract dialogue exchanges from source text (with JLPT level targeting)
+      // This uses the original prompt which has richer context than the generated dialogue
+      // Use explicit voice IDs from the course, or fall back to language defaults
+      const langDefaults = DEFAULT_SPEAKER_VOICES[course.targetLanguage];
+      const speaker1Voice = course.speaker1VoiceId || langDefaults?.speaker1 || undefined;
+      const speaker2Voice = course.speaker2VoiceId || langDefaults?.speaker2 || undefined;
+
+      dialogueExchanges = await extractDialogueExchangesFromSourceText(
+        firstEpisode.sourceText,
+        firstEpisode.title,
+        course.targetLanguage,
+        course.nativeLanguage,
+        course.maxLessonDurationMinutes,
+        course.jlptLevel || undefined,
+        speakerVoices,
+        course.speaker1Gender as 'male' | 'female',
+        course.speaker2Gender as 'male' | 'female',
+        speaker1Voice,
+        speaker2Voice
+      );
+
+      console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from source text`);
+    }
 
     // Save intermediate state so we can debug/retry without regenerating exchanges
     await prisma.course.update({
