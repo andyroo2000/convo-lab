@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** JLPT level and auto-generate audio options for episodes — users can now specify target proficiency level (N5-N1) for dialogue generation and control whether audio should be automatically generated on episode creation
+
 - **[feat]** Audio sweetening chain for loudness normalization and quality enhancement — adds two-stage audio processing: per-segment loudness normalization (EBU R128 LUFS) to match voice levels before assembly, and final mix sweetening (highpass filter + compression + presence EQ + loudness limiting) to improve clarity and consistency; includes standalone test script (`test-audio-sweetening.ts`) for A/B comparison and tuning before deployment; all parameters configurable via env vars with sensible defaults; can be toggled off entirely with `AUDIO_SWEETENING_ENABLED=0`
 - **[feat]** Voice preview buttons for all TTS voices — play/stop buttons on voice dropdowns with shared audio context (single `<audio>` element), lazy loading via IntersectionObserver, and memoized components
 - **[feat]** `AudioPreviewContext` — shared React context managing a single audio element for all voice previews, with busyRef guard against rapid-click race conditions

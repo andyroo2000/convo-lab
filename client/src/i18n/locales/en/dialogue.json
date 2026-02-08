@@ -4,7 +4,8 @@
   "alerts": {
     "fillRequired": "Please fill in all required fields",
     "twoSpeakers": "Please add at least 2 speakers",
-    "generationFailed": "Dialogue generation failed. Please try again."
+    "generationFailed": "Dialogue generation failed. Please try again.",
+    "courseFields": "Please provide an audio course title and narrator voice"
   },
   "placeholderTitle": "Generating dialogue...",
   "generating": {
@@ -35,7 +36,39 @@
       "casual": "Casual",
       "polite": "Polite",
       "formal": "Formal"
-    }
+    },
+    "seedOverrides": "Optional Seed Overrides",
+    "vocabSeeds": "Vocabulary Seeds (override)",
+    "vocabSeedsPlaceholder": "e.g., 予約, 週末, 美味しい",
+    "grammarSeeds": "Grammar Seeds (override)",
+    "grammarSeedsPlaceholder": "e.g., 〜たい, 〜てみる, 〜ながら",
+    "seedHelper": "If provided, these seeds replace the JLPT-based suggestions for that category."
+  },
+  "voiceConfig": {
+    "title": "Dialogue Voices",
+    "speaker": "Speaker {{number}} Voice",
+    "helper": "These voices will be used for dialogue playback and any audio course generated from this dialogue."
+  },
+  "audioSettings": {
+    "title": "Dialogue Audio",
+    "autoTitle": "Auto-generate audio at all speeds",
+    "autoHelper": "Creates slow, medium, and normal audio automatically once the dialogue is ready."
+  },
+  "audioCourse": {
+    "title": "Optional Audio Course",
+    "toggleTitle": "Create an audio course after the dialogue",
+    "toggleHelper": "Uses the generated dialogue as the source for a guided audio course.",
+    "courseTitle": "Audio Course Title",
+    "courseTitlePlaceholder": "e.g., Weekend Plans - Audio Course",
+    "narratorLabel": "Narrator Voice (EN)",
+    "maxDuration": "Max Lesson Duration",
+    "durationOptions": {
+      "10": "10 minutes",
+      "15": "15 minutes",
+      "20": "20 minutes",
+      "30": "30 minutes"
+    },
+    "helper": "Dialogue voices are reused to keep character consistency."
   },
   "generate": {
     "ready": "Ready to Generate?",

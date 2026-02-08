@@ -1,19 +1,21 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SUPPORTED_LANGUAGES, SPEAKER_COLORS } from '@languageflow/shared/src/constants-new';
+import { SUPPORTED_LANGUAGES, SPEAKER_COLORS, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
+import { getCourseSpeakerVoices, getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
 import { useIsDemo } from '../../hooks/useDemo';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
+import VoicePreview from '../common/VoicePreview';
 
 interface SpeakerFormData {
   name: string;
@@ -31,6 +33,7 @@ const DialogueGenerator = () => {
   const { t } = useTranslation(['dialogue']);
   const navigate = useNavigate();
   const isDemo = useIsDemo();
+  const { isFeatureEnabled } = useFeatureFlags();
   const {
     createEpisode,
     generateDialogue,
@@ -51,6 +54,13 @@ const DialogueGenerator = () => {
   const [dialogueLength, setDialogueLength] = useState(8);
   const [jlptLevel, setJlptLevel] = useState<string>('N5');
   const [tone, setTone] = useState<ToneStyle>('casual');
+  const [autoGenerateAudio, setAutoGenerateAudio] = useState(true);
+  const [vocabSeedOverride, setVocabSeedOverride] = useState('');
+  const [grammarSeedOverride, setGrammarSeedOverride] = useState('');
+  const [createAudioCourse, setCreateAudioCourse] = useState(false);
+  const [courseTitle, setCourseTitle] = useState('');
+  const [courseMaxDuration, setCourseMaxDuration] = useState(30);
+  const [courseNarratorVoice, setCourseNarratorVoice] = useState('');
 
   // Initialize speakers based on target language with unique voices
   const [speakers, setSpeakers] = useState<SpeakerFormData[]>(() => {
@@ -63,6 +73,7 @@ const DialogueGenerator = () => {
       color: DEFAULT_SPEAKER_COLORS[index],
     }));
   });
+  const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
 
   // Show upgrade prompt when quota is exceeded
   useEffect(() => {
@@ -71,23 +82,100 @@ const DialogueGenerator = () => {
     }
   }, [errorMetadata]);
 
-  // Re-initialize speakers when target language changes
+  // Keep speaker tone in sync with selection without resetting voices
   useEffect(() => {
-    const speakerVoices = getDialogueSpeakerVoices(targetLanguage, 2);
-    setSpeakers(
-      speakerVoices.map((speaker, index) => ({
-        name: getRandomName(targetLanguage, speaker.gender as 'male' | 'female'),
-        voiceId: speaker.voiceId,
-        proficiency: 'intermediate' as ProficiencyLevel,
+    setSpeakers((prev) =>
+      prev.map((speaker) => ({
+        ...speaker,
         tone,
-        color: DEFAULT_SPEAKER_COLORS[index],
       }))
     );
   }, [tone]);
 
+  // Initialize narrator voice for optional audio course creation
+  useEffect(() => {
+    const { narratorVoice } = getCourseSpeakerVoices(targetLanguage, nativeLanguage, 2);
+    setCourseNarratorVoice((prev) => prev || narratorVoice);
+  }, [nativeLanguage, targetLanguage]);
+
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+
+  // Helper function to get proficiency level
+  const getProficiencyLevel = () => jlptLevel;
+
+  const createCourseFromEpisode = useCallback(
+    async (episodeId: string): Promise<string | null> => {
+      if (!createAudioCourse || !audioCourseEnabled) return null;
+
+      const getTargetVoiceGender = (voiceId: string): 'male' | 'female' => {
+        const voices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+        const match = voices.find((voice) => voice.id === voiceId);
+        return match?.gender === 'female' ? 'female' : 'male';
+      };
+
+      const createResponse = await fetch('/api/courses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          title: courseTitle.trim(),
+          episodeIds: [episodeId],
+          nativeLanguage,
+          targetLanguage,
+          maxLessonDurationMinutes: courseMaxDuration,
+          l1VoiceId: courseNarratorVoice,
+          jlptLevel,
+          speaker1Gender: getTargetVoiceGender(speakers[0]?.voiceId),
+          speaker2Gender: getTargetVoiceGender(speakers[1]?.voiceId),
+          speaker1VoiceId: speakers[0]?.voiceId,
+          speaker2VoiceId: speakers[1]?.voiceId,
+        }),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        const errorMessage =
+          errorData.message ||
+          errorData.error?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          'Failed to create course';
+        throw new Error(errorMessage);
+      }
+
+      const course = await createResponse.json();
+
+      const generateResponse = await fetch(`/api/courses/${course.id}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+
+      if (!generateResponse.ok) {
+        const errorData = await generateResponse.json();
+        const errorMessage =
+          errorData.message ||
+          errorData.error?.message ||
+          (typeof errorData.error === 'string' ? errorData.error : null) ||
+          'Failed to start course generation';
+        throw new Error(errorMessage);
+      }
+
+      return course.id;
+    },
+    [
+      audioCourseEnabled,
+      courseMaxDuration,
+      courseNarratorVoice,
+      courseTitle,
+      createAudioCourse,
+      jlptLevel,
+      nativeLanguage,
+      speakers,
+      targetLanguage,
+    ]
+  );
 
   // Poll job status when generating
   useEffect(() => {
@@ -99,8 +187,10 @@ const DialogueGenerator = () => {
       if (status === 'completed') {
         clearInterval(pollInterval);
 
-        // Automatically trigger audio generation after dialogue completes
-        if (generatedEpisodeId) {
+        let createdCourseId: string | null = null;
+
+        // Automatically trigger audio generation after dialogue completes (opt-out)
+        if (generatedEpisodeId && autoGenerateAudio) {
           try {
             // Get the episode to find the dialogue ID
             const episode = await getEpisode(generatedEpisodeId);
@@ -114,6 +204,14 @@ const DialogueGenerator = () => {
           }
         }
 
+        if (generatedEpisodeId && createAudioCourse && audioCourseEnabled) {
+          try {
+            createdCourseId = await createCourseFromEpisode(generatedEpisodeId);
+          } catch (courseError) {
+            console.error('Failed to create audio course:', courseError);
+          }
+        }
+
         setStep('complete');
 
         // Invalidate library cache so new episode shows up
@@ -121,7 +219,9 @@ const DialogueGenerator = () => {
 
         // Navigate to playback page
         setTimeout(() => {
-          if (generatedEpisodeId) {
+          if (createdCourseId) {
+            navigate(`/app/courses/${createdCourseId}`);
+          } else if (generatedEpisodeId) {
             navigate(`/app/playback/${generatedEpisodeId}`);
           }
         }, 2000);
@@ -138,14 +238,15 @@ const DialogueGenerator = () => {
     jobId,
     step,
     generatedEpisodeId,
+    autoGenerateAudio,
+    createAudioCourse,
+    audioCourseEnabled,
+    createCourseFromEpisode,
     pollJobStatus,
     getEpisode,
     generateAllSpeedsAudio,
     navigate,
   ]);
-
-  // Helper function to get proficiency level
-  const getProficiencyLevel = () => jlptLevel;
 
   const handleGenerate = async () => {
     // Block demo users from generating content
@@ -164,6 +265,14 @@ const DialogueGenerator = () => {
       // eslint-disable-next-line no-alert
       alert(t('dialogue:alerts.twoSpeakers'));
       return;
+    }
+
+    if (createAudioCourse && audioCourseEnabled) {
+      if (!courseTitle.trim() || !courseNarratorVoice) {
+        // eslint-disable-next-line no-alert
+        alert(t('dialogue:alerts.courseFields'));
+        return;
+      }
     }
 
     try {
@@ -186,6 +295,8 @@ const DialogueGenerator = () => {
           color: s.color,
         })),
         audioSpeed: 'medium',
+        jlptLevel,
+        autoGenerateAudio,
       });
 
       setGeneratedEpisodeId(episode.id);
@@ -202,7 +313,12 @@ const DialogueGenerator = () => {
           color: s.color,
         })),
         3, // Generate 3 variations per sentence
-        dialogueLength // Number of dialogue turns
+        dialogueLength, // Number of dialogue turns
+        {
+          jlptLevel,
+          vocabSeedOverride,
+          grammarSeedOverride,
+        }
       );
 
       // Save job ID for polling
@@ -261,6 +377,12 @@ const DialogueGenerator = () => {
       </div>
     );
   }
+
+  const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const narratorVoiceChoices = narratorVoices.filter(
+    (voice) => voice.provider === 'fishaudio'
+  );
+  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -352,9 +474,220 @@ const DialogueGenerator = () => {
                 <option value="formal">{t('dialogue:form.tones.formal')}</option>
               </select>
             </div>
+
+            {targetLanguage === 'ja' && (
+              <div className="border-t-2 border-gray-200 pt-6">
+                <h3 className="text-base font-bold text-dark-brown mb-4">
+                  {t('dialogue:form.seedOverrides')}
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="dialogue-vocab-seeds"
+                      className="block text-sm font-semibold text-dark-brown mb-2"
+                    >
+                      {t('dialogue:form.vocabSeeds')}
+                    </label>
+                    <textarea
+                      id="dialogue-vocab-seeds"
+                      value={vocabSeedOverride}
+                      onChange={(e) => setVocabSeedOverride(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-28"
+                      placeholder={t('dialogue:form.vocabSeedsPlaceholder')}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="dialogue-grammar-seeds"
+                      className="block text-sm font-semibold text-dark-brown mb-2"
+                    >
+                      {t('dialogue:form.grammarSeeds')}
+                    </label>
+                    <textarea
+                      id="dialogue-grammar-seeds"
+                      value={grammarSeedOverride}
+                      onChange={(e) => setGrammarSeedOverride(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-28"
+                      placeholder={t('dialogue:form.grammarSeedsPlaceholder')}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">{t('dialogue:form.seedHelper')}</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Voice Configuration */}
+      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-6">
+          {t('dialogue:voiceConfig.title')}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {speakers.map((speaker, index) => (
+            <div key={`${speaker.name}-${index}`}>
+              <label
+                htmlFor={`dialogue-speaker-${index + 1}-voice`}
+                className="block text-base font-bold text-dark-brown mb-2"
+              >
+                {t('dialogue:voiceConfig.speaker', { number: index + 1 })}
+              </label>
+              <select
+                id={`dialogue-speaker-${index + 1}-voice`}
+                value={speaker.voiceId}
+                onChange={(e) => {
+                  const nextVoiceId = e.target.value;
+                  setSpeakers((prev) =>
+                    prev.map((current, idx) =>
+                      idx === index
+                        ? {
+                            ...current,
+                            voiceId: nextVoiceId,
+                          }
+                        : current
+                    )
+                  );
+                }}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+              >
+                {targetVoices.map((voice) => (
+                  <option key={voice.id} value={voice.id}>
+                    ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                  </option>
+                ))}
+              </select>
+              <VoicePreview voiceId={speaker.voiceId} />
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500 mt-3">{t('dialogue:voiceConfig.helper')}</p>
+      </div>
+
+      {/* Audio Settings */}
+      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-dark-brown mb-4">
+          {t('dialogue:audioSettings.title')}
+        </h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-base font-semibold text-dark-brown">
+              {t('dialogue:audioSettings.autoTitle')}
+            </p>
+            <p className="text-sm text-gray-500">{t('dialogue:audioSettings.autoHelper')}</p>
+          </div>
+          <label
+            htmlFor="dialogue-auto-audio"
+            className="relative inline-flex items-center cursor-pointer"
+          >
+            <input
+              id="dialogue-auto-audio"
+              type="checkbox"
+              checked={autoGenerateAudio}
+              onChange={(e) => setAutoGenerateAudio(e.target.checked)}
+              className="sr-only peer"
+              aria-label={t('dialogue:audioSettings.autoTitle')}
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-periwinkle-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-periwinkle" />
+          </label>
+        </div>
+      </div>
+
+      {/* Optional Audio Course */}
+      {audioCourseEnabled && (
+        <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
+          <h2 className="text-2xl font-bold text-dark-brown mb-4">
+            {t('dialogue:audioCourse.title')}
+          </h2>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-base font-semibold text-dark-brown">
+                {t('dialogue:audioCourse.toggleTitle')}
+              </p>
+              <p className="text-sm text-gray-500">{t('dialogue:audioCourse.toggleHelper')}</p>
+            </div>
+            <label
+              htmlFor="dialogue-create-audio-course"
+              className="relative inline-flex items-center cursor-pointer"
+            >
+              <input
+                id="dialogue-create-audio-course"
+                type="checkbox"
+                checked={createAudioCourse}
+                onChange={(e) => setCreateAudioCourse(e.target.checked)}
+                className="sr-only peer"
+                aria-label={t('dialogue:audioCourse.toggleTitle')}
+              />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-coral-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-coral" />
+            </label>
+          </div>
+
+          {createAudioCourse && (
+            <div className="mt-6 space-y-6">
+              <div>
+                <label
+                  htmlFor="dialogue-course-title"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
+                  {t('dialogue:audioCourse.courseTitle')}
+                </label>
+                <input
+                  id="dialogue-course-title"
+                  type="text"
+                  value={courseTitle}
+                  onChange={(e) => setCourseTitle(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                  placeholder={t('dialogue:audioCourse.courseTitlePlaceholder')}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="dialogue-course-narrator"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
+                  {t('dialogue:audioCourse.narratorLabel')}
+                </label>
+                <select
+                  id="dialogue-course-narrator"
+                  value={courseNarratorVoice}
+                  onChange={(e) => setCourseNarratorVoice(e.target.value)}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                >
+                  {narratorVoiceChoices.map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      {voice.description} ({voice.gender})
+                    </option>
+                  ))}
+                </select>
+                <VoicePreview voiceId={courseNarratorVoice} />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="dialogue-course-duration"
+                  className="block text-base font-bold text-dark-brown mb-2"
+                >
+                  {t('dialogue:audioCourse.maxDuration')}
+                </label>
+                <select
+                  id="dialogue-course-duration"
+                  value={courseMaxDuration}
+                  onChange={(e) => setCourseMaxDuration(parseInt(e.target.value, 10))}
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                >
+                  <option value={10}>{t('dialogue:audioCourse.durationOptions.10')}</option>
+                  <option value={15}>{t('dialogue:audioCourse.durationOptions.15')}</option>
+                  <option value={20}>{t('dialogue:audioCourse.durationOptions.20')}</option>
+                  <option value={30}>{t('dialogue:audioCourse.durationOptions.30')}</option>
+                </select>
+              </div>
+
+              <p className="text-xs text-gray-500">{t('dialogue:audioCourse.helper')}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Generate Button */}
       <div className="bg-periwinkle-light border-l-8 border-periwinkle p-6 sm:p-8 shadow-sm">
@@ -382,7 +715,13 @@ const DialogueGenerator = () => {
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={loading || !sourceText.trim()}
+            disabled={
+              loading ||
+              !sourceText.trim() ||
+              (createAudioCourse &&
+                audioCourseEnabled &&
+                (!courseTitle.trim() || !courseNarratorVoice))
+            }
             className="w-full sm:w-auto bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
             data-testid="dialogue-button-generate"
           >

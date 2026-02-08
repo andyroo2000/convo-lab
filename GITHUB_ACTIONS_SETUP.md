@@ -1,6 +1,6 @@
 # GitHub Actions CI/CD Setup for ConvoLab
 
-This guide explains how to set up automated deployment using GitHub Actions. Images will be built automatically on every push to `main` and deployed to your DigitalOcean droplet.
+This guide explains how to set up automated deployment using GitHub Actions. Images are built on every push to `main`, deployed automatically to staging, and promoted to production with a manual workflow.
 
 ## Overview
 
@@ -16,10 +16,10 @@ This guide explains how to set up automated deployment using GitHub Actions. Ima
 **Workflow:**
 
 1. Push code to `main` branch
-2. GitHub Actions builds 4 Docker images
-3. Images pushed to GitHub Container Registry (ghcr.io)
-4. SSH to droplet and deploy new images
-5. Health check runs to verify deployment
+2. GitHub Actions builds Docker images
+3. Images are pushed to GitHub Container Registry (ghcr.io)
+4. Staging deploy runs automatically
+5. Production deploy is manual (workflow dispatch)
 
 ---
 
@@ -27,7 +27,7 @@ This guide explains how to set up automated deployment using GitHub Actions. Ima
 
 ### Step 1: Configure GitHub Secrets
 
-You need to add 3 secrets to your GitHub repository:
+You need to add these secrets to your GitHub repository:
 
 1. Go to https://github.com/andrewlandry/convo-lab/settings/secrets/actions
 
@@ -58,6 +58,14 @@ cat ~/.ssh/id_ed25519
 
 Copy the entire output (including `-----BEGIN` and `-----END` lines) and paste it as the secret value.
 
+#### GH_PAT
+
+A GitHub Personal Access Token with `repo` read permissions so the droplet can `git fetch` private repos.
+
+#### FISH_AUDIO_API_KEY
+
+Used at deploy time to inject the audio API key into `.env.production` and `.env.staging`.
+
 ### Step 2: Make Container Registry Public (Optional but Recommended)
 
 To avoid authentication issues, make your GitHub Container Registry packages public:
@@ -79,12 +87,14 @@ To avoid authentication issues, make your GitHub Container Registry packages pub
 **IMPORTANT:** Before first deployment, update these files with strong passwords:
 
 1. `.env.production` (root directory)
-   - Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for PostgreSQL
-   - Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for Redis
-
 2. `server/.env.production`
-   - Replace `CHANGE_THIS_POSTGRES_PASSWORD`
-   - Replace `CHANGE_THIS_REDIS_PASSWORD`
+3. `.env.staging` (root directory)
+4. `server/.env.staging`
+
+For both production and staging:
+- Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for PostgreSQL
+- Replace `CHANGE_THIS_GENERATE_STRONG_PASSWORD` for Redis
+- Use separate passwords for staging vs production
 
 Generate strong passwords:
 
@@ -102,7 +112,7 @@ openssl rand -base64 32
 
 ## Deployment Workflow
 
-### Automatic Deployment (Recommended)
+### Automatic Staging Deployment (Recommended)
 
 1. Make your code changes locally
 2. Commit and push to `main`:
@@ -112,10 +122,10 @@ openssl rand -base64 32
    git push origin main
    ```
 3. GitHub Actions automatically:
-   - Builds all 4 Docker images
+   - Builds 3 Docker images
    - Pushes to GitHub Container Registry
-   - SSHs to droplet and deploys
-   - Runs health checks
+   - SSHs to droplet and deploys staging
+   - Runs staging health checks
 
 4. Monitor the deployment:
    - Go to https://github.com/andrewlandry/convo-lab/actions
@@ -127,13 +137,14 @@ openssl rand -base64 32
    - Deploy: 1-2 minutes
    - Health check: 30 seconds
 
-### Manual Deployment Trigger
+### Manual Production Deployment
 
-You can also trigger deployment manually without pushing code:
+When you're ready to promote a staging build to production:
 
 1. Go to https://github.com/andrewlandry/convo-lab/actions
-2. Click "Build and Deploy ConvoLab" workflow
-3. Click "Run workflow" → "Run workflow"
+2. Click "Deploy ConvoLab (Production)" workflow
+3. Click "Run workflow"
+4. Optional: set the image tag to `main-<sha>` to deploy the exact staging build
 
 ---
 
@@ -150,7 +161,8 @@ ssh root@health.andrewlandry.com
 
 # Create data directories
 mkdir -p /opt/convolab-data/{postgres,redis,backups/{postgres,redis}}
-chmod 700 /opt/convolab-data
+mkdir -p /opt/convolab-data/stage/{postgres,redis,backups/{postgres,redis}}
+chmod 700 /opt/convolab-data /opt/convolab-data/stage
 
 # Clone repository
 cd /opt
@@ -169,6 +181,12 @@ scp .env.production root@health.andrewlandry.com:/opt/convolab/
 # Copy server/.env.production
 scp server/.env.production root@health.andrewlandry.com:/opt/convolab/server/
 
+# Copy .env.staging
+scp .env.staging root@health.andrewlandry.com:/opt/convolab/
+
+# Copy server/.env.staging
+scp server/.env.staging root@health.andrewlandry.com:/opt/convolab/server/
+
 # Copy GCS service account key
 scp server/gcloud-key.json root@health.andrewlandry.com:/opt/convolab/server/
 ```
@@ -179,6 +197,8 @@ On the droplet, set permissions:
 ssh root@health.andrewlandry.com
 chmod 600 /opt/convolab/.env.production
 chmod 600 /opt/convolab/server/.env.production
+chmod 600 /opt/convolab/.env.staging
+chmod 600 /opt/convolab/server/.env.staging
 chmod 600 /opt/convolab/server/gcloud-key.json
 ```
 
@@ -190,7 +210,7 @@ cd /opt/health-tracker
 nano Caddyfile
 ```
 
-Add the contents from `Caddyfile.snippet` to the end of the file, then:
+Add the contents from `Caddyfile.snippet` to the end of the file. This includes the staging domain with `X-Robots-Tag` and a `robots.txt` disallow. Then:
 
 ```bash
 # Validate and reload
@@ -200,7 +220,10 @@ docker exec health-caddy caddy reload --config /etc/caddy/Caddyfile
 
 ### 4. Update DNS
 
-Add an A record for `convolab.andrewlandry.com` pointing to your droplet's IP address.
+Add A records pointing to your droplet's IP address:
+
+1. `convolab.andrewlandry.com`
+2. `stage.convo-lab.com`
 
 Wait 5-10 minutes for DNS propagation:
 
@@ -232,9 +255,9 @@ docker-compose -f docker-compose.prod.yml up -d postgres
 docker exec -i convolab-postgres psql -U languageflow -d languageflow < migration-*.sql
 ```
 
-### 6. Trigger First Deployment
+### 6. Trigger First Deployment (Staging)
 
-Now push your code to trigger the first automated deployment:
+Push your code to trigger the first automated staging deployment:
 
 ```bash
 # On your Mac
@@ -246,7 +269,14 @@ git push origin main
 
 Watch the deployment at: https://github.com/andrewlandry/convo-lab/actions
 
-### 7. Verify Deployment
+### 7. Promote to Production (Manual)
+
+1. Go to https://github.com/andrewlandry/convo-lab/actions
+2. Select the "Deploy ConvoLab (Production)" workflow
+3. Click "Run workflow"
+4. Optional: enter `main-<sha>` to deploy the exact image you validated on staging
+
+### 8. Verify Deployment
 
 After GitHub Actions completes:
 
@@ -298,6 +328,7 @@ ssh root@health.andrewlandry.com 'echo "SSH works"'
 
 ```bash
 ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml logs'
+ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.stage.yml logs'
 ```
 
 ### Health Check Fails
@@ -306,6 +337,7 @@ ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-c
 
 ```bash
 curl -v https://convolab.andrewlandry.com/health
+curl -v https://stage.convo-lab.com/health
 ```
 
 **Common issues:**
@@ -339,12 +371,14 @@ https://github.com/andrewlandry/convo-lab/actions
 ```bash
 # Container status
 ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml ps'
+ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.stage.yml ps'
 
 # Resource usage
 ssh root@health.andrewlandry.com 'docker stats --no-stream'
 
 # Recent logs
 ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml logs --tail=100'
+ssh root@health.andrewlandry.com 'cd /opt/convolab && docker-compose -f docker-compose.stage.yml logs --tail=100'
 ```
 
 ### Set Up Automated Backups
@@ -377,13 +411,14 @@ crontab -e
 
 ## Next Steps
 
-1. ✅ Set up GitHub secrets (DROPLET_HOST, DROPLET_USER, DROPLET_SSH_KEY)
-2. ✅ Update passwords in .env.production files
+1. ✅ Set up GitHub secrets (DROPLET_HOST, DROPLET_USER, DROPLET_SSH_KEY, GH_PAT, FISH_AUDIO_API_KEY)
+2. ✅ Update passwords in .env.production and .env.staging files
 3. ✅ Prepare droplet (directories, Caddy, DNS)
 4. ✅ Migrate database from Cloud SQL
-5. ✅ Push to main to trigger first deployment
-6. ✅ Verify deployment and health checks
-7. ✅ Set up automated backups
-8. ✅ Decommission GCP services
+5. ✅ Push to main to trigger staging deployment
+6. ✅ Run the production deploy workflow when ready
+7. ✅ Verify deployment and health checks
+8. ✅ Set up automated backups
+9. ✅ Decommission GCP services
 
 **Ready to deploy?** Just push to main and GitHub Actions handles the rest!

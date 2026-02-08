@@ -35,12 +35,15 @@ export interface Episode {
   sourceText: string;
   targetLanguage: LanguageCode;
   nativeLanguage: LanguageCode;
+  jlptLevel?: string;
+  autoGenerateAudio?: boolean;
   status: 'draft' | 'generating' | 'ready' | 'error';
   isSampleContent?: boolean;
   createdAt: Date;
   updatedAt: Date;
   dialogue?: Dialogue;
   images?: Image[];
+  courseEpisodes?: CourseEpisode[];
   // Legacy single-speed audio
   audioUrl?: string;
   audioSpeed?: AudioSpeed;
@@ -135,6 +138,8 @@ export interface CreateEpisodeRequest {
   nativeLanguage: LanguageCode;
   speakers: Omit<Speaker, 'id'>[];
   audioSpeed?: AudioSpeed;
+  jlptLevel?: string;
+  autoGenerateAudio?: boolean;
 }
 
 export interface GenerateDialogueRequest {

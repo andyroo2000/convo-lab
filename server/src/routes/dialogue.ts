@@ -21,7 +21,15 @@ router.post(
   blockDemoUser,
   async (req: AuthRequest, res, next) => {
     try {
-      const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = req.body;
+      const {
+        episodeId,
+        speakers,
+        variationCount = 3,
+        dialogueLength = 6,
+        jlptLevel,
+        vocabSeedOverride,
+        grammarSeedOverride,
+      } = req.body;
 
       if (!episodeId || !speakers || !Array.isArray(speakers)) {
         throw new AppError(i18next.t('server:content.missingFields'), 400);
@@ -34,6 +42,9 @@ router.post(
         speakers,
         variationCount,
         dialogueLength,
+        jlptLevel,
+        vocabSeedOverride,
+        grammarSeedOverride,
       });
 
       // Log the generation for quota tracking
