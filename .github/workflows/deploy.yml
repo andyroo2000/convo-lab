@@ -102,6 +102,7 @@ jobs:
 
             # Inject secrets not stored in repo
             echo "ELEVENLABS_API_KEY=${{ secrets.ELEVENLABS_API_KEY }}" >> .env.production
+            echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.production
 
             # Login to GitHub Container Registry
             echo "🔐 Logging in to GitHub Container Registry..."

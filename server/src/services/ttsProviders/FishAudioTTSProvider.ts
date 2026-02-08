@@ -1,6 +1,7 @@
 import { FishAudioClient } from 'fish-audio';
 
 const FISH_AUDIO_MAX_CHARS = 15000;
+const FISH_AUDIO_MODEL = 's1'; // Fish Audio's latest TTS model
 
 let client: FishAudioClient | null = null;
 
@@ -14,6 +15,14 @@ function getClient(): FishAudioClient {
 
   client = new FishAudioClient({ apiKey });
   return client;
+}
+
+/**
+ * Check whether Fish Audio is available (API key is configured).
+ * Used by routing logic to fall back to other providers when not configured.
+ */
+export function isFishAudioAvailable(): boolean {
+  return !!process.env.FISH_AUDIO_API_KEY;
 }
 
 /**
@@ -52,19 +61,24 @@ export async function synthesizeFishAudioSpeech(options: {
       sample_rate: 44100,
       prosody: { speed, volume: 0 },
     },
-    's1'
+    FISH_AUDIO_MODEL
   );
 
-  // The SDK returns a ReadableStream<Uint8Array> — collect chunks into a Buffer
-  const chunks: Uint8Array[] = [];
-  const reader = audio.getReader();
+  // The SDK returns a ReadableStream<Uint8Array> - collect chunks into a Buffer
+  try {
+    const chunks: Uint8Array[] = [];
+    const reader = audio.getReader();
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+
+    return Buffer.concat(chunks);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Fish Audio stream read failed for ref=${referenceId}: ${message}`);
   }
-
-  return Buffer.concat(chunks);
 }
