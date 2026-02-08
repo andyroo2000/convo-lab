@@ -6,6 +6,7 @@ import path from 'path';
 
 import ffmpeg from 'fluent-ffmpeg';
 
+import { normalizeSegmentLoudness, applySweeteningChain } from './audioProcessing.js';
 import { processBatches } from './batchedTTSClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { uploadFileToGCS } from './storageClient.js';
@@ -76,11 +77,14 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
 
       let buffer: Buffer | undefined;
 
-      // Get segment from batch result
+      // Get segment from batch result; normalize voice segments but not pauses
       if (unit.type === 'pause') {
         buffer = batchResult.pauseSegments.get(i);
       } else {
         buffer = batchResult.segments.get(i);
+        if (buffer && buffer.length > 0) {
+          buffer = await normalizeSegmentLoudness(buffer);
+        }
       }
 
       if (buffer) {
@@ -99,8 +103,10 @@ export async function assembleLessonAudio(options: AssembleAudioOptions): Promis
 
     console.log(`Generated ${audioSegmentFiles.length} audio segments, concatenating...`);
 
-    // Concatenate all audio files
-    const finalAudioPath = await concatenateAudioFiles(audioSegmentFiles, tempDir);
+    // Concatenate all audio files and apply sweetening chain
+    const rawAudioPath = await concatenateAudioFiles(audioSegmentFiles, tempDir);
+    const finalAudioPath = path.join(tempDir, 'sweetened-output.mp3');
+    await applySweeteningChain(rawAudioPath, finalAudioPath);
 
     // Get actual duration
     const actualDuration = await getAudioDurationFromFile(finalAudioPath);
