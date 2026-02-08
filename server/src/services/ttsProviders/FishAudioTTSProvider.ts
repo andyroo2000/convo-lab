@@ -1,0 +1,70 @@
+import { FishAudioClient } from 'fish-audio';
+
+const FISH_AUDIO_MAX_CHARS = 15000;
+
+let client: FishAudioClient | null = null;
+
+function getClient(): FishAudioClient {
+  if (client) return client;
+
+  const apiKey = process.env.FISH_AUDIO_API_KEY;
+  if (!apiKey) {
+    throw new Error('Missing FISH_AUDIO_API_KEY environment variable');
+  }
+
+  client = new FishAudioClient({ apiKey });
+  return client;
+}
+
+/**
+ * Strip the "fishaudio:" prefix from a voice ID to get the Fish Audio model UUID.
+ */
+export function resolveFishAudioVoiceId(voiceId: string): string {
+  return voiceId.replace(/^fishaudio:/, '');
+}
+
+/**
+ * Synthesize speech using Fish Audio TTS.
+ *
+ * Returns an MP3 audio buffer. Speed is handled natively by the API
+ * via the prosody.speed parameter (no ffmpeg post-processing needed).
+ */
+export async function synthesizeFishAudioSpeech(options: {
+  referenceId: string;
+  text: string;
+  speed?: number;
+}): Promise<Buffer> {
+  const { referenceId, text, speed = 1.0 } = options;
+
+  if (text.length > FISH_AUDIO_MAX_CHARS) {
+    throw new Error(
+      `Fish Audio text exceeds ${FISH_AUDIO_MAX_CHARS} char limit: ${text.length} chars`
+    );
+  }
+
+  const fishClient = getClient();
+  const audio = await fishClient.textToSpeech.convert(
+    {
+      text,
+      reference_id: referenceId,
+      format: 'mp3',
+      mp3_bitrate: 128,
+      sample_rate: 44100,
+      prosody: { speed, volume: 0 },
+    },
+    's1'
+  );
+
+  // The SDK returns a ReadableStream<Uint8Array> — collect chunks into a Buffer
+  const chunks: Uint8Array[] = [];
+  const reader = audio.getReader();
+
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+
+  return Buffer.concat(chunks);
+}

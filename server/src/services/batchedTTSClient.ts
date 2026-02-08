@@ -18,6 +18,10 @@ import {
   getGoogleTTSBetaProvider,
   SynthesizeWithTimepointsResult,
 } from './ttsProviders/GoogleTTSBetaProvider.js';
+import {
+  resolveFishAudioVoiceId,
+  synthesizeFishAudioSpeech,
+} from './ttsProviders/FishAudioTTSProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 
 const ELEVENLABS_MAX_CHARS = Number(process.env.ELEVENLABS_MAX_CHARS || 9000);
@@ -855,6 +859,49 @@ async function getAudioDurationFromBuffer(buffer: Buffer, tempDir: string): Prom
   }
 }
 
+/**
+ * Split a Fish Audio batch into single-unit batches.
+ * Fish Audio for Japanese always uses single-unit batches (no alignment data for splitting).
+ */
+function splitFishAudioBatch(batch: TTSBatch): TTSBatch[] {
+  return batch.units.map((unit) => ({
+    voiceId: batch.voiceId,
+    languageCode: batch.languageCode,
+    speed: batch.speed,
+    pitch: batch.pitch,
+    units: [unit],
+  }));
+}
+
+/**
+ * Synthesize a batch using Fish Audio TTS.
+ * Speed is handled natively by the Fish Audio API (prosody.speed),
+ * so no ffmpeg post-processing is needed.
+ */
+async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Buffer>> {
+  const segments = new Map<number, Buffer>();
+  const referenceId = resolveFishAudioVoiceId(batch.voiceId);
+
+  for (const unit of batch.units) {
+    // eslint-disable-next-line no-console
+    console.log('[Fish Audio] Synthesizing:', {
+      text: unit.text,
+      referenceId,
+      speed: batch.speed,
+    });
+
+    const audioBuffer = await synthesizeFishAudioSpeech({
+      referenceId,
+      text: unit.text,
+      speed: batch.speed,
+    });
+
+    segments.set(unit.originalIndex, audioBuffer);
+  }
+
+  return segments;
+}
+
 async function synthesizeElevenLabsBatch(
   batch: TTSBatch,
   tempDir: string
@@ -995,13 +1042,16 @@ export async function processBatches(
     targetLanguageCode
   );
 
-  // Split ElevenLabs batches to respect character limits
+  // Split provider-specific batches to respect character limits
   const expandedBatches = batches.flatMap((batch) => {
     const providerType = getProviderFromVoiceId(batch.voiceId);
-    if (providerType !== 'elevenlabs') {
-      return [batch];
+    if (providerType === 'fishaudio') {
+      return splitFishAudioBatch(batch);
     }
-    return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+    if (providerType === 'elevenlabs') {
+      return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+    }
+    return [batch];
   });
 
   // eslint-disable-next-line no-console
@@ -1027,7 +1077,9 @@ export async function processBatches(
 
     let batchSegments: Map<number, Buffer>;
 
-    if (providerType === 'elevenlabs') {
+    if (providerType === 'fishaudio') {
+      batchSegments = await synthesizeFishAudioBatch(batch);
+    } else if (providerType === 'elevenlabs') {
       batchSegments = await synthesizeElevenLabsBatch(batch, tempDir);
     } else {
       const provider =
@@ -1186,6 +1238,37 @@ export async function synthesizeBatchedTexts(
 
   // Detect provider from voice ID
   const providerType = getProviderFromVoiceId(voiceId);
+  if (providerType === 'fishaudio') {
+    const batch: TTSBatch = {
+      voiceId,
+      languageCode,
+      speed,
+      pitch,
+      units: texts.map((text, index) => ({
+        originalIndex: index,
+        markName: `text_${index}`,
+        text,
+      })),
+    };
+
+    const batches = splitFishAudioBatch(batch);
+    const segments = new Map<number, Buffer>();
+
+    for (const subBatch of batches) {
+      const subSegments = await synthesizeFishAudioBatch(subBatch);
+      for (const [index, buffer] of subSegments) {
+        segments.set(index, buffer);
+      }
+    }
+
+    return texts.map((_, index) => {
+      const buffer = segments.get(index);
+      if (!buffer) {
+        throw new Error(`[TTS BATCH SIMPLE] Missing Fish Audio segment for index ${index}`);
+      }
+      return buffer;
+    });
+  }
   if (providerType === 'elevenlabs') {
     const tempDir = path.join(process.cwd(), 'tmp', `batch-simple-elevenlabs-${Date.now()}`);
     await fs.mkdir(tempDir, { recursive: true });
