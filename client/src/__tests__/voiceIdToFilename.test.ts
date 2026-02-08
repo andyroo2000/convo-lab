@@ -51,6 +51,10 @@ describe('voiceIdToFilename', () => {
     it('should throw on embedded forward slash', () => {
       expect(() => voiceIdToFilename('foo/bar')).toThrow('Invalid voice ID');
     });
+
+    it('should throw on backslash (Windows path separator)', () => {
+      expect(() => voiceIdToFilename('foo\\bar')).toThrow('Invalid voice ID');
+    });
   });
 
   describe('edge cases', () => {

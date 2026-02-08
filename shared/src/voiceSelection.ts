@@ -105,7 +105,7 @@ export function getDialogueSpeakerVoices(
  * Used by both the generation script and the client VoicePreview component.
  */
 export function voiceIdToFilename(voiceId: string): string {
-  if (!voiceId || voiceId.includes('..') || voiceId.includes('/')) {
+  if (!voiceId || voiceId.includes('..') || voiceId.includes('/') || voiceId.includes('\\')) {
     throw new Error('Invalid voice ID');
   }
 

@@ -63,10 +63,9 @@ describe('VoicePreview', () => {
     renderWithProvider(<VoicePreview voiceId="Takumi" />);
 
     await waitFor(() => {
-      const button = screen.getByRole('button');
-      expect(button).toBeInTheDocument();
+      expect(screen.getByRole('button')).toBeInTheDocument();
     });
-    expect(button).toHaveAttribute('aria-label', 'Preview voice sample');
+    expect(screen.getByRole('button')).toHaveAttribute('aria-label', 'Preview voice sample');
   });
 
   it('should call audio.play() on button click and show Stop', async () => {

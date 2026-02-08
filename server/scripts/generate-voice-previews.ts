@@ -45,11 +45,18 @@ async function synthesizeGoogle(voiceId: string, text: string, languageCode: str
 }
 
 async function synthesizePolly(voiceId: string, text: string): Promise<Buffer> {
+  const awsAccessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const awsSecretKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+  if (!awsAccessKeyId || !awsSecretKey) {
+    throw new Error('AWS credentials not configured (AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY)');
+  }
+
   const polly = new Polly({
     region: process.env.AWS_REGION || 'us-east-1',
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      accessKeyId: awsAccessKeyId,
+      secretAccessKey: awsSecretKey,
     },
   });
 

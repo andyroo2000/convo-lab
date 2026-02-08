@@ -12,7 +12,6 @@ const VoicePreview = ({ voiceId }: VoicePreviewProps) => {
   const { play, stop, currentSrc, isPlaying: contextPlaying } = useAudioPreview();
   const [hasError, setHasError] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const placeholderRef = useRef<HTMLSpanElement>(null);
 
   const filename = voiceIdToFilename(voiceId);
@@ -59,7 +58,9 @@ const VoicePreview = ({ voiceId }: VoicePreviewProps) => {
     } else {
       try {
         await play(src);
-      } catch {
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to play voice preview for ${voiceId}:`, error);
         setHasError(true);
       }
     }
@@ -75,7 +76,6 @@ const VoicePreview = ({ voiceId }: VoicePreviewProps) => {
 
   return (
     <button
-      ref={buttonRef}
       type="button"
       onClick={toggle}
       aria-label={isThisPlaying ? 'Stop voice sample' : 'Preview voice sample'}

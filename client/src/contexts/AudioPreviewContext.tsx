@@ -19,6 +19,7 @@ const AudioPreviewContext = createContext<AudioPreviewContextType | undefined>(u
 
 export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const busyRef = useRef(false);
   const [currentSrc, setCurrentSrc] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -35,13 +36,15 @@ export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
   const play = useCallback(
     async (src: string) => {
       const audio = audioRef.current;
-      if (!audio) return;
+      if (!audio || busyRef.current) return;
 
       // If already playing this source, stop it
       if (currentSrc === src && isPlaying) {
         stop();
         return;
       }
+
+      busyRef.current = true;
 
       // Stop any current playback first
       audio.pause();
@@ -57,6 +60,8 @@ export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
         console.error('Voice preview playback failed:', error);
         setIsPlaying(false);
         setCurrentSrc(null);
+      } finally {
+        busyRef.current = false;
       }
     },
     [currentSrc, isPlaying, stop]
