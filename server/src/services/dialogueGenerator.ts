@@ -6,6 +6,13 @@ import { prisma } from '../db/client.js';
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
 import { generateWithGemini } from './geminiClient.js';
 import { processLanguageTextBatch } from './languageProcessor.js';
+import {
+  formatGrammarForPrompt,
+  formatWordsForPrompt,
+  getProficiencyFramework,
+  sampleGrammar,
+  sampleVocabulary,
+} from './vocabularySeeding.js';
 
 interface Speaker {
   name: string;
@@ -20,6 +27,9 @@ interface GenerateDialogueRequest {
   speakers: Speaker[];
   variationCount?: number;
   dialogueLength?: number;
+  jlptLevel?: string;
+  vocabSeedOverride?: string;
+  grammarSeedOverride?: string;
 }
 
 interface DialogueSentence {
@@ -35,7 +45,15 @@ interface DialogueData {
 }
 
 export async function generateDialogue(request: GenerateDialogueRequest) {
-  const { episodeId, speakers, variationCount = 3, dialogueLength = 6 } = request;
+  const {
+    episodeId,
+    speakers,
+    variationCount = 3,
+    dialogueLength = 6,
+    jlptLevel,
+    vocabSeedOverride,
+    grammarSeedOverride,
+  } = request;
 
   // Get episode
   const episode = await prisma.episode.findUnique({
@@ -60,11 +78,15 @@ export async function generateDialogue(request: GenerateDialogueRequest) {
       speakers
     );
 
-    const prompt = buildDialoguePrompt(
+    const prompt = await buildDialoguePrompt(
       episode.sourceText,
       speakers,
       variationCount,
-      dialogueLength
+      dialogueLength,
+      episode.targetLanguage,
+      jlptLevel,
+      vocabSeedOverride,
+      grammarSeedOverride
     );
 
     // Retry logic for Gemini API calls (handles transient JSON parsing errors)
@@ -184,14 +206,90 @@ Guidelines:
 Speakers: ${speakers.map((s, i) => `${speakerNames[i]} (${s.proficiency}, ${s.tone})`).join(', ')}`;
 }
 
-function buildDialoguePrompt(
+function formatSeedOverride(seed: string): string {
+  const trimmed = seed.trim();
+  if (!trimmed) return '';
+  const parts = trimmed
+    .split(/\r?\n/)
+    .flatMap((line) => line.split(','))
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length === 0) return trimmed;
+  return parts.map((part) => `- ${part}`).join('\n');
+}
+
+async function buildDialoguePrompt(
   sourceText: string,
   speakers: Speaker[],
   variationCount: number,
-  dialogueLength: number
-): string {
+  dialogueLength: number,
+  targetLanguage: string,
+  jlptLevel?: string,
+  vocabSeedOverride?: string,
+  grammarSeedOverride?: string
+): Promise<string> {
   // Strip furigana from speaker names for cleaner prompts
   const speakerNames = speakers.map((s) => stripPhoneticNotation(s.name));
+
+  let vocabularySeed = '';
+  let grammarSeed = '';
+
+  if (vocabSeedOverride && vocabSeedOverride.trim()) {
+    vocabularySeed = `
+
+VOCABULARY SEEDS (override):
+Use these words/phrases and prioritize them over any auto-suggested lists:
+${formatSeedOverride(vocabSeedOverride)}`;
+  } else if (jlptLevel && targetLanguage) {
+    try {
+      const seedWords = await sampleVocabulary(targetLanguage, jlptLevel, 30);
+      if (seedWords.length > 0) {
+        const framework = getProficiencyFramework(targetLanguage);
+        vocabularySeed = `
+
+SUGGESTED ${jlptLevel} VOCABULARY TO INCORPORATE:
+Try to naturally use some of these ${framework} ${jlptLevel}-level words:
+${formatWordsForPrompt(seedWords, targetLanguage)}
+
+You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
+      }
+    } catch (error) {
+      console.warn(`[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
+    }
+  }
+
+  if (grammarSeedOverride && grammarSeedOverride.trim()) {
+    grammarSeed = `
+
+GRAMMAR SEEDS (override):
+Use these grammar patterns and prioritize them over any auto-suggested lists:
+${formatSeedOverride(grammarSeedOverride)}`;
+  } else if (jlptLevel && targetLanguage) {
+    try {
+      const seedGrammar = await sampleGrammar(targetLanguage, jlptLevel, 5);
+      if (seedGrammar.length > 0) {
+        const framework = getProficiencyFramework(targetLanguage);
+        grammarSeed = `
+
+SUGGESTED ${jlptLevel} GRAMMAR PATTERNS TO INCORPORATE:
+Try to naturally use 2-3 of these ${framework} ${jlptLevel}-level grammar patterns:
+${formatGrammarForPrompt(seedGrammar)}
+
+Use these patterns where they naturally fit the conversation flow.`;
+      }
+    } catch (error) {
+      console.warn(`[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
+    }
+  }
+
+  const seedSection = `${vocabularySeed}${grammarSeed}`;
+
+  const jlptConstraint = jlptLevel
+    ? `\n\nIMPORTANT JLPT LEVEL CONSTRAINT:
+- Target level: ${jlptLevel}
+- Use vocabulary and grammar structures appropriate for students at this level
+- Avoid using words or structures significantly above this level${seedSection}`
+    : seedSection;
 
   return `Based on this story/experience, create a natural dialogue:
 
@@ -200,6 +298,7 @@ function buildDialoguePrompt(
 Create a conversation between ${speakerNames.join(' and ')} discussing this experience.
 
 For EACH line of dialogue, provide ${variationCount} alternative ways to say the same thing (variations in word choice, grammar, formality, etc.).
+${jlptConstraint}
 
 Return your response as JSON in this exact format:
 {

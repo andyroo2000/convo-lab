@@ -1,5 +1,5 @@
 import { Response, NextFunction } from 'express';
-import { verify, JsonWebTokenError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { requireAuth, AuthRequest } from '../../../middleware/auth.js';
@@ -7,9 +7,13 @@ import { AppError } from '../../../middleware/errorHandler.js';
 
 // Mock jwt
 vi.mock('jsonwebtoken', () => ({
-  verify: vi.fn(),
-  JsonWebTokenError: class extends Error {},
+  default: {
+    verify: vi.fn(),
+    JsonWebTokenError: class extends Error {},
+  },
 }));
+
+const { verify, JsonWebTokenError } = jwt;
 
 describe('requireAuth middleware', () => {
   let mockReq: Partial<AuthRequest>;

@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { verify, JsonWebTokenError } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
 import { AppError } from './errorHandler.js';
+
+const { verify, JsonWebTokenError } = jwt;
 
 export interface AuthRequest extends Request {
   userId?: string;
