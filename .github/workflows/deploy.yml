@@ -168,18 +168,22 @@ jobs:
       - name: Health check
         run: |
           echo "🏥 Running health check..."
-          sleep 30
+          echo "Waiting 60s for services to fully initialize..."
+          sleep 60
 
-          for i in {1..20}; do
-            if curl -f -s https://stage.convo-lab.com/health > /dev/null; then
+          for i in {1..30}; do
+            response=$(curl -f -s https://stage.convo-lab.com/health 2>&1) || true
+            if echo "$response" | grep -q '"status":"ok"'; then
               echo "✅ Health check passed!"
+              echo "Response: $response"
               exit 0
             fi
-            echo "Attempt $i/20 failed, retrying in 5s..."
+            echo "Attempt $i/30 failed, retrying in 5s..."
+            echo "Response: $response"
             sleep 5
           done
 
-          echo "❌ Health check failed after 20 attempts"
+          echo "❌ Health check failed after 30 attempts"
           exit 1
 
       - name: Notify on failure
