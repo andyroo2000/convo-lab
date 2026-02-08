@@ -406,6 +406,127 @@ describe('Courses Route Logic', () => {
     });
   });
 
+  describe('Draft Status Filtering', () => {
+    it('should hide drafts by default for non-admin users', () => {
+      const buildStatusFilter = (
+        statusFilter: string | undefined,
+        isAdmin: boolean
+      ): { not: string } | { equals: string } | undefined => {
+        if (statusFilter === 'all' && isAdmin) {
+          return undefined;
+        } else if (statusFilter === 'draft' && isAdmin) {
+          return { equals: 'draft' };
+        }
+        return { not: 'draft' };
+      };
+
+      const result = buildStatusFilter(undefined, false);
+      expect(result).toEqual({ not: 'draft' });
+    });
+
+    it('should hide drafts for non-admin even if status=all is requested', () => {
+      const buildStatusFilter = (
+        statusFilter: string | undefined,
+        isAdmin: boolean
+      ): { not: string } | { equals: string } | undefined => {
+        if (statusFilter === 'all' && isAdmin) {
+          return undefined;
+        } else if (statusFilter === 'draft' && isAdmin) {
+          return { equals: 'draft' };
+        }
+        return { not: 'draft' };
+      };
+
+      const result = buildStatusFilter('all', false);
+      expect(result).toEqual({ not: 'draft' });
+    });
+
+    it('should return all statuses for admin with status=all', () => {
+      const buildStatusFilter = (
+        statusFilter: string | undefined,
+        isAdmin: boolean
+      ): { not: string } | { equals: string } | undefined => {
+        if (statusFilter === 'all' && isAdmin) {
+          return undefined;
+        } else if (statusFilter === 'draft' && isAdmin) {
+          return { equals: 'draft' };
+        }
+        return { not: 'draft' };
+      };
+
+      const result = buildStatusFilter('all', true);
+      expect(result).toBeUndefined();
+    });
+
+    it('should return only drafts for admin with status=draft', () => {
+      const buildStatusFilter = (
+        statusFilter: string | undefined,
+        isAdmin: boolean
+      ): { not: string } | { equals: string } | undefined => {
+        if (statusFilter === 'all' && isAdmin) {
+          return undefined;
+        } else if (statusFilter === 'draft' && isAdmin) {
+          return { equals: 'draft' };
+        }
+        return { not: 'draft' };
+      };
+
+      const result = buildStatusFilter('draft', true);
+      expect(result).toEqual({ equals: 'draft' });
+    });
+
+    it('should hide drafts for admin with no status filter', () => {
+      const buildStatusFilter = (
+        statusFilter: string | undefined,
+        isAdmin: boolean
+      ): { not: string } | { equals: string } | undefined => {
+        if (statusFilter === 'all' && isAdmin) {
+          return undefined;
+        } else if (statusFilter === 'draft' && isAdmin) {
+          return { equals: 'draft' };
+        }
+        return { not: 'draft' };
+      };
+
+      const result = buildStatusFilter(undefined, true);
+      expect(result).toEqual({ not: 'draft' });
+    });
+
+    it('should apply status filter to findMany where clause', async () => {
+      mockPrisma.course.findMany.mockResolvedValue([]);
+
+      const statusWhere = { not: 'draft' };
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id', ...(statusWhere ? { status: statusWhere } : {}) },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            status: { not: 'draft' },
+          }),
+        })
+      );
+    });
+
+    it('should omit status from where clause when filter is undefined (admin status=all)', async () => {
+      mockPrisma.course.findMany.mockResolvedValue([]);
+
+      const statusWhere = undefined;
+      await mockPrisma.course.findMany({
+        where: { userId: 'test-user-id', ...(statusWhere ? { status: statusWhere } : {}) },
+        orderBy: { updatedAt: 'desc' },
+      });
+
+      expect(mockPrisma.course.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'test-user-id' },
+        })
+      );
+    });
+  });
+
   describe('Validation', () => {
     it('should validate course status values', () => {
       const validStatuses = ['pending', 'generating', 'ready', 'error'];

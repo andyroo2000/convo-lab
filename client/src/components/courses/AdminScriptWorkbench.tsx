@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import LineTTSTester from './LineTTSTester';
 
 interface DialogueExchange {
   order: number;
@@ -69,8 +70,19 @@ interface ScriptConfig {
   outroTemplate: string;
 }
 
+interface LineRendering {
+  id: string;
+  unitIndex: number;
+  text: string;
+  speed: number;
+  voiceId: string;
+  audioUrl: string;
+  createdAt: string;
+}
+
 interface AdminScriptWorkbenchProps {
   courseId: string;
+  readOnly?: boolean;
 }
 
 type PipelineStage = 'prompt' | 'exchanges' | 'config' | 'script' | 'audio';
@@ -81,7 +93,7 @@ function getStepButtonClass(stepKey: PipelineStage, activeStep: PipelineStage, e
   return 'bg-gray-50 text-gray-400 cursor-not-allowed';
 }
 
-const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
+const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkbenchProps) => {
   const [activeStep, setActiveStep] = useState<PipelineStage>('prompt');
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +113,10 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
   // Step 3: Script
   const [scriptUnits, setScriptUnits] = useState<ScriptUnit[] | null>(null);
   const [estimatedDuration, setEstimatedDuration] = useState<number | null>(null);
+
+  // Line TTS Tester
+  const [selectedUnitIndex, setSelectedUnitIndex] = useState<number | null>(null);
+  const [lineRenderings, setLineRenderings] = useState<LineRendering[]>([]);
 
   // Step 4: Audio
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -161,14 +177,30 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
           setActiveStep('exchanges');
         }
 
-        // Always load the prompt
-        await handleBuildPrompt(true);
+        // Load the prompt (skip in readOnly mode since it's a POST action)
+        if (!readOnly) {
+          await handleBuildPrompt(true);
+        }
+
+        // Load line renderings
+        try {
+          const renderingsRes = await fetch(`/api/admin/courses/${courseId}/line-renderings`, {
+            credentials: 'include',
+          });
+          if (renderingsRes.ok) {
+            const renderingsData = await renderingsRes.json();
+            setLineRenderings(renderingsData.renderings || []);
+          }
+        } catch {
+          // Ignore - renderings are optional
+        }
       } catch {
         // Ignore load errors - start fresh
       }
     };
     loadPipelineData();
-  }, [courseId, handleBuildPrompt]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId, handleBuildPrompt, readOnly]);
 
   // Poll for audio completion
   useEffect(() => {
@@ -336,7 +368,7 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
   };
 
   const stepConfig = [
-    { key: 'prompt' as const, label: '1. Prompt', enabled: true },
+    { key: 'prompt' as const, label: '1. Prompt', enabled: readOnly ? !!prompt : true },
     { key: 'exchanges' as const, label: '2. Dialogue', enabled: !!exchanges },
     { key: 'config' as const, label: '3. Config', enabled: !!scriptConfig },
     { key: 'script' as const, label: '4. Script', enabled: !!scriptUnits },
@@ -415,28 +447,31 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
 
           <textarea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e) => !readOnly && setPrompt(e.target.value)}
+            readOnly={readOnly}
             className="w-full h-96 px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono leading-relaxed"
           />
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => handleBuildPrompt()}
-              disabled={!!loading}
-              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-            >
-              Refresh Seeds
-            </button>
-            <button
-              type="button"
-              onClick={handleGenerateDialogue}
-              disabled={!!loading || !prompt.trim()}
-              className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-            >
-              Generate Dialogue
-            </button>
-          </div>
+          {!readOnly && (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => handleBuildPrompt()}
+                disabled={!!loading}
+                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+              >
+                Refresh Seeds
+              </button>
+              <button
+                type="button"
+                onClick={handleGenerateDialogue}
+                disabled={!!loading || !prompt.trim()}
+                className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+              >
+                Generate Dialogue
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -447,26 +482,28 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
             <h3 className="text-lg font-bold text-dark-brown">
               Dialogue Exchanges ({exchanges.length})
             </h3>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveStep('prompt')}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-              >
-                Back to Prompt
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleBuildScriptConfig();
-                  setActiveStep('config');
-                }}
-                disabled={!!loading}
-                className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-              >
-                Configure Script
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep('prompt')}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+                >
+                  Back to Prompt
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleBuildScriptConfig();
+                    setActiveStep('config');
+                  }}
+                  disabled={!!loading}
+                  className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+                >
+                  Configure Script
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-3">
@@ -474,8 +511,9 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
               <button
                 key={`exchange-${exchange.order}`}
                 type="button"
-                className="w-full text-left border-2 border-gray-100 rounded-lg p-4 hover:border-gray-300 cursor-pointer transition-all"
-                onClick={() => openExchangeEditor(exchange.order, exchange)}
+                className={`w-full text-left border-2 border-gray-100 rounded-lg p-4 transition-all ${readOnly ? '' : 'hover:border-gray-300 cursor-pointer'}`}
+                onClick={() => !readOnly && openExchangeEditor(exchange.order, exchange)}
+                disabled={readOnly}
               >
                 <div className="flex items-start gap-3">
                   <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 shrink-0">
@@ -643,31 +681,33 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
         <div className="bg-white border-l-8 border-yellow-500 p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-bold text-dark-brown">Script Generation Configuration</h3>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveStep('exchanges')}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-              >
-                Back to Dialogue
-              </button>
-              <button
-                type="button"
-                onClick={() => handleBuildScriptConfig()}
-                disabled={!!loading}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-              >
-                Reset to Defaults
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerateScript}
-                disabled={!!loading}
-                className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-              >
-                Generate Script
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep('exchanges')}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+                >
+                  Back to Dialogue
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleBuildScriptConfig()}
+                  disabled={!!loading}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+                >
+                  Reset to Defaults
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateScript}
+                  disabled={!!loading}
+                  className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+                >
+                  Generate Script
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="space-y-6 max-h-[600px] overflow-y-auto">
@@ -678,11 +718,15 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
                 {Object.entries(scriptConfig)
                   .filter(([key]) => key.includes('pause') || key.includes('Seconds'))
                   .map(([key, value]) => (
-                    <label key={key} className="block">
-                      <span className="block text-xs font-medium text-gray-600 mb-1">
+                    <div key={key}>
+                      <label
+                        htmlFor={`pause-${key}`}
+                        className="block text-xs font-medium text-gray-600 mb-1"
+                      >
                         {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
+                      </label>
                       <input
+                        id={`pause-${key}`}
                         type="number"
                         step="0.1"
                         value={value as number}
@@ -694,7 +738,7 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
                         }
                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm"
                       />
-                    </label>
+                    </div>
                   ))}
               </div>
             </div>
@@ -703,47 +747,57 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
             <div className="border-2 border-gray-200 rounded-lg p-4">
               <h4 className="font-bold text-gray-800 mb-3">AI Prompts</h4>
               <div className="space-y-4">
-                <label className="block">
+                <div>
                   <span className="block text-xs font-medium text-gray-600 mb-1">
                     Scenario Introduction Prompt
                   </span>
                   <textarea
+                    aria-label="Scenario Introduction Prompt"
                     value={scriptConfig.scenarioIntroPrompt}
                     onChange={(e) =>
                       setScriptConfig({ ...scriptConfig, scenarioIntroPrompt: e.target.value })
                     }
                     className="w-full h-40 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
                   />
-                </label>
-                <label className="block">
+                </div>
+                <div>
                   <span className="block text-xs font-medium text-gray-600 mb-1">
                     Progressive Phrase Building Prompt
                   </span>
                   <textarea
+                    aria-label="Progressive Phrase Building Prompt"
                     value={scriptConfig.progressivePhrasePrompt}
                     onChange={(e) =>
                       setScriptConfig({ ...scriptConfig, progressivePhrasePrompt: e.target.value })
                     }
                     className="w-full h-40 px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
                   />
-                </label>
+                </div>
               </div>
             </div>
 
             {/* Narration Templates */}
             <div className="border-2 border-gray-200 rounded-lg p-4">
               <h4 className="font-bold text-gray-800 mb-3">
-                Narration Templates (use {'{'}translation{'}'}, {'{'}relationshipName{'}'} as placeholders)
+                Narration Templates (use {'{'}translation{'}'}, {'{'}relationshipName{'}'} as
+                placeholders)
               </h4>
               <div className="grid grid-cols-1 gap-3">
                 {Object.entries(scriptConfig)
                   .filter(([key]) => key.includes('Template'))
                   .map(([key, value]) => (
-                    <label key={key} className="block">
-                      <span className="block text-xs font-medium text-gray-600 mb-1">
-                        {key.replace(/([A-Z])/g, ' $1').replace('Template', '').trim()}
-                      </span>
+                    <div key={key}>
+                      <label
+                        htmlFor={`template-${key}`}
+                        className="block text-xs font-medium text-gray-600 mb-1"
+                      >
+                        {key
+                          .replace(/([A-Z])/g, ' $1')
+                          .replace('Template', '')
+                          .trim()}
+                      </label>
                       <input
+                        id={`template-${key}`}
                         type="text"
                         value={value as string}
                         onChange={(e) =>
@@ -751,7 +805,7 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
                         }
                         className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-sm font-mono"
                       />
-                    </label>
+                    </div>
                   ))}
               </div>
             </div>
@@ -759,7 +813,7 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
         </div>
       )}
 
-      {/* Step 4: Script Preview */}
+      {/* Step 4: Script Preview with Line TTS Tester */}
       {activeStep === 'script' && scriptUnits && (
         <div className="bg-white border-l-8 border-yellow-500 p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
@@ -767,66 +821,113 @@ const AdminScriptWorkbench = ({ courseId }: AdminScriptWorkbenchProps) => {
               Script Preview ({scriptUnits.length} units
               {estimatedDuration ? `, ~${Math.round(estimatedDuration / 60)}min` : ''})
             </h3>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveStep('config')}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
-              >
-                Back to Config
-              </button>
-              <button
-                type="button"
-                onClick={handleGenerateAudio}
-                disabled={!!loading}
-                className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
-              >
-                Generate Audio
-              </button>
-            </div>
+            {!readOnly && (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveStep('config')}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-sm rounded-lg transition-all"
+                >
+                  Back to Config
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateAudio}
+                  disabled={!!loading}
+                  className="px-6 py-2 bg-coral hover:bg-coral-dark text-white font-bold text-sm rounded-lg transition-all disabled:opacity-50"
+                >
+                  Generate Audio
+                </button>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-1 max-h-[600px] overflow-y-auto">
-            {scriptUnits.map((unit, idx) => {
-              const unitStyles: Record<string, string> = {
-                narration_L1: 'bg-blue-50 border-l-4 border-blue-400 text-blue-900',
-                L2: 'bg-green-50 border-l-4 border-green-400 text-green-900',
-                pause: 'bg-gray-50 border-l-4 border-gray-300 text-gray-500',
-                marker: 'bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 font-bold',
-              };
+          <div className="flex gap-4">
+            {/* Script Lines - Left Column */}
+            <div
+              className={`space-y-1 max-h-[600px] overflow-y-auto ${selectedUnitIndex !== null ? 'w-3/5' : 'w-full'}`}
+            >
+              {scriptUnits.map((unit, idx) => {
+                const unitStyles: Record<string, string> = {
+                  narration_L1: 'bg-blue-50 border-l-4 border-blue-400 text-blue-900',
+                  L2: 'bg-green-50 border-l-4 border-green-400 text-green-900',
+                  pause: 'bg-gray-50 border-l-4 border-gray-300 text-gray-500',
+                  marker: 'bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 font-bold',
+                };
 
-              const typeLabels: Record<string, string> = {
-                narration_L1: 'NAR',
-                L2: 'L2',
-                pause: 'PAUSE',
-                marker: 'MARK',
-              };
+                const typeLabels: Record<string, string> = {
+                  narration_L1: 'NAR',
+                  L2: 'L2',
+                  pause: 'PAUSE',
+                  marker: 'MARK',
+                };
 
-              const unitKey =
-                unit.type === 'marker' ? `unit-${idx}-${unit.label}` : `unit-${idx}-${unit.type}`;
+                const unitKey =
+                  unit.type === 'marker' ? `unit-${idx}-${unit.label}` : `unit-${idx}-${unit.type}`;
 
-              return (
-                <div
-                  key={unitKey}
-                  className={`px-3 py-1.5 text-sm rounded-r ${unitStyles[unit.type] || 'bg-gray-50'}`}
-                >
-                  <span className="inline-block w-12 text-xs font-mono opacity-60">
-                    {typeLabels[unit.type] || unit.type}
-                  </span>
-                  {unit.type === 'pause' && <span>{unit.seconds}s</span>}
-                  {unit.type === 'marker' && <span>{unit.label}</span>}
-                  {unit.type === 'narration_L1' && <span>{unit.text}</span>}
-                  {unit.type === 'L2' && (
-                    <span>
-                      {unit.text}
-                      {unit.translation && (
-                        <span className="text-green-600 ml-2 text-xs">({unit.translation})</span>
+                const isClickable = unit.type === 'narration_L1' || unit.type === 'L2';
+                const isSelected = selectedUnitIndex === idx;
+                const unitRenderingCount = lineRenderings.filter((r) => r.unitIndex === idx).length;
+
+                return (
+                  <button
+                    key={unitKey}
+                    type="button"
+                    onClick={() => isClickable && setSelectedUnitIndex(isSelected ? null : idx)}
+                    disabled={!isClickable}
+                    className={`w-full text-left px-3 py-1.5 text-sm rounded-r transition-all ${unitStyles[unit.type] || 'bg-gray-50'} ${
+                      isClickable ? 'cursor-pointer hover:ring-2 hover:ring-coral/30' : ''
+                    } ${isSelected ? 'ring-2 ring-coral' : ''}`}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      <span className="inline-block w-12 text-xs font-mono opacity-60">
+                        {typeLabels[unit.type] || unit.type}
+                      </span>
+                      {unitRenderingCount > 0 && (
+                        <span
+                          className="inline-flex items-center justify-center w-4 h-4 bg-coral text-white rounded-full text-[10px] font-bold shrink-0"
+                          title={`${unitRenderingCount} rendering(s)`}
+                        >
+                          <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7z" />
+                          </svg>
+                        </span>
                       )}
                     </span>
-                  )}
-                </div>
-              );
-            })}
+                    {unit.type === 'pause' && <span>{unit.seconds}s</span>}
+                    {unit.type === 'marker' && <span>{unit.label}</span>}
+                    {unit.type === 'narration_L1' && <span>{unit.text}</span>}
+                    {unit.type === 'L2' && (
+                      <span>
+                        {unit.text}
+                        {unit.translation && (
+                          <span className="text-green-600 ml-2 text-xs">({unit.translation})</span>
+                        )}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Line TTS Tester - Right Column */}
+            {selectedUnitIndex !== null && scriptUnits[selectedUnitIndex] && (
+              <div className="w-2/5 border-2 border-gray-200 rounded-lg p-4 max-h-[600px] overflow-y-auto sticky top-0">
+                <LineTTSTester
+                  key={selectedUnitIndex}
+                  courseId={courseId}
+                  unit={scriptUnits[selectedUnitIndex]}
+                  unitIndex={selectedUnitIndex}
+                  renderings={lineRenderings.filter((r) => r.unitIndex === selectedUnitIndex)}
+                  onRenderingCreated={(rendering) => {
+                    setLineRenderings((prev) => [rendering, ...prev]);
+                  }}
+                  onRenderingDeleted={(renderingId) => {
+                    setLineRenderings((prev) => prev.filter((r) => r.id !== renderingId));
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}

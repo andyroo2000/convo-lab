@@ -113,7 +113,9 @@ jobs:
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
-            docker-compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans
+            # Force-stop any lingering convolab containers that might block network removal
+            docker ps -q --filter "name=convolab-" | xargs -r docker stop 2>/dev/null || true
+            docker-compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
 
             # Start containers with environment file
             echo "♻️  Starting containers..."

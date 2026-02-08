@@ -15,12 +15,13 @@ import {
 } from '../services/courseItemExtractor.js';
 import { addReadingBrackets } from '../services/furiganaService.js';
 import { LessonScriptUnit } from '../services/lessonScriptGenerator.js';
-import {
-  DEFAULT_SCRIPT_CONFIG,
-  buildScriptConfig,
-  ScriptGenerationConfig,
-} from '../services/scriptGenerationConfig.js';
+import { DEFAULT_SCRIPT_CONFIG, buildScriptConfig } from '../services/scriptGenerationConfig.js';
 import { proofreadScript } from '../services/scriptProofreader.js';
+import { uploadToGCS } from '../services/storageClient.js';
+import {
+  synthesizeFishAudioSpeech,
+  resolveFishAudioVoiceId,
+} from '../services/ttsProviders/FishAudioTTSProvider.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
 
 const router = Router();
@@ -364,11 +365,11 @@ router.post('/:id/generate-audio', async (req: AuthRequest, res, next) => {
       );
     }
 
-    // Save as flat array so the audioOnly worker can read it
+    // Save script units to scriptUnitsJson (separate from pipeline data in scriptJson)
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptJson: scriptUnits as unknown as Prisma.JsonValue,
+        scriptUnitsJson: scriptUnits as unknown as Prisma.JsonValue,
         status: 'generating',
       },
     });
@@ -404,6 +405,7 @@ router.get('/:id/pipeline-data', async (req: AuthRequest, res, next) => {
         id: true,
         status: true,
         scriptJson: true,
+        scriptUnitsJson: true,
         audioUrl: true,
         approxDurationSeconds: true,
       },
@@ -429,10 +431,16 @@ router.get('/:id/pipeline-data', async (req: AuthRequest, res, next) => {
         exchanges = (scriptJson._exchanges as DialogueExchange[]) || null;
         scriptUnits = (scriptJson._scriptUnits as LessonScriptUnit[]) || null;
       } else if (Array.isArray(scriptJson)) {
-        // Flat array = script units ready for audio (or already generated audio)
+        // Legacy: flat array = script units (old format before scriptUnitsJson)
         stage = 'script';
         scriptUnits = scriptJson as unknown as LessonScriptUnit[];
       }
+    }
+
+    // Fallback: if no script units from scriptJson, try scriptUnitsJson
+    if (!scriptUnits && course.scriptUnitsJson && Array.isArray(course.scriptUnitsJson)) {
+      stage = stage || 'script';
+      scriptUnits = course.scriptUnitsJson as unknown as LessonScriptUnit[];
     }
 
     res.json({
@@ -501,6 +509,112 @@ router.put('/:id/pipeline-data', async (req: AuthRequest, res, next) => {
     } else {
       throw new AppError('Invalid stage. Must be "exchanges" or "script"', 400);
     }
+
+    res.json({ success: true });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * POST /:id/synthesize-line
+ * Synthesize a single line of text using Fish Audio TTS.
+ * Saves result as a LineAudioRendering record.
+ */
+router.post('/:id/synthesize-line', async (req: AuthRequest, res, next) => {
+  try {
+    const { text, voiceId, speed, unitIndex } = req.body;
+
+    if (!text || !voiceId || unitIndex === undefined) {
+      throw new AppError('Missing required fields: text, voiceId, unitIndex', 400);
+    }
+
+    const course = await prisma.course.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!course) {
+      throw new AppError('Course not found', 404);
+    }
+
+    if (!voiceId.startsWith('fishaudio:')) {
+      throw new AppError('Only Fish Audio voices are supported for line synthesis', 400);
+    }
+
+    const referenceId = resolveFishAudioVoiceId(voiceId);
+    const DEFAULT_SPEED = 1.0;
+    const audioBuffer = await synthesizeFishAudioSpeech({
+      referenceId,
+      text,
+      speed: speed || DEFAULT_SPEED,
+    });
+
+    const audioUrl = await uploadToGCS({
+      buffer: audioBuffer,
+      filename: `line-${unitIndex}.mp3`,
+      contentType: 'audio/mpeg',
+      folder: `courses/${course.id}/line-tests`,
+    });
+
+    const rendering = await prisma.lineAudioRendering.create({
+      data: {
+        courseId: course.id,
+        unitIndex,
+        text,
+        speed: speed || DEFAULT_SPEED,
+        voiceId,
+        audioUrl,
+      },
+    });
+
+    res.json({ audioUrl, renderingId: rendering.id });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * GET /:id/line-renderings
+ * Return all line audio renderings for a course.
+ */
+router.get('/:id/line-renderings', async (req: AuthRequest, res, next) => {
+  try {
+    const course = await prisma.course.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!course) {
+      throw new AppError('Course not found', 404);
+    }
+
+    const renderings = await prisma.lineAudioRendering.findMany({
+      where: { courseId: course.id },
+      orderBy: [{ unitIndex: 'asc' }, { createdAt: 'desc' }],
+    });
+
+    res.json({ renderings });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
+ * DELETE /:id/line-renderings/:renderingId
+ * Delete a specific line audio rendering.
+ */
+router.delete('/:id/line-renderings/:renderingId', async (req: AuthRequest, res, next) => {
+  try {
+    const rendering = await prisma.lineAudioRendering.findUnique({
+      where: { id: req.params.renderingId },
+    });
+
+    if (!rendering || rendering.courseId !== req.params.id) {
+      throw new AppError('Rendering not found', 404);
+    }
+
+    await prisma.lineAudioRendering.delete({
+      where: { id: rendering.id },
+    });
 
     res.json({ success: true });
   } catch (error) {
