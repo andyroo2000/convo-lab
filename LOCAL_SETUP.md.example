@@ -17,19 +17,18 @@ DATABASE_URL="postgresql://YOUR_MAC_USERNAME@localhost:5432/languageflow?schema=
 
 ## Production API Keys
 
-### Fish Audio & ElevenLabs API Keys
+### Fish Audio API Key
 
-For local testing of TTS features, you'll need to copy API keys from production:
+For local testing of TTS features, you'll need to copy the API key from production:
 
 **SSH Command** (replace `YOUR_PRODUCTION_SERVER` with actual hostname):
 ```bash
-ssh root@YOUR_PRODUCTION_SERVER 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml exec -T server env | grep -E "FISH_AUDIO|ELEVENLABS"'
+ssh root@YOUR_PRODUCTION_SERVER 'cd /opt/convolab && docker-compose -f docker-compose.prod.yml exec -T server env | grep FISH_AUDIO'
 ```
 
-Add these to your `server/.env` file:
+Add this to your `server/.env` file:
 ```bash
 FISH_AUDIO_API_KEY=your-key-here
-ELEVENLABS_API_KEY=your-key-here
 ```
 
 **Security Notes**:

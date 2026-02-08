@@ -10,12 +10,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **[feat]** Audio sweetening chain for loudness normalization and quality enhancement — adds two-stage audio processing: per-segment loudness normalization (EBU R128 LUFS) to match voice levels before assembly, and final mix sweetening (highpass filter + compression + presence EQ + loudness limiting) to improve clarity and consistency; includes standalone test script (`test-audio-sweetening.ts`) for A/B comparison and tuning before deployment; all parameters configurable via env vars with sensible defaults; can be toggled off entirely with `AUDIO_SWEETENING_ENABLED=0`
+- **[feat]** Voice preview buttons for all TTS voices — play/stop buttons on voice dropdowns with shared audio context (single `<audio>` element), lazy loading via IntersectionObserver, and memoized components
+- **[feat]** `AudioPreviewContext` — shared React context managing a single audio element for all voice previews, with busyRef guard against rapid-click race conditions
+- **[test]** VoicePreview component tests — 11 tests covering playback, error handling, accessibility, lazy loading, and shared context behavior
+- **[test]** voiceIdToFilename tests — 16 tests including security (path traversal, backslash), edge cases, and all voice ID formats
 - **[feat]** Fish Audio TTS provider for Japanese and English voices — adds Fish Audio as a fourth TTS provider alongside Google, Polly, and ElevenLabs; Fish Audio is now the preferred provider for Japanese voices with native speed control via `prosody.speed`, eliminating ffmpeg post-processing; includes 3 English narrator voices, 4 Japanese male voices, and 5 Japanese female voices with `fishaudio:` prefix convention to prevent voice ID collisions
+
+### Removed
+
+- **[refactor]** ElevenLabs TTS provider — removed ElevenLabsTTSProvider, all 10 ElevenLabs voice entries, phraseContext field, and related test infrastructure
 
 ### Fixed
 
 - **[fix]** Fish Audio → ElevenLabs fallback now remaps voice IDs — when `FISH_AUDIO_API_KEY` is not configured, Fish Audio voice IDs are remapped to matching ElevenLabs voices (by gender and language) instead of being passed directly, which caused `ElevenLabs voice not found` errors
 - **[fix]** `FISH_AUDIO_API_KEY` now passed to server and worker Docker containers in production — the key was injected into `.env.production` but not mapped into the container environment, so Fish Audio was always unavailable
+- **[security]** Path traversal protection in voiceIdToFilename — validates against `..`, `/`, and `\` in voice IDs
+- **[security]** AWS credential validation in voice preview generation script — throws early instead of using empty string fallback
 
 ### Changed
 

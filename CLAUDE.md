@@ -19,7 +19,7 @@ DATABASE_URL="postgresql://YOUR_MAC_USERNAME@localhost:5432/languageflow?schema=
 **Production Credentials**: See `LOCAL_SETUP.md` (gitignored) for actual credentials including:
 
 - Your specific Mac username for DATABASE_URL
-- Fish Audio and ElevenLabs API keys
+- Fish Audio API keys
 - Production server access instructions
 
 If you don't have `LOCAL_SETUP.md`, copy `LOCAL_SETUP.md.example` and ask the project owner for credentials.

@@ -16,7 +16,7 @@ interface VoiceConfig {
   id: string;
   gender: string;
   description: string;
-  provider?: 'google' | 'polly' | 'elevenlabs' | 'fishaudio';
+  provider?: 'google' | 'polly' | 'fishaudio';
 }
 
 export function getCourseSpeakerVoices(
@@ -32,12 +32,9 @@ export function getCourseSpeakerVoices(
   const allTargetVoices = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
     []) as ReadonlyArray<VoiceConfig>;
   const hasFishAudio = allTargetVoices.some((voice) => voice.provider === 'fishaudio');
-  const hasElevenLabs = allTargetVoices.some((voice) => voice.provider === 'elevenlabs');
   const preferredVoices = hasFishAudio
     ? allTargetVoices.filter((voice) => voice.provider === 'fishaudio')
-    : hasElevenLabs
-      ? allTargetVoices.filter((voice) => voice.provider === 'elevenlabs')
-      : allTargetVoices;
+    : allTargetVoices;
 
   let speakerVoices: string[] = [];
 
@@ -69,9 +66,7 @@ export function getDialogueSpeakerVoices(
   // Get speaker voices for dialogue (target language only)
   const voicesConfig = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices;
   const targetVoices: VoiceConfig[] = voicesConfig
-    ? (voicesConfig as ReadonlyArray<VoiceConfig>).filter(
-        (voice) => voice.provider !== 'elevenlabs'
-      )
+    ? [...(voicesConfig as ReadonlyArray<VoiceConfig>)]
     : [];
 
   // For 2 speakers, ensure gender diversity (one male, one female)
@@ -106,30 +101,26 @@ export function getDialogueSpeakerVoices(
 }
 
 /**
- * Get a fallback ElevenLabs voice ID for a Fish Audio voice.
- * Matches by gender and language from TTS_VOICES config.
- * Used when Fish Audio API key is not configured.
+ * Convert a voice ID to a sanitized filename for voice preview audio files.
+ * Used by both the generation script and the client VoicePreview component.
  */
-export function getFishAudioFallbackVoiceId(fishAudioVoiceId: string): string {
-  for (const [, config] of Object.entries(TTS_VOICES)) {
-    const voice = (config.voices as ReadonlyArray<VoiceConfig>).find(
-      (v) => v.id === fishAudioVoiceId
-    );
-    if (voice) {
-      // Find first ElevenLabs voice with matching gender in same language
-      const fallback = (config.voices as ReadonlyArray<VoiceConfig>).find(
-        (v) => v.provider === 'elevenlabs' && v.gender === voice.gender
-      );
-      if (fallback) return fallback.id;
-      // If no gender match, use any ElevenLabs voice in same language
-      const anyFallback = (config.voices as ReadonlyArray<VoiceConfig>).find(
-        (v) => v.provider === 'elevenlabs'
-      );
-      if (anyFallback) return anyFallback.id;
-    }
+export function voiceIdToFilename(voiceId: string): string {
+  if (!voiceId || voiceId.includes('..') || voiceId.includes('/') || voiceId.includes('\\')) {
+    throw new Error('Invalid voice ID');
   }
-  // Last resort: known ElevenLabs voice
-  return 'Spuds Oxley';
+
+  const sanitized = voiceId
+    .toLowerCase()
+    .replace(/:/g, '_')
+    .replace(/[,]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_-]/g, '');
+
+  if (!sanitized) {
+    throw new Error('Voice ID sanitization resulted in empty string');
+  }
+
+  return sanitized;
 }
 
 /**
@@ -137,13 +128,13 @@ export function getFishAudioFallbackVoiceId(fishAudioVoiceId: string): string {
  * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
  * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu")
  */
-export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' | 'elevenlabs' | 'fishaudio' {
+export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' | 'fishaudio' {
   // Fish Audio voice IDs are prefixed with "fishaudio:"
   if (voiceId.startsWith('fishaudio:')) {
     return 'fishaudio';
   }
 
-  // First try to resolve via known voice config (preferred for ElevenLabs)
+  // Try to resolve via known voice config
   for (const [, config] of Object.entries(TTS_VOICES)) {
     const voice = config.voices.find((v: VoiceConfig) => v.id === voiceId);
     if (voice?.provider) {
@@ -157,18 +148,13 @@ export function getProviderFromVoiceId(voiceId: string): 'google' | 'polly' | 'e
   }
 
   // Polly voices are single-word IDs (no hyphens)
-  if (!voiceId.includes('-')) {
-    return 'polly';
-  }
-
-  // Fallback for unknown IDs (UUID-like) - assume ElevenLabs
-  return 'elevenlabs';
+  return 'polly';
 }
 
 /**
  * Extract language code from voice ID
  * For Google: Extract from format "ja-JP-Neural2-B" → "ja-JP"
- * For Polly/ElevenLabs: Look up in voice configuration
+ * For Polly/Fish Audio: Look up in voice configuration
  */
 export function getLanguageCodeFromVoiceId(voiceId: string): string {
   const provider = getProviderFromVoiceId(voiceId);
@@ -178,7 +164,7 @@ export function getLanguageCodeFromVoiceId(voiceId: string): string {
     return voiceId.split('-').slice(0, 2).join('-');
   }
 
-  // For Polly, look up in voice config
+  // For Polly/Fish Audio, look up in voice config
   for (const [, config] of Object.entries(TTS_VOICES)) {
     const voice = config.voices.find((v: { id: string }) => v.id === voiceId);
     if (voice) return config.languageCode;
