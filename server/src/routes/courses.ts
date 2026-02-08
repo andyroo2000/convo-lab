@@ -32,7 +32,13 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const queryUserId = await getEffectiveUserId(req);
 
     // Build status filter: by default hide drafts for non-admin users
-    const isAdmin = req.user?.role === 'admin';
+    const adminCheck = req.userId
+      ? await prisma.user.findUnique({
+          where: { id: req.userId },
+          select: { role: true },
+        })
+      : null;
+    const isAdmin = adminCheck?.role === 'admin';
     let statusWhere: Prisma.StringFilter | undefined;
     if (statusFilter === 'all' && isAdmin) {
       // Admin requesting all statuses - no filter
