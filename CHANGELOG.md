@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **[fix]** Silent NaN from invalid audio processing env vars — `parseEnvNumber()` validates numeric env vars and warns + falls back to defaults instead of silently producing NaN filter values
+- **[fix]** Missing error context in audio processing ffmpeg failures — normalization and sweetening errors now include filter params, input path, and buffer size for easier debugging
 - **[fix]** Inconsistent error messages in LineTTSTester — standardized "Synthesis failed" to "Line synthesis failed" for clarity
 - **[feat]** Fish Audio TTS provider for Japanese and English voices — adds Fish Audio as a fourth TTS provider alongside Google, Polly, and ElevenLabs; Fish Audio is now the preferred provider for Japanese voices with native speed control via `prosody.speed`, eliminating ffmpeg post-processing; includes 3 English narrator voices, 4 Japanese male voices, and 5 Japanese female voices with `fishaudio:` prefix convention to prevent voice ID collisions
 
