@@ -9,33 +9,43 @@ const execFileAsync = promisify(execFile);
 
 // ─── Configuration (env-overridable with sensible defaults) ───
 
+function parseEnvNumber(envVar: string | undefined, fallback: number): number {
+  if (envVar === undefined || envVar === '') return fallback;
+  const parsed = Number(envVar);
+  if (Number.isNaN(parsed)) {
+    console.warn(`[AudioProcessing] Invalid env value "${envVar}", using default ${fallback}`);
+    return fallback;
+  }
+  return parsed;
+}
+
 /** Target loudness in LUFS for per-segment normalization */
-const LOUDNORM_TARGET_IL = Number(process.env.AUDIO_LOUDNORM_TARGET_IL || -16);
+const LOUDNORM_TARGET_IL = parseEnvNumber(process.env.AUDIO_LOUDNORM_TARGET_IL, -16);
 /** Loudness range target */
-const LOUDNORM_TARGET_LRA = Number(process.env.AUDIO_LOUDNORM_TARGET_LRA || 11);
+const LOUDNORM_TARGET_LRA = parseEnvNumber(process.env.AUDIO_LOUDNORM_TARGET_LRA, 11);
 /** True peak ceiling (dB) */
-const LOUDNORM_TARGET_TP = Number(process.env.AUDIO_LOUDNORM_TARGET_TP || -1.5);
+const LOUDNORM_TARGET_TP = parseEnvNumber(process.env.AUDIO_LOUDNORM_TARGET_TP, -1.5);
 
 /** Compressor threshold in dB */
-const COMP_THRESHOLD_DB = Number(process.env.AUDIO_COMP_THRESHOLD_DB || -20);
+const COMP_THRESHOLD_DB = parseEnvNumber(process.env.AUDIO_COMP_THRESHOLD_DB, -20);
 /** Compressor ratio */
-const COMP_RATIO = Number(process.env.AUDIO_COMP_RATIO || 2);
+const COMP_RATIO = parseEnvNumber(process.env.AUDIO_COMP_RATIO, 2);
 /** Compressor attack in ms */
-const COMP_ATTACK_MS = Number(process.env.AUDIO_COMP_ATTACK_MS || 20);
+const COMP_ATTACK_MS = parseEnvNumber(process.env.AUDIO_COMP_ATTACK_MS, 20);
 /** Compressor release in ms */
-const COMP_RELEASE_MS = Number(process.env.AUDIO_COMP_RELEASE_MS || 250);
+const COMP_RELEASE_MS = parseEnvNumber(process.env.AUDIO_COMP_RELEASE_MS, 250);
 /** Compressor makeup gain in dB */
-const COMP_MAKEUP_DB = Number(process.env.AUDIO_COMP_MAKEUP_DB || 2);
+const COMP_MAKEUP_DB = parseEnvNumber(process.env.AUDIO_COMP_MAKEUP_DB, 2);
 
 /** High-pass filter cutoff frequency in Hz */
-const HIGHPASS_FREQ_HZ = Number(process.env.AUDIO_HIGHPASS_FREQ_HZ || 80);
+const HIGHPASS_FREQ_HZ = parseEnvNumber(process.env.AUDIO_HIGHPASS_FREQ_HZ, 80);
 
 /** Presence boost center frequency in Hz */
-const PRESENCE_FREQ_HZ = Number(process.env.AUDIO_PRESENCE_FREQ_HZ || 3000);
+const PRESENCE_FREQ_HZ = parseEnvNumber(process.env.AUDIO_PRESENCE_FREQ_HZ, 3000);
 /** Presence boost gain in dB */
-const PRESENCE_GAIN_DB = Number(process.env.AUDIO_PRESENCE_GAIN_DB || 2);
+const PRESENCE_GAIN_DB = parseEnvNumber(process.env.AUDIO_PRESENCE_GAIN_DB, 2);
 /** Presence boost Q factor */
-const PRESENCE_Q = Number(process.env.AUDIO_PRESENCE_Q || 1.0);
+const PRESENCE_Q = parseEnvNumber(process.env.AUDIO_PRESENCE_Q, 1.0);
 
 /** Master switch to enable/disable audio sweetening */
 const AUDIO_SWEETENING_ENABLED = process.env.AUDIO_SWEETENING_ENABLED !== '0';
@@ -78,16 +88,29 @@ export async function normalizeSegmentLoudness(inputBuffer: Buffer): Promise<Buf
   try {
     await fs.writeFile(inputPath, inputBuffer);
 
-    await execFileAsync('ffmpeg', [
-      '-y',
-      '-i', inputPath,
-      '-af', buildLoudnormFilter(),
-      '-ar', '44100',
-      '-ac', '2',
-      '-c:a', 'libmp3lame',
-      '-b:a', '128k',
-      outputPath,
-    ]);
+    const filter = buildLoudnormFilter();
+    try {
+      await execFileAsync('ffmpeg', [
+        '-y',
+        '-i',
+        inputPath,
+        '-af',
+        filter,
+        '-ar',
+        '44100',
+        '-ac',
+        '2',
+        '-c:a',
+        'libmp3lame',
+        '-b:a',
+        '128k',
+        outputPath,
+      ]);
+    } catch (err) {
+      throw new Error(
+        `Loudness normalization failed (filter: ${filter}, inputSize: ${inputBuffer.length} bytes): ${err instanceof Error ? err.message : err}`
+      );
+    }
 
     return await fs.readFile(outputPath);
   } finally {
@@ -99,25 +122,35 @@ export async function normalizeSegmentLoudness(inputBuffer: Buffer): Promise<Buf
  * Apply the full sweetening chain to an audio file.
  * Includes highpass, compression, presence EQ, and loudness normalization.
  */
-export async function applySweeteningChain(
-  inputPath: string,
-  outputPath: string
-): Promise<void> {
+export async function applySweeteningChain(inputPath: string, outputPath: string): Promise<void> {
   if (!AUDIO_SWEETENING_ENABLED) {
     await fs.copyFile(inputPath, outputPath);
     return;
   }
 
-  await execFileAsync('ffmpeg', [
-    '-y',
-    '-i', inputPath,
-    '-af', buildSweeteningFilter(),
-    '-ar', '44100',
-    '-ac', '2',
-    '-c:a', 'libmp3lame',
-    '-b:a', '128k',
-    outputPath,
-  ]);
+  const filter = buildSweeteningFilter();
+  try {
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-i',
+      inputPath,
+      '-af',
+      filter,
+      '-ar',
+      '44100',
+      '-ac',
+      '2',
+      '-c:a',
+      'libmp3lame',
+      '-b:a',
+      '128k',
+      outputPath,
+    ]);
+  } catch (err) {
+    throw new Error(
+      `Sweetening chain failed (input: ${inputPath}, filter: ${filter}): ${err instanceof Error ? err.message : err}`
+    );
+  }
 }
 
 /**
