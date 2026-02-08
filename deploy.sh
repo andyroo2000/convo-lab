@@ -10,7 +10,7 @@ set -e  # Exit on error
 # Configuration
 DROPLET_HOST="root@health.andrewlandry.com"
 DEPLOY_DIR="/opt/convolab"
-HEALTH_CHECK_URL="https://convolab.andrewlandry.com/health"
+HEALTH_CHECK_URL="https://convo-lab.com/health"
 HEALTH_CHECK_RETRIES=10
 HEALTH_CHECK_INTERVAL=5
 
@@ -156,7 +156,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 # Success!
 echo -e "\n${GREEN}✅ Deployment completed successfully!${NC}"
 echo ""
-echo "🔗 Application: https://convolab.andrewlandry.com"
+echo "🔗 Application: https://convo-lab.com"
 echo "🏥 Health check: $HEALTH_CHECK_URL"
 echo ""
 echo "To view live logs:"
