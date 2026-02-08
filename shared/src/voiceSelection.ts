@@ -105,12 +105,22 @@ export function getDialogueSpeakerVoices(
  * Used by both the generation script and the client VoicePreview component.
  */
 export function voiceIdToFilename(voiceId: string): string {
-  return voiceId
+  if (!voiceId || voiceId.includes('..') || voiceId.includes('/')) {
+    throw new Error('Invalid voice ID');
+  }
+
+  const sanitized = voiceId
     .toLowerCase()
     .replace(/:/g, '_')
     .replace(/[,]/g, '')
     .replace(/\s+/g, '_')
     .replace(/[^a-z0-9_-]/g, '');
+
+  if (!sanitized) {
+    throw new Error('Voice ID sanitization resulted in empty string');
+  }
+
+  return sanitized;
 }
 
 /**

@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
+import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import Layout from './components/common/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
@@ -43,43 +44,45 @@ const App = () => (
       <AuthProvider>
         <LocaleProvider>
           <AudioPlayerProvider>
-            <PWAInstallPrompt />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/pricing" element={<PricingPage />} />
-                <Route path="/claim-invite" element={<ClaimInvitePage />} />
-                <Route path="/verify-email" element={<VerifyEmailPage />} />
-                <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <AudioPreviewProvider>
+              <PWAInstallPrompt />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/claim-invite" element={<ClaimInvitePage />} />
+                  <Route path="/verify-email" element={<VerifyEmailPage />} />
+                  <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
-                {/* App Routes (Protected) */}
-                <Route path="/app" element={<Layout />}>
-                  <Route index element={<Navigate to="/app/library" replace />} />
-                  <Route path="library" element={<LibraryPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
-                  <Route path="settings/:tab" element={<SettingsPage />} />
-                  <Route path="admin" element={<AdminPage />} />
-                  <Route path="admin/:tab" element={<AdminPage />} />
+                  {/* App Routes (Protected) */}
+                  <Route path="/app" element={<Layout />}>
+                    <Route index element={<Navigate to="/app/library" replace />} />
+                    <Route path="library" element={<LibraryPage />} />
+                    <Route path="settings" element={<SettingsPage />} />
+                    <Route path="settings/:tab" element={<SettingsPage />} />
+                    <Route path="admin" element={<AdminPage />} />
+                    <Route path="admin/:tab" element={<AdminPage />} />
 
-                  {/* Create - Content Creation Hub */}
-                  <Route path="create" element={<CreatePage />} />
-                  <Route path="create/dialogue" element={<DialogueCreatorPage />} />
-                  <Route path="create/audio-course" element={<CourseCreatorPage />} />
+                    {/* Create - Content Creation Hub */}
+                    <Route path="create" element={<CreatePage />} />
+                    <Route path="create/dialogue" element={<DialogueCreatorPage />} />
+                    <Route path="create/audio-course" element={<CourseCreatorPage />} />
 
-                  {/* Playback & Practice */}
-                  <Route path="playback/:episodeId" element={<PlaybackPage />} />
-                  <Route path="practice/:episodeId" element={<PracticePage />} />
-                  <Route path="courses/:courseId" element={<CoursePage />} />
-                </Route>
+                    {/* Playback & Practice */}
+                    <Route path="playback/:episodeId" element={<PlaybackPage />} />
+                    <Route path="practice/:episodeId" element={<PracticePage />} />
+                    <Route path="courses/:courseId" element={<CoursePage />} />
+                  </Route>
 
-                {/* 404 Catch-all Route */}
-                <Route path="*" element={<NotFoundPage />} />
-              </Routes>
-            </Suspense>
+                  {/* 404 Catch-all Route */}
+                  <Route path="*" element={<NotFoundPage />} />
+                </Routes>
+              </Suspense>
+            </AudioPreviewProvider>
           </AudioPlayerProvider>
         </LocaleProvider>
       </AuthProvider>
