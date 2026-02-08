@@ -137,14 +137,9 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
   if (!isOpen) return null;
 
   const narratorVoices = TTS_VOICES[nativeLanguage]?.voices || [];
-  const narratorVoiceOptions = narratorVoices.some((voice) => voice.provider === 'elevenlabs')
-    ? narratorVoices.filter((voice) => voice.provider === 'elevenlabs')
-    : narratorVoices;
-  const narratorVoiceAllowlist =
-    nativeLanguage === 'en' ? new Set(['Jon - Relaxed, Deep and Approachable', 'Cassidy']) : null;
-  const narratorVoiceChoices = narratorVoiceAllowlist
-    ? narratorVoiceOptions.filter((voice) => narratorVoiceAllowlist.has(voice.id))
-    : narratorVoiceOptions;
+  const narratorVoiceChoices = narratorVoices.filter(
+    (voice) => voice.provider === 'fishaudio' || voice.provider === 'elevenlabs'
+  );
 
   return (
     <div
@@ -218,7 +213,6 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                 (voice: { id: string; description: string; gender: string; provider?: string }) => (
                   <option key={voice.id} value={voice.id}>
                     {voice.description} ({voice.gender})
-                    {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
                   </option>
                 )
               )}
@@ -258,8 +252,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                        {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
-                      </option>
+                          </option>
                     )
                   )}
                 </select>
@@ -289,8 +282,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                        {voice.provider === 'elevenlabs' ? ' - Premium' : ''}
-                      </option>
+                          </option>
                     )
                   )}
                 </select>
