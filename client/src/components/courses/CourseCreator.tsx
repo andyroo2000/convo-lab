@@ -6,6 +6,7 @@ import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection'
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
+import VoicePreview from '../common/VoicePreview';
 
 interface CourseCreatorProps {
   isOpen: boolean;
@@ -138,7 +139,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
   const narratorVoices = TTS_VOICES[nativeLanguage]?.voices || [];
   const narratorVoiceChoices = narratorVoices.filter(
-    (voice) => voice.provider === 'fishaudio' || voice.provider === 'elevenlabs'
+    (voice) => voice.provider === 'fishaudio'
   );
 
   return (
@@ -220,6 +221,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
             <p className="text-xs text-gray-500 mt-1">
               {t('creator.narratorHelper', { language: episode.nativeLanguage.toUpperCase() })}
             </p>
+            <VoicePreview voiceId={selectedVoice} />
           </div>
 
           {/* Dialogue Voice Selection */}
@@ -256,6 +258,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     )
                   )}
                 </select>
+                <VoicePreview voiceId={speaker1VoiceId} />
               </div>
 
               {/* Speaker 2 Voice */}
@@ -286,6 +289,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     )
                   )}
                 </select>
+                <VoicePreview voiceId={speaker2VoiceId} />
               </div>
             </div>
             <p className="text-xs text-gray-500 mt-2">{t('voiceConfig.voiceHelper')}</p>

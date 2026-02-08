@@ -6,7 +6,7 @@ import { generateWithGemini } from './geminiClient.js';
  * Convert furigana notation to pure kana for TTS
  * Example: "北[ほっ]海[かい]道[どう]に行[い]きました" → "ほっかいどうにいきました"
  */
-function stripFuriganaToKana(text: string): string {
+function _stripFuriganaToKana(text: string): string {
   let output = '';
   let inBracket = false;
 
@@ -206,11 +206,6 @@ function generateQuestionUnits(
       context.jlptLevel
     );
 
-    // Convert phrase context to kana for ElevenLabs previous_text
-    // Sending kanji can cause mispronunciations; kana provides correct context
-    const phraseContextKana = exchange.readingL2
-      ? stripFuriganaToKana(exchange.readingL2)
-      : undefined;
 
     for (const vocabItem of vocabToTeach) {
       units.push(
@@ -227,7 +222,6 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -237,7 +231,6 @@ function generateQuestionUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -393,11 +386,6 @@ async function generateResponseTeachingUnits(
       context.jlptLevel
     );
 
-    // Convert phrase context to kana for ElevenLabs previous_text
-    // Sending kanji can cause mispronunciations; kana provides correct context
-    const phraseContextKana = exchange.readingL2
-      ? stripFuriganaToKana(exchange.readingL2)
-      : undefined;
 
     // STEP 1: Teach each vocabulary item individually
     for (const vocabItem of vocabToTeach) {
@@ -416,7 +404,6 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.0 },
         // Second repetition
@@ -426,7 +413,6 @@ async function generateResponseTeachingUnits(
           reading: vocabItem.readingL2,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );
@@ -463,7 +449,6 @@ async function generateResponseTeachingUnits(
           reading: undefined, // Could enhance to get reading
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
-          phraseContext: phraseContextKana,
         },
         { type: 'pause', seconds: 1.5 }
       );

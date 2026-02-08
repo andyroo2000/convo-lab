@@ -12,6 +12,7 @@ import { useIsDemo } from '../../hooks/useDemo';
 import DemoRestrictionModal from '../common/DemoRestrictionModal';
 import UpgradePrompt from '../common/UpgradePrompt';
 import AdminScriptWorkbench from './AdminScriptWorkbench';
+import VoicePreview from '../common/VoicePreview';
 
 interface QuotaInfo {
   limit: number;
@@ -258,7 +259,7 @@ const CourseGenerator = () => {
 
   const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
   const narratorVoiceChoices = narratorVoices.filter(
-    (voice) => voice.provider === 'fishaudio' || voice.provider === 'elevenlabs'
+    (voice) => voice.provider === 'fishaudio'
   );
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
@@ -340,6 +341,7 @@ const CourseGenerator = () => {
                   </option>
                 ))}
               </select>
+              <VoicePreview voiceId={selectedVoice} />
             </div>
           </div>
 
@@ -369,6 +371,7 @@ const CourseGenerator = () => {
                       </option>
                   ))}
                 </select>
+                <VoicePreview voiceId={speaker1VoiceId} />
               </div>
 
               {/* Speaker 2 */}
@@ -391,6 +394,7 @@ const CourseGenerator = () => {
                       </option>
                   ))}
                 </select>
+                <VoicePreview voiceId={speaker2VoiceId} />
               </div>
             </div>
             <p className="text-sm text-gray-500 mt-3">{t('audioCourse:voiceConfig.voiceHelper')}</p>
