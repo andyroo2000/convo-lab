@@ -1,13 +1,15 @@
 import { Response, NextFunction } from 'express';
-// eslint-disable-next-line import/no-named-as-default-member
-import jwt from 'jsonwebtoken';
+import { verify, JsonWebTokenError } from 'jsonwebtoken';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { requireAuth, AuthRequest } from '../../../middleware/auth.js';
 import { AppError } from '../../../middleware/errorHandler.js';
 
 // Mock jwt
-vi.mock('jsonwebtoken');
+vi.mock('jsonwebtoken', () => ({
+  verify: vi.fn(),
+  JsonWebTokenError: class extends Error {},
+}));
 
 describe('requireAuth middleware', () => {
   let mockReq: Partial<AuthRequest>;
@@ -34,28 +36,26 @@ describe('requireAuth middleware', () => {
     expect(error.statusCode).toBe(401);
   });
 
-  it('should set userId and call next() when token is valid', () => {
+  it('should set userId and role when token is valid', () => {
     const mockUserId = 'user-123';
+    const mockRole = 'admin';
     mockReq.cookies = { token: 'valid-token' };
 
-    // eslint-disable-next-line import/no-named-as-default-member
-    vi.mocked(jwt.verify).mockImplementation(() => ({ userId: mockUserId }));
+    vi.mocked(verify).mockImplementation(() => ({ userId: mockUserId, role: mockRole }));
 
     requireAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
 
-    // eslint-disable-next-line import/no-named-as-default-member
-    expect(jwt.verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
+    expect(verify).toHaveBeenCalledWith('valid-token', process.env.JWT_SECRET);
     expect(mockReq.userId).toBe(mockUserId);
+    expect(mockReq.role).toBe(mockRole);
     expect(mockNext).toHaveBeenCalledWith();
   });
 
   it('should call next() with error when token is invalid', () => {
     mockReq.cookies = { token: 'invalid-token' };
 
-    // eslint-disable-next-line import/no-named-as-default-member
-    vi.mocked(jwt.verify).mockImplementation(() => {
-      // eslint-disable-next-line import/no-named-as-default-member
-      throw new jwt.JsonWebTokenError('invalid token');
+    vi.mocked(verify).mockImplementation(() => {
+      throw new JsonWebTokenError('invalid token');
     });
 
     requireAuth(mockReq as AuthRequest, mockRes as Response, mockNext);
@@ -70,10 +70,8 @@ describe('requireAuth middleware', () => {
     mockReq.cookies = { token: 'expired-token' };
 
     // TokenExpiredError extends JsonWebTokenError, so it should be handled the same way
-    // eslint-disable-next-line import/no-named-as-default-member
-    const expiredError = new jwt.JsonWebTokenError('jwt expired');
-    // eslint-disable-next-line import/no-named-as-default-member
-    vi.mocked(jwt.verify).mockImplementation(() => {
+    const expiredError = new JsonWebTokenError('jwt expired');
+    vi.mocked(verify).mockImplementation(() => {
       throw expiredError;
     });
 
@@ -89,8 +87,7 @@ describe('requireAuth middleware', () => {
     mockReq.cookies = { token: 'some-token' };
     const customError = new Error('Some other error');
 
-    // eslint-disable-next-line import/no-named-as-default-member
-    vi.mocked(jwt.verify).mockImplementation(() => {
+    vi.mocked(verify).mockImplementation(() => {
       throw customError;
     });
 
