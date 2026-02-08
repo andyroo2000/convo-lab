@@ -4,7 +4,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 
-import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
+import {
+  getProviderFromVoiceId,
+  getFishAudioFallbackVoiceId,
+} from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
 
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
@@ -1050,7 +1053,11 @@ export async function processBatches(
       if (!isFishAudioAvailable()) {
         // eslint-disable-next-line no-console
         console.warn('[TTS BATCH] Fish Audio API key not configured, falling back to ElevenLabs');
-        return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
+        const fallbackBatch = {
+          ...batch,
+          voiceId: getFishAudioFallbackVoiceId(batch.voiceId),
+        };
+        return splitElevenLabsBatchByCharLimit(fallbackBatch, ELEVENLABS_MAX_CHARS);
       }
       return splitFishAudioBatch(batch);
     }
@@ -1086,7 +1093,11 @@ export async function processBatches(
     if (providerType === 'fishaudio' && isFishAudioAvailable()) {
       batchSegments = await synthesizeFishAudioBatch(batch);
     } else if (providerType === 'fishaudio' || providerType === 'elevenlabs') {
-      batchSegments = await synthesizeElevenLabsBatch(batch, tempDir);
+      const elevenlabsBatch =
+        providerType === 'fishaudio'
+          ? { ...batch, voiceId: getFishAudioFallbackVoiceId(batch.voiceId) }
+          : batch;
+      batchSegments = await synthesizeElevenLabsBatch(elevenlabsBatch, tempDir);
     } else {
       const provider =
         providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
@@ -1242,8 +1253,9 @@ export async function synthesizeBatchedTexts(
     `[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`
   );
 
-  // Detect provider from voice ID
-  const providerType = getProviderFromVoiceId(voiceId);
+  // Detect provider from voice ID — remap Fish Audio to ElevenLabs if unavailable
+  let providerType = getProviderFromVoiceId(voiceId);
+  let effectiveVoiceId = voiceId;
   if (providerType === 'fishaudio' && isFishAudioAvailable()) {
     const batch: TTSBatch = {
       voiceId,
@@ -1275,13 +1287,20 @@ export async function synthesizeBatchedTexts(
       return buffer;
     });
   }
+  if (providerType === 'fishaudio') {
+    // Fish Audio unavailable — remap to ElevenLabs
+    // eslint-disable-next-line no-console
+    console.warn('[TTS BATCH SIMPLE] Fish Audio unavailable, falling back to ElevenLabs');
+    effectiveVoiceId = getFishAudioFallbackVoiceId(voiceId);
+    providerType = 'elevenlabs';
+  }
   if (providerType === 'elevenlabs') {
     const tempDir = path.join(process.cwd(), 'tmp', `batch-simple-elevenlabs-${Date.now()}`);
     await fs.mkdir(tempDir, { recursive: true });
 
     try {
       const batch: TTSBatch = {
-        voiceId,
+        voiceId: effectiveVoiceId,
         languageCode,
         speed,
         pitch,

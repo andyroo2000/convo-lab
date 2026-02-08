@@ -106,6 +106,33 @@ export function getDialogueSpeakerVoices(
 }
 
 /**
+ * Get a fallback ElevenLabs voice ID for a Fish Audio voice.
+ * Matches by gender and language from TTS_VOICES config.
+ * Used when Fish Audio API key is not configured.
+ */
+export function getFishAudioFallbackVoiceId(fishAudioVoiceId: string): string {
+  for (const [, config] of Object.entries(TTS_VOICES)) {
+    const voice = (config.voices as ReadonlyArray<VoiceConfig>).find(
+      (v) => v.id === fishAudioVoiceId
+    );
+    if (voice) {
+      // Find first ElevenLabs voice with matching gender in same language
+      const fallback = (config.voices as ReadonlyArray<VoiceConfig>).find(
+        (v) => v.provider === 'elevenlabs' && v.gender === voice.gender
+      );
+      if (fallback) return fallback.id;
+      // If no gender match, use any ElevenLabs voice in same language
+      const anyFallback = (config.voices as ReadonlyArray<VoiceConfig>).find(
+        (v) => v.provider === 'elevenlabs'
+      );
+      if (anyFallback) return anyFallback.id;
+    }
+  }
+  // Last resort: known ElevenLabs voice
+  return 'Spuds Oxley';
+}
+
+/**
  * Detect TTS provider from voice ID format
  * Google voice IDs contain hyphens (e.g., "ja-JP-Neural2-B")
  * Polly voice IDs are single words (e.g., "Mizuki", "Takumi", "Zhiyu")
