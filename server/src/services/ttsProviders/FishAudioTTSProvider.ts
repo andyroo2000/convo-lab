@@ -42,8 +42,9 @@ export async function synthesizeFishAudioSpeech(options: {
   referenceId: string;
   text: string;
   speed?: number;
+  normalize?: boolean;
 }): Promise<Buffer> {
-  const { referenceId, text, speed = 1.0 } = options;
+  const { referenceId, text, speed = 1.0, normalize } = options;
 
   if (text.length > FISH_AUDIO_MAX_CHARS) {
     throw new Error(
@@ -52,28 +53,32 @@ export async function synthesizeFishAudioSpeech(options: {
   }
 
   const fishClient = getClient();
-  const audio = await fishClient.textToSpeech.convert(
-    {
-      text,
-      reference_id: referenceId,
-      format: 'mp3',
-      mp3_bitrate: 128,
-      sample_rate: 44100,
-      prosody: { speed, volume: 0 },
-    },
-    FISH_AUDIO_MODEL
-  );
+  const request = {
+    text,
+    reference_id: referenceId,
+    format: 'mp3' as const,
+    mp3_bitrate: 128 as const,
+    sample_rate: 44100,
+    prosody: { speed, volume: 0 },
+  };
+
+  if (typeof normalize === 'boolean') {
+    request.normalize = normalize;
+  }
+
+  const audio = await fishClient.textToSpeech.convert(request, FISH_AUDIO_MODEL);
 
   // The SDK returns a ReadableStream<Uint8Array> - collect chunks into a Buffer
   try {
     const chunks: Uint8Array[] = [];
     const reader = audio.getReader();
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    while (true) {
-      const { done, value } = await reader.read();
+    let done = false;
+    while (!done) {
+      const result = await reader.read();
+      done = result.done;
       if (done) break;
-      chunks.push(value);
+      chunks.push(result.value);
     }
 
     return Buffer.concat(chunks);

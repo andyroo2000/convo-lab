@@ -8,14 +8,14 @@ import ffmpeg from 'fluent-ffmpeg';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { generateSilence } from './ttsClient.js';
 import {
-  getGoogleTTSBetaProvider,
-  SynthesizeWithTimepointsResult,
-} from './ttsProviders/GoogleTTSBetaProvider.js';
-import {
   isFishAudioAvailable,
   resolveFishAudioVoiceId,
   synthesizeFishAudioSpeech,
 } from './ttsProviders/FishAudioTTSProvider.js';
+import {
+  getGoogleTTSBetaProvider,
+  SynthesizeWithTimepointsResult,
+} from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 
 /**
@@ -54,6 +54,8 @@ export interface BatchProcessingOptions {
   onProgress?: (batchIndex: number, totalBatches: number) => void;
   generateSilence?: (seconds: number) => Promise<Buffer>;
 }
+
+const FISH_AUDIO_TRAILING_BREAK = '(break)';
 
 /**
  * Group script units into batches by (voiceId, speed, languageCode)
@@ -166,7 +168,8 @@ function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): 
 export function groupUnitsIntoBatches(
   units: LessonScriptUnit[],
   nativeLanguageCode: string,
-  targetLanguageCode: string
+  targetLanguageCode: string,
+  options?: { tailPaddingByIndex?: Map<number, string> }
 ): { batches: TTSBatch[]; pauseIndices: Map<number, number> } {
   const pauseIndices = new Map<number, number>(); // originalIndex -> seconds
 
@@ -192,7 +195,9 @@ export function groupUnitsIntoBatches(
     const speed = unit.type === 'L2' ? unit.speed || 1.0 : 1.0;
     const pitch = unit.pitch || 0;
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;
-    const text = getTTSTextForUnit(unit, targetLanguageCode);
+    const rawText = getTTSTextForUnit(unit, targetLanguageCode);
+    const tailPadding = options?.tailPaddingByIndex?.get(i);
+    const text = tailPadding && rawText.trim().length > 0 ? `${rawText} ${tailPadding}` : rawText;
 
     // Create unique key for this voice/speed/language combination
     const batchKey = `${voiceId}|${speed}|${languageCode}`;
@@ -278,6 +283,21 @@ export function groupUnitsIntoBatches(
   }
 
   return { batches: finalBatches, pauseIndices };
+}
+
+function getLastVoicedUnitIndex(units: LessonScriptUnit[]): number | null {
+  for (let i = units.length - 1; i >= 0; i -= 1) {
+    const unit = units[i];
+    if (unit.type === 'marker' || unit.type === 'pause') {
+      continue;
+    }
+    return i;
+  }
+  return null;
+}
+
+function hasFishAudioControlTokens(text: string): boolean {
+  return text.includes('(break)') || text.includes('(long-break)');
 }
 
 /**
@@ -550,6 +570,7 @@ async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Bu
       referenceId,
       text: unit.text,
       speed: batch.speed,
+      normalize: hasFishAudioControlTokens(unit.text) ? false : undefined,
     });
 
     segments.set(unit.originalIndex, audioBuffer);
@@ -578,11 +599,21 @@ export async function processBatches(
   const nativeLanguageCode = getLanguageCode(nativeLanguage);
   const targetLanguageCode = getLanguageCode(targetLanguage);
 
+  const tailPaddingByIndex = new Map<number, string>();
+  const lastVoicedIndex = getLastVoicedUnitIndex(units);
+  if (lastVoicedIndex !== null) {
+    const lastUnit = units[lastVoicedIndex];
+    if ('voiceId' in lastUnit && getProviderFromVoiceId(lastUnit.voiceId) === 'fishaudio') {
+      tailPaddingByIndex.set(lastVoicedIndex, FISH_AUDIO_TRAILING_BREAK);
+    }
+  }
+
   // Group units into batches
   const { batches, pauseIndices } = groupUnitsIntoBatches(
     units,
     nativeLanguageCode,
-    targetLanguageCode
+    targetLanguageCode,
+    tailPaddingByIndex.size > 0 ? { tailPaddingByIndex } : undefined
   );
 
   // Split Fish Audio batches into single-unit batches
