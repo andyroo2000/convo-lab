@@ -107,6 +107,10 @@ jobs:
             echo "🔐 Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
+            # Free up disk space before pulling new images
+            echo "🧹 Pruning unused Docker data to free space..."
+            docker system prune -af
+
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
             docker-compose -f docker-compose.prod.yml pull
