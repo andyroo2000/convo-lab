@@ -132,6 +132,8 @@ model Episode {
   sourceText     String   @db.Text
   targetLanguage String   // Language code: 'ja'
   nativeLanguage String   // User's native language
+  jlptLevel      String?  // Optional JLPT level (N5-N1) for dialogue generation
+  autoGenerateAudio Boolean @default(true)
   status         String   @default("draft") // draft, generating, ready, error
   isSampleContent Boolean @default(false) // Pre-generated sample content
 

@@ -1,0 +1,136 @@
+name: Deploy ConvoLab (Production)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (ex: main-<sha> or latest)"
+        required: false
+        default: "latest"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  deploy:
+    name: Deploy to DigitalOcean (Production)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Deploy to droplet
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'ENDSSH'
+            set -e
+
+            echo "🚀 Starting ConvoLab production deployment..."
+            IMAGE_TAG="${{ inputs.image_tag }}"
+
+            # Navigate to deployment directory
+            cd /opt/convolab
+
+            # Configure git with token for private repo access
+            git config credential.helper store
+            echo "https://${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
+            chmod 600 ~/.git-credentials
+
+            # Pull latest code
+            echo "📦 Pulling latest code from GitHub..."
+            git fetch origin
+            git reset --hard origin/main
+
+            # Inject secrets not stored in repo (production)
+            if grep -q '^FISH_AUDIO_API_KEY=' .env.production; then
+              sed -i.bak "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
+            else
+              echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.production
+            fi
+
+            # Login to GitHub Container Registry
+            echo "🔐 Logging in to GitHub Container Registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Free up disk space before pulling new images
+            echo "🧹 Pruning unused Docker data to free space..."
+            docker system prune -af
+
+            # Pull latest images
+            echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
+            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.prod.yml --env-file .env.production pull
+
+            # Stop containers first to avoid metadata issues
+            echo "🛑 Stopping existing containers..."
+            # Force-stop any lingering convolab prod containers that might block network removal
+            docker ps -q --filter "name=convolab-" | grep -v stage | xargs -r docker stop 2>/dev/null || true
+            docker-compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
+
+            # Start containers with environment file
+            echo "♻️  Starting containers..."
+            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+
+            # Wait for server health to avoid external health check flaps
+            echo "⏳ Waiting for convolab-server to become healthy..."
+            for i in {1..60}; do
+              status=$(docker inspect -f '{{.State.Health.Status}}' convolab-server 2>/dev/null || echo "missing")
+              echo "Server health: $status"
+              if [ "$status" = "healthy" ]; then
+                echo "✅ convolab-server is healthy."
+                break
+              fi
+              if [ "$status" = "unhealthy" ]; then
+                echo "❌ convolab-server reported unhealthy. Recent logs:"
+                docker logs --tail=200 convolab-server || true
+                exit 1
+              fi
+              sleep 5
+            done
+
+            if [ "$status" != "healthy" ]; then
+              echo "❌ convolab-server did not become healthy in time. Recent logs:"
+              docker logs --tail=200 convolab-server || true
+              exit 1
+            fi
+
+            # Show status
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            docker-compose -f docker-compose.prod.yml --env-file .env.production ps
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+            # Cleanup old images
+            echo "🧹 Cleaning up old images..."
+            docker image prune -f
+
+            echo "✅ Deployment complete!"
+          ENDSSH
+
+      - name: Health check
+        run: |
+          echo "🏥 Running health check..."
+          sleep 30
+
+          for i in {1..20}; do
+            if curl -f -s https://convolab.andrewlandry.com/health > /dev/null; then
+              echo "✅ Health check passed!"
+              exit 0
+            fi
+            echo "Attempt $i/20 failed, retrying in 5s..."
+            sleep 5
+          done
+
+          echo "❌ Health check failed after 20 attempts"
+          exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed!"
+          echo "Check logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -61,7 +61,12 @@ export function useEpisodes() {
     episodeId: string,
     speakers: Speaker[],
     variationCount: number = 3,
-    dialogueLength: number = 6
+    dialogueLength: number = 6,
+    options?: {
+      jlptLevel?: string;
+      vocabSeedOverride?: string;
+      grammarSeedOverride?: string;
+    }
   ): Promise<{ jobId: string }> => {
     setLoading(true);
     setError(null);
@@ -74,7 +79,15 @@ export function useEpisodes() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ episodeId, speakers, variationCount, dialogueLength }),
+        body: JSON.stringify({
+          episodeId,
+          speakers,
+          variationCount,
+          dialogueLength,
+          jlptLevel: options?.jlptLevel,
+          vocabSeedOverride: options?.vocabSeedOverride,
+          grammarSeedOverride: options?.grammarSeedOverride,
+        }),
       });
 
       if (!response.ok) {

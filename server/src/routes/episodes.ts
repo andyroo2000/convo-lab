@@ -110,6 +110,11 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
         images: {
           orderBy: { order: 'asc' },
         },
+        courseEpisodes: {
+          select: {
+            courseId: true,
+          },
+        },
       },
     });
 
@@ -129,7 +134,15 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 // Create new episode (blocked for demo users)
 router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
   try {
-    const { title, sourceText, targetLanguage, nativeLanguage, audioSpeed = 'medium' } = req.body;
+    const {
+      title,
+      sourceText,
+      targetLanguage,
+      nativeLanguage,
+      audioSpeed = 'medium',
+      jlptLevel,
+      autoGenerateAudio,
+    } = req.body;
 
     if (!title || !sourceText || !targetLanguage || !nativeLanguage) {
       throw new AppError(i18next.t('server:content.missingFields'), 400);
@@ -143,6 +156,13 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
       throw new AppError(i18next.t('server:validation.invalidNativeLanguage'), 400);
     }
 
+    if (jlptLevel) {
+      const validLevels = new Set(['N5', 'N4', 'N3', 'N2', 'N1']);
+      if (!validLevels.has(jlptLevel)) {
+        throw new AppError(i18next.t('server:validation.invalidJlptLevel'), 400);
+      }
+    }
+
     const episode = await prisma.episode.create({
       data: {
         userId: req.userId!,
@@ -152,6 +172,8 @@ router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
         nativeLanguage,
         audioSpeed,
         status: 'draft',
+        jlptLevel: jlptLevel || null,
+        autoGenerateAudio: typeof autoGenerateAudio === 'boolean' ? autoGenerateAudio : true,
       },
     });
 

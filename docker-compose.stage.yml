@@ -1,43 +1,43 @@
 version: '3.8'
 
 networks:
-  convolab-network:
+  convolab-stage-network:
     driver: bridge
   health-network:
     external: true
     name: health-tracker_health-network
 
 volumes:
-  postgres-data:
+  postgres-stage-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/convolab-data/postgres
-  redis-data:
+      device: /opt/convolab-data/stage/postgres
+  redis-stage-data:
     driver: local
     driver_opts:
       type: none
       o: bind
-      device: /opt/convolab-data/redis
+      device: /opt/convolab-data/stage/redis
 
 services:
-  postgres:
+  postgres-stage:
     image: postgres:15-alpine
-    container_name: convolab-postgres
+    container_name: convolab-postgres-stage
     restart: unless-stopped
     environment:
-      POSTGRES_DB: languageflow
-      POSTGRES_USER: languageflow
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-stage-data:/var/lib/postgresql/data
     networks:
-      - convolab-network
+      - convolab-stage-network
     mem_limit: 512m
     mem_reservation: 256m
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U languageflow"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -47,15 +47,15 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  redis:
+  redis-stage:
     image: redis:7-alpine
-    container_name: convolab-redis
+    container_name: convolab-redis-stage
     restart: unless-stopped
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD}
     volumes:
-      - redis-data:/data
+      - redis-stage-data:/data
     networks:
-      - convolab-network
+      - convolab-stage-network
     mem_limit: 256m
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
@@ -68,12 +68,12 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  furigana:
+  furigana-stage:
     image: ghcr.io/andyroo2000/convolab-furigana:${CONVOLAB_IMAGE_TAG:-latest}
-    container_name: convolab-furigana
+    container_name: convolab-furigana-stage
     restart: unless-stopped
     networks:
-      - convolab-network
+      - convolab-stage-network
     mem_limit: 256m
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
@@ -86,20 +86,20 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  server:
+  server-stage:
     image: ghcr.io/andyroo2000/convolab-server:${CONVOLAB_IMAGE_TAG:-latest}
-    container_name: convolab-server
+    container_name: convolab-server-stage
     restart: unless-stopped
     ports:
-      - "3001:3001"
+      - "3002:3001"
     environment:
       NODE_ENV: production
       PORT: 3001
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-stage:5432/${POSTGRES_DB}
+      REDIS_HOST: redis-stage
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      FURIGANA_SERVICE_URL: http://furigana:8080
+      FURIGANA_SERVICE_URL: http://furigana-stage:8080
       GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
@@ -114,14 +114,14 @@ services:
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:
-      - convolab-network
+      - convolab-stage-network
       - health-network
     depends_on:
-      postgres:
+      postgres-stage:
         condition: service_healthy
-      redis:
+      redis-stage:
         condition: service_healthy
-      furigana:
+      furigana-stage:
         condition: service_started
     mem_limit: 1024m
     mem_reservation: 512m
@@ -137,14 +137,14 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  worker:
+  worker-stage:
     image: ghcr.io/andyroo2000/convolab-worker:${CONVOLAB_IMAGE_TAG:-latest}
-    container_name: convolab-worker
+    container_name: convolab-worker-stage
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      REDIS_HOST: redis
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-stage:5432/${POSTGRES_DB}
+      REDIS_HOST: redis-stage
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json
@@ -158,12 +158,12 @@ services:
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:
-      - convolab-network
+      - convolab-stage-network
       - health-network
     depends_on:
-      postgres:
+      postgres-stage:
         condition: service_healthy
-      redis:
+      redis-stage:
         condition: service_healthy
     mem_limit: 1536m
     mem_reservation: 512m

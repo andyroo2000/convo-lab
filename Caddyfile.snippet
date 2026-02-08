@@ -41,3 +41,50 @@ convolab.andrewlandry.com {
         format json
     }
 }
+
+stage.convo-lab.com {
+    # Security Headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        X-Robots-Tag "noindex, nofollow, noarchive, nosnippet"
+        -Server
+    }
+
+    # Block indexing via robots.txt
+    respond /robots.txt "User-agent: *\nDisallow: /" 200 {
+        close
+    }
+
+    # API routes to backend
+    reverse_proxy /api/* convolab-server-stage:3001 {
+        header_up Host {host}
+        header_up X-Real-IP {remote}
+        header_up X-Forwarded-For {remote}
+        header_up X-Forwarded-Proto {scheme}
+
+        # Health check for backend
+        health_uri /health
+        health_interval 30s
+        health_timeout 10s
+    }
+
+    # Health check endpoint
+    reverse_proxy /health convolab-server-stage:3001
+
+    # Frontend static files (default route)
+    reverse_proxy convolab-server-stage:3001
+
+    # Access logs
+    log {
+        output file /data/convolab-stage-access.log {
+            roll_size 100mb
+            roll_keep 5
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
