@@ -18,11 +18,10 @@ export const PROFICIENCY_LEVELS = ['beginner', 'intermediate', 'advanced', 'nati
 export const TONE_STYLES = ['casual', 'polite', 'formal'] as const;
 
 // TTS Voice Configuration
-// Supports Google Cloud TTS, Amazon Polly, ElevenLabs, and Fish Audio providers
+// Supports Google Cloud TTS, Amazon Polly, and Fish Audio providers
 // Google: Neural2 and Wavenet voices (support enableTimePointing for batched TTS)
 // Polly: Neural voices (support Speech Marks for batched TTS)
-// ElevenLabs: voice names map to ElevenLabs voice IDs at runtime
-// Journey and Studio voices do NOT support timepointing and have been removed
+// Fish Audio: High-quality cloned voices via Fish Audio API
 export const TTS_VOICES = {
   en: {
     languageCode: 'en-US',
@@ -45,25 +44,6 @@ export const TTS_VOICES = {
         gender: 'male',
         description: 'Fish Audio: Prvi - Calm and introspective',
         provider: 'fishaudio',
-      },
-      // ElevenLabs narrator voices
-      {
-        id: 'Spuds Oxley',
-        gender: 'male',
-        description: 'ElevenLabs: Spuds Oxley - Warm and authoritative',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Jon - Relaxed, Deep and Approachable',
-        gender: 'male',
-        description: 'ElevenLabs: Jon - Relaxed, Deep and Approachable',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Cassidy',
-        gender: 'female',
-        description: 'ElevenLabs: Cassidy - Bright and confident',
-        provider: 'elevenlabs',
       },
       // Male Neural2 voices (Google)
       {
@@ -176,49 +156,6 @@ export const TTS_VOICES = {
         gender: 'female',
         description: 'Fish Audio: Ken Mama 2 - Gentle and conversational',
         provider: 'fishaudio',
-      },
-      // ElevenLabs voices
-      {
-        id: 'Saanu',
-        gender: 'female',
-        description: 'ElevenLabs: Saanu - Natural and expressive',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Kaori',
-        gender: 'female',
-        description: 'ElevenLabs: Kaori - Clear and friendly',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Kanika',
-        gender: 'female',
-        description: 'ElevenLabs: Kanika - Smooth and calm',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Otani',
-        gender: 'male',
-        description: 'ElevenLabs: Otani - Confident and natural',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Hiro',
-        gender: 'male',
-        description: 'ElevenLabs: Hiro - Calm and articulate',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Ishibashi',
-        gender: 'male',
-        description: 'ElevenLabs: Ishibashi - Warm and steady',
-        provider: 'elevenlabs',
-      },
-      {
-        id: 'Leo',
-        gender: 'male',
-        description: 'ElevenLabs: Leo - Clear and conversational',
-        provider: 'elevenlabs',
       },
       // Google voices - Verified from Google Cloud TTS API (npx tsx check-google-voices.ts)
       // Wavenet FEMALE voices

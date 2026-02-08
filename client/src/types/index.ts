@@ -231,13 +231,6 @@ export type LessonScriptUnit =
       translation?: string;
       voiceId: string;
       speed?: number;
-      /**
-       * Parent sentence context for pronunciation disambiguation (ElevenLabs only).
-       * Passed as previous_text to help TTS choose correct reading for isolated words.
-       * E.g., for isolated "食べる", set phraseContext to full sentence "私は寿司を食べる".
-       * This field only affects ElevenLabs TTS; Google Cloud and AWS Polly ignore it.
-       */
-      phraseContext?: string;
     }
   | { type: 'pause'; seconds: number }
   | { type: 'marker'; label: string };

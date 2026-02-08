@@ -1,22 +1,12 @@
 // eslint-disable-next-line import/no-named-as-default-member
-import { execFile } from 'child_process';
 import { promises as fs } from 'fs';
 import path from 'path';
-import { promisify } from 'util';
 
-import {
-  getProviderFromVoiceId,
-  getFishAudioFallbackVoiceId,
-} from '@languageflow/shared/src/voiceSelection.js';
+import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
 
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { generateSilence } from './ttsClient.js';
-import {
-  resolveElevenLabsVoiceId,
-  synthesizeElevenLabsWithTimestamps,
-  type ElevenLabsAlignment,
-} from './ttsProviders/ElevenLabsTTSProvider.js';
 import {
   getGoogleTTSBetaProvider,
   SynthesizeWithTimepointsResult,
@@ -27,24 +17,6 @@ import {
   synthesizeFishAudioSpeech,
 } from './ttsProviders/FishAudioTTSProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
-
-const ELEVENLABS_MAX_CHARS = Number(process.env.ELEVENLABS_MAX_CHARS || 9000);
-const ELEVENLABS_DELIMITER = '\n';
-const ELEVENLABS_START_PAD_SECONDS = Number(process.env.ELEVENLABS_START_PAD_SECONDS || 0.02);
-const ELEVENLABS_END_PAD_SECONDS = Number(process.env.ELEVENLABS_END_PAD_SECONDS || 0.08);
-const ELEVENLABS_SNAP_SEARCH_MS = Number(process.env.ELEVENLABS_SNAP_SEARCH_MS || 160);
-const ELEVENLABS_SNAP_WINDOW_MS = Number(process.env.ELEVENLABS_SNAP_WINDOW_MS || 20);
-const ELEVENLABS_SNAP_STEP_MS = Number(process.env.ELEVENLABS_SNAP_STEP_MS || 5);
-const ELEVENLABS_SNAP_MIN_RMS = Number(process.env.ELEVENLABS_SNAP_MIN_RMS || 0.003);
-const ELEVENLABS_SNAP_RELATIVE_THRESHOLD = Number(
-  process.env.ELEVENLABS_SNAP_RELATIVE_THRESHOLD || 0.2
-);
-const ELEVENLABS_SNAP_MIN_DURATION_MS = Number(process.env.ELEVENLABS_SNAP_MIN_DURATION_MS || 40);
-const ELEVENLABS_SNAP_DEBUG = process.env.ELEVENLABS_SNAP_DEBUG === '1';
-const ELEVENLABS_SNAP_SAMPLE_RATE = 44100;
-const ELEVENLABS_FORCE_SINGLE_UNIT = process.env.ELEVENLABS_FORCE_SINGLE_UNIT === '1';
-
-const execFileAsync = promisify(execFile);
 
 /**
  * A batch of units that share the same voice and speed settings
@@ -58,7 +30,6 @@ interface TTSBatch {
     originalIndex: number; // Position in original script
     markName: string; // e.g., "unit_42"
     text: string; // Text content to speak
-    phraseContext?: string; // Parent phrase for pronunciation context (used as previous_text in ElevenLabs)
   }>;
 }
 
@@ -117,257 +88,6 @@ function calculateSSMLSize(batch: TTSBatch): number {
   }
 
   return size;
-}
-
-interface ElevenLabsUnitRange {
-  unitIndex: number;
-  startIndex: number;
-  endIndex: number;
-}
-
-interface ElevenLabsSegmentTime {
-  unitIndex: number;
-  startTime: number;
-  endTime: number;
-}
-
-async function convertMp3ToPcm(inputPath: string, outputPath: string): Promise<void> {
-  await execFileAsync('ffmpeg', [
-    '-y',
-    '-i',
-    inputPath,
-    '-f',
-    's16le',
-    '-ac',
-    '1',
-    '-ar',
-    String(ELEVENLABS_SNAP_SAMPLE_RATE),
-    outputPath,
-  ]);
-}
-
-function rmsInt16(samples: Int16Array, start: number, length: number): number {
-  if (length <= 0) return 0;
-  const safeStart = Math.max(0, Math.min(start, samples.length - 1));
-  const end = Math.min(samples.length, safeStart + length);
-  const total = Math.max(0, end - safeStart);
-  if (total === 0) return 0;
-  let sum = 0;
-  for (let i = safeStart; i < safeStart + total; i += 1) {
-    const value = samples[i] / 32768;
-    sum += value * value;
-  }
-  return Math.sqrt(sum / total);
-}
-
-function findMinRmsAround(
-  samples: Int16Array,
-  centerSample: number,
-  searchSamples: number,
-  windowSamples: number,
-  stepSamples: number
-): { minSample: number; minRms: number; boundaryRms: number } {
-  const boundaryStart = Math.max(0, centerSample - Math.floor(windowSamples / 2));
-  const boundaryRms = rmsInt16(samples, boundaryStart, windowSamples);
-
-  const searchStart = Math.max(0, centerSample - searchSamples);
-  const searchEnd = Math.min(samples.length - windowSamples, centerSample + searchSamples);
-  if (searchEnd <= searchStart) {
-    return { minSample: centerSample, minRms: boundaryRms, boundaryRms };
-  }
-
-  let minSample = centerSample;
-  let minRms = boundaryRms;
-  for (let pos = searchStart; pos <= searchEnd; pos += stepSamples) {
-    const currentRms = rmsInt16(samples, pos, windowSamples);
-    if (currentRms < minRms) {
-      minRms = currentRms;
-      minSample = pos;
-    }
-  }
-
-  return { minSample, minRms, boundaryRms };
-}
-
-function snapElevenLabsBoundaries(
-  segments: ElevenLabsSegmentTime[],
-  samples: Int16Array
-): ElevenLabsSegmentTime[] {
-  if (segments.length < 2 || ELEVENLABS_SNAP_SEARCH_MS <= 0) {
-    return segments;
-  }
-
-  const adjusted = segments.map((segment) => ({ ...segment }));
-  const windowSamples = Math.max(
-    1,
-    Math.round((ELEVENLABS_SNAP_WINDOW_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE)
-  );
-  const searchSamples = Math.round(
-    (ELEVENLABS_SNAP_SEARCH_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE
-  );
-  const stepSamples = Math.max(
-    1,
-    Math.round((ELEVENLABS_SNAP_STEP_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE)
-  );
-  const minDurationSamples = Math.round(
-    (ELEVENLABS_SNAP_MIN_DURATION_MS / 1000) * ELEVENLABS_SNAP_SAMPLE_RATE
-  );
-
-  const segmentRms = adjusted.map((segment) => {
-    const startSample = Math.round(segment.startTime * ELEVENLABS_SNAP_SAMPLE_RATE);
-    const endSample = Math.round(segment.endTime * ELEVENLABS_SNAP_SAMPLE_RATE);
-    const length = Math.max(1, endSample - startSample);
-    return rmsInt16(samples, startSample, length);
-  });
-
-  for (let i = 0; i < adjusted.length - 1; i += 1) {
-    const boundarySample = Math.round(adjusted[i].endTime * ELEVENLABS_SNAP_SAMPLE_RATE);
-    const { minSample, minRms, boundaryRms } = findMinRmsAround(
-      samples,
-      boundarySample,
-      searchSamples,
-      windowSamples,
-      stepSamples
-    );
-
-    const threshold = Math.max(
-      ELEVENLABS_SNAP_MIN_RMS,
-      Math.min(segmentRms[i], segmentRms[i + 1]) * ELEVENLABS_SNAP_RELATIVE_THRESHOLD
-    );
-
-    if (boundaryRms <= threshold || minRms >= threshold) {
-      continue;
-    }
-
-    const minAllowed =
-      Math.round(adjusted[i].startTime * ELEVENLABS_SNAP_SAMPLE_RATE) + minDurationSamples;
-    const maxAllowed =
-      Math.round(adjusted[i + 1].endTime * ELEVENLABS_SNAP_SAMPLE_RATE) - minDurationSamples;
-    if (maxAllowed <= minAllowed) {
-      continue;
-    }
-
-    const clampedSample = Math.max(minAllowed, Math.min(maxAllowed, minSample));
-    const clampedTime = clampedSample / ELEVENLABS_SNAP_SAMPLE_RATE;
-
-    if (clampedSample !== boundarySample) {
-      adjusted[i].endTime = clampedTime;
-      adjusted[i + 1].startTime = clampedTime;
-      if (ELEVENLABS_SNAP_DEBUG) {
-        // eslint-disable-next-line no-console
-        console.log(
-          `[TTS BATCH] Snapped boundary ${i} by ${(
-            (clampedSample - boundarySample) /
-            ELEVENLABS_SNAP_SAMPLE_RATE
-          ).toFixed(3)}s (rms ${boundaryRms.toFixed(4)} -> ${minRms.toFixed(4)})`
-        );
-      }
-    }
-  }
-
-  return adjusted;
-}
-
-function getElevenLabsLanguageCode(languageCode: string): string | undefined {
-  if (!languageCode) return undefined;
-  return languageCode.split('-')[0] || undefined;
-}
-
-function splitElevenLabsBatchByCharLimit(batch: TTSBatch, maxChars: number): TTSBatch[] {
-  if (maxChars <= 0) return [batch];
-  const languageCode = batch.languageCode.toLowerCase();
-  const forceSingleUnit = ELEVENLABS_FORCE_SINGLE_UNIT || languageCode.startsWith('ja');
-  if (forceSingleUnit) {
-    return batch.units.map((unit) => ({
-      voiceId: batch.voiceId,
-      languageCode: batch.languageCode,
-      speed: batch.speed,
-      pitch: batch.pitch,
-      units: [unit],
-    }));
-  }
-
-  const chunks: TTSBatch[] = [];
-  let current: TTSBatch | null = null;
-  let currentLength = 0;
-
-  for (const unit of batch.units) {
-    const unitLength = unit.text.length;
-    const delimiterLength = current && current.units.length > 0 ? ELEVENLABS_DELIMITER.length : 0;
-    const nextLength = currentLength + delimiterLength + unitLength;
-
-    if (current && nextLength > maxChars) {
-      chunks.push(current);
-      current = null;
-      currentLength = 0;
-    }
-
-    if (!current) {
-      current = {
-        voiceId: batch.voiceId,
-        languageCode: batch.languageCode,
-        speed: batch.speed,
-        pitch: batch.pitch,
-        units: [],
-      };
-    }
-
-    current.units.push(unit);
-    currentLength += delimiterLength + unitLength;
-  }
-
-  if (current) {
-    chunks.push(current);
-  }
-
-  return chunks;
-}
-
-function buildElevenLabsBatchText(batch: TTSBatch): {
-  text: string;
-  unitRanges: ElevenLabsUnitRange[];
-} {
-  const parts: string[] = [];
-  const unitRanges: ElevenLabsUnitRange[] = [];
-  let cursor = 0;
-
-  batch.units.forEach((unit, index) => {
-    const startIndex = cursor;
-    const text = unit.text || '';
-    const endIndex = Math.max(startIndex + text.length - 1, startIndex);
-
-    parts.push(text);
-    cursor += text.length;
-
-    unitRanges.push({
-      unitIndex: unit.originalIndex,
-      startIndex,
-      endIndex,
-    });
-
-    if (index < batch.units.length - 1) {
-      parts.push(ELEVENLABS_DELIMITER);
-      cursor += ELEVENLABS_DELIMITER.length;
-    }
-  });
-
-  return {
-    text: parts.join(''),
-    unitRanges,
-  };
-}
-
-function getAlignmentTime(
-  alignment: ElevenLabsAlignment,
-  index: number,
-  type: 'start' | 'end'
-): number {
-  const times =
-    type === 'start'
-      ? alignment.character_start_times_seconds
-      : alignment.character_end_times_seconds;
-  const safeIndex = Math.min(Math.max(index, 0), times.length - 1);
-  return times[safeIndex] ?? 0;
 }
 
 function isHiragana(char: string): boolean {
@@ -491,13 +211,10 @@ export function groupUnitsIntoBatches(
     }
 
     // Add unit to batch (preserving original index for reassembly)
-    // Note: phraseContext only used by ElevenLabs provider (passed as previous_text).
-    // Google Cloud and AWS Polly follow different code paths and don't support this feature.
     batch.units.push({
       originalIndex: i,
       markName: `unit_${i}`,
       text,
-      phraseContext: unit.type === 'L2' ? unit.phraseContext : undefined,
     });
   }
 
@@ -727,71 +444,6 @@ async function splitAudioAtTimepoints(
 }
 
 /**
- * Split audio using explicit segment start/end times (ElevenLabs alignment)
- */
-async function splitAudioAtSegments(
-  audioBuffer: Buffer,
-  segmentsToExtract: ElevenLabsSegmentTime[],
-  tempDir: string,
-  speed: number
-): Promise<Map<number, Buffer>> {
-  const segments = new Map<number, Buffer>();
-
-  const combinedPath = path.join(tempDir, `batch-combined-${Date.now()}-elevenlabs.mp3`);
-  await fs.writeFile(combinedPath, audioBuffer);
-
-  const totalDuration = await getAudioDuration(combinedPath);
-  let adjustedSegments = segmentsToExtract;
-
-  if (segmentsToExtract.length > 1 && ELEVENLABS_SNAP_SEARCH_MS > 0) {
-    const pcmPath = path.join(tempDir, `batch-combined-${Date.now()}-elevenlabs.pcm`);
-    try {
-      await convertMp3ToPcm(combinedPath, pcmPath);
-      const pcmBuffer = await fs.readFile(pcmPath);
-      const samples = new Int16Array(
-        pcmBuffer.buffer,
-        pcmBuffer.byteOffset,
-        Math.floor(pcmBuffer.byteLength / 2)
-      );
-      adjustedSegments = snapElevenLabsBoundaries(segmentsToExtract, samples);
-    } finally {
-      await fs.unlink(pcmPath).catch(() => {});
-    }
-  }
-
-  const extractionPromises = adjustedSegments.map(async (segment) => {
-    const startTime = Math.max(0, segment.startTime);
-    let endTime = Math.min(totalDuration, segment.endTime);
-
-    if (endTime <= startTime) {
-      endTime = Math.min(totalDuration, startTime + 0.05);
-    }
-
-    const segmentPath = path.join(
-      tempDir,
-      `segment-${segment.unitIndex}-${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`
-    );
-
-    await extractAudioSegment(combinedPath, segmentPath, startTime, endTime, speed);
-
-    const segmentBuffer = await fs.readFile(segmentPath);
-    await fs.unlink(segmentPath).catch(() => {});
-
-    return [segment.unitIndex, segmentBuffer] as const;
-  });
-
-  const results = await Promise.all(extractionPromises);
-
-  for (const [index, buffer] of results) {
-    segments.set(index, buffer);
-  }
-
-  await fs.unlink(combinedPath).catch(() => {});
-
-  return segments;
-}
-
-/**
  * Extract a segment from an audio file using ffmpeg
  */
 async function extractAudioSegment(
@@ -865,7 +517,7 @@ async function getAudioDurationFromBuffer(buffer: Buffer, tempDir: string): Prom
 
 /**
  * Split a Fish Audio batch into single-unit batches.
- * Fish Audio for Japanese always uses single-unit batches (no alignment data for splitting).
+ * Fish Audio always uses single-unit batches (no alignment data for splitting).
  */
 function splitFishAudioBatch(batch: TTSBatch): TTSBatch[] {
   return batch.units.map((unit) => ({
@@ -906,119 +558,6 @@ async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Bu
   return segments;
 }
 
-async function synthesizeElevenLabsBatch(
-  batch: TTSBatch,
-  tempDir: string
-): Promise<Map<number, Buffer>> {
-  const { text, unitRanges } = buildElevenLabsBatchText(batch);
-
-  if (!text.trim()) {
-    return new Map();
-  }
-
-  const resolvedVoiceId = await resolveElevenLabsVoiceId(batch.voiceId);
-  const languageCode = getElevenLabsLanguageCode(batch.languageCode);
-
-  // Pass phraseContext as previous_text so ElevenLabs has surrounding sentence context for pronunciation.
-  // For Japanese, batches are always single-unit due to ELEVENLABS_FORCE_SINGLE_UNIT.
-  // Use first unit's context if available; warn if batching with mixed contexts.
-  let previousText: string | undefined;
-  if (batch.units.length === 1) {
-    previousText = batch.units[0].phraseContext;
-  } else {
-    const contexts = batch.units.map(u => u.phraseContext).filter(Boolean);
-    if (contexts.length > 0) {
-      if (contexts.length < batch.units.length) {
-        console.warn(`Mixed phraseContext in batch - only first context will be used`);
-      }
-      previousText = batch.units[0].phraseContext;
-    }
-  }
-
-  // Debug logging for Japanese TTS to diagnose pronunciation issues
-  if (languageCode === 'ja' && previousText) {
-    console.log('[ElevenLabs JP Debug] Sending to TTS:', {
-      text,
-      previousText,
-      voiceId: resolvedVoiceId,
-    });
-  }
-
-  const { audioBuffer, alignment } = await synthesizeElevenLabsWithTimestamps({
-    voiceId: resolvedVoiceId,
-    text,
-    languageCode,
-    previousText,
-  });
-
-  if (batch.units.length === 1) {
-    const unitIndex = batch.units[0].originalIndex;
-    if (batch.speed === 1) {
-      return new Map([[unitIndex, audioBuffer]]);
-    }
-
-    const inputPath = path.join(tempDir, `segment-single-${unitIndex}-${Date.now()}.mp3`);
-    const outputPath = path.join(tempDir, `segment-single-${unitIndex}-${Date.now()}-speed.mp3`);
-    await fs.writeFile(inputPath, audioBuffer);
-    const duration = await getAudioDuration(inputPath);
-    await extractAudioSegment(inputPath, outputPath, 0, duration, batch.speed);
-    const segmentBuffer = await fs.readFile(outputPath);
-    await fs.unlink(inputPath).catch(() => {});
-    await fs.unlink(outputPath).catch(() => {});
-    return new Map([[unitIndex, segmentBuffer]]);
-  }
-
-  if (
-    !alignment ||
-    alignment.characters.length === 0 ||
-    alignment.character_start_times_seconds.length !== alignment.characters.length ||
-    alignment.character_end_times_seconds.length !== alignment.characters.length
-  ) {
-    throw new Error(
-      `Invalid ElevenLabs alignment data for voice ${batch.voiceId} (${alignment?.characters.length || 0} chars)`
-    );
-  }
-
-  const padScale = batch.speed < 1 ? 1 / Math.max(0.5, batch.speed) : 1;
-  const startPad = ELEVENLABS_START_PAD_SECONDS * padScale;
-  const endPad = ELEVENLABS_END_PAD_SECONDS * padScale;
-
-  const segmentTimes: ElevenLabsSegmentTime[] = [];
-  let previousEnd = 0;
-
-  for (let index = 0; index < unitRanges.length; index++) {
-    const range = unitRanges[index];
-    const startRaw = getAlignmentTime(alignment, range.startIndex, 'start');
-    let startTime = Math.max(0, startRaw - startPad);
-    startTime = Math.max(startTime, previousEnd);
-
-    const endRaw = getAlignmentTime(alignment, range.endIndex, 'end') + endPad;
-    let endTime = endRaw;
-
-    if (index < unitRanges.length - 1) {
-      const nextRange = unitRanges[index + 1];
-      const nextStart = getAlignmentTime(alignment, nextRange.startIndex, 'start');
-      if (endTime > nextStart) {
-        endTime = nextStart;
-      }
-    }
-
-    if (endTime <= startTime) {
-      endTime = startTime + 0.05;
-    }
-
-    segmentTimes.push({
-      unitIndex: range.unitIndex,
-      startTime,
-      endTime,
-    });
-
-    previousEnd = endTime;
-  }
-
-  return splitAudioAtSegments(audioBuffer, segmentTimes, tempDir, batch.speed);
-}
-
 /**
  * Process all script units using batched TTS
  *
@@ -1046,23 +585,11 @@ export async function processBatches(
     targetLanguageCode
   );
 
-  // Split provider-specific batches to respect character limits
+  // Split Fish Audio batches into single-unit batches
   const expandedBatches = batches.flatMap((batch) => {
     const providerType = getProviderFromVoiceId(batch.voiceId);
     if (providerType === 'fishaudio') {
-      if (!isFishAudioAvailable()) {
-        // eslint-disable-next-line no-console
-        console.warn('[TTS BATCH] Fish Audio API key not configured, falling back to ElevenLabs');
-        const fallbackBatch = {
-          ...batch,
-          voiceId: getFishAudioFallbackVoiceId(batch.voiceId),
-        };
-        return splitElevenLabsBatchByCharLimit(fallbackBatch, ELEVENLABS_MAX_CHARS);
-      }
       return splitFishAudioBatch(batch);
-    }
-    if (providerType === 'elevenlabs') {
-      return splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
     }
     return [batch];
   });
@@ -1090,14 +617,8 @@ export async function processBatches(
 
     let batchSegments: Map<number, Buffer>;
 
-    if (providerType === 'fishaudio' && isFishAudioAvailable()) {
+    if (providerType === 'fishaudio') {
       batchSegments = await synthesizeFishAudioBatch(batch);
-    } else if (providerType === 'fishaudio' || providerType === 'elevenlabs') {
-      const elevenlabsBatch =
-        providerType === 'fishaudio'
-          ? { ...batch, voiceId: getFishAudioFallbackVoiceId(batch.voiceId) }
-          : batch;
-      batchSegments = await synthesizeElevenLabsBatch(elevenlabsBatch, tempDir);
     } else {
       const provider =
         providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
@@ -1253,10 +774,14 @@ export async function synthesizeBatchedTexts(
     `[TTS BATCH SIMPLE] Synthesizing ${texts.length} texts with voice=${voiceId}, speed=${speed}`
   );
 
-  // Detect provider from voice ID — remap Fish Audio to ElevenLabs if unavailable
-  let providerType = getProviderFromVoiceId(voiceId);
-  let effectiveVoiceId = voiceId;
-  if (providerType === 'fishaudio' && isFishAudioAvailable()) {
+  // Detect provider from voice ID
+  const providerType = getProviderFromVoiceId(voiceId);
+
+  if (providerType === 'fishaudio') {
+    if (!isFishAudioAvailable()) {
+      throw new Error('Fish Audio API key not configured (FISH_AUDIO_API_KEY)');
+    }
+
     const batch: TTSBatch = {
       voiceId,
       languageCode,
@@ -1286,51 +811,6 @@ export async function synthesizeBatchedTexts(
       }
       return buffer;
     });
-  }
-  if (providerType === 'fishaudio') {
-    // Fish Audio unavailable — remap to ElevenLabs
-    // eslint-disable-next-line no-console
-    console.warn('[TTS BATCH SIMPLE] Fish Audio unavailable, falling back to ElevenLabs');
-    effectiveVoiceId = getFishAudioFallbackVoiceId(voiceId);
-    providerType = 'elevenlabs';
-  }
-  if (providerType === 'elevenlabs') {
-    const tempDir = path.join(process.cwd(), 'tmp', `batch-simple-elevenlabs-${Date.now()}`);
-    await fs.mkdir(tempDir, { recursive: true });
-
-    try {
-      const batch: TTSBatch = {
-        voiceId: effectiveVoiceId,
-        languageCode,
-        speed,
-        pitch,
-        units: texts.map((text, index) => ({
-          originalIndex: index,
-          markName: `text_${index}`,
-          text,
-        })),
-      };
-
-      const batches = splitElevenLabsBatchByCharLimit(batch, ELEVENLABS_MAX_CHARS);
-      const segments = new Map<number, Buffer>();
-
-      for (const subBatch of batches) {
-        const subSegments = await synthesizeElevenLabsBatch(subBatch, tempDir);
-        for (const [index, buffer] of subSegments) {
-          segments.set(index, buffer);
-        }
-      }
-
-      return texts.map((_, index) => {
-        const buffer = segments.get(index);
-        if (!buffer) {
-          throw new Error(`[TTS BATCH SIMPLE] Missing ElevenLabs segment for index ${index}`);
-        }
-        return buffer;
-      });
-    } finally {
-      await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
-    }
   }
 
   const provider = providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();
@@ -1391,7 +871,7 @@ export async function synthesizeBatchedTexts(
     }
 
     // Split each text segment
-    const segments: Buffer[] = [];
+    const resultSegments: Buffer[] = [];
     for (let i = 0; i < texts.length; i++) {
       const markName = `text_${i}`;
       const startTime = timepointMap.get(markName);
@@ -1413,7 +893,7 @@ export async function synthesizeBatchedTexts(
       await extractAudioSegment(combinedPath, segmentPath, startTime, endTime);
 
       const segmentBuffer = await fs.readFile(segmentPath);
-      segments.push(segmentBuffer);
+      resultSegments.push(segmentBuffer);
 
       // Clean up segment file
       await fs.unlink(segmentPath).catch(() => {});
@@ -1421,7 +901,7 @@ export async function synthesizeBatchedTexts(
 
     // eslint-disable-next-line no-console
     console.log(`[TTS BATCH SIMPLE] Complete: 1 TTS call (was ${texts.length})`);
-    return segments;
+    return resultSegments;
   } finally {
     // Clean up temp directory
     await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
