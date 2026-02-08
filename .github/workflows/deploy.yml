@@ -86,7 +86,7 @@ jobs:
             set -e
 
             echo "🚀 Starting ConvoLab deployment..."
-            IMAGE_TAG="main-${{ github.sha }}"
+            IMAGE_TAG="${GITHUB_REF_NAME}-${GITHUB_SHA::7}"
 
             # Navigate to deployment directory
             cd /opt/convolab
