@@ -45,13 +45,18 @@ async function fetchEpisodes(offset: number = 0, viewAsUserId?: string): Promise
   return response.json();
 }
 
-async function fetchCourses(offset: number = 0, viewAsUserId?: string): Promise<LibraryCourse[]> {
+async function fetchCourses(
+  offset: number = 0,
+  viewAsUserId?: string,
+  showDrafts?: boolean
+): Promise<LibraryCourse[]> {
   const params = new URLSearchParams({
     library: 'true',
     limit: '20',
     offset: String(offset),
   });
   if (viewAsUserId) params.append('viewAs', viewAsUserId);
+  if (showDrafts) params.append('status', 'all');
 
   const response = await fetch(`${API_URL}/api/courses?${params}`, {
     credentials: 'include',
@@ -85,7 +90,7 @@ async function deleteCourseRequest(courseId: string): Promise<void> {
 }
 
 // Main hook
-export function useLibraryData(viewAsUserId?: string) {
+export function useLibraryData(viewAsUserId?: string, showDrafts?: boolean) {
   const queryClient = useQueryClient();
 
   // Infinite queries - all run in parallel automatically
@@ -99,8 +104,8 @@ export function useLibraryData(viewAsUserId?: string) {
   });
 
   const coursesQuery = useInfiniteQuery({
-    queryKey: [...libraryKeys.courses(), viewAsUserId],
-    queryFn: ({ pageParam = 0 }) => fetchCourses(pageParam, viewAsUserId),
+    queryKey: [...libraryKeys.courses(), viewAsUserId, showDrafts],
+    queryFn: ({ pageParam = 0 }) => fetchCourses(pageParam, viewAsUserId, showDrafts),
     getNextPageParam: (lastPage, allPages) =>
       lastPage.length === 20 ? allPages.length * 20 : undefined,
     initialPageParam: 0,
@@ -128,9 +133,7 @@ export function useLibraryData(viewAsUserId?: string) {
   });
 
   // Combined loading state - only show loading on initial load
-  const isLoading =
-    episodesQuery.isLoading ||
-    coursesQuery.isLoading;
+  const isLoading = episodesQuery.isLoading || coursesQuery.isLoading;
 
   // Error state - only show error if episodes fail (primary content)
   const error = episodesQuery.error?.message || null;
@@ -140,14 +143,10 @@ export function useLibraryData(viewAsUserId?: string) {
   const courses = coursesQuery.data?.pages.flat() ?? [];
 
   // Check if we're fetching more data
-  const isFetchingNextPage =
-    episodesQuery.isFetchingNextPage ||
-    coursesQuery.isFetchingNextPage;
+  const isFetchingNextPage = episodesQuery.isFetchingNextPage || coursesQuery.isFetchingNextPage;
 
   // Check if there's more data to load
-  const hasNextPage =
-    episodesQuery.hasNextPage ||
-    coursesQuery.hasNextPage;
+  const hasNextPage = episodesQuery.hasNextPage || coursesQuery.hasNextPage;
 
   // Fetch next page for all queries
   const fetchNextPage = () => {

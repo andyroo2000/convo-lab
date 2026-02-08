@@ -77,14 +77,15 @@ async function processCourseGeneration(job: {
     if (audioOnly) {
       console.log('Audio-only mode: reading script from existing course record');
 
-      const scriptJson = course.scriptJson as unknown;
-      if (!scriptJson || !Array.isArray(scriptJson)) {
+      // Read from scriptUnitsJson (new field), fallback to scriptJson for backward compat
+      const scriptData = (course.scriptUnitsJson ?? course.scriptJson) as unknown;
+      if (!scriptData || !Array.isArray(scriptData)) {
         throw new Error(
-          'Course has no script data (scriptJson must be an array of script units for audio-only mode)'
+          'Course has no script data (scriptUnitsJson/scriptJson must be an array of script units for audio-only mode)'
         );
       }
 
-      const scriptUnits = scriptJson as LessonScriptUnit[];
+      const scriptUnits = scriptData as LessonScriptUnit[];
       console.log(`Loaded ${scriptUnits.length} script units from course record`);
       await job.updateProgress(60);
 
@@ -256,11 +257,16 @@ async function processCourseGeneration(job: {
       );
     }
 
-    // Update course with script (flattened from lesson)
+    // Save script units to scriptUnitsJson and preserve pipeline data in scriptJson
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptJson: scriptUnits as unknown as Prisma.JsonValue,
+        scriptUnitsJson: scriptUnits as unknown as Prisma.JsonValue,
+        scriptJson: {
+          _pipelineStage: 'script',
+          _exchanges: dialogueExchanges,
+          _scriptUnits: scriptUnits,
+        } as unknown as Prisma.JsonValue,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });

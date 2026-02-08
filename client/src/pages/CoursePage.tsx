@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Clock } from 'lucide-react';
+import { BookOpen, Clock, FlaskConical } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
+import { useAuth } from '../contexts/AuthContext';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import CurrentTextDisplay from '../components/CurrentTextDisplay';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
 import { LessonScriptUnit } from '../types';
+
+const AdminScriptWorkbench = lazy(() => import('../components/courses/AdminScriptWorkbench'));
 
 const CoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -14,6 +17,8 @@ const CoursePage = () => {
   const viewAsUserId = searchParams.get('viewAs') || undefined;
   const { course, isLoading, generationProgress, updateCourse } = useCourse(courseId, viewAsUserId);
   const { audioRef, currentTime } = useAudioPlayer();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   // Inline editing state
   const [editingTitle, setEditingTitle] = useState(false);
@@ -25,6 +30,9 @@ const CoursePage = () => {
   const [showReadings, setShowReadings] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
   const [currentUnit, setCurrentUnit] = useState<LessonScriptUnit | null>(null);
+
+  // Admin pipeline viewer
+  const [showPipeline, setShowPipeline] = useState(false);
 
   // Track current L2 unit based on audio playback position
   useEffect(() => {
@@ -307,6 +315,35 @@ const CoursePage = () => {
           </div>
         )}
       </div>
+
+      {/* Admin Pipeline Viewer */}
+      {isAdmin && course.status !== 'draft' && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowPipeline(!showPipeline)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              showPipeline ? 'bg-coral text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <FlaskConical className="w-4 h-4" />
+            {showPipeline ? 'Hide Pipeline' : 'View Pipeline'}
+          </button>
+
+          {showPipeline && (
+            <Suspense
+              fallback={
+                <div className="card text-center py-8">
+                  <div className="loading-spinner w-8 h-8 border-4 border-coral border-t-transparent rounded-full mx-auto mb-2" />
+                  <p className="text-sm text-gray-500">Loading pipeline viewer...</p>
+                </div>
+              }
+            >
+              <AdminScriptWorkbench courseId={course.id} readOnly />
+            </Suspense>
+          )}
+        </>
+      )}
     </div>
   );
 };

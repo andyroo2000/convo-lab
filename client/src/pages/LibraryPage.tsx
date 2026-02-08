@@ -3,10 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Trash2, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
 import { Episode, Course } from '../types';
-import {
-  useLibraryData,
-  LibraryCourse,
-} from '../hooks/useLibraryData';
+import { useLibraryData, LibraryCourse } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +25,9 @@ const LibraryPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const viewAsUserId = searchParams.get('viewAs') || undefined;
 
+  // Admin draft toggle
+  const [showDrafts, setShowDrafts] = useState(false);
+
   const {
     episodes,
     courses,
@@ -40,7 +40,7 @@ const LibraryPage = () => {
     deleteCourse,
     isDeletingEpisode,
     isDeletingCourse,
-  } = useLibraryData(viewAsUserId);
+  } = useLibraryData(viewAsUserId, showDrafts);
   const isDemo = useIsDemo();
   const { isFeatureEnabled } = useFeatureFlags();
   const { user, updateUser } = useAuth();
@@ -95,8 +95,7 @@ const LibraryPage = () => {
   const [courseToDelete, setCourseToDelete] = useState<LibraryCourse | null>(null);
 
   // Combined deleting state for modal
-  const isDeleting =
-    isDeletingEpisode || isDeletingCourse;
+  const isDeleting = isDeletingEpisode || isDeletingCourse;
 
   // Map between URL params (kebab-case) and internal filter types (camelCase)
   const filterParamToType: Record<string, FilterType> = {
@@ -192,14 +191,8 @@ const LibraryPage = () => {
   // Memoize filtered and sorted items to avoid expensive recalculations
   const allItems = useMemo(() => {
     // Filter content based on selected filter
-    const filteredEpisodes =
-      filter === 'courses'
-        ? []
-        : episodes;
-    const filteredCourses =
-      filter === 'dialogues'
-        ? []
-        : courses;
+    const filteredEpisodes = filter === 'courses' ? [] : episodes;
+    const filteredCourses = filter === 'dialogues' ? [] : courses;
 
     // Combine and sort by date
     return [
@@ -240,7 +233,25 @@ const LibraryPage = () => {
         <ImpersonationBanner impersonatedUser={impersonatedUser} onExit={handleExitImpersonation} />
       )}
 
-      <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0">
+      <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0 gap-4">
+        {/* Admin Draft Toggle */}
+        {user?.role === 'admin' && (
+          <button
+            type="button"
+            onClick={() => setShowDrafts(!showDrafts)}
+            className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium transition-colors ${
+              showDrafts
+                ? 'bg-purple-100 text-purple-800 ring-1 ring-purple-300'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            <span
+              className={`inline-block w-2 h-2 rounded-full ${showDrafts ? 'bg-purple-500' : 'bg-gray-400'}`}
+            />
+            Drafts
+          </button>
+        )}
+
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
           {isFeatureEnabled('dialoguesEnabled') && (
@@ -459,12 +470,13 @@ const LibraryPage = () => {
                             Sample
                           </Pill>
                         )}
+                        {course.status === 'draft' && <Pill color="periwinkle">Draft</Pill>}
                         {course.status === 'generating' && (
                           <Pill color="yellow" className="animate-pulse">
                             {t('common:status.generating')}
                           </Pill>
                         )}
-                        {(course.jlptLevel) && (
+                        {course.jlptLevel && (
                           <LanguageLevelPill
                             className="hidden sm:inline-flex"
                             language={course.targetLanguage}
@@ -487,7 +499,7 @@ const LibraryPage = () => {
                   </div>
 
                   {/* Language/Level Sidebar (mobile only) */}
-                  {(course.jlptLevel) && (
+                  {course.jlptLevel && (
                     <LanguageLevelSidebar
                       className="sm:hidden"
                       language={course.targetLanguage.toUpperCase()}

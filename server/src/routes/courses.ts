@@ -26,14 +26,28 @@ router.get('/', async (req: AuthRequest, res, next) => {
     const isLibraryMode = req.query.library === 'true';
     const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : 50;
     const offset = req.query.offset ? parseInt(req.query.offset as string, 10) : 0;
+    const statusFilter = req.query.status as string | undefined;
 
     // Get the appropriate user ID (demo users see admin's content)
     const queryUserId = await getEffectiveUserId(req);
 
+    // Build status filter: by default hide drafts for non-admin users
+    const isAdmin = req.user?.role === 'admin';
+    let statusWhere: Prisma.StringFilter | undefined;
+    if (statusFilter === 'all' && isAdmin) {
+      // Admin requesting all statuses - no filter
+      statusWhere = undefined;
+    } else if (statusFilter === 'draft' && isAdmin) {
+      statusWhere = { equals: 'draft' };
+    } else {
+      // Default: hide drafts from normal library view
+      statusWhere = { not: 'draft' };
+    }
+
     // Library mode: Return minimal data for card display
     if (isLibraryMode) {
       const courses = await prisma.course.findMany({
-        where: { userId: queryUserId },
+        where: { userId: queryUserId, ...(statusWhere ? { status: statusWhere } : {}) },
         select: {
           id: true,
           title: true,
@@ -62,7 +76,7 @@ router.get('/', async (req: AuthRequest, res, next) => {
 
     // Full mode: Return complete data with coreItems and episodes
     const courses = await prisma.course.findMany({
-      where: { userId: queryUserId },
+      where: { userId: queryUserId, ...(statusWhere ? { status: statusWhere } : {}) },
       include: {
         coreItems: true,
         courseEpisodes: {

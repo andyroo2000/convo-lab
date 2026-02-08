@@ -262,7 +262,8 @@ model Course {
   speaker1VoiceProvider    String?  @default("google") // "google" | "polly"
   speaker2VoiceId          String?  // Specific TTS voice ID for speaker 2 (overrides gender default)
   speaker2VoiceProvider    String?  @default("google") // "google" | "polly"
-  scriptJson               Json?    // LessonScriptUnit[] - flattened from Lesson
+  scriptJson               Json?    // Pipeline data: { _pipelineStage, _exchanges, _scriptUnits } or legacy flat array
+  scriptUnitsJson          Json?    // Flat LessonScriptUnit[] for audio assembly (separate from pipeline data)
   approxDurationSeconds    Int?     // Flattened from Lesson
   audioUrl                 String?  // Flattened from Lesson
   timingData               Json?    // Timing data for each script unit: { unitIndex, startTime, endTime }[]
@@ -272,6 +273,7 @@ model Course {
   user                     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   coreItems                CourseCoreItem[]
   courseEpisodes           CourseEpisode[]
+  lineAudioRenderings      LineAudioRendering[]
 
   @@index([userId])
   @@index([status])
@@ -370,6 +372,24 @@ model GenerationLog {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("generation_logs")
+}
+
+// Line Audio Rendering - Per-line TTS test results from Script Lab
+
+model LineAudioRendering {
+  id        String   @id @default(uuid())
+  courseId  String
+  unitIndex Int
+  text      String   @db.Text
+  speed     Float    @default(1.0)
+  voiceId   String
+  audioUrl  String
+  createdAt DateTime @default(now())
+
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, unitIndex])
+  @@map("line_audio_renderings")
 }
 
 // OAuth Account - Store OAuth provider tokens and metadata
