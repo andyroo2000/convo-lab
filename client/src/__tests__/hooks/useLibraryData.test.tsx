@@ -170,6 +170,80 @@ describe('useLibraryData', () => {
     });
   });
 
+  describe('showDrafts Parameter', () => {
+    it('should pass status=all when showDrafts is true', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      renderHook(() => useLibraryData(undefined, true), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://localhost:3001/api/courses?library=true&limit=20&offset=0&status=all',
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
+    });
+
+    it('should not pass status param when showDrafts is false', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      renderHook(() => useLibraryData(undefined, false), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
+    });
+
+    it('should not pass status param when showDrafts is undefined', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      renderHook(() => useLibraryData(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://localhost:3001/api/courses?library=true&limit=20&offset=0',
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
+    });
+
+    it('should include viewAs and status=all when both are provided', async () => {
+      mockFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      });
+
+      renderHook(() => useLibraryData('user-123', true), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledWith(
+          'http://localhost:3001/api/courses?library=true&limit=20&offset=0&viewAs=user-123&status=all',
+          expect.objectContaining({ credentials: 'include' })
+        );
+      });
+    });
+  });
+
   describe('Delete Mutations', () => {
     it('should provide delete mutation functions', () => {
       mockFetch.mockResolvedValue({
@@ -251,7 +325,5 @@ describe('useLibraryData', () => {
         expect.objectContaining({ method: 'DELETE' })
       );
     });
-
   });
-
 });
