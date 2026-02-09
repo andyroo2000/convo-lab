@@ -12,6 +12,7 @@ const mockExtractDialogueExchangesFromSourceText = vi.hoisted(() => vi.fn());
 const mockGenerateConversationalLessonScript = vi.hoisted(() => vi.fn());
 const mockAssembleLessonAudio = vi.hoisted(() => vi.fn());
 const mockAddReadingBrackets = vi.hoisted(() => vi.fn());
+const mockProofreadScript = vi.hoisted(() => vi.fn().mockResolvedValue({ score: 7, issues: [] }));
 const mockPrisma = vi.hoisted(() => ({
   course: {
     findUnique: vi.fn(),
@@ -93,6 +94,10 @@ vi.mock('../../../services/furiganaService.js', () => ({
 
 vi.mock('../../../services/audioCourseAssembler.js', () => ({
   assembleLessonAudio: mockAssembleLessonAudio,
+}));
+
+vi.mock('../../../services/scriptProofreader.js', () => ({
+  proofreadScript: mockProofreadScript,
 }));
 
 // Helper to create mock job
