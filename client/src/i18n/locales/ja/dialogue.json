@@ -14,7 +14,13 @@
   },
   "complete": {
     "title": "対話が生成されました！",
-    "redirecting": "再生ページにリダイレクト中..."
+    "redirecting": "再生ページにリダイレクト中...",
+    "courseFailureSubtitle": "対話は生成されましたが、オーディオコースの作成に失敗しました。",
+    "courseFailureTitle": "オーディオコースの作成に失敗しました",
+    "courseFailureBody": "対話の再生は利用できます。後でもう一度コース作成をお試しください。",
+    "courseFailureDetail": "詳細: {{message}}",
+    "courseFailureCta": "再生ページへ",
+    "courseFailureFallback": "不明なエラー"
   },
   "form": {
     "yourStory": "あなたのストーリー",

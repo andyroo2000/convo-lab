@@ -3,11 +3,18 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { SUPPORTED_LANGUAGES, SPEAKER_COLORS, TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  SUPPORTED_LANGUAGES,
+  SPEAKER_COLORS,
+  TTS_VOICES,
+} from '@languageflow/shared/src/constants-new';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { getCourseSpeakerVoices, getDialogueSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
+import {
+  getCourseSpeakerVoices,
+  getDialogueSpeakerVoices,
+} from '@languageflow/shared/src/voiceSelection';
 import { LanguageCode, ProficiencyLevel, ToneStyle } from '../../types';
 import { useEpisodes } from '../../hooks/useEpisodes';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -47,6 +54,7 @@ const DialogueGenerator = () => {
   const invalidateLibrary = useInvalidateLibrary();
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [courseError, setCourseError] = useState<string | null>(null);
 
   const [sourceText, setSourceText] = useState('');
   const targetLanguage: LanguageCode = 'ja';
@@ -186,6 +194,7 @@ const DialogueGenerator = () => {
 
       if (status === 'completed') {
         clearInterval(pollInterval);
+        setCourseError(null);
 
         let createdCourseId: string | null = null;
 
@@ -207,8 +216,13 @@ const DialogueGenerator = () => {
         if (generatedEpisodeId && createAudioCourse && audioCourseEnabled) {
           try {
             createdCourseId = await createCourseFromEpisode(generatedEpisodeId);
-          } catch (courseError) {
-            console.error('Failed to create audio course:', courseError);
+          } catch (courseErr) {
+            console.error('Failed to create audio course:', courseErr);
+            const message =
+              courseErr instanceof Error
+                ? courseErr.message
+                : t('dialogue:complete.courseFailureFallback');
+            setCourseError(message);
           }
         }
 
@@ -217,14 +231,18 @@ const DialogueGenerator = () => {
         // Invalidate library cache so new episode shows up
         invalidateLibrary();
 
-        // Navigate to playback page
-        setTimeout(() => {
-          if (createdCourseId) {
-            navigate(`/app/courses/${createdCourseId}`);
-          } else if (generatedEpisodeId) {
-            navigate(`/app/playback/${generatedEpisodeId}`);
-          }
-        }, 2000);
+        const shouldAutoRedirect = !createAudioCourse || !!createdCourseId;
+
+        if (shouldAutoRedirect) {
+          // Navigate to playback page or course page
+          setTimeout(() => {
+            if (createdCourseId) {
+              navigate(`/app/courses/${createdCourseId}`);
+            } else if (generatedEpisodeId) {
+              navigate(`/app/playback/${generatedEpisodeId}`);
+            }
+          }, 2000);
+        }
       } else if (status === 'failed') {
         clearInterval(pollInterval);
         setStep('input');
@@ -276,6 +294,7 @@ const DialogueGenerator = () => {
     }
 
     try {
+      setCourseError(null);
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language
@@ -372,16 +391,36 @@ const DialogueGenerator = () => {
           <h2 className="text-3xl font-bold text-dark-brown mb-3">
             {t('dialogue:complete.title')}
           </h2>
-          <p className="text-xl text-gray-600 mb-6">{t('dialogue:complete.redirecting')}</p>
+          <p className="text-xl text-gray-600 mb-6">
+            {courseError
+              ? t('dialogue:complete.courseFailureSubtitle')
+              : t('dialogue:complete.redirecting')}
+          </p>
+          {courseError && (
+            <div className="mt-6 p-6 bg-amber-50 border-l-4 border-amber-500 text-amber-900 text-left">
+              <p className="text-base font-semibold">{t('dialogue:complete.courseFailureTitle')}</p>
+              <p className="mt-2 text-sm">{t('dialogue:complete.courseFailureBody')}</p>
+              <p className="mt-3 text-xs text-amber-800">
+                {t('dialogue:complete.courseFailureDetail', { message: courseError })}
+              </p>
+              {generatedEpisodeId && (
+                <button
+                  type="button"
+                  className="mt-4 inline-flex items-center px-4 py-2 bg-periwinkle text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-periwinkle-dark"
+                  onClick={() => navigate(`/app/playback/${generatedEpisodeId}`)}
+                >
+                  {t('dialogue:complete.courseFailureCta')}
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
     );
   }
 
   const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  const narratorVoiceChoices = narratorVoices.filter(
-    (voice) => voice.provider === 'fishaudio'
-  );
+  const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
@@ -526,7 +565,7 @@ const DialogueGenerator = () => {
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           {speakers.map((speaker, index) => (
-            <div key={`${speaker.name}-${index}`}>
+            <div key={`${speaker.name}-${speaker.voiceId}`}>
               <label
                 htmlFor={`dialogue-speaker-${index + 1}-voice`}
                 className="block text-base font-bold text-dark-brown mb-2"

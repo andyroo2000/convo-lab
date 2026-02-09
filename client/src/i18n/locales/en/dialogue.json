@@ -14,7 +14,13 @@
   },
   "complete": {
     "title": "Dialogue Generated!",
-    "redirecting": "Redirecting to playback page..."
+    "redirecting": "Redirecting to playback page...",
+    "courseFailureSubtitle": "Your dialogue is ready, but the audio course could not be created.",
+    "courseFailureTitle": "Audio Course Creation Failed",
+    "courseFailureBody": "You can still use the dialogue playback. Try creating the course again later.",
+    "courseFailureDetail": "Details: {{message}}",
+    "courseFailureCta": "Go to playback",
+    "courseFailureFallback": "Unknown error"
   },
   "form": {
     "yourStory": "Your Story",
