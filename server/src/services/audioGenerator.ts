@@ -1,4 +1,4 @@
-/* eslint-disable import/no-named-as-default-member, no-console */
+/* eslint-disable import/no-named-as-default-member */
 import { execSync } from 'child_process';
 import { promises as fs } from 'fs';
 import os from 'os';
@@ -11,6 +11,7 @@ import { prisma } from '../db/client.js';
 import { normalizeSegmentLoudness, applySweeteningChainToBuffer } from './audioProcessing.js';
 import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { applyJapanesePronunciationOverrides } from './japanesePronunciationOverrides.js';
+import { logger } from './logger.js';
 import { uploadAudio } from './storageClient.js';
 import { synthesizeSpeech, createSSMLWithPauses } from './ttsClient.js';
 
@@ -21,7 +22,7 @@ try {
   if (ffprobePath) ffmpeg.setFfprobePath(ffprobePath);
   if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
 } catch (e) {
-  console.warn('Could not find ffmpeg/ffprobe in PATH');
+  logger.warn('Could not find ffmpeg/ffprobe in PATH');
 }
 
 // Audio speed presets mapping
@@ -183,7 +184,7 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
 async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
   // Validate buffer before processing
   if (!audioBuffer || audioBuffer.length === 0) {
-    console.error('[getAudioDuration] Empty audio buffer received');
+    logger.error('[getAudioDuration] Empty audio buffer received');
     throw new Error('Empty audio buffer received');
   }
 
@@ -196,7 +197,7 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
   const tempFile = path.join(tempDir, 'temp.mp3');
 
   try {
-    console.log(`[getAudioDuration] Writing ${audioBuffer.length} bytes to ${tempFile}`);
+    logger.info(`[getAudioDuration] Writing ${audioBuffer.length} bytes to ${tempFile}`);
     await fs.writeFile(tempFile, audioBuffer);
 
     // Verify file was written
@@ -204,18 +205,18 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
     if (stats.size === 0) {
       throw new Error('Temp file was written but is empty');
     }
-    console.log(`[getAudioDuration] File written successfully: ${stats.size} bytes`);
+    logger.info(`[getAudioDuration] File written successfully: ${stats.size} bytes`);
 
     const duration = await new Promise<number>((resolve, reject) => {
       ffmpeg.ffprobe(tempFile, (err, metadata) => {
         if (err) {
-          console.error(`[getAudioDuration] ffprobe error:`, err);
+          logger.error(`[getAudioDuration] ffprobe error:`, err);
           reject(err);
           return;
         }
 
         const durationSeconds = metadata.format.duration || 0;
-        console.log(`[getAudioDuration] Duration: ${durationSeconds}s`);
+        logger.info(`[getAudioDuration] Duration: ${durationSeconds}s`);
         resolve(durationSeconds * 1000); // Convert to milliseconds
       });
     });
@@ -225,7 +226,7 @@ async function getAudioDuration(audioBuffer: Buffer): Promise<number> {
 
     return duration;
   } catch (error) {
-    console.error(`[getAudioDuration] Error processing audio:`, error);
+    logger.error(`[getAudioDuration] Error processing audio:`, error);
     // Cleanup on error
     try {
       await fs.rm(tempDir, { recursive: true, force: true });
@@ -257,7 +258,7 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
 
     // Generate 1 second of silence
     const silenceFile = path.join(tempDir, 'silence.mp3');
-    console.log('Generating 1 second silence file for pauses between dialogue turns...');
+    logger.info('Generating 1 second silence file for pauses between dialogue turns...');
     await new Promise<void>((resolve, reject) => {
       ffmpeg()
         .input('/dev/zero')
@@ -265,11 +266,11 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
         .outputOptions(['-c:a libmp3lame', '-b:a 128k'])
         .output(silenceFile)
         .on('end', () => {
-          console.log('Silence file generated successfully');
+          logger.info('Silence file generated successfully');
           resolve();
         })
         .on('error', (err) => {
-          console.error('Error generating silence file:', err);
+          logger.error('Error generating silence file:', err);
           reject(err);
         })
         .run();
@@ -286,10 +287,10 @@ async function concatenateAudio(audioBuffers: Buffer[]): Promise<Buffer> {
       }
     });
     const listContent = listItems.join('\n');
-    console.log(
+    logger.info(
       `Creating concat list with ${tempFiles.length} audio segments and ${tempFiles.length - 1} silence gaps`
     );
-    console.log('Concat list content:', listContent);
+    logger.info('Concat list content:', listContent);
     await fs.writeFile(listFile, listContent);
 
     // Concatenate with ffmpeg
@@ -335,7 +336,7 @@ async function generateSingleSpeedAudio(
   config: SpeedConfig,
   onProgress?: (progress: number) => void
 ): Promise<{ speed: string; audioUrl: string; duration: number }> {
-  console.log(`[DIALOGUE] Generating ${config.key} (${config.value}x) audio with batched TTS...`);
+  logger.info(`[DIALOGUE] Generating ${config.key} (${config.value}x) audio with batched TTS...`);
 
   // Get dialogue with sentences and speakers
   const dialogue = await prisma.dialogue.findUnique({
@@ -382,7 +383,7 @@ async function generateSingleSpeedAudio(
     });
   }
 
-  console.log(
+  logger.info(
     `[DIALOGUE] Grouped ${dialogue.sentences.length} sentences into ${voiceGroups.size} voice batches`
   );
 
@@ -391,7 +392,7 @@ async function generateSingleSpeedAudio(
 
   let completedVoices = 0;
   for (const [voiceId, sentences] of voiceGroups) {
-    console.log(`[DIALOGUE] Batching ${sentences.length} sentences for voice ${voiceId}`);
+    logger.info(`[DIALOGUE] Batching ${sentences.length} sentences for voice ${voiceId}`);
 
     const audioBuffers = await synthesizeBatchedTexts(
       sentences.map((s) => s.text),
@@ -417,7 +418,7 @@ async function generateSingleSpeedAudio(
     }
   }
 
-  console.log(
+  logger.info(
     `[DIALOGUE] Complete: ${voiceGroups.size} TTS calls (was ${dialogue.sentences.length})`
   );
 
@@ -484,7 +485,7 @@ async function generateSingleSpeedAudio(
     onProgress(100);
   }
 
-  console.log(`[DIALOGUE] ✅ Generated ${config.key} (${config.value}x) audio: ${audioUrl}`);
+  logger.info(`[DIALOGUE] ✅ Generated ${config.key} (${config.value}x) audio: ${audioUrl}`);
 
   return {
     speed: config.key,
@@ -535,7 +536,7 @@ export async function generateAllSpeedsAudio(
   // Generate speeds SEQUENTIALLY to avoid resource exhaustion
   for (let i = 0; i < speedConfigs.length; i++) {
     const config = speedConfigs[i];
-    console.log(
+    logger.info(
       `[generateAllSpeedsAudio] Starting speed ${i + 1}/3: ${config.key} (${config.value}x)`
     );
 
@@ -555,9 +556,9 @@ export async function generateAllSpeedsAudio(
     );
 
     results.push(result);
-    console.log(`[generateAllSpeedsAudio] Completed speed ${i + 1}/3: ${config.key}`);
+    logger.info(`[generateAllSpeedsAudio] Completed speed ${i + 1}/3: ${config.key}`);
   }
 
-  console.log(`[generateAllSpeedsAudio] All 3 speeds completed successfully`);
+  logger.info(`[generateAllSpeedsAudio] All 3 speeds completed successfully`);
   return results;
 }

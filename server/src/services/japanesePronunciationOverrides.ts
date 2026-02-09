@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import path from 'path';
 
+import { logger } from './logger.js';
+
 export interface JapanesePronunciationDictionary {
   keepKanji: string[];
   forceKana: Record<string, string>;
@@ -130,8 +132,7 @@ function loadDictionaryFromDisk(): JapanesePronunciationDictionary {
       updatedAt: parsed.updatedAt,
     };
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('[PronunciationDictionary] Failed to load dictionary, using defaults.', error);
+    logger.warn('[PronunciationDictionary] Failed to load dictionary, using defaults.', error);
     return normalizeDictionary(DEFAULT_DICTIONARY);
   }
 }
@@ -163,10 +164,25 @@ function buildCache(dictionary: JapanesePronunciationDictionary): DictionaryCach
   };
 }
 
-let dictionaryState = loadDictionaryFromDisk();
-let dictionaryCache = buildCache(dictionaryState);
+let dictionaryState: JapanesePronunciationDictionary | null = null;
+let dictionaryCache: DictionaryCache | null = null;
+
+function ensureDictionaryLoaded() {
+  if (dictionaryState && dictionaryCache) {
+    return;
+  }
+
+  const loaded = loadDictionaryFromDisk();
+  dictionaryState = loaded;
+  dictionaryCache = buildCache(loaded);
+}
 
 export function getJapanesePronunciationDictionary(): JapanesePronunciationDictionary {
+  ensureDictionaryLoaded();
+  if (!dictionaryState) {
+    return { keepKanji: [], forceKana: {} };
+  }
+
   return {
     keepKanji: [...dictionaryState.keepKanji],
     forceKana: { ...dictionaryState.forceKana },
@@ -177,16 +193,19 @@ export function getJapanesePronunciationDictionary(): JapanesePronunciationDicti
 export async function updateJapanesePronunciationDictionary(
   dictionary: JapanesePronunciationDictionary
 ): Promise<JapanesePronunciationDictionary> {
+  ensureDictionaryLoaded();
+
   const normalized = normalizeDictionary(dictionary);
   const updated: JapanesePronunciationDictionary = {
     ...normalized,
     updatedAt: new Date().toISOString(),
   };
 
-  dictionaryState = updated;
-  dictionaryCache = buildCache(updated);
   await fs.promises.mkdir(path.dirname(DICTIONARY_PATH), { recursive: true });
   await fs.promises.writeFile(DICTIONARY_PATH, `${JSON.stringify(updated, null, 2)}\n`, 'utf8');
+
+  dictionaryState = updated;
+  dictionaryCache = buildCache(updated);
 
   return getJapanesePronunciationDictionary();
 }
@@ -322,6 +341,10 @@ function matchWordAtIndex(
 }
 
 function findKeepMatch(units: FuriganaUnit[], startIndex: number) {
+  if (!dictionaryCache) {
+    return undefined;
+  }
+
   for (const word of dictionaryCache.keepKanjiSorted) {
     const match = matchWordAtIndex(units, startIndex, word);
     if (match) {
@@ -333,6 +356,10 @@ function findKeepMatch(units: FuriganaUnit[], startIndex: number) {
 }
 
 function findForceMatch(units: FuriganaUnit[], startIndex: number) {
+  if (!dictionaryCache) {
+    return undefined;
+  }
+
   for (const [word, kana] of dictionaryCache.forceKanaSorted) {
     const match = matchWordAtIndex(units, startIndex, word);
     if (match) {
@@ -370,6 +397,10 @@ function applyOverridesToUnits(units: FuriganaUnit[]): string {
 }
 
 function applyForceKanaToText(text: string): string {
+  if (!dictionaryCache) {
+    return text;
+  }
+
   let result = text;
 
   for (const [word, kana] of dictionaryCache.forceKanaSorted) {
@@ -390,6 +421,8 @@ export function applyJapanesePronunciationOverrides(params: {
   reading?: string | null;
   furigana?: string | null;
 }): string {
+  ensureDictionaryLoaded();
+
   const { text, reading, furigana } = params;
   const readingText = reading?.trim();
   const furiganaText = furigana?.trim();
@@ -407,7 +440,7 @@ export function applyJapanesePronunciationOverrides(params: {
   }
 
   const normalizedText = normalizeMatchText(text);
-  if (normalizedText) {
+  if (normalizedText && dictionaryCache) {
     if (dictionaryCache.keepKanjiSet.has(normalizedText)) {
       return applyForceKanaToText(text);
     }
@@ -419,7 +452,9 @@ export function applyJapanesePronunciationOverrides(params: {
   }
 
   const hasKeepMatch =
-    normalizedText && containsAnyWord(normalizedText, dictionaryCache.keepKanjiSorted);
+    normalizedText && dictionaryCache
+      ? containsAnyWord(normalizedText, dictionaryCache.keepKanjiSorted)
+      : false;
   if (hasKeepMatch) {
     return applyForceKanaToText(text);
   }

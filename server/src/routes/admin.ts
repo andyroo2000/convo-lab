@@ -723,7 +723,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
 // Pronunciation Dictionary Routes
 // ============================================
 
-router.get('/pronunciation-dictionaries', async (_req: AuthRequest, res, next) => {
+router.get('/pronunciation-dictionaries', requireAdmin, async (_req: AuthRequest, res, next) => {
   try {
     res.json(getJapanesePronunciationDictionary());
   } catch (error) {
@@ -731,7 +731,7 @@ router.get('/pronunciation-dictionaries', async (_req: AuthRequest, res, next) =
   }
 });
 
-router.put('/pronunciation-dictionaries', async (req: AuthRequest, res, next) => {
+router.put('/pronunciation-dictionaries', requireAdmin, async (req: AuthRequest, res, next) => {
   try {
     const payload = req.body as {
       keepKanji?: unknown;

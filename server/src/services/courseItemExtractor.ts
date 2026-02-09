@@ -1,10 +1,10 @@
-/* eslint-disable no-console */
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Episode, Sentence, Speaker } from '@prisma/client';
 
 import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
 import { generateWithGemini } from './geminiClient.js';
 import { LanguageMetadata } from './languageProcessor.js';
+import { logger } from './logger.js';
 import {
   sampleVocabulary,
   formatWordsForPrompt,
@@ -467,7 +467,7 @@ ${phrases[0].readingL2 ? '- Include phonetic reading for each component\n' : '- 
 
     return results;
   } catch (err) {
-    console.error('Failed to batch decompose phrases, using fallback:', err);
+    logger.error('Failed to batch decompose phrases, using fallback:', err);
 
     // Fallback: return all phrases as single components
     return phrases.map((phrase) => [
@@ -582,7 +582,7 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
       })
     );
   } catch (err) {
-    console.error('Failed to decompose phrase, using fallback:', err);
+    logger.error('Failed to decompose phrase, using fallback:', err);
 
     // Fallback: just return the full phrase
     return [
@@ -661,11 +661,11 @@ Return ONLY a JSON array (no markdown, no explanation):
               translation: split.translation,
             });
           }
-          console.warn(`  Split "${sentence.text}" into ${splits.length} parts`);
+          logger.warn(`  Split "${sentence.text}" into ${splits.length} parts`);
           continue;
         }
       } catch (err) {
-        console.error('Failed to split sentence, keeping as-is:', err);
+        logger.error('Failed to split sentence, keeping as-is:', err);
       }
     }
 
@@ -698,7 +698,7 @@ export async function extractDialogueExchanges(
   // FIRST: Split long sentences (those with multiple questions or statements)
   const splitSentences = await splitLongSentences(sentences, targetLang);
 
-  console.warn(
+  logger.warn(
     `Split ${sentences.length} sentences into ${splitSentences.length} shorter exchanges`
   );
 
@@ -715,7 +715,7 @@ export async function extractDialogueExchanges(
       ? splitSentences
       : selectDiverseSentences(splitSentences, targetExchangeCount);
 
-  console.warn(
+  logger.warn(
     `Selected ${selectedSentences.length} exchanges for ~${targetDurationMinutes} minute lesson`
   );
 
@@ -797,7 +797,7 @@ Return ONLY a JSON object (no markdown, no explanation):
 
     return exchanges;
   } catch (err) {
-    console.error('Failed to extract dialogue exchanges:', err);
+    logger.error('Failed to extract dialogue exchanges:', err);
     // Fallback: return exchanges without vocabulary breakdown
     return selectedSentences.map((sentence, i) => ({
       order: i,
@@ -964,12 +964,12 @@ export async function buildDialogueExtractionPrompt(
   // Sample vocabulary to seed the dialogue if proficiency level is specified
   let vocabularySeed = '';
   if (jlptLevel && targetLanguage) {
-    console.log(
+    logger.info(
       `[PromptBuilder] Attempting to sample vocabulary for ${targetLanguage}:${jlptLevel}`
     );
     try {
       const seedWords = await sampleVocabulary(targetLanguage, jlptLevel, 30);
-      console.log(`[PromptBuilder] Got ${seedWords.length} vocabulary seed words`);
+      logger.info(`[PromptBuilder] Got ${seedWords.length} vocabulary seed words`);
       if (seedWords.length > 0) {
         const framework = getProficiencyFramework(targetLanguage);
         vocabularySeed = `
@@ -979,18 +979,18 @@ Try to naturally use some of these ${framework} ${jlptLevel}-level words in the 
 ${formatWordsForPrompt(seedWords, targetLanguage)}
 
 You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
-        console.log(
+        logger.info(
           `[PromptBuilder] Generated vocabulary seed section (${vocabularySeed.length} chars)`
         );
       }
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`,
         error
       );
     }
   } else {
-    console.log(
+    logger.info(
       `[PromptBuilder] Skipping vocabulary seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`
     );
   }
@@ -998,10 +998,10 @@ You don't need to use all of them - just incorporate 5-10 naturally where they f
   // Sample grammar to seed the dialogue if proficiency level is specified
   let grammarSeed = '';
   if (jlptLevel && targetLanguage) {
-    console.log(`[PromptBuilder] Attempting to sample grammar for ${targetLanguage}:${jlptLevel}`);
+    logger.info(`[PromptBuilder] Attempting to sample grammar for ${targetLanguage}:${jlptLevel}`);
     try {
       const seedGrammar = await sampleGrammar(targetLanguage, jlptLevel, 5);
-      console.log(`[PromptBuilder] Got ${seedGrammar.length} grammar seed patterns`);
+      logger.info(`[PromptBuilder] Got ${seedGrammar.length} grammar seed patterns`);
       if (seedGrammar.length > 0) {
         const framework = getProficiencyFramework(targetLanguage);
         grammarSeed = `
@@ -1011,16 +1011,16 @@ Try to naturally use 2-3 of these ${framework} ${jlptLevel}-level grammar patter
 ${formatGrammarForPrompt(seedGrammar)}
 
 Use these patterns where they naturally fit the conversation flow.`;
-        console.log(`[PromptBuilder] Generated grammar seed section (${grammarSeed.length} chars)`);
+        logger.info(`[PromptBuilder] Generated grammar seed section (${grammarSeed.length} chars)`);
       }
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`,
         error
       );
     }
   } else {
-    console.log(
+    logger.info(
       `[PromptBuilder] Skipping grammar seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`
     );
   }
@@ -1137,7 +1137,7 @@ Return ONLY a JSON object (no markdown, no explanation):
     },
   };
 
-  console.log(`[PromptBuilder] Returning prompt with metadata:`, {
+  logger.info(`[PromptBuilder] Returning prompt with metadata:`, {
     targetExchangeCount: result.metadata.targetExchangeCount,
     hasVocabularySeeds: result.metadata.vocabularySeeds.length > 0,
     hasGrammarSeeds: result.metadata.grammarSeeds.length > 0,
@@ -1283,7 +1283,7 @@ export async function runDialogueExtraction(
     });
   }
 
-  console.warn(`Generated ${exchanges.length} dialogue exchanges from prompt`);
+  logger.warn(`Generated ${exchanges.length} dialogue exchanges from prompt`);
   return exchanges;
 }
 
@@ -1305,8 +1305,8 @@ export async function extractDialogueExchangesFromSourceText(
   speaker1VoiceId?: string,
   speaker2VoiceId?: string
 ): Promise<DialogueExchange[]> {
-  console.warn(`Extracting dialogue from source text for episode: ${episodeTitle}`);
-  console.warn(
+  logger.warn(`Extracting dialogue from source text for episode: ${episodeTitle}`);
+  logger.warn(
     `Target duration: ${targetDurationMinutes} minutes, JLPT Level: ${jlptLevel || 'unspecified'}`
   );
 
@@ -1334,24 +1334,24 @@ export async function extractDialogueExchangesFromSourceText(
       speaker2VoiceId
     );
 
-    console.warn(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
+    logger.warn(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
 
     // Step 3: MULTI-PASS GENERATION: Review and edit if needed
     if (jlptLevel && exchanges.length > 0) {
-      console.warn('Reviewing dialogue quality...');
+      logger.warn('Reviewing dialogue quality...');
       const review = await reviewDialogue(exchanges, jlptLevel, targetLanguage);
 
-      console.warn(`Dialogue review: ${review.overallScore}/10`);
+      logger.warn(`Dialogue review: ${review.overallScore}/10`);
       if (review.strengths.length > 0) {
-        console.warn(`Strengths: ${review.strengths.join(', ')}`);
+        logger.warn(`Strengths: ${review.strengths.join(', ')}`);
       }
       if (review.issues.length > 0) {
-        console.warn(`Issues found: ${review.issues.length}`);
+        logger.warn(`Issues found: ${review.issues.length}`);
       }
 
       // Edit if review indicates revision needed
       if (review.needsRevision) {
-        console.warn('Revising dialogue based on feedback...');
+        logger.warn('Revising dialogue based on feedback...');
         const revisedExchanges = await editDialogue(exchanges, review, jlptLevel, targetLanguage);
 
         // Merge revised content back into exchanges
@@ -1361,13 +1361,13 @@ export async function extractDialogueExchangesFromSourceText(
           // Keep existing timing, voice assignments, etc.
         }
 
-        console.warn('Dialogue revision complete');
+        logger.warn('Dialogue revision complete');
       }
     }
 
     return exchanges;
   } catch (err) {
-    console.error('Failed to extract dialogue from source text:', err);
+    logger.error('Failed to extract dialogue from source text:', err);
     throw new Error(
       `Failed to generate dialogue exchanges: ${err instanceof Error ? err.message : 'Unknown error'}`
     );

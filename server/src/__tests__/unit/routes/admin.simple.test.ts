@@ -42,6 +42,20 @@ const mockPrisma = vi.hoisted(() => ({
   },
 }));
 
+const mockPronunciationDictionary = {
+  keepKanji: ['橋'],
+  forceKana: { 北海道: 'ほっかいどう' },
+  updatedAt: new Date('2024-01-01').toISOString(),
+};
+
+const mockGetPronunciationDictionary = vi.hoisted(() => vi.fn(() => mockPronunciationDictionary));
+const mockUpdatePronunciationDictionary = vi.hoisted(() =>
+  vi.fn(async (dictionary: { keepKanji: string[]; forceKana: Record<string, string> }) => ({
+    ...dictionary,
+    updatedAt: new Date('2024-01-02').toISOString(),
+  }))
+);
+
 vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 
 // Mock auth middleware to inject test user
@@ -71,6 +85,11 @@ vi.mock('../../../services/avatarService.js', () => ({
   recropSpeakerAvatar: vi.fn(),
   getSpeakerAvatarOriginalUrl: vi.fn(),
   getAllSpeakerAvatars: vi.fn(),
+}));
+
+vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
+  getJapanesePronunciationDictionary: mockGetPronunciationDictionary,
+  updateJapanesePronunciationDictionary: mockUpdatePronunciationDictionary,
 }));
 
 // Mock AppError
@@ -159,6 +178,45 @@ describe('Admin Routes - Critical Branch Coverage', () => {
 
       expect(response.status).toBe(404);
       expect(mockPrisma.user.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Pronunciation Dictionaries', () => {
+    it('should return pronunciation dictionary', async () => {
+      const response = await request(app).get('/admin/pronunciation-dictionaries');
+
+      expect(response.status).toBe(200);
+      expect(response.body.keepKanji).toContain('橋');
+      expect(mockGetPronunciationDictionary).toHaveBeenCalled();
+    });
+
+    it('should validate keepKanji payload', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ forceKana: {} });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('keepKanji must be an array');
+    });
+
+    it('should validate forceKana payload', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji: ['橋'], forceKana: [] });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('forceKana must be an object');
+    });
+
+    it('should update pronunciation dictionary', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji: ['端'], forceKana: { 東京: 'とうきょう' } });
+
+      expect(response.status).toBe(200);
+      expect(response.body.keepKanji).toContain('端');
+      expect(response.body.forceKana).toHaveProperty('東京', 'とうきょう');
+      expect(mockUpdatePronunciationDictionary).toHaveBeenCalled();
     });
   });
 

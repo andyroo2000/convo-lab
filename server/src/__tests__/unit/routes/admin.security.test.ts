@@ -54,6 +54,11 @@ vi.mock('stripe', () => ({
   })),
 }));
 
+vi.mock('../../../services/japanesePronunciationOverrides.js', () => ({
+  getJapanesePronunciationDictionary: vi.fn(() => ({ keepKanji: [], forceKana: {} })),
+  updateJapanesePronunciationDictionary: vi.fn(async () => ({ keepKanji: [], forceKana: {} })),
+}));
+
 describe('Admin Security Tests', () => {
   let app: express.Application;
 
@@ -145,6 +150,35 @@ describe('Admin Security Tests', () => {
       const response = await request(app).get('/api/admin/stats').expect(404);
 
       expect(response.body.error.message).toBe('User not found');
+    });
+
+    it('should block non-admin user from pronunciation dictionaries', async () => {
+      currentUserId = 'regular-user-123';
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: currentUserId,
+        email: 'user@example.com',
+        role: 'user',
+      });
+
+      const response = await request(app).get('/api/admin/pronunciation-dictionaries').expect(403);
+
+      expect(response.body.error.message).toBe('Admin access required');
+    });
+
+    it('should allow admin user to access pronunciation dictionaries', async () => {
+      currentUserId = 'admin-123';
+
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: currentUserId,
+        email: 'admin@example.com',
+        role: 'admin',
+      });
+
+      const response = await request(app).get('/api/admin/pronunciation-dictionaries').expect(200);
+
+      expect(response.body).toHaveProperty('keepKanji');
+      expect(response.body).toHaveProperty('forceKana');
     });
   });
 

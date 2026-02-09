@@ -56,6 +56,7 @@ export interface BatchProcessingOptions {
   generateSilence?: (seconds: number) => Promise<Buffer>;
 }
 
+// Fish Audio control token appended to the final voiced unit for clean trailing silence.
 const FISH_AUDIO_TRAILING_BREAK = '(break)';
 
 /**
@@ -144,7 +145,7 @@ export function groupUnitsIntoBatches(
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;
     const rawText = getTTSTextForUnit(unit, targetLanguageCode);
     const tailPadding = options?.tailPaddingByIndex?.get(i);
-    const text = tailPadding && rawText.trim().length > 0 ? `${rawText} ${tailPadding}` : rawText;
+    const text = tailPadding && /\S/.test(rawText) ? `${rawText} ${tailPadding}` : rawText;
 
     // Create unique key for this voice/speed/language combination
     const batchKey = `${voiceId}|${speed}|${languageCode}`;
@@ -244,7 +245,7 @@ function getLastVoicedUnitIndex(units: LessonScriptUnit[]): number | null {
 }
 
 function hasFishAudioControlTokens(text: string): boolean {
-  return text.includes('(break)') || text.includes('(long-break)');
+  return /(?:^|\s)\((?:long-)?break\)$/.test(text.trim());
 }
 
 /**
