@@ -272,6 +272,9 @@ async function processCourseGeneration(job: {
           if (unit.type !== 'L2' || !unit.text.trim()) {
             return unit;
           }
+          if (unit.reading && unit.reading.trim()) {
+            return unit;
+          }
           const reading = await addReadingBrackets(unit.text, 'ja');
           return { ...unit, reading };
         })

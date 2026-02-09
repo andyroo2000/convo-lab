@@ -5,17 +5,18 @@ import path from 'path';
 import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
 
+import { applyJapanesePronunciationOverrides } from './japanesePronunciationOverrides.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { generateSilence } from './ttsClient.js';
-import {
-  getGoogleTTSBetaProvider,
-  SynthesizeWithTimepointsResult,
-} from './ttsProviders/GoogleTTSBetaProvider.js';
 import {
   isFishAudioAvailable,
   resolveFishAudioVoiceId,
   synthesizeFishAudioSpeech,
 } from './ttsProviders/FishAudioTTSProvider.js';
+import {
+  getGoogleTTSBetaProvider,
+  SynthesizeWithTimepointsResult,
+} from './ttsProviders/GoogleTTSBetaProvider.js';
 import { getPollyTTSProvider } from './ttsProviders/PollyTTSProvider.js';
 
 /**
@@ -55,6 +56,19 @@ export interface BatchProcessingOptions {
   generateSilence?: (seconds: number) => Promise<Buffer>;
 }
 
+// Fish Audio control token appended to the final voiced unit for clean trailing silence.
+export const FISH_AUDIO_TRAILING_BREAK = '(break)';
+const FISH_AUDIO_CONTROL_TOKENS = new Set([
+  'break',
+  'long-break',
+  'laugh',
+  'breath',
+  'cough',
+  'sigh',
+  'sniff',
+  'giggle',
+]);
+
 /**
  * Group script units into batches by (voiceId, speed, languageCode)
  *
@@ -90,62 +104,6 @@ function calculateSSMLSize(batch: TTSBatch): number {
   return size;
 }
 
-function isHiragana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x3040 && code <= 0x309f;
-}
-
-function isKatakana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x30a0 && code <= 0x30ff;
-}
-
-function isKana(char: string): boolean {
-  return isHiragana(char) || isKatakana(char);
-}
-
-function isPunctuation(char: string): boolean {
-  return /[。、！？!?.,、。？！…「」『』（）()]/.test(char);
-}
-
-function stripFuriganaToKana(text: string): string {
-  let output = '';
-  let inBracket = false;
-
-  for (const char of text) {
-    if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
-      continue;
-    }
-
-    if (inBracket) {
-      output += char;
-      continue;
-    }
-
-    if (isKana(char) || isPunctuation(char) || /\s/.test(char)) {
-      output += char;
-    }
-  }
-
-  return output;
-}
-
-function normalizeJapaneseReading(reading: string): string {
-  const trimmed = reading.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed.includes('[')) {
-    return stripFuriganaToKana(trimmed);
-  }
-  return trimmed;
-}
-
 function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): string {
   if (unit.type === 'narration_L1') {
     return unit.text;
@@ -155,18 +113,21 @@ function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): 
   }
 
   const useJapaneseReading = targetLanguageCode.toLowerCase().startsWith('ja');
-  if (!useJapaneseReading || !unit.reading) {
+  if (!useJapaneseReading) {
     return unit.text;
   }
 
-  const normalizedReading = normalizeJapaneseReading(unit.reading);
-  return normalizedReading.trim() ? normalizedReading : unit.text;
+  return applyJapanesePronunciationOverrides({
+    text: unit.text,
+    reading: unit.reading,
+  });
 }
 
 export function groupUnitsIntoBatches(
   units: LessonScriptUnit[],
   nativeLanguageCode: string,
-  targetLanguageCode: string
+  targetLanguageCode: string,
+  options?: { tailPaddingByIndex?: Map<number, string> }
 ): { batches: TTSBatch[]; pauseIndices: Map<number, number> } {
   const pauseIndices = new Map<number, number>(); // originalIndex -> seconds
 
@@ -192,7 +153,9 @@ export function groupUnitsIntoBatches(
     const speed = unit.type === 'L2' ? unit.speed || 1.0 : 1.0;
     const pitch = unit.pitch || 0;
     const languageCode = unit.type === 'narration_L1' ? nativeLanguageCode : targetLanguageCode;
-    const text = getTTSTextForUnit(unit, targetLanguageCode);
+    const rawText = getTTSTextForUnit(unit, targetLanguageCode);
+    const tailPadding = options?.tailPaddingByIndex?.get(i);
+    const text = tailPadding && /\S/.test(rawText) ? `${rawText} ${tailPadding}` : rawText;
 
     // Create unique key for this voice/speed/language combination
     const batchKey = `${voiceId}|${speed}|${languageCode}`;
@@ -278,6 +241,35 @@ export function groupUnitsIntoBatches(
   }
 
   return { batches: finalBatches, pauseIndices };
+}
+
+function getLastVoicedUnitIndex(units: LessonScriptUnit[]): number | null {
+  for (let i = units.length - 1; i >= 0; i -= 1) {
+    const unit = units[i];
+    if (unit.type === 'marker' || unit.type === 'pause') {
+      continue;
+    }
+    return i;
+  }
+  return null;
+}
+
+export function hasFishAudioControlTokens(text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  const tokenPattern = /\(\s*([a-zA-Z-]+)\s*\)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenPattern.exec(text)) !== null) {
+    const token = match[1]?.toLowerCase();
+    if (token && FISH_AUDIO_CONTROL_TOKENS.has(token)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -550,6 +542,7 @@ async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Bu
       referenceId,
       text: unit.text,
       speed: batch.speed,
+      normalize: hasFishAudioControlTokens(unit.text) ? false : undefined,
     });
 
     segments.set(unit.originalIndex, audioBuffer);
@@ -578,11 +571,21 @@ export async function processBatches(
   const nativeLanguageCode = getLanguageCode(nativeLanguage);
   const targetLanguageCode = getLanguageCode(targetLanguage);
 
+  const tailPaddingByIndex = new Map<number, string>();
+  const lastVoicedIndex = getLastVoicedUnitIndex(units);
+  if (lastVoicedIndex !== null) {
+    const lastUnit = units[lastVoicedIndex];
+    if ('voiceId' in lastUnit && getProviderFromVoiceId(lastUnit.voiceId) === 'fishaudio') {
+      tailPaddingByIndex.set(lastVoicedIndex, FISH_AUDIO_TRAILING_BREAK);
+    }
+  }
+
   // Group units into batches
   const { batches, pauseIndices } = groupUnitsIntoBatches(
     units,
     nativeLanguageCode,
-    targetLanguageCode
+    targetLanguageCode,
+    tailPaddingByIndex.size > 0 ? { tailPaddingByIndex } : undefined
   );
 
   // Split Fish Audio batches into single-unit batches
@@ -679,6 +682,7 @@ export async function processBatches(
   // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Building timing data for ${units.length} units...`);
   const timingData: Array<{ unitIndex: number; startTime: number; endTime: number }> = [];
+  const missingSegments: Array<{ index: number; type: LessonScriptUnit['type'] }> = [];
   let cumulativeTime = 0; // in seconds
 
   for (let i = 0; i < units.length; i++) {
@@ -695,6 +699,7 @@ export async function processBatches(
     if (!segmentBuffer) {
       // eslint-disable-next-line no-console
       console.warn(`[TTS BATCH] No segment found for unit ${i} (type: ${unit.type})`);
+      missingSegments.push({ index: i, type: unit.type });
       continue;
     }
 
@@ -713,6 +718,16 @@ export async function processBatches(
 
     // Update cumulative time
     cumulativeTime += durationSeconds;
+  }
+
+  if (missingSegments.length > 0) {
+    const preview = missingSegments
+      .slice(0, 5)
+      .map((entry) => `${entry.index}:${entry.type}`)
+      .join(', ');
+    throw new Error(
+      `[TTS BATCH] Missing ${missingSegments.length} audio segments (first: ${preview})`
+    );
   }
 
   const totalTTSCalls = expandedBatches.length + pauseIndices.size; // batches + silence calls

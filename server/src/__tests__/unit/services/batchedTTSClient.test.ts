@@ -1,13 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
-import { groupUnitsIntoBatches, buildBatchSSML } from '../../../services/batchedTTSClient.js';
+import {
+  groupUnitsIntoBatches,
+  buildBatchSSML,
+  processBatches,
+  hasFishAudioControlTokens,
+  FISH_AUDIO_TRAILING_BREAK,
+} from '../../../services/batchedTTSClient.js';
 import { LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
 
 // Create hoisted mocks
 const mockGetGoogleTTSBetaProvider = vi.hoisted(() => vi.fn());
 const mockGetPollyTTSProvider = vi.hoisted(() => vi.fn());
 const mockGenerateSilence = vi.hoisted(() => vi.fn());
+const mockSynthesizeFishAudioSpeech = vi.hoisted(() => vi.fn());
+const mockResolveFishAudioVoiceId = vi.hoisted(() => vi.fn());
+const mockIsFishAudioAvailable = vi.hoisted(() => vi.fn());
 const mockFfmpeg = vi.hoisted(() => {
   const mockInstance = {
     setStartTime: vi.fn().mockReturnThis(),
@@ -58,17 +67,31 @@ vi.mock('../../../services/ttsClient.js', () => ({
   generateSilence: mockGenerateSilence,
 }));
 
+vi.mock('../../../services/ttsProviders/FishAudioTTSProvider.js', () => ({
+  synthesizeFishAudioSpeech: mockSynthesizeFishAudioSpeech,
+  resolveFishAudioVoiceId: mockResolveFishAudioVoiceId,
+  isFishAudioAvailable: mockIsFishAudioAvailable,
+}));
+
 vi.mock('fluent-ffmpeg', () => ({
   default: mockFfmpeg.ffmpegFn,
 }));
 
 vi.mock('fs', () => ({
+  existsSync: vi.fn(() => true),
+  readFileSync: vi.fn(() =>
+    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう' } })
+  ),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
   promises: mockFs,
 }));
 
 describe('batchedTTSClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockResolveFishAudioVoiceId.mockReturnValue('fishaudio-voice');
+    mockSynthesizeFishAudioSpeech.mockResolvedValue(Buffer.from('audio data'));
   });
 
   describe('groupUnitsIntoBatches', () => {
@@ -156,6 +179,53 @@ describe('batchedTTSClient', () => {
 
       // Use furigana reading for Japanese TTS
       expect(batches[0].units[0].text).toBe('かんじ');
+    });
+
+    it('should keep kanji for keep-kanji words', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '橋',
+          reading: 'はし',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('橋');
+    });
+
+    it('should force kana for force-kana words', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '北海道',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('ほっかいどう');
+    });
+
+    it('should keep kanji inside bracket notation when specified', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '橋を渡る',
+          reading: '橋[はし]を渡[わた]る',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('橋をわたる');
     });
 
     it('should keep text field for non-Japanese target language', () => {
@@ -285,6 +355,58 @@ describe('batchedTTSClient', () => {
       const ssml = buildBatchSSML(batch, 'google');
 
       expect(ssml).toContain('it&apos;s fine');
+    });
+  });
+
+  describe('hasFishAudioControlTokens', () => {
+    it('should detect control tokens anywhere in the text', () => {
+      expect(hasFishAudioControlTokens('Hello (break) world')).toBe(true);
+      expect(hasFishAudioControlTokens('(long-break)')).toBe(true);
+      expect(hasFishAudioControlTokens('Testing (laugh) now')).toBe(true);
+      expect(hasFishAudioControlTokens('breath (breath) test')).toBe(true);
+    });
+
+    it('should ignore non-control parentheses', () => {
+      expect(hasFishAudioControlTokens('Hello (not-a-token) world')).toBe(false);
+      expect(hasFishAudioControlTokens('Just text')).toBe(false);
+    });
+  });
+
+  describe('Fish Audio integration', () => {
+    it('should append trailing break for the final Fish Audio unit', async () => {
+      const units: LessonScriptUnit[] = [
+        { type: 'L2', text: 'こんにちは', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+        { type: 'L2', text: 'さようなら', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+      ];
+
+      await processBatches(units, {
+        targetLanguage: 'ja',
+        nativeLanguage: 'en',
+        tempDir: '/tmp/fish-audio',
+      });
+
+      expect(mockSynthesizeFishAudioSpeech).toHaveBeenCalledTimes(2);
+      const firstCallText = mockSynthesizeFishAudioSpeech.mock.calls[0][0].text;
+      const secondCallText = mockSynthesizeFishAudioSpeech.mock.calls[1][0].text;
+
+      expect(firstCallText).not.toContain(FISH_AUDIO_TRAILING_BREAK);
+      expect(secondCallText).toContain(FISH_AUDIO_TRAILING_BREAK);
+    });
+
+    it('should apply pronunciation overrides during Fish Audio batch synthesis', async () => {
+      const units: LessonScriptUnit[] = [
+        { type: 'L2', text: '北海道', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+      ];
+
+      await processBatches(units, {
+        targetLanguage: 'ja',
+        nativeLanguage: 'en',
+        tempDir: '/tmp/fish-audio-overrides',
+      });
+
+      expect(mockSynthesizeFishAudioSpeech).toHaveBeenCalledTimes(1);
+      const callText = mockSynthesizeFishAudioSpeech.mock.calls[0][0].text;
+      expect(callText).toContain('ほっかいどう');
     });
   });
 

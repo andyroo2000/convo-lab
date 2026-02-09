@@ -46,9 +46,6 @@ Object.assign(navigator, {
   },
 });
 
-// Mock window.confirm
-global.confirm = vi.fn();
-
 const mockUsers = [
   {
     id: 'user-1',
@@ -127,12 +124,17 @@ const mockFeatureFlags = {
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
+const mockPronunciationDictionary = {
+  keepKanji: ['橋'],
+  forceKana: { 北海道: 'ほっかいどう' },
+  updatedAt: new Date('2024-01-02').toISOString(),
+};
+
 describe('AdminPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser.value = { id: 'admin-1', email: 'admin@test.com', role: 'admin' };
     global.fetch = vi.fn();
-    (global.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
   const renderPage = (tab = 'users') =>
@@ -300,7 +302,10 @@ describe('AdminPage', () => {
         if (trashButtons.length > 0) {
           fireEvent.click(trashButtons[0]);
 
-          expect(global.confirm).toHaveBeenCalled();
+          await waitFor(() => {
+            expect(screen.getByTestId('modal-button-confirm')).toBeInTheDocument();
+          });
+          fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/api/admin/users/user-1'),
@@ -436,7 +441,10 @@ describe('AdminPage', () => {
         if (trashButtons.length > 0) {
           fireEvent.click(trashButtons[0]);
 
-          expect(global.confirm).toHaveBeenCalled();
+          await waitFor(() => {
+            expect(screen.getByTestId('modal-button-confirm')).toBeInTheDocument();
+          });
+          fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/api/admin/invite-codes/code-1'),
@@ -546,6 +554,18 @@ describe('AdminPage', () => {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve(mockFeatureFlags),
+            });
+          }
+          if (url.includes('/api/admin/pronunciation-dictionaries')) {
+            if (options?.method === 'PUT') {
+              return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve(mockPronunciationDictionary),
+              });
+            }
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
             });
           }
           return Promise.reject(new Error('Unknown endpoint'));

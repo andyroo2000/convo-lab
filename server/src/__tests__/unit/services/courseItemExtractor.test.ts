@@ -439,6 +439,34 @@ describe('courseItemExtractor', () => {
       expect(result[0].speakerVoiceId).toBe('ja-JP-Neural2-B');
     });
 
+    it('should derive vocabulary reading from sentence metadata', async () => {
+      const sentences = [
+        createMockSentence('s1', '北海道に行きました', 'I went to Hokkaido', {
+          japanese: {
+            kanji: '北海道に行きました',
+            kana: 'ほっかいどうにいきました',
+            furigana: '北[ほっ]海[かい]道[どう]に行[い]きました',
+          },
+        }),
+      ];
+      const episode = createMockEpisode(sentences);
+
+      mockGenerateWithGemini.mockResolvedValue(
+        JSON.stringify({
+          exchanges: [
+            {
+              sentenceIndex: 0,
+              vocabulary: [{ word: '北海道', translation: 'Hokkaido' }],
+            },
+          ],
+        })
+      );
+
+      const result = await extractDialogueExchanges(episode);
+
+      expect(result[0].vocabularyItems[0].readingL2).toBe('ほっかいどう');
+    });
+
     it('should handle vocabulary extraction failure gracefully', async () => {
       const sentences = [createMockSentence('s1', 'こんにちは', 'Hello')];
       const episode = createMockEpisode(sentences);
