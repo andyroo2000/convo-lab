@@ -16,6 +16,7 @@ import {
 import { Area } from 'react-easy-crop';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
+import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
 import { API_URL } from '../config';
 
@@ -117,6 +118,16 @@ const AdminPage = () => {
   const [pronunciationSaving, setPronunciationSaving] = useState(false);
   const [keepKanjiText, setKeepKanjiText] = useState('');
   const [forceKanaText, setForceKanaText] = useState('');
+  const [confirmDeleteUser, setConfirmDeleteUser] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
+  const [confirmDeleteInviteCode, setConfirmDeleteInviteCode] = useState<{
+    id: string;
+    code: string;
+  } | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [isDeletingInviteCode, setIsDeletingInviteCode] = useState(false);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -428,18 +439,14 @@ const AdminPage = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string, userEmail: string) => {
-    if (
-      // eslint-disable-next-line no-alert
-      !window.confirm(
-        `Are you sure you want to delete user ${userEmail}? This action cannot be undone.`
-      )
-    ) {
+  const handleDeleteUser = async () => {
+    if (!confirmDeleteUser) {
       return;
     }
-
+    const { id } = confirmDeleteUser;
+    setIsDeletingUser(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -451,6 +458,9 @@ const AdminPage = () => {
       showToast('User deleted successfully', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
+    } finally {
+      setIsDeletingUser(false);
+      setConfirmDeleteUser(null);
     }
   };
 
@@ -470,14 +480,14 @@ const AdminPage = () => {
     }
   };
 
-  const handleDeleteInviteCode = async (codeId: string, code: string) => {
-    // eslint-disable-next-line no-alert
-    if (!window.confirm(`Are you sure you want to delete invite code ${code}?`)) {
+  const handleDeleteInviteCode = async () => {
+    if (!confirmDeleteInviteCode) {
       return;
     }
-
+    const { id } = confirmDeleteInviteCode;
+    setIsDeletingInviteCode(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/invite-codes/${codeId}`, {
+      const response = await fetch(`${API_URL}/api/admin/invite-codes/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
@@ -489,6 +499,9 @@ const AdminPage = () => {
       showToast('Invite code deleted successfully', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to delete invite code', 'error');
+    } finally {
+      setIsDeletingInviteCode(false);
+      setConfirmDeleteInviteCode(null);
     }
   };
 
@@ -900,7 +913,7 @@ const AdminPage = () => {
                           {u.role !== 'admin' && u.id !== user.id && (
                             <button
                               type="button"
-                              onClick={() => handleDeleteUser(u.id, u.email)}
+                              onClick={() => setConfirmDeleteUser({ id: u.id, email: u.email })}
                               className="text-red-600 hover:text-red-800 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1013,7 +1026,9 @@ const AdminPage = () => {
                         {!code.usedBy && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteInviteCode(code.id, code.code)}
+                            onClick={() =>
+                              setConfirmDeleteInviteCode({ id: code.id, code: code.code })
+                            }
                             className="text-red-600 hover:text-red-800 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1662,6 +1677,26 @@ const AdminPage = () => {
         })()}
 
       {/* Toast Notification */}
+      <ConfirmModal
+        isOpen={!!confirmDeleteUser}
+        title="Delete User"
+        message={`Are you sure you want to delete user ${confirmDeleteUser?.email ?? ''}? This action cannot be undone.`}
+        confirmLabel="Delete User"
+        onConfirm={handleDeleteUser}
+        onCancel={() => setConfirmDeleteUser(null)}
+        isLoading={isDeletingUser}
+        variant="danger"
+      />
+      <ConfirmModal
+        isOpen={!!confirmDeleteInviteCode}
+        title="Delete Invite Code"
+        message={`Are you sure you want to delete invite code ${confirmDeleteInviteCode?.code ?? ''}?`}
+        confirmLabel="Delete Code"
+        onConfirm={handleDeleteInviteCode}
+        onCancel={() => setConfirmDeleteInviteCode(null)}
+        isLoading={isDeletingInviteCode}
+        variant="danger"
+      />
       <Toast
         message={toastMessage}
         type={toastType}

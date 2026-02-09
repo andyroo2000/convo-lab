@@ -46,9 +46,6 @@ Object.assign(navigator, {
   },
 });
 
-// Mock window.confirm
-global.confirm = vi.fn();
-
 const mockUsers = [
   {
     id: 'user-1',
@@ -138,7 +135,6 @@ describe('AdminPage', () => {
     vi.clearAllMocks();
     mockUser.value = { id: 'admin-1', email: 'admin@test.com', role: 'admin' };
     global.fetch = vi.fn();
-    (global.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
   });
 
   const renderPage = (tab = 'users') =>
@@ -306,7 +302,10 @@ describe('AdminPage', () => {
         if (trashButtons.length > 0) {
           fireEvent.click(trashButtons[0]);
 
-          expect(global.confirm).toHaveBeenCalled();
+          await waitFor(() => {
+            expect(screen.getByTestId('modal-button-confirm')).toBeInTheDocument();
+          });
+          fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/api/admin/users/user-1'),
@@ -442,7 +441,10 @@ describe('AdminPage', () => {
         if (trashButtons.length > 0) {
           fireEvent.click(trashButtons[0]);
 
-          expect(global.confirm).toHaveBeenCalled();
+          await waitFor(() => {
+            expect(screen.getByTestId('modal-button-confirm')).toBeInTheDocument();
+          });
+          fireEvent.click(screen.getByTestId('modal-button-confirm'));
           await waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/api/admin/invite-codes/code-1'),
