@@ -51,6 +51,7 @@ describe('japanesePronunciationOverrides', () => {
     vi.resetModules();
     vi.clearAllMocks();
     mockFs.__setFile(dictionaryJson);
+    delete process.env.PRONUNCIATION_DICTIONARY_PATH;
   });
 
   it('lazy loads dictionary on first access', async () => {
@@ -111,5 +112,40 @@ describe('japanesePronunciationOverrides', () => {
     const updated = module.getJapanesePronunciationDictionary();
     expect(updated.keepKanji).toContain('端');
     expect(updated.forceKana).toHaveProperty('東京', 'とうきょう');
+  });
+
+  it('skips overrides for excessively long text', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+
+    const longText = `北海道${'あ'.repeat(12000)}`;
+    const result = module.applyJapanesePronunciationOverrides({ text: longText });
+
+    expect(result).toBe(longText);
+  });
+
+  it('coalesces concurrent lazy loads', async () => {
+    const module = await import('../../../services/japanesePronunciationOverrides.js');
+    mockFs.readFileSync.mockClear();
+
+    await Promise.all([
+      module.updateJapanesePronunciationDictionary({
+        keepKanji: ['端'],
+        forceKana: { 東京: 'とうきょう' },
+      }),
+      module.updateJapanesePronunciationDictionary({
+        keepKanji: ['橋'],
+        forceKana: { 大阪: 'おおさか' },
+      }),
+    ]);
+
+    expect(mockFs.readFileSync).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects override paths outside the server root', async () => {
+    process.env.PRONUNCIATION_DICTIONARY_PATH = '/tmp/pronunciation.json';
+
+    await expect(import('../../../services/japanesePronunciationOverrides.js')).rejects.toThrow(
+      'within server root'
+    );
   });
 });
