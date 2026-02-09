@@ -198,7 +198,7 @@ function buildCache(dictionary: JapanesePronunciationDictionary): DictionaryCach
   const keepKanjiSorted = [...keepKanjiSet].sort((a, b) => b.length - a.length);
 
   const forceKanaEntries = Object.entries(dictionary.forceKana)
-    .map(([word, kana]) => [normalizeMatchText(word), kana] as const)
+    .map(([word, kana]) => [normalizeMatchText(word), kana] as [string, string])
     .filter(([word, kana]) => word && kana);
   const forceKanaMap = new Map(forceKanaEntries);
   const forceKanaSorted = [...forceKanaEntries].sort((a, b) => b[0].length - a[0].length);

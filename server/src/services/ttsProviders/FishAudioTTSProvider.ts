@@ -1,4 +1,4 @@
-import { FishAudioClient } from 'fish-audio';
+import { FishAudioClient, type Backends } from 'fish-audio';
 
 const FISH_AUDIO_MAX_CHARS = 15000;
 // Default to speech-1.6 (supports break tokens); override via FISH_AUDIO_BACKEND if needed.
@@ -54,7 +54,15 @@ export async function synthesizeFishAudioSpeech(options: {
   }
 
   const fishClient = getClient();
-  const request = {
+  const request: {
+    text: string;
+    reference_id: string;
+    format: 'mp3';
+    mp3_bitrate: 128;
+    sample_rate: number;
+    prosody: { speed: number; volume: number };
+    normalize?: boolean;
+  } = {
     text,
     reference_id: referenceId,
     format: 'mp3' as const,
@@ -67,7 +75,7 @@ export async function synthesizeFishAudioSpeech(options: {
     request.normalize = normalize;
   }
 
-  const audio = await fishClient.textToSpeech.convert(request, FISH_AUDIO_MODEL);
+  const audio = await fishClient.textToSpeech.convert(request, FISH_AUDIO_MODEL as Backends);
 
   // The SDK returns a ReadableStream<Uint8Array> - collect chunks into a Buffer
   try {
@@ -78,7 +86,7 @@ export async function synthesizeFishAudioSpeech(options: {
     while (!done) {
       const result = await reader.read();
       done = result.done;
-      if (done) break;
+      if (done || !result.value) break;
       chunks.push(result.value);
     }
 
