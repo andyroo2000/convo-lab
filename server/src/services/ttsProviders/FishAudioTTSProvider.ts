@@ -1,7 +1,8 @@
 import { FishAudioClient } from 'fish-audio';
 
 const FISH_AUDIO_MAX_CHARS = 15000;
-const FISH_AUDIO_MODEL = 's1'; // Fish Audio's latest TTS model
+// Default to speech-1.6 (supports break tokens); override via FISH_AUDIO_BACKEND if needed.
+const FISH_AUDIO_MODEL = process.env.FISH_AUDIO_BACKEND || 'speech-1.6';
 
 let client: FishAudioClient | null = null;
 
