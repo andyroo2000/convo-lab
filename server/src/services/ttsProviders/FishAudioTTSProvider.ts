@@ -1,8 +1,8 @@
 import { FishAudioClient, type Backends } from 'fish-audio';
 
 const FISH_AUDIO_MAX_CHARS = 15000;
-// Default to speech-1.6 (supports break tokens); override via FISH_AUDIO_BACKEND if needed.
-const FISH_AUDIO_MODEL = process.env.FISH_AUDIO_BACKEND || 'speech-1.6';
+// Default to s1 (flagship model with best quality); override via FISH_AUDIO_BACKEND if needed.
+const FISH_AUDIO_MODEL = process.env.FISH_AUDIO_BACKEND || 's1';
 
 let client: FishAudioClient | null = null;
 
