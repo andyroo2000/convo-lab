@@ -19,6 +19,12 @@ vi.mock('util', () => ({
 }));
 
 vi.mock('fs', () => ({
+  existsSync: vi.fn(() => true),
+  readFileSync: vi.fn(() =>
+    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう' } })
+  ),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
   promises: mockFs,
 }));
 

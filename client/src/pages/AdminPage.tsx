@@ -89,6 +89,12 @@ interface FeatureFlags {
   updatedAt: string;
 }
 
+interface PronunciationDictionary {
+  keepKanji: string[];
+  forceKana: Record<string, string>;
+  updatedAt?: string;
+}
+
 const AdminPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -101,12 +107,18 @@ const AdminPage = () => {
   const [stats, setStats] = useState<Stats | null>(null);
   const [speakerAvatars, setSpeakerAvatars] = useState<SpeakerAvatar[]>([]);
   const [featureFlags, setFeatureFlags] = useState<FeatureFlags | null>(null);
+  const [pronunciationDictionary, setPronunciationDictionary] =
+    useState<PronunciationDictionary | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [_isSavingFlags, _setIsSavingFlags] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [pronunciationLoading, setPronunciationLoading] = useState(false);
+  const [pronunciationSaving, setPronunciationSaving] = useState(false);
+  const [keepKanjiText, setKeepKanjiText] = useState('');
+  const [forceKanaText, setForceKanaText] = useState('');
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -275,6 +287,103 @@ const AdminPage = () => {
       // Revert on error
       setFeatureFlags(previous);
       showToast(err instanceof Error ? err.message : 'Failed to update settings', 'error');
+    }
+  };
+
+  const formatKeepKanjiText = (keepKanji: string[]) => keepKanji.filter(Boolean).join('\n');
+
+  const formatForceKanaText = (forceKana: Record<string, string>) =>
+    Object.entries(forceKana)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([word, kana]) => `${word}=${kana}`)
+      .join('\n');
+
+  const parseKeepKanjiText = (text: string) =>
+    text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  const parseForceKanaText = (text: string) => {
+    const entries: Record<string, string> = {};
+    const errors: string[] = [];
+
+    text.split('\n').forEach((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+
+      const parts = trimmed.split(/\s*[:=]\s*|\t/).filter(Boolean);
+      if (parts.length < 2) {
+        errors.push(`Line ${index + 1}: expected "word=reading"`);
+        return;
+      }
+
+      const word = parts[0].trim();
+      const kana = parts.slice(1).join(' ').trim();
+      if (!word || !kana) {
+        errors.push(`Line ${index + 1}: missing word or reading`);
+        return;
+      }
+
+      entries[word] = kana;
+    });
+
+    return { entries, errors };
+  };
+
+  const fetchPronunciationDictionary = async () => {
+    setPronunciationLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/pronunciation-dictionaries`, {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Failed to fetch pronunciation dictionary');
+      const data = (await response.json()) as PronunciationDictionary;
+      setPronunciationDictionary(data);
+      setKeepKanjiText(formatKeepKanjiText(data.keepKanji || []));
+      setForceKanaText(formatForceKanaText(data.forceKana || {}));
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Failed to fetch pronunciation dictionary',
+        'error'
+      );
+    } finally {
+      setPronunciationLoading(false);
+    }
+  };
+
+  const handleSavePronunciationDictionary = async () => {
+    const keepKanji = parseKeepKanjiText(keepKanjiText);
+    const { entries: forceKana, errors } = parseForceKanaText(forceKanaText);
+
+    if (errors.length > 0) {
+      showToast(errors[0], 'error');
+      return;
+    }
+
+    setPronunciationSaving(true);
+    try {
+      const response = await fetch(`${API_URL}/api/admin/pronunciation-dictionaries`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ keepKanji, forceKana }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update pronunciation dictionary');
+
+      const updated = (await response.json()) as PronunciationDictionary;
+      setPronunciationDictionary(updated);
+      setKeepKanjiText(formatKeepKanjiText(updated.keepKanji || []));
+      setForceKanaText(formatForceKanaText(updated.forceKana || {}));
+      showToast('Pronunciation dictionary updated', 'success');
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : 'Failed to update pronunciation dictionary',
+        'error'
+      );
+    } finally {
+      setPronunciationSaving(false);
     }
   };
 
@@ -457,6 +566,7 @@ const AdminPage = () => {
       fetchSpeakerAvatars();
     } else if (activeTab === 'settings') {
       fetchFeatureFlags();
+      fetchPronunciationDictionary();
     }
   }, [activeTab]);
 
@@ -1254,6 +1364,73 @@ const AdminPage = () => {
               </div>
             </div>
           ) : null}
+        </div>
+      )}
+
+      {activeTab === 'settings' && (
+        <div className="mt-10">
+          <h2 className="text-xl font-semibold text-navy mb-2">Pronunciation Dictionaries</h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Keep-kanji words stay in kanji for TTS. Force-kana words replace kanji with kana. Enter
+            one item per line. Force-kana format: word=reading.
+          </p>
+
+          {pronunciationLoading ? (
+            <div className="text-center py-12 text-gray-500">
+              Loading pronunciation dictionary...
+            </div>
+          ) : (
+            <div className="bg-white rounded-lg shadow p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-base font-semibold text-navy mb-2">Keep-Kanji</h3>
+                  <textarea
+                    value={keepKanjiText}
+                    onChange={(e) => setKeepKanjiText(e.target.value)}
+                    rows={12}
+                    className="w-full border border-gray-200 rounded-md p-3 text-sm font-mono text-gray-800"
+                    placeholder="例: 橋"
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-semibold text-navy mb-2">Force-Kana</h3>
+                  <textarea
+                    value={forceKanaText}
+                    onChange={(e) => setForceKanaText(e.target.value)}
+                    rows={12}
+                    className="w-full border border-gray-200 rounded-md p-3 text-sm font-mono text-gray-800"
+                    placeholder="例: 北海道=ほっかいどう"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="text-xs text-gray-500">
+                  Updated:{' '}
+                  {pronunciationDictionary?.updatedAt
+                    ? new Date(pronunciationDictionary.updatedAt).toLocaleString()
+                    : '-'}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={fetchPronunciationDictionary}
+                    className="btn-secondary text-sm"
+                  >
+                    Reload
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSavePronunciationDictionary}
+                    className="btn-primary text-sm"
+                    disabled={pronunciationSaving}
+                  >
+                    {pronunciationSaving ? 'Saving...' : 'Save Dictionary'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

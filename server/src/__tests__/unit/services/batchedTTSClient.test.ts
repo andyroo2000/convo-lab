@@ -63,6 +63,12 @@ vi.mock('fluent-ffmpeg', () => ({
 }));
 
 vi.mock('fs', () => ({
+  existsSync: vi.fn(() => true),
+  readFileSync: vi.fn(() =>
+    JSON.stringify({ keepKanji: ['橋'], forceKana: { 北海道: 'ほっかいどう' } })
+  ),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
   promises: mockFs,
 }));
 
@@ -156,6 +162,53 @@ describe('batchedTTSClient', () => {
 
       // Use furigana reading for Japanese TTS
       expect(batches[0].units[0].text).toBe('かんじ');
+    });
+
+    it('should keep kanji for keep-kanji words', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '橋',
+          reading: 'はし',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('橋');
+    });
+
+    it('should force kana for force-kana words', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '北海道',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('ほっかいどう');
+    });
+
+    it('should keep kanji inside bracket notation when specified', () => {
+      const units: LessonScriptUnit[] = [
+        {
+          type: 'L2',
+          text: '橋を渡る',
+          reading: '橋[はし]を渡[わた]る',
+          voiceId: 'ja-JP-Neural2-B',
+          speed: 1.0,
+        },
+      ];
+
+      const { batches } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');
+
+      expect(batches[0].units[0].text).toBe('橋をわたる');
     });
 
     it('should keep text field for non-Japanese target language', () => {

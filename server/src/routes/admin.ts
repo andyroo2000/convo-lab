@@ -16,6 +16,10 @@ import {
   getSpeakerAvatarOriginalUrl,
   getAllSpeakerAvatars,
 } from '../services/avatarService.js';
+import {
+  getJapanesePronunciationDictionary,
+  updateJapanesePronunciationDictionary,
+} from '../services/japanesePronunciationOverrides.js';
 
 const router = Router();
 const STRIPE_API_VERSION = '2024-12-18.acacia' as Stripe.LatestApiVersion;
@@ -710,6 +714,59 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     }
 
     res.json(flags);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// Pronunciation Dictionary Routes
+// ============================================
+
+router.get('/pronunciation-dictionaries', async (_req: AuthRequest, res, next) => {
+  try {
+    res.json(getJapanesePronunciationDictionary());
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/pronunciation-dictionaries', async (req: AuthRequest, res, next) => {
+  try {
+    const payload = req.body as {
+      keepKanji?: unknown;
+      forceKana?: unknown;
+    };
+
+    if (!Array.isArray(payload.keepKanji)) {
+      throw new AppError('keepKanji must be an array of strings', 400);
+    }
+    if (
+      !payload.forceKana ||
+      typeof payload.forceKana !== 'object' ||
+      Array.isArray(payload.forceKana)
+    ) {
+      throw new AppError('forceKana must be an object of word-to-kana mappings', 400);
+    }
+
+    const keepKanji = payload.keepKanji.map((entry) => {
+      if (typeof entry !== 'string') {
+        throw new AppError('keepKanji entries must be strings', 400);
+      }
+      return entry;
+    });
+
+    const forceKanaEntries = Object.entries(payload.forceKana as Record<string, unknown>);
+    const forceKana: Record<string, string> = {};
+    for (const [word, kana] of forceKanaEntries) {
+      if (typeof word !== 'string' || typeof kana !== 'string') {
+        throw new AppError('forceKana values must be strings', 400);
+      }
+      forceKana[word] = kana;
+    }
+
+    const updated = await updateJapanesePronunciationDictionary({ keepKanji, forceKana });
+    res.json(updated);
   } catch (error) {
     next(error);
   }

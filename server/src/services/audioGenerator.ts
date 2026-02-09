@@ -1,13 +1,18 @@
-import ffmpeg from 'fluent-ffmpeg';
-import { promises as fs } from 'fs';
-import path from 'path';
-import os from 'os';
+/* eslint-disable import/no-named-as-default-member, no-console */
 import { execSync } from 'child_process';
-import { normalizeSegmentLoudness, applySweeteningChainToBuffer } from './audioProcessing.js';
-import { uploadAudio } from './storageClient.js';
-import { synthesizeBatchedTexts } from './batchedTTSClient.js';
-import { synthesizeSpeech, createSSMLWithPauses } from './ttsClient.js';
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
+
+import ffmpeg from 'fluent-ffmpeg';
+
 import { prisma } from '../db/client.js';
+
+import { normalizeSegmentLoudness, applySweeteningChainToBuffer } from './audioProcessing.js';
+import { synthesizeBatchedTexts } from './batchedTTSClient.js';
+import { applyJapanesePronunciationOverrides } from './japanesePronunciationOverrides.js';
+import { uploadAudio } from './storageClient.js';
+import { synthesizeSpeech, createSSMLWithPauses } from './ttsClient.js';
 
 // Configure ffmpeg/ffprobe paths
 try {
@@ -41,6 +46,15 @@ interface SpeedConfig {
   audioUrlField: 'audioUrl_0_7' | 'audioUrl_0_85' | 'audioUrl_1_0';
   startTimeField: 'startTime_0_7' | 'startTime_0_85' | 'startTime_1_0';
   endTimeField: 'endTime_0_7' | 'endTime_0_85' | 'endTime_1_0';
+}
+
+function getJapaneseTTSText(sentence: { text: string; metadata?: unknown }): string {
+  const metadata = sentence.metadata as { japanese?: { kana?: string; furigana?: string } };
+  return applyJapanesePronunciationOverrides({
+    text: sentence.text,
+    reading: metadata?.japanese?.kana,
+    furigana: metadata?.japanese?.furigana,
+  });
 }
 
 export async function generateEpisodeAudio(request: GenerateAudioRequest) {
@@ -91,7 +105,7 @@ export async function generateEpisodeAudio(request: GenerateAudioRequest) {
     const { speaker } = sentence;
 
     // Prepare text (with SSML if needed)
-    let { text } = sentence;
+    let text = episode.targetLanguage === 'ja' ? getJapaneseTTSText(sentence) : sentence.text;
     const useSSML = pauseMode;
 
     if (pauseMode) {
@@ -363,7 +377,7 @@ async function generateSingleSpeedAudio(
     }
     voiceGroups.get(voiceId)!.push({
       index: j,
-      text: sentence.text,
+      text: episode.targetLanguage === 'ja' ? getJapaneseTTSText(sentence) : sentence.text,
       sentenceId: sentence.id,
     });
   }

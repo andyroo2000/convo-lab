@@ -127,6 +127,12 @@ const mockFeatureFlags = {
   updatedAt: new Date('2024-01-01').toISOString(),
 };
 
+const mockPronunciationDictionary = {
+  keepKanji: ['橋'],
+  forceKana: { 北海道: 'ほっかいどう' },
+  updatedAt: new Date('2024-01-02').toISOString(),
+};
+
 describe('AdminPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -546,6 +552,18 @@ describe('AdminPage', () => {
             return Promise.resolve({
               ok: true,
               json: () => Promise.resolve(mockFeatureFlags),
+            });
+          }
+          if (url.includes('/api/admin/pronunciation-dictionaries')) {
+            if (options?.method === 'PUT') {
+              return Promise.resolve({
+                ok: true,
+                json: () => Promise.resolve(mockPronunciationDictionary),
+              });
+            }
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve(mockPronunciationDictionary),
             });
           }
           return Promise.reject(new Error('Unknown endpoint'));

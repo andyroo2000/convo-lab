@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { Episode, Sentence, Speaker } from '@prisma/client';
 
@@ -200,6 +201,106 @@ function extractReading(sentence: SentenceWithMetadata, targetLang: string): str
 
   // For languages without phonetic systems, return null
   return null;
+}
+
+interface FuriganaUnit {
+  surface: string;
+  reading: string;
+}
+
+function normalizeReadingTarget(text: string): string {
+  return text
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/^[「『（(【［["'“”]+/, '')
+    .replace(/[」』）)】］\]"'“”]+$/, '');
+}
+
+function isKanaOnly(text: string): boolean {
+  return /^[\u3040-\u30ffー]+$/.test(text);
+}
+
+function splitSurfaceForReading(surface: string, reading: string): FuriganaUnit[] {
+  const match = surface.match(/([\u4e00-\u9faf]+)$/);
+  if (!match) {
+    return [{ surface, reading: surface }];
+  }
+
+  const kanjiSegment = match[1];
+  const prefix = surface.slice(0, surface.length - kanjiSegment.length);
+  const units: FuriganaUnit[] = [];
+
+  if (prefix) {
+    units.push({ surface: prefix, reading: prefix });
+  }
+
+  units.push({ surface: kanjiSegment, reading });
+  return units;
+}
+
+function parseFuriganaUnits(furigana: string): FuriganaUnit[] {
+  const units: FuriganaUnit[] = [];
+  let buffer = '';
+  let i = 0;
+
+  while (i < furigana.length) {
+    const char = furigana[i];
+    if (char === '[') {
+      // Consume reading inside brackets
+      let reading = '';
+      i++;
+      while (i < furigana.length && furigana[i] !== ']') {
+        reading += furigana[i];
+        i++;
+      }
+      i++; // Skip closing ]
+
+      if (buffer) {
+        units.push(...splitSurfaceForReading(buffer, reading));
+        buffer = '';
+      }
+      continue;
+    }
+
+    buffer += char;
+    i++;
+  }
+
+  if (buffer) {
+    units.push({ surface: buffer, reading: buffer });
+  }
+
+  return units;
+}
+
+function extractReadingFromFuriganaForWord(furigana: string, word: string): string | undefined {
+  if (!furigana || !word) return undefined;
+
+  const units = parseFuriganaUnits(furigana);
+  if (units.length === 0) return undefined;
+
+  const target = normalizeReadingTarget(word);
+  if (!target) return undefined;
+
+  for (let start = 0; start < units.length; start++) {
+    let surface = '';
+    let reading = '';
+
+    for (let end = start; end < units.length; end++) {
+      surface += units[end].surface;
+      reading += units[end].reading;
+
+      if (surface === target) {
+        return reading;
+      }
+
+      if (surface.length >= target.length) {
+        break;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -800,12 +901,35 @@ function selectDiverseSentences(
  * Extract phonetic reading for a specific word/phrase from sentence metadata
  */
 function extractReadingForText(
-  _sentence: SentenceWithMetadata,
-  _text: string,
-  _targetLang: string
+  sentence: SentenceWithMetadata,
+  text: string,
+  targetLang: string
 ): string | undefined {
-  // For now, return undefined - could be enhanced to extract reading for specific words
-  // This would require more sophisticated parsing of the metadata
+  if (targetLang !== 'ja') {
+    return undefined;
+  }
+
+  const normalized = normalizeReadingTarget(text);
+  if (!normalized) {
+    return undefined;
+  }
+
+  if (isKanaOnly(normalized)) {
+    return normalized;
+  }
+
+  const metadata = sentence.metadata?.japanese;
+  if (!metadata) {
+    return undefined;
+  }
+
+  if (metadata.furigana && metadata.furigana.includes('[')) {
+    const reading = extractReadingFromFuriganaForWord(metadata.furigana, normalized);
+    if (reading) {
+      return reading;
+    }
+  }
+
   return undefined;
 }
 
@@ -840,7 +964,9 @@ export async function buildDialogueExtractionPrompt(
   // Sample vocabulary to seed the dialogue if proficiency level is specified
   let vocabularySeed = '';
   if (jlptLevel && targetLanguage) {
-    console.log(`[PromptBuilder] Attempting to sample vocabulary for ${targetLanguage}:${jlptLevel}`);
+    console.log(
+      `[PromptBuilder] Attempting to sample vocabulary for ${targetLanguage}:${jlptLevel}`
+    );
     try {
       const seedWords = await sampleVocabulary(targetLanguage, jlptLevel, 30);
       console.log(`[PromptBuilder] Got ${seedWords.length} vocabulary seed words`);
@@ -853,13 +979,20 @@ Try to naturally use some of these ${framework} ${jlptLevel}-level words in the 
 ${formatWordsForPrompt(seedWords, targetLanguage)}
 
 You don't need to use all of them - just incorporate 5-10 naturally where they fit the conversation context.`;
-        console.log(`[PromptBuilder] Generated vocabulary seed section (${vocabularySeed.length} chars)`);
+        console.log(
+          `[PromptBuilder] Generated vocabulary seed section (${vocabularySeed.length} chars)`
+        );
       }
     } catch (error) {
-      console.warn(`[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`, error);
+      console.warn(
+        `[PromptBuilder] Could not load ${jlptLevel} vocabulary for ${targetLanguage}:`,
+        error
+      );
     }
   } else {
-    console.log(`[PromptBuilder] Skipping vocabulary seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`);
+    console.log(
+      `[PromptBuilder] Skipping vocabulary seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`
+    );
   }
 
   // Sample grammar to seed the dialogue if proficiency level is specified
@@ -881,10 +1014,15 @@ Use these patterns where they naturally fit the conversation flow.`;
         console.log(`[PromptBuilder] Generated grammar seed section (${grammarSeed.length} chars)`);
       }
     } catch (error) {
-      console.warn(`[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`, error);
+      console.warn(
+        `[PromptBuilder] Could not load ${jlptLevel} grammar for ${targetLanguage}:`,
+        error
+      );
     }
   } else {
-    console.log(`[PromptBuilder] Skipping grammar seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`);
+    console.log(
+      `[PromptBuilder] Skipping grammar seeds: jlptLevel=${jlptLevel}, targetLanguage=${targetLanguage}`
+    );
   }
 
   // Build JLPT level constraint if specified

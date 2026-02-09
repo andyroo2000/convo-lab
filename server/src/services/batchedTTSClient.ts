@@ -5,6 +5,7 @@ import path from 'path';
 import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 import ffmpeg from 'fluent-ffmpeg';
 
+import { applyJapanesePronunciationOverrides } from './japanesePronunciationOverrides.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { generateSilence } from './ttsClient.js';
 import {
@@ -92,62 +93,6 @@ function calculateSSMLSize(batch: TTSBatch): number {
   return size;
 }
 
-function isHiragana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x3040 && code <= 0x309f;
-}
-
-function isKatakana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x30a0 && code <= 0x30ff;
-}
-
-function isKana(char: string): boolean {
-  return isHiragana(char) || isKatakana(char);
-}
-
-function isPunctuation(char: string): boolean {
-  return /[。、！？!?.,、。？！…「」『』（）()]/.test(char);
-}
-
-function stripFuriganaToKana(text: string): string {
-  let output = '';
-  let inBracket = false;
-
-  for (const char of text) {
-    if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
-      continue;
-    }
-
-    if (inBracket) {
-      output += char;
-      continue;
-    }
-
-    if (isKana(char) || isPunctuation(char) || /\s/.test(char)) {
-      output += char;
-    }
-  }
-
-  return output;
-}
-
-function normalizeJapaneseReading(reading: string): string {
-  const trimmed = reading.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed.includes('[')) {
-    return stripFuriganaToKana(trimmed);
-  }
-  return trimmed;
-}
-
 function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): string {
   if (unit.type === 'narration_L1') {
     return unit.text;
@@ -157,12 +102,14 @@ function getTTSTextForUnit(unit: LessonScriptUnit, targetLanguageCode: string): 
   }
 
   const useJapaneseReading = targetLanguageCode.toLowerCase().startsWith('ja');
-  if (!useJapaneseReading || !unit.reading) {
+  if (!useJapaneseReading) {
     return unit.text;
   }
 
-  const normalizedReading = normalizeJapaneseReading(unit.reading);
-  return normalizedReading.trim() ? normalizedReading : unit.text;
+  return applyJapanesePronunciationOverrides({
+    text: unit.text,
+    reading: unit.reading,
+  });
 }
 
 export function groupUnitsIntoBatches(

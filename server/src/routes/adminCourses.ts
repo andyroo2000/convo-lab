@@ -261,6 +261,9 @@ router.post('/:id/generate-script', async (req: AuthRequest, res, next) => {
           if (unit.type !== 'L2' || !unit.text.trim()) {
             return unit;
           }
+          if (unit.reading && unit.reading.trim()) {
+            return unit;
+          }
           const reading = await addReadingBrackets(unit.text, 'ja');
           return { ...unit, reading };
         })
