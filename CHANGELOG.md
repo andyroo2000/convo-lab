@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[feat]** Script Lab admin tool for testing dialogue generation and TTS — new admin tab with CourseSelector, CourseDetails, AudioTester, and ResultsViewer components; backend API routes for test course management and TTS testing; isTestCourse flag on Course model for admin test data segregation
 - **[feat]** JLPT level and auto-generate audio options for episodes — users can now specify target proficiency level (N5-N1) for dialogue generation and control whether audio should be automatically generated on episode creation
 
 - **[feat]** Audio sweetening chain for loudness normalization and quality enhancement — adds two-stage audio processing: per-segment loudness normalization (EBU R128 LUFS) to match voice levels before assembly, and final mix sweetening (highpass filter + compression + presence EQ + loudness limiting) to improve clarity and consistency; includes standalone test script (`test-audio-sweetening.ts`) for A/B comparison and tuning before deployment; all parameters configurable via env vars with sensible defaults; can be toggled off entirely with `AUDIO_SWEETENING_ENABLED=0`
@@ -24,9 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **[refactor]** Extract speed slider magic numbers to named constants in LineTTSTester (SPEED_MIN, SPEED_MAX, SPEED_STEP, SPEED_DEFAULT) and DEFAULT_SPEED in adminCourses synthesize-line handler
+- **[improvement]** Support multiple dev server ports (5173, 5174, 5175) in CORS configuration for better local development workflow
+- **[improvement]** Reduce episode cache TTL to 1 minute (from 1 hour) for better Script Lab iteration
 
 ### Fixed
 
+- **[fix]** Furigana rendering excludes particles and okurigana from ruby tags — extract only kanji portions for annotation; handle cases like "が東京[とうきょう]" → "が<ruby>東京<rt>とうきょう</rt></ruby>" and okurigana like "食べる[たべる]" → "<ruby>食<rt>た</rt></ruby>べる"; improve ruby positioning and spacing in CSS
+- **[fix]** Apply pronunciation overrides after dialogue generation and revision — ensures place names and special readings are corrected; added "景色" (けしき) to pronunciation dictionary
+- **[fix]** Add 1.5s trailing silence to prevent final word cutoff in lesson audio
+- **[fix]** Use avatar variants based on speaker index for better visual variety in playback
 - **[fix]** Silent NaN from invalid audio processing env vars — `parseEnvNumber()` validates numeric env vars and warns + falls back to defaults instead of silently producing NaN filter values
 - **[fix]** Missing error context in audio processing ffmpeg failures — normalization and sweetening errors now include filter params, input path, and buffer size for easier debugging
 - **[fix]** Inconsistent error messages in LineTTSTester — standardized "Synthesis failed" to "Line synthesis failed" for clarity
