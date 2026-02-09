@@ -118,16 +118,12 @@ const AdminPage = () => {
   const [pronunciationSaving, setPronunciationSaving] = useState(false);
   const [keepKanjiText, setKeepKanjiText] = useState('');
   const [forceKanaText, setForceKanaText] = useState('');
-  const [confirmDeleteUser, setConfirmDeleteUser] = useState<{
-    id: string;
-    email: string;
-  } | null>(null);
-  const [confirmDeleteInviteCode, setConfirmDeleteInviteCode] = useState<{
-    id: string;
-    code: string;
-  } | null>(null);
-  const [isDeletingUser, setIsDeletingUser] = useState(false);
-  const [isDeletingInviteCode, setIsDeletingInviteCode] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<
+    | { type: 'delete-user'; id: string; email: string }
+    | { type: 'delete-invite-code'; id: string; code: string }
+    | null
+  >(null);
+  const [isConfirmingAction, setIsConfirmingAction] = useState(false);
 
   // Avatar cropper state
   const [cropperOpen, setCropperOpen] = useState(false);
@@ -439,28 +435,44 @@ const AdminPage = () => {
     }
   };
 
-  const handleDeleteUser = async () => {
-    if (!confirmDeleteUser) {
+  const handleConfirmAction = async () => {
+    if (!confirmAction) {
       return;
     }
-    const { id } = confirmDeleteUser;
-    setIsDeletingUser(true);
+    setIsConfirmingAction(true);
     try {
-      const response = await fetch(`${API_URL}/api/admin/users/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete user');
+      if (confirmAction.type === 'delete-user') {
+        const response = await fetch(`${API_URL}/api/admin/users/${confirmAction.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to delete user');
+        }
+        fetchUsers();
+        showToast('User deleted successfully', 'success');
+      } else if (confirmAction.type === 'delete-invite-code') {
+        const response = await fetch(`${API_URL}/api/admin/invite-codes/${confirmAction.id}`, {
+          method: 'DELETE',
+          credentials: 'include',
+        });
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || 'Failed to delete invite code');
+        }
+        fetchInviteCodes();
+        showToast('Invite code deleted successfully', 'success');
       }
-      fetchUsers();
-      showToast('User deleted successfully', 'success');
     } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
+      const fallbackMessage =
+        confirmAction.type === 'delete-user'
+          ? 'Failed to delete user'
+          : 'Failed to delete invite code';
+      showToast(err instanceof Error ? err.message : fallbackMessage, 'error');
     } finally {
-      setIsDeletingUser(false);
-      setConfirmDeleteUser(null);
+      setIsConfirmingAction(false);
+      setConfirmAction(null);
     }
   };
 
@@ -477,31 +489,6 @@ const AdminPage = () => {
       showToast('Invite code created successfully', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to create invite code', 'error');
-    }
-  };
-
-  const handleDeleteInviteCode = async () => {
-    if (!confirmDeleteInviteCode) {
-      return;
-    }
-    const { id } = confirmDeleteInviteCode;
-    setIsDeletingInviteCode(true);
-    try {
-      const response = await fetch(`${API_URL}/api/admin/invite-codes/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete invite code');
-      }
-      fetchInviteCodes();
-      showToast('Invite code deleted successfully', 'success');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete invite code', 'error');
-    } finally {
-      setIsDeletingInviteCode(false);
-      setConfirmDeleteInviteCode(null);
     }
   };
 
@@ -913,7 +900,13 @@ const AdminPage = () => {
                           {u.role !== 'admin' && u.id !== user.id && (
                             <button
                               type="button"
-                              onClick={() => setConfirmDeleteUser({ id: u.id, email: u.email })}
+                              onClick={() =>
+                                setConfirmAction({
+                                  type: 'delete-user',
+                                  id: u.id,
+                                  email: u.email,
+                                })
+                              }
                               className="text-red-600 hover:text-red-800 transition-colors"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -1027,7 +1020,11 @@ const AdminPage = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setConfirmDeleteInviteCode({ id: code.id, code: code.code })
+                              setConfirmAction({
+                                type: 'delete-invite-code',
+                                id: code.id,
+                                code: code.code,
+                              })
                             }
                             className="text-red-600 hover:text-red-800 transition-colors"
                           >
@@ -1678,23 +1675,17 @@ const AdminPage = () => {
 
       {/* Toast Notification */}
       <ConfirmModal
-        isOpen={!!confirmDeleteUser}
-        title="Delete User"
-        message={`Are you sure you want to delete user ${confirmDeleteUser?.email ?? ''}? This action cannot be undone.`}
-        confirmLabel="Delete User"
-        onConfirm={handleDeleteUser}
-        onCancel={() => setConfirmDeleteUser(null)}
-        isLoading={isDeletingUser}
-        variant="danger"
-      />
-      <ConfirmModal
-        isOpen={!!confirmDeleteInviteCode}
-        title="Delete Invite Code"
-        message={`Are you sure you want to delete invite code ${confirmDeleteInviteCode?.code ?? ''}?`}
-        confirmLabel="Delete Code"
-        onConfirm={handleDeleteInviteCode}
-        onCancel={() => setConfirmDeleteInviteCode(null)}
-        isLoading={isDeletingInviteCode}
+        isOpen={!!confirmAction}
+        title={confirmAction?.type === 'delete-user' ? 'Delete User' : 'Delete Invite Code'}
+        message={
+          confirmAction?.type === 'delete-user'
+            ? `Are you sure you want to delete user ${confirmAction?.email ?? ''}? This action cannot be undone.`
+            : `Are you sure you want to delete invite code ${confirmAction?.code ?? ''}?`
+        }
+        confirmLabel={confirmAction?.type === 'delete-user' ? 'Delete User' : 'Delete Code'}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setConfirmAction(null)}
+        isLoading={isConfirmingAction}
         variant="danger"
       />
       <Toast
