@@ -52,7 +52,8 @@ function isServerPackageRoot(dir: string): boolean {
   const hasPackageJson = fs.existsSync(path.join(dir, 'package.json'));
   const hasRoutes =
     fs.existsSync(path.join(dir, 'src', 'routes')) ||
-    fs.existsSync(path.join(dir, 'dist', 'routes'));
+    fs.existsSync(path.join(dir, 'dist', 'routes')) ||
+    fs.existsSync(path.join(dir, 'dist', 'server', 'src', 'routes'));
   return hasPackageJson && hasRoutes;
 }
 
