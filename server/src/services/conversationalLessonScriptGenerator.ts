@@ -842,6 +842,13 @@ function padScriptToTargetDuration(
     finalSeconds = estimateUnitsDuration(paddedUnits);
   }
 
+  // Add trailing silence to prevent final word cutoff
+  paddedUnits.push({
+    type: 'pause',
+    seconds: 1.5,
+  });
+  finalSeconds += 1.5;
+
   return {
     units: paddedUnits,
     estimatedDurationSeconds: finalSeconds,

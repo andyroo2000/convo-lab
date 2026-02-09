@@ -252,6 +252,7 @@ model Course {
   description              String?  @db.Text
   status                   String   @default("draft") // draft, generating, ready, error
   isSampleContent          Boolean  @default(false) // Pre-generated sample content
+  isTestCourse             Boolean  @default(false) // Admin test courses for Script Lab
   nativeLanguage           String   // L1 (e.g., 'en')
   targetLanguage           String   // L2 (always 'ja')
   maxLessonDurationMinutes Int      @default(30)
@@ -279,6 +280,7 @@ model Course {
 
   @@index([userId])
   @@index([status])
+  @@index([isTestCourse])
 }
 
 model CourseEpisode {

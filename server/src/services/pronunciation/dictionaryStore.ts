@@ -43,6 +43,7 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
     嵐山: 'あらしやま',
     清水寺: 'きよみずでら',
     季節: 'きせつ',
+    景色: 'けしき',
   },
 };
 

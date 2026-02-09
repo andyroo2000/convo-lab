@@ -14,18 +14,24 @@ import SpeedSelector from '../components/common/SpeedSelector';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
 import { API_URL } from '../config';
 
-// Helper function to get avatar URL based on speaker voice and tone
-function getSpeakerAvatarFilename(speaker: Speaker, targetLanguage: string): string {
+// Helper function to get avatar URL based on speaker voice and gender
+function getSpeakerAvatarFilename(
+  speaker: Speaker,
+  targetLanguage: string,
+  speakerIndex: number
+): string {
   // Determine gender from voiceId by looking it up in TTS_VOICES
   const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
   const voiceInfo = languageVoices.find((v) => v.id === speaker.voiceId);
   const gender = voiceInfo?.gender || 'male'; // Fallback to male if not found
 
-  // Map tone to our avatar naming convention
-  const tone = speaker.tone.toLowerCase();
+  // Map speaker index to avatar variant
+  // For each gender, we have multiple avatars numbered 1, 2, 3, etc.
+  const avatarNumber = (speakerIndex % 3) + 1; // Cycle through 1, 2, 3
 
-  // Construct avatar filename: {language}-{gender}-{tone}.jpg
-  return `${targetLanguage}-${gender}-${tone}.jpg`;
+  // Construct avatar filename: {language}-{gender}-{number}.jpg
+  // e.g., "ja-male-1.jpg", "ja-female-2.jpg"
+  return `${targetLanguage}-${gender}-${avatarNumber}.jpg`;
 }
 
 const PlaybackPage = () => {
@@ -64,8 +70,12 @@ const PlaybackPage = () => {
   const speedKey = normalizeSpeedKey(selectedSpeed);
 
   // Helper function to get speaker avatar URL from GCS
-  const getSpeakerAvatarUrl = (speaker: Speaker, targetLanguage: string): string => {
-    const filename = getSpeakerAvatarFilename(speaker, targetLanguage);
+  const getSpeakerAvatarUrl = (
+    speaker: Speaker,
+    targetLanguage: string,
+    speakerIndex: number
+  ): string => {
+    const filename = getSpeakerAvatarFilename(speaker, targetLanguage, speakerIndex);
     const url = avatarUrlMap.get(filename);
 
     // Return GCS URL if available, otherwise return a placeholder
@@ -675,7 +685,8 @@ const PlaybackPage = () => {
                     <div className="w-12 h-12 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-white">
                       <img
                         src={
-                          speaker.avatarUrl || getSpeakerAvatarUrl(speaker, episode.targetLanguage)
+                          speaker.avatarUrl ||
+                          getSpeakerAvatarUrl(speaker, episode.targetLanguage, speakerIndex)
                         }
                         alt={speaker.name}
                         className="w-full h-full object-cover"

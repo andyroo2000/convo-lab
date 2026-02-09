@@ -86,13 +86,21 @@
 /* Ruby/Furigana styling */
 .japanese-text ruby {
   ruby-align: center;
+  ruby-position: over;
+  /* Prevent ruby elements from merging */
+  ruby-merge: separate;
 }
 
 .japanese-text rt {
   font-size: 0.6em;
   font-weight: 400;
   opacity: 0.85;
-  letter-spacing: 0.05em;
+  /* Remove letter spacing to keep furigana compact */
+  letter-spacing: 0;
+  text-align: center;
+  /* Compress furigana text slightly for better alignment */
+  transform: scaleX(0.95);
+  transform-origin: center;
 }
 
 /* Flowline canvas container */

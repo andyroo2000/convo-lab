@@ -124,7 +124,7 @@ router.get('/:id', async (req: AuthRequest, res, next) => {
 
     // Metadata (furigana) is already stored in the database
     // Enable caching to improve performance
-    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.set('Cache-Control', 'private, max-age=60'); // Cache for 1 minute
     res.json(episode);
   } catch (error) {
     next(error);

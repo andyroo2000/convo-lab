@@ -1336,6 +1336,31 @@ export async function extractDialogueExchangesFromSourceText(
 
     logger.warn(`✅ Generated ${exchanges.length} dialogue exchanges from source text`);
 
+    // Step 2.5: Apply pronunciation overrides to correct place names and special readings
+    if (targetLanguage.toLowerCase().startsWith('ja')) {
+      logger.warn('Applying pronunciation overrides to dialogue readings...');
+      const { applyJapanesePronunciationOverrides } = await import(
+        './japanesePronunciationOverrides.js'
+      );
+
+      for (const exchange of exchanges) {
+        if (exchange.readingL2) {
+          const correctedReading = applyJapanesePronunciationOverrides({
+            text: exchange.textL2,
+            reading: exchange.readingL2,
+            furigana: null,
+          });
+          if (correctedReading !== exchange.readingL2) {
+            logger.warn(
+              `Corrected reading for "${exchange.textL2}": "${exchange.readingL2}" → "${correctedReading}"`
+            );
+            exchange.readingL2 = correctedReading;
+          }
+        }
+      }
+      logger.warn('Pronunciation overrides applied');
+    }
+
     // Step 3: MULTI-PASS GENERATION: Review and edit if needed
     if (jlptLevel && exchanges.length > 0) {
       logger.warn('Reviewing dialogue quality...');
@@ -1362,6 +1387,30 @@ export async function extractDialogueExchangesFromSourceText(
         }
 
         logger.warn('Dialogue revision complete');
+
+        // Re-apply pronunciation overrides after revision
+        if (targetLanguage.toLowerCase().startsWith('ja')) {
+          logger.warn('Re-applying pronunciation overrides after revision...');
+          const { applyJapanesePronunciationOverrides } = await import(
+            './japanesePronunciationOverrides.js'
+          );
+
+          for (const exchange of exchanges) {
+            if (exchange.readingL2) {
+              const correctedReading = applyJapanesePronunciationOverrides({
+                text: exchange.textL2,
+                reading: exchange.readingL2,
+                furigana: null,
+              });
+              if (correctedReading !== exchange.readingL2) {
+                logger.warn(
+                  `Corrected reading after revision for "${exchange.textL2}": "${exchange.readingL2}" → "${correctedReading}"`
+                );
+                exchange.readingL2 = correctedReading;
+              }
+            }
+          }
+        }
       }
     }
 

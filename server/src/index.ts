@@ -14,6 +14,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
 import adminCourseRoutes from './routes/adminCourses.js';
+import adminScriptLabRoutes from './routes/adminScriptLab.js';
 import audioRoutes from './routes/audio.js';
 import authRoutes from './routes/auth.js';
 import billingRoutes from './routes/billing.js';
@@ -40,7 +41,7 @@ app.use(
     origin:
       process.env.NODE_ENV === 'production'
         ? process.env.CLIENT_URL || true // Allow same-origin in production if CLIENT_URL not set
-        : 'http://localhost:5173',
+        : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'], // Allow both common dev ports
     credentials: true,
   })
 );
@@ -110,6 +111,7 @@ app.use('/api/images', imageRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);
+app.use('/api/admin/script-lab', adminScriptLabRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
 
 // Serve client static files in production

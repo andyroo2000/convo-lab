@@ -12,15 +12,17 @@ import {
   Image,
   Settings,
   Eye,
+  TestTube,
 } from 'lucide-react';
 import { Area } from 'react-easy-crop';
 import { useAuth } from '../contexts/AuthContext';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
 import ConfirmModal from '../components/common/ConfirmModal';
 import Toast from '../components/common/Toast';
+import ScriptLabTab from '../components/admin/scriptLab/ScriptLabTab';
 import { API_URL } from '../config';
 
-type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings';
+type Tab = 'users' | 'invite-codes' | 'analytics' | 'avatars' | 'settings' | 'script-lab';
 
 interface UserData {
   id: string;
@@ -703,6 +705,17 @@ const AdminPage = () => {
           >
             <Settings className="w-4 h-4" />
             Settings
+          </Link>
+          <Link
+            to="/app/admin/script-lab"
+            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              activeTab === 'script-lab'
+                ? 'border-indigo text-indigo font-semibold'
+                : 'border-transparent text-gray-600 hover:text-navy'
+            }`}
+          >
+            <TestTube className="w-4 h-4" />
+            Script Lab
           </Link>
         </nav>
       </div>
@@ -1464,6 +1477,9 @@ const AdminPage = () => {
           )}
         </div>
       )}
+
+      {/* Script Lab Tab */}
+      {activeTab === 'script-lab' && <ScriptLabTab />}
 
       {/* Avatar Cropper Modal */}
       <AvatarCropperModal
