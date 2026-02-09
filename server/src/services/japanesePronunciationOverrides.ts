@@ -49,7 +49,13 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
 
 function resolveDictionaryPath(): string {
   const cwd = process.cwd();
-  const root = fs.existsSync(path.join(cwd, 'server')) ? path.join(cwd, 'server') : cwd;
+  const isServerPackage =
+    fs.existsSync(path.join(cwd, 'src')) && fs.existsSync(path.join(cwd, 'package.json'));
+  const root = isServerPackage
+    ? cwd
+    : fs.existsSync(path.join(cwd, 'server'))
+      ? path.join(cwd, 'server')
+      : cwd;
   const candidates = [
     path.join(root, 'data', 'pronunciation', 'ja.json'),
     path.join(root, 'src', 'data', 'pronunciation', 'ja.json'),
