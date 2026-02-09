@@ -51,13 +51,44 @@ const DEFAULT_DICTIONARY: JapanesePronunciationDictionary = {
 
 function resolveDictionaryPath(): string {
   const cwd = process.cwd();
-  const isServerPackage =
-    fs.existsSync(path.join(cwd, 'src')) && fs.existsSync(path.join(cwd, 'package.json'));
-  const root = isServerPackage
-    ? cwd
-    : fs.existsSync(path.join(cwd, 'server'))
-      ? path.join(cwd, 'server')
-      : cwd;
+
+  const isServerPackageRoot = (dir: string) => {
+    const hasPackageJson = fs.existsSync(path.join(dir, 'package.json'));
+    const hasRoutes =
+      fs.existsSync(path.join(dir, 'src', 'routes')) ||
+      fs.existsSync(path.join(dir, 'dist', 'routes'));
+    return hasPackageJson && hasRoutes;
+  };
+
+  const findUp = (startDir: string, predicate: (dir: string) => boolean): string | null => {
+    let current = startDir;
+    for (;;) {
+      if (predicate(current)) {
+        return current;
+      }
+      const parent = path.dirname(current);
+      if (parent === current) {
+        return null;
+      }
+      current = parent;
+    }
+  };
+
+  let root = findUp(cwd, isServerPackageRoot);
+  if (!root) {
+    const repoRoot = findUp(cwd, (dir) => fs.existsSync(path.join(dir, 'server')));
+    if (repoRoot) {
+      const serverRoot = path.join(repoRoot, 'server');
+      if (isServerPackageRoot(serverRoot)) {
+        root = serverRoot;
+      }
+    }
+  }
+
+  if (!root) {
+    throw new Error(`[PronunciationDictionary] Unable to resolve server root from cwd: ${cwd}`);
+  }
+
   const candidates = [
     path.join(root, 'data', 'pronunciation', 'ja.json'),
     path.join(root, 'src', 'data', 'pronunciation', 'ja.json'),

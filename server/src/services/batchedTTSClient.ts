@@ -57,7 +57,17 @@ export interface BatchProcessingOptions {
 }
 
 // Fish Audio control token appended to the final voiced unit for clean trailing silence.
-const FISH_AUDIO_TRAILING_BREAK = '(break)';
+export const FISH_AUDIO_TRAILING_BREAK = '(break)';
+const FISH_AUDIO_CONTROL_TOKENS = new Set([
+  'break',
+  'long-break',
+  'laugh',
+  'breath',
+  'cough',
+  'sigh',
+  'sniff',
+  'giggle',
+]);
 
 /**
  * Group script units into batches by (voiceId, speed, languageCode)
@@ -244,8 +254,22 @@ function getLastVoicedUnitIndex(units: LessonScriptUnit[]): number | null {
   return null;
 }
 
-function hasFishAudioControlTokens(text: string): boolean {
-  return /(?:^|\s)\((?:long-)?break\)$/.test(text.trim());
+export function hasFishAudioControlTokens(text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  const tokenPattern = /\(\s*([a-zA-Z-]+)\s*\)/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenPattern.exec(text)) !== null) {
+    const token = match[1]?.toLowerCase();
+    if (token && FISH_AUDIO_CONTROL_TOKENS.has(token)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -658,6 +682,7 @@ export async function processBatches(
   // eslint-disable-next-line no-console
   console.log(`[TTS BATCH] Building timing data for ${units.length} units...`);
   const timingData: Array<{ unitIndex: number; startTime: number; endTime: number }> = [];
+  const missingSegments: Array<{ index: number; type: LessonScriptUnit['type'] }> = [];
   let cumulativeTime = 0; // in seconds
 
   for (let i = 0; i < units.length; i++) {
@@ -674,6 +699,7 @@ export async function processBatches(
     if (!segmentBuffer) {
       // eslint-disable-next-line no-console
       console.warn(`[TTS BATCH] No segment found for unit ${i} (type: ${unit.type})`);
+      missingSegments.push({ index: i, type: unit.type });
       continue;
     }
 
@@ -692,6 +718,16 @@ export async function processBatches(
 
     // Update cumulative time
     cumulativeTime += durationSeconds;
+  }
+
+  if (missingSegments.length > 0) {
+    const preview = missingSegments
+      .slice(0, 5)
+      .map((entry) => `${entry.index}:${entry.type}`)
+      .join(', ');
+    throw new Error(
+      `[TTS BATCH] Missing ${missingSegments.length} audio segments (first: ${preview})`
+    );
   }
 
   const totalTTSCalls = expandedBatches.length + pauseIndices.size; // batches + silence calls

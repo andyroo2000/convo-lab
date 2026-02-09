@@ -218,6 +218,25 @@ describe('Admin Routes - Critical Branch Coverage', () => {
       expect(response.body.forceKana).toHaveProperty('東京', 'とうきょう');
       expect(mockUpdatePronunciationDictionary).toHaveBeenCalled();
     });
+
+    it('should reject overly large keepKanji lists', async () => {
+      const keepKanji = Array.from({ length: 501 }, (_, index) => `word-${index}`);
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji, forceKana: {} });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('keepKanji must contain no more than');
+    });
+
+    it('should reject forceKana entries that exceed max length', async () => {
+      const response = await request(app)
+        .put('/admin/pronunciation-dictionaries')
+        .send({ keepKanji: ['端'], forceKana: { 東京: 'a'.repeat(65) } });
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('forceKana entries must be <=');
+    });
   });
 
   describe('DELETE /invite-codes/:id - Used code protection', () => {

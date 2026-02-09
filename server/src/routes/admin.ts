@@ -23,6 +23,9 @@ import {
 
 const router = Router();
 const STRIPE_API_VERSION = '2024-12-18.acacia' as Stripe.LatestApiVersion;
+const MAX_KEEP_KANJI_ENTRIES = 500;
+const MAX_FORCE_KANA_ENTRIES = 500;
+const MAX_PRONUNCIATION_ENTRY_LENGTH = 64;
 
 // Configure multer for memory storage
 const upload = multer({
@@ -749,20 +752,57 @@ router.put('/pronunciation-dictionaries', requireAdmin, async (req: AuthRequest,
       throw new AppError('forceKana must be an object of word-to-kana mappings', 400);
     }
 
+    if (payload.keepKanji.length > MAX_KEEP_KANJI_ENTRIES) {
+      throw new AppError(
+        `keepKanji must contain no more than ${MAX_KEEP_KANJI_ENTRIES} entries`,
+        400
+      );
+    }
+
     const keepKanji = payload.keepKanji.map((entry) => {
       if (typeof entry !== 'string') {
         throw new AppError('keepKanji entries must be strings', 400);
       }
-      return entry;
+      const trimmed = entry.trim();
+      if (!trimmed) {
+        throw new AppError('keepKanji entries must be non-empty strings', 400);
+      }
+      if (trimmed.length > MAX_PRONUNCIATION_ENTRY_LENGTH) {
+        throw new AppError(
+          `keepKanji entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
+          400
+        );
+      }
+      return trimmed;
     });
 
     const forceKanaEntries = Object.entries(payload.forceKana as Record<string, unknown>);
+    if (forceKanaEntries.length > MAX_FORCE_KANA_ENTRIES) {
+      throw new AppError(
+        `forceKana must contain no more than ${MAX_FORCE_KANA_ENTRIES} entries`,
+        400
+      );
+    }
     const forceKana: Record<string, string> = {};
     for (const [word, kana] of forceKanaEntries) {
       if (typeof word !== 'string' || typeof kana !== 'string') {
         throw new AppError('forceKana values must be strings', 400);
       }
-      forceKana[word] = kana;
+      const trimmedWord = word.trim();
+      const trimmedKana = kana.trim();
+      if (!trimmedWord || !trimmedKana) {
+        throw new AppError('forceKana entries must be non-empty strings', 400);
+      }
+      if (
+        trimmedWord.length > MAX_PRONUNCIATION_ENTRY_LENGTH ||
+        trimmedKana.length > MAX_PRONUNCIATION_ENTRY_LENGTH
+      ) {
+        throw new AppError(
+          `forceKana entries must be <= ${MAX_PRONUNCIATION_ENTRY_LENGTH} characters`,
+          400
+        );
+      }
+      forceKana[trimmedWord] = trimmedKana;
     }
 
     const updated = await updateJapanesePronunciationDictionary({ keepKanji, forceKana });

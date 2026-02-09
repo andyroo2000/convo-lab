@@ -1,4 +1,3 @@
-/* eslint-disable no-nested-ternary, no-restricted-globals, no-alert, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
@@ -113,7 +112,6 @@ const AdminPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [_isSavingFlags, _setIsSavingFlags] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [pronunciationLoading, setPronunciationLoading] = useState(false);
   const [pronunciationSaving, setPronunciationSaving] = useState(false);
@@ -160,6 +158,49 @@ const AdminPage = () => {
     const tone = capitalize(parts[2]);
 
     return `${language} ${gender} - ${tone}`;
+  };
+
+  const getRoleBadgeClass = (role: string): string => {
+    switch (role) {
+      case 'admin':
+        return 'bg-purple-100 text-purple-800';
+      case 'moderator':
+        return 'bg-blue-100 text-blue-800';
+      case 'demo':
+        return 'bg-amber-100 text-amber-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSubscriptionStatusClass = (status: string): string => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'past_due':
+        return 'bg-orange-100 text-orange-800';
+      case 'canceled':
+        return 'bg-red-100 text-red-800';
+      case 'trialing':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getAvatarColorClass = (color?: string): string => {
+    const colorMap: Record<string, string> = {
+      indigo: 'bg-indigo-500',
+      teal: 'bg-teal-500',
+      purple: 'bg-purple-500',
+      pink: 'bg-pink-500',
+      emerald: 'bg-emerald-500',
+      amber: 'bg-amber-500',
+      rose: 'bg-rose-500',
+      cyan: 'bg-cyan-500',
+    };
+
+    return color ? colorMap[color] || 'bg-indigo-500' : 'bg-indigo-500';
   };
 
   // Speaker avatar filenames for initial upload (when no avatars in DB)
@@ -389,7 +430,10 @@ const AdminPage = () => {
 
   const handleDeleteUser = async (userId: string, userEmail: string) => {
     if (
-      !confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone.`)
+      // eslint-disable-next-line no-alert
+      !window.confirm(
+        `Are you sure you want to delete user ${userEmail}? This action cannot be undone.`
+      )
     ) {
       return;
     }
@@ -404,8 +448,9 @@ const AdminPage = () => {
         throw new Error(data.message || 'Failed to delete user');
       }
       fetchUsers();
+      showToast('User deleted successfully', 'success');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete user');
+      showToast(err instanceof Error ? err.message : 'Failed to delete user', 'error');
     }
   };
 
@@ -419,13 +464,15 @@ const AdminPage = () => {
       });
       if (!response.ok) throw new Error('Failed to create invite code');
       fetchInviteCodes();
+      showToast('Invite code created successfully', 'success');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to create invite code');
+      showToast(err instanceof Error ? err.message : 'Failed to create invite code', 'error');
     }
   };
 
   const handleDeleteInviteCode = async (codeId: string, code: string) => {
-    if (!confirm(`Are you sure you want to delete invite code ${code}?`)) {
+    // eslint-disable-next-line no-alert
+    if (!window.confirm(`Are you sure you want to delete invite code ${code}?`)) {
       return;
     }
 
@@ -439,8 +486,9 @@ const AdminPage = () => {
         throw new Error(data.message || 'Failed to delete invite code');
       }
       fetchInviteCodes();
+      showToast('Invite code deleted successfully', 'success');
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to delete invite code');
+      showToast(err instanceof Error ? err.message : 'Failed to delete invite code', 'error');
     }
   };
 
@@ -554,6 +602,7 @@ const AdminPage = () => {
   }, [user, navigate]);
 
   // Fetch data based on active tab
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
@@ -569,6 +618,7 @@ const AdminPage = () => {
       fetchPronunciationDictionary();
     }
   }, [activeTab]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Filter users based on tier
   useEffect(() => {
@@ -785,15 +835,9 @@ const AdminPage = () => {
                       </td>
                       <td className="px-3 sm:px-6 py-4">
                         <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-                            u.role === 'admin'
-                              ? 'bg-purple-100 text-purple-800'
-                              : u.role === 'moderator'
-                                ? 'bg-blue-100 text-blue-800'
-                                : u.role === 'demo'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-gray-100 text-gray-800'
-                          }`}
+                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getRoleBadgeClass(
+                            u.role
+                          )}`}
                         >
                           {u.role}
                         </span>
@@ -821,17 +865,9 @@ const AdminPage = () => {
                       <td className="px-3 sm:px-6 py-4">
                         {u.stripeSubscriptionStatus ? (
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-                              u.stripeSubscriptionStatus === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : u.stripeSubscriptionStatus === 'past_due'
-                                  ? 'bg-orange-100 text-orange-800'
-                                  : u.stripeSubscriptionStatus === 'canceled'
-                                    ? 'bg-red-100 text-red-800'
-                                    : u.stripeSubscriptionStatus === 'trialing'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-gray-100 text-gray-800'
-                            }`}
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getSubscriptionStatusClass(
+                              u.stripeSubscriptionStatus
+                            )}`}
                           >
                             {u.stripeSubscriptionStatus}
                           </span>
@@ -1002,9 +1038,8 @@ const AdminPage = () => {
         <div>
           <h2 className="text-xl font-semibold text-navy mb-6">Platform Analytics</h2>
 
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading stats...</div>
-          ) : stats ? (
+          {isLoading && <div className="text-center py-12 text-gray-500">Loading stats...</div>}
+          {!isLoading && stats && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Users */}
               <div className="bg-white rounded-lg shadow p-6">
@@ -1053,7 +1088,7 @@ const AdminPage = () => {
                 </div>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -1195,25 +1230,9 @@ const AdminPage = () => {
                               />
                             ) : (
                               <div
-                                className={`w-full h-full flex items-center justify-center text-white font-semibold ${
-                                  u.avatarColor === 'indigo'
-                                    ? 'bg-indigo-500'
-                                    : u.avatarColor === 'teal'
-                                      ? 'bg-teal-500'
-                                      : u.avatarColor === 'purple'
-                                        ? 'bg-purple-500'
-                                        : u.avatarColor === 'pink'
-                                          ? 'bg-pink-500'
-                                          : u.avatarColor === 'emerald'
-                                            ? 'bg-emerald-500'
-                                            : u.avatarColor === 'amber'
-                                              ? 'bg-amber-500'
-                                              : u.avatarColor === 'rose'
-                                                ? 'bg-rose-500'
-                                                : u.avatarColor === 'cyan'
-                                                  ? 'bg-cyan-500'
-                                                  : 'bg-indigo-500'
-                                }`}
+                                className={`w-full h-full flex items-center justify-center text-white font-semibold ${getAvatarColorClass(
+                                  u.avatarColor
+                                )}`}
                               >
                                 {(u.displayName || u.name).charAt(0).toUpperCase()}
                               </div>
@@ -1253,16 +1272,17 @@ const AdminPage = () => {
                                         if (!response.ok)
                                           throw new Error('Failed to upload user avatar');
 
-                                        alert('User avatar updated successfully');
+                                        showToast('User avatar updated successfully', 'success');
                                         setCropperOpen(false);
 
                                         // Reload users to show updated avatar
                                         fetchUsers();
                                       } catch (err) {
-                                        alert(
+                                        showToast(
                                           err instanceof Error
                                             ? err.message
-                                            : 'Failed to upload user avatar'
+                                            : 'Failed to upload user avatar',
+                                          'error'
                                         );
                                       }
                                     }
@@ -1300,9 +1320,8 @@ const AdminPage = () => {
             content types.
           </p>
 
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading settings...</div>
-          ) : featureFlags ? (
+          {isLoading && <div className="text-center py-12 text-gray-500">Loading settings...</div>}
+          {!isLoading && featureFlags && (
             <div className="bg-white rounded-lg shadow p-6">
               <div className="space-y-6">
                 {/* Dialogues Toggle */}
@@ -1363,7 +1382,7 @@ const AdminPage = () => {
                 </p>
               </div>
             </div>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -1539,15 +1558,9 @@ const AdminPage = () => {
                         <p>
                           <span className="font-medium">Status:</span>{' '}
                           <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              selectedUser.stripeSubscriptionStatus === 'active'
-                                ? 'bg-green-100 text-green-800'
-                                : selectedUser.stripeSubscriptionStatus === 'past_due'
-                                  ? 'bg-orange-100 text-orange-800'
-                                  : selectedUser.stripeSubscriptionStatus === 'canceled'
-                                    ? 'bg-red-100 text-red-800'
-                                    : 'bg-gray-100 text-gray-800'
-                            }`}
+                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getSubscriptionStatusClass(
+                              selectedUser.stripeSubscriptionStatus
+                            )}`}
                           >
                             {selectedUser.stripeSubscriptionStatus}
                           </span>
