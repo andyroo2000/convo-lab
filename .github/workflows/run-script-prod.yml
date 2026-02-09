@@ -1,0 +1,61 @@
+name: Run Script on Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      script_command:
+        description: 'Command to run (e.g., "npx tsx scripts/your-script.ts arg1 arg2")'
+        required: true
+        type: string
+      timeout:
+        description: 'Timeout in seconds (default: 300)'
+        required: false
+        default: '300'
+        type: string
+
+jobs:
+  run-script:
+    name: Execute Script on Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" | base64 -d > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
+      - name: Execute script on production
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'ENDSSH'
+            set -e
+
+            echo "🚀 Running script on production..."
+            echo "Command: ${{ inputs.script_command }}"
+            echo "Timeout: ${{ inputs.timeout }} seconds"
+
+            cd /opt/convolab
+
+            # Run the command in the worker container with timeout
+            timeout ${{ inputs.timeout }} docker compose exec -T worker sh -c "${{ inputs.script_command }}" || {
+              EXIT_CODE=$?
+              if [ $EXIT_CODE -eq 124 ]; then
+                echo "❌ Script timed out after ${{ inputs.timeout }} seconds"
+                exit 124
+              else
+                echo "❌ Script failed with exit code $EXIT_CODE"
+                exit $EXIT_CODE
+              fi
+            }
+
+            echo "✅ Script completed successfully"
+          ENDSSH
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Script execution failed"
+          echo "Command: ${{ inputs.script_command }}"
