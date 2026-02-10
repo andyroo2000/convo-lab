@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import AudioTester from './AudioTester';
+import AudioCourseCreation from './AudioCourseCreation';
 import CourseSelector from './CourseSelector';
 import CourseDetails from './CourseDetails';
 import ResultsViewer from './ResultsViewer';
@@ -31,10 +32,7 @@ const ScriptLabTab = () => {
         <p className="text-sm text-gray-600 mb-4">
           Create and manage test courses for experimentation
         </p>
-        <CourseSelector
-          selectedCourseId={selectedCourseId}
-          onSelectCourse={setSelectedCourseId}
-        />
+        <CourseSelector selectedCourseId={selectedCourseId} onSelectCourse={setSelectedCourseId} />
 
         {/* Course Details - shown when a course is selected */}
         {selectedCourseId && (
@@ -43,6 +41,15 @@ const ScriptLabTab = () => {
             <CourseDetails courseId={selectedCourseId} />
           </div>
         )}
+      </section>
+
+      {/* Audio Course Creation */}
+      <section className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-xl font-semibold text-navy mb-4">Audio Course Creation</h2>
+        <p className="text-sm text-gray-600 mb-4">
+          Generate a single-sentence Pimsleur-style script and iterate on the prompt quickly
+        </p>
+        <AudioCourseCreation />
       </section>
 
       {/* Audio Format Tester */}

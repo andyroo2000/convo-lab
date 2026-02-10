@@ -373,10 +373,15 @@ describe('batchedTTSClient', () => {
   });
 
   describe('Fish Audio integration', () => {
-    it('should append trailing break for the final Fish Audio unit', async () => {
+    it('should append trailing break for the final Fish Audio unit when it is not a single word', async () => {
       const units: LessonScriptUnit[] = [
         { type: 'L2', text: 'こんにちは', voiceId: 'fishaudio:voice-1', speed: 1.0 },
-        { type: 'L2', text: 'さようなら', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+        {
+          type: 'L2',
+          text: '今日はとてもいい天気ですね。明日も晴れるといいですね。',
+          voiceId: 'fishaudio:voice-1',
+          speed: 1.0,
+        },
       ];
 
       await processBatches(units, {
@@ -391,6 +396,24 @@ describe('batchedTTSClient', () => {
 
       expect(firstCallText).not.toContain(FISH_AUDIO_TRAILING_BREAK);
       expect(secondCallText).toContain(FISH_AUDIO_TRAILING_BREAK);
+    });
+
+    it('should not append trailing break when the final Fish Audio unit is a single word', async () => {
+      const units: LessonScriptUnit[] = [
+        { type: 'L2', text: 'こんにちは', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+        { type: 'L2', text: 'さようなら', voiceId: 'fishaudio:voice-1', speed: 1.0 },
+      ];
+
+      await processBatches(units, {
+        targetLanguage: 'ja',
+        nativeLanguage: 'en',
+        tempDir: '/tmp/fish-audio',
+      });
+
+      expect(mockSynthesizeFishAudioSpeech).toHaveBeenCalledTimes(2);
+      const secondCallText = mockSynthesizeFishAudioSpeech.mock.calls[1][0].text;
+
+      expect(secondCallText).not.toContain(FISH_AUDIO_TRAILING_BREAK);
     });
 
     it('should apply pronunciation overrides during Fish Audio batch synthesis', async () => {

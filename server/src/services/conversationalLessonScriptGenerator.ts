@@ -361,7 +361,6 @@ function generateQuestionUnits(
         extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
         vocabItem.readingL2;
 
-
       units.push(
         {
           type: 'narration_L1',
@@ -409,7 +408,7 @@ function generateQuestionUnits(
         reading: exchange.readingL2 || undefined,
         translation: exchange.translationL1,
         voiceId: exchange.speakerVoiceId,
-        speed: 1.0,
+        speed: 0.75,
       },
       { type: 'pause', seconds: 1.5 },
       {
@@ -557,7 +556,6 @@ async function generateResponseTeachingUnits(
         extractVocabReadingFromContext(vocabItem.textL2, exchange.textL2, exchange.readingL2) ||
         vocabItem.readingL2;
 
-
       units.push(
         // Introduce the word/phrase
         {
@@ -604,7 +602,6 @@ async function generateResponseTeachingUnits(
             context.targetLanguage
           )
         : [];
-
 
     // Teach each progressive chunk
     for (const chunk of progressiveChunks) {

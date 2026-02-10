@@ -227,7 +227,7 @@ describe('Episodes Routes Integration', () => {
       const response = await request(app).get('/api/episodes/ep-123').expect(200);
 
       expect(response.body).toEqual(mockEpisode);
-      expect(response.headers['cache-control']).toBe('public, max-age=3600');
+      expect(response.headers['cache-control']).toBe('private, max-age=60');
       expect(mockPrisma.episode.findFirst).toHaveBeenCalledWith({
         where: { id: 'ep-123', userId: 'test-user-id' },
         include: {

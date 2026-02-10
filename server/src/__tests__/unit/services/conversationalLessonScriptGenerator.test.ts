@@ -237,8 +237,8 @@ describe('conversationalLessonScriptGenerator', () => {
       const l2Units = result.units.filter((u) => u.type === 'L2');
       const speeds = l2Units.map((u) => u.speed);
 
-      // All L2 units should be at normal speed (1.0)
-      expect(speeds.every((s) => s === 1.0 || s === undefined)).toBe(true);
+      // L2 units should be at normal speed (1.0) or question-prompt speed (0.75)
+      expect(speeds.every((s) => s === 1.0 || s === 0.75 || s === undefined)).toBe(true);
     });
 
     it('should work with empty exchanges', async () => {

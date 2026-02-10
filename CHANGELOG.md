@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- **[feat]** Persist sentence-script test results — new `SentenceScriptTest` model stores generated scripts with full resolved prompt, units, raw response, and metadata; past tests list in Audio Course Creation UI with click-to-load, bulk delete, and auto-refresh on generate
+- **[feat]** Audio Course Creation tab in Script Lab — single-sentence Pimsleur-style script generation with configurable prompt template, voice selection, and per-line TTS playback
+- **[feat]** Speech control tags in Audio Tester — clickable emotion, tone, audio effect, and special effect tag buttons that insert Fish Audio control tokens at cursor position
+- **[feat]** Dynamic voice options in Audio Tester — replaced hardcoded voice dropdown with voices from TTS_VOICES config, added VoicePreview button
+
+### Changed
+
+- **[improvement]** Slow down question prompt L2 speech from 1.0x to 0.75x speed for better learner comprehension
+
 ### Fixed
 
+- **[fix]** Skip trailing break padding for single-word Fish Audio units to prevent audio artifacts on short utterances
 - **[fix]** Isolate staging and production docker-compose project names (`-p convolab-stage` / `-p convolab-prod`) to prevent `--remove-orphans` from killing production containers during staging deploys
 - **[fix]** Persist `CONVOLAB_IMAGE_TAG` in env files during deploy so containers can restart independently without defaulting to `:latest`
 

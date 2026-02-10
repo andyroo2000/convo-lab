@@ -396,6 +396,31 @@ model LineAudioRendering {
   @@map("line_audio_renderings")
 }
 
+// Sentence Script Test - Persisted results from Script Lab sentence-script generation
+
+model SentenceScriptTest {
+  id                    String   @id @default(uuid())
+  userId                String
+  sentence              String   @db.Text
+  translation           String?  @db.Text
+  targetLanguage        String   @default("ja")
+  nativeLanguage        String   @default("en")
+  jlptLevel             String?
+  l1VoiceId             String
+  l2VoiceId             String
+  promptTemplate        String   @db.Text
+  unitsJson             Json?
+  rawResponse           String   @db.Text
+  estimatedDurationSecs Float?
+  parseError            String?
+  createdAt             DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@index([sentence])
+  @@map("sentence_script_tests")
+}
+
 // OAuth Account - Store OAuth provider tokens and metadata
 
 model OAuthAccount {

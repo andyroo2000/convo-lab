@@ -68,6 +68,7 @@ const FISH_AUDIO_CONTROL_TOKENS = new Set([
   'sniff',
   'giggle',
 ]);
+const SINGLE_WORD_MAX_CHARS = 12;
 
 /**
  * Group script units into batches by (voiceId, speed, languageCode)
@@ -270,6 +271,37 @@ export function hasFishAudioControlTokens(text: string): boolean {
   }
 
   return false;
+}
+
+function isSingleWordText(text: string): boolean {
+  if (!text) {
+    return false;
+  }
+
+  const withoutTokens = text.replace(/\(\s*[a-zA-Z-]+\s*\)/g, ' ').trim();
+  if (!withoutTokens) {
+    return false;
+  }
+
+  const trimmed = withoutTokens
+    .replace(/^[\s"'“”‘’「『（(【［]+/, '')
+    .replace(/[\s"'“”‘’」』）)】］]+$/, '');
+  const withoutTrailingPunct = trimmed.replace(/[。！？!?.,、]+$/g, '').trim();
+
+  if (!withoutTrailingPunct) {
+    return false;
+  }
+
+  if (/\s/.test(withoutTrailingPunct)) {
+    const tokens = withoutTrailingPunct.split(/\s+/).filter(Boolean);
+    return tokens.length === 1;
+  }
+
+  if (/[。！？!?、]/.test(withoutTrailingPunct)) {
+    return false;
+  }
+
+  return withoutTrailingPunct.length <= SINGLE_WORD_MAX_CHARS;
 }
 
 /**
@@ -576,7 +608,10 @@ export async function processBatches(
   if (lastVoicedIndex !== null) {
     const lastUnit = units[lastVoicedIndex];
     if ('voiceId' in lastUnit && getProviderFromVoiceId(lastUnit.voiceId) === 'fishaudio') {
-      tailPaddingByIndex.set(lastVoicedIndex, FISH_AUDIO_TRAILING_BREAK);
+      const lastUnitText = getTTSTextForUnit(lastUnit, targetLanguageCode);
+      if (!isSingleWordText(lastUnitText)) {
+        tailPaddingByIndex.set(lastVoicedIndex, FISH_AUDIO_TRAILING_BREAK);
+      }
     }
   }
 

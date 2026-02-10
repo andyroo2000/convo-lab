@@ -1,7 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
+
 import { API_URL } from '../../../config';
+import VoicePreview from '../../common/VoicePreview';
 
 interface TestResult {
   format?: string;
@@ -15,6 +19,54 @@ interface AudioTesterProps {
 
 type AudioFormat = 'kanji' | 'kana' | 'mixed' | 'furigana_brackets';
 
+const EMOTION_TAGS = [
+  { label: 'Happy', tag: '(happy)' },
+  { label: 'Sad', tag: '(sad)' },
+  { label: 'Angry', tag: '(angry)' },
+  { label: 'Excited', tag: '(excited)' },
+  { label: 'Calm', tag: '(calm)' },
+  { label: 'Nervous', tag: '(nervous)' },
+  { label: 'Confident', tag: '(confident)' },
+  { label: 'Surprised', tag: '(surprised)' },
+  { label: 'Empathetic', tag: '(empathetic)' },
+  { label: 'Grateful', tag: '(grateful)' },
+  { label: 'Curious', tag: '(curious)' },
+  { label: 'Sarcastic', tag: '(sarcastic)' },
+];
+
+const TONE_TAGS = [
+  { label: 'Shouting', tag: '(shouting)' },
+  { label: 'Screaming', tag: '(screaming)' },
+  { label: 'Whispering', tag: '(whispering)' },
+  { label: 'Soft Tone', tag: '(soft tone)' },
+];
+
+const AUDIO_EFFECT_TAGS = [
+  { label: 'Laughing', tag: '(laughing)' },
+  { label: 'Chuckling', tag: '(chuckling)' },
+  { label: 'Sobbing', tag: '(sobbing)' },
+  { label: 'Crying Loudly', tag: '(crying loudly)' },
+  { label: 'Sighing', tag: '(sighing)' },
+  { label: 'Groaning', tag: '(groaning)' },
+  { label: 'Panting', tag: '(panting)' },
+  { label: 'Gasping', tag: '(gasping)' },
+  { label: 'Yawning', tag: '(yawning)' },
+  { label: 'Snoring', tag: '(snoring)' },
+];
+
+const SPECIAL_EFFECT_TAGS = [
+  { label: 'Break', tag: '(break)' },
+  { label: 'Long Break', tag: '(long-break)' },
+  { label: 'Breath', tag: '(breath)' },
+  { label: 'Laugh (fx)', tag: '(laugh)' },
+  { label: 'Cough', tag: '(cough)' },
+  { label: 'Lip Smacking', tag: '(lip-smacking)' },
+  { label: 'Sigh (fx)', tag: '(sigh)' },
+  { label: 'Audience Laughing', tag: '(audience laughing)' },
+  { label: 'Background Laughter', tag: '(background laughter)' },
+  { label: 'Crowd Laughing', tag: '(crowd laughing)' },
+];
+
 const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
   const [text, setText] = useState('');
   const [format, setFormat] = useState<AudioFormat>('kanji');
@@ -22,6 +74,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
   const [speed, setSpeed] = useState(1.0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleGenerateAudio = async () => {
     if (!text.trim()) {
@@ -102,6 +155,34 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
     }
   };
 
+  const insertTagAtCursor = (tag: string) => {
+    const input = textAreaRef.current;
+    if (!input) {
+      setText((prev) => (prev ? `${prev} ${tag}` : tag));
+      return;
+    }
+
+    const start = input.selectionStart ?? text.length;
+    const end = input.selectionEnd ?? text.length;
+    const before = text.slice(0, start);
+    const after = text.slice(end);
+    const needsSpaceBefore = before.length > 0 && !/\s$/.test(before);
+    const needsSpaceAfter = after.length > 0 && !/^\s/.test(after);
+    const insertion = `${needsSpaceBefore ? ' ' : ''}${tag}${needsSpaceAfter ? ' ' : ''}`;
+    const nextValue = `${before}${insertion}${after}`;
+    setText(nextValue);
+
+    requestAnimationFrame(() => {
+      const nextCursor = before.length + insertion.length;
+      input.focus();
+      input.setSelectionRange(nextCursor, nextCursor);
+    });
+  };
+
+  const japaneseVoiceOptions = TTS_VOICES.ja.voices.filter(
+    (voice) => voice.provider === 'fishaudio'
+  );
+
   return (
     <div className="space-y-4">
       {/* Error Message */}
@@ -113,11 +194,16 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
 
       {/* Japanese Text Input */}
       <div>
-        <label htmlFor="japanese-text-input" className="block text-sm font-medium text-gray-700 mb-1">
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label
+          htmlFor="japanese-text-input"
+          className="block text-sm font-medium text-gray-700 mb-1"
+        >
           Japanese Text <span className="text-red-500">*</span>
         </label>
         <textarea
           id="japanese-text-input"
+          ref={textAreaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
           className="w-full border border-gray-200 rounded-md px-3 py-2"
@@ -126,6 +212,84 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
         />
         <p className="text-xs text-gray-500 mt-1">
           Enter Japanese text to test with different preprocessing formats
+        </p>
+      </div>
+
+      {/* Speech Control Tags */}
+      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-3">
+        <div>
+          <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Emotions</div>
+          <div className="flex flex-wrap gap-2">
+            {EMOTION_TAGS.map((item) => (
+              <button
+                key={item.tag}
+                type="button"
+                onClick={() => insertTagAtCursor(item.tag)}
+                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                title={item.tag}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Tone</div>
+          <div className="flex flex-wrap gap-2">
+            {TONE_TAGS.map((item) => (
+              <button
+                key={item.tag}
+                type="button"
+                onClick={() => insertTagAtCursor(item.tag)}
+                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                title={item.tag}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Audio Effects</div>
+          <div className="flex flex-wrap gap-2">
+            {AUDIO_EFFECT_TAGS.map((item) => (
+              <button
+                key={item.tag}
+                type="button"
+                onClick={() => insertTagAtCursor(item.tag)}
+                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                title={item.tag}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs font-semibold text-gray-600 uppercase mb-2">
+            Breaks & Special Effects
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SPECIAL_EFFECT_TAGS.map((item) => (
+              <button
+                key={item.tag}
+                type="button"
+                onClick={() => insertTagAtCursor(item.tag)}
+                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                title={item.tag}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-gray-500">
+          Click a tag to insert it at the cursor. Emotion tags should go at the beginning of a
+          sentence when possible.
         </p>
       </div>
 
@@ -182,26 +346,23 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
 
       {/* Voice Selector */}
       <div>
-        <label htmlFor="voice-selector" className="block text-sm font-medium text-gray-700 mb-1">Voice</label>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label htmlFor="voice-selector" className="block text-sm font-medium text-gray-700 mb-1">
+          Voice
+        </label>
         <select
           id="voice-selector"
           value={voiceId}
           onChange={(e) => setVoiceId(e.target.value)}
           className="w-full border border-gray-200 rounded-md px-3 py-2"
         >
-          <option value="fishaudio:0dff3f6860294829b98f8c4501b2cf25">
-            Fish Audio - Japanese Female 01
-          </option>
-          <option value="fishaudio:a005bc9db1f94a3581f1e2f4eb91e303">
-            Fish Audio - Japanese Female 02
-          </option>
-          <option value="fishaudio:8f8a0a0e9daa40cfb4c9b0c4cf84c73f">
-            Fish Audio - Japanese Male 01
-          </option>
-          <option value="fishaudio:0e4e8f3cc8004dc795f1a5e7e8e9fae0">
-            Fish Audio - Japanese Male 02
-          </option>
+          {japaneseVoiceOptions.map((voice) => (
+            <option key={voice.id} value={voice.id}>
+              {voice.description} ({voice.gender})
+            </option>
+          ))}
         </select>
+        <VoicePreview voiceId={voiceId} />
       </div>
 
       {/* Speed Slider */}
