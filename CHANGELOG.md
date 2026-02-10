@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **[test]** Unit tests for sentence-script persistence routes and generator service — 24 tests covering POST/GET/DELETE sentence-test endpoints (validation, pagination, CRUD) and `generateSentenceScript` service (JSON parsing, code fence stripping, Japanese reading hydration, prompt template resolution, duration estimation, bare-array handling)
 - **[feat]** Persist sentence-script test results — new `SentenceScriptTest` model stores generated scripts with full resolved prompt, units, raw response, and metadata; past tests list in Audio Course Creation UI with click-to-load, bulk delete, and auto-refresh on generate
 - **[feat]** Audio Course Creation tab in Script Lab — single-sentence Pimsleur-style script generation with configurable prompt template, voice selection, and per-line TTS playback
 - **[feat]** Speech control tags in Audio Tester — clickable emotion, tone, audio effect, and special effect tag buttons that insert Fish Audio control tokens at cursor position

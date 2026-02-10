@@ -226,6 +226,15 @@ export const mockPrisma = {
     delete: vi.fn(),
     count: vi.fn(),
   },
+  sentenceScriptTest: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    delete: vi.fn(),
+    deleteMany: vi.fn(),
+    count: vi.fn(),
+  },
   $transaction: vi.fn((callback) => callback(mockPrisma)),
 };
 
