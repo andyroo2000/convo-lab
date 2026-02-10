@@ -116,19 +116,26 @@ jobs:
             echo "🧹 Pruning unused Docker data to free space..."
             docker system prune -af
 
+            # Persist image tag in env file so containers can restart independently
+            if grep -q '^CONVOLAB_IMAGE_TAG=' .env.staging; then
+              sed -i.bak "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.staging
+            else
+              echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.staging
+            fi
+
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
-            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.stage.yml --env-file .env.staging pull
+            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging pull
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
             # Force-stop any lingering convolab containers that might block network removal
             docker ps -q --filter "name=convolab-" | grep stage | xargs -r docker stop 2>/dev/null || true
-            docker-compose -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
+            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
-            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.stage.yml --env-file .env.staging up -d
+            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d
 
             # Wait for server health to avoid external health check flaps
             echo "⏳ Waiting for convolab-server-stage to become healthy..."
@@ -155,7 +162,7 @@ jobs:
 
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            docker-compose -f docker-compose.stage.yml --env-file .env.staging ps
+            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
             # Cleanup old images

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Isolate staging and production docker-compose project names (`-p convolab-stage` / `-p convolab-prod`) to prevent `--remove-orphans` from killing production containers during staging deploys
+- **[fix]** Persist `CONVOLAB_IMAGE_TAG` in env files during deploy so containers can restart independently without defaulting to `:latest`
+
 ### Added
 
 - **[feat]** Script Lab admin tool for testing dialogue generation and TTS — new admin tab with CourseSelector, CourseDetails, AudioTester, and ResultsViewer components; backend API routes for test course management and TTS testing; isTestCourse flag on Course model for admin test data segregation

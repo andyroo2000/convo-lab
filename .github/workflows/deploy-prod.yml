@@ -63,19 +63,26 @@ jobs:
             echo "🧹 Pruning unused Docker data to free space..."
             docker system prune -af
 
+            # Persist image tag in env file so containers can restart independently
+            if grep -q '^CONVOLAB_IMAGE_TAG=' .env.production; then
+              sed -i.bak "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
+            else
+              echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.production
+            fi
+
             # Pull latest images
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
-            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.prod.yml --env-file .env.production pull
+            docker-compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production pull
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
             # Force-stop any lingering convolab prod containers that might block network removal
             docker ps -q --filter "name=convolab-" | grep -v stage | xargs -r docker stop 2>/dev/null || true
-            docker-compose -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
+            docker-compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
-            CONVOLAB_IMAGE_TAG="$IMAGE_TAG" docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+            docker-compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production up -d
 
             # Wait for server health to avoid external health check flaps
             echo "⏳ Waiting for convolab-server to become healthy..."
@@ -102,7 +109,7 @@ jobs:
 
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            docker-compose -f docker-compose.prod.yml --env-file .env.production ps
+            docker-compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
             # Cleanup old images
