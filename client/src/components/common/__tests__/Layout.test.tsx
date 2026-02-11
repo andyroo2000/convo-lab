@@ -5,18 +5,24 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../Layout';
 
+const mockAuthState = vi.hoisted(() => ({
+  user: {
+    id: '1',
+    email: 'test@example.com',
+    name: 'Test User',
+    displayName: 'Test User',
+    role: 'user',
+    onboardingCompleted: true,
+    avatarColor: '#000000',
+  },
+  loading: false,
+}));
+
 // Mock the auth context
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
-    user: {
-      id: '1',
-      email: 'test@example.com',
-      name: 'Test User',
-      displayName: 'Test User',
-      role: 'user',
-      onboardingCompleted: true,
-      avatarColor: '#000000',
-    },
+    user: mockAuthState.user,
+    loading: mockAuthState.loading,
     logout: vi.fn(),
   }),
 }));
@@ -40,6 +46,16 @@ vi.mock('../../onboarding/OnboardingModal', () => ({
 }));
 
 describe('Layout', () => {
+  const baseMockUser = {
+    id: '1',
+    email: 'test@example.com',
+    name: 'Test User',
+    displayName: 'Test User',
+    role: 'user' as const,
+    onboardingCompleted: true,
+    avatarColor: '#000000',
+  };
+
   const renderLayout = (_initialPath: string) =>
     render(
       <BrowserRouter>
@@ -55,6 +71,11 @@ describe('Layout', () => {
         </Routes>
       </BrowserRouter>
     );
+
+  beforeEach(() => {
+    mockAuthState.user = { ...baseMockUser };
+    mockAuthState.loading = false;
+  });
 
   describe('Full-width mobile pages', () => {
     it('should remove horizontal padding on mobile for library page', () => {
@@ -149,6 +170,26 @@ describe('Layout', () => {
       renderLayout('/app/library');
 
       expect(screen.getByTestId('logo')).toBeTruthy();
+    });
+  });
+
+  describe('Onboarding behavior', () => {
+    it('should show onboarding modal only when onboardingCompleted is explicitly false', () => {
+      mockAuthState.user = { ...baseMockUser, onboardingCompleted: false };
+      window.history.pushState({}, '', '/app/library');
+      renderLayout('/app/library');
+
+      expect(screen.getByText('Onboarding Modal')).toBeInTheDocument();
+      expect(screen.queryByTestId('library-page')).not.toBeInTheDocument();
+    });
+
+    it('should not block the app when onboardingCompleted is undefined', () => {
+      mockAuthState.user = { ...baseMockUser, onboardingCompleted: undefined };
+      window.history.pushState({}, '', '/app/library');
+      renderLayout('/app/library');
+
+      expect(screen.queryByText('Onboarding Modal')).not.toBeInTheDocument();
+      expect(screen.getByTestId('library-page')).toBeInTheDocument();
     });
   });
 });

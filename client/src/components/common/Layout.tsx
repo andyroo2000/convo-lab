@@ -45,7 +45,7 @@ const Layout = () => {
   }
 
   // Show onboarding modal if user hasn't completed it
-  if (!user.onboardingCompleted) {
+  if (user.onboardingCompleted === false) {
     return <OnboardingModal />;
   }
 
@@ -55,8 +55,7 @@ const Layout = () => {
     location.pathname.startsWith('/app/playback') ||
     location.pathname.startsWith('/app/practice') ||
     location.pathname.startsWith('/app/courses');
-  const isCreateActive =
-    location.pathname.startsWith('/app/create');
+  const isCreateActive = location.pathname.startsWith('/app/create');
 
   // Pages that should have no horizontal padding on mobile for full-width cards
   const isFullWidthMobilePage =
