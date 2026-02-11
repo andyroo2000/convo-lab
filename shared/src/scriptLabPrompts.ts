@@ -12,7 +12,8 @@ Create a teaching script following this structure. Adapt the number of vocabular
 SECTION 1 — PRESENT the full sentence
 - Narrator: "Your friend says:"
 - Full sentence at normal speed (speed: 1.0)
-- Full sentence at slow speed (speed: 0.7)
+- Short pause (3 seconds)
+- Full sentence again at normal speed (speed: 1.0)
 
 SECTION 2 — TRANSLATE
 - Narrator: 'That means, "[full translation]."'
@@ -37,19 +38,22 @@ Vocabulary rules:
 
 For the first item:
 - Narrator: 'Here\\'s how you say, "[English meaning]":'
-- L2 at slow speed (speed: 0.7)
 - L2 at normal speed (speed: 1.0)
+- Short pause (3 seconds)
+- Same L2 again at normal speed (speed: 1.0)
 For subsequent items:
 - Narrator: 'And here\\'s how you say, "[English meaning]":' (or other natural variation)
-- L2 at slow speed (speed: 0.7)
 - L2 at normal speed (speed: 1.0)
+- Short pause (3 seconds)
+- Same L2 again at normal speed (speed: 1.0)
 
 SECTION 4 — BUILD UP with prompted recall (2-4 steps)
 Progressively combine vocabulary into longer phrases, building toward the full sentence. Each step:
 - Narrator prompt — vary the phrasing naturally: "How would you say...", "How about...", "Do you remember how to say...", "Now try to say..."
 - Pause for the learner to attempt (see pause rules below)
-- L2 answer at slow speed (speed: 0.7)
 - L2 answer at normal speed (speed: 1.0)
+- Short pause (3 seconds)
+- Same L2 answer again at normal speed (speed: 1.0)
 
 For short sentences (one clause): 2 build-up steps (partial phrase → full sentence).
 For longer sentences (two clauses): 3-4 steps — build up the main clause progressively, recall the other clause, then combine into the full sentence.
@@ -74,21 +78,26 @@ Learner: N4 (so はい is trivially known — don't teach it)
   "units": [
     { "type": "narration_L1", "text": "Your friend says:" },
     { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 1.0 },
-    { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 0.7 },
+    { "type": "pause", "seconds": 3 },
+    { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 1.0 },
     { "type": "narration_L1", "text": "That means, \\"Yes, I borrowed it at the store.\\"" },
     { "type": "narration_L1", "text": "Here's how you say, \\"borrowed\\":" },
-    { "type": "L2", "text": "借りました", "reading": "かりました", "speed": 0.7 },
+    { "type": "L2", "text": "借りました", "reading": "かりました", "speed": 1.0 },
+    { "type": "pause", "seconds": 3 },
     { "type": "L2", "text": "借りました", "reading": "かりました", "speed": 1.0 },
     { "type": "narration_L1", "text": "And here's how you say, \\"store\\":" },
-    { "type": "L2", "text": "お店", "reading": "おみせ", "speed": 0.7 },
+    { "type": "L2", "text": "お店", "reading": "おみせ", "speed": 1.0 },
+    { "type": "pause", "seconds": 3 },
     { "type": "L2", "text": "お店", "reading": "おみせ", "speed": 1.0 },
     { "type": "narration_L1", "text": "How would you say, \\"borrowed it at the store\\"" },
     { "type": "pause", "seconds": 5 },
-    { "type": "L2", "text": "お店で借りました", "reading": "おみせでかりました", "speed": 0.7 },
+    { "type": "L2", "text": "お店で借りました", "reading": "おみせでかりました", "speed": 1.0 },
+    { "type": "pause", "seconds": 3 },
     { "type": "L2", "text": "お店で借りました", "reading": "おみせでかりました", "speed": 1.0 },
     { "type": "narration_L1", "text": "How would you say, \\"Yes, I borrowed it at the store\\"" },
     { "type": "pause", "seconds": 7 },
-    { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 0.7 },
+    { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 1.0 },
+    { "type": "pause", "seconds": 3 },
     { "type": "L2", "text": "はいお店で借りました", "reading": "はいおみせでかりました", "speed": 1.0 }
   ]
 }
@@ -98,8 +107,8 @@ Now generate a script for the given sentence. Return ONLY a JSON object (no mark
 Rules:
 - Allowed unit types: narration_L1, L2, pause
 - For L2 units, always include "reading" in hiragana
-- Slow speed is always 0.7, normal speed is always 1.0
-- Pause durations: 3s (word), 5s (phrase), 7s (long phrase/sentence)
+- ALL L2 units use speed: 1.0 (normal speed). Every L2 line is played TWICE with a 3-second pause between
+- Recall pause durations: 3s (word), 5s (phrase), 7s (long phrase/sentence)
 - Vocabulary: content words/phrases only, in conjugated form, skip words well below learner level
 - Keep narrator text concise and natural — no parenthetical asides
 `;
