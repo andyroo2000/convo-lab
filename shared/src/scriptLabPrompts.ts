@@ -56,6 +56,11 @@ For longer sentences (two clauses): 3-4 steps — build up the main clause progr
 
 IMPORTANT: Every build-up step must COMBINE multiple words/phrases into something new. Never repeat a single vocabulary word that was already taught in Section 3 — that would be redundant. The first build-up step should always combine at least 2 vocabulary items.
 
+CRITICAL — NATURAL CHUNKING: Every build-up phrase must be a grammatically complete, natural-sounding phrase in the target language. Never split a subject from its predicate or an object from its verb. For Japanese specifically:
+- GOOD chunks: "景色が美しかった" (complete clause), "本当に美しかったよ" (adverb + predicate + particle)
+- BAD chunks: "本当に景色が" (dangling subject, no predicate), "景色が本当に" (incomplete)
+- Each chunk should make sense if spoken on its own — it should be something a native speaker might actually say as a standalone utterance.
+
 PAUSE DURATION RULES:
 - After a prompt for a single word or very short phrase (1-3 syllables): 3 seconds
 - After a prompt for a medium phrase (4-8 syllables): 5 seconds

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[improvement]** Add natural chunking rule to sentence-script prompt — build-up phrases must be grammatically complete (no dangling subjects or incomplete clauses), with good/bad examples for Japanese
 - **[improvement]** Rewrite sentence-script prompt — structured Pimsleur backward-build with 4 sections (present → translate → teach vocab → build up), JLPT-aware vocabulary filtering, right-to-left vocab order, variable pause durations (3s/5s/7s by phrase length), worked example for few-shot consistency
 
 ### Added
