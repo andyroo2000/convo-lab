@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[refactor]** Replace furigana microservice with LLM-provided readings — dialogue generator now requests bracket-notation furigana from Gemini, removing dependency on MeCab/UniDic Python service; fixes contextual reading errors (e.g. この前 read as ぜん instead of まえ)
+- **[improvement]** Restore slow-speed L2 review (0.85x) for Pimsleur lesson scripts
+
+### Fixed
+
+- **[fix]** Fish Audio degenerate output guard — detect and retry/truncate 47s looping audio on short isolated Japanese words
+- **[fix]** Vocab reading extraction across furigana unit boundaries — split plain-text units into individual characters so words like 特に spanning kanji+kana units are correctly matched
+- **[fix]** Course-level voice override for existing dialogues — speaker voice IDs from Course record now properly override dialogue Speaker DB voices
+- **[fix]** Skip useless kanji-only readings in post-processing — units where reading === text now correctly trigger the furigana fallback
+- **[fix]** Prevent duplicate course creation from React effect restarts — add ref guard on completion handler
+
+### Removed
+
+- **[removal]** Furigana microservice — removed from docker-compose.prod.yml, docker-compose.stage.yml, and all service call sites (processJapanese, processJapaneseBatch, processLanguageTextBatch)
+
+### Changed
+
 - **[improvement]** Replace slow-speed L2 with normal-speed repeat — all L2 lines now play twice at normal speed with a 1-second pause between instead of slow (0.7) then normal (1.0)
 - **[improvement]** Add natural chunking rule to sentence-script prompt — build-up phrases must be grammatically complete (no dangling subjects or incomplete clauses), with good/bad examples for Japanese
 - **[improvement]** Rewrite sentence-script prompt — structured Pimsleur backward-build with 4 sections (present → translate → teach vocab → build up), JLPT-aware vocabulary filtering, right-to-left vocab order, variable pause durations (3s/5s/7s by phrase length), worked example for few-shot consistency

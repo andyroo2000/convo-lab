@@ -558,7 +558,10 @@ function splitFishAudioBatch(batch: TTSBatch): TTSBatch[] {
  * Speed is handled natively by the Fish Audio API (prosody.speed),
  * so no ffmpeg post-processing is needed.
  */
-async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Buffer>> {
+async function synthesizeFishAudioBatch(
+  batch: TTSBatch,
+  tempDir: string
+): Promise<Map<number, Buffer>> {
   const segments = new Map<number, Buffer>();
   const referenceId = resolveFishAudioVoiceId(batch.voiceId);
 
@@ -570,17 +573,69 @@ async function synthesizeFishAudioBatch(batch: TTSBatch): Promise<Map<number, Bu
       speed: batch.speed,
     });
 
-    const audioBuffer = await synthesizeFishAudioSpeech({
+    let audioBuffer = await synthesizeFishAudioSpeech({
       referenceId,
       text: unit.text,
       speed: batch.speed,
       normalize: hasFishAudioControlTokens(unit.text) ? false : undefined,
     });
 
+    // Guard against degenerate Fish Audio output (short text → 47s looping audio).
+    // Max expected duration: generous 0.5s per character, minimum 10s.
+    const maxExpectedSeconds = Math.max(10, unit.text.length * 0.5);
+    const durationSeconds = await getAudioDurationFromBuffer(audioBuffer, tempDir);
+
+    if (durationSeconds > maxExpectedSeconds) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Fish Audio] Degenerate audio: ${durationSeconds.toFixed(1)}s for "${unit.text}" ` +
+          `(max ${maxExpectedSeconds.toFixed(0)}s). Retrying...`
+      );
+      audioBuffer = await synthesizeFishAudioSpeech({
+        referenceId,
+        text: unit.text,
+        speed: batch.speed,
+        normalize: hasFishAudioControlTokens(unit.text) ? false : undefined,
+      });
+
+      const retryDuration = await getAudioDurationFromBuffer(audioBuffer, tempDir);
+      if (retryDuration > maxExpectedSeconds) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[Fish Audio] Retry still degenerate: ${retryDuration.toFixed(1)}s. Truncating to ${maxExpectedSeconds.toFixed(0)}s.`
+        );
+        audioBuffer = await truncateAudioBuffer(audioBuffer, maxExpectedSeconds, tempDir);
+      }
+    }
+
     segments.set(unit.originalIndex, audioBuffer);
   }
 
   return segments;
+}
+
+async function truncateAudioBuffer(
+  buffer: Buffer,
+  maxSeconds: number,
+  tempDir: string
+): Promise<Buffer> {
+  const inputPath = path.join(tempDir, `trunc-in-${Date.now()}.mp3`);
+  const outputPath = path.join(tempDir, `trunc-out-${Date.now()}.mp3`);
+  try {
+    await fs.writeFile(inputPath, buffer);
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(inputPath)
+        .setDuration(maxSeconds)
+        .output(outputPath)
+        .on('end', resolve)
+        .on('error', reject)
+        .run();
+    });
+    return await fs.readFile(outputPath);
+  } finally {
+    await fs.unlink(inputPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+  }
 }
 
 /**
@@ -656,7 +711,7 @@ export async function processBatches(
     let batchSegments: Map<number, Buffer>;
 
     if (providerType === 'fishaudio') {
-      batchSegments = await synthesizeFishAudioBatch(batch);
+      batchSegments = await synthesizeFishAudioBatch(batch, tempDir);
     } else {
       const provider =
         providerType === 'polly' ? getPollyTTSProvider() : getGoogleTTSBetaProvider();

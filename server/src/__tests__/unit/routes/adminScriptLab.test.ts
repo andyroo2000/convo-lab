@@ -49,8 +49,8 @@ vi.mock('../../../middleware/roleAuth.js', () => ({
 }));
 
 // Mock external services that are imported but not under test
-vi.mock('../../../services/languageProcessor.js', () => ({
-  processJapanese: vi.fn(),
+vi.mock('../../../services/geminiClient.js', () => ({
+  generateWithGemini: vi.fn(),
 }));
 vi.mock('../../../services/pronunciation/overrideEngine.js', () => ({
   applyJapanesePronunciationOverrides: vi.fn(),

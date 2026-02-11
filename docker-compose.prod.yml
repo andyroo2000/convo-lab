@@ -68,24 +68,6 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  furigana:
-    image: ghcr.io/andyroo2000/convolab-furigana:${CONVOLAB_IMAGE_TAG:-latest}
-    container_name: convolab-furigana
-    restart: unless-stopped
-    networks:
-      - convolab-network
-    mem_limit: 256m
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/')"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-
   server:
     image: ghcr.io/andyroo2000/convolab-server:${CONVOLAB_IMAGE_TAG:-latest}
     container_name: convolab-server
@@ -99,7 +81,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      FURIGANA_SERVICE_URL: http://furigana:8080
       GOOGLE_APPLICATION_CREDENTIALS: /app/gcloud-key.json
       GCS_BUCKET_NAME: ${GCS_BUCKET_NAME}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}
@@ -121,8 +102,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      furigana:
-        condition: service_started
     mem_limit: 1024m
     mem_reservation: 512m
     healthcheck:

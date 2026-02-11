@@ -4,15 +4,10 @@ import { generateSentenceScript } from '../../../services/scriptLabSentenceGener
 
 // Hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
-const mockProcessJapaneseBatch = vi.hoisted(() => vi.fn());
 const mockApplyOverrides = vi.hoisted(() => vi.fn());
 
 vi.mock('../../../services/geminiClient.js', () => ({
   generateWithGemini: mockGenerateWithGemini,
-}));
-
-vi.mock('../../../services/languageProcessor.js', () => ({
-  processJapaneseBatch: mockProcessJapaneseBatch,
 }));
 
 vi.mock('../../../services/pronunciation/overrideEngine.js', () => ({
@@ -32,7 +27,6 @@ describe('scriptLabSentenceGenerator', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockProcessJapaneseBatch.mockResolvedValue([]);
     mockApplyOverrides.mockReturnValue('');
   });
 
@@ -108,7 +102,7 @@ describe('scriptLabSentenceGenerator', () => {
       expect(result.units![0].type).toBe('narration_L1');
     });
 
-    it('should hydrate Japanese readings for L2 units missing them', async () => {
+    it('should hydrate Japanese readings for L2 units missing them via pronunciation overrides', async () => {
       const geminiResponse = JSON.stringify({
         units: [
           { type: 'L2', text: '東京に行きました' },
@@ -117,15 +111,16 @@ describe('scriptLabSentenceGenerator', () => {
       });
       mockGenerateWithGemini.mockResolvedValue(geminiResponse);
 
-      mockProcessJapaneseBatch.mockResolvedValue([
-        { kana: 'とうきょうにいきました', furigana: '東京[とうきょう]に行[い]きました' },
-      ]);
       mockApplyOverrides.mockReturnValue('とうきょうにいきました');
 
       const result = await generateSentenceScript(baseOptions);
 
-      // Only the first unit (no reading) should trigger hydration
-      expect(mockProcessJapaneseBatch).toHaveBeenCalledWith(['東京に行きました']);
+      // Only the first unit (no reading) should trigger pronunciation override
+      expect(mockApplyOverrides).toHaveBeenCalledWith({
+        text: '東京に行きました',
+        reading: null,
+        furigana: null,
+      });
       expect(result.units![0]).toHaveProperty('reading', 'とうきょうにいきました');
       // The second unit already had a reading, so it should be unchanged
       expect(result.units![1]).toHaveProperty('reading', 'いきました');
@@ -136,8 +131,8 @@ describe('scriptLabSentenceGenerator', () => {
 
       const result = await generateSentenceScript(baseOptions);
 
-      // The default SENTENCE_SCRIPT_PROMPT contains "Pimsleur Method"
-      expect(result.resolvedPrompt).toContain('Pimsleur Method');
+      // The default SENTENCE_SCRIPT_PROMPT contains "Pimsleur"
+      expect(result.resolvedPrompt).toContain('Pimsleur');
     });
 
     it('should use prompt override when provided', async () => {
@@ -226,7 +221,7 @@ describe('scriptLabSentenceGenerator', () => {
         targetLanguage: 'fr',
       });
 
-      expect(mockProcessJapaneseBatch).not.toHaveBeenCalled();
+      expect(mockApplyOverrides).not.toHaveBeenCalled();
     });
   });
 });

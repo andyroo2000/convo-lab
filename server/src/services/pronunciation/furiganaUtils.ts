@@ -23,25 +23,80 @@ function isPunctuation(char: string): boolean {
   return /[。、！？!?.,、。？！…「」『』（）()]/.test(char);
 }
 
-function stripFuriganaToKana(text: string): string {
+function isKanji(char: string): boolean {
+  if (!char) return false;
+  const code = char.charCodeAt(0);
+  return code >= 0x4e00 && code <= 0x9fff;
+}
+
+export function stripFuriganaToKana(text: string): string {
   const output: string[] = [];
-  let inBracket = false;
+  let buffer: string[] = []; // accumulates non-bracket characters
 
-  for (const char of text) {
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
     if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
+      // The bracket reading replaces the surface text in the buffer.
+      // Find the leftmost kanji in the buffer — everything from there
+      // to the end is the annotated surface (discard it).
+      let firstKanjiIdx = buffer.length;
+      for (let j = 0; j < buffer.length; j++) {
+        if (isKanji(buffer[j])) {
+          firstKanjiIdx = j;
+          break;
+        }
+      }
+
+      // Read the bracket content (the correct reading)
+      const reading: string[] = [];
+      i++;
+      while (i < text.length && text[i] !== ']') {
+        reading.push(text[i]);
+        i++;
+      }
+      // i now points at ']', the for-loop will increment past it
+
+      // Check if a suffix of the kana prefix is already included in the reading.
+      // e.g. にはお菓子[おかし] — prefix "にはお", reading "おかし", kanji surface "菓子"
+      // The suffix "お" matches the reading start, and the remaining reading "かし" (len 2)
+      // covers the kanji surface "菓子" (len 2), so "お" is part of the annotated surface.
+      // But for か買[か] — prefix "か", reading "か", kanji "買" — remaining reading ""
+      // is shorter than kanji surface, so "か" is a standalone particle.
+      const prefix = buffer.slice(0, firstKanjiIdx);
+      const readingStr = reading.join('');
+      const kanjiSurfaceLen = buffer.length - firstKanjiIdx;
+      let prefixCharsConsumed = 0;
+
+      if (prefix.length > 0) {
+        // Try longest matching suffix of prefix against start of reading
+        for (let suffixLen = prefix.length; suffixLen >= 1; suffixLen--) {
+          const suffix = prefix.slice(prefix.length - suffixLen).join('');
+          if (readingStr.startsWith(suffix)) {
+            const remainingReading = readingStr.length - suffixLen;
+            if (remainingReading >= kanjiSurfaceLen) {
+              prefixCharsConsumed = suffixLen;
+              break;
+            }
+          }
+        }
+      }
+
+      // Flush the prefix, minus any characters consumed by the reading
+      for (let j = 0; j < firstKanjiIdx - prefixCharsConsumed; j++) {
+        output.push(buffer[j]);
+      }
+
+      output.push(readingStr);
+      buffer = [];
       continue;
     }
 
-    if (inBracket) {
-      output.push(char);
-      continue;
-    }
+    buffer.push(char);
+  }
 
+  // Flush remaining buffer (text not followed by a bracket)
+  for (const char of buffer) {
     if (isKana(char) || isPunctuation(char) || /\s/.test(char)) {
       output.push(char);
     }

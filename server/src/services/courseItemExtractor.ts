@@ -5,6 +5,7 @@ import { reviewDialogue, editDialogue } from './dialogueReviewer.js';
 import { generateWithGemini } from './geminiClient.js';
 import { LanguageMetadata } from './languageProcessor.js';
 import { logger } from './logger.js';
+import { stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
 import {
   sampleVocabulary,
   formatWordsForPrompt,
@@ -195,8 +196,15 @@ function calculateComplexityScore(sentence: SentenceWithMetadata, targetLang: st
 function extractReading(sentence: SentenceWithMetadata, targetLang: string): string | null {
   const metadata = sentence.metadata;
 
-  if (targetLang === 'ja' && metadata?.japanese?.kana) {
-    return metadata.japanese.kana;
+  if (targetLang === 'ja') {
+    // Prefer bracket-notation furigana (enables vocab reading extraction)
+    if (metadata?.japanese?.furigana && metadata.japanese.furigana.includes('[')) {
+      return metadata.japanese.furigana;
+    }
+    // Fall back to pure kana
+    if (metadata?.japanese?.kana) {
+      return metadata.japanese.kana;
+    }
   }
 
   // For languages without phonetic systems, return null
@@ -276,8 +284,21 @@ function parseFuriganaUnits(furigana: string): FuriganaUnit[] {
 function extractReadingFromFuriganaForWord(furigana: string, word: string): string | undefined {
   if (!furigana || !word) return undefined;
 
-  const units = parseFuriganaUnits(furigana);
-  if (units.length === 0) return undefined;
+  const rawUnits = parseFuriganaUnits(furigana);
+  if (rawUnits.length === 0) return undefined;
+
+  // Split plain-text units into individual characters so vocab words that
+  // span a kanji unit + adjacent kana can be matched (e.g. 特[とく]に → "特に")
+  const units: FuriganaUnit[] = [];
+  for (const u of rawUnits) {
+    if (u.surface === u.reading && u.surface.length > 1) {
+      for (const ch of u.surface) {
+        units.push({ surface: ch, reading: ch });
+      }
+    } else {
+      units.push(u);
+    }
+  }
 
   const target = normalizeReadingTarget(word);
   if (!target) return undefined;
@@ -622,7 +643,15 @@ async function splitLongSentences(
     if (splitCount > 1) {
       try {
         // Use AI to intelligently split the sentence
-        const splitPrompt = `Split this ${targetLang.toUpperCase()} sentence into separate individual sentences. Each sentence should be a complete thought or question.
+        const readingInstruction =
+          targetLang === 'ja'
+            ? `\nFor each split sentence, also provide a "reading" field with bracket-notation furigana. Format: each kanji word is immediately followed by [hiragana reading]. Only kanji get brackets; hiragana, katakana, and punctuation stay as-is. Example: 特[とく]に美味[おい]しかった。 Use the correct CONTEXTUAL reading for each kanji.`
+            : '';
+        const readingField =
+          targetLang === 'ja'
+            ? `,\n    "reading": "bracket-notation furigana of this sentence"`
+            : '';
+        const splitPrompt = `Split this ${targetLang.toUpperCase()} sentence into separate individual sentences. Each sentence should be a complete thought or question.${readingInstruction}
 
 Original sentence: "${sentence.text}"
 Translation: "${sentence.translation}"
@@ -631,11 +660,11 @@ Return ONLY a JSON array (no markdown, no explanation):
 [
   {
     "text": "first sentence in ${targetLang}",
-    "translation": "English translation"
+    "translation": "English translation"${readingField}
   },
   {
     "text": "second sentence in ${targetLang}",
-    "translation": "English translation"
+    "translation": "English translation"${readingField}
   }
 ]`;
 
@@ -653,13 +682,29 @@ Return ONLY a JSON array (no markdown, no explanation):
         const splits = JSON.parse(jsonText);
 
         if (Array.isArray(splits) && splits.length > 1) {
-          // Successfully split - add each as separate sentence
+          // Successfully split - add each as separate sentence with updated metadata
           for (const split of splits) {
-            result.push({
+            const splitSentence = {
               ...sentence,
               text: split.text,
               translation: split.translation,
-            });
+            };
+
+            // Update the metadata kana/furigana for the split part
+            if (split.reading && splitSentence.metadata?.japanese) {
+              const hasBrackets = split.reading.includes('[');
+              splitSentence.metadata = {
+                ...splitSentence.metadata,
+                japanese: {
+                  ...splitSentence.metadata.japanese,
+                  kanji: split.text,
+                  kana: hasBrackets ? stripFuriganaToKana(split.reading) : split.reading,
+                  furigana: hasBrackets ? split.reading : split.text,
+                },
+              };
+            }
+
+            result.push(splitSentence);
           }
           logger.warn(`  Split "${sentence.text}" into ${splits.length} parts`);
           continue;
@@ -1339,9 +1384,8 @@ export async function extractDialogueExchangesFromSourceText(
     // Step 2.5: Apply pronunciation overrides to correct place names and special readings
     if (targetLanguage.toLowerCase().startsWith('ja')) {
       logger.warn('Applying pronunciation overrides to dialogue readings...');
-      const { applyJapanesePronunciationOverrides } = await import(
-        './japanesePronunciationOverrides.js'
-      );
+      const { applyJapanesePronunciationOverrides } =
+        await import('./japanesePronunciationOverrides.js');
 
       for (const exchange of exchanges) {
         if (exchange.readingL2) {
@@ -1391,9 +1435,8 @@ export async function extractDialogueExchangesFromSourceText(
         // Re-apply pronunciation overrides after revision
         if (targetLanguage.toLowerCase().startsWith('ja')) {
           logger.warn('Re-applying pronunciation overrides after revision...');
-          const { applyJapanesePronunciationOverrides } = await import(
-            './japanesePronunciationOverrides.js'
-          );
+          const { applyJapanesePronunciationOverrides } =
+            await import('./japanesePronunciationOverrides.js');
 
           for (const exchange of exchanges) {
             if (exchange.readingL2) {

@@ -2,7 +2,6 @@ import { SENTENCE_SCRIPT_PROMPT } from '@languageflow/shared/src/scriptLabPrompt
 
 import { LessonScriptUnit } from './courseScriptGenerator.js';
 import { generateWithGemini } from './geminiClient.js';
-import { processJapaneseBatch } from './languageProcessor.js';
 import { applyJapanesePronunciationOverrides } from './pronunciation/overrideEngine.js';
 
 export interface SentenceScriptOptions {
@@ -175,24 +174,19 @@ async function hydrateJapaneseReadings(
     return;
   }
 
-  const japaneseMetadata = await processJapaneseBatch(
-    unitsNeedingReadings.map((unit) => unit.text)
-  );
-
-  unitsNeedingReadings.forEach((unit, index) => {
-    const metadata = japaneseMetadata[index];
-    if (!metadata) {
-      return;
-    }
-
+  // Apply pronunciation dictionary overrides as best-effort fallback
+  // (the LLM prompt already instructs to include readings; this handles any gaps)
+  for (const unit of unitsNeedingReadings) {
     const corrected = applyJapanesePronunciationOverrides({
       text: unit.text,
-      reading: metadata.kana,
-      furigana: metadata.furigana,
+      reading: null,
+      furigana: null,
     });
 
-    unit.reading = corrected || metadata.kana || unit.reading;
-  });
+    if (corrected) {
+      unit.reading = corrected;
+    }
+  }
 }
 
 function estimateUnitsDuration(units: LessonScriptUnit[]): number {

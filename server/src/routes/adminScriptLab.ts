@@ -8,7 +8,7 @@ import { prisma } from '../db/client.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireAdmin } from '../middleware/roleAuth.js';
-import { processJapanese } from '../services/languageProcessor.js';
+import { generateWithGemini } from '../services/geminiClient.js';
 import { applyJapanesePronunciationOverrides } from '../services/pronunciation/overrideEngine.js';
 import { generateSentenceScript } from '../services/scriptLabSentenceGenerator.js';
 import { uploadToGCS } from '../services/storageClient.js';
@@ -319,23 +319,23 @@ router.post('/test-pronunciation', async (req: AuthRequest, res, next) => {
     /* eslint-disable no-console */
     console.log(`[SCRIPT LAB] Testing format: ${format}, original text: "${text}"`);
 
-    if (format === 'kana') {
-      // Strip kanji, keep only kana
-      const japaneseMetadata = await processJapanese(text);
-      preprocessedText = japaneseMetadata.kana;
-      console.log(`[SCRIPT LAB] Kana result: "${preprocessedText}"`);
-    } else if (format === 'furigana_brackets') {
-      // First get bracket notation from furigana service
-      const japaneseMetadata = await processJapanese(text);
-      console.log(`[SCRIPT LAB] Raw furigana: "${japaneseMetadata.furigana}"`);
+    if (format === 'kana' || format === 'furigana_brackets') {
+      const formatDesc =
+        format === 'kana'
+          ? 'pure hiragana (replace all kanji with their hiragana readings)'
+          : 'bracket-notation furigana where each kanji word is followed by [hiragana reading]. Example: 北海道[ほっかいどう]に行[い]った。 Hiragana/katakana/punctuation stay as-is.';
+      const prompt = `Convert this Japanese text to ${formatDesc}. Return ONLY the converted text, no explanation.\n\nText: "${text}"`;
+      const result = await generateWithGemini(prompt);
+      preprocessedText = result.trim();
+      console.log(`[SCRIPT LAB] Gemini ${format} result: "${preprocessedText}"`);
 
-      // Then apply pronunciation overrides to correct any wrong readings
+      // Apply pronunciation overrides for consistency
       preprocessedText = applyJapanesePronunciationOverrides({
         text,
-        reading: japaneseMetadata.furigana,
-        furigana: japaneseMetadata.furigana,
+        reading: preprocessedText,
+        furigana: format === 'furigana_brackets' ? preprocessedText : null,
       });
-      console.log(`[SCRIPT LAB] Furigana brackets result: "${preprocessedText}"`);
+      console.log(`[SCRIPT LAB] After overrides: "${preprocessedText}"`);
     }
     /* eslint-enable no-console */
     // 'kanji' and 'mixed' keep text as-is

@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -109,6 +109,7 @@ const DialogueGenerator = () => {
   const [step, setStep] = useState<'input' | 'generating' | 'complete'>('input');
   const [generatedEpisodeId, setGeneratedEpisodeId] = useState<string | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+  const courseCreationStartedRef = useRef(false);
 
   // Helper function to get proficiency level
   const getProficiencyLevel = () => jlptLevel;
@@ -194,6 +195,11 @@ const DialogueGenerator = () => {
 
       if (status === 'completed') {
         clearInterval(pollInterval);
+
+        // Guard against duplicate completion handling from effect restarts
+        if (courseCreationStartedRef.current) return;
+        courseCreationStartedRef.current = true;
+
         setCourseError(null);
 
         let createdCourseId: string | null = null;
@@ -295,6 +301,7 @@ const DialogueGenerator = () => {
 
     try {
       setCourseError(null);
+      courseCreationStartedRef.current = false;
       setStep('generating');
 
       // Get the appropriate proficiency level based on target language

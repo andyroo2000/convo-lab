@@ -150,6 +150,28 @@ async function processCourseGeneration(job: {
         course.maxLessonDurationMinutes
       );
       console.log(`Extracted ${dialogueExchanges.length} dialogue exchanges from dialogue`);
+
+      // Override speaker voices with course-level voice settings if configured.
+      // Dialogue speakers have their own voice IDs, but the course may specify different ones.
+      if (course.speaker1VoiceId || course.speaker2VoiceId) {
+        const speakerNames = [...new Set(dialogueExchanges.map((e) => e.speakerName))];
+        const voiceMap = new Map<string, string>();
+        if (course.speaker1VoiceId && speakerNames[0]) {
+          voiceMap.set(speakerNames[0], course.speaker1VoiceId);
+        }
+        if (course.speaker2VoiceId && speakerNames[1]) {
+          voiceMap.set(speakerNames[1], course.speaker2VoiceId);
+        }
+        for (const exchange of dialogueExchanges) {
+          const override = voiceMap.get(exchange.speakerName);
+          if (override) {
+            exchange.speakerVoiceId = override;
+          }
+        }
+        console.log(
+          `Overrode speaker voices: ${[...voiceMap.entries()].map(([n, v]) => `${n}=${v}`).join(', ')}`
+        );
+      }
     } else {
       if (!firstEpisode.sourceText) {
         throw new Error('Episode has no source text');
@@ -272,7 +294,7 @@ async function processCourseGeneration(job: {
           if (unit.type !== 'L2' || !unit.text.trim()) {
             return unit;
           }
-          if (unit.reading && unit.reading.trim()) {
+          if (unit.reading && unit.reading.trim() && unit.reading !== unit.text) {
             return unit;
           }
           const reading = await addReadingBrackets(unit.text, 'ja');

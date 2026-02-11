@@ -7,7 +7,6 @@ import { generateDialogue } from '../../../services/dialogueGenerator.js';
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
 const mockGetAvatarUrlFromVoice = vi.hoisted(() => vi.fn());
 const mockParseVoiceIdForGender = vi.hoisted(() => vi.fn());
-const mockProcessLanguageTextBatch = vi.hoisted(() => vi.fn());
 const mockPrisma = vi.hoisted(() => ({
   episode: {
     findUnique: vi.fn(),
@@ -32,10 +31,6 @@ vi.mock('../../../services/geminiClient.js', () => ({
 vi.mock('../../../services/avatarService.js', () => ({
   getAvatarUrlFromVoice: mockGetAvatarUrlFromVoice,
   parseVoiceIdForGender: mockParseVoiceIdForGender,
-}));
-
-vi.mock('../../../services/languageProcessor.js', () => ({
-  processLanguageTextBatch: mockProcessLanguageTextBatch,
 }));
 
 vi.mock('../../../db/client.js', () => ({
@@ -99,16 +94,6 @@ describe('dialogueGenerator', () => {
     mockGenerateWithGemini.mockResolvedValue(JSON.stringify(mockDialogueResponse));
     mockGetAvatarUrlFromVoice.mockResolvedValue('https://storage.example.com/avatar.jpg');
     mockParseVoiceIdForGender.mockReturnValue('female');
-    mockProcessLanguageTextBatch.mockResolvedValue([
-      { japanese: { kanji: 'こんにちは', kana: 'こんにちは', furigana: 'こんにちは' } },
-      {
-        japanese: {
-          kanji: 'お元気ですか',
-          kana: 'おげんきですか',
-          furigana: 'お元[げん]気[き]ですか',
-        },
-      },
-    ]);
   });
 
   describe('generateDialogue', () => {
@@ -194,18 +179,6 @@ describe('dialogueGenerator', () => {
       const prompt = mockGenerateWithGemini.mock.calls[0][0];
       expect(prompt).toContain('5 alternative ways');
       expect(prompt).toContain('EXACTLY 10 dialogue lines');
-    });
-
-    it('should batch process language metadata for sentences', async () => {
-      await generateDialogue({
-        episodeId: 'episode-123',
-        speakers: mockSpeakers,
-      });
-
-      expect(mockProcessLanguageTextBatch).toHaveBeenCalledWith(
-        ['こんにちは', 'お元気ですか'],
-        'ja'
-      );
     });
 
     it('should create speakers with avatar URLs', async () => {

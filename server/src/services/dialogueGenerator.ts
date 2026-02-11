@@ -5,7 +5,7 @@ import { prisma } from '../db/client.js';
 
 import { getAvatarUrlFromVoice, parseVoiceIdForGender } from './avatarService.js';
 import { generateWithGemini } from './geminiClient.js';
-import { processLanguageTextBatch } from './languageProcessor.js';
+import { stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
 import {
   formatGrammarForPrompt,
   formatWordsForPrompt,
@@ -35,6 +35,7 @@ interface GenerateDialogueRequest {
 interface DialogueSentence {
   speaker: string;
   text: string;
+  reading?: string;
   translation: string;
   variations: string[];
 }
@@ -315,11 +316,19 @@ Return your response as JSON in this exact format:
     {
       "speaker": "SpeakerName",
       "text": "The target language sentence",
+      "reading": "Bracket-notation furigana reading (Japanese only)",
       "translation": "English translation",
       "variations": ["Alternative 1", "Alternative 2", "Alternative 3"]
     }
   ]
 }
+
+READING FIELD (for Japanese target language):
+- The "reading" field uses bracket-notation furigana: each kanji word is immediately followed by [hiragana reading]
+- Only kanji characters get brackets; hiragana, katakana, and punctuation are left as-is
+- Example: "この前北海道に行ったって言ってたよね？" → "この前[まえ]北海道[ほっかいどう]に行[い]ったって言[い]ってたよね？"
+- IMPORTANT: Use the correct contextual reading, not just the default reading. E.g. 前 in この前 is まえ (not ぜん)
+- For non-Japanese target languages, omit the "reading" field
 
 IMPORTANT: Use EXACTLY these speaker names in your response: ${speakerNames.join(', ')}
 
@@ -340,7 +349,7 @@ async function createDialogueInDB(
   episodeId: string,
   speakers: Speaker[],
   dialogueData: DialogueData,
-  targetLanguage: string,
+  _targetLanguage: string,
   _nativeLanguage: string
 ) {
   // Create dialogue
@@ -377,11 +386,15 @@ async function createDialogueInDB(
   // Map speaker names to IDs (using stripped names for matching)
   const speakerMap = new Map(speakerRecords.map((s) => [stripPhoneticNotation(s.name), s.id]));
 
-  // Batch process all sentence metadata in a single request
-  const sentenceTexts = dialogueData.sentences.map((sent) => sent.text);
-  console.log(`[DIALOGUE] Batching metadata for ${sentenceTexts.length} sentences`);
-  const allMetadata = await processLanguageTextBatch(sentenceTexts, targetLanguage);
-  console.log(`[DIALOGUE] Metadata batch complete (1 call instead of ${sentenceTexts.length})`);
+  // Derive metadata from LLM-provided readings (no furigana service needed)
+  const allMetadata = dialogueData.sentences.map((sent) => ({
+    japanese: {
+      kanji: sent.text,
+      kana: sent.reading ? stripFuriganaToKana(sent.reading) : sent.text,
+      furigana: sent.reading || sent.text,
+    },
+  }));
+  console.log(`[DIALOGUE] Derived metadata from LLM readings for ${allMetadata.length} sentences`);
 
   // Create sentences with precomputed metadata
   const sentences = await Promise.all(

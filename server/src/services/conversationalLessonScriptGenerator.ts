@@ -1,160 +1,88 @@
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { generateWithGemini } from './geminiClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
+import { parseFuriganaUnits, stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
 
 /**
- * Convert furigana notation to pure kana for TTS
- * Example: "北[ほっ]海[かい]道[どう]に行[い]きました" → "ほっかいどうにいきました"
- */
-function stripFuriganaToKana(text: string): string {
-  let output = '';
-  let inBracket = false;
-
-  for (const char of text) {
-    if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
-      continue;
-    }
-
-    if (inBracket) {
-      // Inside brackets - this is the kana reading
-      output += char;
-      continue;
-    }
-
-    // Outside brackets - only include if it's already kana or punctuation
-    const isHiragana = char >= '\u3040' && char <= '\u309F';
-    const isKatakana = char >= '\u30A0' && char <= '\u30FF';
-    const isPunctuation = /[、。！？\s]/.test(char);
-
-    if (isHiragana || isKatakana || isPunctuation) {
-      output += char;
-    }
-  }
-
-  return output;
-}
-
-/**
- * Extract the reading for a vocabulary word from the parent exchange's reading
- * This ensures we use the correct pronunciation in context rather than isolated
+ * Extract the reading for a vocabulary word from the parent exchange's reading.
+ * Only works with bracket-notation furigana (e.g. "北海道[ほっかいどう]に行[い]きました").
+ * Returns undefined for pure kana readings since kanji→kana mapping can't be inferred reliably.
  *
  * Example:
- * - Exchange text: "北海道に行きました"
- * - Exchange reading: "北[ほっ]海[かい]道[どう]に行[い]きました"
+ * - Exchange reading: "この前[まえ]北海道[ほっかいどう]に行[い]ったって言[い]ってたよね？"
  * - Vocab word: "北海道"
- * - Returns: "北[ほっ]海[かい]道[どう]"
+ * - Returns: "ほっかいどう"
  */
 function extractVocabReadingFromContext(
   vocabWord: string,
-  exchangeText: string,
+  _exchangeText: string,
   exchangeReading: string | null
 ): string | undefined {
-  if (!exchangeReading || !vocabWord || !exchangeText) {
+  if (!exchangeReading || !vocabWord) {
     return undefined;
   }
 
-  // Find the position of the vocab word in the exchange text
-  const vocabIndex = exchangeText.indexOf(vocabWord);
-  if (vocabIndex === -1) {
+  // Only attempt extraction from bracket-notation furigana.
+  // Pure kana readings can't reliably map back to kanji substrings
+  // (kanji→kana is not 1:1 in character count, so position-based slicing breaks).
+  if (!exchangeReading.includes('[')) {
     return undefined;
   }
 
-  // Build a position map from exchange text to reading positions
-  let textPos = 0;
-  const readingParts: string[] = [];
+  // Parse bracket notation into (surface, reading) pairs
+  const rawUnits = parseFuriganaUnits(exchangeReading);
+  if (rawUnits.length === 0) {
+    return undefined;
+  }
 
-  // Parse the reading character by character
-  let i = 0;
-  while (i < exchangeReading.length && textPos < exchangeText.length) {
-    if (exchangeReading[i] === '[') {
-      // Found furigana - consume until ]
-      let furigana = '';
-      i++; // Skip [
-      while (i < exchangeReading.length && exchangeReading[i] !== ']') {
-        furigana += exchangeReading[i];
-        i++;
+  // Split plain-text units (surface === reading) into individual characters
+  // so vocab words that span a kanji unit + adjacent kana can be found.
+  // e.g. 特[とく]にラーメン → units "特"/"とく" + "に"/"に" + "ラ"/"ラ" ...
+  const units: { surface: string; reading: string }[] = [];
+  for (const u of rawUnits) {
+    if (u.surface === u.reading && u.surface.length > 1) {
+      for (const ch of u.surface) {
+        units.push({ surface: ch, reading: ch });
       }
-      i++; // Skip ]
-
-      // Add the previous kanji with its furigana
-      if (readingParts.length > 0) {
-        const lastPart = readingParts[readingParts.length - 1];
-        if (!lastPart.includes('[')) {
-          readingParts[readingParts.length - 1] = `${lastPart}[${furigana}]`;
-        }
-      }
-
-      textPos++; // The kanji in the original text
-      continue;
-    }
-
-    // Regular character
-    if (textPos >= vocabIndex && textPos < vocabIndex + vocabWord.length) {
-      readingParts.push(exchangeReading[i]);
-    }
-
-    if (exchangeText[textPos] === exchangeReading[i]) {
-      // Characters match - advance both
-      textPos++;
-      i++;
     } else {
-      // Mismatch - might be a kanji with furigana coming
-      if (textPos >= vocabIndex && textPos < vocabIndex + vocabWord.length) {
-        readingParts.push(exchangeText[textPos]);
-      }
-      textPos++;
-      i++;
+      units.push(u);
     }
   }
 
-  // Extract the portion of the reading that corresponds to the vocab word
-  // This is a simplified approach - for production, use a proper furigana parser
-  const vocabEndIndex = vocabIndex + vocabWord.length;
+  // Find contiguous units whose surfaces concatenate to the vocab word
+  const target = vocabWord.trim();
+  if (!target) return undefined;
 
-  // Try to extract the substring with furigana intact
-  let extractedReading = '';
-  let currentTextPos = 0;
-  let readingIndex = 0;
+  for (let start = 0; start < units.length; start++) {
+    let surface = '';
+    let reading = '';
 
-  while (readingIndex < exchangeReading.length && currentTextPos < vocabEndIndex) {
-    if (exchangeReading[readingIndex] === '[') {
-      // Copy the furigana if we're in the vocab range
-      if (currentTextPos >= vocabIndex && currentTextPos < vocabEndIndex) {
-        let furiganaPart = '[';
-        readingIndex++;
-        while (readingIndex < exchangeReading.length && exchangeReading[readingIndex] !== ']') {
-          furiganaPart += exchangeReading[readingIndex];
-          readingIndex++;
-        }
-        furiganaPart += ']';
-        readingIndex++; // Skip ]
-        extractedReading += furiganaPart;
-      } else {
-        // Skip furigana outside vocab range
-        while (readingIndex < exchangeReading.length && exchangeReading[readingIndex] !== ']') {
-          readingIndex++;
-        }
-        readingIndex++; // Skip ]
+    for (let end = start; end < units.length; end++) {
+      surface += units[end].surface;
+      reading += units[end].reading;
+
+      if (surface === target) {
+        return reading;
       }
-      currentTextPos++;
-      continue;
+      if (surface.length >= target.length) {
+        break;
+      }
     }
-
-    // Regular character
-    if (currentTextPos >= vocabIndex && currentTextPos < vocabEndIndex) {
-      extractedReading += exchangeReading[readingIndex];
-    }
-
-    currentTextPos++;
-    readingIndex++;
   }
 
-  return extractedReading.trim() || undefined;
+  return undefined;
+}
+
+/**
+ * Estimate learner recall pause duration based on phrase length.
+ * Short (single word) → 3s, medium phrase → 5s, full sentence → 7s.
+ * Uses character count which works well for Japanese and other languages.
+ */
+function estimateRecallPause(text: string): number {
+  const len = text.length;
+  if (len <= 6) return 3;
+  if (len <= 15) return 5;
+  return 7;
 }
 
 interface ConversationalScriptContext {
@@ -175,8 +103,7 @@ export interface GeneratedConversationalScript {
  * Generate a Pimsleur-style conversational lesson script
  * Follows the format: scenario setup → dialogue exchange → vocabulary breakdown → build up response → next exchange
  */
-const REVIEW_ANTICIPATION_SECONDS = 5.0;
-const REVIEW_REPEAT_PAUSE_SECONDS = 2.5;
+const REVIEW_REPEAT_PAUSE_SECONDS = 3.0;
 const REVIEW_SLOW_SPEED = 0.85;
 const MIN_DURATION_RATIO = 0.9;
 const MAX_DURATION_RATIO = 1.05;
@@ -377,7 +304,7 @@ function generateQuestionUnits(
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
         },
-        { type: 'pause', seconds: 1.0 },
+        { type: 'pause', seconds: 3.0 },
         // Second repetition
         {
           type: 'L2',
@@ -394,7 +321,7 @@ function generateQuestionUnits(
       introducedVocab.add(vocabItem.textL2);
     }
 
-    // After vocabulary breakdown, present full phrase: slow → pause → normal
+    // After vocabulary breakdown, present full phrase twice at normal speed
     units.push(
       {
         type: 'narration_L1',
@@ -408,9 +335,9 @@ function generateQuestionUnits(
         reading: exchange.readingL2 || undefined,
         translation: exchange.translationL1,
         voiceId: exchange.speakerVoiceId,
-        speed: 0.75,
+        speed: 1.0,
       },
-      { type: 'pause', seconds: 1.5 },
+      { type: 'pause', seconds: 3.0 },
       {
         type: 'L2',
         text: exchange.textL2,
@@ -436,7 +363,7 @@ async function generateProgressivePhraseChunks(
   fullTextL2: string,
   fullTranslation: string,
   vocabularyItems: VocabularyItem[],
-  targetLanguage: string
+  _targetLanguage: string
 ): Promise<Array<{ textL2: string; translation: string }>> {
   if (vocabularyItems.length <= 1) {
     // Too few items to build progressive chunks
@@ -447,24 +374,31 @@ async function generateProgressivePhraseChunks(
     .map((v, i) => `${i + 1}. "${v.textL2}" (${v.translationL1})`)
     .join('\n');
 
-  const prompt = `You are a language teaching expert using the Pimsleur Method's progressive phrase building technique.
+  const prompt = `You are a language teaching expert using the Pimsleur Method's backward-build technique.
 
 Full sentence: "${fullTextL2}" (${fullTranslation})
 
-Vocabulary items to combine:
+Vocabulary items already taught individually (listed right-to-left from the sentence):
 ${vocabList}
 
-Create 2-4 progressive phrase chunks that build up from the vocabulary items to the full sentence. Each chunk should:
-- Combine 2-3 vocabulary items into a meaningful phrase
-- Be progressively longer, building toward the full sentence
-- Be natural and grammatically correct in ${targetLanguage.toUpperCase()}
-- Each phrase should be a stepping stone to the next
+Create 2-4 progressive phrase chunks that build up from the END of the sentence toward the beginning.
 
-Example for "About 2 weeks. It was my first long trip":
-1. "long trip" → "long trip"
-2. "first long trip" → "first long trip"
-3. "about 2 weeks" → "about 2 weeks"
-4. "about 2 weeks. first long trip" → "about 2 weeks. it was my first long trip"
+Rules:
+- Build RIGHT-TO-LEFT: start with items near the end of the sentence, progressively add items toward the beginning
+- Every chunk must COMBINE multiple vocabulary items — never repeat a single word that was already taught individually
+- Every chunk must be grammatically complete and natural-sounding
+- GOOD chunks: complete clauses, verb phrases with particles, adverb+predicate combinations
+- BAD chunks: dangling subjects without predicates, objects split from their verbs, incomplete grammar
+- The final chunk should be the complete sentence
+
+Example for Japanese sentence "初めての長い旅でした" (It was my first long trip):
+Vocab taught: 旅 (trip), 長い (long), 初めて (first time)
+GOOD chunks:
+1. "長い旅" (long trip) — combines two end-of-sentence vocab items
+2. "初めての長い旅でした" (it was my first long trip) — full sentence
+BAD chunks:
+- "初めての" alone (dangling — grammatically incomplete, no predicate)
+- "旅でした" (just repeats single vocab 旅 with copula)
 
 Return ONLY a JSON array (no markdown, no explanation):
 [
@@ -573,7 +507,7 @@ async function generateResponseTeachingUnits(
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
         },
-        { type: 'pause', seconds: 1.0 },
+        { type: 'pause', seconds: 3.0 },
         // Second repetition
         {
           type: 'L2',
@@ -611,11 +545,11 @@ async function generateResponseTeachingUnits(
           text: normalizeNarratorText(`Now say: "${chunk.translation}".`),
           voiceId: context.l1VoiceId,
         },
-        { type: 'pause', seconds: 2.5 }, // Pause for learner to try
+        { type: 'pause', seconds: estimateRecallPause(chunk.textL2) },
         {
           type: 'L2',
           text: chunk.textL2,
-          reading: undefined, // Could enhance to get reading
+          reading: undefined,
           translation: chunk.translation,
           voiceId: exchange.speakerVoiceId,
           speed: 1.0,
@@ -624,7 +558,7 @@ async function generateResponseTeachingUnits(
       );
     }
 
-    // STEP 3: Full phrase presentation (UPDATED!)
+    // STEP 3: Full phrase presentation
     units.push(
       {
         type: 'narration_L1',
@@ -640,7 +574,7 @@ async function generateResponseTeachingUnits(
         voiceId: exchange.speakerVoiceId,
         speed: 1.0,
       },
-      { type: 'pause', seconds: 2.5 }, // Pause for learner to try
+      { type: 'pause', seconds: estimateRecallPause(exchange.textL2) },
       {
         type: 'L2',
         text: exchange.textL2,
@@ -732,7 +666,7 @@ function normalizeNarratorText(text: string): string {
   // Example: "In or at" becomes "In, or at,"
   normalized = normalized.replace(
     /"([^"]+)\s+or\s+([^"]+)"/g,
-    (match, before, after) => `"${before.trim()}, or ${after.trim()},"`
+    (_match, before, after) => `"${before.trim()}, or ${after.trim()},"`
   );
 
   // Add comma before " is:" at the end of phrases for natural pause
@@ -766,22 +700,6 @@ function estimateUnitsDuration(units: LessonScriptUnit[]): number {
   }
 
   return duration;
-}
-
-function isHiragana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x3040 && code <= 0x309f;
-}
-
-function isKatakana(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x30a0 && code <= 0x30ff;
-}
-
-function _isKana(char: string): boolean {
-  return isHiragana(char) || isKatakana(char);
 }
 
 function normalizeL2TextForEstimate(unit: LessonScriptUnit): string {
@@ -877,7 +795,7 @@ function buildReviewRoundUnits(
         text: normalizeNarratorText(`How do you say: "${exchange.translationL1}"?`),
         voiceId: context.l1VoiceId,
       },
-      { type: 'pause', seconds: REVIEW_ANTICIPATION_SECONDS },
+      { type: 'pause', seconds: estimateRecallPause(exchange.textL2) },
       {
         type: 'L2',
         text: exchange.textL2,
