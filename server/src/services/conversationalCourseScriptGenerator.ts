@@ -1,6 +1,7 @@
 import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { LessonScriptUnit } from './courseScriptGenerator.js';
 import { generateWithGemini } from './geminiClient.js';
+import { buildSpeakerIntro } from './speakerNarration.js';
 
 /**
  * Convert furigana notation to pure kana for TTS
@@ -176,7 +177,7 @@ function generateQuestionUnits(
   units.push(
     {
       type: 'narration_L1',
-      text: `${exchange.relationshipName} says:`,
+      text: buildSpeakerIntro(exchange),
       voiceId: context.l1VoiceId,
     },
     { type: 'pause', seconds: 0.5 },
@@ -205,7 +206,6 @@ function generateQuestionUnits(
       introducedVocab,
       context.jlptLevel
     );
-
 
     for (const vocabItem of vocabToTeach) {
       units.push(
@@ -385,7 +385,6 @@ async function generateResponseTeachingUnits(
       introducedVocab,
       context.jlptLevel
     );
-
 
     // STEP 1: Teach each vocabulary item individually
     for (const vocabItem of vocabToTeach) {

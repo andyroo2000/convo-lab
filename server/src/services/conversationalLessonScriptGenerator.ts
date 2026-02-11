@@ -2,6 +2,7 @@ import { DialogueExchange, VocabularyItem } from './courseItemExtractor.js';
 import { generateWithGemini } from './geminiClient.js';
 import { LessonScriptUnit } from './lessonScriptGenerator.js';
 import { parseFuriganaUnits, stripFuriganaToKana } from './pronunciation/furiganaUtils.js';
+import { buildSpeakerIntro } from './speakerNarration.js';
 
 /**
  * Extract the reading for a vocabulary word from the parent exchange's reading.
@@ -251,7 +252,7 @@ function generateQuestionUnits(
   units.push(
     {
       type: 'narration_L1',
-      text: `${exchange.relationshipName} says:`,
+      text: buildSpeakerIntro(exchange),
       voiceId: context.l1VoiceId,
     },
     { type: 'pause', seconds: 0.5 },
