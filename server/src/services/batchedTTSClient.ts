@@ -1,5 +1,6 @@
 // eslint-disable-next-line import/no-named-as-default-member
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
 
 import { getProviderFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
@@ -627,7 +628,7 @@ async function truncateAudioBuffer(
       ffmpeg(inputPath)
         .setDuration(maxSeconds)
         .output(outputPath)
-        .on('end', resolve)
+        .on('end', () => resolve())
         .on('error', reject)
         .run();
     });
@@ -903,7 +904,7 @@ export async function synthesizeBatchedTexts(
     const segments = new Map<number, Buffer>();
 
     for (const subBatch of batches) {
-      const subSegments = await synthesizeFishAudioBatch(subBatch);
+      const subSegments = await synthesizeFishAudioBatch(subBatch, os.tmpdir());
       for (const [index, buffer] of subSegments) {
         segments.set(index, buffer);
       }
