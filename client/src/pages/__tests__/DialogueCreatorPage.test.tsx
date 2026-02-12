@@ -35,9 +35,9 @@ describe('DialogueCreatorPage', () => {
     expect(screen.getByTestId('dialogue-generator')).toBeInTheDocument();
   });
 
-  it('should have border styling on header', () => {
+  it('should render retro header shell', () => {
     renderPage();
-    const header = document.querySelector('.border-b-4.border-periwinkle');
+    const header = document.querySelector('.retro-dialogue-create-v3-top');
     expect(header).toBeInTheDocument();
   });
 });

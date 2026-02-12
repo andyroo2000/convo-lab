@@ -737,16 +737,16 @@ describe('DialogueGenerator', () => {
   });
 
   describe('styling', () => {
-    it('should have border-periwinkle on form sections', () => {
+    it('should render retro dialogue sections', () => {
       renderDialogueGenerator();
-      const sections = document.querySelectorAll('.border-periwinkle');
+      const sections = document.querySelectorAll('.retro-dialogue-create-v3-section');
       expect(sections.length).toBeGreaterThan(0);
     });
 
-    it('should have max-w-4xl container', () => {
+    it('should render retro generator container', () => {
       const { container } = renderDialogueGenerator();
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper.className).toContain('max-w-4xl');
+      expect(wrapper.className).toContain('retro-dialogue-create-v3-generator');
     });
   });
 

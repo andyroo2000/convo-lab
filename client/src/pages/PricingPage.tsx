@@ -1,16 +1,23 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
+import { Check, Library, Mic } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_URL } from '../config';
+import Logo from '../components/common/Logo';
+import UserMenu from '../components/common/UserMenu';
 
 const PricingPage = () => {
-  const { t } = useTranslation('pricing');
-  const { user } = useAuth();
+  const { t } = useTranslation(['pricing', 'common']);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const handleUpgrade = async (priceId: string) => {
     if (!user) {
@@ -109,84 +116,129 @@ const PricingPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-cream">
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-dark-brown mb-4">{t('title')}</h1>
-          <p className="text-lg text-medium-brown max-w-2xl mx-auto">{t('subtitle')}</p>
-        </div>
-
-        {error && (
-          <div className="max-w-2xl mx-auto mb-8 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600">
-            {error}
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {tiers.map((tier) => (
-            <div
-              key={tier.name}
-              className={`relative card ${tier.popular ? 'ring-2 ring-periwinkle' : ''}`}
-            >
-              {tier.popular && (
-                <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-periwinkle text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    {t('badges.popular')}
-                  </span>
-                </div>
-              )}
-
-              {tier.current && (
-                <div className="absolute -top-4 right-4">
-                  <span className="bg-green-500 text-white px-4 py-1 rounded-full text-sm font-semibold">
-                    {t('badges.current')}
-                  </span>
-                </div>
-              )}
-
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-dark-brown mb-2">{tier.name}</h2>
-                <p className="text-medium-brown text-sm mb-4">{tier.description}</p>
-                <div className="flex items-baseline">
-                  <span className="text-5xl font-bold text-dark-brown">{tier.price}</span>
-                  <span className="text-medium-brown ml-2">{tier.period}</span>
-                </div>
+    <div className="min-h-screen bg-cream retro-shell">
+      <nav className="sticky top-0 z-20 bg-periwinkle retro-topbar">
+        <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-[4.5rem] items-center justify-between gap-3">
+            <div className="flex items-center min-w-0 gap-2 sm:gap-6">
+              <Link to={user ? '/app/library' : '/'} className="flex items-center px-2">
+                <Logo size="small" showKana showIcons={false} />
+              </Link>
+              <div className="hidden sm:flex h-[4.5rem] items-center gap-2">
+                <Link
+                  to="/app/library"
+                  className="retro-nav-tab relative inline-flex items-center justify-center text-white hover:bg-white/20"
+                >
+                  <Library className="w-5 h-5 mr-2.5 flex-shrink-0" />
+                  {t('common:nav.library')}
+                </Link>
+                <Link
+                  to="/app/create"
+                  className="retro-nav-tab relative inline-flex items-center justify-center text-white hover:bg-white/20"
+                >
+                  <Mic className="w-5 h-5 mr-2.5 flex-shrink-0" />
+                  {t('common:nav.create')}
+                </Link>
               </div>
-
-              <ul className="space-y-3 mb-8">
-                {tier.features.map((feature, index) => (
-                  // eslint-disable-next-line react/no-array-index-key
-                  <li key={index} className="flex items-start">
-                    <Check className="w-5 h-5 text-green-500 mr-3 flex-shrink-0 mt-0.5" />
-                    <span className="text-dark-brown">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button type="button"
-                onClick={tier.ctaAction}
-                disabled={tier.ctaDisabled || loading}
-                className={`btn-primary w-full ${
-                  tier.ctaDisabled || loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading && tier.ctaAction ? t('actions.loading') : tier.cta}
-              </button>
             </div>
-          ))}
-        </div>
 
-        <div className="mt-12 text-center">
-          <p className="text-medium-brown mb-4">{t('footer.inviteOnly')}</p>
-          <p className="text-sm text-gray-500">
-            {t('footer.questions')}{' '}
-            <a
-              href="mailto:support@convolab.app"
-              className="text-periwinkle hover:text-dark-periwinkle"
-            >
-              {t('footer.contact')}
-            </a>
-          </p>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <UserMenu
+                  userName={user.displayName || user.name || user.email || 'User'}
+                  avatarColor={user.avatarColor}
+                  avatarUrl={user.avatarUrl}
+                  userRole={user.role || 'user'}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <Link to="/login" className="retro-nav-tab">
+                  Login
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <div className="retro-pricing-v3-wrap">
+        <div className="retro-pricing-v3-shell max-w-7xl xl:max-w-[96rem] mx-auto">
+          <div className="retro-pricing-v3-top">
+            <div className="retro-pricing-v3-branding">
+              <h1 className="retro-pricing-v3-title">{t('pricing:title')}</h1>
+              <p className="retro-pricing-v3-subtitle">{t('pricing:subtitle')}</p>
+            </div>
+          </div>
+
+          <section className="retro-pricing-v3-main">
+            {error && <div className="retro-pricing-v3-alert">{error}</div>}
+
+            <div className="retro-pricing-v3-grid">
+              {tiers.map((tier) => (
+                <div
+                  key={tier.name}
+                  className={`retro-pricing-v3-card retro-paper-panel ${
+                    tier.popular ? 'is-popular' : ''
+                  }`}
+                >
+                  <div
+                    className={`retro-pricing-v3-card-head ${tier.popular ? 'is-pro' : 'is-free'}`}
+                  >
+                    <div className="retro-pricing-v3-badge-row">
+                      {tier.popular && (
+                        <span className="retro-pricing-v3-badge is-popular">
+                          {t('pricing:badges.popular')}
+                        </span>
+                      )}
+                      {tier.current && (
+                        <span className="retro-pricing-v3-badge is-current">
+                          {t('pricing:badges.current')}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="retro-pricing-v3-card-title">{tier.name}</h2>
+                  </div>
+
+                  <div className="retro-pricing-v3-card-body">
+                    <p className="retro-pricing-v3-card-description">{tier.description}</p>
+                    <div className="retro-pricing-v3-price-row">
+                      <span className="retro-pricing-v3-price">{tier.price}</span>
+                      <span className="retro-pricing-v3-period">{tier.period}</span>
+                    </div>
+
+                    <ul className="retro-pricing-v3-feature-list">
+                      {tier.features.map((feature, index) => (
+                        // eslint-disable-next-line react/no-array-index-key
+                        <li key={index} className="retro-pricing-v3-feature">
+                          <Check className="retro-pricing-v3-feature-icon" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <button
+                      type="button"
+                      onClick={tier.ctaAction}
+                      disabled={tier.ctaDisabled || loading}
+                      className={`retro-pricing-v3-cta ${tier.ctaDisabled || loading ? 'is-disabled' : ''}`}
+                    >
+                      {loading && tier.ctaAction ? t('pricing:actions.loading') : tier.cta}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="retro-pricing-v3-foot">
+              <p>{t('pricing:footer.inviteOnly')}</p>
+              <p>
+                {t('pricing:footer.questions')}{' '}
+                <a href="mailto:support@convolab.app" className="retro-pricing-v3-foot-link">
+                  {t('pricing:footer.contact')}
+                </a>
+              </p>
+            </div>
+          </section>
         </div>
       </div>
     </div>

@@ -359,18 +359,14 @@ const DialogueGenerator = () => {
 
   if (step === 'generating') {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
-          <div className="loading-spinner w-16 h-16 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-8" />
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">
-            {t('dialogue:generating.title')}
-          </h2>
-          <p className="text-xl text-gray-600">{t('dialogue:generating.description')}</p>
-          {error && (
-            <div className="mt-8 p-6 bg-red-50 border-l-4 border-red-500 text-red-700 text-lg font-medium">
-              {error}
-            </div>
-          )}
+      <div className="retro-dialogue-create-v3-generator">
+        <div className="retro-dialogue-create-v3-state">
+          <div className="loading-spinner retro-dialogue-create-v3-spinner" />
+          <h2 className="retro-dialogue-create-v3-state-title">{t('dialogue:generating.title')}</h2>
+          <p className="retro-dialogue-create-v3-state-copy">
+            {t('dialogue:generating.description')}
+          </p>
+          {error && <div className="retro-dialogue-create-v3-alert is-error">{error}</div>}
         </div>
       </div>
     );
@@ -378,11 +374,11 @@ const DialogueGenerator = () => {
 
   if (step === 'complete') {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white border-l-8 border-periwinkle p-12 shadow-sm text-center">
-          <div className="w-20 h-20 bg-periwinkle rounded-full flex items-center justify-center mx-auto mb-8">
+      <div className="retro-dialogue-create-v3-generator">
+        <div className="retro-dialogue-create-v3-state">
+          <div className="retro-dialogue-create-v3-check">
             <svg
-              className="w-10 h-10 text-white"
+              className="retro-dialogue-create-v3-check-icon"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -395,25 +391,27 @@ const DialogueGenerator = () => {
               />
             </svg>
           </div>
-          <h2 className="text-3xl font-bold text-dark-brown mb-3">
-            {t('dialogue:complete.title')}
-          </h2>
-          <p className="text-xl text-gray-600 mb-6">
+          <h2 className="retro-dialogue-create-v3-state-title">{t('dialogue:complete.title')}</h2>
+          <p className="retro-dialogue-create-v3-state-copy">
             {courseError
               ? t('dialogue:complete.courseFailureSubtitle')
               : t('dialogue:complete.redirecting')}
           </p>
           {courseError && (
-            <div className="mt-6 p-6 bg-amber-50 border-l-4 border-amber-500 text-amber-900 text-left">
-              <p className="text-base font-semibold">{t('dialogue:complete.courseFailureTitle')}</p>
-              <p className="mt-2 text-sm">{t('dialogue:complete.courseFailureBody')}</p>
-              <p className="mt-3 text-xs text-amber-800">
+            <div className="retro-dialogue-create-v3-alert is-warning">
+              <p className="retro-dialogue-create-v3-alert-title">
+                {t('dialogue:complete.courseFailureTitle')}
+              </p>
+              <p className="retro-dialogue-create-v3-alert-copy">
+                {t('dialogue:complete.courseFailureBody')}
+              </p>
+              <p className="retro-dialogue-create-v3-alert-detail">
                 {t('dialogue:complete.courseFailureDetail', { message: courseError })}
               </p>
               {generatedEpisodeId && (
                 <button
                   type="button"
-                  className="mt-4 inline-flex items-center px-4 py-2 bg-periwinkle text-white text-sm font-semibold rounded-lg shadow-sm hover:bg-periwinkle-dark"
+                  className="retro-dialogue-create-v3-alert-btn"
                   onClick={() => navigate(`/app/playback/${generatedEpisodeId}`)}
                 >
                   {t('dialogue:complete.courseFailureCta')}
@@ -431,43 +429,37 @@ const DialogueGenerator = () => {
   const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="space-y-6 retro-dialogue-create-v3-generator">
       {/* Episode Details */}
-      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">{t('dialogue:form.yourStory')}</h2>
+      <section className="retro-dialogue-create-v3-section">
+        <h2 className="retro-dialogue-create-v3-section-title">{t('dialogue:form.yourStory')}</h2>
 
         <div className="space-y-6">
           <div>
-            <label
-              htmlFor="dialogue-source-text"
-              className="block text-base font-bold text-dark-brown mb-3"
-            >
+            <label htmlFor="dialogue-source-text" className="retro-dialogue-create-v3-label">
               {t('dialogue:form.whatToTalkAbout')} *
             </label>
             <textarea
               id="dialogue-source-text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-40"
+              className="retro-dialogue-create-v3-input retro-dialogue-create-v3-textarea"
               placeholder={t('dialogue:form.storyPlaceholder')}
               data-testid="dialogue-input-source-text"
             />
-            <p className="text-sm text-gray-500 mt-2">{t('dialogue:form.storyHelper')}</p>
+            <p className="retro-dialogue-create-v3-helper">{t('dialogue:form.storyHelper')}</p>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label
-                htmlFor="dialogue-length"
-                className="block text-base font-bold text-dark-brown mb-2"
-              >
+              <label htmlFor="dialogue-length" className="retro-dialogue-create-v3-label">
                 {t('dialogue:form.conversationLength')}
               </label>
               <select
                 id="dialogue-length"
                 value={dialogueLength}
                 onChange={(e) => setDialogueLength(parseInt(e.target.value, 10))}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+                className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                 data-testid="dialogue-select-length"
               >
                 <option value="8">{t('dialogue:form.turns', { count: 8 })}</option>
@@ -479,17 +471,14 @@ const DialogueGenerator = () => {
 
             {targetLanguage === 'ja' && (
               <div>
-                <label
-                  htmlFor="dialogue-jlpt-level"
-                  className="block text-base font-bold text-dark-brown mb-2"
-                >
+                <label htmlFor="dialogue-jlpt-level" className="retro-dialogue-create-v3-label">
                   {t('dialogue:form.targetJLPT')}
                 </label>
                 <select
                   id="dialogue-jlpt-level"
                   value={jlptLevel}
                   onChange={(e) => setJlptLevel(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+                  className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                   data-testid="dialogue-select-jlpt-level"
                 >
                   <option value="N5">{t('dialogue:form.jlpt.n5')}</option>
@@ -502,17 +491,14 @@ const DialogueGenerator = () => {
             )}
 
             <div>
-              <label
-                htmlFor="dialogue-tone"
-                className="block text-base font-bold text-dark-brown mb-2"
-              >
+              <label htmlFor="dialogue-tone" className="retro-dialogue-create-v3-label">
                 {t('dialogue:form.tone')}
               </label>
               <select
                 id="dialogue-tone"
                 value={tone}
                 onChange={(e) => setTone(e.target.value as ToneStyle)}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+                className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                 data-testid="dialogue-select-tone"
               >
                 <option value="casual">{t('dialogue:form.tones.casual')}</option>
@@ -522,15 +508,15 @@ const DialogueGenerator = () => {
             </div>
 
             {targetLanguage === 'ja' && (
-              <div className="border-t-2 border-gray-200 pt-6">
-                <h3 className="text-base font-bold text-dark-brown mb-4">
+              <div className="retro-dialogue-create-v3-divider">
+                <h3 className="retro-dialogue-create-v3-subtitle-title">
                   {t('dialogue:form.seedOverrides')}
                 </h3>
                 <div className="space-y-4">
                   <div>
                     <label
                       htmlFor="dialogue-vocab-seeds"
-                      className="block text-sm font-semibold text-dark-brown mb-2"
+                      className="retro-dialogue-create-v3-label is-small"
                     >
                       {t('dialogue:form.vocabSeeds')}
                     </label>
@@ -538,14 +524,14 @@ const DialogueGenerator = () => {
                       id="dialogue-vocab-seeds"
                       value={vocabSeedOverride}
                       onChange={(e) => setVocabSeedOverride(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-28"
+                      className="retro-dialogue-create-v3-input retro-dialogue-create-v3-textarea is-short"
                       placeholder={t('dialogue:form.vocabSeedsPlaceholder')}
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="dialogue-grammar-seeds"
-                      className="block text-sm font-semibold text-dark-brown mb-2"
+                      className="retro-dialogue-create-v3-label is-small"
                     >
                       {t('dialogue:form.grammarSeeds')}
                     </label>
@@ -553,21 +539,23 @@ const DialogueGenerator = () => {
                       id="dialogue-grammar-seeds"
                       value={grammarSeedOverride}
                       onChange={(e) => setGrammarSeedOverride(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base h-28"
+                      className="retro-dialogue-create-v3-input retro-dialogue-create-v3-textarea is-short"
                       placeholder={t('dialogue:form.grammarSeedsPlaceholder')}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">{t('dialogue:form.seedHelper')}</p>
+                  <p className="retro-dialogue-create-v3-helper is-small">
+                    {t('dialogue:form.seedHelper')}
+                  </p>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Voice Configuration */}
-      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-6">
+      <section className="retro-dialogue-create-v3-section">
+        <h2 className="retro-dialogue-create-v3-section-title">
           {t('dialogue:voiceConfig.title')}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -575,7 +563,7 @@ const DialogueGenerator = () => {
             <div key={`${speaker.name}-${speaker.voiceId}`}>
               <label
                 htmlFor={`dialogue-speaker-${index + 1}-voice`}
-                className="block text-base font-bold text-dark-brown mb-2"
+                className="retro-dialogue-create-v3-label"
               >
                 {t('dialogue:voiceConfig.speaker', { number: index + 1 })}
               </label>
@@ -595,7 +583,7 @@ const DialogueGenerator = () => {
                     )
                   );
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
+                className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
               >
                 {targetVoices.map((voice) => (
                   <option key={voice.id} value={voice.id}>
@@ -607,74 +595,74 @@ const DialogueGenerator = () => {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-500 mt-3">{t('dialogue:voiceConfig.helper')}</p>
-      </div>
+        <p className="retro-dialogue-create-v3-helper is-small">
+          {t('dialogue:voiceConfig.helper')}
+        </p>
+      </section>
 
       {/* Audio Settings */}
-      <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm">
-        <h2 className="text-2xl font-bold text-dark-brown mb-4">
+      <section className="retro-dialogue-create-v3-section">
+        <h2 className="retro-dialogue-create-v3-section-title">
           {t('dialogue:audioSettings.title')}
         </h2>
-        <div className="flex items-center justify-between gap-4">
+        <div className="retro-dialogue-create-v3-toggle-row">
           <div>
-            <p className="text-base font-semibold text-dark-brown">
+            <p className="retro-dialogue-create-v3-toggle-title">
               {t('dialogue:audioSettings.autoTitle')}
             </p>
-            <p className="text-sm text-gray-500">{t('dialogue:audioSettings.autoHelper')}</p>
+            <p className="retro-dialogue-create-v3-helper">
+              {t('dialogue:audioSettings.autoHelper')}
+            </p>
           </div>
-          <label
-            htmlFor="dialogue-auto-audio"
-            className="relative inline-flex items-center cursor-pointer"
-          >
+          <label htmlFor="dialogue-auto-audio" className="retro-dialogue-create-v3-switch">
             <input
               id="dialogue-auto-audio"
               type="checkbox"
               checked={autoGenerateAudio}
               onChange={(e) => setAutoGenerateAudio(e.target.checked)}
-              className="sr-only peer"
+              className="retro-dialogue-create-v3-switch-input sr-only"
               aria-label={t('dialogue:audioSettings.autoTitle')}
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-periwinkle-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-periwinkle" />
+            <span className="retro-dialogue-create-v3-switch-track" />
           </label>
         </div>
-      </div>
+      </section>
 
       {/* Optional Audio Course */}
       {audioCourseEnabled && (
-        <div className="bg-white border-l-8 border-coral p-8 shadow-sm">
-          <h2 className="text-2xl font-bold text-dark-brown mb-4">
+        <section className="retro-dialogue-create-v3-section is-course">
+          <h2 className="retro-dialogue-create-v3-section-title">
             {t('dialogue:audioCourse.title')}
           </h2>
-          <div className="flex items-center justify-between gap-4">
+          <div className="retro-dialogue-create-v3-toggle-row">
             <div>
-              <p className="text-base font-semibold text-dark-brown">
+              <p className="retro-dialogue-create-v3-toggle-title">
                 {t('dialogue:audioCourse.toggleTitle')}
               </p>
-              <p className="text-sm text-gray-500">{t('dialogue:audioCourse.toggleHelper')}</p>
+              <p className="retro-dialogue-create-v3-helper">
+                {t('dialogue:audioCourse.toggleHelper')}
+              </p>
             </div>
             <label
               htmlFor="dialogue-create-audio-course"
-              className="relative inline-flex items-center cursor-pointer"
+              className="retro-dialogue-create-v3-switch"
             >
               <input
                 id="dialogue-create-audio-course"
                 type="checkbox"
                 checked={createAudioCourse}
                 onChange={(e) => setCreateAudioCourse(e.target.checked)}
-                className="sr-only peer"
+                className="retro-dialogue-create-v3-switch-input sr-only"
                 aria-label={t('dialogue:audioCourse.toggleTitle')}
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-coral-light rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-coral" />
+              <span className="retro-dialogue-create-v3-switch-track is-course" />
             </label>
           </div>
 
           {createAudioCourse && (
             <div className="mt-6 space-y-6">
               <div>
-                <label
-                  htmlFor="dialogue-course-title"
-                  className="block text-base font-bold text-dark-brown mb-2"
-                >
+                <label htmlFor="dialogue-course-title" className="retro-dialogue-create-v3-label">
                   {t('dialogue:audioCourse.courseTitle')}
                 </label>
                 <input
@@ -682,7 +670,7 @@ const DialogueGenerator = () => {
                   type="text"
                   value={courseTitle}
                   onChange={(e) => setCourseTitle(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                  className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                   placeholder={t('dialogue:audioCourse.courseTitlePlaceholder')}
                 />
               </div>
@@ -690,7 +678,7 @@ const DialogueGenerator = () => {
               <div>
                 <label
                   htmlFor="dialogue-course-narrator"
-                  className="block text-base font-bold text-dark-brown mb-2"
+                  className="retro-dialogue-create-v3-label"
                 >
                   {t('dialogue:audioCourse.narratorLabel')}
                 </label>
@@ -698,7 +686,7 @@ const DialogueGenerator = () => {
                   id="dialogue-course-narrator"
                   value={courseNarratorVoice}
                   onChange={(e) => setCourseNarratorVoice(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                  className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                 >
                   {narratorVoiceChoices.map((voice) => (
                     <option key={voice.id} value={voice.id}>
@@ -712,7 +700,7 @@ const DialogueGenerator = () => {
               <div>
                 <label
                   htmlFor="dialogue-course-duration"
-                  className="block text-base font-bold text-dark-brown mb-2"
+                  className="retro-dialogue-create-v3-label"
                 >
                   {t('dialogue:audioCourse.maxDuration')}
                 </label>
@@ -720,7 +708,7 @@ const DialogueGenerator = () => {
                   id="dialogue-course-duration"
                   value={courseMaxDuration}
                   onChange={(e) => setCourseMaxDuration(parseInt(e.target.value, 10))}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-coral focus:outline-none text-base"
+                  className="retro-dialogue-create-v3-input retro-dialogue-create-v3-select"
                 >
                   <option value={10}>{t('dialogue:audioCourse.durationOptions.10')}</option>
                   <option value={15}>{t('dialogue:audioCourse.durationOptions.15')}</option>
@@ -729,33 +717,33 @@ const DialogueGenerator = () => {
                 </select>
               </div>
 
-              <p className="text-xs text-gray-500">{t('dialogue:audioCourse.helper')}</p>
+              <p className="retro-dialogue-create-v3-helper is-small">
+                {t('dialogue:audioCourse.helper')}
+              </p>
             </div>
           )}
-        </div>
+        </section>
       )}
 
       {/* Generate Button */}
-      <div className="bg-periwinkle-light border-l-8 border-periwinkle p-6 sm:p-8 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 sm:gap-8">
+      <section className="retro-dialogue-create-v3-summary">
+        <div className="retro-dialogue-create-v3-summary-grid">
           <div className="flex-1">
-            <h3 className="text-xl sm:text-2xl font-bold text-dark-brown mb-3">
+            <h3 className="retro-dialogue-create-v3-summary-title">
               {t('dialogue:generate.ready')}
             </h3>
-            <p className="text-sm sm:text-base text-gray-700 mb-4">
+            <p className="retro-dialogue-create-v3-summary-copy">
               {t('dialogue:generate.description', {
                 language: SUPPORTED_LANGUAGES[targetLanguage].name,
                 level: getProficiencyLevel() || 'beginner',
                 tone,
               })}
             </p>
-            <ul className="text-sm sm:text-base text-gray-700 space-y-2">
-              <li className="font-medium">
-                • {t('dialogue:generate.features.turns', { count: dialogueLength })}
-              </li>
-              <li className="font-medium">• {t('dialogue:generate.features.variations')}</li>
-              <li className="font-medium">• {t('dialogue:generate.features.translations')}</li>
-              <li className="font-medium">• {t('dialogue:generate.features.complexity')}</li>
+            <ul className="retro-dialogue-create-v3-summary-list">
+              <li>• {t('dialogue:generate.features.turns', { count: dialogueLength })}</li>
+              <li>• {t('dialogue:generate.features.variations')}</li>
+              <li>• {t('dialogue:generate.features.translations')}</li>
+              <li>• {t('dialogue:generate.features.complexity')}</li>
             </ul>
           </div>
           <button
@@ -768,19 +756,15 @@ const DialogueGenerator = () => {
                 audioCourseEnabled &&
                 (!courseTitle.trim() || !courseNarratorVoice))
             }
-            className="w-full sm:w-auto bg-periwinkle hover:bg-periwinkle-dark text-white font-bold text-base sm:text-lg px-8 sm:px-10 py-4 sm:py-5 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            className="retro-dialogue-create-v3-generate-btn"
             data-testid="dialogue-button-generate"
           >
             {loading ? t('dialogue:generate.generating') : t('dialogue:generate.button')}
           </button>
         </div>
 
-        {error && (
-          <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-base font-medium">
-            {error}
-          </div>
-        )}
-      </div>
+        {error && <div className="retro-dialogue-create-v3-alert is-error">{error}</div>}
+      </section>
 
       {/* Demo Restriction Modal */}
       <DemoRestrictionModal isOpen={showDemoModal} onClose={() => setShowDemoModal(false)} />

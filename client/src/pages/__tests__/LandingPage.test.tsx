@@ -205,9 +205,9 @@ describe('LandingPage', () => {
       expect(footerText.length).toBeGreaterThan(0);
     });
 
-    it('should render tagline', () => {
+    it('should not render tagline', () => {
       renderPage();
-      expect(screen.getByText('Your personal AI language lab')).toBeInTheDocument();
+      expect(screen.queryByText('Your personal AI language lab')).not.toBeInTheDocument();
     });
   });
 });

@@ -88,7 +88,7 @@ const UserMenu = ({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 border-2 border-[#bcc8c7] bg-[#f8f2df] shadow-[0_10px_0_rgba(17,51,92,0.12)] z-30 animate-fadeIn"
+          className="absolute right-0 mt-2 w-56 border-2 border-[#bcc8c7] bg-[#f8f2df] shadow-[0_10px_0_rgba(17,51,92,0.12)] z-50 animate-fadeIn"
           style={{ top: '100%' }}
         >
           <div className="py-1">

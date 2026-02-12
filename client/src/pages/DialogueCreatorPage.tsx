@@ -7,13 +7,17 @@ const DialogueCreatorPage = () => {
   const _navigate = useNavigate();
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('dialogue:pageTitle')}</h1>
-        <p className="text-xl text-gray-600">{t('dialogue:pageSubtitle')}</p>
-      </div>
+    <div className="retro-dialogue-create-v3-wrap">
+      <div className="retro-dialogue-create-v3-shell">
+        <div className="retro-dialogue-create-v3-top">
+          <h1 className="retro-dialogue-create-v3-title">{t('dialogue:pageTitle')}</h1>
+          <p className="retro-dialogue-create-v3-subtitle">{t('dialogue:pageSubtitle')}</p>
+        </div>
 
-      <DialogueGenerator />
+        <div className="retro-dialogue-create-v3-main">
+          <DialogueGenerator />
+        </div>
+      </div>
     </div>
   );
 };

@@ -10,6 +10,12 @@ import { API_URL } from '../config';
 
 type Tab = 'profile' | 'security' | 'billing' | 'danger';
 
+interface SubscriptionStatus {
+  status?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+}
+
 const SettingsPage = () => {
   const { t } = useTranslation(['settings', 'common']);
   const { user, updateUser, deleteAccount, changePassword, refreshUser } = useAuth();
@@ -97,9 +103,7 @@ const SettingsPage = () => {
   const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
 
   // Billing state
-  const [subscriptionStatus, setSubscriptionStatus] = useState<Record<string, unknown> | null>(
-    null
-  );
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
 
@@ -332,471 +336,440 @@ const SettingsPage = () => {
     return null;
   }
 
+  const getTabButtonClass = (tabKey: Tab) => {
+    if (tabKey === 'danger') {
+      return `retro-settings-tab ${activeTab === tabKey ? 'is-active-danger' : ''}`;
+    }
+    return `retro-settings-tab ${activeTab === tabKey ? 'is-active' : ''}`;
+  };
+
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="mb-8 pb-6 border-b-4 border-periwinkle">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('settings:title')}</h1>
-        <p className="text-xl text-gray-600">{t('settings:subtitle')}</p>
-      </div>
-
-      {/* Tab Navigation */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-6 sm:mb-8">
-        <button
-          type="button"
-          onClick={() => navigate('/app/settings/profile')}
-          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
-            activeTab === 'profile'
-              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
-          }`}
-          data-testid="settings-tab-profile"
-        >
-          <div className="flex items-center gap-1 sm:gap-2">
-            <User className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('settings:tabs.profile')}</span>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/app/settings/security')}
-          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
-            activeTab === 'security'
-              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
-          }`}
-          data-testid="settings-tab-security"
-        >
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Lock className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('settings:tabs.security')}</span>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/app/settings/billing')}
-          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
-            activeTab === 'billing'
-              ? 'border-periwinkle bg-periwinkle text-white shadow-md'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-periwinkle hover:bg-periwinkle-light'
-          }`}
-          data-testid="settings-tab-billing"
-        >
-          <div className="flex items-center gap-1 sm:gap-2">
-            <CreditCard className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('settings:tabs.billing')}</span>
-          </div>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/app/settings/danger')}
-          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg border-2 font-bold transition-all text-sm sm:text-base ${
-            activeTab === 'danger'
-              ? 'border-strawberry bg-strawberry text-white shadow-md'
-              : 'border-gray-200 bg-white text-gray-700 hover:border-strawberry hover:bg-strawberry-light'
-          }`}
-          data-testid="settings-tab-danger"
-        >
-          <div className="flex items-center gap-1 sm:gap-2">
-            <Trash2 className="w-4 h-4" />
-            <span className="hidden xs:inline">{t('settings:tabs.danger')}</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-          <p className="text-sm text-green-700">{success}</p>
+    <div className="retro-settings-wrap">
+      <div className="retro-settings-shell">
+        {/* Header */}
+        <div className="retro-settings-top">
+          <h1 className="retro-settings-title">{t('settings:title')}</h1>
+          <p className="retro-settings-subtitle">{t('settings:subtitle')}</p>
         </div>
-      )}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-700">{error}</p>
-        </div>
-      )}
 
-      {/* Profile Settings Card */}
-      {activeTab === 'profile' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-            <h2 className="text-2xl font-bold text-dark-brown mb-6">
-              {t('settings:profile.title')}
-            </h2>
+        <div className="retro-settings-main">
+          {/* Tab Navigation */}
+          <div className="retro-settings-tabs">
+            <button
+              type="button"
+              onClick={() => navigate('/app/settings/profile')}
+              className={getTabButtonClass('profile')}
+              data-testid="settings-tab-profile"
+            >
+              <User className="w-4 h-4" />
+              <span>{t('settings:tabs.profile')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app/settings/security')}
+              className={getTabButtonClass('security')}
+              data-testid="settings-tab-security"
+            >
+              <Lock className="w-4 h-4" />
+              <span>{t('settings:tabs.security')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app/settings/billing')}
+              className={getTabButtonClass('billing')}
+              data-testid="settings-tab-billing"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>{t('settings:tabs.billing')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/app/settings/danger')}
+              className={getTabButtonClass('danger')}
+              data-testid="settings-tab-danger"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>{t('settings:tabs.danger')}</span>
+            </button>
+          </div>
 
-            {/* Avatar */}
-            <div className="mb-6">
-              <p className="block text-sm font-medium text-gray-700 mb-3">
-                {t('settings:profile.avatar.label')}
-              </p>
-              <div className="flex items-center gap-4">
-                {/* Current Avatar Preview */}
-                {user?.avatarUrl ? (
-                  <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
-                    <img
-                      src={user.avatarUrl}
-                      alt={t('settings:profile.avatar.altText')}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ) : (
-                  <div
-                    className={`w-20 h-20 ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}
-                  >
-                    <span
-                      className={`text-2xl font-medium ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.text || 'text-indigo-600'}`}
+          {/* Success/Error Messages */}
+          {success && (
+            <div className="retro-settings-alert is-success mb-6">
+              <p className="text-sm">{success}</p>
+            </div>
+          )}
+          {error && (
+            <div className="retro-settings-alert is-error mb-6">
+              <p className="text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Profile Settings Card */}
+          {activeTab === 'profile' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="retro-settings-panel retro-paper-panel mb-6">
+                <h2 className="retro-headline text-3xl mb-6">{t('settings:profile.title')}</h2>
+
+                {/* Avatar */}
+                <div className="mb-6">
+                  <p className="retro-settings-label mb-3">{t('settings:profile.avatar.label')}</p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Current Avatar Preview */}
+                    {user?.avatarUrl ? (
+                      <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                        <img
+                          src={user.avatarUrl}
+                          alt={t('settings:profile.avatar.altText')}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div
+                        className={`w-20 h-20 ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.bg || 'bg-indigo-100'} rounded-full flex items-center justify-center`}
+                      >
+                        <span
+                          className={`text-2xl font-medium ${AVATAR_COLORS.find((c) => c.value === selectedColor)?.text || 'text-indigo-600'}`}
+                        >
+                          {displayName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Upload Button */}
+                    <button
+                      type="button"
+                      onClick={handleAvatarUpload}
+                      className="retro-settings-btn-subtle"
+                      data-testid="settings-button-upload-avatar"
                     >
-                      {displayName.charAt(0).toUpperCase()}
-                    </span>
+                      <Camera className="w-4 h-4" />
+                      {user?.avatarUrl
+                        ? t('settings:profile.avatar.change')
+                        : t('settings:profile.avatar.upload')}
+                    </button>
+
+                    {user?.avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await updateUser({ avatarUrl: null });
+                            setSuccess(t('settings:profile.avatar.removeSuccess'));
+                            setTimeout(() => setSuccess(null), 3000);
+                          } catch (removeError) {
+                            setError(t('settings:profile.avatar.removeError'));
+                          }
+                        }}
+                        className="retro-settings-link-danger"
+                        data-testid="settings-button-remove-avatar"
+                      >
+                        {t('settings:profile.avatar.remove')}
+                      </button>
+                    )}
                   </div>
-                )}
+                  <p className="retro-settings-helper mt-2">
+                    {t('settings:profile.avatar.helper')}
+                  </p>
+                </div>
 
-                {/* Upload Button */}
-                <button
-                  type="button"
-                  onClick={handleAvatarUpload}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-                  data-testid="settings-button-upload-avatar"
-                >
-                  <Camera className="w-4 h-4" />
-                  {user?.avatarUrl
-                    ? t('settings:profile.avatar.change')
-                    : t('settings:profile.avatar.upload')}
-                </button>
+                {/* Display Name Section */}
+                <div className="mb-8">
+                  <label htmlFor="settings-display-name" className="retro-settings-label mb-3">
+                    {t('settings:profile.displayName.label')}
+                  </label>
+                  <input
+                    id="settings-display-name"
+                    type="text"
+                    className="retro-settings-input"
+                    placeholder={t('settings:profile.displayName.placeholder')}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    maxLength={50}
+                    data-testid="settings-input-display-name"
+                  />
+                  <p className="retro-settings-helper mt-2">
+                    {t('settings:profile.displayName.helper')}
+                  </p>
+                </div>
 
-                {user?.avatarUrl && (
+                {/* Save/Cancel Buttons */}
+                <div className="flex gap-3 pt-4 retro-settings-divider">
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        await updateUser({ avatarUrl: null });
-                        setSuccess(t('settings:profile.avatar.removeSuccess'));
-                        setTimeout(() => setSuccess(null), 3000);
-                      } catch (removeError) {
-                        setError(t('settings:profile.avatar.removeError'));
-                      }
-                    }}
-                    className="text-sm text-red-600 hover:text-red-700"
-                    data-testid="settings-button-remove-avatar"
+                    onClick={handleSave}
+                    disabled={!hasChanges() || isSaving}
+                    className="retro-settings-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="settings-button-save"
                   >
-                    {t('settings:profile.avatar.remove')}
+                    {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
                   </button>
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    disabled={!hasChanges() || isSaving}
+                    className="retro-settings-btn-secondary disabled:opacity-50"
+                    data-testid="settings-button-cancel"
+                  >
+                    {t('settings:profile.cancelButton')}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Change Password Card */}
+          {activeTab === 'security' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="retro-settings-panel retro-paper-panel mb-6">
+                <h2 className="retro-headline text-3xl mb-6">{t('settings:security.title')}</h2>
+
+                {/* Password Success/Error Messages */}
+                {passwordSuccess && (
+                  <div className="retro-settings-alert is-success mb-4">
+                    <p className="text-sm">{passwordSuccess}</p>
+                  </div>
                 )}
+                {passwordError && (
+                  <div className="retro-settings-alert is-error mb-4">
+                    <p className="text-sm">{passwordError}</p>
+                  </div>
+                )}
+
+                {/* Current Password */}
+                <div className="mb-4">
+                  <label htmlFor="settings-current-password" className="retro-settings-label mb-3">
+                    {t('settings:security.currentPassword.label')}
+                  </label>
+                  <input
+                    id="settings-current-password"
+                    type="password"
+                    className="retro-settings-input"
+                    placeholder={t('settings:security.currentPassword.placeholder')}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    autoComplete="current-password"
+                    data-testid="settings-input-current-password"
+                  />
+                </div>
+
+                {/* New Password */}
+                <div className="mb-4">
+                  <label htmlFor="settings-new-password" className="retro-settings-label mb-3">
+                    {t('settings:security.newPassword.label')}
+                  </label>
+                  <input
+                    id="settings-new-password"
+                    type="password"
+                    className="retro-settings-input"
+                    placeholder={t('settings:security.newPassword.placeholder')}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                    data-testid="settings-input-new-password"
+                  />
+                </div>
+
+                {/* Confirm New Password */}
+                <div className="mb-6">
+                  <label htmlFor="settings-confirm-password" className="retro-settings-label mb-3">
+                    {t('settings:security.confirmPassword.label')}
+                  </label>
+                  <input
+                    id="settings-confirm-password"
+                    type="password"
+                    className="retro-settings-input"
+                    placeholder={t('settings:security.confirmPassword.placeholder')}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    data-testid="settings-input-confirm-password"
+                  />
+                </div>
+
+                {/* Change Password Button */}
+                <div className="pt-4 retro-settings-divider">
+                  <button
+                    type="button"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword}
+                    className="retro-settings-btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-testid="settings-button-change-password"
+                  >
+                    {isChangingPassword
+                      ? t('settings:security.changing')
+                      : t('settings:security.changeButton')}
+                  </button>
+                </div>
               </div>
-              <p className="mt-2 text-sm text-gray-500">{t('settings:profile.avatar.helper')}</p>
             </div>
+          )}
 
-            {/* Display Name Section */}
-            <div className="mb-8">
-              <label
-                htmlFor="settings-display-name"
-                className="block text-base font-bold text-dark-brown mb-3"
-              >
-                {t('settings:profile.displayName.label')}
-              </label>
-              <input
-                id="settings-display-name"
-                type="text"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                placeholder={t('settings:profile.displayName.placeholder')}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                maxLength={50}
-                data-testid="settings-input-display-name"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                {t('settings:profile.displayName.helper')}
-              </p>
-            </div>
+          {/* Billing Card */}
+          {activeTab === 'billing' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="retro-settings-panel retro-paper-panel mb-6">
+                <h2 className="retro-headline text-3xl mb-6">{t('settings:billing.title')}</h2>
 
-            {/* Save/Cancel Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={!hasChanges() || isSaving}
-                className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid="settings-button-save"
-              >
-                {isSaving ? t('settings:profile.saving') : t('settings:profile.saveButton')}
-              </button>
-              <button
-                type="button"
-                onClick={handleCancel}
-                disabled={!hasChanges() || isSaving}
-                className="px-8 py-3 border-2 border-gray-300 rounded-lg font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-all"
-                data-testid="settings-button-cancel"
-              >
-                {t('settings:profile.cancelButton')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                {billingError && (
+                  <div className="retro-settings-alert is-error mb-6">
+                    <p className="text-sm">{billingError}</p>
+                  </div>
+                )}
 
-      {/* Change Password Card */}
-      {activeTab === 'security' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-            <h2 className="text-2xl font-bold text-dark-brown mb-6">
-              {t('settings:security.title')}
-            </h2>
+                {loadingSubscription ? (
+                  <div className="text-center py-8">
+                    <div className="loading-spinner w-8 h-8 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
+                    <p className="text-medium-brown">{t('settings:billing.loading')}</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Current Plan */}
+                    <div className="mb-8">
+                      <h3 className="retro-settings-section-title mb-4">
+                        {t('settings:billing.currentPlan.title')}
+                      </h3>
+                      <div className="retro-settings-subpanel">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <p className="text-2xl font-bold text-dark-brown capitalize">
+                              {user?.tier === 'pro'
+                                ? t('settings:billing.currentPlan.pro')
+                                : t('settings:billing.currentPlan.free')}{' '}
+                              {t('settings:billing.currentPlan.plan')}
+                            </p>
+                            <p className="text-medium-brown">
+                              {user?.tier === 'pro'
+                                ? t('settings:billing.currentPlan.proPrice')
+                                : t('settings:billing.currentPlan.freePrice')}
+                            </p>
+                          </div>
+                          {subscriptionStatus?.status && (
+                            <span
+                              className={`px-3 py-1 rounded-full text-sm font-semibold ${(() => {
+                                if (subscriptionStatus.status === 'active')
+                                  return 'bg-green-100 text-green-700';
+                                if (subscriptionStatus.status === 'past_due')
+                                  return 'bg-yellow-100 text-yellow-700';
+                                return 'bg-gray-100 text-gray-700';
+                              })()}`}
+                            >
+                              {subscriptionStatus.status}
+                            </span>
+                          )}
+                        </div>
 
-            {/* Password Success/Error Messages */}
-            {passwordSuccess && (
-              <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-sm text-green-700">{passwordSuccess}</p>
-              </div>
-            )}
-            {passwordError && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-700">{passwordError}</p>
-              </div>
-            )}
+                        <div className="mb-4">
+                          <p className="retro-settings-label mb-2">
+                            {t('settings:billing.currentPlan.limit')}
+                          </p>
+                          <p className="text-lg font-semibold text-dark-brown">
+                            {user?.tier === 'pro' ? '30' : '5'}{' '}
+                            {t('settings:billing.currentPlan.generations')}
+                          </p>
+                        </div>
 
-            {/* Current Password */}
-            <div className="mb-4">
-              <label
-                htmlFor="settings-current-password"
-                className="block text-base font-bold text-dark-brown mb-3"
-              >
-                {t('settings:security.currentPassword.label')}
-              </label>
-              <input
-                id="settings-current-password"
-                type="password"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                placeholder={t('settings:security.currentPassword.placeholder')}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                autoComplete="current-password"
-                data-testid="settings-input-current-password"
-              />
-            </div>
-
-            {/* New Password */}
-            <div className="mb-4">
-              <label
-                htmlFor="settings-new-password"
-                className="block text-base font-bold text-dark-brown mb-3"
-              >
-                {t('settings:security.newPassword.label')}
-              </label>
-              <input
-                id="settings-new-password"
-                type="password"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                placeholder={t('settings:security.newPassword.placeholder')}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                autoComplete="new-password"
-                data-testid="settings-input-new-password"
-              />
-            </div>
-
-            {/* Confirm New Password */}
-            <div className="mb-6">
-              <label
-                htmlFor="settings-confirm-password"
-                className="block text-base font-bold text-dark-brown mb-3"
-              >
-                {t('settings:security.confirmPassword.label')}
-              </label>
-              <input
-                id="settings-confirm-password"
-                type="password"
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-periwinkle focus:outline-none text-base"
-                placeholder={t('settings:security.confirmPassword.placeholder')}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                autoComplete="new-password"
-                data-testid="settings-input-confirm-password"
-              />
-            </div>
-
-            {/* Change Password Button */}
-            <div className="pt-4 border-t">
-              <button
-                type="button"
-                onClick={handleChangePassword}
-                disabled={isChangingPassword}
-                className="px-8 py-3 bg-periwinkle hover:bg-periwinkle-dark text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid="settings-button-change-password"
-              >
-                {isChangingPassword
-                  ? t('settings:security.changing')
-                  : t('settings:security.changeButton')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Billing Card */}
-      {activeTab === 'billing' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white border-l-8 border-periwinkle p-8 shadow-sm mb-6">
-            <h2 className="text-2xl font-bold text-dark-brown mb-6">
-              {t('settings:billing.title')}
-            </h2>
-
-            {billingError && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-700">{billingError}</p>
-              </div>
-            )}
-
-            {loadingSubscription ? (
-              <div className="text-center py-8">
-                <div className="loading-spinner w-8 h-8 border-4 border-periwinkle border-t-transparent rounded-full mx-auto mb-4" />
-                <p className="text-medium-brown">{t('settings:billing.loading')}</p>
-              </div>
-            ) : (
-              <>
-                {/* Current Plan */}
-                <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-dark-brown mb-4">
-                    {t('settings:billing.currentPlan.title')}
-                  </h3>
-                  <div className="bg-periwinkle-light border-2 border-periwinkle rounded-lg p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-2xl font-bold text-dark-brown capitalize">
-                          {user?.tier === 'pro'
-                            ? t('settings:billing.currentPlan.pro')
-                            : t('settings:billing.currentPlan.free')}{' '}
-                          {t('settings:billing.currentPlan.plan')}
-                        </p>
-                        <p className="text-medium-brown">
-                          {user?.tier === 'pro'
-                            ? t('settings:billing.currentPlan.proPrice')
-                            : t('settings:billing.currentPlan.freePrice')}
-                        </p>
+                        {subscriptionStatus?.currentPeriodEnd && (
+                          <p className="text-sm text-medium-brown">
+                            {subscriptionStatus.cancelAtPeriodEnd
+                              ? `${t('settings:billing.currentPlan.cancelsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
+                              : `${t('settings:billing.currentPlan.renewsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
+                          </p>
+                        )}
                       </div>
-                      {subscriptionStatus?.status && (
-                        <span
-                          className={`px-3 py-1 rounded-full text-sm font-semibold ${(() => {
-                            if (subscriptionStatus.status === 'active')
-                              return 'bg-green-100 text-green-700';
-                            if (subscriptionStatus.status === 'past_due')
-                              return 'bg-yellow-100 text-yellow-700';
-                            return 'bg-gray-100 text-gray-700';
-                          })()}`}
-                        >
-                          {subscriptionStatus.status}
-                        </span>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="space-y-4">
+                      {user?.tier === 'free' ? (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleUpgradeToPro}
+                            className="retro-settings-btn-primary w-full"
+                          >
+                            {t('settings:billing.actions.upgrade')}
+                          </button>
+                          <p className="text-sm text-medium-brown mt-2 text-center">
+                            {t('settings:billing.actions.upgradeHelper')}
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <button
+                            type="button"
+                            onClick={handleManageSubscription}
+                            disabled={loadingSubscription}
+                            className="retro-settings-btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loadingSubscription
+                              ? t('settings:billing.loading')
+                              : t('settings:billing.actions.manage')}
+                          </button>
+                          <p className="text-sm text-medium-brown mt-2 text-center">
+                            {t('settings:billing.actions.manageHelper')}
+                          </p>
+                        </div>
                       )}
                     </div>
 
-                    <div className="mb-4">
-                      <p className="text-sm text-dark-brown font-medium mb-2">
-                        {t('settings:billing.currentPlan.limit')}
-                      </p>
-                      <p className="text-lg font-semibold text-dark-brown">
-                        {user?.tier === 'pro' ? '30' : '5'}{' '}
-                        {t('settings:billing.currentPlan.generations')}
-                      </p>
+                    {/* Plan Comparison */}
+                    <div className="mt-8 pt-8 retro-settings-divider">
+                      <h3 className="retro-settings-section-title mb-4">
+                        {t('settings:billing.comparison.title')}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/pricing')}
+                        className="retro-settings-link-btn"
+                      >
+                        {t('settings:billing.comparison.viewAll')}
+                      </button>
                     </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
 
-                    {subscriptionStatus?.currentPeriodEnd && (
-                      <p className="text-sm text-medium-brown">
-                        {subscriptionStatus.cancelAtPeriodEnd
-                          ? `${t('settings:billing.currentPlan.cancelsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`
-                          : `${t('settings:billing.currentPlan.renewsOn')} ${new Date(subscriptionStatus.currentPeriodEnd).toLocaleDateString()}`}
+          {/* Danger Zone Card */}
+          {activeTab === 'danger' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="retro-settings-panel retro-paper-panel danger">
+                <h2 className="retro-headline text-3xl text-strawberry mb-6">
+                  {t('settings:danger.title')}
+                </h2>
+                <div className="retro-settings-subpanel danger">
+                  <div className="flex items-start gap-3">
+                    <Trash2 className="w-5 h-5 text-strawberry flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h3 className="retro-settings-section-title mb-2">
+                        {t('settings:danger.deleteAccount.title')}
+                      </h3>
+                      <p className="text-base text-gray-700 mb-3">
+                        {t('settings:danger.deleteAccount.warning')}
                       </p>
-                    )}
+                      <ul className="text-base text-gray-700 list-disc list-inside space-y-1 mb-4">
+                        <li>{t('settings:danger.deleteAccount.items.dialogues')}</li>
+                        <li>{t('settings:danger.deleteAccount.items.courses')}</li>
+                        <li>{t('settings:danger.deleteAccount.items.account')}</li>
+                      </ul>
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteModal(true)}
+                        className="retro-settings-btn-danger"
+                        data-testid="settings-button-delete-account"
+                      >
+                        {t('settings:danger.deleteAccount.button')}
+                      </button>
+                    </div>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="space-y-4">
-                  {user?.tier === 'free' ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleUpgradeToPro}
-                        className="btn-primary w-full"
-                      >
-                        {t('settings:billing.actions.upgrade')}
-                      </button>
-                      <p className="text-sm text-medium-brown mt-2 text-center">
-                        {t('settings:billing.actions.upgradeHelper')}
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={handleManageSubscription}
-                        disabled={loadingSubscription}
-                        className="btn-secondary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {loadingSubscription
-                          ? t('settings:billing.loading')
-                          : t('settings:billing.actions.manage')}
-                      </button>
-                      <p className="text-sm text-medium-brown mt-2 text-center">
-                        {t('settings:billing.actions.manageHelper')}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Plan Comparison */}
-                <div className="mt-8 pt-8 border-t border-gray-200">
-                  <h3 className="text-lg font-semibold text-dark-brown mb-4">
-                    {t('settings:billing.comparison.title')}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/pricing')}
-                    className="text-periwinkle hover:text-dark-periwinkle font-medium"
-                  >
-                    {t('settings:billing.comparison.viewAll')}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Danger Zone Card */}
-      {activeTab === 'danger' && (
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-white border-l-8 border-strawberry p-8 shadow-sm">
-            <h2 className="text-2xl font-bold text-strawberry mb-6">
-              {t('settings:danger.title')}
-            </h2>
-            <div className="bg-strawberry-light border-l-4 border-strawberry p-6">
-              <div className="flex items-start gap-3">
-                <Trash2 className="w-5 h-5 text-strawberry flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h3 className="font-bold text-lg text-dark-brown mb-2">
-                    {t('settings:danger.deleteAccount.title')}
-                  </h3>
-                  <p className="text-base text-gray-700 mb-3">
-                    {t('settings:danger.deleteAccount.warning')}
-                  </p>
-                  <ul className="text-base text-gray-700 list-disc list-inside space-y-1 mb-4">
-                    <li>{t('settings:danger.deleteAccount.items.dialogues')}</li>
-                    <li>{t('settings:danger.deleteAccount.items.courses')}</li>
-                    <li>{t('settings:danger.deleteAccount.items.account')}</li>
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteModal(true)}
-                    className="px-6 py-3 bg-strawberry text-white rounded-lg hover:bg-strawberry-dark transition-colors font-bold"
-                    data-testid="settings-button-delete-account"
-                  >
-                    {t('settings:danger.deleteAccount.button')}
-                  </button>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       <ConfirmModal

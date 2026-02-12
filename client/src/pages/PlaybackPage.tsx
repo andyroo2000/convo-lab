@@ -480,7 +480,7 @@ const PlaybackPage = () => {
         data-playback-sticky-header
       >
         {/* Episode Header */}
-        <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+        <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
           <div>
             {/* Mobile layout: Stack everything vertically */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
@@ -541,7 +541,7 @@ const PlaybackPage = () => {
 
         {/* Progress Banner (shown during generation) */}
         {isGeneratingAudio && (
-          <div className="bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
+          <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
             <div className="flex items-center gap-4 p-4">
               <div className="flex-shrink-0">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
@@ -567,7 +567,7 @@ const PlaybackPage = () => {
         )}
 
         {!isGeneratingAudio && needsAudioGeneration && (
-          <div className="bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
+          <div className="retro-paper-panel bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
             <div className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-dark-brown">
@@ -592,7 +592,7 @@ const PlaybackPage = () => {
 
         {/* Audio Player (shown when not generating) */}
         {!isGeneratingAudio && currentAudioUrl && (
-          <div className="border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
+          <div className="retro-paper-panel border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
             <AudioPlayer src={currentAudioUrl} audioRef={audioRef} key={currentAudioUrl} />
           </div>
         )}

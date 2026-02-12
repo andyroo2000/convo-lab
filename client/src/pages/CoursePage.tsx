@@ -129,7 +129,7 @@ const CoursePage = () => {
   return (
     <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-5">
       {/* Header */}
-      <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+      <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
         <div className="flex-1 min-w-0">
           {/* Editable Title */}
           {editingTitle ? (
@@ -180,7 +180,7 @@ const CoursePage = () => {
       </div>
 
       {/* Course Info */}
-      <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3 sm:px-5 sm:py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)]">
+      <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3 sm:px-5 sm:py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)]">
         <div className="flex items-center gap-4 sm:gap-7 text-lg sm:text-4xl text-[rgba(20,50,86,0.82)] flex-wrap">
           <div className="inline-flex items-center gap-2 retro-caps">
             <span className="w-2.5 h-2.5 rounded-full bg-[rgba(20,50,86,0.35)] inline-block" />
@@ -207,7 +207,7 @@ const CoursePage = () => {
         {/* eslint-disable-next-line no-nested-ternary */}
         {course.status === 'ready' && course.audioUrl ? (
           <>
-            <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
+            <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
               <div className="px-4 sm:px-5 py-4 space-y-4">
                 {/* View Toggle Buttons */}
                 {course.timingData && (
@@ -235,7 +235,7 @@ const CoursePage = () => {
 
                 <h2 className="retro-headline text-4xl sm:text-[3rem]">Course Audio</h2>
 
-                <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
+                <div className="retro-paper-panel border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
                   <AudioPlayer src={course.audioUrl} audioRef={audioRef} key={course.audioUrl} />
                 </div>
               </div>
@@ -243,7 +243,7 @@ const CoursePage = () => {
 
             {/* Core Vocabulary */}
             {course.coreItems && course.coreItems.length > 0 && (
-              <div className="mt-2 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+              <div className="retro-paper-panel mt-2 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
                 <h3 className="retro-headline text-3xl sm:text-[2.65rem] mb-3">
                   Core Vocabulary ({course.coreItems.length} items)
                 </h3>
@@ -274,7 +274,7 @@ const CoursePage = () => {
             {course.courseEpisodes &&
               course.courseEpisodes.length > 0 &&
               course.courseEpisodes[0].episode?.sourceText && (
-                <div className="mt-6 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+                <div className="retro-paper-panel mt-6 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
                   <h3 className="retro-headline text-2xl mb-3">Original Prompt</h3>
                   <div className="p-4 bg-[rgba(20,141,189,0.15)] border-2 border-[rgba(20,50,86,0.12)]">
                     <p className="text-sm text-[rgba(20,50,86,0.84)] whitespace-pre-wrap">
