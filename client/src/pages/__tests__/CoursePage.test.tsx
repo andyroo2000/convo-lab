@@ -14,6 +14,15 @@ vi.mock('../../hooks/useCourse', () => ({
   useCourse: mockUseCourse,
 }));
 
+vi.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: {
+      id: 'admin-1',
+      role: 'admin',
+    },
+  }),
+}));
+
 vi.mock('../../hooks/useAudioPlayer', () => ({
   useAudioPlayer: () => ({
     audioRef: { current: null },

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 // eslint-disable-next-line import/no-extraneous-dependencies
-import { TTS_VOICES, getSpeakerColor } from '@languageflow/shared/src/constants-new';
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
@@ -371,9 +371,10 @@ const PlaybackPage = () => {
       const element = sentenceRefs.current.get(currentSentence.id);
       if (element) {
         // Calculate the actual height of the sticky header dynamically
-        const stickyHeader = document.querySelector('.sticky.top-16');
+        const stickyHeader = document.querySelector('[data-playback-sticky-header]');
         const headerHeight = stickyHeader ? stickyHeader.getBoundingClientRect().height : 0;
-        const navHeight = 64; // nav bar height
+        const nav = document.querySelector('.retro-topbar');
+        const navHeight = nav ? nav.getBoundingClientRect().height : 72;
         const yOffset = -(navHeight + headerHeight + 20); // Add 20px padding
         const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
         window.scrollTo({ top: y, behavior: 'smooth' });
@@ -418,7 +419,7 @@ const PlaybackPage = () => {
 
   if (loading) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
         <div className="card text-center py-12">
           <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-600">Loading episode...</p>
@@ -429,7 +430,7 @@ const PlaybackPage = () => {
 
   if (!episode) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
         <div className="card text-center py-12">
           <p className="text-gray-600">Episode not found</p>
         </div>
@@ -469,35 +470,30 @@ const PlaybackPage = () => {
   /* eslint-enable no-nested-ternary */
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className="w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-4"
+      data-testid="playback-page-container"
+    >
       {/* Sticky Header Container (Header + Audio Player/Progress) */}
-      <div className="sticky top-16 z-10 bg-white shadow-lg">
+      <div
+        className="sticky top-[4.5rem] z-10 bg-[rgba(251,245,224,0.98)] mb-3"
+        data-playback-sticky-header
+      >
         {/* Episode Header */}
-        <div className="border-b border-gray-200 bg-coral">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
+        <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+          <div>
             {/* Mobile layout: Stack everything vertically */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h1 className="text-xl sm:text-3xl font-bold text-dark-brown mb-2">
-                  {episode.title}
-                </h1>
+                <h1 className="retro-headline text-4xl sm:text-6xl mb-2">{episode.title}</h1>
 
-                {/* Segmented Pill: Proficiency Level + Tone */}
-                <div className="inline-flex items-center text-xs sm:text-sm font-medium overflow-hidden rounded-md shadow-sm">
-                  {/* Left segment - Proficiency Level */}
-                  <div className="pl-3 sm:pl-4 pr-4 sm:pr-5 py-1 sm:py-1.5 bg-periwinkle text-white uppercase tracking-wide">
+                {/* Segmented tags */}
+                <div className="inline-flex items-center gap-3 retro-caps text-[rgba(20,50,86,0.92)] text-xl">
+                  <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">
                     {speakers[0]?.proficiency}
                   </div>
-
-                  {/* Right segment - Tone (with chevron left edge) */}
-                  <div
-                    className="pl-2 sm:pl-3 pr-3 sm:pr-4 py-1 sm:py-1.5 bg-strawberry text-white capitalize relative"
-                    style={{
-                      clipPath: 'polygon(8px 0%, 100% 0%, 100% 100%, 8px 100%, 0% 50%)',
-                      marginLeft: '-8px',
-                    }}
-                  >
-                    <span className="ml-2">{speakers[0]?.tone}</span>
+                  <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold capitalize">
+                    {speakers[0]?.tone}
                   </div>
                 </div>
               </div>
@@ -545,7 +541,7 @@ const PlaybackPage = () => {
 
         {/* Progress Banner (shown during generation) */}
         {isGeneratingAudio && (
-          <div className="bg-yellow border-b border-periwinkle">
+          <div className="bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
             <div className="flex items-center gap-4 p-4">
               <div className="flex-shrink-0">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-periwinkle" />
@@ -571,8 +567,8 @@ const PlaybackPage = () => {
         )}
 
         {!isGeneratingAudio && needsAudioGeneration && (
-          <div className="bg-yellow border-b border-gray-200">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="bg-yellow border-x-2 border-b-2 border-[rgba(20,50,86,0.12)]">
+            <div className="px-4 sm:px-5 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-dark-brown">
                   {hasAnyAudio ? 'More audio speeds are available.' : 'Audio isn’t generated yet.'}
@@ -596,151 +592,115 @@ const PlaybackPage = () => {
 
         {/* Audio Player (shown when not generating) */}
         {!isGeneratingAudio && currentAudioUrl && (
-          <div className="bg-yellow border-b border-gray-200">
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2 sm:py-3">
-              <AudioPlayer src={currentAudioUrl} audioRef={audioRef} key={currentAudioUrl} />
-            </div>
+          <div className="border-x-2 border-b-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
+            <AudioPlayer src={currentAudioUrl} audioRef={audioRef} key={currentAudioUrl} />
           </div>
         )}
       </div>
 
       {/* Dialogue */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="space-y-3">
-          {sentences.map((sentence, _index) => {
-            const speaker = speakerMap.get(sentence.speakerId);
-            if (!speaker) return null;
+      <div className="space-y-4 pb-4">
+        {sentences.map((sentence) => {
+          const speaker = speakerMap.get(sentence.speakerId);
+          if (!speaker) return null;
 
-            // Get speaker color based on index (runtime assignment)
-            const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
-            const speakerColor = getSpeakerColor(speakerIndex);
+          // Alternate speaker lane tone by index for poster-like contrast
+          const speakerIndex = speakerIndexMap.get(sentence.speakerId) ?? 0;
+          const isAltSpeaker = speakerIndex % 2 !== 0;
 
-            // Get timing for current speed
-            /* eslint-disable no-nested-ternary */
-            const startTime =
-              speedKey === 'slow'
-                ? sentence.startTime_0_7
-                : speedKey === 'medium'
-                  ? sentence.startTime_0_85
-                  : sentence.startTime_1_0;
-            const endTime =
-              speedKey === 'slow'
-                ? sentence.endTime_0_7
-                : speedKey === 'medium'
-                  ? sentence.endTime_0_85
-                  : sentence.endTime_1_0;
-            /* eslint-enable no-nested-ternary */
+          // Get timing for current speed
+          /* eslint-disable no-nested-ternary */
+          const startTime =
+            speedKey === 'slow'
+              ? sentence.startTime_0_7
+              : speedKey === 'medium'
+                ? sentence.startTime_0_85
+                : sentence.startTime_1_0;
+          const endTime =
+            speedKey === 'slow'
+              ? sentence.endTime_0_7
+              : speedKey === 'medium'
+                ? sentence.endTime_0_85
+                : sentence.endTime_1_0;
+          /* eslint-enable no-nested-ternary */
 
-            // Fallback to legacy timing if multi-speed timing not available
-            const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
-            const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
+          // Fallback to legacy timing if multi-speed timing not available
+          const effectiveStartTime = startTime !== undefined ? startTime : sentence.startTime;
+          const effectiveEndTime = endTime !== undefined ? endTime : sentence.endTime;
 
-            // Check if this sentence is currently being spoken
-            const isCurrentlySpeaking =
-              effectiveStartTime !== undefined &&
-              effectiveEndTime !== undefined &&
-              currentTime * 1000 >= effectiveStartTime &&
-              currentTime * 1000 < effectiveEndTime;
+          // Check if this sentence is currently being spoken
+          const isCurrentlySpeaking =
+            effectiveStartTime !== undefined &&
+            effectiveEndTime !== undefined &&
+            currentTime * 1000 >= effectiveStartTime &&
+            currentTime * 1000 < effectiveEndTime;
+          const borderTone = isAltSpeaker ? 'rgba(20, 141, 189, 0.72)' : 'rgba(17, 51, 92, 0.58)';
 
-            // Convert hex color to rgba with opacity
-            const hexToRgba = (hex: string, alpha: number) => {
-              const r = parseInt(hex.slice(1, 3), 16);
-              const g = parseInt(hex.slice(3, 5), 16);
-              const b = parseInt(hex.slice(5, 7), 16);
-              return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-            };
-
-            return (
+          return (
+            <div
+              key={sentence.id}
+              ref={(el) => {
+                if (el) sentenceRefs.current.set(sentence.id, el);
+                else sentenceRefs.current.delete(sentence.id);
+              }}
+              className={`retro-dialog-row cursor-pointer ${isCurrentlySpeaking ? 'is-active' : ''}`}
+              style={{
+                // Keep indicator width constant to avoid content reflow while the active sentence changes
+                borderLeft: `4px solid ${borderTone}`,
+              }}
+              onClick={() => seekToSentence(sentence)}
+              onKeyDown={(e) => e.key === 'Enter' && seekToSentence(sentence)}
+              role="button"
+              tabIndex={0}
+              data-testid={`playback-sentence-${sentence.id}`}
+            >
               <div
-                key={sentence.id}
-                ref={(el) => {
-                  if (el) sentenceRefs.current.set(sentence.id, el);
-                  else sentenceRefs.current.delete(sentence.id);
-                }}
-                className={`card hover:shadow-md transition-all duration-300 cursor-pointer ${
-                  isCurrentlySpeaking ? 'shadow-lg' : ''
-                }`}
-                style={{
-                  backgroundColor: hexToRgba(speakerColor, isCurrentlySpeaking ? 0.25 : 0.15),
-                  borderLeft: `${isCurrentlySpeaking ? '6px' : '4px'} solid ${speakerColor}`,
-                  borderRight: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-                  borderTop: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-                  borderBottom: isCurrentlySpeaking ? `3px solid ${speakerColor}` : undefined,
-                }}
-                onClick={() => seekToSentence(sentence)}
-                onKeyDown={(e) => e.key === 'Enter' && seekToSentence(sentence)}
-                role="button"
-                tabIndex={0}
-                data-testid={`playback-sentence-${sentence.id}`}
+                className={`retro-speaker-pane ${isAltSpeaker ? 'alt' : ''} p-4 sm:p-5 flex flex-col items-center justify-center`}
               >
-                <div className="flex gap-3 sm:gap-8">
-                  {/* Speaker Avatar - Smaller on mobile */}
-                  <div
-                    className="w-20 sm:w-40 flex-shrink-0 flex flex-col items-center justify-center gap-1 sm:gap-2 pl-2 sm:pl-4 pr-3 sm:pr-6 pt-3 sm:pt-6 pb-2 sm:pb-3 -my-6 -ml-6"
-                    style={{
-                      backgroundColor: speakerColor,
-                      opacity: 0.9,
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-[#f6f2df] border-2 border-[#f6f2df]">
+                  <img
+                    src={
+                      speaker.avatarUrl ||
+                      getSpeakerAvatarUrl(speaker, episode.targetLanguage, speakerIndex)
+                    }
+                    alt={speaker.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      // Fallback to placeholder on error
+                      (e.target as HTMLImageElement).src = '/placeholder-avatar.jpg';
                     }}
-                  >
-                    <div className="w-12 h-12 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-white">
-                      <img
-                        src={
-                          speaker.avatarUrl ||
-                          getSpeakerAvatarUrl(speaker, episode.targetLanguage, speakerIndex)
-                        }
-                        alt={speaker.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder on error
-                          (e.target as HTMLImageElement).src = '/placeholder-avatar.jpg';
-                        }}
-                      />
-                    </div>
-                    <span className="text-xs sm:text-sm font-bold text-white text-center drop-shadow-md">
-                      {episode.targetLanguage === 'ja' ? (
-                        <JapaneseText text={speaker.name} showFurigana={showReadings} />
-                      ) : (
-                        <span>{speaker.name}</span>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Japanese Text and Translation - Stack on mobile, side by side on desktop */}
-                  <div className="flex flex-col sm:flex-row gap-3 sm:gap-0 flex-1">
-                    {/* Target Language Text - Flexible Column */}
-                    <div className={showTranslations ? 'flex-1 sm:pr-6' : 'w-full'}>
-                      <p className="text-base sm:text-lg text-dark-brown leading-relaxed">
-                        {episode.targetLanguage === 'ja' ? (
-                          <JapaneseText
-                            text={sentence.text}
-                            metadata={sentence.metadata}
-                            showFurigana={showReadings}
-                          />
-                        ) : (
-                          <span className="text-xl sm:text-2xl">{sentence.text}</span>
-                        )}
-                      </p>
-                    </div>
-
-                    {/* Translation - Right Column on desktop, below on mobile (conditionally rendered) */}
-                    {showTranslations && (
-                      <div
-                        className="flex-1 pt-3 sm:pt-0 sm:pl-6 sm:border-l"
-                        style={{
-                          borderColor: `${hexToRgba(speakerColor, 0.3)}`,
-                        }}
-                      >
-                        <p className="text-sm sm:text-base text-gray-600 italic">
-                          {sentence.translation}
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                  />
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              {/* Target text and translation */}
+              <div className="grid gap-3 p-4 sm:p-5 grid-cols-1">
+                <div>
+                  <p className="text-[2rem] text-[rgba(20,50,86,0.92)] leading-[1.25] font-black">
+                    {episode.targetLanguage === 'ja' ? (
+                      <JapaneseText
+                        text={sentence.text}
+                        metadata={sentence.metadata}
+                        showFurigana={showReadings}
+                        className="playback-dialog-japanese !text-[2rem] font-black leading-[1.25]"
+                      />
+                    ) : (
+                      <span className="text-[2rem]">{sentence.text}</span>
+                    )}
+                  </p>
+                </div>
+
+                {showTranslations && (
+                  <div>
+                    <p className="text-[1.1rem] text-[rgba(20,50,86,0.72)] italic leading-[1.35]">
+                      {sentence.translation}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Toast Notification */}

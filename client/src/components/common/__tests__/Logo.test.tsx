@@ -8,7 +8,7 @@ describe('Logo', () => {
   describe('rendering', () => {
     it('should render the ConvoLab text', () => {
       render(<Logo />);
-      expect(screen.getByText('ConvoLab')).toBeInTheDocument();
+      expect(screen.getByText('CONVOLAB')).toBeInTheDocument();
     });
 
     it('should render both icons', () => {
@@ -23,37 +23,37 @@ describe('Logo', () => {
     it('should apply small size classes', () => {
       const { container } = render(<Logo size="small" />);
       const svg = container.querySelector('svg');
-      expect(svg).toHaveClass('w-5', 'h-5');
+      expect(svg).toHaveClass('w-4', 'h-4');
     });
 
     it('should apply medium size classes by default', () => {
       const { container } = render(<Logo />);
       const svg = container.querySelector('svg');
-      expect(svg).toHaveClass('w-6', 'h-6');
+      expect(svg).toHaveClass('w-5', 'h-5');
     });
 
     it('should apply large size classes', () => {
       const { container } = render(<Logo size="large" />);
       const svg = container.querySelector('svg');
-      expect(svg).toHaveClass('w-10', 'h-10');
+      expect(svg).toHaveClass('w-8', 'h-8');
     });
 
     it('should apply small text size for small variant', () => {
       render(<Logo size="small" />);
-      const text = screen.getByText('ConvoLab');
-      expect(text).toHaveClass('text-base');
+      const text = screen.getByText('CONVOLAB');
+      expect(text).toHaveClass('text-[1.55rem]');
     });
 
     it('should apply medium text size by default', () => {
       render(<Logo />);
-      const text = screen.getByText('ConvoLab');
-      expect(text).toHaveClass('text-lg');
+      const text = screen.getByText('CONVOLAB');
+      expect(text).toHaveClass('text-[1.65rem]');
     });
 
     it('should apply large text size for large variant', () => {
       render(<Logo size="large" />);
-      const text = screen.getByText('ConvoLab');
-      expect(text).toHaveClass('text-2xl');
+      const text = screen.getByText('CONVOLAB');
+      expect(text).toHaveClass('text-[2rem]');
     });
   });
 
@@ -61,19 +61,19 @@ describe('Logo', () => {
     it('should apply light variant (white text) by default', () => {
       const { container } = render(<Logo />);
       const svg = container.querySelector('svg');
-      expect(svg).toHaveClass('text-white');
+      expect(svg).toHaveClass('text-[#f4f3df]');
     });
 
     it('should apply dark variant (dark-brown text)', () => {
       const { container } = render(<Logo variant="dark" />);
       const svg = container.querySelector('svg');
-      expect(svg).toHaveClass('text-dark-brown');
+      expect(svg).toHaveClass('text-[#173b65]');
     });
 
     it('should apply variant to text as well', () => {
       render(<Logo variant="dark" />);
-      const text = screen.getByText('ConvoLab');
-      expect(text).toHaveClass('text-dark-brown');
+      const text = screen.getByText('CONVOLAB');
+      expect(text).toHaveClass('text-[#173b65]');
     });
   });
 
@@ -87,15 +87,34 @@ describe('Logo', () => {
     it('should preserve default flex classes with custom className', () => {
       const { container } = render(<Logo className="mt-4" />);
       const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass('flex', 'items-center', 'gap-2', 'mt-4');
+      expect(wrapper).toHaveClass('flex', 'items-center', 'gap-2.5', 'mt-4');
     });
   });
 
   describe('responsive design', () => {
     it('should hide text on small screens', () => {
       render(<Logo />);
-      const text = screen.getByText('ConvoLab');
-      expect(text).toHaveClass('hidden', 'sm:inline');
+      const text = screen.getByText('CONVOLAB');
+      expect(text.parentElement).toHaveClass('hidden', 'sm:flex');
+    });
+  });
+
+  describe('nav configuration', () => {
+    it('should hide icons when showIcons is false', () => {
+      const { container } = render(<Logo showIcons={false} />);
+      const svgs = container.querySelectorAll('svg');
+      expect(svgs.length).toBe(0);
+    });
+
+    it('should render katakana when showKana is true', () => {
+      render(<Logo showKana />);
+      expect(screen.getByText('コンボラボ')).toBeInTheDocument();
+    });
+
+    it('should apply retro logo typography classes', () => {
+      render(<Logo showKana />);
+      expect(screen.getByText('CONVOLAB')).toHaveClass('retro-logo-wordmark');
+      expect(screen.getByText('コンボラボ')).toHaveClass('retro-logo-kana');
     });
   });
 

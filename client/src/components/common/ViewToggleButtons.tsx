@@ -1,11 +1,10 @@
-import { Eye, EyeOff } from 'lucide-react';
-
 interface ViewToggleButtonsProps {
   showReadings: boolean;
   showTranslations: boolean;
   onToggleReadings: () => void;
   onToggleTranslations: () => void;
   readingsLabel?: string; // e.g., "Furigana"
+  className?: string;
 }
 
 const ViewToggleButtons = ({
@@ -14,21 +13,20 @@ const ViewToggleButtons = ({
   onToggleReadings,
   onToggleTranslations,
   readingsLabel = 'Furigana',
+  className = '',
 }: ViewToggleButtonsProps) => (
-  <div className="flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm">
+  <div className={`retro-toggle-row w-full ${className}`}>
     {/* Readings Toggle (Furigana) */}
     <button
       type="button"
       onClick={onToggleReadings}
-      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-bold transition-colors ${
-        showReadings ? 'bg-periwinkle text-white shadow-md' : 'text-navy hover:bg-periwinkle-light'
-      }`}
+      className={`retro-toggle-button ${showReadings ? 'is-on' : ''}`}
       title={
         showReadings ? `Hide ${readingsLabel.toLowerCase()}` : `Show ${readingsLabel.toLowerCase()}`
       }
       data-testid="playback-toggle-readings"
     >
-      {showReadings ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+      <span className="retro-toggle-switch" aria-hidden="true" />
       <span>{readingsLabel}</span>
     </button>
 
@@ -36,13 +34,11 @@ const ViewToggleButtons = ({
     <button
       type="button"
       onClick={onToggleTranslations}
-      className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-sm font-bold transition-colors ${
-        showTranslations ? 'bg-coral text-white shadow-md' : 'text-navy hover:bg-coral-light'
-      }`}
+      className={`retro-toggle-button ${showTranslations ? 'is-on' : ''}`}
       title={showTranslations ? 'Hide English' : 'Show English'}
       data-testid="playback-toggle-translations"
     >
-      {showTranslations ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+      <span className="retro-toggle-switch" aria-hidden="true" />
       <span>English</span>
     </button>
   </div>

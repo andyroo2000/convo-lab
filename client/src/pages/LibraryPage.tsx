@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect, CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Trash2, MessageSquare, Headphones, Sparkles, Loader2 } from 'lucide-react';
+import { Trash2, MessageSquare, Headphones, Sparkles, Loader2, Layers } from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useLibraryData, LibraryCourse } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
@@ -9,10 +9,6 @@ import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import SampleContentGuide from '../components/pulsePoints/SampleContentGuide';
-import EmptyStateCard from '../components/EmptyStateCard';
-import LanguageLevelPill from '../components/common/LanguageLevelPill';
-import LanguageLevelSidebar from '../components/common/LanguageLevelSidebar';
-import Pill from '../components/common/Pill';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
@@ -62,7 +58,7 @@ const LibraryPage = () => {
       try {
         await updateUser({ seenSampleContentGuide: true });
       } catch (err) {
-        console.error('Failed to update seenSampleContentGuide:', error);
+        console.error('Failed to update seenSampleContentGuide:', err);
       }
     }
   };
@@ -115,12 +111,15 @@ const LibraryPage = () => {
   const filter: FilterType = filterParamToType[filterParam || ''] || 'all';
 
   const handleFilterChange = (newFilter: FilterType) => {
-    // If clicking the same filter, deselect it (go back to 'all')
-    if (filter === newFilter) {
-      setSearchParams({});
+    const params = new URLSearchParams(searchParams);
+
+    if (newFilter === 'all') {
+      params.delete('filter');
     } else {
-      setSearchParams({ filter: filterTypeToParam[newFilter] });
+      params.set('filter', filterTypeToParam[newFilter]);
     }
+
+    setSearchParams(params);
   };
 
   // Infinite scroll setup
@@ -226,305 +225,349 @@ const LibraryPage = () => {
     });
   };
 
+  const getCreateUrl = (path: '/app/create' | '/app/create/dialogue' = '/app/create/dialogue') =>
+    viewAsUserId ? `${path}?viewAs=${viewAsUserId}` : path;
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds || Number.isNaN(seconds) || seconds <= 0) return '--:--';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatStampDate = (value: Date | string) => {
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return '----.--.--';
+    return `${parsed.getFullYear()}.${String(parsed.getMonth() + 1).padStart(2, '0')}.${String(
+      parsed.getDate()
+    ).padStart(2, '0')}`;
+  };
+
+  const getProgressPercent = (
+    status: 'draft' | 'generating' | 'ready' | 'error',
+    isSampleContent?: boolean
+  ) => {
+    if (isSampleContent) return 100;
+    if (status === 'ready') return 72;
+    if (status === 'generating') return 38;
+    if (status === 'draft') return 20;
+    return 8;
+  };
+
   return (
-    <div>
+    <div className="retro-library-v3-wrap space-y-4">
       {/* Impersonation Banner */}
       {impersonatedUser && (
         <ImpersonationBanner impersonatedUser={impersonatedUser} onExit={handleExitImpersonation} />
       )}
 
-      <div className="flex items-center justify-center sm:justify-end mb-6 px-4 sm:px-0 gap-4">
-        {/* Admin Draft Toggle */}
-        {user?.role === 'admin' && (
-          <button
-            type="button"
-            onClick={() => setShowDrafts(!showDrafts)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-full text-xs font-medium transition-colors ${
-              showDrafts
-                ? 'bg-purple-100 text-purple-800 ring-1 ring-purple-300'
-                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-            }`}
-          >
-            <span
-              className={`inline-block w-2 h-2 rounded-full ${showDrafts ? 'bg-purple-500' : 'bg-gray-400'}`}
-            />
-            Drafts
-          </button>
-        )}
-
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap gap-2 justify-center sm:justify-end">
-          {isFeatureEnabled('dialoguesEnabled') && (
-            <button
-              type="button"
-              onClick={() => handleFilterChange('dialogues')}
-              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-                filter === 'dialogues'
-                  ? 'bg-periwinkle text-white'
-                  : 'bg-periwinkle-light text-periwinkle-dark hover:bg-periwinkle/20'
-              }`}
-              data-testid="library-filter-dialogues"
-            >
-              <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {t('library:filters.dialogues')}
-            </button>
-          )}
-          {isFeatureEnabled('audioCourseEnabled') && (
-            <button
-              type="button"
-              onClick={() => handleFilterChange('courses')}
-              className={`px-3 sm:px-4 py-3.5 sm:py-2 rounded-full font-medium text-xs sm:text-sm transition-colors flex items-center gap-1.5 sm:gap-2 whitespace-nowrap ${
-                filter === 'courses'
-                  ? 'bg-coral text-white'
-                  : 'bg-coral-light text-coral-dark hover:bg-coral/20'
-              }`}
-              data-testid="library-filter-courses"
-            >
-              <Headphones className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              {t('library:filters.courses')}
-            </button>
-          )}
+      <div className="retro-library-v3-shell">
+        <div className="retro-library-v3-top">
+          <div className="retro-library-v3-branding-row">
+            <div className="retro-library-v3-branding">
+              <h1 className="retro-library-v3-brand-en">CONVOLAB</h1>
+              <div className="retro-library-v3-brand-jp">コンボラボ</div>
+            </div>
+            <div className="retro-library-v3-branding secondary">
+              <h2 className="retro-library-v3-brand-en secondary">AUDIO CONTENT</h2>
+              <div className="retro-library-v3-brand-jp secondary">オーディオコンテンツ</div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {allItems.length === 0 ? (
-        <div className="px-4 sm:px-0">
-          {filter === 'dialogues' && (
-            <EmptyStateCard
-              icon={MessageSquare}
-              title={t('library:emptyStates.dialogue.title')}
-              description={t('library:emptyStates.dialogue.description')}
-              buttonText={t('library:emptyStates.dialogue.button')}
-              route="/app/create/dialogue"
-              viewAsUserId={viewAsUserId}
-              colorTheme={{
-                bg: 'bg-periwinkle-light',
-                text: 'text-periwinkle-dark',
-                border: 'border-periwinkle',
-                button: 'bg-periwinkle hover:bg-periwinkle-dark',
-              }}
-            />
-          )}
-          {filter === 'courses' && (
-            <EmptyStateCard
-              icon={Headphones}
-              title={t('library:emptyStates.course.title')}
-              description={t('library:emptyStates.course.description')}
-              buttonText={t('library:emptyStates.course.button')}
-              route="/app/create/dialogue"
-              viewAsUserId={viewAsUserId}
-              colorTheme={{
-                bg: 'bg-coral-light',
-                text: 'text-coral-dark',
-                border: 'border-coral',
-                button: 'bg-coral hover:bg-coral-dark',
-              }}
-            />
-          )}
-          {filter === 'all' && (
-            <div className="card">
-              <div className="text-center py-12 space-y-4">
-                <p className="text-gray-500">{t('library:emptyStates.all.description')}</p>
+        <div className="retro-library-v3-body">
+          <section className="retro-library-v3-main">
+            <div className="retro-library-v3-toolbar">
+              <button
+                type="button"
+                onClick={() => handleFilterChange('all')}
+                className={`retro-library-v3-filter ${filter === 'all' ? 'is-active' : ''}`}
+                data-testid="library-filter-all"
+                aria-pressed={filter === 'all'}
+              >
+                <Layers className="h-4 w-4" />
+                {t('library:filters.all')}
+              </button>
+
+              {/* Admin Draft Toggle */}
+              {user?.role === 'admin' && (
                 <button
                   type="button"
-                  onClick={() => {
-                    const createUrl = viewAsUserId
-                      ? `/app/create?viewAs=${viewAsUserId}`
-                      : '/app/create';
-                    window.location.href = createUrl;
-                  }}
-                  className="btn-primary inline-flex items-center gap-2"
-                  data-testid="library-button-browse-all"
+                  onClick={() => setShowDrafts(!showDrafts)}
+                  className={`retro-library-v3-filter retro-library-v3-draft ${
+                    showDrafts ? 'is-active' : ''
+                  }`}
                 >
-                  {t('library:emptyStates.all.button')}
-                  <span>→</span>
+                  <span className={`retro-library-v3-filter-dot ${showDrafts ? 'is-on' : ''}`} />
+                  Drafts
                 </button>
+              )}
+
+              {/* Filter Tabs */}
+              {isFeatureEnabled('dialoguesEnabled') && (
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange('dialogues')}
+                  className={`retro-library-v3-filter ${filter === 'dialogues' ? 'is-active' : ''}`}
+                  data-testid="library-filter-dialogues"
+                  aria-pressed={filter === 'dialogues'}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  {t('library:filters.dialogues')}
+                </button>
+              )}
+              {isFeatureEnabled('audioCourseEnabled') && (
+                <button
+                  type="button"
+                  onClick={() => handleFilterChange('courses')}
+                  className={`retro-library-v3-filter ${filter === 'courses' ? 'is-active' : ''}`}
+                  data-testid="library-filter-courses"
+                  aria-pressed={filter === 'courses'}
+                >
+                  <Headphones className="h-4 w-4" />
+                  {t('library:filters.courses')}
+                </button>
+              )}
+            </div>
+
+            {allItems.length === 0 ? (
+              <div className="retro-library-v3-empty">
+                {filter === 'all' ? (
+                  <>
+                    <p>{t('library:emptyStates.all.description')}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const createUrl = getCreateUrl('/app/create');
+                        window.location.href = createUrl;
+                      }}
+                      className="retro-library-v3-empty-btn"
+                      data-testid="library-button-browse-all"
+                    >
+                      {t('library:emptyStates.all.button')}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="retro-headline text-3xl">
+                      {filter === 'dialogues'
+                        ? t('library:emptyStates.dialogue.title')
+                        : t('library:emptyStates.course.title')}
+                    </h3>
+                    <p>
+                      {filter === 'dialogues'
+                        ? t('library:emptyStates.dialogue.description')
+                        : t('library:emptyStates.course.description')}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        window.location.href = getCreateUrl('/app/create/dialogue');
+                      }}
+                      className="retro-library-v3-empty-btn"
+                    >
+                      {filter === 'dialogues'
+                        ? t('library:emptyStates.dialogue.button')
+                        : t('library:emptyStates.course.button')}
+                    </button>
+                  </>
+                )}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="retro-library-v3-grid">
+                {allItems.map((item, index) => {
+                  if (item.type === 'episode') {
+                    const episode = item.data as Episode;
+                    const proficiencyLevels = episode.dialogue?.speakers
+                      ? [
+                          ...new Set(
+                            episode.dialogue.speakers.map((speaker) => speaker.proficiency)
+                          ),
+                        ]
+                      : [];
+                    const sentenceCount = episode.dialogue?.sentences?.length ?? 0;
+                    const progressStyle = {
+                      '--retro-library-v3-card-pct': `${getProgressPercent(
+                        episode.status,
+                        episode.isSampleContent
+                      )}%`,
+                    } as CSSProperties;
+
+                    return (
+                      <Link
+                        key={episode.id}
+                        to={`/app/playback/${episode.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
+                        className="retro-library-v3-card group"
+                        data-testid="library-item"
+                        data-item-id={episode.id}
+                        data-updated-at={item.date.toISOString()}
+                        data-content-type="dialogue"
+                        data-library-card-id={episode.id}
+                      >
+                        <div className="retro-library-v3-card-head is-dialogue">
+                          <div className="retro-library-v3-card-kicker retro-caps">
+                            レッスン {index + 1}
+                          </div>
+                          <h3 className="retro-library-v3-card-title">{episode.title}</h3>
+                          <div className="retro-library-v3-card-subtitle">
+                            {episode.sourceText || t('library:filters.dialogues')}
+                          </div>
+                        </div>
+
+                        <div className="retro-library-v3-card-body">
+                          <div className="retro-library-v3-card-mini">
+                            <span className="retro-library-v3-cassette" aria-hidden="true" />
+                            <span className="retro-caps">Audio / Turns {sentenceCount}</span>
+                          </div>
+                          <div className="retro-library-v3-card-progress" style={progressStyle} />
+                          <div className="retro-library-v3-card-meta retro-caps">
+                            <span>{formatStampDate(episode.updatedAt)}</span>
+                            <span>{proficiencyLevels.join(', ') || 'Ready'}</span>
+                          </div>
+
+                          <div className="retro-library-v3-card-cta-row">
+                            <span className="retro-library-v3-open retro-caps">Open</span>
+                            <div className="retro-library-v3-tags">
+                              {episode.isSampleContent && (
+                                <span className="retro-library-v3-tag">
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                  Sample
+                                </span>
+                              )}
+                              {episode.status === 'generating' && (
+                                <span className="retro-library-v3-tag is-pulse">
+                                  {t('common:loading')}
+                                </span>
+                              )}
+                              {!isDemo && !viewAsUserId && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteClick(episode, e)}
+                                  className="retro-library-v3-delete"
+                                  title="Delete episode"
+                                  data-testid={`library-delete-episode-${episode.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  }
+
+                  if (item.type === 'course') {
+                    const course = item.data as LibraryCourse;
+                    const sourceDialogueTurns =
+                      course.courseEpisodes?.[0]?.episode?.dialogue?.sentences?.length ?? 0;
+                    const progressStyle = {
+                      '--retro-library-v3-card-pct': `${getProgressPercent(
+                        course.status,
+                        course.isSampleContent
+                      )}%`,
+                    } as CSSProperties;
+
+                    return (
+                      <Link
+                        key={course.id}
+                        to={`/app/courses/${course.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
+                        className="retro-library-v3-card group"
+                        data-testid="library-item"
+                        data-item-id={course.id}
+                        data-updated-at={item.date.toISOString()}
+                        data-content-type="course"
+                        data-library-card-id={course.id}
+                      >
+                        <div className="retro-library-v3-card-head is-course">
+                          <div className="retro-library-v3-card-kicker retro-caps">
+                            コース {index + 1}
+                          </div>
+                          <h3 className="retro-library-v3-card-title">{course.title}</h3>
+                          <div className="retro-library-v3-card-subtitle">
+                            {course.description || t('library:filters.courses')}
+                          </div>
+                        </div>
+
+                        <div className="retro-library-v3-card-body">
+                          <div className="retro-library-v3-card-mini">
+                            <span className="retro-library-v3-cassette" aria-hidden="true" />
+                            <span className="retro-caps">
+                              Audio / {formatDuration(course.approxDurationSeconds)} / Turns{' '}
+                              {sourceDialogueTurns}
+                            </span>
+                          </div>
+                          <div className="retro-library-v3-card-progress" style={progressStyle} />
+                          <div className="retro-library-v3-card-meta retro-caps">
+                            <span>{formatStampDate(course.updatedAt)}</span>
+                            <span>
+                              {course.targetLanguage.toUpperCase()} {course.jlptLevel || 'N/A'}
+                            </span>
+                          </div>
+
+                          <div className="retro-library-v3-card-cta-row">
+                            <span className="retro-library-v3-open retro-caps">Open</span>
+                            <div className="retro-library-v3-tags">
+                              {course.isSampleContent && (
+                                <span className="retro-library-v3-tag">
+                                  <Sparkles className="h-3.5 w-3.5" />
+                                  Sample
+                                </span>
+                              )}
+                              {course.status === 'draft' && (
+                                <span className="retro-library-v3-tag">Draft</span>
+                              )}
+                              {course.status === 'generating' && (
+                                <span className="retro-library-v3-tag is-pulse">
+                                  {t('common:status.generating')}
+                                </span>
+                              )}
+                              {!isDemo && !viewAsUserId && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleDeleteCourseClick(course, e)}
+                                  className="retro-library-v3-delete"
+                                  title="Delete course"
+                                  data-testid={`library-delete-course-${course.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  }
+
+                  return null;
+                })}
+              </div>
+            )}
+
+            {/* Infinite scroll sentinel */}
+            {allItems.length > 0 && (
+              <div
+                ref={loadMoreRef}
+                className="h-10 flex items-center justify-center"
+                data-testid="scroll-sentinel"
+              >
+                {isFetchingNextPage && (
+                  <div className="flex items-center gap-2 text-[rgba(20,50,86,0.72)] retro-caps">
+                    <Loader2 className="w-5 h-5 animate-spin" data-testid="loading-spinner" />
+                    <span>{t('common:loadingMore')}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
         </div>
-      ) : (
-        <div className="space-y-1">
-          {allItems.map((item) => {
-            if (item.type === 'episode') {
-              const episode = item.data as Episode;
-              // Get unique proficiency levels from speakers
-              const proficiencyLevels = episode.dialogue?.speakers
-                ? [...new Set(episode.dialogue.speakers.map((s) => s.proficiency))]
-                : [];
 
-              return (
-                <Link
-                  key={episode.id}
-                  to={`/app/playback/${episode.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
-                  className="group relative flex items-stretch bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-lg"
-                  data-testid={`library-episode-card-${episode.id}`}
-                >
-                  {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
-                    <MessageSquare className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight">
-                      {t('library:filters.dialogues').split(' ')[0]}
-                    </span>
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors truncate mb-1 sm:mb-2">
-                          {episode.title}
-                        </h3>
-                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
-                          {episode.sourceText}
-                        </p>
-                      </div>
-
-                      {/* Right: Badges and actions */}
-                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        {proficiencyLevels.length > 0 && (
-                          <LanguageLevelPill
-                            className="hidden sm:inline-flex"
-                            language={episode.targetLanguage}
-                            level={proficiencyLevels.join(', ')}
-                          />
-                        )}
-                        {episode.isSampleContent && (
-                          <Pill color="blue" className="flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Sample
-                          </Pill>
-                        )}
-                        {episode.status === 'generating' && (
-                          <Pill color="yellow" className="animate-pulse">
-                            {t('common:loading')}
-                          </Pill>
-                        )}
-                        {!isDemo && !viewAsUserId && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteClick(episode, e)}
-                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete episode"
-                            data-testid={`library-delete-episode-${episode.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Language/Level Sidebar (mobile only) */}
-                  {proficiencyLevels.length > 0 && (
-                    <LanguageLevelSidebar
-                      className="sm:hidden"
-                      language={episode.targetLanguage.toUpperCase()}
-                      level={proficiencyLevels.join(', ')}
-                    />
-                  )}
-                </Link>
-              );
-            }
-            if (item.type === 'course') {
-              const course = item.data as LibraryCourse;
-
-              return (
-                <Link
-                  key={course.id}
-                  to={`/app/courses/${course.id}${viewAsUserId ? `?viewAs=${viewAsUserId}` : ''}`}
-                  className="group relative flex items-stretch bg-white hover:bg-coral-light transition-all duration-200 hover:shadow-lg"
-                  data-testid={`library-course-card-${course.id}`}
-                >
-                  {/* Icon Sidebar */}
-                  <div className="w-16 sm:w-24 flex-shrink-0 bg-coral flex flex-col items-center justify-center gap-1 sm:gap-2 py-3 sm:py-4 px-2 sm:px-1">
-                    <Headphones className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
-                    <span
-                      className="text-[10px] sm:text-xs font-bold text-white uppercase tracking-wide text-center leading-tight"
-                      // eslint-disable-next-line react/no-danger -- i18n translations may contain HTML formatting
-                      dangerouslySetInnerHTML={{ __html: t('library:sidebar.course') }}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 px-3 sm:px-6 py-3 sm:py-5 min-w-0">
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      {/* Left: Title and metadata */}
-                      <div className="flex-1 min-w-0 overflow-hidden">
-                        <h3 className="text-lg sm:text-2xl font-bold text-dark-brown group-hover:text-coral transition-colors truncate mb-1 sm:mb-2">
-                          {course.title}
-                        </h3>
-                        {course.description && (
-                          <p className="text-xs sm:text-sm text-gray-600 line-clamp-1">
-                            {course.description}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Right: Badges and actions */}
-                      <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-3 flex-shrink-0 ml-auto">
-                        {course.isSampleContent && (
-                          <Pill color="blue" className="flex items-center gap-1">
-                            <Sparkles className="w-3 h-3" />
-                            Sample
-                          </Pill>
-                        )}
-                        {course.status === 'draft' && <Pill color="periwinkle">Draft</Pill>}
-                        {course.status === 'generating' && (
-                          <Pill color="yellow" className="animate-pulse">
-                            {t('common:status.generating')}
-                          </Pill>
-                        )}
-                        {course.jlptLevel && (
-                          <LanguageLevelPill
-                            className="hidden sm:inline-flex"
-                            language={course.targetLanguage}
-                            level={course.jlptLevel}
-                          />
-                        )}
-                        {!isDemo && !viewAsUserId && (
-                          <button
-                            type="button"
-                            onClick={(e) => handleDeleteCourseClick(course, e)}
-                            className="p-2 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors opacity-0 group-hover:opacity-100"
-                            title="Delete course"
-                            data-testid={`library-delete-course-${course.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Language/Level Sidebar (mobile only) */}
-                  {course.jlptLevel && (
-                    <LanguageLevelSidebar
-                      className="sm:hidden"
-                      language={course.targetLanguage.toUpperCase()}
-                      level={course.jlptLevel}
-                    />
-                  )}
-                </Link>
-              );
-            }
-            return null;
-          })}
+        <div className="retro-library-v3-foot retro-caps">
+          <span>File: Convo-Lab-V3 | Unit Index: Library</span>
+          <span>{formatStampDate(new Date())}</span>
         </div>
-      )}
-
-      {/* Infinite scroll sentinel */}
-      {allItems.length > 0 && (
-        <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
-          {isFetchingNextPage && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>{t('common:loadingMore')}</span>
-            </div>
-          )}
-        </div>
-      )}
+      </div>
 
       {/* Delete Episode Confirmation Modal */}
       <ConfirmModal

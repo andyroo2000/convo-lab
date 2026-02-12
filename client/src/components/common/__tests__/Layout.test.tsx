@@ -137,6 +137,16 @@ describe('Layout', () => {
       const desktopCreateLink = container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]');
       expect(desktopCreateLink).toHaveClass('bg-white', 'text-coral');
     });
+
+    it('should not highlight library when on playback route', () => {
+      window.history.pushState({}, '', '/app/playback/episode-123');
+      const { container } = renderLayout('/app/playback/episode-123');
+
+      const desktopLibraryLink = container.querySelector(
+        '.hidden.sm\\:ml-6 a[href="/app/library"]'
+      );
+      expect(desktopLibraryLink).not.toHaveClass('bg-white', 'text-strawberry');
+    });
   });
 
   describe('Layout structure', () => {

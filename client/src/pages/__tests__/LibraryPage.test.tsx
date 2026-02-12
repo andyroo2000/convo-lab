@@ -85,30 +85,35 @@ describe('LibraryPage', () => {
     );
 
   describe('Mobile layout - Filter buttons', () => {
-    it('should have padding on mobile for filter buttons', () => {
+    it('should render the v3 toolbar container', () => {
       const { container } = renderLibraryPage();
 
-      const filterContainer = container.querySelector(
-        '.flex.items-center.justify-center.sm\\:justify-end.mb-6'
-      );
+      const filterContainer = container.querySelector('.retro-library-v3-toolbar');
       expect(filterContainer).toBeTruthy();
-      expect(filterContainer).toHaveClass('px-4', 'sm:px-0');
     });
 
     it('should render all filter buttons', () => {
       renderLibraryPage();
 
+      expect(screen.getByTestId('library-filter-all')).toBeTruthy();
       expect(screen.getByTestId('library-filter-dialogues')).toBeTruthy();
       expect(screen.getByTestId('library-filter-courses')).toBeTruthy();
+    });
+
+    it('should default to all content filter selected', () => {
+      renderLibraryPage();
+
+      const allButton = screen.getByTestId('library-filter-all');
+      expect(allButton).toHaveClass('is-active');
+      expect(allButton).toHaveAttribute('aria-pressed', 'true');
     });
   });
 
   describe('Mobile layout - Empty states', () => {
-    it('should wrap empty states with padding on mobile', () => {
+    it('should render the v3 empty state shell', () => {
       const { container } = renderLibraryPage();
 
-      // Check for the wrapper div with conditional padding
-      const emptyStateWrapper = container.querySelector('.px-4.sm\\:px-0');
+      const emptyStateWrapper = container.querySelector('.retro-library-v3-empty');
       expect(emptyStateWrapper).toBeTruthy();
     });
 
@@ -125,7 +130,7 @@ describe('LibraryPage', () => {
       renderLibraryPage();
 
       const dialoguesButton = screen.getByTestId('library-filter-dialogues');
-      expect(dialoguesButton).toHaveClass('px-3', 'sm:px-4', 'py-3.5', 'sm:py-2', 'rounded-full');
+      expect(dialoguesButton).toHaveClass('retro-library-v3-filter');
     });
 
     it('should display empty state message when no content exists', () => {
@@ -137,23 +142,21 @@ describe('LibraryPage', () => {
   });
 
   describe('Responsive design', () => {
-    it('should use responsive padding classes for filter container', () => {
+    it('should render the v3 shell/body structure', () => {
       const { container } = renderLibraryPage();
 
-      const filterContainer = container.querySelector('.mb-6.px-4.sm\\:px-0');
-      expect(filterContainer).toBeTruthy();
+      const shell = container.querySelector('.retro-library-v3-shell');
+      const body = container.querySelector('.retro-library-v3-body');
+      expect(shell).toBeTruthy();
+      expect(body).toBeTruthy();
     });
 
-    it('should have no horizontal padding on list items container when content exists (cards extend to edges)', () => {
-      // Note: This test verifies the CSS class structure - when items exist,
-      // the .space-y-1 container should not have horizontal padding.
-      // With empty mock data, the empty state is shown instead.
-      // This assertion validates the empty state container doesn't have inappropriate padding.
+    it('should show empty state and no library items when content is empty', () => {
       const { container } = renderLibraryPage();
 
-      // When empty, the empty state wrapper should have responsive padding
-      const emptyStateWrapper = container.querySelector('.px-4.sm\\:px-0');
+      const emptyStateWrapper = container.querySelector('.retro-library-v3-empty');
       expect(emptyStateWrapper).toBeTruthy();
+      expect(screen.queryByTestId('library-item')).toBeNull();
     });
   });
 });

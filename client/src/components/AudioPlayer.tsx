@@ -134,16 +134,17 @@ const AudioPlayer = ({
   };
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const clampedProgress = Math.max(0, Math.min(100, progress));
 
   return (
-    <div className="flex items-center gap-3 w-full">
+    <div className="retro-audio-player w-full">
       <audio ref={combinedRef} src={src} />
 
       {/* Play/Pause Button */}
       <button
         type="button"
         onClick={togglePlayPause}
-        className="w-11 h-11 flex items-center justify-center rounded-full bg-indigo text-white hover:bg-indigo-600 transition-colors flex-shrink-0"
+        className="retro-audio-play rounded-full transition-colors hover:brightness-95"
         aria-label={isPlaying ? t('aria.pause') : t('aria.play')}
         data-testid="audio-button-play-pause"
       >
@@ -159,7 +160,7 @@ const AudioPlayer = ({
       </button>
 
       {/* Current Time */}
-      <span className="text-sm text-navy font-medium tabular-nums flex-shrink-0 w-12">
+      <span className="hidden text-sm text-navy font-medium tabular-nums flex-shrink-0 w-12">
         {formatTime(currentTime)}
       </span>
 
@@ -168,7 +169,7 @@ const AudioPlayer = ({
         ref={progressBarRef}
         role="button"
         tabIndex={0}
-        className="flex-1 h-2 bg-gray-200 rounded-full cursor-pointer relative group"
+        className="retro-audio-track cursor-pointer w-full"
         onClick={handleProgressClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -182,14 +183,15 @@ const AudioPlayer = ({
         data-testid="audio-progress-bar"
       >
         {/* Progress Fill */}
-        <div className="h-full bg-indigo rounded-full relative" style={{ width: `${progress}%` }}>
-          {/* Playhead */}
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 bg-indigo rounded-full border-2 border-white shadow-md" />
-        </div>
+        <div className="retro-audio-fill" style={{ width: `${clampedProgress}%` }} />
+        <div
+          className="retro-audio-head absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-md"
+          style={{ left: `${clampedProgress}%` }}
+        />
       </div>
 
       {/* Duration */}
-      <span className="text-sm text-gray-500 font-medium tabular-nums flex-shrink-0 w-12">
+      <span className="retro-audio-time text-sm font-medium tabular-nums">
         {formatTime(duration)}
       </span>
 
@@ -200,8 +202,8 @@ const AudioPlayer = ({
           onClick={toggleRepeatMode}
           className={`w-11 h-11 flex items-center justify-center rounded-full transition-colors flex-shrink-0 ${
             repeatMode !== 'off'
-              ? 'bg-indigo text-white hover:bg-indigo-600'
-              : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+              ? 'bg-[#1594bf] text-[#f8f2df] hover:brightness-95'
+              : 'bg-[rgba(20,50,86,0.14)] text-[#173b65] hover:bg-[rgba(20,50,86,0.2)]'
           }`}
           aria-label={t('aria.repeatMode', { mode: repeatMode })}
           data-testid="audio-button-repeat"

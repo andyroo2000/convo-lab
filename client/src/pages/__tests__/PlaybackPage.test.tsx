@@ -336,14 +336,13 @@ describe('PlaybackPage', () => {
       });
     });
 
-    it('should display speaker names', async () => {
+    it('should include speaker labels on avatar images', async () => {
       renderPlaybackPage();
 
       await waitFor(() => {
-        // Speaker names should be in the DOM (田中 and 鈴木)
-        expect(document.body.textContent).toContain('田中');
+        expect(screen.getByAltText('田中')).toBeInTheDocument();
       });
-      expect(document.body.textContent).toContain('鈴木');
+      expect(screen.getByAltText('鈴木')).toBeInTheDocument();
     });
   });
 
@@ -391,7 +390,7 @@ describe('PlaybackPage', () => {
       renderPlaybackPage();
 
       await waitFor(() => {
-        const stickyHeader = document.querySelector('.sticky.top-16');
+        const stickyHeader = document.querySelector('[data-playback-sticky-header]');
         expect(stickyHeader).toBeInTheDocument();
       });
     });
@@ -400,7 +399,7 @@ describe('PlaybackPage', () => {
       renderPlaybackPage();
 
       await waitFor(() => {
-        const dialogueContainer = document.querySelector('.max-w-6xl.mx-auto');
+        const dialogueContainer = screen.getByTestId('playback-page-container');
         expect(dialogueContainer).toBeInTheDocument();
       });
     });

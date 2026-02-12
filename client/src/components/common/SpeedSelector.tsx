@@ -55,18 +55,8 @@ const SpeedSelector = ({
   const normalizedSelected = normalizeSpeed(selectedSpeed);
   const normalizedLoading = loadingSpeed ? normalizeSpeed(loadingSpeed) : null;
 
-  // Bold colors for each speed option
-  const getSpeedClasses = (option: SpeedOption, isSelected: boolean) => {
-    if (isSelected) {
-      if (option.value === '0.7x') return 'bg-strawberry text-white shadow-md';
-      if (option.value === '0.85x') return 'bg-yellow text-navy shadow-md';
-      return 'bg-keylime text-white shadow-md';
-    }
-    return 'text-navy hover:bg-white/50';
-  };
-
   return (
-    <div className={`flex items-center gap-1 bg-white rounded-lg p-1 shadow-sm ${className}`}>
+    <div className={`retro-speed-group ${className}`}>
       {SPEED_OPTIONS.map((option) => {
         const isSelected = normalizedSelected === option.value;
         const isLoading = loading && normalizedLoading === option.value;
@@ -78,10 +68,9 @@ const SpeedSelector = ({
             key={option.value}
             onClick={() => onSpeedChange(option.value as SpeedValue)}
             disabled={disabled}
-            className={`px-4 py-1.5 rounded text-sm font-bold transition-colors flex items-center gap-1 ${getSpeedClasses(
-              option,
-              isSelected
-            )} ${disabled ? 'disabled:opacity-50' : ''}`}
+            className={`retro-speed-button ${isSelected ? 'is-selected' : ''} ${
+              disabled ? 'disabled:opacity-50' : ''
+            }`}
             data-testid={`playback-speed-${option.label.toLowerCase()}`}
           >
             {isLoading && <Loader className="w-3 h-3 animate-spin" />}

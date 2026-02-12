@@ -3,9 +3,16 @@ import { Episode, Course } from '../types';
 import { API_URL } from '../config';
 
 // Library-specific types with _count instead of full relations
-export type LibraryCourse = Omit<Course, 'lessons' | 'courseEpisodes'> & {
+export type LibraryCourse = Omit<Course, 'lessons'> & {
+  courseEpisodes?: Array<{
+    episode?: {
+      dialogue?: {
+        sentences?: Array<{ id: string }>;
+      };
+    };
+  }>;
   _count?: {
-    lessons: number;
+    coreItems: number;
   };
 };
 

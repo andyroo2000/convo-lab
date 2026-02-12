@@ -57,33 +57,30 @@ describe('CreatePage', () => {
     mockNavigate.mockClear();
   });
 
-  describe('Mobile layout - Title and footer', () => {
-    it('should have padding on mobile for title section', () => {
+  describe('Poster layout', () => {
+    it('should render the v3 create shell', () => {
       const { container } = renderCreatePage();
 
-      const titleSection = container.querySelector('.mb-12.text-center');
-      expect(titleSection).toBeTruthy();
-      expect(titleSection).toHaveClass('px-4', 'sm:px-0');
+      const shell = container.querySelector('.retro-create-v3-shell');
+      expect(shell).toBeTruthy();
     });
 
-    it('should have padding on mobile for footer text', () => {
+    it('should render v3 title and footer blocks', () => {
       const { container } = renderCreatePage();
 
-      const footerText = container.querySelector('.text-center.text-gray-500.mt-12');
+      const title = container.querySelector('.retro-create-v3-title');
+      const footerText = container.querySelector('.retro-create-v3-footer');
+      expect(title).toBeTruthy();
       expect(footerText).toBeTruthy();
-      expect(footerText).toHaveClass('px-4', 'sm:px-0');
     });
   });
 
-  describe('Mobile layout - Cards', () => {
-    it('should render cards at full width (no extra padding wrapper)', () => {
+  describe('Card rendering', () => {
+    it('should render cards grid', () => {
       const { container } = renderCreatePage();
 
-      // The cards container should not have horizontal padding
-      const cardsContainer = container.querySelector('.max-w-5xl.mx-auto.space-y-3');
+      const cardsContainer = container.querySelector('.retro-create-v3-grid');
       expect(cardsContainer).toBeTruthy();
-      expect(cardsContainer?.classList.contains('px-4')).toBe(false);
-      expect(cardsContainer?.classList.contains('px-6')).toBe(false);
     });
 
     it('should render all content type cards', () => {
@@ -125,35 +122,36 @@ describe('CreatePage', () => {
   });
 
   describe('Card structure', () => {
-    it('should render cards with full-width class', () => {
+    it('should render cards with v3 card class', () => {
       renderCreatePage();
 
       const dialogueCard = screen.getByTestId('create-card-dialogues');
-      expect(dialogueCard).toHaveClass('w-full');
+      expect(dialogueCard).toHaveClass('retro-create-v3-card');
     });
 
-    it('should have proper internal padding in card content', () => {
+    it('should have v3 card body structure', () => {
       const { container } = renderCreatePage();
 
-      // Cards should have internal padding via px-4 sm:px-8 on content divs
-      const cardContent = container.querySelector('[data-testid="create-card-dialogues"] .flex-1');
-      expect(cardContent).toHaveClass('px-4', 'sm:px-8');
+      const cardContent = container.querySelector(
+        '[data-testid="create-card-dialogues"] .retro-create-v3-card-body'
+      );
+      expect(cardContent).toBeTruthy();
     });
   });
 
   describe('Responsive design', () => {
-    it('should use responsive padding for title', () => {
+    it('should use styled title class', () => {
       renderCreatePage();
 
       const title = screen.getByText('What do you want to create?');
-      expect(title.parentElement).toHaveClass('px-4', 'sm:px-0');
+      expect(title).toHaveClass('retro-create-v3-title');
     });
 
-    it('should use responsive padding for footer', () => {
+    it('should use styled footer class', () => {
       renderCreatePage();
 
       const footer = screen.getByText(/Experiment, iterate/i);
-      expect(footer).toHaveClass('px-4', 'sm:px-0');
+      expect(footer).toHaveClass('retro-create-v3-footer');
     });
   });
 });

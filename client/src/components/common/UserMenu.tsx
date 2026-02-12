@@ -71,16 +71,16 @@ const UserMenu = ({
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 text-sm font-bold text-white hover:bg-white/20 transition-colors rounded-lg min-h-[44px] min-w-[44px] justify-center"
+        className="retro-user-pill hover:bg-[#1296bf]/70 transition-colors"
         data-testid="user-menu-button"
       >
         {avatarUrl ? (
-          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-white">
+          <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#f6f2df]">
             <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
-            <span className="text-sm font-bold text-periwinkle">{userInitial}</span>
+          <div className="w-9 h-9 bg-[#f6f2df] rounded-full flex items-center justify-center">
+            <span className="retro-caps text-xl font-bold text-[#173b65]">{userInitial}</span>
           </div>
         )}
       </button>
@@ -88,7 +88,7 @@ const UserMenu = ({
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-lg shadow-lg z-30 animate-fadeIn"
+          className="absolute right-0 mt-2 w-56 border-2 border-[#bcc8c7] bg-[#f8f2df] shadow-[0_10px_0_rgba(17,51,92,0.12)] z-30 animate-fadeIn"
           style={{ top: '100%' }}
         >
           <div className="py-1">
@@ -100,7 +100,7 @@ const UserMenu = ({
                   setIsOpen(false);
                   navigate('/app/admin');
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
                 data-testid="user-menu-item-admin"
               >
                 <Shield className="w-4 h-4" />
@@ -115,7 +115,7 @@ const UserMenu = ({
                 setIsOpen(false);
                 navigate('/app/settings');
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
               data-testid="user-menu-item-settings"
             >
               <Settings className="w-4 h-4" />
@@ -123,7 +123,7 @@ const UserMenu = ({
             </button>
 
             {/* Divider */}
-            <div className="border-t border-gray-200 my-1" />
+            <div className="border-t border-[#bcc8c7] my-1" />
 
             {/* Logout */}
             <button
@@ -132,7 +132,7 @@ const UserMenu = ({
                 setIsOpen(false);
                 onLogout();
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-red-600 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#f4d7cf] hover:text-[#9e3920] transition-colors"
               data-testid="user-menu-item-logout"
             >
               <LogOut className="w-4 h-4" />

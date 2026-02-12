@@ -1,6 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { BookOpen, Clock, FlaskConical } from 'lucide-react';
+import { FlaskConical } from 'lucide-react';
 import { useCourse } from '../hooks/useCourse';
 import { useAuth } from '../contexts/AuthContext';
 import AudioPlayer from '../components/AudioPlayer';
@@ -107,7 +107,7 @@ const CoursePage = () => {
 
   if (isLoading) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
         <div className="card text-center py-12">
           <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
           <p className="text-gray-600">Loading course...</p>
@@ -118,7 +118,7 @@ const CoursePage = () => {
 
   if (!course) {
     return (
-      <div className="max-w-6xl mx-auto">
+      <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto">
         <div className="card text-center py-12">
           <p className="text-gray-600">Audio course not found</p>
         </div>
@@ -127,10 +127,10 @@ const CoursePage = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-5">
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
+      <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(20,141,189,0.22)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+        <div className="flex-1 min-w-0">
           {/* Editable Title */}
           {editingTitle ? (
             <input
@@ -139,14 +139,14 @@ const CoursePage = () => {
               onChange={(e) => setEditedTitle(e.target.value)}
               onBlur={handleTitleSave}
               onKeyDown={(e) => handleKeyDown(e, handleTitleSave)}
-              className="text-3xl font-bold text-navy bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full"
+              className="retro-headline text-4xl sm:text-6xl bg-transparent border-b-2 border-[rgba(20,50,86,0.35)] focus:outline-none w-full"
               // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: Inline editing UX
               autoFocus
             />
           ) : (
             <button
               type="button"
-              className="text-3xl font-bold text-navy cursor-pointer hover:text-indigo-600 transition-colors text-left w-full"
+              className="retro-headline text-4xl sm:text-6xl cursor-pointer text-left w-full"
               onClick={handleTitleEdit}
               title="Click to edit"
             >
@@ -161,7 +161,7 @@ const CoursePage = () => {
               onChange={(e) => setEditedDescription(e.target.value)}
               onBlur={handleDescriptionSave}
               onKeyDown={(e) => handleKeyDown(e, handleDescriptionSave)}
-              className="text-gray-600 mt-2 bg-transparent border-b-2 border-indigo-500 focus:outline-none w-full resize-none"
+              className="text-[rgba(20,50,86,0.78)] mt-2 bg-transparent border-b-2 border-[rgba(20,50,86,0.28)] focus:outline-none w-full resize-none text-xl"
               rows={2}
               // eslint-disable-next-line jsx-a11y/no-autofocus -- Intentional: Inline editing UX
               autoFocus
@@ -169,7 +169,7 @@ const CoursePage = () => {
           ) : (
             <button
               type="button"
-              className="text-gray-600 mt-2 cursor-pointer hover:text-indigo-600 transition-colors text-left w-full"
+              className="text-[rgba(20,50,86,0.78)] mt-2 cursor-pointer hover:text-[#1594bf] transition-colors text-left w-full text-lg sm:text-[2rem] leading-tight"
               onClick={handleDescriptionEdit}
               title="Click to edit"
             >
@@ -180,22 +180,22 @@ const CoursePage = () => {
       </div>
 
       {/* Course Info */}
-      <div className="card">
-        <div className="flex items-center gap-6 text-sm text-gray-600">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4 h-4" />
+      <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 py-3 sm:px-5 sm:py-4 shadow-[0_8px_0_rgba(17,51,92,0.1)]">
+        <div className="flex items-center gap-4 sm:gap-7 text-lg sm:text-4xl text-[rgba(20,50,86,0.82)] flex-wrap">
+          <div className="inline-flex items-center gap-2 retro-caps">
+            <span className="w-2.5 h-2.5 rounded-full bg-[rgba(20,50,86,0.35)] inline-block" />
             <span>{formatDuration(course.approxDurationSeconds || 0)}</span>
           </div>
           {course.coreItems && course.coreItems.length > 0 && (
-            <div className="flex items-center gap-2">
-              <BookOpen className="w-4 h-4" />
+            <div className="inline-flex items-center gap-2 retro-caps">
+              <span className="w-2.5 h-2.5 rounded-full bg-[rgba(20,50,86,0.35)] inline-block" />
               <span>
                 {course.coreItems.length} Core {course.coreItems.length === 1 ? 'Item' : 'Items'}
               </span>
             </div>
           )}
           <div className="ml-auto">
-            <span className="px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
+            <span className="inline-flex px-3 py-1.5 bg-[rgba(26,178,209,0.18)] text-[rgba(20,50,86,0.92)] text-xl retro-caps font-semibold">
               {course.targetLanguage.toUpperCase()} → {course.nativeLanguage.toUpperCase()}
             </span>
           </div>
@@ -203,56 +203,67 @@ const CoursePage = () => {
       </div>
 
       {/* Course Player */}
-      <div className="card">
+      <div className="space-y-4">
         {/* eslint-disable-next-line no-nested-ternary */}
         {course.status === 'ready' && course.audioUrl ? (
           <>
-            {/* View Toggle Buttons */}
-            {course.timingData && (
-              <div className="mb-4">
-                <ViewToggleButtons
-                  showReadings={showReadings}
-                  showTranslations={showTranslations}
-                  onToggleReadings={() => setShowReadings(!showReadings)}
-                  onToggleTranslations={() => setShowTranslations(!showTranslations)}
-                  readingsLabel="Furigana"
-                />
+            <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)]">
+              <div className="px-4 sm:px-5 py-4 space-y-4">
+                {/* View Toggle Buttons */}
+                {course.timingData && (
+                  <ViewToggleButtons
+                    showReadings={showReadings}
+                    showTranslations={showTranslations}
+                    onToggleReadings={() => setShowReadings(!showReadings)}
+                    onToggleTranslations={() => setShowTranslations(!showTranslations)}
+                    readingsLabel="Furigana"
+                    className="justify-end gap-4"
+                  />
+                )}
+
+                {/* Current Text Display */}
+                {course.timingData && (
+                  <div>
+                    <CurrentTextDisplay
+                      currentUnit={currentUnit}
+                      targetLanguage={course.targetLanguage}
+                      showReadings={showReadings}
+                      showTranslations={showTranslations}
+                    />
+                  </div>
+                )}
+
+                <h2 className="retro-headline text-4xl sm:text-[3rem]">Course Audio</h2>
+
+                <div className="border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.9)] px-4 sm:px-5 py-3">
+                  <AudioPlayer src={course.audioUrl} audioRef={audioRef} key={course.audioUrl} />
+                </div>
               </div>
-            )}
-
-            {/* Current Text Display */}
-            {course.timingData && (
-              <div className="mb-6">
-                <CurrentTextDisplay
-                  currentUnit={currentUnit}
-                  targetLanguage={course.targetLanguage}
-                  showReadings={showReadings}
-                  showTranslations={showTranslations}
-                />
-              </div>
-            )}
-
-            <h2 className="text-2xl font-bold text-navy mb-4">Course Audio</h2>
-
-            <AudioPlayer src={course.audioUrl} audioRef={audioRef} key={course.audioUrl} />
+            </div>
 
             {/* Core Vocabulary */}
             {course.coreItems && course.coreItems.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-lg font-semibold text-navy mb-3">
+              <div className="mt-2 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+                <h3 className="retro-headline text-3xl sm:text-[2.65rem] mb-3">
                   Core Vocabulary ({course.coreItems.length} items)
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {course.coreItems.map((item) => (
                     <div
                       key={item.id}
-                      className="p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all hover:shadow-md hover:border-indigo-300"
+                      className="p-4 min-h-[120px] bg-[rgba(252,246,228,0.95)] shadow-[inset_0_0_0_2px_rgba(20,50,86,0.10),0_10px_0_rgba(17,51,92,0.10)] transition-all hover:translate-y-[-1px]"
                     >
-                      <div className="text-lg font-medium text-navy">{item.textL2}</div>
+                      <div className="text-4xl sm:text-[2rem] font-black text-[rgba(20,50,86,0.92)] leading-tight">
+                        {item.textL2}
+                      </div>
                       {item.readingL2 && (
-                        <div className="text-sm text-gray-500 mt-1">{item.readingL2}</div>
+                        <div className="text-lg text-[rgba(20,50,86,0.6)] mt-1">
+                          {item.readingL2}
+                        </div>
                       )}
-                      <div className="text-sm text-gray-600 mt-2">{item.translationL1}</div>
+                      <div className="text-lg text-[rgba(20,50,86,0.76)] mt-3">
+                        {item.translationL1}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -263,10 +274,10 @@ const CoursePage = () => {
             {course.courseEpisodes &&
               course.courseEpisodes.length > 0 &&
               course.courseEpisodes[0].episode?.sourceText && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-navy mb-3">Original Prompt</h3>
-                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                <div className="mt-6 border-2 border-[rgba(20,50,86,0.12)] bg-[rgba(252,246,228,0.92)] shadow-[0_8px_0_rgba(17,51,92,0.1)] px-4 sm:px-5 py-4">
+                  <h3 className="retro-headline text-2xl mb-3">Original Prompt</h3>
+                  <div className="p-4 bg-[rgba(20,141,189,0.15)] border-2 border-[rgba(20,50,86,0.12)]">
+                    <p className="text-sm text-[rgba(20,50,86,0.84)] whitespace-pre-wrap">
                       {course.courseEpisodes[0].episode.sourceText}
                     </p>
                   </div>
@@ -274,7 +285,7 @@ const CoursePage = () => {
               )}
           </>
         ) : course.status === 'generating' ? (
-          <div className="text-center py-12">
+          <div className="card text-center py-12">
             <div className="loading-spinner w-12 h-12 border-4 border-indigo border-t-transparent rounded-full mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Generating course audio...</p>
 
@@ -308,7 +319,7 @@ const CoursePage = () => {
             </p>
           </div>
         ) : (
-          <div className="text-center py-12">
+          <div className="card text-center py-12">
             <p className="text-gray-600">
               {course.status === 'draft' ? 'Course not yet generated' : 'No audio available'}
             </p>

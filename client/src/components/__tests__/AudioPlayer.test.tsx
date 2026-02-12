@@ -183,7 +183,7 @@ describe('AudioPlayer', () => {
       });
       const button = screen.getByTestId('audio-button-repeat');
       expect(button).toHaveAttribute('aria-label', 'Repeat mode: off');
-      expect(button.className).toContain('bg-gray-200');
+      expect(button.className).toContain('bg-[rgba(20,50,86,0.14)]');
     });
 
     it('should show repeat button with active styling when repeatMode is one', () => {
@@ -193,7 +193,7 @@ describe('AudioPlayer', () => {
       });
       const button = screen.getByTestId('audio-button-repeat');
       expect(button).toHaveAttribute('aria-label', 'Repeat mode: one');
-      expect(button.className).toContain('bg-indigo');
+      expect(button.className).toContain('bg-[#1594bf]');
     });
 
     it('should show repeat button with active styling when repeatMode is all', () => {
@@ -203,7 +203,7 @@ describe('AudioPlayer', () => {
       });
       const button = screen.getByTestId('audio-button-repeat');
       expect(button).toHaveAttribute('aria-label', 'Repeat mode: all');
-      expect(button.className).toContain('bg-indigo');
+      expect(button.className).toContain('bg-[#1594bf]');
     });
 
     it('should cycle from off to one when clicking repeat button', () => {
@@ -263,7 +263,7 @@ describe('AudioPlayer', () => {
     it('should default repeatMode to off', () => {
       renderAudioPlayer({ onRepeatModeChange: mockOnRepeatModeChange });
       const button = screen.getByTestId('audio-button-repeat');
-      expect(button.className).toContain('bg-gray-200'); // off styling
+      expect(button.className).toContain('bg-[rgba(20,50,86,0.14)]'); // off styling
     });
   });
 
@@ -282,11 +282,10 @@ describe('AudioPlayer', () => {
   });
 
   describe('styling', () => {
-    it('should have flex container for layout', () => {
+    it('should use retro player layout container', () => {
       const { container } = renderAudioPlayer();
       const wrapper = container.firstChild as HTMLElement;
-      expect(wrapper.className).toContain('flex');
-      expect(wrapper.className).toContain('items-center');
+      expect(wrapper.className).toContain('retro-audio-player');
     });
 
     it('should have rounded-full class on play button', () => {
@@ -295,10 +294,10 @@ describe('AudioPlayer', () => {
       expect(button.className).toContain('rounded-full');
     });
 
-    it('should have indigo background on play button', () => {
+    it('should use retro class on play button', () => {
       renderAudioPlayer();
       const button = screen.getByTestId('audio-button-play-pause');
-      expect(button.className).toContain('bg-indigo');
+      expect(button.className).toContain('retro-audio-play');
     });
   });
 
@@ -354,7 +353,7 @@ describe('AudioPlayer', () => {
       const { container } = renderAudioPlayer();
       // Need to check progress bar styling directly
       // eslint-disable-next-line testing-library/no-container
-      const progressFill = container.querySelector('.bg-indigo.rounded-full.relative');
+      const progressFill = container.querySelector('.retro-audio-fill');
       if (progressFill) {
         expect(progressFill.getAttribute('style')).toContain('width: 0%');
       }
@@ -422,7 +421,7 @@ describe('AudioPlayer', () => {
       const { container } = renderAudioPlayer();
       // Need to check playhead styling directly
       // eslint-disable-next-line testing-library/no-container
-      const playhead = container.querySelector('.border-white.shadow-md');
+      const playhead = container.querySelector('.retro-audio-head');
       expect(playhead).toBeInTheDocument();
     });
   });

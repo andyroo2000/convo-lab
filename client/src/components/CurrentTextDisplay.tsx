@@ -54,16 +54,7 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
   };
 
   return (
-    <div
-      className="
-        min-h-[120px]
-        flex items-center justify-center
-        px-6 py-8
-        bg-blue-50
-        rounded-lg
-        shadow-sm
-      "
-    >
+    <div className="min-h-[160px] flex items-center justify-center px-6 py-8 bg-[rgba(26,178,209,0.10)] shadow-[inset_0_0_0_2px_rgba(20,50,86,0.10)] rounded-md">
       <div
         className="text-center max-w-4xl transition-opacity duration-200"
         style={{
@@ -71,7 +62,7 @@ const CurrentTextDisplay: React.FC<CurrentTextDisplayProps> = ({
         }}
       >
         {renderText()}
-        <div className="mt-4 text-lg text-gray-600 min-h-[28px]">
+        <div className="mt-4 text-lg text-[rgba(20,50,86,0.72)] italic min-h-[28px]">
           {showTranslations && translation && translation}
         </div>
       </div>

@@ -46,41 +46,59 @@ const CreatePage = () => {
   };
 
   return (
-    <div>
-      <div className="mb-12 text-center px-4 sm:px-0">
-        <h1 className="text-5xl font-bold text-dark-brown mb-3">{t('create:title')}</h1>
-        <p className="text-lg text-gray-600 mb-4">{t('create:subtitle')}</p>
-        <QuotaBadge />
-      </div>
+    <div className="retro-create-v3-wrap">
+      <div className="retro-create-v3-shell">
+        <div className="retro-create-v3-top">
+          <div className="retro-create-v3-branding">
+            <h1 className="retro-create-v3-title">{t('create:title')}</h1>
+            <p className="retro-create-v3-subtitle">{t('create:subtitle')}</p>
+          </div>
+        </div>
 
-      <div className="max-w-5xl mx-auto space-y-3">
-        {/* Dialogue Content Type */}
-        {isFeatureEnabled('dialoguesEnabled') && (
-          <button
-            type="button"
-            onClick={() => navigateWithViewAs('/app/create/dialogue')}
-            className="w-full flex items-center bg-white hover:bg-periwinkle-light transition-all duration-200 hover:shadow-xl group"
-            data-testid="create-card-dialogues"
-          >
-            <div className="w-20 sm:w-32 flex-shrink-0 bg-periwinkle flex flex-col items-center justify-center py-6 sm:py-8">
-              <MessageSquare className="w-10 h-10 sm:w-12 sm:h-12 text-white mb-2" />
-              <span className="text-xs sm:text-sm font-bold text-white uppercase tracking-wide">
-                {t('create:types.dialogue.title')}
-              </span>
-            </div>
-            <div className="flex-1 px-4 sm:px-8 py-4 sm:py-6">
-              <h2 className="text-xl sm:text-3xl font-bold text-dark-brown group-hover:text-periwinkle transition-colors mb-1 sm:mb-2">
-                {t('create:types.dialogue.title')}
-              </h2>
-              <p className="text-sm sm:text-base text-gray-600">
-                {t('create:types.dialogue.description')}
-              </p>
-            </div>
-          </button>
-        )}
-      </div>
+        <div className="retro-create-v3-main">
+          <div className="retro-create-v3-badge-row">
+            <QuotaBadge />
+          </div>
 
-      <p className="text-center text-gray-500 mt-12 px-4 sm:px-0">{t('create:footer')}</p>
+          <div className="retro-create-v3-grid">
+            {/* Dialogue Content Type */}
+            {isFeatureEnabled('dialoguesEnabled') && (
+              <button
+                type="button"
+                onClick={() => navigateWithViewAs('/app/create/dialogue')}
+                className="retro-create-v3-card group"
+                data-testid="create-card-dialogues"
+              >
+                <div className="retro-create-v3-card-head">
+                  <div className="retro-create-v3-card-kicker retro-caps">ワーク 1</div>
+                  <h2 className="retro-create-v3-card-title">{t('create:types.dialogue.title')}</h2>
+                </div>
+
+                <div className="retro-create-v3-card-body">
+                  <div className="retro-create-v3-card-mini">
+                    <span className="retro-create-v3-icon-wrap" aria-hidden="true">
+                      <MessageSquare className="h-4 w-4" />
+                    </span>
+                    <span className="retro-caps">Prompt / Story / Dialogue</span>
+                  </div>
+
+                  <p className="retro-create-v3-card-description">
+                    {t('create:types.dialogue.description')}
+                  </p>
+
+                  <div className="retro-create-v3-card-cta">
+                    <span className="retro-create-v3-open retro-caps">
+                      {t('create:buttons.create')}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            )}
+          </div>
+
+          <p className="retro-create-v3-footer">{t('create:footer')}</p>
+        </div>
+      </div>
 
       {/* Custom Content Guide Pulse Point */}
       {showCustomGuide && <CustomContentGuide onClose={handleCloseCustomGuide} />}

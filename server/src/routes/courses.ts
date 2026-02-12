@@ -64,8 +64,28 @@ router.get('/', async (req: AuthRequest, res, next) => {
           status: true,
           isSampleContent: true,
           jlptLevel: true,
+          approxDurationSeconds: true,
           createdAt: true,
           updatedAt: true,
+          courseEpisodes: {
+            take: 1,
+            orderBy: { order: 'asc' },
+            select: {
+              episode: {
+                select: {
+                  dialogue: {
+                    select: {
+                      sentences: {
+                        select: {
+                          id: true,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           _count: {
             select: {
               coreItems: true,
