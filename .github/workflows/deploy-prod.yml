@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: "Image tag to deploy (ex: main-<sha> or latest)"
+        description: 'Image tag to deploy (ex: main-<sha> or latest)'
         required: false
-        default: "latest"
+        default: 'latest'
 
 env:
   REGISTRY: ghcr.io
@@ -79,6 +79,13 @@ jobs:
             # Force-stop any lingering convolab prod containers that might block network removal
             docker ps -q --filter "name=convolab-" | grep -v stage | xargs -r docker stop 2>/dev/null || true
             docker-compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
+            # Remove stale stopped containers to avoid name conflicts on recreate
+            docker rm -f \
+              convolab-server \
+              convolab-worker \
+              convolab-postgres \
+              convolab-redis \
+              2>/dev/null || true
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
