@@ -24,7 +24,7 @@ interface RubyPartProps {
 const RubyPart = ({ script, kana }: RubyPartProps) => (
   <ruby className="mr-1">
     {script}
-    <rt className="!text-[0.35em]">{kana}</rt>
+    <rt className="!text-[0.32em]">{kana}</rt>
   </ruby>
 );
 
@@ -121,7 +121,7 @@ const JapaneseDateToolPage = () => {
       <section className="card retro-paper-panel space-y-4">
         <div>
           <h2 className="retro-headline text-lg sm:text-xl">Japanese Reading</h2>
-          <div className="japanese-text mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 !text-[3rem] !leading-[1.45] text-[#15355a] sm:!text-[3.8rem]">
+          <div className="japanese-text mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 !text-[3.2rem] !leading-[1.45] text-[#15355a] sm:!text-[4rem]">
             <p>
               <RubyPart script={reading.parts.yearScript} kana={reading.parts.yearKana} />
               <RubyPart script={reading.parts.monthScript} kana={reading.parts.monthKana} />
