@@ -66,7 +66,12 @@ const JapaneseDateToolPage = () => {
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
-        <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Date & Time</h1>
+        <div className="flex items-baseline justify-between gap-4">
+          <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Date & Time</h1>
+          <p className="text-right text-lg font-semibold text-[#2f4f73] sm:text-xl">
+            日本語の日付と時刻
+          </p>
+        </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label htmlFor="jp-date-input" className="space-y-1.5">
             <span className="text-sm font-semibold text-[#204266] inline-flex items-center gap-2">
