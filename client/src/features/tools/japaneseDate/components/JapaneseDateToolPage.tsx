@@ -20,6 +20,18 @@ const COPY_SUCCESS_LABEL: Record<CopyTarget, string> = {
   kana: 'Kana reading copied',
 };
 
+interface RubyPartProps {
+  script: string;
+  kana: string;
+}
+
+const RubyPart = ({ script, kana }: RubyPartProps) => (
+  <ruby className="mr-1">
+    {script}
+    <rt>{kana}</rt>
+  </ruby>
+);
+
 const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
   const now = useMemo(() => new Date(), []);
   const [dateValue, setDateValue] = useState(toLocalDateInputValue(now));
@@ -125,16 +137,18 @@ const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
 
       <section className="card retro-paper-panel space-y-4">
         <div>
-          <h2 className="retro-headline text-lg sm:text-xl">Japanese Script</h2>
-          <p className="mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 text-lg sm:text-xl text-[#15355a]">
-            {reading.fullScript}
-          </p>
-        </div>
-
-        <div>
-          <h2 className="retro-headline text-lg sm:text-xl">Kana Reading</h2>
-          <p className="mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 text-base sm:text-lg text-[#15355a]">
-            {reading.fullKana}
+          <h2 className="retro-headline text-lg sm:text-xl">Japanese Reading</h2>
+          <p className="japanese-text mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 text-lg sm:text-xl text-[#15355a]">
+            <RubyPart script={reading.parts.yearScript} kana={reading.parts.yearKana} />
+            <RubyPart script={reading.parts.monthScript} kana={reading.parts.monthKana} />
+            <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />
+            （
+            <RubyPart script={reading.parts.weekdayScript} kana={reading.parts.weekdayKana} />）
+            {reading.parts.periodScript && reading.parts.periodKana && (
+              <RubyPart script={reading.parts.periodScript} kana={reading.parts.periodKana} />
+            )}
+            <RubyPart script={reading.parts.hourScript} kana={reading.parts.hourKana} />
+            <RubyPart script={reading.parts.minuteScript} kana={reading.parts.minuteKana} />
           </p>
         </div>
 
