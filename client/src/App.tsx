@@ -5,6 +5,7 @@ import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
 import { AudioPreviewProvider } from './contexts/AudioPreviewContext';
 import Layout from './components/common/Layout';
+import ToolsPublicLayout, { ToolsIndexRedirect } from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import './i18n';
@@ -53,7 +54,10 @@ const App = () => (
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
-                  <Route path="/tools/japanese-date" element={<JapaneseDateToolPage />} />
+                  <Route path="/tools" element={<ToolsPublicLayout />}>
+                    <Route index element={<ToolsIndexRedirect />} />
+                    <Route path="japanese-date" element={<JapaneseDateToolPage />} />
+                  </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route path="/verify-email/:token" element={<VerifyEmailPage />} />

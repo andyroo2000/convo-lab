@@ -6,6 +6,8 @@ interface LogoProps {
   className?: string;
   showKana?: boolean;
   showIcons?: boolean;
+  wordmarkText?: string;
+  kanaText?: string;
 }
 
 const Logo = ({
@@ -14,6 +16,8 @@ const Logo = ({
   className = '',
   showKana = false,
   showIcons = true,
+  wordmarkText = 'CONVOLAB',
+  kanaText = 'コンボラボ',
 }: LogoProps) => {
   const sizeMap = {
     small: 'w-4 h-4',
@@ -46,9 +50,9 @@ const Logo = ({
         </div>
       )}
       <div className="hidden sm:flex flex-col leading-none">
-        <span className={`retro-logo-wordmark ${textSize} ${colorClass}`}>CONVOLAB</span>
+        <span className={`retro-logo-wordmark ${textSize} ${colorClass}`}>{wordmarkText}</span>
         {showKana && (
-          <span className={`retro-logo-kana mt-0.5 ${kanaSize} ${colorClass}`}>コンボラボ</span>
+          <span className={`retro-logo-kana mt-0.5 ${kanaSize} ${colorClass}`}>{kanaText}</span>
         )}
       </div>
     </div>
