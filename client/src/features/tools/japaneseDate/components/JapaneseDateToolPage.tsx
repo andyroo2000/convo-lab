@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarDays, Check, Clock3, Copy, Volume2 } from 'lucide-react';
+import { CalendarDays, Check, Clock3, Volume2 } from 'lucide-react';
 
 import {
   generateJapaneseDateTimeReading,
@@ -8,13 +8,6 @@ import {
   toLocalTimeInputValue,
   type JapaneseHourFormat,
 } from '../logic/readingEngine';
-
-type CopyTarget = 'script' | 'kana';
-
-const COPY_SUCCESS_LABEL: Record<CopyTarget, string> = {
-  script: 'Japanese text copied',
-  kana: 'Kana reading copied',
-};
 
 interface RubyPartProps {
   script: string;
@@ -33,7 +26,6 @@ const JapaneseDateToolPage = () => {
   const [dateValue, setDateValue] = useState(toLocalDateInputValue(now));
   const [timeValue, setTimeValue] = useState(toLocalTimeInputValue(now));
   const [hourFormat, setHourFormat] = useState<JapaneseHourFormat>('12h');
-  const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [audioMessage, setAudioMessage] = useState<string | null>(null);
 
   const localDateTime = useMemo(
@@ -45,18 +37,6 @@ const JapaneseDateToolPage = () => {
     () => generateJapaneseDateTimeReading(localDateTime, { hourFormat }),
     [hourFormat, localDateTime]
   );
-
-  const copyText = async (target: CopyTarget, value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      setCopyMessage(COPY_SUCCESS_LABEL[target]);
-      setTimeout(() => setCopyMessage(null), 2000);
-    } catch (error) {
-      console.error('Clipboard copy failed:', error);
-      setCopyMessage('Copy failed. Please copy manually.');
-      setTimeout(() => setCopyMessage(null), 3000);
-    }
-  };
 
   const handlePlayClick = () => {
     setAudioMessage('Audio clip playback is enabled in the next phase.');
@@ -154,30 +134,12 @@ const JapaneseDateToolPage = () => {
             <Volume2 className="h-4 w-4" />
             Play Audio
           </button>
-
-          <button
-            type="button"
-            onClick={() => copyText('script', reading.fullScript)}
-            className="btn-outline inline-flex items-center gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Copy Script
-          </button>
-
-          <button
-            type="button"
-            onClick={() => copyText('kana', reading.fullKana)}
-            className="btn-outline inline-flex items-center gap-2"
-          >
-            <Copy className="h-4 w-4" />
-            Copy Kana
-          </button>
         </div>
 
-        {(copyMessage || audioMessage) && (
+        {audioMessage && (
           <div className="inline-flex items-center gap-2 rounded border border-[#173b6533] bg-[#edf6eb] px-3 py-2 text-sm text-[#234868]">
             <Check className="h-4 w-4" />
-            {copyMessage || audioMessage}
+            {audioMessage}
           </div>
         )}
       </section>
