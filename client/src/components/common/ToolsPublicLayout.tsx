@@ -1,4 +1,4 @@
-import { Link, Navigate, Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 
 import Logo from './Logo';
 
@@ -8,7 +8,7 @@ const ToolsPublicLayout = () => (
       <div className="max-w-7xl xl:max-w-[96rem] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-[4.5rem] items-center">
           <Link
-            to="/tools/japanese-date"
+            to="/tools"
             className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md"
           >
             <Logo
@@ -28,7 +28,5 @@ const ToolsPublicLayout = () => (
     </main>
   </div>
 );
-
-export const ToolsIndexRedirect = () => <Navigate to="/tools/japanese-date" replace />;
 
 export default ToolsPublicLayout;
