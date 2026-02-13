@@ -1461,6 +1461,305 @@
     box-shadow: 0 4px 0 rgba(17, 51, 92, 0.18);
   }
 
+  .retro-login-v3-wrap {
+    color: var(--retro-ink-strong);
+    background: var(--retro-cream);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.24), transparent 30%),
+      radial-gradient(circle at 76% 20%, rgba(255, 255, 255, 0.14), transparent 34%),
+      repeating-linear-gradient(
+        35deg,
+        rgba(20, 50, 86, 0.014) 0 1px,
+        transparent 1px 5px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.03) 0 1px,
+        transparent 1px 3px
+      );
+  }
+
+  .retro-login-v3-shell {
+    border: 4px solid rgba(20, 50, 86, 0.86);
+    box-shadow: 12px 12px 0 rgba(17, 51, 92, 0.22);
+    background: rgba(251, 245, 224, 0.98);
+    overflow: visible;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .retro-login-v3-top {
+    position: relative;
+    overflow: hidden;
+    padding: 16px 18px 14px;
+    color: rgba(251, 245, 224, 0.95);
+    background:
+      radial-gradient(circle at 18% 22%, rgba(26, 178, 209, 0.22), transparent 52%),
+      linear-gradient(135deg, var(--retro-navy-border) 0%, var(--retro-ink-strong) 76%);
+    box-shadow: inset 0 -6px 0 rgba(20, 50, 86, 0.2);
+  }
+
+  .retro-login-v3-top::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.08) 0 1px,
+        transparent 1px 5px
+      );
+    opacity: 0.24;
+  }
+
+  .retro-login-v3-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: rgba(251, 245, 224, 0.9);
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-size: 0.82rem;
+    transition: color 0.2s ease;
+  }
+
+  .retro-login-v3-back:hover {
+    color: rgba(26, 178, 209, 0.95);
+  }
+
+  .retro-login-v3-brand-row {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .retro-login-v3-brand-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+  }
+
+  .retro-login-v3-brand-en {
+    margin: 0;
+    font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.03em;
+    line-height: 0.95;
+    font-size: clamp(2rem, 1.45rem + 1.7vw, 2.8rem);
+    color: rgba(251, 245, 224, 0.98);
+  }
+
+  .retro-login-v3-brand-jp {
+    margin-top: 5px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    line-height: 0.95;
+    color: rgba(251, 245, 224, 0.88);
+    font-size: 0.8rem;
+  }
+
+  .retro-login-v3-tagline {
+    margin: 0;
+    color: rgba(251, 245, 224, 0.8);
+    font-size: clamp(0.94rem, 0.86rem + 0.3vw, 1.02rem);
+    line-height: 1.36;
+  }
+
+  .retro-login-v3-main {
+    padding: 16px 14px;
+    background: var(--retro-cream);
+    background-image:
+      radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
+      repeating-linear-gradient(
+        32deg,
+        rgba(20, 50, 86, 0.014) 0 1px,
+        transparent 1px 6px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.03) 0 1px,
+        transparent 1px 4px
+      );
+  }
+
+  .retro-login-v3-card {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 14px;
+    background: rgba(251, 245, 224, 0.95);
+    box-shadow:
+      inset 0 0 0 2px rgba(20, 50, 86, 0.12),
+      0 10px 0 rgba(17, 51, 92, 0.12);
+  }
+
+  .retro-login-v3-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .retro-login-v3-tab {
+    border: 2px solid rgba(20, 50, 86, 0.18);
+    background: rgba(251, 245, 224, 0.96);
+    color: rgba(20, 50, 86, 0.78);
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-size: 0.88rem;
+    font-weight: 700;
+    box-shadow: 0 5px 0 rgba(17, 51, 92, 0.1);
+    transition: transform 0.18s ease, background-color 0.18s ease;
+  }
+
+  .retro-login-v3-tab:hover {
+    transform: translateY(-1px);
+    background: rgba(26, 178, 209, 0.18);
+  }
+
+  .retro-login-v3-tab.is-inactive {
+    color: var(--retro-ink-soft);
+  }
+
+  .retro-login-v3-tab.is-active {
+    background: rgba(26, 178, 209, 0.92);
+    color: rgba(251, 245, 224, 0.98);
+    border-color: rgba(20, 50, 86, 0.5);
+    box-shadow:
+      0 5px 0 rgba(17, 51, 92, 0.2),
+      inset 0 0 0 1px rgba(251, 245, 224, 0.24);
+  }
+
+  .retro-login-v3-label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: rgba(20, 50, 86, 0.82);
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .retro-login-v3-label.no-margin {
+    margin-bottom: 0;
+  }
+
+  .retro-login-v3-input {
+    width: 100%;
+    padding: 0.68rem 0.82rem;
+    border: 2px solid rgba(20, 50, 86, 0.2);
+    background: rgba(251, 245, 224, 0.96);
+    color: rgba(20, 50, 86, 0.9);
+    box-shadow: inset 0 0 0 1px rgba(20, 50, 86, 0.06);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .retro-login-v3-input::placeholder {
+    color: rgba(20, 50, 86, 0.42);
+  }
+
+  .retro-login-v3-input:focus {
+    outline: none;
+    border-color: rgba(26, 178, 209, 0.88);
+    box-shadow: 0 0 0 2px rgba(26, 178, 209, 0.2);
+  }
+
+  .retro-login-v3-forgot {
+    color: rgba(26, 178, 209, 0.95);
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    line-height: 1;
+  }
+
+  .retro-login-v3-forgot:hover {
+    color: rgba(20, 50, 86, 0.9);
+  }
+
+  .retro-login-v3-error {
+    padding: 0.65rem 0.78rem;
+    background: rgba(246, 217, 208, 0.88);
+    color: rgba(119, 41, 34, 0.95);
+    box-shadow:
+      inset 0 0 0 2px rgba(164, 44, 36, 0.2),
+      0 5px 0 rgba(97, 24, 18, 0.12);
+    font-size: 0.88rem;
+  }
+
+  .retro-login-v3-submit {
+    width: 100%;
+    border: 0;
+    min-height: 44px;
+    background: rgba(26, 178, 209, 0.92);
+    color: rgba(251, 245, 224, 0.98);
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    box-shadow: 0 6px 0 rgba(17, 51, 92, 0.18);
+    transition: transform 0.18s ease, background-color 0.18s ease;
+  }
+
+  .retro-login-v3-submit:hover {
+    transform: translateY(-1px);
+    background: rgba(20, 141, 189, 0.94);
+  }
+
+  .retro-login-v3-divider {
+    margin: 14px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .retro-login-v3-divider-line {
+    flex: 1;
+    border-top: 2px solid rgba(20, 50, 86, 0.14);
+  }
+
+  .retro-login-v3-divider-text {
+    color: rgba(20, 50, 86, 0.64);
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.76rem;
+    white-space: nowrap;
+  }
+
+  .retro-login-v3-google-btn {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.7rem;
+    min-height: 44px;
+    border: 2px solid rgba(20, 50, 86, 0.18);
+    background: rgba(251, 245, 224, 0.96);
+    color: rgba(20, 50, 86, 0.88);
+    font-weight: 700;
+    box-shadow: 0 6px 0 rgba(17, 51, 92, 0.1);
+    transition: transform 0.18s ease, background-color 0.18s ease;
+  }
+
+  .retro-login-v3-google-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(26, 178, 209, 0.14);
+  }
+
+  .retro-login-v3-footer {
+    margin: 16px 0 0;
+    color: rgba(20, 50, 86, 0.62);
+    text-align: center;
+    font-size: 0.88rem;
+  }
+
   .retro-settings-wrap {
     color: var(--retro-ink-strong);
   }
@@ -2467,6 +2766,259 @@
     font-size: 0.92rem;
   }
 
+  .retro-404-wrap {
+    color: var(--retro-ink-strong);
+    background: var(--retro-cream);
+    background-image:
+      radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.24), transparent 34%),
+      repeating-linear-gradient(
+        30deg,
+        rgba(20, 50, 86, 0.014) 0 1px,
+        transparent 1px 6px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.03) 0 1px,
+        transparent 1px 4px
+      );
+  }
+
+  .retro-404-shell {
+    border: 4px solid rgba(20, 50, 86, 0.86);
+    box-shadow: 12px 12px 0 rgba(17, 51, 92, 0.22);
+    background: rgba(251, 245, 224, 0.98);
+    overflow: hidden;
+    position: relative;
+    isolation: isolate;
+  }
+
+  .retro-404-top {
+    position: relative;
+    overflow: hidden;
+    padding: 18px 20px 16px;
+    color: rgba(251, 245, 224, 0.95);
+    background:
+      radial-gradient(circle at 18% 22%, rgba(26, 178, 209, 0.22), transparent 52%),
+      linear-gradient(135deg, var(--retro-navy-border) 0%, var(--retro-ink-strong) 76%);
+    box-shadow: inset 0 -6px 0 rgba(20, 50, 86, 0.2);
+  }
+
+  .retro-404-top::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.08) 0 1px,
+        transparent 1px 5px
+      );
+    opacity: 0.24;
+  }
+
+  .retro-404-brand-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .retro-404-brand {
+    display: grid;
+    gap: 4px;
+  }
+
+  .retro-404-brand-en {
+    font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.03em;
+    line-height: 0.95;
+    font-size: clamp(1.55rem, 1.2rem + 1vw, 2.15rem);
+    color: rgba(251, 245, 224, 0.97);
+  }
+
+  .retro-404-brand-jp {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 0.95;
+    font-size: 0.78rem;
+    color: rgba(251, 245, 224, 0.86);
+  }
+
+  .retro-404-logo-mark {
+    color: rgba(251, 245, 224, 0.84);
+  }
+
+  .retro-404-headline {
+    margin: 14px 0 0;
+    font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 1;
+    color: rgba(251, 245, 224, 0.98);
+    font-size: clamp(2rem, 1.2rem + 2.2vw, 3.25rem);
+  }
+
+  .retro-404-copy {
+    margin: 9px 0 0;
+    color: rgba(251, 245, 224, 0.82);
+    line-height: 1.36;
+    max-width: 72ch;
+    font-size: clamp(0.96rem, 0.88rem + 0.4vw, 1.1rem);
+  }
+
+  .retro-404-main {
+    padding: 16px 14px;
+    background: var(--retro-cream);
+    background-image:
+      radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
+      repeating-linear-gradient(
+        32deg,
+        rgba(20, 50, 86, 0.014) 0 1px,
+        transparent 1px 6px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.03) 0 1px,
+        transparent 1px 4px
+      );
+  }
+
+  .retro-404-code-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 12px 10px;
+    margin-bottom: 12px;
+    background: rgba(251, 245, 224, 0.94);
+    box-shadow:
+      inset 0 0 0 2px rgba(20, 50, 86, 0.14),
+      0 7px 0 rgba(17, 51, 92, 0.12);
+  }
+
+  .retro-404-code {
+    margin: 0;
+    font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.02em;
+    line-height: 0.9;
+    color: rgba(20, 50, 86, 0.96);
+    font-size: clamp(5.5rem, 4rem + 5vw, 8rem);
+  }
+
+  .retro-404-icon {
+    width: 70px;
+    height: 70px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(20, 50, 86, 0.8);
+    background: rgba(26, 178, 209, 0.2);
+    box-shadow:
+      inset 0 0 0 2px rgba(20, 50, 86, 0.18),
+      0 5px 0 rgba(17, 51, 92, 0.14);
+  }
+
+  .retro-404-suggestions {
+    padding: 12px;
+    background: rgba(251, 245, 224, 0.92);
+    box-shadow:
+      inset 0 0 0 2px rgba(20, 50, 86, 0.1),
+      0 7px 0 rgba(17, 51, 92, 0.1);
+  }
+
+  .retro-404-suggestions-title {
+    margin: 0 0 9px;
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+    color: rgba(20, 50, 86, 0.82);
+    font-size: 0.88rem;
+  }
+
+  .retro-404-suggestions-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: rgba(20, 50, 86, 0.74);
+    font-size: 0.94rem;
+  }
+
+  .retro-404-suggestions-list li {
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr);
+    gap: 8px;
+    align-items: start;
+    line-height: 1.36;
+  }
+
+  .retro-404-bullet {
+    color: rgba(26, 178, 209, 0.96);
+    line-height: 1;
+    margin-top: 1px;
+  }
+
+  .retro-404-actions {
+    margin-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .retro-404-btn-primary,
+  .retro-404-btn-secondary {
+    border: 0;
+    padding: 0.62rem 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 0.88rem;
+    box-shadow: 0 5px 0 rgba(17, 51, 92, 0.15);
+    transition: transform 0.18s ease, background-color 0.18s ease;
+  }
+
+  .retro-404-btn-primary {
+    background: rgba(26, 178, 209, 0.92);
+    color: rgba(251, 245, 224, 0.98);
+  }
+
+  .retro-404-btn-secondary {
+    border: 2px solid rgba(20, 50, 86, 0.2);
+    padding: calc(0.62rem - 2px) calc(0.95rem - 2px);
+    background: rgba(251, 245, 224, 0.96);
+    color: rgba(20, 50, 86, 0.86);
+  }
+
+  .retro-404-btn-primary:hover,
+  .retro-404-btn-secondary:hover {
+    transform: translateY(-1px);
+  }
+
+  .retro-404-btn-primary:hover {
+    background: rgba(20, 141, 189, 0.94);
+  }
+
+  .retro-404-btn-secondary:hover {
+    background: rgba(26, 178, 209, 0.2);
+  }
+
+  .retro-404-foot {
+    background: var(--retro-navy-border);
+    color: rgba(251, 245, 224, 0.88);
+    padding: 11px 14px;
+    font-size: 0.76rem;
+    text-align: center;
+  }
+
   @media (max-width: 980px) {
     .retro-dialog-row {
       grid-template-columns: 1fr;
@@ -2514,6 +3066,44 @@
 
     .retro-create-v3-grid {
       grid-template-columns: 1fr;
+    }
+
+    .retro-login-v3-top {
+      padding: 12px 12px 10px;
+    }
+
+    .retro-login-v3-main {
+      padding: 12px;
+    }
+
+    .retro-login-v3-brand-wrap {
+      align-items: flex-start;
+    }
+
+    .retro-login-v3-card {
+      padding: 10px;
+    }
+
+    .retro-login-v3-tabs {
+      gap: 6px;
+    }
+
+    .retro-login-v3-tab {
+      min-height: 36px;
+      font-size: 0.8rem;
+    }
+
+    .retro-login-v3-divider {
+      gap: 7px;
+    }
+
+    .retro-login-v3-divider-text {
+      font-size: 0.7rem;
+    }
+
+    .retro-login-v3-google-btn {
+      min-height: 40px;
+      font-size: 0.9rem;
     }
 
     .retro-dialogue-create-v3-main {
@@ -2596,6 +3186,34 @@
 
     .retro-landing-v3-features-grid {
       grid-template-columns: 1fr;
+    }
+
+    .retro-404-top {
+      padding: 14px 12px 12px;
+    }
+
+    .retro-404-main {
+      padding: 12px;
+    }
+
+    .retro-404-code-row {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .retro-404-icon {
+      width: 58px;
+      height: 58px;
+    }
+
+    .retro-404-actions {
+      flex-direction: column;
+    }
+
+    .retro-404-btn-primary,
+    .retro-404-btn-secondary {
+      width: 100%;
     }
   }
 
