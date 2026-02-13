@@ -138,7 +138,7 @@ const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
       <section className="card retro-paper-panel space-y-4">
         <div>
           <h2 className="retro-headline text-lg sm:text-xl">Japanese Reading</h2>
-          <p className="japanese-text mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 text-lg sm:text-xl text-[#15355a]">
+          <p className="japanese-text mt-2 rounded border border-[#173b6533] bg-[#fbf5e0] px-4 py-3 !text-[2.5rem] !leading-[1.5] text-[#15355a] sm:!text-[3rem]">
             <RubyPart script={reading.parts.yearScript} kana={reading.parts.yearKana} />
             <RubyPart script={reading.parts.monthScript} kana={reading.parts.monthKana} />
             <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />
