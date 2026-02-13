@@ -125,10 +125,10 @@ const JapaneseDateToolPage = () => {
             <p>
               <RubyPart script={reading.parts.yearScript} kana={reading.parts.yearKana} />
               <RubyPart script={reading.parts.monthScript} kana={reading.parts.monthKana} />
+              <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />
             </p>
             <p className="mt-3 sm:mt-4">
-              <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />（
-              <RubyPart script={reading.parts.weekdayScript} kana={reading.parts.weekdayKana} />）
+              （<RubyPart script={reading.parts.weekdayScript} kana={reading.parts.weekdayKana} />）
             </p>
             <p className="mt-5 sm:mt-6">
               {reading.parts.periodScript && reading.parts.periodKana && (
