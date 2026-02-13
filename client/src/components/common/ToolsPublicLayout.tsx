@@ -16,7 +16,7 @@ const ToolsPublicLayout = () => (
               showKana
               showIcons={false}
               wordmarkText="CONVOLAB TOOLS"
-              kanaText="コンボラボ ツールズ"
+              kanaText="コンボラボ・ツールズ"
             />
           </Link>
         </div>
