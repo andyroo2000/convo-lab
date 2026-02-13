@@ -135,6 +135,10 @@ const MINUTE_BASE_READINGS = [
   'きゅうふん',
 ] as const;
 
+function toFullWidthDigits(value: number | string): string {
+  return String(value).replace(/\d/g, (digit) => String.fromCharCode(digit.charCodeAt(0) + 0xfee0));
+}
+
 function readUnder10000(value: number): string {
   const safe = Math.trunc(value);
   if (safe === 0) {
@@ -295,19 +299,19 @@ function toDateTimeParts(date: Date, hourFormat: JapaneseHourFormat): JapaneseDa
   const hourForDisplay = is12h ? hour24 % 12 || 12 : hour24;
 
   return {
-    yearScript: `${year}年`,
+    yearScript: `${toFullWidthDigits(year)}年`,
     yearKana: readYear(year),
-    monthScript: `${month}月`,
+    monthScript: `${toFullWidthDigits(month)}月`,
     monthKana: readMonth(month),
-    dayScript: `${day}日`,
+    dayScript: `${toFullWidthDigits(day)}日`,
     dayKana: readDayOfMonth(day),
     weekdayScript: WEEKDAY_SYMBOLS[weekday],
     weekdayKana: WEEKDAY_READINGS[weekday],
     periodScript,
     periodKana,
-    hourScript: `${hourForDisplay}時`,
+    hourScript: `${toFullWidthDigits(hourForDisplay)}時`,
     hourKana: readHour24(hourForDisplay),
-    minuteScript: `${String(minute).padStart(2, '0')}分`,
+    minuteScript: `${toFullWidthDigits(String(minute).padStart(2, '0'))}分`,
     minuteKana: readMinute(minute),
   };
 }
