@@ -110,7 +110,7 @@ const JapaneseDateToolPage = () => {
             <p>
               <RubyPart script={reading.parts.yearScript} kana={reading.parts.yearKana} />
               <RubyPart script={reading.parts.monthScript} kana={reading.parts.monthKana} />
-              <span className="ml-5 inline-block">
+              <span className="ml-6 inline-block">
                 <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />
               </span>
             </p>
