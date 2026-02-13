@@ -28,7 +28,7 @@ interface RubyPartProps {
 const RubyPart = ({ script, kana }: RubyPartProps) => (
   <ruby className="mr-1">
     {script}
-    <rt>{kana}</rt>
+    <rt className="!text-[0.45em]">{kana}</rt>
   </ruby>
 );
 
@@ -145,7 +145,7 @@ const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
               <RubyPart script={reading.parts.dayScript} kana={reading.parts.dayKana} />（
               <RubyPart script={reading.parts.weekdayScript} kana={reading.parts.weekdayKana} />）
             </p>
-            <p className="mt-2 sm:mt-3">
+            <p className="mt-4 sm:mt-5">
               {reading.parts.periodScript && reading.parts.periodKana && (
                 <RubyPart script={reading.parts.periodScript} kana={reading.parts.periodKana} />
               )}
