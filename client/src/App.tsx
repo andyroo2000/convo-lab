@@ -17,6 +17,8 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const ClaimInvitePage = lazy(() => import('./pages/ClaimInvitePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
+const JapaneseDateToolPublicPage = lazy(() => import('./pages/JapaneseDateToolPublicPage'));
+const JapaneseDateToolAppPage = lazy(() => import('./pages/JapaneseDateToolAppPage'));
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
@@ -52,6 +54,7 @@ const App = () => (
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/tools/japanese-date" element={<JapaneseDateToolPublicPage />} />
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
                   <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
@@ -80,6 +83,9 @@ const App = () => (
                     <Route path="playback/:episodeId" element={<PlaybackPage />} />
                     <Route path="practice/:episodeId" element={<PracticePage />} />
                     <Route path="courses/:courseId" element={<CoursePage />} />
+
+                    {/* Tools */}
+                    <Route path="tools/japanese-date" element={<JapaneseDateToolAppPage />} />
                   </Route>
 
                   {/* 404 Catch-all Route */}
