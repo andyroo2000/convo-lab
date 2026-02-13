@@ -9,10 +9,6 @@ import {
   type JapaneseHourFormat,
 } from '../logic/readingEngine';
 
-interface JapaneseDateToolPageProps {
-  surface: 'public' | 'app';
-}
-
 type CopyTarget = 'script' | 'kana';
 
 const COPY_SUCCESS_LABEL: Record<CopyTarget, string> = {
@@ -28,11 +24,11 @@ interface RubyPartProps {
 const RubyPart = ({ script, kana }: RubyPartProps) => (
   <ruby className="mr-1">
     {script}
-    <rt className="!text-[0.45em]">{kana}</rt>
+    <rt className="!text-[0.35em]">{kana}</rt>
   </ruby>
 );
 
-const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
+const JapaneseDateToolPage = () => {
   const now = useMemo(() => new Date(), []);
   const [dateValue, setDateValue] = useState(toLocalDateInputValue(now));
   const [timeValue, setTimeValue] = useState(toLocalTimeInputValue(now));
@@ -70,21 +66,8 @@ const JapaneseDateToolPage = ({ surface }: JapaneseDateToolPageProps) => {
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Date & Time</h1>
-            <p className="text-sm sm:text-base text-[#2f4f73] mt-2">
-              Convert Gregorian date/time into natural Japanese script and kana readings.
-            </p>
-          </div>
-          <span className="inline-flex items-center rounded-full bg-[#e9efe8] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[#26496c]">
-            {surface === 'public' ? 'Public Tool' : 'In-App Tool'}
-          </span>
-        </div>
-      </section>
-
-      <section className="card retro-paper-panel">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Date & Time</h1>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <label htmlFor="jp-date-input" className="space-y-1.5">
             <span className="text-sm font-semibold text-[#204266] inline-flex items-center gap-2">
               <CalendarDays className="h-4 w-4" />

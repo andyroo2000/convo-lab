@@ -38,7 +38,7 @@ const PublicJapaneseDateToolShell = () => {
           </div>
         </header>
 
-        <JapaneseDateToolPage surface="public" />
+        <JapaneseDateToolPage />
       </div>
     </div>
   );
