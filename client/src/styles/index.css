@@ -3391,13 +3391,52 @@
 }
 
 .retro-clock-radio-volume-slider {
-  width: 12px;
-  height: 88px;
+  width: 96px;
+  height: 14px;
   margin: 0;
-  writing-mode: bt-lr;
-  -webkit-appearance: slider-vertical;
-  appearance: auto;
-  accent-color: #4b3818;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.retro-clock-radio-volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #806636 0%, #56411f 100%);
+}
+
+.retro-clock-radio-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 999px;
+  border: 1px solid #f2e0ba;
+  background: radial-gradient(circle at 32% 30%, #f7e7c6 0%, #d8bd84 45%, #b08a4b 100%);
+  box-shadow:
+    0 1px 3px rgba(30, 22, 10, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.retro-clock-radio-volume-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(90deg, #806636 0%, #56411f 100%);
+}
+
+.retro-clock-radio-volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 1px solid #f2e0ba;
+  background: radial-gradient(circle at 32% 30%, #f7e7c6 0%, #d8bd84 45%, #b08a4b 100%);
+  box-shadow:
+    0 1px 3px rgba(30, 22, 10, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 .retro-clock-radio-transport {
@@ -3499,7 +3538,8 @@
   .retro-clock-radio-volume-slider {
     width: 100%;
     height: 14px;
-    writing-mode: horizontal-tb;
+    transform: none;
+    transform-origin: initial;
     -webkit-appearance: none;
     appearance: none;
   }

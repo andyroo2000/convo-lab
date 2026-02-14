@@ -339,6 +339,7 @@ const JapaneseTimePracticeToolPage = () => {
                 type="range"
                 min={0}
                 max={100}
+                step={1}
                 value={Math.round(volumeLevel * 100)}
                 onChange={(event) => {
                   const nextVolume = Number(event.target.value) / 100;
@@ -368,7 +369,9 @@ const JapaneseTimePracticeToolPage = () => {
               </button>
             </div>
             <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">
-              <span className="retro-clock-radio-control-label">Pause Length</span>
+              <span className="retro-clock-radio-control-label">
+                Pause Length (In Auto-Play Mode)
+              </span>
               <div className="retro-clock-radio-pause-options">
                 {PAUSE_OPTIONS.map((option) => (
                   <button
