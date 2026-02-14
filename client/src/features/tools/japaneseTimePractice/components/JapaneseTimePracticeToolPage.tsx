@@ -10,7 +10,7 @@ import {
   playAudioClipSequence,
   type AudioSequencePlayback,
 } from '../../japaneseDate/logic/preRenderedTimeAudio';
-import { createRandomTimeCard, type TimePracticeCard } from '../logic/types';
+import { createRandomTimeCard, createTimeCard, type TimePracticeCard } from '../logic/types';
 
 interface RubyPartProps {
   script: string;
@@ -20,6 +20,10 @@ interface RubyPartProps {
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 const PAUSE_OPTIONS = [3, 5, 8] as const;
+const createCurrentLocalTimeCard = (): TimePracticeCard => {
+  const now = new Date();
+  return createTimeCard(now.getHours(), now.getMinutes());
+};
 
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
@@ -66,8 +70,8 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 };
 
 const JapaneseTimePracticeToolPage = () => {
-  const [card, setCard] = useState<TimePracticeCard>(() => createRandomTimeCard());
-  const [isPowerOn, setIsPowerOn] = useState(true);
+  const [card, setCard] = useState<TimePracticeCard>(createCurrentLocalTimeCard);
+  const [isPowerOn, setIsPowerOn] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(8);
