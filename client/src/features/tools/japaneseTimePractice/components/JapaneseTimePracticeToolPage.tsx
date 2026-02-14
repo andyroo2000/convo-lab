@@ -75,10 +75,12 @@ const JapaneseTimePracticeToolPage = () => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(8);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
   const autoAdvanceTimerRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
   const isFirstPowerOnRef = useRef(true);
 
@@ -99,12 +101,19 @@ const JapaneseTimePracticeToolPage = () => {
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
   const shouldShowScript = isRevealed;
   let loopStatus = 'Power off';
-  if (isPowerOn && isRevealed) {
-    loopStatus = `Revealed · replaying in ${pauseSeconds}s`;
+  if (isPowerOn && isRevealed && isPlaying) {
+    loopStatus = 'Revealed · playing';
+  } else if (isPowerOn && isRevealed) {
+    if (countdownSeconds !== null) {
+      loopStatus = `Revealed · replaying in ${countdownSeconds}s`;
+    } else {
+      loopStatus = 'Revealed';
+    }
   } else if (isPowerOn) {
-    loopStatus = `Waiting ${pauseSeconds}s before reveal`;
+    const seconds = countdownSeconds ?? pauseSeconds;
+    loopStatus = `Waiting ${seconds}s before reveal`;
   }
-  const statusText = isPlaying ? `${loopStatus} · playing` : loopStatus;
+  const statusText = loopStatus;
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
@@ -117,6 +126,13 @@ const JapaneseTimePracticeToolPage = () => {
     if (autoAdvanceTimerRef.current !== null) {
       window.clearTimeout(autoAdvanceTimerRef.current);
       autoAdvanceTimerRef.current = null;
+    }
+  }, []);
+
+  const clearCountdownInterval = useCallback(() => {
+    if (countdownIntervalRef.current !== null) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
     }
   }, []);
 
@@ -180,18 +196,32 @@ const JapaneseTimePracticeToolPage = () => {
   useEffect(() => {
     clearAutoAdvanceTimer();
     clearRevealTimer();
-    if (!isPowerOn) return undefined;
+    clearCountdownInterval();
+    if (!isPowerOn) {
+      setCountdownSeconds(null);
+      return undefined;
+    }
 
     let cancelled = false;
 
     if (!isRevealed && isFirstPowerOnRef.current) {
       isFirstPowerOnRef.current = false;
+      setCountdownSeconds(null);
       revealCard();
       return undefined;
     }
 
+    setCountdownSeconds(pauseSeconds);
+    countdownIntervalRef.current = window.setInterval(() => {
+      setCountdownSeconds((current) => {
+        if (current === null) return null;
+        return Math.max(0, current - 1);
+      });
+    }, 1000);
+
     if (isRevealed) {
       autoAdvanceTimerRef.current = window.setTimeout(() => {
+        setCountdownSeconds(null);
         const finishAdvance = () => {
           if (!cancelled) {
             advanceToNextCard();
@@ -203,6 +233,7 @@ const JapaneseTimePracticeToolPage = () => {
     } else {
       revealTimerRef.current = window.setTimeout(() => {
         if (!cancelled) {
+          setCountdownSeconds(null);
           revealCard();
         }
       }, pauseSeconds * 1000);
@@ -212,11 +243,13 @@ const JapaneseTimePracticeToolPage = () => {
       cancelled = true;
       clearAutoAdvanceTimer();
       clearRevealTimer();
+      clearCountdownInterval();
     };
   }, [
     advanceToNextCard,
     card.id,
     clearAutoAdvanceTimer,
+    clearCountdownInterval,
     clearRevealTimer,
     isPowerOn,
     isRevealed,
@@ -229,22 +262,26 @@ const JapaneseTimePracticeToolPage = () => {
     if (isPowerOn) return undefined;
 
     clearAutoAdvanceTimer();
+    clearCountdownInterval();
     clearRevealTimer();
+    setCountdownSeconds(null);
     stopPlayback();
 
     return () => {
       clearAutoAdvanceTimer();
+      clearCountdownInterval();
       clearRevealTimer();
     };
-  }, [clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, stopPlayback]);
+  }, [clearAutoAdvanceTimer, clearCountdownInterval, clearRevealTimer, isPowerOn, stopPlayback]);
 
   useEffect(
     () => () => {
       clearRevealTimer();
       clearAutoAdvanceTimer();
+      clearCountdownInterval();
       stopPlayback();
     },
-    [clearAutoAdvanceTimer, clearRevealTimer, stopPlayback]
+    [clearAutoAdvanceTimer, clearCountdownInterval, clearRevealTimer, stopPlayback]
   );
 
   return (

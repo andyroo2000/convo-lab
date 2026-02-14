@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600;700&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Noto+Sans+JP:wght@400;500;700;900&family=Oswald:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -3367,7 +3367,7 @@
   max-width: calc(100% - 1.2rem);
   margin: 0;
   color: #f8b339;
-  font-family: 'VT323', 'Oswald', 'Noto Sans JP', monospace;
+  font-family: 'Oswald', 'Noto Sans JP', monospace;
   font-size: clamp(0.56rem, 1.45vw, 0.78rem);
   line-height: 1.15;
   letter-spacing: 0.07em;
