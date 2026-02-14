@@ -100,10 +100,12 @@ const JapaneseTimePracticeToolPage = () => {
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
   const shouldShowScript = isRevealed;
-  const statusText =
-    isPowerOn && isRevealed && !isPlaying && countdownSeconds !== null
-      ? `replaying in ${countdownSeconds}s`
-      : '';
+  const statusText = (() => {
+    if (!isPowerOn || countdownSeconds === null) return '';
+    if (!isRevealed) return `answer in ${countdownSeconds}s`;
+    if (!isPlaying) return `replaying in ${countdownSeconds}s`;
+    return '';
+  })();
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
