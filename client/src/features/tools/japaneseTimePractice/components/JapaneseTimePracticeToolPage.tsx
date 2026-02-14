@@ -199,20 +199,11 @@ const JapaneseTimePracticeToolPage = () => {
 
   useEffect(() => {
     if (!isRevealed || !settings.autoPlayAudio) return;
-    if (mode === 'random' && settings.randomAutoLoop) return;
 
     playCurrentCardAudio().catch(() => {
       setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
     });
-  }, [isRevealed, mode, playCurrentCardAudio, settings.autoPlayAudio, settings.randomAutoLoop]);
-
-  useEffect(() => {
-    if (mode !== 'random' || !settings.autoPlayAudio) return;
-
-    playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
-    });
-  }, [card.id, mode, playCurrentCardAudio, settings.autoPlayAudio]);
+  }, [isRevealed, playCurrentCardAudio, settings.autoPlayAudio]);
 
   useEffect(() => {
     clearAutoAdvanceTimer();
