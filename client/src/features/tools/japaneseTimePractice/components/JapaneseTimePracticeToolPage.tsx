@@ -249,6 +249,8 @@ const JapaneseTimePracticeToolPage = () => {
       <section className="card retro-paper-panel">
         <div className="mb-4 space-y-2">
           <p className="text-sm text-[#2f4f73] sm:text-base">
+            A time appears. Read it in Japanese.
+            <br />
             Wait for the reveal. Then listen and compare.
           </p>
         </div>
