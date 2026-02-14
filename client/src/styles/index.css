@@ -3410,6 +3410,31 @@
   color: #5e4a28;
 }
 
+.retro-clock-radio-mini-button {
+  margin-top: 0.1rem;
+  min-width: 42px;
+  padding: 0.16rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid #7e6637;
+  background: linear-gradient(170deg, #e8d8af 0%, #d6be8b 100%);
+  color: #47371d;
+  font-size: 0.49rem;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    0 2px 3px rgba(48, 34, 12, 0.18);
+}
+
+.retro-clock-radio-mini-button.is-active {
+  background: linear-gradient(170deg, #4a3d23 0%, #2f2718 100%);
+  border-color: #1e170d;
+  color: #ead9ae;
+}
+
 .retro-clock-radio-led {
   width: 9px;
   height: 9px;
@@ -3447,6 +3472,12 @@
 
   .retro-clock-radio-control-sub {
     font-size: 0.52rem;
+  }
+
+  .retro-clock-radio-mini-button {
+    min-width: 36px;
+    font-size: 0.44rem;
+    padding: 0.15rem 0.3rem;
   }
 
   .retro-clock-radio-digital {

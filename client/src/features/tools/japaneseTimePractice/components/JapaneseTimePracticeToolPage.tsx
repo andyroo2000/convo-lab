@@ -72,6 +72,7 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 const JapaneseTimePracticeToolPage = () => {
   const [card, setCard] = useState<TimePracticeCard>(createCurrentLocalTimeCard);
   const [isPowerOn, setIsPowerOn] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(12);
@@ -136,6 +137,10 @@ const JapaneseTimePracticeToolPage = () => {
 
   const playCurrentCardAudio = useCallback(async () => {
     stopPlayback();
+    if (isMuted) {
+      setPlaybackHint(null);
+      return;
+    }
 
     let currentPlayback: AudioSequencePlayback | null = null;
 
@@ -163,7 +168,7 @@ const JapaneseTimePracticeToolPage = () => {
       }
       setIsPlaying(false);
     }
-  }, [card.hour24, card.minute, stopPlayback]);
+  }, [card.hour24, card.minute, isMuted, stopPlayback]);
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
@@ -304,6 +309,15 @@ const JapaneseTimePracticeToolPage = () => {
               aria-label={isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
               aria-pressed={isPowerOn}
             />
+            <button
+              type="button"
+              onClick={() => setIsMuted((current) => !current)}
+              className={`retro-clock-radio-mini-button ${isMuted ? 'is-active' : ''}`}
+              aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
+              aria-pressed={isMuted}
+            >
+              {isMuted ? 'Unmute' : 'Mute'}
+            </button>
           </div>
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
