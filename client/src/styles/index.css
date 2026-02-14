@@ -3334,6 +3334,8 @@
 }
 
 .retro-clock-radio-script {
+  position: relative;
+  z-index: 1;
   margin: 0;
   color: #f8b339;
   text-shadow:
@@ -3344,6 +3346,8 @@
 }
 
 .retro-clock-radio-digital {
+  position: relative;
+  z-index: 1;
   margin: 0;
   color: #f8b339;
   font-family: 'Oswald', 'Noto Sans JP', sans-serif;
@@ -3353,6 +3357,25 @@
   text-shadow:
     0 0 14px rgba(255, 160, 35, 0.42),
     0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.retro-clock-radio-status {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.6rem;
+  z-index: 2;
+  max-width: calc(100% - 1.2rem);
+  margin: 0;
+  color: #f8b339;
+  font-family: 'Oswald', 'Noto Sans JP', monospace;
+  font-size: clamp(0.56rem, 1.45vw, 0.78rem);
+  line-height: 1.15;
+  letter-spacing: 0.07em;
+  text-align: left;
+  text-shadow:
+    0 0 10px rgba(255, 160, 35, 0.42),
+    0 1px 4px rgba(0, 0, 0, 0.55);
+  opacity: 0.95;
 }
 
 .retro-clock-radio-knob {
@@ -3428,6 +3451,12 @@
 
   .retro-clock-radio-digital {
     letter-spacing: 0.09em;
+  }
+
+  .retro-clock-radio-status {
+    top: 0.4rem;
+    left: 0.45rem;
+    font-size: clamp(0.5rem, 1.3vw, 0.66rem);
   }
 }
 

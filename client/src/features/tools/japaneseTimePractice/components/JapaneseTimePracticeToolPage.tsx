@@ -103,6 +103,7 @@ const JapaneseTimePracticeToolPage = () => {
   } else if (isPowerOn) {
     loopStatus = `Waiting ${pauseSeconds}s pause before reveal.`;
   }
+  const statusText = isPlaying ? `${loopStatus} • Playing...` : loopStatus;
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
@@ -274,6 +275,7 @@ const JapaneseTimePracticeToolPage = () => {
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
               <div className="retro-clock-radio-glow" />
+              <p className="retro-clock-radio-status">{statusText}</p>
               {shouldShowScript ? (
                 <p className="japanese-text retro-clock-radio-script">
                   <UnitRubyPart
@@ -304,11 +306,7 @@ const JapaneseTimePracticeToolPage = () => {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#2f4f73]">
-          <span>{loopStatus}</span>
-          {isPlaying && <span>Playing audio...</span>}
-          {playbackHint && <span className="text-[#9e4c2a]">{playbackHint}</span>}
-        </div>
+        {playbackHint && <p className="mt-3 text-sm text-[#9e4c2a]">{playbackHint}</p>}
       </section>
     </div>
   );
