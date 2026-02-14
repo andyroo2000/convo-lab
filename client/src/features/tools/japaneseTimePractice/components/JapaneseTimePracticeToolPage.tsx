@@ -331,12 +331,12 @@ const JapaneseTimePracticeToolPage = () => {
             </div>
           </div>
           <div className="retro-clock-radio-control">
-            <span className="retro-clock-radio-control-label">Pause</span>
+            <span className="retro-clock-radio-control-label">Pause Length</span>
             <button
               type="button"
               onClick={cyclePause}
               className="retro-clock-radio-knob retro-clock-radio-knob-button"
-              aria-label={`Pause ${pauseSeconds} seconds`}
+              aria-label={`Pause length ${pauseSeconds} seconds between items`}
             />
             <span className="retro-clock-radio-control-sub">{pauseSeconds}s</span>
           </div>
