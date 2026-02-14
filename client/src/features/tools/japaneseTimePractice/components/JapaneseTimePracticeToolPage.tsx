@@ -19,7 +19,7 @@ interface RubyPartProps {
 }
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
-const PAUSE_OPTIONS = [3, 5, 8] as const;
+const PAUSE_OPTIONS = [3, 5, 8, 12] as const;
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
   return createTimeCard(now.getHours(), now.getMinutes());
@@ -74,7 +74,7 @@ const JapaneseTimePracticeToolPage = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [pauseSeconds, setPauseSeconds] = useState<number>(8);
+  const [pauseSeconds, setPauseSeconds] = useState<number>(12);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
