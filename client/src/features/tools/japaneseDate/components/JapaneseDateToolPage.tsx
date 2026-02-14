@@ -144,8 +144,9 @@ const JapaneseDateToolPage = () => {
   }, [isUsingCurrentDate]);
 
   const handleManualDateChange = (value: string) => {
+    const today = toLocalDateInputValue(new Date());
     setDateValue(value);
-    setIsUsingCurrentDate(false);
+    setIsUsingCurrentDate(value === today);
   };
 
   const handleUseCurrentDate = () => {
@@ -215,23 +216,29 @@ const JapaneseDateToolPage = () => {
               <CalendarDays className="h-4 w-4" />
               Date
             </span>
-            <input
-              id="jp-date-input"
-              type="date"
-              className="input retro-date-tool-input"
-              value={dateValue}
-              min={`${minYear}-01-01`}
-              max={`${maxYear}-12-31`}
-              onChange={(event) => handleManualDateChange(event.target.value)}
-            />
-            <button
-              type="button"
-              aria-pressed={isUsingCurrentDate}
-              onClick={handleUseCurrentDate}
-              className={`btn-outline retro-date-tool-format-btn mt-2 h-[2.75rem] w-full py-0 ${isUsingCurrentDate ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
-            >
-              Use Current Date
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                id="jp-date-input"
+                type="date"
+                className="input retro-date-tool-input min-w-0 flex-1"
+                value={dateValue}
+                min={`${minYear}-01-01`}
+                max={`${maxYear}-12-31`}
+                onChange={(event) => handleManualDateChange(event.target.value)}
+              />
+              <div className="w-[12rem] shrink-0">
+                <button
+                  type="button"
+                  aria-pressed={false}
+                  aria-hidden={isUsingCurrentDate}
+                  tabIndex={isUsingCurrentDate ? -1 : 0}
+                  onClick={handleUseCurrentDate}
+                  className={`btn-outline retro-date-tool-format-btn h-[2.75rem] w-full py-0 text-[0.72rem] tracking-[0.04em] focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 ${isUsingCurrentDate ? 'invisible pointer-events-none' : ''}`}
+                >
+                  Sync to Current Date
+                </button>
+              </div>
+            </div>
           </label>
         </div>
       </section>
