@@ -250,14 +250,7 @@ const JapaneseTimePracticeToolPage = () => {
         <div className="mb-4 space-y-2">
           <p className="retro-headline text-lg sm:text-xl">Clock Radio Drill</p>
           <p className="text-sm text-[#2f4f73] sm:text-base">
-            Step into the lab.
-            <br />
-            A time appears. Read it in Japanese.
-            <br />
             Wait for the reveal. Then listen and compare.
-          </p>
-          <p className="text-xs tracking-[0.08em] text-[#4e3d21] sm:text-sm">
-            Train your ear. Tighten your timing.
           </p>
         </div>
 
