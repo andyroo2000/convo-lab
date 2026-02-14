@@ -22,6 +22,7 @@
     "@tanstack/react-query": "^5.56.2",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "dseg": "^0.46.0",
     "framer-motion": "^11.5.4",
     "i18next": "^25.7.3",
     "i18next-browser-languagedetector": "^8.2.0",
