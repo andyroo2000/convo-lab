@@ -279,20 +279,20 @@ const JapaneseTimePracticeToolPage = () => {
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Time Trainer</h1>
-          <p className="text-right text-lg font-semibold text-[#2f4f73] sm:text-xl">
-            日本語の時刻練習
+        <div className="mb-5 rounded border-2 border-[#0f3561] bg-gradient-to-br from-[#102d57] via-[#143b6f] to-[#184779] px-4 pt-6 pb-7 text-[#f7f6ef] shadow-[0_6px_0_rgba(17,51,92,0.26)] sm:px-5 sm:pt-7 sm:pb-8">
+          <p className="retro-caps text-[0.74rem] tracking-[0.16em] text-[#8fd3ea] sm:text-[0.8rem]">
+            Japanese Time Trainer
           </p>
-        </div>
-      </section>
-
-      <section className="card retro-paper-panel">
-        <div className="mb-4 space-y-2">
-          <p className="text-sm text-[#2f4f73] sm:text-base">
-            A time appears. Read it in Japanese.
-            <br />
-            Wait for the reveal. Then listen and compare.
+          <p className="mt-1 pb-3 text-sm font-semibold tracking-[0.12em] text-[#8fd3ea] sm:text-[0.95rem]">
+            日本語タイムトレーナー
+          </p>
+          <p className="retro-headline mt-1 text-[clamp(1.4rem,1rem+1.7vw,2.05rem)] leading-[1.08] text-[#f9f8ed]">
+            READ IT.
+            <span className="mx-2 text-[#37b4d7]">LISTEN.</span>
+            CHECK YOUR ANSWER.
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-tight text-[#d3ecf4] sm:text-base">
+            A time appears first. Say it in Japanese before reveal, then compare with the audio.
           </p>
         </div>
 
