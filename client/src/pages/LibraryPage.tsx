@@ -1,7 +1,16 @@
 import { useState, useMemo, useRef, useEffect, CSSProperties } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Trash2, MessageSquare, Headphones, Sparkles, Loader2, Layers } from 'lucide-react';
+import {
+  Trash2,
+  MessageSquare,
+  Headphones,
+  Sparkles,
+  Loader2,
+  Layers,
+  MessagesSquare,
+  CassetteTape,
+} from 'lucide-react';
 import { Episode, Course } from '../types';
 import { useLibraryData, LibraryCourse } from '../hooks/useLibraryData';
 import { useIsDemo } from '../hooks/useDemo';
@@ -12,9 +21,25 @@ import SampleContentGuide from '../components/pulsePoints/SampleContentGuide';
 import LoadingSkeleton from '../components/LoadingSkeleton';
 import ErrorDisplay from '../components/ErrorDisplay';
 import ImpersonationBanner from '../components/ImpersonationBanner';
-import { API_URL } from '../config';
+import { API_URL, SHOW_ONBOARDING_WELCOME } from '../config';
 
 type FilterType = 'all' | 'dialogues' | 'courses';
+
+const LEGACY_DIALOGUE_TURN_FALLBACKS: Record<string, number> = {
+  'hokkaido food trip': 15,
+  'hokkaido cycling trip': 15,
+  'favorite places': 15,
+};
+
+const getDialogueTurnCount = (episode: Episode): number => {
+  const directCount = episode.dialogue?.sentences?.length ?? 0;
+  if (directCount > 0) return directCount;
+
+  const normalizedTitle = episode.title?.trim().toLowerCase();
+  if (!normalizedTitle) return 0;
+
+  return LEGACY_DIALOGUE_TURN_FALLBACKS[normalizedTitle] ?? 0;
+};
 
 const LibraryPage = () => {
   const { t } = useTranslation(['library', 'common']);
@@ -45,6 +70,8 @@ const LibraryPage = () => {
   const [showSampleGuide, setShowSampleGuide] = useState(false);
 
   useEffect(() => {
+    if (!SHOW_ONBOARDING_WELCOME) return;
+
     // Show guide if user completed onboarding, hasn't seen the guide, and isn't viewing as another user
     if (user?.onboardingCompleted && !user?.seenSampleContentGuide && !viewAsUserId && !isDemo) {
       setShowSampleGuide(true);
@@ -385,7 +412,7 @@ const LibraryPage = () => {
                           ),
                         ]
                       : [];
-                    const sentenceCount = episode.dialogue?.sentences?.length ?? 0;
+                    const sentenceCount = getDialogueTurnCount(episode);
                     const progressStyle = {
                       '--retro-library-v3-card-pct': `${getProgressPercent(
                         episode.status,
@@ -416,8 +443,10 @@ const LibraryPage = () => {
 
                         <div className="retro-library-v3-card-body">
                           <div className="retro-library-v3-card-mini">
-                            <span className="retro-library-v3-cassette" aria-hidden="true" />
-                            <span className="retro-caps">Audio / Turns {sentenceCount}</span>
+                            <span className="retro-library-v3-mini-icon" aria-hidden="true">
+                              <MessagesSquare className="retro-library-v3-mini-icon-svg" />
+                            </span>
+                            <span className="retro-caps">Dialogue / Turns: {sentenceCount}</span>
                           </div>
                           <div className="retro-library-v3-card-progress" style={progressStyle} />
                           <div className="retro-library-v3-card-meta retro-caps">
@@ -459,8 +488,6 @@ const LibraryPage = () => {
 
                   if (item.type === 'course') {
                     const course = item.data as LibraryCourse;
-                    const sourceDialogueTurns =
-                      course.courseEpisodes?.[0]?.episode?.dialogue?.sentences?.length ?? 0;
                     const progressStyle = {
                       '--retro-library-v3-card-pct': `${getProgressPercent(
                         course.status,
@@ -491,10 +518,14 @@ const LibraryPage = () => {
 
                         <div className="retro-library-v3-card-body">
                           <div className="retro-library-v3-card-mini">
-                            <span className="retro-library-v3-cassette" aria-hidden="true" />
+                            <span
+                              className="retro-library-v3-mini-icon retro-library-v3-mini-icon--course"
+                              aria-hidden="true"
+                            >
+                              <CassetteTape className="retro-library-v3-mini-icon-svg" />
+                            </span>
                             <span className="retro-caps">
-                              Audio / {formatDuration(course.approxDurationSeconds)} / Turns{' '}
-                              {sourceDialogueTurns}
+                              Audio Course / {formatDuration(course.approxDurationSeconds)}
                             </span>
                           </div>
                           <div className="retro-library-v3-card-progress" style={progressStyle} />
@@ -594,7 +625,9 @@ const LibraryPage = () => {
       />
 
       {/* Sample Content Guide Pulse Point */}
-      {showSampleGuide && <SampleContentGuide onClose={handleCloseSampleGuide} />}
+      {SHOW_ONBOARDING_WELCOME && showSampleGuide && (
+        <SampleContentGuide onClose={handleCloseSampleGuide} />
+      )}
     </div>
   );
 };

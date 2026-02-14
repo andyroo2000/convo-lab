@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useIsDemo } from '../hooks/useDemo';
 import QuotaBadge from '../components/QuotaBadge';
 import CustomContentGuide from '../components/pulsePoints/CustomContentGuide';
+import { SHOW_ONBOARDING_WELCOME } from '../config';
 
 const CreatePage = () => {
   const { t } = useTranslation(['create']);
@@ -27,6 +28,8 @@ const CreatePage = () => {
   const [showCustomGuide, setShowCustomGuide] = useState(false);
 
   useEffect(() => {
+    if (!SHOW_ONBOARDING_WELCOME) return;
+
     // Show guide if user completed onboarding, hasn't seen the custom content guide, and isn't a demo user
     if (user?.onboardingCompleted && !user?.seenCustomContentGuide && !isDemo) {
       setShowCustomGuide(true);
@@ -101,7 +104,9 @@ const CreatePage = () => {
       </div>
 
       {/* Custom Content Guide Pulse Point */}
-      {showCustomGuide && <CustomContentGuide onClose={handleCloseCustomGuide} />}
+      {SHOW_ONBOARDING_WELCOME && showCustomGuide && (
+        <CustomContentGuide onClose={handleCloseCustomGuide} />
+      )}
     </div>
   );
 };

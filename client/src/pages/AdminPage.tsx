@@ -172,14 +172,21 @@ const AdminPage = () => {
   const getRoleBadgeClass = (role: string): string => {
     switch (role) {
       case 'admin':
-        return 'bg-purple-100 text-purple-800';
+        return 'retro-admin-v3-badge retro-admin-v3-badge-admin';
       case 'moderator':
-        return 'bg-blue-100 text-blue-800';
+        return 'retro-admin-v3-badge retro-admin-v3-badge-moderator';
       case 'demo':
-        return 'bg-amber-100 text-amber-800';
+        return 'retro-admin-v3-badge retro-admin-v3-badge-demo';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'retro-admin-v3-badge retro-admin-v3-badge-user';
     }
+  };
+
+  const getTierBadgeClass = (tier: 'free' | 'pro'): string => {
+    if (tier === 'pro') {
+      return 'retro-admin-v3-badge retro-admin-v3-badge-pro';
+    }
+    return 'retro-admin-v3-badge retro-admin-v3-badge-free';
   };
 
   const getSubscriptionStatusClass = (status: string): string => {
@@ -642,844 +649,836 @@ const AdminPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-navy mb-2">Admin Dashboard</h1>
-        <p className="text-gray-600">Manage users, invite codes, and view analytics</p>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6 overflow-x-auto">
-        <nav className="flex gap-2 sm:gap-4 min-w-max">
-          <Link
-            to="/app/admin/users"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'users'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Users
-          </Link>
-          <Link
-            to="/app/admin/invite-codes"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'invite-codes'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <Ticket className="w-4 h-4" />
-            Invite Codes
-          </Link>
-          <Link
-            to="/app/admin/analytics"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'analytics'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" />
-            Analytics
-          </Link>
-          <Link
-            to="/app/admin/avatars"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'avatars'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <Image className="w-4 h-4" />
-            Avatars
-          </Link>
-          <Link
-            to="/app/admin/settings"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'settings'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </Link>
-          <Link
-            to="/app/admin/script-lab"
-            className={`flex items-center gap-2 px-3 sm:px-4 py-3 border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
-              activeTab === 'script-lab'
-                ? 'border-indigo text-indigo font-semibold'
-                : 'border-transparent text-gray-600 hover:text-navy'
-            }`}
-          >
-            <TestTube className="w-4 h-4" />
-            Script Lab
-          </Link>
-        </nav>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-          {error}
+    <div className="max-w-[80rem] mx-auto retro-admin-v3-wrap">
+      <div className="retro-admin-v3-shell">
+        <div className="retro-admin-v3-top">
+          <h1 className="retro-admin-v3-title">Admin Dashboard</h1>
+          <p className="retro-admin-v3-subtitle">Manage users, invite codes, and view analytics</p>
         </div>
-      )}
 
-      {/* Users Tab */}
-      {activeTab === 'users' && (
-        <div>
-          {/* Tier Filter Buttons */}
-          <div className="flex gap-2 mb-4">
-            <button
-              type="button"
-              onClick={() => setTierFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                tierFilter === 'all'
-                  ? 'bg-indigo text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              All Users
-            </button>
-            <button
-              type="button"
-              onClick={() => setTierFilter('free')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                tierFilter === 'free'
-                  ? 'bg-indigo text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Free Tier
-            </button>
-            <button
-              type="button"
-              onClick={() => setTierFilter('pro')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                tierFilter === 'pro'
-                  ? 'bg-indigo text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Pro Tier
-            </button>
-            <button
-              type="button"
-              onClick={() => setTierFilter('canceled')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                tierFilter === 'canceled'
-                  ? 'bg-indigo text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Canceled
-            </button>
+        <div className="retro-admin-v3-main">
+          {/* Tabs */}
+          <div className="retro-admin-v3-tabs-wrap">
+            <nav className="retro-admin-v3-tabs">
+              <Link
+                to="/app/admin/users"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'users' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Users
+              </Link>
+              <Link
+                to="/app/admin/invite-codes"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'invite-codes' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <Ticket className="w-4 h-4" />
+                Invite Codes
+              </Link>
+              <Link
+                to="/app/admin/analytics"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'analytics' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Analytics
+              </Link>
+              <Link
+                to="/app/admin/avatars"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'avatars' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <Image className="w-4 h-4" />
+                Avatars
+              </Link>
+              <Link
+                to="/app/admin/settings"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'settings' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                Settings
+              </Link>
+              <Link
+                to="/app/admin/script-lab"
+                className={`retro-admin-v3-tab ${
+                  activeTab === 'script-lab' ? 'is-active border-indigo font-semibold' : ''
+                }`}
+              >
+                <TestTube className="w-4 h-4" />
+                Script Lab
+              </Link>
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4 mb-6">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search users by name or email..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
-                className="input pl-10"
-              />
+          {/* Error Message */}
+          {error && <div className="retro-admin-v3-alert is-error mb-6">{error}</div>}
+
+          {/* Users Tab */}
+          {activeTab === 'users' && (
+            <div className="retro-admin-v3-pane">
+              {/* Tier Filter Buttons */}
+              <div className="retro-admin-v3-filter-row mb-4">
+                <button
+                  type="button"
+                  onClick={() => setTierFilter('all')}
+                  className={`retro-admin-v3-chip ${tierFilter === 'all' ? 'is-active' : ''}`}
+                >
+                  All Users
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTierFilter('free')}
+                  className={`retro-admin-v3-chip ${tierFilter === 'free' ? 'is-active' : ''}`}
+                >
+                  Free Tier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTierFilter('pro')}
+                  className={`retro-admin-v3-chip ${tierFilter === 'pro' ? 'is-active' : ''}`}
+                >
+                  Pro Tier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTierFilter('canceled')}
+                  className={`retro-admin-v3-chip ${tierFilter === 'canceled' ? 'is-active' : ''}`}
+                >
+                  Canceled
+                </button>
+              </div>
+
+              <div className="retro-admin-v3-search-row mb-6">
+                <div className="relative flex-1 min-w-[20rem]">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search users by name or email..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && fetchUsers()}
+                    className="retro-admin-v3-input pl-10"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={fetchUsers}
+                  className="retro-admin-v3-btn-primary shrink-0"
+                >
+                  Search
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="text-center py-12 text-gray-500">Loading users...</div>
+              ) : (
+                <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          User
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Role
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Tier
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Test User
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Sub Status
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Quota
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Content
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Joined
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredUsers.map((u) => (
+                        <tr
+                          key={u.id}
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => setSelectedUserId(u.id)}
+                        >
+                          <td className="px-3 sm:px-6 py-4">
+                            <div>
+                              <div className="font-medium text-navy whitespace-nowrap">
+                                {u.displayName || u.name}
+                              </div>
+                              <div className="text-sm text-gray-500 whitespace-nowrap">
+                                {u.email}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 sm:px-6 py-4">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getRoleBadgeClass(
+                                u.role
+                              )}`}
+                            >
+                              {u.role}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-6 py-4">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getTierBadgeClass(
+                                u.tier
+                              )}`}
+                            >
+                              {u.tier}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-6 py-4">
+                            {u.isTestUser ? (
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                Test
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4">
+                            {u.stripeSubscriptionStatus ? (
+                              <span
+                                className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getSubscriptionStatusClass(
+                                  u.stripeSubscriptionStatus
+                                )}`}
+                              >
+                                {u.stripeSubscriptionStatus}
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                            {u.tier === 'pro' ? '30/week' : '5/week'}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                            {u._count.episodes + u._count.courses} items
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                            {formatDate(u.createdAt)}
+                          </td>
+                          <td
+                            className="px-3 sm:px-6 py-4 text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
+                                className="text-indigo-600 hover:text-indigo-800 transition-colors"
+                                title={`View as ${u.displayName || u.name}`}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              {u.role !== 'admin' && u.id !== user.id && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setConfirmAction({
+                                      type: 'delete-user',
+                                      id: u.id,
+                                      email: u.email,
+                                    })
+                                  }
+                                  className="text-red-600 hover:text-red-800 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {filteredUsers.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">No users found</div>
+                  )}
+                </div>
+              )}
             </div>
-            <button type="button" onClick={fetchUsers} className="btn-primary">
-              Search
-            </button>
-          </div>
+          )}
 
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading users...</div>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      User
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Role
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Tier
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Test User
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Sub Status
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Quota
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Content
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Joined
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredUsers.map((u) => (
-                    <tr
-                      key={u.id}
-                      className="hover:bg-gray-50 cursor-pointer"
-                      onClick={() => setSelectedUserId(u.id)}
-                    >
-                      <td className="px-3 sm:px-6 py-4">
-                        <div>
-                          <div className="font-medium text-navy whitespace-nowrap">
-                            {u.displayName || u.name}
+          {/* Invite Codes Tab */}
+          {activeTab === 'invite-codes' && (
+            <div className="retro-admin-v3-pane">
+              <div className="retro-admin-v3-pane-header mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-navy">Invite Codes</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Create and manage invite codes for new users
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCreateInviteCode}
+                  className="retro-admin-v3-btn-primary flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Code
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="text-center py-12 text-gray-500">Loading invite codes...</div>
+              ) : (
+                <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Code
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Status
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Used By
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Created
+                        </th>
+                        <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {inviteCodes.map((code) => (
+                        <tr key={code.id} className="hover:bg-gray-50">
+                          <td className="px-3 sm:px-6 py-4">
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              <code className="font-mono font-semibold text-navy">{code.code}</code>
+                              <button
+                                type="button"
+                                onClick={() => handleCopyCode(code.code)}
+                                className="text-gray-400 hover:text-indigo transition-colors"
+                                title="Copy code"
+                              >
+                                {copiedCode === code.code ? (
+                                  <Check className="w-4 h-4 text-green-600" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </td>
+                          <td className="px-3 sm:px-6 py-4">
+                            <span
+                              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                                code.usedBy
+                                  ? 'bg-gray-100 text-gray-800'
+                                  : 'bg-green-100 text-green-800'
+                              }`}
+                            >
+                              {code.usedBy ? 'Used' : 'Available'}
+                            </span>
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
+                            {code.user ? (
+                              <div className="whitespace-nowrap">
+                                <div className="font-medium">{code.user.name}</div>
+                                <div className="text-xs text-gray-400">{code.user.email}</div>
+                              </div>
+                            ) : (
+                              '-'
+                            )}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
+                            {formatDate(code.createdAt)}
+                          </td>
+                          <td className="px-3 sm:px-6 py-4 text-right">
+                            {!code.usedBy && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setConfirmAction({
+                                    type: 'delete-invite-code',
+                                    id: code.id,
+                                    code: code.code,
+                                  })
+                                }
+                                className="text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {inviteCodes.length === 0 && (
+                    <div className="text-center py-12 text-gray-500">No invite codes found</div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Analytics Tab */}
+          {activeTab === 'analytics' && (
+            <div className="retro-admin-v3-pane">
+              <h2 className="text-xl font-semibold text-navy mb-6">Platform Analytics</h2>
+
+              {isLoading && <div className="text-center py-12 text-gray-500">Loading stats...</div>}
+              {!isLoading && stats && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Users */}
+                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
+                      <Users className="w-5 h-5 text-indigo" />
+                    </div>
+                    <p className="text-3xl font-bold text-navy">{stats.users}</p>
+                  </div>
+
+                  {/* Episodes */}
+                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-600">Episodes</h3>
+                      <BarChart3 className="w-5 h-5 text-indigo" />
+                    </div>
+                    <p className="text-3xl font-bold text-navy">{stats.episodes}</p>
+                  </div>
+
+                  {/* Courses */}
+                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-600">Courses</h3>
+                      <BarChart3 className="w-5 h-5 text-indigo" />
+                    </div>
+                    <p className="text-3xl font-bold text-navy">{stats.courses}</p>
+                  </div>
+
+                  {/* Invite Codes */}
+                  <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium text-gray-600">Invite Codes</h3>
+                      <Ticket className="w-5 h-5 text-indigo" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Total:{' '}
+                        <span className="font-semibold text-navy">{stats.inviteCodes.total}</span>
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Used:{' '}
+                        <span className="font-semibold text-navy">{stats.inviteCodes.used}</span>
+                      </p>
+                      <p className="text-sm text-green-600">
+                        Available:{' '}
+                        <span className="font-semibold">{stats.inviteCodes.available}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Avatars Tab */}
+          {activeTab === 'avatars' && (
+            <div className="retro-admin-v3-pane">
+              {/* Speaker Avatars Section */}
+              <div className="mb-8">
+                <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
+                <p className="text-sm text-gray-600 mb-6">
+                  Manage the 6 speaker avatar images used in dialogues and courses
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {DEFAULT_SPEAKER_AVATARS.map((filename) => {
+                    const avatar = speakerAvatars.find((a) => a.filename === filename);
+
+                    if (avatar) {
+                      // Avatar exists - show it with manage buttons
+                      return (
+                        <div
+                          key={filename}
+                          className="bg-white rounded-lg shadow p-4 retro-admin-v3-card"
+                        >
+                          <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
+                            <img
+                              src={avatar.croppedUrl}
+                              alt={filename}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
+                              }}
+                            />
                           </div>
-                          <div className="text-sm text-gray-500 whitespace-nowrap">{u.email}</div>
-                        </div>
-                      </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getRoleBadgeClass(
-                            u.role
-                          )}`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-                            u.tier === 'pro'
-                              ? 'bg-gradient-to-r from-periwinkle to-indigo text-white'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {u.tier}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        {u.isTestUser ? (
-                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                            Test
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        {u.stripeSubscriptionStatus ? (
-                          <span
-                            className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${getSubscriptionStatusClass(
-                              u.stripeSubscriptionStatus
-                            )}`}
+                          <p
+                            className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
+                            title={filename}
                           >
-                            {u.stripeSubscriptionStatus}
-                          </span>
-                        ) : (
-                          <span className="text-sm text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {u.tier === 'pro' ? '30/week' : '5/week'}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {u._count.episodes + u._count.courses} items
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(u.createdAt)}
-                      </td>
-                      <td
-                        className="px-3 sm:px-6 py-4 text-right"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/app/library?viewAs=${u.id}`)}
-                            className="text-indigo-600 hover:text-indigo-800 transition-colors"
-                            title={`View as ${u.displayName || u.name}`}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                          {u.role !== 'admin' && u.id !== user.id && (
+                            {formatAvatarTitle(filename)}
+                          </p>
+                          <div className="flex flex-col gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                setConfirmAction({
-                                  type: 'delete-user',
-                                  id: u.id,
-                                  email: u.email,
-                                })
-                              }
-                              className="text-red-600 hover:text-red-800 transition-colors"
+                              onClick={() => handleRecropSpeaker(filename)}
+                              className="retro-admin-v3-btn-secondary text-xs sm:text-sm py-1"
                             >
-                              <Trash2 className="w-4 h-4" />
+                              Re-crop
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {filteredUsers.length === 0 && (
-                <div className="text-center py-12 text-gray-500">No users found</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Invite Codes Tab */}
-      {activeTab === 'invite-codes' && (
-        <div>
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-xl font-semibold text-navy">Invite Codes</h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Create and manage invite codes for new users
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCreateInviteCode}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Create Code
-            </button>
-          </div>
-
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-500">Loading invite codes...</div>
-          ) : (
-            <div className="bg-white rounded-lg shadow overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Code
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Status
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Used By
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Created
-                    </th>
-                    <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {inviteCodes.map((code) => (
-                    <tr key={code.id} className="hover:bg-gray-50">
-                      <td className="px-3 sm:px-6 py-4">
-                        <div className="flex items-center gap-2 whitespace-nowrap">
-                          <code className="font-mono font-semibold text-navy">{code.code}</code>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyCode(code.code)}
-                            className="text-gray-400 hover:text-indigo transition-colors"
-                            title="Copy code"
-                          >
-                            {copiedCode === code.code ? (
-                              <Check className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Copy className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-3 sm:px-6 py-4">
-                        <span
-                          className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
-                            code.usedBy
-                              ? 'bg-gray-100 text-gray-800'
-                              : 'bg-green-100 text-green-800'
-                          }`}
-                        >
-                          {code.usedBy ? 'Used' : 'Available'}
-                        </span>
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500">
-                        {code.user ? (
-                          <div className="whitespace-nowrap">
-                            <div className="font-medium">{code.user.name}</div>
-                            <div className="text-xs text-gray-400">{code.user.email}</div>
+                            <button
+                              type="button"
+                              onClick={() => handleUploadNewSpeaker(filename)}
+                              className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1"
+                            >
+                              Upload New
+                            </button>
                           </div>
-                        ) : (
-                          '-'
-                        )}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-sm text-gray-500 whitespace-nowrap">
-                        {formatDate(code.createdAt)}
-                      </td>
-                      <td className="px-3 sm:px-6 py-4 text-right">
-                        {!code.usedBy && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setConfirmAction({
-                                type: 'delete-invite-code',
-                                id: code.id,
-                                code: code.code,
-                              })
-                            }
-                            className="text-red-600 hover:text-red-800 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              {inviteCodes.length === 0 && (
-                <div className="text-center py-12 text-gray-500">No invite codes found</div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div>
-          <h2 className="text-xl font-semibold text-navy mb-6">Platform Analytics</h2>
-
-          {isLoading && <div className="text-center py-12 text-gray-500">Loading stats...</div>}
-          {!isLoading && stats && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Users */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Total Users</h3>
-                  <Users className="w-5 h-5 text-indigo" />
-                </div>
-                <p className="text-3xl font-bold text-navy">{stats.users}</p>
-              </div>
-
-              {/* Episodes */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Episodes</h3>
-                  <BarChart3 className="w-5 h-5 text-indigo" />
-                </div>
-                <p className="text-3xl font-bold text-navy">{stats.episodes}</p>
-              </div>
-
-              {/* Courses */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Courses</h3>
-                  <BarChart3 className="w-5 h-5 text-indigo" />
-                </div>
-                <p className="text-3xl font-bold text-navy">{stats.courses}</p>
-              </div>
-
-              {/* Invite Codes */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-gray-600">Invite Codes</h3>
-                  <Ticket className="w-5 h-5 text-indigo" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-600">
-                    Total:{' '}
-                    <span className="font-semibold text-navy">{stats.inviteCodes.total}</span>
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Used: <span className="font-semibold text-navy">{stats.inviteCodes.used}</span>
-                  </p>
-                  <p className="text-sm text-green-600">
-                    Available: <span className="font-semibold">{stats.inviteCodes.available}</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Avatars Tab */}
-      {activeTab === 'avatars' && (
-        <div>
-          {/* Speaker Avatars Section */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-navy mb-4">Speaker Avatars</h2>
-            <p className="text-sm text-gray-600 mb-6">
-              Manage the 6 speaker avatar images used in dialogues and courses
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {DEFAULT_SPEAKER_AVATARS.map((filename) => {
-                const avatar = speakerAvatars.find((a) => a.filename === filename);
-
-                if (avatar) {
-                  // Avatar exists - show it with manage buttons
-                  return (
-                    <div key={filename} className="bg-white rounded-lg shadow p-4">
-                      <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-100">
-                        <img
-                          src={avatar.croppedUrl}
-                          alt={filename}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src =
-                              'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="128" height="128"%3E%3Crect fill="%23ddd" width="128" height="128"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="12"%3ENo Image%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                      </div>
-                      <p
-                        className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
-                        title={filename}
+                        </div>
+                      );
+                    }
+                    // Avatar missing - show upload placeholder
+                    return (
+                      <div
+                        key={filename}
+                        className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300 retro-admin-v3-card"
                       >
-                        {formatAvatarTitle(filename)}
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleRecropSpeaker(filename)}
-                          className="btn-secondary text-xs sm:text-sm py-1"
+                        <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                          <svg
+                            className="w-12 h-12 text-gray-400"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 4v16m8-8H4"
+                            />
+                          </svg>
+                        </div>
+                        <p
+                          className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
+                          title={filename}
                         >
-                          Re-crop
-                        </button>
+                          {formatAvatarTitle(filename)}
+                        </p>
                         <button
                           type="button"
                           onClick={() => handleUploadNewSpeaker(filename)}
-                          className="btn-primary text-xs sm:text-sm py-1"
+                          className="retro-admin-v3-btn-primary text-xs sm:text-sm py-1 w-full"
                         >
-                          Upload New
+                          Upload
                         </button>
                       </div>
-                    </div>
-                  );
-                }
-                // Avatar missing - show upload placeholder
-                return (
-                  <div
-                    key={filename}
-                    className="bg-white rounded-lg shadow p-4 border-2 border-dashed border-gray-300"
-                  >
-                    <div className="aspect-square w-32 h-32 mx-auto mb-3 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                      <svg
-                        className="w-12 h-12 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 4v16m8-8H4"
-                        />
-                      </svg>
-                    </div>
-                    <p
-                      className="text-xs sm:text-sm text-gray-700 text-center mb-3 font-medium"
-                      title={filename}
-                    >
-                      {formatAvatarTitle(filename)}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleUploadNewSpeaker(filename)}
-                      className="btn-primary text-xs sm:text-sm py-1 w-full"
-                    >
-                      Upload
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                    );
+                  })}
+                </div>
+              </div>
 
-          {/* User Avatars Section */}
-          <div>
-            <h2 className="text-xl font-semibold text-navy mb-4">User Avatars</h2>
-            <p className="text-sm text-gray-600 mb-6">Manage custom avatar images for users</p>
+              {/* User Avatars Section */}
+              <div>
+                <h2 className="text-xl font-semibold text-navy mb-4">User Avatars</h2>
+                <p className="text-sm text-gray-600 mb-6">Manage custom avatar images for users</p>
 
-            {isLoading ? (
-              <div className="text-center py-12 text-gray-500">Loading users...</div>
-            ) : (
-              <div className="bg-white rounded-lg shadow overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                        User
-                      </th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                        Avatar
-                      </th>
-                      <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {users.map((u) => (
-                      <tr key={u.id} className="hover:bg-gray-50">
-                        <td className="px-3 sm:px-6 py-4">
-                          <div>
-                            <div className="font-medium text-navy whitespace-nowrap">
-                              {u.displayName || u.name}
-                            </div>
-                            <div className="text-sm text-gray-500 whitespace-nowrap">{u.email}</div>
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4">
-                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
-                            {u.avatarUrl ? (
-                              <img
-                                src={u.avatarUrl}
-                                alt={u.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div
-                                className={`w-full h-full flex items-center justify-center text-white font-semibold ${getAvatarColorClass(
-                                  u.avatarColor
-                                )}`}
-                              >
-                                {(u.displayName || u.name).charAt(0).toUpperCase()}
+                {isLoading ? (
+                  <div className="text-center py-12 text-gray-500">Loading users...</div>
+                ) : (
+                  <div className="bg-white rounded-lg shadow overflow-x-auto retro-admin-v3-table-wrap">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                            User
+                          </th>
+                          <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                            Avatar
+                          </th>
+                          <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {users.map((u) => (
+                          <tr key={u.id} className="hover:bg-gray-50">
+                            <td className="px-3 sm:px-6 py-4">
+                              <div>
+                                <div className="font-medium text-navy whitespace-nowrap">
+                                  {u.displayName || u.name}
+                                </div>
+                                <div className="text-sm text-gray-500 whitespace-nowrap">
+                                  {u.email}
+                                </div>
                               </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = 'image/*';
-                              input.onchange = async (e) => {
-                                const file = (e.target as HTMLInputElement).files?.[0];
-                                if (file) {
-                                  const url = URL.createObjectURL(file);
-                                  setCropperImageUrl(url);
-                                  setCropperTitle(`Upload Avatar for ${u.displayName || u.name}`);
-                                  // Capture the file in the closure directly
-                                  setCropperSaveHandler(
-                                    () => async (blob: Blob, cropArea: Area) => {
-                                      try {
-                                        const formData = new FormData();
-                                        formData.append('image', file, `avatar.jpg`);
-                                        formData.append('cropArea', JSON.stringify(cropArea));
+                            </td>
+                            <td className="px-3 sm:px-6 py-4">
+                              <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                                {u.avatarUrl ? (
+                                  <img
+                                    src={u.avatarUrl}
+                                    alt={u.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div
+                                    className={`w-full h-full flex items-center justify-center text-white font-semibold ${getAvatarColorClass(
+                                      u.avatarColor
+                                    )}`}
+                                  >
+                                    {(u.displayName || u.name).charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-6 py-4 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const input = document.createElement('input');
+                                  input.type = 'file';
+                                  input.accept = 'image/*';
+                                  input.onchange = async (e) => {
+                                    const file = (e.target as HTMLInputElement).files?.[0];
+                                    if (file) {
+                                      const url = URL.createObjectURL(file);
+                                      setCropperImageUrl(url);
+                                      setCropperTitle(
+                                        `Upload Avatar for ${u.displayName || u.name}`
+                                      );
+                                      // Capture the file in the closure directly
+                                      setCropperSaveHandler(
+                                        () => async (blob: Blob, cropArea: Area) => {
+                                          try {
+                                            const formData = new FormData();
+                                            formData.append('image', file, `avatar.jpg`);
+                                            formData.append('cropArea', JSON.stringify(cropArea));
 
-                                        const response = await fetch(
-                                          `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
-                                          {
-                                            method: 'POST',
-                                            credentials: 'include',
-                                            body: formData,
+                                            const response = await fetch(
+                                              `${API_URL}/api/admin/avatars/user/${u.id}/upload`,
+                                              {
+                                                method: 'POST',
+                                                credentials: 'include',
+                                                body: formData,
+                                              }
+                                            );
+
+                                            if (!response.ok)
+                                              throw new Error('Failed to upload user avatar');
+
+                                            showToast(
+                                              'User avatar updated successfully',
+                                              'success'
+                                            );
+                                            setCropperOpen(false);
+
+                                            // Reload users to show updated avatar
+                                            fetchUsers();
+                                          } catch (err) {
+                                            showToast(
+                                              err instanceof Error
+                                                ? err.message
+                                                : 'Failed to upload user avatar',
+                                              'error'
+                                            );
                                           }
-                                        );
-
-                                        if (!response.ok)
-                                          throw new Error('Failed to upload user avatar');
-
-                                        showToast('User avatar updated successfully', 'success');
-                                        setCropperOpen(false);
-
-                                        // Reload users to show updated avatar
-                                        fetchUsers();
-                                      } catch (err) {
-                                        showToast(
-                                          err instanceof Error
-                                            ? err.message
-                                            : 'Failed to upload user avatar',
-                                          'error'
-                                        );
-                                      }
+                                        }
+                                      );
+                                      setCropperOpen(true);
                                     }
-                                  );
-                                  setCropperOpen(true);
-                                }
-                              };
-                              input.click();
-                            }}
-                            className="btn-primary text-xs sm:text-sm whitespace-nowrap"
-                          >
-                            Upload Avatar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                                  };
+                                  input.click();
+                                }}
+                                className="btn-primary text-xs sm:text-sm whitespace-nowrap"
+                              >
+                                Upload Avatar
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
 
-                {users.length === 0 && (
-                  <div className="text-center py-12 text-gray-500">No users found</div>
+                    {users.length === 0 && (
+                      <div className="text-center py-12 text-gray-500">No users found</div>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
-        <div>
-          <h2 className="text-xl font-semibold text-navy mb-2">Feature Visibility Settings</h2>
-          <p className="text-sm text-gray-600 mb-6">
-            Control which content types are visible to non-admin users. Admins can always see all
-            content types.
-          </p>
-
-          {isLoading && <div className="text-center py-12 text-gray-500">Loading settings...</div>}
-          {!isLoading && featureFlags && (
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="space-y-6">
-                {/* Dialogues Toggle */}
-                <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-base font-semibold text-navy">
-                      Comprehensible Input Dialogues
-                    </h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      AI-generated dialogues calibrated to user proficiency level
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="toggle-dialogues"
-                    className="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      id="toggle-dialogues"
-                      type="checkbox"
-                      checked={featureFlags.dialoguesEnabled}
-                      onChange={(e) => updateFeatureFlag('dialoguesEnabled', e.target.checked)}
-                      className="sr-only peer"
-                      aria-label="Toggle AI-Generated Dialogues"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                  </label>
-                </div>
-
-                {/* Audio Course Toggle */}
-                <div className="flex items-center justify-between py-4 border-b border-gray-200">
-                  <div>
-                    <h3 className="text-base font-semibold text-navy">Guided Audio Course</h3>
-                    <p className="text-sm text-gray-600 mt-1">
-                      Audio-only lessons built from dialogues—perfect for commutes
-                    </p>
-                  </div>
-                  <label
-                    htmlFor="toggle-audio-course"
-                    className="relative inline-flex items-center cursor-pointer"
-                  >
-                    <input
-                      id="toggle-audio-course"
-                      type="checkbox"
-                      checked={featureFlags.audioCourseEnabled}
-                      onChange={(e) => updateFeatureFlag('audioCourseEnabled', e.target.checked)}
-                      className="sr-only peer"
-                      aria-label="Toggle Guided Audio Course"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
-                  </label>
-                </div>
-              </div>
-
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> These settings only affect non-admin users. As an admin,
-                  you will always see all content creation options.
-                </p>
-              </div>
             </div>
           )}
-        </div>
-      )}
 
-      {activeTab === 'settings' && (
-        <div className="mt-10">
-          <h2 className="text-xl font-semibold text-navy mb-2">Pronunciation Dictionaries</h2>
-          <p className="text-sm text-gray-600 mb-6">
-            Keep-kanji words stay in kanji for TTS. Force-kana words replace kanji with kana. Enter
-            one item per line. Force-kana format: word=reading.
-          </p>
+          {/* Settings Tab */}
+          {activeTab === 'settings' && (
+            <div className="retro-admin-v3-pane">
+              <h2 className="text-xl font-semibold text-navy mb-2">Feature Visibility Settings</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Control which content types are visible to non-admin users. Admins can always see
+                all content types.
+              </p>
 
-          {pronunciationLoading ? (
-            <div className="text-center py-12 text-gray-500">
-              Loading pronunciation dictionary...
-            </div>
-          ) : (
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="text-base font-semibold text-navy mb-2">Keep-Kanji</h3>
-                  <textarea
-                    value={keepKanjiText}
-                    onChange={(e) => setKeepKanjiText(e.target.value)}
-                    rows={12}
-                    className="w-full border border-gray-200 rounded-md p-3 text-sm font-mono text-gray-800"
-                    placeholder="例: 橋"
-                  />
-                </div>
-                <div>
-                  <h3 className="text-base font-semibold text-navy mb-2">Force-Kana</h3>
-                  <textarea
-                    value={forceKanaText}
-                    onChange={(e) => setForceKanaText(e.target.value)}
-                    rows={12}
-                    className="w-full border border-gray-200 rounded-md p-3 text-sm font-mono text-gray-800"
-                    placeholder="例: 北海道=ほっかいどう"
-                  />
-                </div>
-              </div>
+              {isLoading && (
+                <div className="text-center py-12 text-gray-500">Loading settings...</div>
+              )}
+              {!isLoading && featureFlags && (
+                <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                  <div className="space-y-6">
+                    {/* Dialogues Toggle */}
+                    <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                      <div>
+                        <h3 className="text-base font-semibold text-navy">
+                          Comprehensible Input Dialogues
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          AI-generated dialogues calibrated to user proficiency level
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="toggle-dialogues"
+                        className="relative inline-flex items-center cursor-pointer"
+                      >
+                        <input
+                          id="toggle-dialogues"
+                          type="checkbox"
+                          checked={featureFlags.dialoguesEnabled}
+                          onChange={(e) => updateFeatureFlag('dialoguesEnabled', e.target.checked)}
+                          className="sr-only peer"
+                          aria-label="Toggle AI-Generated Dialogues"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+                      </label>
+                    </div>
 
-              <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div className="text-xs text-gray-500">
-                  Updated:{' '}
-                  {pronunciationDictionary?.updatedAt
-                    ? new Date(pronunciationDictionary.updatedAt).toLocaleString()
-                    : '-'}
+                    {/* Audio Course Toggle */}
+                    <div className="flex items-center justify-between py-4 border-b border-gray-200">
+                      <div>
+                        <h3 className="text-base font-semibold text-navy">Guided Audio Course</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Audio-only lessons built from dialogues—perfect for commutes
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="toggle-audio-course"
+                        className="relative inline-flex items-center cursor-pointer"
+                      >
+                        <input
+                          id="toggle-audio-course"
+                          type="checkbox"
+                          checked={featureFlags.audioCourseEnabled}
+                          onChange={(e) =>
+                            updateFeatureFlag('audioCourseEnabled', e.target.checked)
+                          }
+                          className="sr-only peer"
+                          aria-label="Toggle Guided Audio Course"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg retro-admin-v3-note">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> These settings only affect non-admin users. As an
+                      admin, you will always see all content creation options.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={fetchPronunciationDictionary}
-                    className="btn-secondary text-sm"
-                  >
-                    Reload
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSavePronunciationDictionary}
-                    className="btn-primary text-sm"
-                    disabled={pronunciationSaving}
-                  >
-                    {pronunciationSaving ? 'Saving...' : 'Save Dictionary'}
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           )}
-        </div>
-      )}
 
-      {/* Script Lab Tab */}
-      {activeTab === 'script-lab' && <ScriptLabTab />}
+          {activeTab === 'settings' && (
+            <div className="retro-admin-v3-pane mt-10">
+              <h2 className="text-xl font-semibold text-navy mb-2">Pronunciation Dictionaries</h2>
+              <p className="text-sm text-gray-600 mb-6">
+                Keep-kanji words stay in kanji for TTS. Force-kana words replace kanji with kana.
+                Enter one item per line. Force-kana format: word=reading.
+              </p>
+
+              {pronunciationLoading ? (
+                <div className="text-center py-12 text-gray-500">
+                  Loading pronunciation dictionary...
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow p-6 retro-admin-v3-card">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-base font-semibold text-navy mb-2">Keep-Kanji</h3>
+                      <textarea
+                        value={keepKanjiText}
+                        onChange={(e) => setKeepKanjiText(e.target.value)}
+                        rows={12}
+                        className="retro-admin-v3-input w-full p-3 text-sm font-mono text-gray-800"
+                        placeholder="例: 橋"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-semibold text-navy mb-2">Force-Kana</h3>
+                      <textarea
+                        value={forceKanaText}
+                        onChange={(e) => setForceKanaText(e.target.value)}
+                        rows={12}
+                        className="retro-admin-v3-input w-full p-3 text-sm font-mono text-gray-800"
+                        placeholder="例: 北海道=ほっかいどう"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div className="text-xs text-gray-500">
+                      Updated:{' '}
+                      {pronunciationDictionary?.updatedAt
+                        ? new Date(pronunciationDictionary.updatedAt).toLocaleString()
+                        : '-'}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={fetchPronunciationDictionary}
+                        className="retro-admin-v3-btn-secondary text-sm"
+                      >
+                        Reload
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSavePronunciationDictionary}
+                        className="retro-admin-v3-btn-primary text-sm"
+                        disabled={pronunciationSaving}
+                      >
+                        {pronunciationSaving ? 'Saving...' : 'Save Dictionary'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Script Lab Tab */}
+          {activeTab === 'script-lab' && <ScriptLabTab />}
+        </div>
+      </div>
 
       {/* Avatar Cropper Modal */}
       <AvatarCropperModal

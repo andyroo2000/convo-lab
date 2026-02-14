@@ -86,15 +86,15 @@ const VerifyEmailPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+    <div className="min-h-screen bg-cream flex items-start sm:items-center justify-center px-4 py-8">
       <div className="max-w-md w-full">
         <div className="mb-6">
           <Link
-            to="/app/library"
+            to={user ? '/app/library' : '/login'}
             className="inline-flex items-center gap-2 text-medium-brown hover:text-dark-brown transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            {t('auth:verifyEmail.backToLibrary')}
+            {user ? t('auth:verifyEmail.backToLibrary') : t('auth:forgotPassword.backToLogin')}
           </Link>
         </div>
 
@@ -203,6 +203,24 @@ const VerifyEmailPage = () => {
                   {error}
                 </div>
               )}
+            </div>
+          )}
+
+          {status === 'idle' && !user && (
+            <div className="text-center py-8">
+              <Mail className="w-16 h-16 text-periwinkle mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-dark-brown mb-2">Verify your email</h2>
+              <p className="text-medium-brown mb-6">
+                Sign in to view your verification status or request a new verification email.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/login" className="btn-primary inline-block">
+                  Go to Login
+                </Link>
+                <Link to="/" className="btn-outline inline-block">
+                  Back Home
+                </Link>
+              </div>
             </div>
           )}
         </div>

@@ -471,7 +471,7 @@ const PlaybackPage = () => {
 
   return (
     <div
-      className="w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-4"
+      className="retro-playback-v3-page w-full max-w-7xl xl:max-w-[96rem] mx-auto space-y-4"
       data-testid="playback-page-container"
     >
       {/* Sticky Header Container (Header + Audio Player/Progress) */}
@@ -485,10 +485,10 @@ const PlaybackPage = () => {
             {/* Mobile layout: Stack everything vertically */}
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
               <div className="flex-1">
-                <h1 className="retro-headline text-4xl sm:text-6xl mb-2">{episode.title}</h1>
+                <h1 className="retro-headline text-3xl sm:text-6xl mb-2">{episode.title}</h1>
 
                 {/* Segmented tags */}
-                <div className="inline-flex items-center gap-3 retro-caps text-[rgba(20,50,86,0.92)] text-xl">
+                <div className="inline-flex items-center gap-3 retro-caps text-[rgba(20,50,86,0.92)] text-base sm:text-xl">
                   <div className="px-3 py-2 bg-[rgba(20,50,86,0.18)] font-semibold">
                     {speakers[0]?.proficiency}
                   </div>
@@ -643,7 +643,7 @@ const PlaybackPage = () => {
                 if (el) sentenceRefs.current.set(sentence.id, el);
                 else sentenceRefs.current.delete(sentence.id);
               }}
-              className={`retro-dialog-row cursor-pointer ${isCurrentlySpeaking ? 'is-active' : ''}`}
+              className={`retro-dialog-row retro-playback-v3-row cursor-pointer ${isCurrentlySpeaking ? 'is-active' : ''}`}
               style={{
                 // Keep indicator width constant to avoid content reflow while the active sentence changes
                 borderLeft: `4px solid ${borderTone}`,
@@ -655,9 +655,9 @@ const PlaybackPage = () => {
               data-testid={`playback-sentence-${sentence.id}`}
             >
               <div
-                className={`retro-speaker-pane ${isAltSpeaker ? 'alt' : ''} p-4 sm:p-5 flex flex-col items-center justify-center`}
+                className={`retro-speaker-pane retro-playback-v3-speaker-pane ${isAltSpeaker ? 'alt' : ''} p-4 sm:p-5 flex flex-col items-center justify-center`}
               >
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-[#f6f2df] border-2 border-[#f6f2df]">
+                <div className="retro-playback-v3-avatar w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden shadow-md bg-[#f6f2df] border-2 border-[#f6f2df]">
                   <img
                     src={
                       speaker.avatarUrl ||
@@ -674,25 +674,25 @@ const PlaybackPage = () => {
               </div>
 
               {/* Target text and translation */}
-              <div className="grid gap-3 p-4 sm:p-5 grid-cols-1">
+              <div className="retro-playback-v3-content grid gap-3 p-4 sm:p-5 grid-cols-1">
                 <div>
-                  <p className="text-[2rem] text-[rgba(20,50,86,0.92)] leading-[1.25] font-black">
+                  <p className="text-[1.55rem] sm:text-[2rem] text-[rgba(20,50,86,0.92)] leading-[1.25] font-black">
                     {episode.targetLanguage === 'ja' ? (
                       <JapaneseText
                         text={sentence.text}
                         metadata={sentence.metadata}
                         showFurigana={showReadings}
-                        className="playback-dialog-japanese !text-[2rem] font-black leading-[1.25]"
+                        className="playback-dialog-japanese !text-[1.55rem] sm:!text-[2rem] font-black leading-[1.25]"
                       />
                     ) : (
-                      <span className="text-[2rem]">{sentence.text}</span>
+                      <span className="text-[1.55rem] sm:text-[2rem]">{sentence.text}</span>
                     )}
                   </p>
                 </div>
 
                 {showTranslations && (
                   <div>
-                    <p className="text-[1.1rem] text-[rgba(20,50,86,0.72)] italic leading-[1.35]">
+                    <p className="text-[0.95rem] sm:text-[1.1rem] text-[rgba(20,50,86,0.72)] italic leading-[1.35]">
                       {sentence.translation}
                     </p>
                   </div>

@@ -94,7 +94,9 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
         throw new Error(data.message || 'Failed to generate course content');
       }
 
-      setGenerateSuccess('Dialogue generation started! Refresh in a few moments to see the exchanges.');
+      setGenerateSuccess(
+        'Dialogue generation started! Refresh in a few moments to see the exchanges.'
+      );
 
       // Refresh course details after a delay
       setTimeout(() => {
@@ -108,11 +110,11 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
   };
 
   if (isLoading) {
-    return <div className="text-sm text-gray-500">Loading course details...</div>;
+    return <div className="retro-admin-v3-muted text-sm">Loading course details...</div>;
   }
 
   if (error) {
-    return <div className="text-sm text-red-600">{error}</div>;
+    return <div className="retro-admin-v3-alert is-error text-sm">{error}</div>;
   }
 
   if (!course) {
@@ -120,20 +122,12 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
   }
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 space-y-4">
+    <div className="retro-admin-v3-subpanel border border-gray-200 rounded-lg p-4 space-y-4">
       {/* Success Message */}
-      {generateSuccess && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          {generateSuccess}
-        </div>
-      )}
+      {generateSuccess && <div className="retro-admin-v3-alert is-success">{generateSuccess}</div>}
 
       {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
+      {error && <div className="retro-admin-v3-alert is-error">{error}</div>}
 
       <div className="flex items-start justify-between">
         <div>
@@ -157,7 +151,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
 
       {/* Generate Content Button */}
       {!course.hasExchanges && course.status === 'draft' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="retro-admin-v3-note bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-700 mb-3">
             📝 This course has no content yet. Generate dialogue exchanges from the source text to
             get started.
@@ -166,7 +160,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
             type="button"
             onClick={handleGenerateCourse}
             disabled={isGenerating}
-            className="btn-primary"
+            className="retro-admin-v3-btn-primary"
           >
             {isGenerating ? 'Generating...' : 'Generate Dialogue Exchanges'}
           </button>
@@ -214,7 +208,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
           href={`/app/courses/${course.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm text-indigo hover:text-indigo-dark flex items-center gap-1"
+          className="text-sm retro-admin-v3-link flex items-center gap-1"
         >
           View in Course Library
           <ExternalLink className="w-3 h-3" />
@@ -237,7 +231,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
             Source Text
           </button>
           {showSourceText && (
-            <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+            <div className="retro-admin-v3-subpanel bg-gray-50 border border-gray-200 rounded-md p-3">
               <p className="text-sm whitespace-pre-wrap font-mono">{course.sourceText}</p>
             </div>
           )}
@@ -263,12 +257,17 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
             <div className="space-y-3">
               {Array.isArray(course.exchanges) &&
                 course.exchanges.map((exchange, index) => (
-                  <div key={`exchange-${exchange.order || index}`} className="bg-blue-50 border border-blue-200 rounded-md p-3">
+                  <div
+                    key={`exchange-${exchange.order || index}`}
+                    className="retro-admin-v3-subpanel bg-blue-50 border border-blue-200 rounded-md p-3"
+                  >
                     <div className="flex items-start justify-between mb-2">
                       <span className="text-sm font-semibold text-indigo">
                         {exchange.speakerName || `Speaker ${index + 1}`}
                       </span>
-                      <span className="text-xs text-gray-500">Exchange {exchange.order || index + 1}</span>
+                      <span className="text-xs text-gray-500">
+                        Exchange {exchange.order || index + 1}
+                      </span>
                     </div>
                     <div className="space-y-2">
                       <div>
@@ -278,7 +277,9 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
                       {exchange.readingL2 && (
                         <div>
                           <div className="text-xs text-gray-600 mb-1">Reading:</div>
-                          <div className="text-sm text-gray-700 font-mono">{exchange.readingL2}</div>
+                          <div className="text-sm text-gray-700 font-mono">
+                            {exchange.readingL2}
+                          </div>
                         </div>
                       )}
                       <div>
@@ -292,7 +293,7 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
                             {exchange.vocabularyItems.map((vocab) => (
                               <span
                                 key={`vocab-${vocab.textL2}-${vocab.readingL2 || ''}`}
-                                className="inline-flex items-center px-2 py-1 bg-white border border-blue-300 rounded text-xs"
+                                className="inline-flex items-center px-2 py-1 bg-white border border-blue-300 rounded text-xs retro-admin-v3-pill"
                               >
                                 <span className="font-medium">{vocab.textL2}</span>
                                 {vocab.readingL2 && (
@@ -325,13 +326,17 @@ const CourseDetails = ({ courseId }: CourseDetailsProps) => {
             ) : (
               <ChevronDown className="w-4 h-4" />
             )}
-            Lesson Script Units ({Array.isArray(course.scriptUnits) ? course.scriptUnits.length : 0})
+            Lesson Script Units ({Array.isArray(course.scriptUnits) ? course.scriptUnits.length : 0}
+            )
           </button>
           {showScriptUnits && (
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {Array.isArray(course.scriptUnits) &&
                 course.scriptUnits.map((unit, index) => (
-                  <div key={`unit-${unit.type}-${unit.text?.substring(0, 20) || index}`} className="flex items-start gap-3 text-sm">
+                  <div
+                    key={`unit-${unit.type}-${unit.text?.substring(0, 20) || index}`}
+                    className="flex items-start gap-3 text-sm"
+                  >
                     <span className="text-xs text-gray-400 font-mono w-8 flex-shrink-0">
                       {index + 1}
                     </span>

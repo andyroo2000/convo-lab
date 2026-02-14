@@ -1,0 +1,3438 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-13T20:24:38.480Z",
+  "voiceId": "ja-JP-Neural2-C",
+  "voiceDescription": "Google: Kento - Professional",
+  "provider": "google",
+  "outputDir": "/Users/andrewlandry/Desktop/date-components-qc/google-kento-professional",
+  "yearRange": {
+    "startYear": 1900,
+    "endYear": 2100
+  },
+  "totals": {
+    "totalEntries": 244,
+    "generated": 244,
+    "failed": 0,
+    "skipped": 0
+  },
+  "entries": [
+    {
+      "id": "year_1900",
+      "category": "year",
+      "label": "Year 1900",
+      "text": "せんきゅうひゃくねん",
+      "relativePath": "date/year/1900.mp3"
+    },
+    {
+      "id": "year_1901",
+      "category": "year",
+      "label": "Year 1901",
+      "text": "せんきゅうひゃくいちねん",
+      "relativePath": "date/year/1901.mp3"
+    },
+    {
+      "id": "year_1902",
+      "category": "year",
+      "label": "Year 1902",
+      "text": "せんきゅうひゃくにねん",
+      "relativePath": "date/year/1902.mp3"
+    },
+    {
+      "id": "year_1903",
+      "category": "year",
+      "label": "Year 1903",
+      "text": "せんきゅうひゃくさんねん",
+      "relativePath": "date/year/1903.mp3"
+    },
+    {
+      "id": "year_1904",
+      "category": "year",
+      "label": "Year 1904",
+      "text": "せんきゅうひゃくよんねん",
+      "relativePath": "date/year/1904.mp3"
+    },
+    {
+      "id": "year_1905",
+      "category": "year",
+      "label": "Year 1905",
+      "text": "せんきゅうひゃくごねん",
+      "relativePath": "date/year/1905.mp3"
+    },
+    {
+      "id": "year_1906",
+      "category": "year",
+      "label": "Year 1906",
+      "text": "せんきゅうひゃくろくねん",
+      "relativePath": "date/year/1906.mp3"
+    },
+    {
+      "id": "year_1907",
+      "category": "year",
+      "label": "Year 1907",
+      "text": "せんきゅうひゃくななねん",
+      "relativePath": "date/year/1907.mp3"
+    },
+    {
+      "id": "year_1908",
+      "category": "year",
+      "label": "Year 1908",
+      "text": "せんきゅうひゃくはちねん",
+      "relativePath": "date/year/1908.mp3"
+    },
+    {
+      "id": "year_1909",
+      "category": "year",
+      "label": "Year 1909",
+      "text": "せんきゅうひゃくきゅうねん",
+      "relativePath": "date/year/1909.mp3"
+    },
+    {
+      "id": "year_1910",
+      "category": "year",
+      "label": "Year 1910",
+      "text": "せんきゅうひゃくじゅうねん",
+      "relativePath": "date/year/1910.mp3"
+    },
+    {
+      "id": "year_1911",
+      "category": "year",
+      "label": "Year 1911",
+      "text": "せんきゅうひゃくじゅういちねん",
+      "relativePath": "date/year/1911.mp3"
+    },
+    {
+      "id": "year_1912",
+      "category": "year",
+      "label": "Year 1912",
+      "text": "せんきゅうひゃくじゅうにねん",
+      "relativePath": "date/year/1912.mp3"
+    },
+    {
+      "id": "year_1913",
+      "category": "year",
+      "label": "Year 1913",
+      "text": "せんきゅうひゃくじゅうさんねん",
+      "relativePath": "date/year/1913.mp3"
+    },
+    {
+      "id": "year_1914",
+      "category": "year",
+      "label": "Year 1914",
+      "text": "せんきゅうひゃくじゅうよんねん",
+      "relativePath": "date/year/1914.mp3"
+    },
+    {
+      "id": "year_1915",
+      "category": "year",
+      "label": "Year 1915",
+      "text": "せんきゅうひゃくじゅうごねん",
+      "relativePath": "date/year/1915.mp3"
+    },
+    {
+      "id": "year_1916",
+      "category": "year",
+      "label": "Year 1916",
+      "text": "せんきゅうひゃくじゅうろくねん",
+      "relativePath": "date/year/1916.mp3"
+    },
+    {
+      "id": "year_1917",
+      "category": "year",
+      "label": "Year 1917",
+      "text": "せんきゅうひゃくじゅうななねん",
+      "relativePath": "date/year/1917.mp3"
+    },
+    {
+      "id": "year_1918",
+      "category": "year",
+      "label": "Year 1918",
+      "text": "せんきゅうひゃくじゅうはちねん",
+      "relativePath": "date/year/1918.mp3"
+    },
+    {
+      "id": "year_1919",
+      "category": "year",
+      "label": "Year 1919",
+      "text": "せんきゅうひゃくじゅうきゅうねん",
+      "relativePath": "date/year/1919.mp3"
+    },
+    {
+      "id": "year_1920",
+      "category": "year",
+      "label": "Year 1920",
+      "text": "せんきゅうひゃくにじゅうねん",
+      "relativePath": "date/year/1920.mp3"
+    },
+    {
+      "id": "year_1921",
+      "category": "year",
+      "label": "Year 1921",
+      "text": "せんきゅうひゃくにじゅういちねん",
+      "relativePath": "date/year/1921.mp3"
+    },
+    {
+      "id": "year_1922",
+      "category": "year",
+      "label": "Year 1922",
+      "text": "せんきゅうひゃくにじゅうにねん",
+      "relativePath": "date/year/1922.mp3"
+    },
+    {
+      "id": "year_1923",
+      "category": "year",
+      "label": "Year 1923",
+      "text": "せんきゅうひゃくにじゅうさんねん",
+      "relativePath": "date/year/1923.mp3"
+    },
+    {
+      "id": "year_1924",
+      "category": "year",
+      "label": "Year 1924",
+      "text": "せんきゅうひゃくにじゅうよんねん",
+      "relativePath": "date/year/1924.mp3"
+    },
+    {
+      "id": "year_1925",
+      "category": "year",
+      "label": "Year 1925",
+      "text": "せんきゅうひゃくにじゅうごねん",
+      "relativePath": "date/year/1925.mp3"
+    },
+    {
+      "id": "year_1926",
+      "category": "year",
+      "label": "Year 1926",
+      "text": "せんきゅうひゃくにじゅうろくねん",
+      "relativePath": "date/year/1926.mp3"
+    },
+    {
+      "id": "year_1927",
+      "category": "year",
+      "label": "Year 1927",
+      "text": "せんきゅうひゃくにじゅうななねん",
+      "relativePath": "date/year/1927.mp3"
+    },
+    {
+      "id": "year_1928",
+      "category": "year",
+      "label": "Year 1928",
+      "text": "せんきゅうひゃくにじゅうはちねん",
+      "relativePath": "date/year/1928.mp3"
+    },
+    {
+      "id": "year_1929",
+      "category": "year",
+      "label": "Year 1929",
+      "text": "せんきゅうひゃくにじゅうきゅうねん",
+      "relativePath": "date/year/1929.mp3"
+    },
+    {
+      "id": "year_1930",
+      "category": "year",
+      "label": "Year 1930",
+      "text": "せんきゅうひゃくさんじゅうねん",
+      "relativePath": "date/year/1930.mp3"
+    },
+    {
+      "id": "year_1931",
+      "category": "year",
+      "label": "Year 1931",
+      "text": "せんきゅうひゃくさんじゅういちねん",
+      "relativePath": "date/year/1931.mp3"
+    },
+    {
+      "id": "year_1932",
+      "category": "year",
+      "label": "Year 1932",
+      "text": "せんきゅうひゃくさんじゅうにねん",
+      "relativePath": "date/year/1932.mp3"
+    },
+    {
+      "id": "year_1933",
+      "category": "year",
+      "label": "Year 1933",
+      "text": "せんきゅうひゃくさんじゅうさんねん",
+      "relativePath": "date/year/1933.mp3"
+    },
+    {
+      "id": "year_1934",
+      "category": "year",
+      "label": "Year 1934",
+      "text": "せんきゅうひゃくさんじゅうよんねん",
+      "relativePath": "date/year/1934.mp3"
+    },
+    {
+      "id": "year_1935",
+      "category": "year",
+      "label": "Year 1935",
+      "text": "せんきゅうひゃくさんじゅうごねん",
+      "relativePath": "date/year/1935.mp3"
+    },
+    {
+      "id": "year_1936",
+      "category": "year",
+      "label": "Year 1936",
+      "text": "せんきゅうひゃくさんじゅうろくねん",
+      "relativePath": "date/year/1936.mp3"
+    },
+    {
+      "id": "year_1937",
+      "category": "year",
+      "label": "Year 1937",
+      "text": "せんきゅうひゃくさんじゅうななねん",
+      "relativePath": "date/year/1937.mp3"
+    },
+    {
+      "id": "year_1938",
+      "category": "year",
+      "label": "Year 1938",
+      "text": "せんきゅうひゃくさんじゅうはちねん",
+      "relativePath": "date/year/1938.mp3"
+    },
+    {
+      "id": "year_1939",
+      "category": "year",
+      "label": "Year 1939",
+      "text": "せんきゅうひゃくさんじゅうきゅうねん",
+      "relativePath": "date/year/1939.mp3"
+    },
+    {
+      "id": "year_1940",
+      "category": "year",
+      "label": "Year 1940",
+      "text": "せんきゅうひゃくよんじゅうねん",
+      "relativePath": "date/year/1940.mp3"
+    },
+    {
+      "id": "year_1941",
+      "category": "year",
+      "label": "Year 1941",
+      "text": "せんきゅうひゃくよんじゅういちねん",
+      "relativePath": "date/year/1941.mp3"
+    },
+    {
+      "id": "year_1942",
+      "category": "year",
+      "label": "Year 1942",
+      "text": "せんきゅうひゃくよんじゅうにねん",
+      "relativePath": "date/year/1942.mp3"
+    },
+    {
+      "id": "year_1943",
+      "category": "year",
+      "label": "Year 1943",
+      "text": "せんきゅうひゃくよんじゅうさんねん",
+      "relativePath": "date/year/1943.mp3"
+    },
+    {
+      "id": "year_1944",
+      "category": "year",
+      "label": "Year 1944",
+      "text": "せんきゅうひゃくよんじゅうよんねん",
+      "relativePath": "date/year/1944.mp3"
+    },
+    {
+      "id": "year_1945",
+      "category": "year",
+      "label": "Year 1945",
+      "text": "せんきゅうひゃくよんじゅうごねん",
+      "relativePath": "date/year/1945.mp3"
+    },
+    {
+      "id": "year_1946",
+      "category": "year",
+      "label": "Year 1946",
+      "text": "せんきゅうひゃくよんじゅうろくねん",
+      "relativePath": "date/year/1946.mp3"
+    },
+    {
+      "id": "year_1947",
+      "category": "year",
+      "label": "Year 1947",
+      "text": "せんきゅうひゃくよんじゅうななねん",
+      "relativePath": "date/year/1947.mp3"
+    },
+    {
+      "id": "year_1948",
+      "category": "year",
+      "label": "Year 1948",
+      "text": "せんきゅうひゃくよんじゅうはちねん",
+      "relativePath": "date/year/1948.mp3"
+    },
+    {
+      "id": "year_1949",
+      "category": "year",
+      "label": "Year 1949",
+      "text": "せんきゅうひゃくよんじゅうきゅうねん",
+      "relativePath": "date/year/1949.mp3"
+    },
+    {
+      "id": "year_1950",
+      "category": "year",
+      "label": "Year 1950",
+      "text": "せんきゅうひゃくごじゅうねん",
+      "relativePath": "date/year/1950.mp3"
+    },
+    {
+      "id": "year_1951",
+      "category": "year",
+      "label": "Year 1951",
+      "text": "せんきゅうひゃくごじゅういちねん",
+      "relativePath": "date/year/1951.mp3"
+    },
+    {
+      "id": "year_1952",
+      "category": "year",
+      "label": "Year 1952",
+      "text": "せんきゅうひゃくごじゅうにねん",
+      "relativePath": "date/year/1952.mp3"
+    },
+    {
+      "id": "year_1953",
+      "category": "year",
+      "label": "Year 1953",
+      "text": "せんきゅうひゃくごじゅうさんねん",
+      "relativePath": "date/year/1953.mp3"
+    },
+    {
+      "id": "year_1954",
+      "category": "year",
+      "label": "Year 1954",
+      "text": "せんきゅうひゃくごじゅうよんねん",
+      "relativePath": "date/year/1954.mp3"
+    },
+    {
+      "id": "year_1955",
+      "category": "year",
+      "label": "Year 1955",
+      "text": "せんきゅうひゃくごじゅうごねん",
+      "relativePath": "date/year/1955.mp3"
+    },
+    {
+      "id": "year_1956",
+      "category": "year",
+      "label": "Year 1956",
+      "text": "せんきゅうひゃくごじゅうろくねん",
+      "relativePath": "date/year/1956.mp3"
+    },
+    {
+      "id": "year_1957",
+      "category": "year",
+      "label": "Year 1957",
+      "text": "せんきゅうひゃくごじゅうななねん",
+      "relativePath": "date/year/1957.mp3"
+    },
+    {
+      "id": "year_1958",
+      "category": "year",
+      "label": "Year 1958",
+      "text": "せんきゅうひゃくごじゅうはちねん",
+      "relativePath": "date/year/1958.mp3"
+    },
+    {
+      "id": "year_1959",
+      "category": "year",
+      "label": "Year 1959",
+      "text": "せんきゅうひゃくごじゅうきゅうねん",
+      "relativePath": "date/year/1959.mp3"
+    },
+    {
+      "id": "year_1960",
+      "category": "year",
+      "label": "Year 1960",
+      "text": "せんきゅうひゃくろくじゅうねん",
+      "relativePath": "date/year/1960.mp3"
+    },
+    {
+      "id": "year_1961",
+      "category": "year",
+      "label": "Year 1961",
+      "text": "せんきゅうひゃくろくじゅういちねん",
+      "relativePath": "date/year/1961.mp3"
+    },
+    {
+      "id": "year_1962",
+      "category": "year",
+      "label": "Year 1962",
+      "text": "せんきゅうひゃくろくじゅうにねん",
+      "relativePath": "date/year/1962.mp3"
+    },
+    {
+      "id": "year_1963",
+      "category": "year",
+      "label": "Year 1963",
+      "text": "せんきゅうひゃくろくじゅうさんねん",
+      "relativePath": "date/year/1963.mp3"
+    },
+    {
+      "id": "year_1964",
+      "category": "year",
+      "label": "Year 1964",
+      "text": "せんきゅうひゃくろくじゅうよんねん",
+      "relativePath": "date/year/1964.mp3"
+    },
+    {
+      "id": "year_1965",
+      "category": "year",
+      "label": "Year 1965",
+      "text": "せんきゅうひゃくろくじゅうごねん",
+      "relativePath": "date/year/1965.mp3"
+    },
+    {
+      "id": "year_1966",
+      "category": "year",
+      "label": "Year 1966",
+      "text": "せんきゅうひゃくろくじゅうろくねん",
+      "relativePath": "date/year/1966.mp3"
+    },
+    {
+      "id": "year_1967",
+      "category": "year",
+      "label": "Year 1967",
+      "text": "せんきゅうひゃくろくじゅうななねん",
+      "relativePath": "date/year/1967.mp3"
+    },
+    {
+      "id": "year_1968",
+      "category": "year",
+      "label": "Year 1968",
+      "text": "せんきゅうひゃくろくじゅうはちねん",
+      "relativePath": "date/year/1968.mp3"
+    },
+    {
+      "id": "year_1969",
+      "category": "year",
+      "label": "Year 1969",
+      "text": "せんきゅうひゃくろくじゅうきゅうねん",
+      "relativePath": "date/year/1969.mp3"
+    },
+    {
+      "id": "year_1970",
+      "category": "year",
+      "label": "Year 1970",
+      "text": "せんきゅうひゃくななじゅうねん",
+      "relativePath": "date/year/1970.mp3"
+    },
+    {
+      "id": "year_1971",
+      "category": "year",
+      "label": "Year 1971",
+      "text": "せんきゅうひゃくななじゅういちねん",
+      "relativePath": "date/year/1971.mp3"
+    },
+    {
+      "id": "year_1972",
+      "category": "year",
+      "label": "Year 1972",
+      "text": "せんきゅうひゃくななじゅうにねん",
+      "relativePath": "date/year/1972.mp3"
+    },
+    {
+      "id": "year_1973",
+      "category": "year",
+      "label": "Year 1973",
+      "text": "せんきゅうひゃくななじゅうさんねん",
+      "relativePath": "date/year/1973.mp3"
+    },
+    {
+      "id": "year_1974",
+      "category": "year",
+      "label": "Year 1974",
+      "text": "せんきゅうひゃくななじゅうよんねん",
+      "relativePath": "date/year/1974.mp3"
+    },
+    {
+      "id": "year_1975",
+      "category": "year",
+      "label": "Year 1975",
+      "text": "せんきゅうひゃくななじゅうごねん",
+      "relativePath": "date/year/1975.mp3"
+    },
+    {
+      "id": "year_1976",
+      "category": "year",
+      "label": "Year 1976",
+      "text": "せんきゅうひゃくななじゅうろくねん",
+      "relativePath": "date/year/1976.mp3"
+    },
+    {
+      "id": "year_1977",
+      "category": "year",
+      "label": "Year 1977",
+      "text": "せんきゅうひゃくななじゅうななねん",
+      "relativePath": "date/year/1977.mp3"
+    },
+    {
+      "id": "year_1978",
+      "category": "year",
+      "label": "Year 1978",
+      "text": "せんきゅうひゃくななじゅうはちねん",
+      "relativePath": "date/year/1978.mp3"
+    },
+    {
+      "id": "year_1979",
+      "category": "year",
+      "label": "Year 1979",
+      "text": "せんきゅうひゃくななじゅうきゅうねん",
+      "relativePath": "date/year/1979.mp3"
+    },
+    {
+      "id": "year_1980",
+      "category": "year",
+      "label": "Year 1980",
+      "text": "せんきゅうひゃくはちじゅうねん",
+      "relativePath": "date/year/1980.mp3"
+    },
+    {
+      "id": "year_1981",
+      "category": "year",
+      "label": "Year 1981",
+      "text": "せんきゅうひゃくはちじゅういちねん",
+      "relativePath": "date/year/1981.mp3"
+    },
+    {
+      "id": "year_1982",
+      "category": "year",
+      "label": "Year 1982",
+      "text": "せんきゅうひゃくはちじゅうにねん",
+      "relativePath": "date/year/1982.mp3"
+    },
+    {
+      "id": "year_1983",
+      "category": "year",
+      "label": "Year 1983",
+      "text": "せんきゅうひゃくはちじゅうさんねん",
+      "relativePath": "date/year/1983.mp3"
+    },
+    {
+      "id": "year_1984",
+      "category": "year",
+      "label": "Year 1984",
+      "text": "せんきゅうひゃくはちじゅうよんねん",
+      "relativePath": "date/year/1984.mp3"
+    },
+    {
+      "id": "year_1985",
+      "category": "year",
+      "label": "Year 1985",
+      "text": "せんきゅうひゃくはちじゅうごねん",
+      "relativePath": "date/year/1985.mp3"
+    },
+    {
+      "id": "year_1986",
+      "category": "year",
+      "label": "Year 1986",
+      "text": "せんきゅうひゃくはちじゅうろくねん",
+      "relativePath": "date/year/1986.mp3"
+    },
+    {
+      "id": "year_1987",
+      "category": "year",
+      "label": "Year 1987",
+      "text": "せんきゅうひゃくはちじゅうななねん",
+      "relativePath": "date/year/1987.mp3"
+    },
+    {
+      "id": "year_1988",
+      "category": "year",
+      "label": "Year 1988",
+      "text": "せんきゅうひゃくはちじゅうはちねん",
+      "relativePath": "date/year/1988.mp3"
+    },
+    {
+      "id": "year_1989",
+      "category": "year",
+      "label": "Year 1989",
+      "text": "せんきゅうひゃくはちじゅうきゅうねん",
+      "relativePath": "date/year/1989.mp3"
+    },
+    {
+      "id": "year_1990",
+      "category": "year",
+      "label": "Year 1990",
+      "text": "せんきゅうひゃくきゅうじゅうねん",
+      "relativePath": "date/year/1990.mp3"
+    },
+    {
+      "id": "year_1991",
+      "category": "year",
+      "label": "Year 1991",
+      "text": "せんきゅうひゃくきゅうじゅういちねん",
+      "relativePath": "date/year/1991.mp3"
+    },
+    {
+      "id": "year_1992",
+      "category": "year",
+      "label": "Year 1992",
+      "text": "せんきゅうひゃくきゅうじゅうにねん",
+      "relativePath": "date/year/1992.mp3"
+    },
+    {
+      "id": "year_1993",
+      "category": "year",
+      "label": "Year 1993",
+      "text": "せんきゅうひゃくきゅうじゅうさんねん",
+      "relativePath": "date/year/1993.mp3"
+    },
+    {
+      "id": "year_1994",
+      "category": "year",
+      "label": "Year 1994",
+      "text": "せんきゅうひゃくきゅうじゅうよんねん",
+      "relativePath": "date/year/1994.mp3"
+    },
+    {
+      "id": "year_1995",
+      "category": "year",
+      "label": "Year 1995",
+      "text": "せんきゅうひゃくきゅうじゅうごねん",
+      "relativePath": "date/year/1995.mp3"
+    },
+    {
+      "id": "year_1996",
+      "category": "year",
+      "label": "Year 1996",
+      "text": "せんきゅうひゃくきゅうじゅうろくねん",
+      "relativePath": "date/year/1996.mp3"
+    },
+    {
+      "id": "year_1997",
+      "category": "year",
+      "label": "Year 1997",
+      "text": "せんきゅうひゃくきゅうじゅうななねん",
+      "relativePath": "date/year/1997.mp3"
+    },
+    {
+      "id": "year_1998",
+      "category": "year",
+      "label": "Year 1998",
+      "text": "せんきゅうひゃくきゅうじゅうはちねん",
+      "relativePath": "date/year/1998.mp3"
+    },
+    {
+      "id": "year_1999",
+      "category": "year",
+      "label": "Year 1999",
+      "text": "せんきゅうひゃくきゅうじゅうきゅうねん",
+      "relativePath": "date/year/1999.mp3"
+    },
+    {
+      "id": "year_2000",
+      "category": "year",
+      "label": "Year 2000",
+      "text": "にせんねん",
+      "relativePath": "date/year/2000.mp3"
+    },
+    {
+      "id": "year_2001",
+      "category": "year",
+      "label": "Year 2001",
+      "text": "にせんいちねん",
+      "relativePath": "date/year/2001.mp3"
+    },
+    {
+      "id": "year_2002",
+      "category": "year",
+      "label": "Year 2002",
+      "text": "にせんにねん",
+      "relativePath": "date/year/2002.mp3"
+    },
+    {
+      "id": "year_2003",
+      "category": "year",
+      "label": "Year 2003",
+      "text": "にせんさんねん",
+      "relativePath": "date/year/2003.mp3"
+    },
+    {
+      "id": "year_2004",
+      "category": "year",
+      "label": "Year 2004",
+      "text": "にせんよんねん",
+      "relativePath": "date/year/2004.mp3"
+    },
+    {
+      "id": "year_2005",
+      "category": "year",
+      "label": "Year 2005",
+      "text": "にせんごねん",
+      "relativePath": "date/year/2005.mp3"
+    },
+    {
+      "id": "year_2006",
+      "category": "year",
+      "label": "Year 2006",
+      "text": "にせんろくねん",
+      "relativePath": "date/year/2006.mp3"
+    },
+    {
+      "id": "year_2007",
+      "category": "year",
+      "label": "Year 2007",
+      "text": "にせんななねん",
+      "relativePath": "date/year/2007.mp3"
+    },
+    {
+      "id": "year_2008",
+      "category": "year",
+      "label": "Year 2008",
+      "text": "にせんはちねん",
+      "relativePath": "date/year/2008.mp3"
+    },
+    {
+      "id": "year_2009",
+      "category": "year",
+      "label": "Year 2009",
+      "text": "にせんきゅうねん",
+      "relativePath": "date/year/2009.mp3"
+    },
+    {
+      "id": "year_2010",
+      "category": "year",
+      "label": "Year 2010",
+      "text": "にせんじゅうねん",
+      "relativePath": "date/year/2010.mp3"
+    },
+    {
+      "id": "year_2011",
+      "category": "year",
+      "label": "Year 2011",
+      "text": "にせんじゅういちねん",
+      "relativePath": "date/year/2011.mp3"
+    },
+    {
+      "id": "year_2012",
+      "category": "year",
+      "label": "Year 2012",
+      "text": "にせんじゅうにねん",
+      "relativePath": "date/year/2012.mp3"
+    },
+    {
+      "id": "year_2013",
+      "category": "year",
+      "label": "Year 2013",
+      "text": "にせんじゅうさんねん",
+      "relativePath": "date/year/2013.mp3"
+    },
+    {
+      "id": "year_2014",
+      "category": "year",
+      "label": "Year 2014",
+      "text": "にせんじゅうよんねん",
+      "relativePath": "date/year/2014.mp3"
+    },
+    {
+      "id": "year_2015",
+      "category": "year",
+      "label": "Year 2015",
+      "text": "にせんじゅうごねん",
+      "relativePath": "date/year/2015.mp3"
+    },
+    {
+      "id": "year_2016",
+      "category": "year",
+      "label": "Year 2016",
+      "text": "にせんじゅうろくねん",
+      "relativePath": "date/year/2016.mp3"
+    },
+    {
+      "id": "year_2017",
+      "category": "year",
+      "label": "Year 2017",
+      "text": "にせんじゅうななねん",
+      "relativePath": "date/year/2017.mp3"
+    },
+    {
+      "id": "year_2018",
+      "category": "year",
+      "label": "Year 2018",
+      "text": "にせんじゅうはちねん",
+      "relativePath": "date/year/2018.mp3"
+    },
+    {
+      "id": "year_2019",
+      "category": "year",
+      "label": "Year 2019",
+      "text": "にせんじゅうきゅうねん",
+      "relativePath": "date/year/2019.mp3"
+    },
+    {
+      "id": "year_2020",
+      "category": "year",
+      "label": "Year 2020",
+      "text": "にせんにじゅうねん",
+      "relativePath": "date/year/2020.mp3"
+    },
+    {
+      "id": "year_2021",
+      "category": "year",
+      "label": "Year 2021",
+      "text": "にせんにじゅういちねん",
+      "relativePath": "date/year/2021.mp3"
+    },
+    {
+      "id": "year_2022",
+      "category": "year",
+      "label": "Year 2022",
+      "text": "にせんにじゅうにねん",
+      "relativePath": "date/year/2022.mp3"
+    },
+    {
+      "id": "year_2023",
+      "category": "year",
+      "label": "Year 2023",
+      "text": "にせんにじゅうさんねん",
+      "relativePath": "date/year/2023.mp3"
+    },
+    {
+      "id": "year_2024",
+      "category": "year",
+      "label": "Year 2024",
+      "text": "にせんにじゅうよんねん",
+      "relativePath": "date/year/2024.mp3"
+    },
+    {
+      "id": "year_2025",
+      "category": "year",
+      "label": "Year 2025",
+      "text": "にせんにじゅうごねん",
+      "relativePath": "date/year/2025.mp3"
+    },
+    {
+      "id": "year_2026",
+      "category": "year",
+      "label": "Year 2026",
+      "text": "にせんにじゅうろくねん",
+      "relativePath": "date/year/2026.mp3"
+    },
+    {
+      "id": "year_2027",
+      "category": "year",
+      "label": "Year 2027",
+      "text": "にせんにじゅうななねん",
+      "relativePath": "date/year/2027.mp3"
+    },
+    {
+      "id": "year_2028",
+      "category": "year",
+      "label": "Year 2028",
+      "text": "にせんにじゅうはちねん",
+      "relativePath": "date/year/2028.mp3"
+    },
+    {
+      "id": "year_2029",
+      "category": "year",
+      "label": "Year 2029",
+      "text": "にせんにじゅうきゅうねん",
+      "relativePath": "date/year/2029.mp3"
+    },
+    {
+      "id": "year_2030",
+      "category": "year",
+      "label": "Year 2030",
+      "text": "にせんさんじゅうねん",
+      "relativePath": "date/year/2030.mp3"
+    },
+    {
+      "id": "year_2031",
+      "category": "year",
+      "label": "Year 2031",
+      "text": "にせんさんじゅういちねん",
+      "relativePath": "date/year/2031.mp3"
+    },
+    {
+      "id": "year_2032",
+      "category": "year",
+      "label": "Year 2032",
+      "text": "にせんさんじゅうにねん",
+      "relativePath": "date/year/2032.mp3"
+    },
+    {
+      "id": "year_2033",
+      "category": "year",
+      "label": "Year 2033",
+      "text": "にせんさんじゅうさんねん",
+      "relativePath": "date/year/2033.mp3"
+    },
+    {
+      "id": "year_2034",
+      "category": "year",
+      "label": "Year 2034",
+      "text": "にせんさんじゅうよんねん",
+      "relativePath": "date/year/2034.mp3"
+    },
+    {
+      "id": "year_2035",
+      "category": "year",
+      "label": "Year 2035",
+      "text": "にせんさんじゅうごねん",
+      "relativePath": "date/year/2035.mp3"
+    },
+    {
+      "id": "year_2036",
+      "category": "year",
+      "label": "Year 2036",
+      "text": "にせんさんじゅうろくねん",
+      "relativePath": "date/year/2036.mp3"
+    },
+    {
+      "id": "year_2037",
+      "category": "year",
+      "label": "Year 2037",
+      "text": "にせんさんじゅうななねん",
+      "relativePath": "date/year/2037.mp3"
+    },
+    {
+      "id": "year_2038",
+      "category": "year",
+      "label": "Year 2038",
+      "text": "にせんさんじゅうはちねん",
+      "relativePath": "date/year/2038.mp3"
+    },
+    {
+      "id": "year_2039",
+      "category": "year",
+      "label": "Year 2039",
+      "text": "にせんさんじゅうきゅうねん",
+      "relativePath": "date/year/2039.mp3"
+    },
+    {
+      "id": "year_2040",
+      "category": "year",
+      "label": "Year 2040",
+      "text": "にせんよんじゅうねん",
+      "relativePath": "date/year/2040.mp3"
+    },
+    {
+      "id": "year_2041",
+      "category": "year",
+      "label": "Year 2041",
+      "text": "にせんよんじゅういちねん",
+      "relativePath": "date/year/2041.mp3"
+    },
+    {
+      "id": "year_2042",
+      "category": "year",
+      "label": "Year 2042",
+      "text": "にせんよんじゅうにねん",
+      "relativePath": "date/year/2042.mp3"
+    },
+    {
+      "id": "year_2043",
+      "category": "year",
+      "label": "Year 2043",
+      "text": "にせんよんじゅうさんねん",
+      "relativePath": "date/year/2043.mp3"
+    },
+    {
+      "id": "year_2044",
+      "category": "year",
+      "label": "Year 2044",
+      "text": "にせんよんじゅうよんねん",
+      "relativePath": "date/year/2044.mp3"
+    },
+    {
+      "id": "year_2045",
+      "category": "year",
+      "label": "Year 2045",
+      "text": "にせんよんじゅうごねん",
+      "relativePath": "date/year/2045.mp3"
+    },
+    {
+      "id": "year_2046",
+      "category": "year",
+      "label": "Year 2046",
+      "text": "にせんよんじゅうろくねん",
+      "relativePath": "date/year/2046.mp3"
+    },
+    {
+      "id": "year_2047",
+      "category": "year",
+      "label": "Year 2047",
+      "text": "にせんよんじゅうななねん",
+      "relativePath": "date/year/2047.mp3"
+    },
+    {
+      "id": "year_2048",
+      "category": "year",
+      "label": "Year 2048",
+      "text": "にせんよんじゅうはちねん",
+      "relativePath": "date/year/2048.mp3"
+    },
+    {
+      "id": "year_2049",
+      "category": "year",
+      "label": "Year 2049",
+      "text": "にせんよんじゅうきゅうねん",
+      "relativePath": "date/year/2049.mp3"
+    },
+    {
+      "id": "year_2050",
+      "category": "year",
+      "label": "Year 2050",
+      "text": "にせんごじゅうねん",
+      "relativePath": "date/year/2050.mp3"
+    },
+    {
+      "id": "year_2051",
+      "category": "year",
+      "label": "Year 2051",
+      "text": "にせんごじゅういちねん",
+      "relativePath": "date/year/2051.mp3"
+    },
+    {
+      "id": "year_2052",
+      "category": "year",
+      "label": "Year 2052",
+      "text": "にせんごじゅうにねん",
+      "relativePath": "date/year/2052.mp3"
+    },
+    {
+      "id": "year_2053",
+      "category": "year",
+      "label": "Year 2053",
+      "text": "にせんごじゅうさんねん",
+      "relativePath": "date/year/2053.mp3"
+    },
+    {
+      "id": "year_2054",
+      "category": "year",
+      "label": "Year 2054",
+      "text": "にせんごじゅうよんねん",
+      "relativePath": "date/year/2054.mp3"
+    },
+    {
+      "id": "year_2055",
+      "category": "year",
+      "label": "Year 2055",
+      "text": "にせんごじゅうごねん",
+      "relativePath": "date/year/2055.mp3"
+    },
+    {
+      "id": "year_2056",
+      "category": "year",
+      "label": "Year 2056",
+      "text": "にせんごじゅうろくねん",
+      "relativePath": "date/year/2056.mp3"
+    },
+    {
+      "id": "year_2057",
+      "category": "year",
+      "label": "Year 2057",
+      "text": "にせんごじゅうななねん",
+      "relativePath": "date/year/2057.mp3"
+    },
+    {
+      "id": "year_2058",
+      "category": "year",
+      "label": "Year 2058",
+      "text": "にせんごじゅうはちねん",
+      "relativePath": "date/year/2058.mp3"
+    },
+    {
+      "id": "year_2059",
+      "category": "year",
+      "label": "Year 2059",
+      "text": "にせんごじゅうきゅうねん",
+      "relativePath": "date/year/2059.mp3"
+    },
+    {
+      "id": "year_2060",
+      "category": "year",
+      "label": "Year 2060",
+      "text": "にせんろくじゅうねん",
+      "relativePath": "date/year/2060.mp3"
+    },
+    {
+      "id": "year_2061",
+      "category": "year",
+      "label": "Year 2061",
+      "text": "にせんろくじゅういちねん",
+      "relativePath": "date/year/2061.mp3"
+    },
+    {
+      "id": "year_2062",
+      "category": "year",
+      "label": "Year 2062",
+      "text": "にせんろくじゅうにねん",
+      "relativePath": "date/year/2062.mp3"
+    },
+    {
+      "id": "year_2063",
+      "category": "year",
+      "label": "Year 2063",
+      "text": "にせんろくじゅうさんねん",
+      "relativePath": "date/year/2063.mp3"
+    },
+    {
+      "id": "year_2064",
+      "category": "year",
+      "label": "Year 2064",
+      "text": "にせんろくじゅうよんねん",
+      "relativePath": "date/year/2064.mp3"
+    },
+    {
+      "id": "year_2065",
+      "category": "year",
+      "label": "Year 2065",
+      "text": "にせんろくじゅうごねん",
+      "relativePath": "date/year/2065.mp3"
+    },
+    {
+      "id": "year_2066",
+      "category": "year",
+      "label": "Year 2066",
+      "text": "にせんろくじゅうろくねん",
+      "relativePath": "date/year/2066.mp3"
+    },
+    {
+      "id": "year_2067",
+      "category": "year",
+      "label": "Year 2067",
+      "text": "にせんろくじゅうななねん",
+      "relativePath": "date/year/2067.mp3"
+    },
+    {
+      "id": "year_2068",
+      "category": "year",
+      "label": "Year 2068",
+      "text": "にせんろくじゅうはちねん",
+      "relativePath": "date/year/2068.mp3"
+    },
+    {
+      "id": "year_2069",
+      "category": "year",
+      "label": "Year 2069",
+      "text": "にせんろくじゅうきゅうねん",
+      "relativePath": "date/year/2069.mp3"
+    },
+    {
+      "id": "year_2070",
+      "category": "year",
+      "label": "Year 2070",
+      "text": "にせんななじゅうねん",
+      "relativePath": "date/year/2070.mp3"
+    },
+    {
+      "id": "year_2071",
+      "category": "year",
+      "label": "Year 2071",
+      "text": "にせんななじゅういちねん",
+      "relativePath": "date/year/2071.mp3"
+    },
+    {
+      "id": "year_2072",
+      "category": "year",
+      "label": "Year 2072",
+      "text": "にせんななじゅうにねん",
+      "relativePath": "date/year/2072.mp3"
+    },
+    {
+      "id": "year_2073",
+      "category": "year",
+      "label": "Year 2073",
+      "text": "にせんななじゅうさんねん",
+      "relativePath": "date/year/2073.mp3"
+    },
+    {
+      "id": "year_2074",
+      "category": "year",
+      "label": "Year 2074",
+      "text": "にせんななじゅうよんねん",
+      "relativePath": "date/year/2074.mp3"
+    },
+    {
+      "id": "year_2075",
+      "category": "year",
+      "label": "Year 2075",
+      "text": "にせんななじゅうごねん",
+      "relativePath": "date/year/2075.mp3"
+    },
+    {
+      "id": "year_2076",
+      "category": "year",
+      "label": "Year 2076",
+      "text": "にせんななじゅうろくねん",
+      "relativePath": "date/year/2076.mp3"
+    },
+    {
+      "id": "year_2077",
+      "category": "year",
+      "label": "Year 2077",
+      "text": "にせんななじゅうななねん",
+      "relativePath": "date/year/2077.mp3"
+    },
+    {
+      "id": "year_2078",
+      "category": "year",
+      "label": "Year 2078",
+      "text": "にせんななじゅうはちねん",
+      "relativePath": "date/year/2078.mp3"
+    },
+    {
+      "id": "year_2079",
+      "category": "year",
+      "label": "Year 2079",
+      "text": "にせんななじゅうきゅうねん",
+      "relativePath": "date/year/2079.mp3"
+    },
+    {
+      "id": "year_2080",
+      "category": "year",
+      "label": "Year 2080",
+      "text": "にせんはちじゅうねん",
+      "relativePath": "date/year/2080.mp3"
+    },
+    {
+      "id": "year_2081",
+      "category": "year",
+      "label": "Year 2081",
+      "text": "にせんはちじゅういちねん",
+      "relativePath": "date/year/2081.mp3"
+    },
+    {
+      "id": "year_2082",
+      "category": "year",
+      "label": "Year 2082",
+      "text": "にせんはちじゅうにねん",
+      "relativePath": "date/year/2082.mp3"
+    },
+    {
+      "id": "year_2083",
+      "category": "year",
+      "label": "Year 2083",
+      "text": "にせんはちじゅうさんねん",
+      "relativePath": "date/year/2083.mp3"
+    },
+    {
+      "id": "year_2084",
+      "category": "year",
+      "label": "Year 2084",
+      "text": "にせんはちじゅうよんねん",
+      "relativePath": "date/year/2084.mp3"
+    },
+    {
+      "id": "year_2085",
+      "category": "year",
+      "label": "Year 2085",
+      "text": "にせんはちじゅうごねん",
+      "relativePath": "date/year/2085.mp3"
+    },
+    {
+      "id": "year_2086",
+      "category": "year",
+      "label": "Year 2086",
+      "text": "にせんはちじゅうろくねん",
+      "relativePath": "date/year/2086.mp3"
+    },
+    {
+      "id": "year_2087",
+      "category": "year",
+      "label": "Year 2087",
+      "text": "にせんはちじゅうななねん",
+      "relativePath": "date/year/2087.mp3"
+    },
+    {
+      "id": "year_2088",
+      "category": "year",
+      "label": "Year 2088",
+      "text": "にせんはちじゅうはちねん",
+      "relativePath": "date/year/2088.mp3"
+    },
+    {
+      "id": "year_2089",
+      "category": "year",
+      "label": "Year 2089",
+      "text": "にせんはちじゅうきゅうねん",
+      "relativePath": "date/year/2089.mp3"
+    },
+    {
+      "id": "year_2090",
+      "category": "year",
+      "label": "Year 2090",
+      "text": "にせんきゅうじゅうねん",
+      "relativePath": "date/year/2090.mp3"
+    },
+    {
+      "id": "year_2091",
+      "category": "year",
+      "label": "Year 2091",
+      "text": "にせんきゅうじゅういちねん",
+      "relativePath": "date/year/2091.mp3"
+    },
+    {
+      "id": "year_2092",
+      "category": "year",
+      "label": "Year 2092",
+      "text": "にせんきゅうじゅうにねん",
+      "relativePath": "date/year/2092.mp3"
+    },
+    {
+      "id": "year_2093",
+      "category": "year",
+      "label": "Year 2093",
+      "text": "にせんきゅうじゅうさんねん",
+      "relativePath": "date/year/2093.mp3"
+    },
+    {
+      "id": "year_2094",
+      "category": "year",
+      "label": "Year 2094",
+      "text": "にせんきゅうじゅうよんねん",
+      "relativePath": "date/year/2094.mp3"
+    },
+    {
+      "id": "year_2095",
+      "category": "year",
+      "label": "Year 2095",
+      "text": "にせんきゅうじゅうごねん",
+      "relativePath": "date/year/2095.mp3"
+    },
+    {
+      "id": "year_2096",
+      "category": "year",
+      "label": "Year 2096",
+      "text": "にせんきゅうじゅうろくねん",
+      "relativePath": "date/year/2096.mp3"
+    },
+    {
+      "id": "year_2097",
+      "category": "year",
+      "label": "Year 2097",
+      "text": "にせんきゅうじゅうななねん",
+      "relativePath": "date/year/2097.mp3"
+    },
+    {
+      "id": "year_2098",
+      "category": "year",
+      "label": "Year 2098",
+      "text": "にせんきゅうじゅうはちねん",
+      "relativePath": "date/year/2098.mp3"
+    },
+    {
+      "id": "year_2099",
+      "category": "year",
+      "label": "Year 2099",
+      "text": "にせんきゅうじゅうきゅうねん",
+      "relativePath": "date/year/2099.mp3"
+    },
+    {
+      "id": "year_2100",
+      "category": "year",
+      "label": "Year 2100",
+      "text": "にせんひゃくねん",
+      "relativePath": "date/year/2100.mp3"
+    },
+    {
+      "id": "month_1",
+      "category": "month",
+      "label": "Month 1",
+      "text": "いちがつ",
+      "relativePath": "date/month/01.mp3"
+    },
+    {
+      "id": "month_2",
+      "category": "month",
+      "label": "Month 2",
+      "text": "にがつ",
+      "relativePath": "date/month/02.mp3"
+    },
+    {
+      "id": "month_3",
+      "category": "month",
+      "label": "Month 3",
+      "text": "さんがつ",
+      "relativePath": "date/month/03.mp3"
+    },
+    {
+      "id": "month_4",
+      "category": "month",
+      "label": "Month 4",
+      "text": "しがつ",
+      "relativePath": "date/month/04.mp3"
+    },
+    {
+      "id": "month_5",
+      "category": "month",
+      "label": "Month 5",
+      "text": "ごがつ",
+      "relativePath": "date/month/05.mp3"
+    },
+    {
+      "id": "month_6",
+      "category": "month",
+      "label": "Month 6",
+      "text": "ろくがつ",
+      "relativePath": "date/month/06.mp3"
+    },
+    {
+      "id": "month_7",
+      "category": "month",
+      "label": "Month 7",
+      "text": "しちがつ",
+      "relativePath": "date/month/07.mp3"
+    },
+    {
+      "id": "month_8",
+      "category": "month",
+      "label": "Month 8",
+      "text": "はちがつ",
+      "relativePath": "date/month/08.mp3"
+    },
+    {
+      "id": "month_9",
+      "category": "month",
+      "label": "Month 9",
+      "text": "くがつ",
+      "relativePath": "date/month/09.mp3"
+    },
+    {
+      "id": "month_10",
+      "category": "month",
+      "label": "Month 10",
+      "text": "じゅうがつ",
+      "relativePath": "date/month/10.mp3"
+    },
+    {
+      "id": "month_11",
+      "category": "month",
+      "label": "Month 11",
+      "text": "じゅういちがつ",
+      "relativePath": "date/month/11.mp3"
+    },
+    {
+      "id": "month_12",
+      "category": "month",
+      "label": "Month 12",
+      "text": "じゅうにがつ",
+      "relativePath": "date/month/12.mp3"
+    },
+    {
+      "id": "day_1",
+      "category": "day",
+      "label": "Day 1",
+      "text": "ついたち",
+      "relativePath": "date/day/01.mp3"
+    },
+    {
+      "id": "day_2",
+      "category": "day",
+      "label": "Day 2",
+      "text": "ふつか",
+      "relativePath": "date/day/02.mp3"
+    },
+    {
+      "id": "day_3",
+      "category": "day",
+      "label": "Day 3",
+      "text": "みっか",
+      "relativePath": "date/day/03.mp3"
+    },
+    {
+      "id": "day_4",
+      "category": "day",
+      "label": "Day 4",
+      "text": "よっか",
+      "relativePath": "date/day/04.mp3"
+    },
+    {
+      "id": "day_5",
+      "category": "day",
+      "label": "Day 5",
+      "text": "いつか",
+      "relativePath": "date/day/05.mp3"
+    },
+    {
+      "id": "day_6",
+      "category": "day",
+      "label": "Day 6",
+      "text": "むいか",
+      "relativePath": "date/day/06.mp3"
+    },
+    {
+      "id": "day_7",
+      "category": "day",
+      "label": "Day 7",
+      "text": "なのか",
+      "relativePath": "date/day/07.mp3"
+    },
+    {
+      "id": "day_8",
+      "category": "day",
+      "label": "Day 8",
+      "text": "ようか",
+      "relativePath": "date/day/08.mp3"
+    },
+    {
+      "id": "day_9",
+      "category": "day",
+      "label": "Day 9",
+      "text": "ここのか",
+      "relativePath": "date/day/09.mp3"
+    },
+    {
+      "id": "day_10",
+      "category": "day",
+      "label": "Day 10",
+      "text": "とおか",
+      "relativePath": "date/day/10.mp3"
+    },
+    {
+      "id": "day_11",
+      "category": "day",
+      "label": "Day 11",
+      "text": "じゅういちにち",
+      "relativePath": "date/day/11.mp3"
+    },
+    {
+      "id": "day_12",
+      "category": "day",
+      "label": "Day 12",
+      "text": "じゅうににち",
+      "relativePath": "date/day/12.mp3"
+    },
+    {
+      "id": "day_13",
+      "category": "day",
+      "label": "Day 13",
+      "text": "じゅうさんにち",
+      "relativePath": "date/day/13.mp3"
+    },
+    {
+      "id": "day_14",
+      "category": "day",
+      "label": "Day 14",
+      "text": "じゅうよっか",
+      "relativePath": "date/day/14.mp3"
+    },
+    {
+      "id": "day_15",
+      "category": "day",
+      "label": "Day 15",
+      "text": "じゅうごにち",
+      "relativePath": "date/day/15.mp3"
+    },
+    {
+      "id": "day_16",
+      "category": "day",
+      "label": "Day 16",
+      "text": "じゅうろくにち",
+      "relativePath": "date/day/16.mp3"
+    },
+    {
+      "id": "day_17",
+      "category": "day",
+      "label": "Day 17",
+      "text": "じゅうしちにち",
+      "relativePath": "date/day/17.mp3"
+    },
+    {
+      "id": "day_18",
+      "category": "day",
+      "label": "Day 18",
+      "text": "じゅうはちにち",
+      "relativePath": "date/day/18.mp3"
+    },
+    {
+      "id": "day_19",
+      "category": "day",
+      "label": "Day 19",
+      "text": "じゅうくにち",
+      "relativePath": "date/day/19.mp3"
+    },
+    {
+      "id": "day_20",
+      "category": "day",
+      "label": "Day 20",
+      "text": "はつか",
+      "relativePath": "date/day/20.mp3"
+    },
+    {
+      "id": "day_21",
+      "category": "day",
+      "label": "Day 21",
+      "text": "にじゅういちにち",
+      "relativePath": "date/day/21.mp3"
+    },
+    {
+      "id": "day_22",
+      "category": "day",
+      "label": "Day 22",
+      "text": "にじゅうににち",
+      "relativePath": "date/day/22.mp3"
+    },
+    {
+      "id": "day_23",
+      "category": "day",
+      "label": "Day 23",
+      "text": "にじゅうさんにち",
+      "relativePath": "date/day/23.mp3"
+    },
+    {
+      "id": "day_24",
+      "category": "day",
+      "label": "Day 24",
+      "text": "にじゅうよっか",
+      "relativePath": "date/day/24.mp3"
+    },
+    {
+      "id": "day_25",
+      "category": "day",
+      "label": "Day 25",
+      "text": "にじゅうごにち",
+      "relativePath": "date/day/25.mp3"
+    },
+    {
+      "id": "day_26",
+      "category": "day",
+      "label": "Day 26",
+      "text": "にじゅうろくにち",
+      "relativePath": "date/day/26.mp3"
+    },
+    {
+      "id": "day_27",
+      "category": "day",
+      "label": "Day 27",
+      "text": "にじゅうしちにち",
+      "relativePath": "date/day/27.mp3"
+    },
+    {
+      "id": "day_28",
+      "category": "day",
+      "label": "Day 28",
+      "text": "にじゅうはちにち",
+      "relativePath": "date/day/28.mp3"
+    },
+    {
+      "id": "day_29",
+      "category": "day",
+      "label": "Day 29",
+      "text": "ついたち",
+      "relativePath": "date/day/29.mp3"
+    },
+    {
+      "id": "day_30",
+      "category": "day",
+      "label": "Day 30",
+      "text": "ふつか",
+      "relativePath": "date/day/30.mp3"
+    },
+    {
+      "id": "day_31",
+      "category": "day",
+      "label": "Day 31",
+      "text": "みっか",
+      "relativePath": "date/day/31.mp3"
+    }
+  ],
+  "results": [
+    {
+      "id": "year_1900",
+      "status": "generated",
+      "relativePath": "date/year/1900.mp3",
+      "text": "せんきゅうひゃくねん",
+      "durationSeconds": 1.32
+    },
+    {
+      "id": "year_1901",
+      "status": "generated",
+      "relativePath": "date/year/1901.mp3",
+      "text": "せんきゅうひゃくいちねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_1902",
+      "status": "generated",
+      "relativePath": "date/year/1902.mp3",
+      "text": "せんきゅうひゃくにねん",
+      "durationSeconds": 1.464
+    },
+    {
+      "id": "year_1903",
+      "status": "generated",
+      "relativePath": "date/year/1903.mp3",
+      "text": "せんきゅうひゃくさんねん",
+      "durationSeconds": 1.536
+    },
+    {
+      "id": "year_1904",
+      "status": "generated",
+      "relativePath": "date/year/1904.mp3",
+      "text": "せんきゅうひゃくよんねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_1905",
+      "status": "generated",
+      "relativePath": "date/year/1905.mp3",
+      "text": "せんきゅうひゃくごねん",
+      "durationSeconds": 1.512
+    },
+    {
+      "id": "year_1906",
+      "status": "generated",
+      "relativePath": "date/year/1906.mp3",
+      "text": "せんきゅうひゃくろくねん",
+      "durationSeconds": 1.56
+    },
+    {
+      "id": "year_1907",
+      "status": "generated",
+      "relativePath": "date/year/1907.mp3",
+      "text": "せんきゅうひゃくななねん",
+      "durationSeconds": 1.632
+    },
+    {
+      "id": "year_1908",
+      "status": "generated",
+      "relativePath": "date/year/1908.mp3",
+      "text": "せんきゅうひゃくはちねん",
+      "durationSeconds": 1.752
+    },
+    {
+      "id": "year_1909",
+      "status": "generated",
+      "relativePath": "date/year/1909.mp3",
+      "text": "せんきゅうひゃくきゅうねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_1910",
+      "status": "generated",
+      "relativePath": "date/year/1910.mp3",
+      "text": "せんきゅうひゃくじゅうねん",
+      "durationSeconds": 1.56
+    },
+    {
+      "id": "year_1911",
+      "status": "generated",
+      "relativePath": "date/year/1911.mp3",
+      "text": "せんきゅうひゃくじゅういちねん",
+      "durationSeconds": 1.944
+    },
+    {
+      "id": "year_1912",
+      "status": "generated",
+      "relativePath": "date/year/1912.mp3",
+      "text": "せんきゅうひゃくじゅうにねん",
+      "durationSeconds": 1.848
+    },
+    {
+      "id": "year_1913",
+      "status": "generated",
+      "relativePath": "date/year/1913.mp3",
+      "text": "せんきゅうひゃくじゅうさんねん",
+      "durationSeconds": 1.968
+    },
+    {
+      "id": "year_1914",
+      "status": "generated",
+      "relativePath": "date/year/1914.mp3",
+      "text": "せんきゅうひゃくじゅうよんねん",
+      "durationSeconds": 1.992
+    },
+    {
+      "id": "year_1915",
+      "status": "generated",
+      "relativePath": "date/year/1915.mp3",
+      "text": "せんきゅうひゃくじゅうごねん",
+      "durationSeconds": 1.752
+    },
+    {
+      "id": "year_1916",
+      "status": "generated",
+      "relativePath": "date/year/1916.mp3",
+      "text": "せんきゅうひゃくじゅうろくねん",
+      "durationSeconds": 1.968
+    },
+    {
+      "id": "year_1917",
+      "status": "generated",
+      "relativePath": "date/year/1917.mp3",
+      "text": "せんきゅうひゃくじゅうななねん",
+      "durationSeconds": 1.968
+    },
+    {
+      "id": "year_1918",
+      "status": "generated",
+      "relativePath": "date/year/1918.mp3",
+      "text": "せんきゅうひゃくじゅうはちねん",
+      "durationSeconds": 1.992
+    },
+    {
+      "id": "year_1919",
+      "status": "generated",
+      "relativePath": "date/year/1919.mp3",
+      "text": "せんきゅうひゃくじゅうきゅうねん",
+      "durationSeconds": 1.992
+    },
+    {
+      "id": "year_1920",
+      "status": "generated",
+      "relativePath": "date/year/1920.mp3",
+      "text": "せんきゅうひゃくにじゅうねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_1921",
+      "status": "generated",
+      "relativePath": "date/year/1921.mp3",
+      "text": "せんきゅうひゃくにじゅういちねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1922",
+      "status": "generated",
+      "relativePath": "date/year/1922.mp3",
+      "text": "せんきゅうひゃくにじゅうにねん",
+      "durationSeconds": 2.064
+    },
+    {
+      "id": "year_1923",
+      "status": "generated",
+      "relativePath": "date/year/1923.mp3",
+      "text": "せんきゅうひゃくにじゅうさんねん",
+      "durationSeconds": 2.16
+    },
+    {
+      "id": "year_1924",
+      "status": "generated",
+      "relativePath": "date/year/1924.mp3",
+      "text": "せんきゅうひゃくにじゅうよんねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1925",
+      "status": "generated",
+      "relativePath": "date/year/1925.mp3",
+      "text": "せんきゅうひゃくにじゅうごねん",
+      "durationSeconds": 1.848
+    },
+    {
+      "id": "year_1926",
+      "status": "generated",
+      "relativePath": "date/year/1926.mp3",
+      "text": "せんきゅうひゃくにじゅうろくねん",
+      "durationSeconds": 2.16
+    },
+    {
+      "id": "year_1927",
+      "status": "generated",
+      "relativePath": "date/year/1927.mp3",
+      "text": "せんきゅうひゃくにじゅうななねん",
+      "durationSeconds": 2.232
+    },
+    {
+      "id": "year_1928",
+      "status": "generated",
+      "relativePath": "date/year/1928.mp3",
+      "text": "せんきゅうひゃくにじゅうはちねん",
+      "durationSeconds": 2.112
+    },
+    {
+      "id": "year_1929",
+      "status": "generated",
+      "relativePath": "date/year/1929.mp3",
+      "text": "せんきゅうひゃくにじゅうきゅうねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1930",
+      "status": "generated",
+      "relativePath": "date/year/1930.mp3",
+      "text": "せんきゅうひゃくさんじゅうねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_1931",
+      "status": "generated",
+      "relativePath": "date/year/1931.mp3",
+      "text": "せんきゅうひゃくさんじゅういちねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1932",
+      "status": "generated",
+      "relativePath": "date/year/1932.mp3",
+      "text": "せんきゅうひゃくさんじゅうにねん",
+      "durationSeconds": 2.04
+    },
+    {
+      "id": "year_1933",
+      "status": "generated",
+      "relativePath": "date/year/1933.mp3",
+      "text": "せんきゅうひゃくさんじゅうさんねん",
+      "durationSeconds": 2.112
+    },
+    {
+      "id": "year_1934",
+      "status": "generated",
+      "relativePath": "date/year/1934.mp3",
+      "text": "せんきゅうひゃくさんじゅうよんねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1935",
+      "status": "generated",
+      "relativePath": "date/year/1935.mp3",
+      "text": "せんきゅうひゃくさんじゅうごねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1936",
+      "status": "generated",
+      "relativePath": "date/year/1936.mp3",
+      "text": "せんきゅうひゃくさんじゅうろくねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1937",
+      "status": "generated",
+      "relativePath": "date/year/1937.mp3",
+      "text": "せんきゅうひゃくさんじゅうななねん",
+      "durationSeconds": 2.208
+    },
+    {
+      "id": "year_1938",
+      "status": "generated",
+      "relativePath": "date/year/1938.mp3",
+      "text": "せんきゅうひゃくさんじゅうはちねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1939",
+      "status": "generated",
+      "relativePath": "date/year/1939.mp3",
+      "text": "せんきゅうひゃくさんじゅうきゅうねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1940",
+      "status": "generated",
+      "relativePath": "date/year/1940.mp3",
+      "text": "せんきゅうひゃくよんじゅうねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_1941",
+      "status": "generated",
+      "relativePath": "date/year/1941.mp3",
+      "text": "せんきゅうひゃくよんじゅういちねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1942",
+      "status": "generated",
+      "relativePath": "date/year/1942.mp3",
+      "text": "せんきゅうひゃくよんじゅうにねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1943",
+      "status": "generated",
+      "relativePath": "date/year/1943.mp3",
+      "text": "せんきゅうひゃくよんじゅうさんねん",
+      "durationSeconds": 2.232
+    },
+    {
+      "id": "year_1944",
+      "status": "generated",
+      "relativePath": "date/year/1944.mp3",
+      "text": "せんきゅうひゃくよんじゅうよんねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1945",
+      "status": "generated",
+      "relativePath": "date/year/1945.mp3",
+      "text": "せんきゅうひゃくよんじゅうごねん",
+      "durationSeconds": 2.04
+    },
+    {
+      "id": "year_1946",
+      "status": "generated",
+      "relativePath": "date/year/1946.mp3",
+      "text": "せんきゅうひゃくよんじゅうろくねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1947",
+      "status": "generated",
+      "relativePath": "date/year/1947.mp3",
+      "text": "せんきゅうひゃくよんじゅうななねん",
+      "durationSeconds": 2.304
+    },
+    {
+      "id": "year_1948",
+      "status": "generated",
+      "relativePath": "date/year/1948.mp3",
+      "text": "せんきゅうひゃくよんじゅうはちねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1949",
+      "status": "generated",
+      "relativePath": "date/year/1949.mp3",
+      "text": "せんきゅうひゃくよんじゅうきゅうねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1950",
+      "status": "generated",
+      "relativePath": "date/year/1950.mp3",
+      "text": "せんきゅうひゃくごじゅうねん",
+      "durationSeconds": 1.968
+    },
+    {
+      "id": "year_1951",
+      "status": "generated",
+      "relativePath": "date/year/1951.mp3",
+      "text": "せんきゅうひゃくごじゅういちねん",
+      "durationSeconds": 2.112
+    },
+    {
+      "id": "year_1952",
+      "status": "generated",
+      "relativePath": "date/year/1952.mp3",
+      "text": "せんきゅうひゃくごじゅうにねん",
+      "durationSeconds": 2.04
+    },
+    {
+      "id": "year_1953",
+      "status": "generated",
+      "relativePath": "date/year/1953.mp3",
+      "text": "せんきゅうひゃくごじゅうさんねん",
+      "durationSeconds": 2.16
+    },
+    {
+      "id": "year_1954",
+      "status": "generated",
+      "relativePath": "date/year/1954.mp3",
+      "text": "せんきゅうひゃくごじゅうよんねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1955",
+      "status": "generated",
+      "relativePath": "date/year/1955.mp3",
+      "text": "せんきゅうひゃくごじゅうごねん",
+      "durationSeconds": 2.088
+    },
+    {
+      "id": "year_1956",
+      "status": "generated",
+      "relativePath": "date/year/1956.mp3",
+      "text": "せんきゅうひゃくごじゅうろくねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1957",
+      "status": "generated",
+      "relativePath": "date/year/1957.mp3",
+      "text": "せんきゅうひゃくごじゅうななねん",
+      "durationSeconds": 2.16
+    },
+    {
+      "id": "year_1958",
+      "status": "generated",
+      "relativePath": "date/year/1958.mp3",
+      "text": "せんきゅうひゃくごじゅうはちねん",
+      "durationSeconds": 2.208
+    },
+    {
+      "id": "year_1959",
+      "status": "generated",
+      "relativePath": "date/year/1959.mp3",
+      "text": "せんきゅうひゃくごじゅうきゅうねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1960",
+      "status": "generated",
+      "relativePath": "date/year/1960.mp3",
+      "text": "せんきゅうひゃくろくじゅうねん",
+      "durationSeconds": 1.92
+    },
+    {
+      "id": "year_1961",
+      "status": "generated",
+      "relativePath": "date/year/1961.mp3",
+      "text": "せんきゅうひゃくろくじゅういちねん",
+      "durationSeconds": 2.304
+    },
+    {
+      "id": "year_1962",
+      "status": "generated",
+      "relativePath": "date/year/1962.mp3",
+      "text": "せんきゅうひゃくろくじゅうにねん",
+      "durationSeconds": 2.112
+    },
+    {
+      "id": "year_1963",
+      "status": "generated",
+      "relativePath": "date/year/1963.mp3",
+      "text": "せんきゅうひゃくろくじゅうさんねん",
+      "durationSeconds": 2.208
+    },
+    {
+      "id": "year_1964",
+      "status": "generated",
+      "relativePath": "date/year/1964.mp3",
+      "text": "せんきゅうひゃくろくじゅうよんねん",
+      "durationSeconds": 2.232
+    },
+    {
+      "id": "year_1965",
+      "status": "generated",
+      "relativePath": "date/year/1965.mp3",
+      "text": "せんきゅうひゃくろくじゅうごねん",
+      "durationSeconds": 2.016
+    },
+    {
+      "id": "year_1966",
+      "status": "generated",
+      "relativePath": "date/year/1966.mp3",
+      "text": "せんきゅうひゃくろくじゅうろくねん",
+      "durationSeconds": 2.208
+    },
+    {
+      "id": "year_1967",
+      "status": "generated",
+      "relativePath": "date/year/1967.mp3",
+      "text": "せんきゅうひゃくろくじゅうななねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1968",
+      "status": "generated",
+      "relativePath": "date/year/1968.mp3",
+      "text": "せんきゅうひゃくろくじゅうはちねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1969",
+      "status": "generated",
+      "relativePath": "date/year/1969.mp3",
+      "text": "せんきゅうひゃくろくじゅうきゅうねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1970",
+      "status": "generated",
+      "relativePath": "date/year/1970.mp3",
+      "text": "せんきゅうひゃくななじゅうねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_1971",
+      "status": "generated",
+      "relativePath": "date/year/1971.mp3",
+      "text": "せんきゅうひゃくななじゅういちねん",
+      "durationSeconds": 2.328
+    },
+    {
+      "id": "year_1972",
+      "status": "generated",
+      "relativePath": "date/year/1972.mp3",
+      "text": "せんきゅうひゃくななじゅうにねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1973",
+      "status": "generated",
+      "relativePath": "date/year/1973.mp3",
+      "text": "せんきゅうひゃくななじゅうさんねん",
+      "durationSeconds": 2.232
+    },
+    {
+      "id": "year_1974",
+      "status": "generated",
+      "relativePath": "date/year/1974.mp3",
+      "text": "せんきゅうひゃくななじゅうよんねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1975",
+      "status": "generated",
+      "relativePath": "date/year/1975.mp3",
+      "text": "せんきゅうひゃくななじゅうごねん",
+      "durationSeconds": 2.016
+    },
+    {
+      "id": "year_1976",
+      "status": "generated",
+      "relativePath": "date/year/1976.mp3",
+      "text": "せんきゅうひゃくななじゅうろくねん",
+      "durationSeconds": 2.232
+    },
+    {
+      "id": "year_1977",
+      "status": "generated",
+      "relativePath": "date/year/1977.mp3",
+      "text": "せんきゅうひゃくななじゅうななねん",
+      "durationSeconds": 2.304
+    },
+    {
+      "id": "year_1978",
+      "status": "generated",
+      "relativePath": "date/year/1978.mp3",
+      "text": "せんきゅうひゃくななじゅうはちねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1979",
+      "status": "generated",
+      "relativePath": "date/year/1979.mp3",
+      "text": "せんきゅうひゃくななじゅうきゅうねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1980",
+      "status": "generated",
+      "relativePath": "date/year/1980.mp3",
+      "text": "せんきゅうひゃくはちじゅうねん",
+      "durationSeconds": 1.944
+    },
+    {
+      "id": "year_1981",
+      "status": "generated",
+      "relativePath": "date/year/1981.mp3",
+      "text": "せんきゅうひゃくはちじゅういちねん",
+      "durationSeconds": 2.328
+    },
+    {
+      "id": "year_1982",
+      "status": "generated",
+      "relativePath": "date/year/1982.mp3",
+      "text": "せんきゅうひゃくはちじゅうにねん",
+      "durationSeconds": 2.136
+    },
+    {
+      "id": "year_1983",
+      "status": "generated",
+      "relativePath": "date/year/1983.mp3",
+      "text": "せんきゅうひゃくはちじゅうさんねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1984",
+      "status": "generated",
+      "relativePath": "date/year/1984.mp3",
+      "text": "せんきゅうひゃくはちじゅうよんねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1985",
+      "status": "generated",
+      "relativePath": "date/year/1985.mp3",
+      "text": "せんきゅうひゃくはちじゅうごねん",
+      "durationSeconds": 2.04
+    },
+    {
+      "id": "year_1986",
+      "status": "generated",
+      "relativePath": "date/year/1986.mp3",
+      "text": "せんきゅうひゃくはちじゅうろくねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1987",
+      "status": "generated",
+      "relativePath": "date/year/1987.mp3",
+      "text": "せんきゅうひゃくはちじゅうななねん",
+      "durationSeconds": 2.328
+    },
+    {
+      "id": "year_1988",
+      "status": "generated",
+      "relativePath": "date/year/1988.mp3",
+      "text": "せんきゅうひゃくはちじゅうはちねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1989",
+      "status": "generated",
+      "relativePath": "date/year/1989.mp3",
+      "text": "せんきゅうひゃくはちじゅうきゅうねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1990",
+      "status": "generated",
+      "relativePath": "date/year/1990.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_1991",
+      "status": "generated",
+      "relativePath": "date/year/1991.mp3",
+      "text": "せんきゅうひゃくきゅうじゅういちねん",
+      "durationSeconds": 2.376
+    },
+    {
+      "id": "year_1992",
+      "status": "generated",
+      "relativePath": "date/year/1992.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうにねん",
+      "durationSeconds": 2.184
+    },
+    {
+      "id": "year_1993",
+      "status": "generated",
+      "relativePath": "date/year/1993.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうさんねん",
+      "durationSeconds": 2.256
+    },
+    {
+      "id": "year_1994",
+      "status": "generated",
+      "relativePath": "date/year/1994.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうよんねん",
+      "durationSeconds": 2.304
+    },
+    {
+      "id": "year_1995",
+      "status": "generated",
+      "relativePath": "date/year/1995.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうごねん",
+      "durationSeconds": 2.088
+    },
+    {
+      "id": "year_1996",
+      "status": "generated",
+      "relativePath": "date/year/1996.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうろくねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1997",
+      "status": "generated",
+      "relativePath": "date/year/1997.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうななねん",
+      "durationSeconds": 2.328
+    },
+    {
+      "id": "year_1998",
+      "status": "generated",
+      "relativePath": "date/year/1998.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうはちねん",
+      "durationSeconds": 2.28
+    },
+    {
+      "id": "year_1999",
+      "status": "generated",
+      "relativePath": "date/year/1999.mp3",
+      "text": "せんきゅうひゃくきゅうじゅうきゅうねん",
+      "durationSeconds": 2.328
+    },
+    {
+      "id": "year_2000",
+      "status": "generated",
+      "relativePath": "date/year/2000.mp3",
+      "text": "にせんねん",
+      "durationSeconds": 0.96
+    },
+    {
+      "id": "year_2001",
+      "status": "generated",
+      "relativePath": "date/year/2001.mp3",
+      "text": "にせんいちねん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "year_2002",
+      "status": "generated",
+      "relativePath": "date/year/2002.mp3",
+      "text": "にせんにねん",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "year_2003",
+      "status": "generated",
+      "relativePath": "date/year/2003.mp3",
+      "text": "にせんさんねん",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "year_2004",
+      "status": "generated",
+      "relativePath": "date/year/2004.mp3",
+      "text": "にせんよんねん",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "year_2005",
+      "status": "generated",
+      "relativePath": "date/year/2005.mp3",
+      "text": "にせんごねん",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "year_2006",
+      "status": "generated",
+      "relativePath": "date/year/2006.mp3",
+      "text": "にせんろくねん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "year_2007",
+      "status": "generated",
+      "relativePath": "date/year/2007.mp3",
+      "text": "にせんななねん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "year_2008",
+      "status": "generated",
+      "relativePath": "date/year/2008.mp3",
+      "text": "にせんはちねん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "year_2009",
+      "status": "generated",
+      "relativePath": "date/year/2009.mp3",
+      "text": "にせんきゅうねん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "year_2010",
+      "status": "generated",
+      "relativePath": "date/year/2010.mp3",
+      "text": "にせんじゅうねん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "year_2011",
+      "status": "generated",
+      "relativePath": "date/year/2011.mp3",
+      "text": "にせんじゅういちねん",
+      "durationSeconds": 1.464
+    },
+    {
+      "id": "year_2012",
+      "status": "generated",
+      "relativePath": "date/year/2012.mp3",
+      "text": "にせんじゅうにねん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "year_2013",
+      "status": "generated",
+      "relativePath": "date/year/2013.mp3",
+      "text": "にせんじゅうさんねん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "year_2014",
+      "status": "generated",
+      "relativePath": "date/year/2014.mp3",
+      "text": "にせんじゅうよんねん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "year_2015",
+      "status": "generated",
+      "relativePath": "date/year/2015.mp3",
+      "text": "にせんじゅうごねん",
+      "durationSeconds": 1.344
+    },
+    {
+      "id": "year_2016",
+      "status": "generated",
+      "relativePath": "date/year/2016.mp3",
+      "text": "にせんじゅうろくねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2017",
+      "status": "generated",
+      "relativePath": "date/year/2017.mp3",
+      "text": "にせんじゅうななねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2018",
+      "status": "generated",
+      "relativePath": "date/year/2018.mp3",
+      "text": "にせんじゅうはちねん",
+      "durationSeconds": 1.608
+    },
+    {
+      "id": "year_2019",
+      "status": "generated",
+      "relativePath": "date/year/2019.mp3",
+      "text": "にせんじゅうきゅうねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2020",
+      "status": "generated",
+      "relativePath": "date/year/2020.mp3",
+      "text": "にせんにじゅうねん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "year_2021",
+      "status": "generated",
+      "relativePath": "date/year/2021.mp3",
+      "text": "にせんにじゅういちねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2022",
+      "status": "generated",
+      "relativePath": "date/year/2022.mp3",
+      "text": "にせんにじゅうにねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2023",
+      "status": "generated",
+      "relativePath": "date/year/2023.mp3",
+      "text": "にせんにじゅうさんねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_2024",
+      "status": "generated",
+      "relativePath": "date/year/2024.mp3",
+      "text": "にせんにじゅうよんねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2025",
+      "status": "generated",
+      "relativePath": "date/year/2025.mp3",
+      "text": "にせんにじゅうごねん",
+      "durationSeconds": 1.56
+    },
+    {
+      "id": "year_2026",
+      "status": "generated",
+      "relativePath": "date/year/2026.mp3",
+      "text": "にせんにじゅうろくねん",
+      "durationSeconds": 1.536
+    },
+    {
+      "id": "year_2027",
+      "status": "generated",
+      "relativePath": "date/year/2027.mp3",
+      "text": "にせんにじゅうななねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2028",
+      "status": "generated",
+      "relativePath": "date/year/2028.mp3",
+      "text": "にせんにじゅうはちねん",
+      "durationSeconds": 1.752
+    },
+    {
+      "id": "year_2029",
+      "status": "generated",
+      "relativePath": "date/year/2029.mp3",
+      "text": "にせんにじゅうきゅうねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2030",
+      "status": "generated",
+      "relativePath": "date/year/2030.mp3",
+      "text": "にせんさんじゅうねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2031",
+      "status": "generated",
+      "relativePath": "date/year/2031.mp3",
+      "text": "にせんさんじゅういちねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2032",
+      "status": "generated",
+      "relativePath": "date/year/2032.mp3",
+      "text": "にせんさんじゅうにねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2033",
+      "status": "generated",
+      "relativePath": "date/year/2033.mp3",
+      "text": "にせんさんじゅうさんねん",
+      "durationSeconds": 1.8
+    },
+    {
+      "id": "year_2034",
+      "status": "generated",
+      "relativePath": "date/year/2034.mp3",
+      "text": "にせんさんじゅうよんねん",
+      "durationSeconds": 1.944
+    },
+    {
+      "id": "year_2035",
+      "status": "generated",
+      "relativePath": "date/year/2035.mp3",
+      "text": "にせんさんじゅうごねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2036",
+      "status": "generated",
+      "relativePath": "date/year/2036.mp3",
+      "text": "にせんさんじゅうろくねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2037",
+      "status": "generated",
+      "relativePath": "date/year/2037.mp3",
+      "text": "にせんさんじゅうななねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_2038",
+      "status": "generated",
+      "relativePath": "date/year/2038.mp3",
+      "text": "にせんさんじゅうはちねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_2039",
+      "status": "generated",
+      "relativePath": "date/year/2039.mp3",
+      "text": "にせんさんじゅうきゅうねん",
+      "durationSeconds": 1.968
+    },
+    {
+      "id": "year_2040",
+      "status": "generated",
+      "relativePath": "date/year/2040.mp3",
+      "text": "にせんよんじゅうねん",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "year_2041",
+      "status": "generated",
+      "relativePath": "date/year/2041.mp3",
+      "text": "にせんよんじゅういちねん",
+      "durationSeconds": 1.8
+    },
+    {
+      "id": "year_2042",
+      "status": "generated",
+      "relativePath": "date/year/2042.mp3",
+      "text": "にせんよんじゅうにねん",
+      "durationSeconds": 1.56
+    },
+    {
+      "id": "year_2043",
+      "status": "generated",
+      "relativePath": "date/year/2043.mp3",
+      "text": "にせんよんじゅうさんねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2044",
+      "status": "generated",
+      "relativePath": "date/year/2044.mp3",
+      "text": "にせんよんじゅうよんねん",
+      "durationSeconds": 1.752
+    },
+    {
+      "id": "year_2045",
+      "status": "generated",
+      "relativePath": "date/year/2045.mp3",
+      "text": "にせんよんじゅうごねん",
+      "durationSeconds": 1.632
+    },
+    {
+      "id": "year_2046",
+      "status": "generated",
+      "relativePath": "date/year/2046.mp3",
+      "text": "にせんよんじゅうろくねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2047",
+      "status": "generated",
+      "relativePath": "date/year/2047.mp3",
+      "text": "にせんよんじゅうななねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2048",
+      "status": "generated",
+      "relativePath": "date/year/2048.mp3",
+      "text": "にせんよんじゅうはちねん",
+      "durationSeconds": 1.848
+    },
+    {
+      "id": "year_2049",
+      "status": "generated",
+      "relativePath": "date/year/2049.mp3",
+      "text": "にせんよんじゅうきゅうねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2050",
+      "status": "generated",
+      "relativePath": "date/year/2050.mp3",
+      "text": "にせんごじゅうねん",
+      "durationSeconds": 1.32
+    },
+    {
+      "id": "year_2051",
+      "status": "generated",
+      "relativePath": "date/year/2051.mp3",
+      "text": "にせんごじゅういちねん",
+      "durationSeconds": 1.608
+    },
+    {
+      "id": "year_2052",
+      "status": "generated",
+      "relativePath": "date/year/2052.mp3",
+      "text": "にせんごじゅうにねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2053",
+      "status": "generated",
+      "relativePath": "date/year/2053.mp3",
+      "text": "にせんごじゅうさんねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2054",
+      "status": "generated",
+      "relativePath": "date/year/2054.mp3",
+      "text": "にせんごじゅうよんねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2055",
+      "status": "generated",
+      "relativePath": "date/year/2055.mp3",
+      "text": "にせんごじゅうごねん",
+      "durationSeconds": 1.512
+    },
+    {
+      "id": "year_2056",
+      "status": "generated",
+      "relativePath": "date/year/2056.mp3",
+      "text": "にせんごじゅうろくねん",
+      "durationSeconds": 1.752
+    },
+    {
+      "id": "year_2057",
+      "status": "generated",
+      "relativePath": "date/year/2057.mp3",
+      "text": "にせんごじゅうななねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2058",
+      "status": "generated",
+      "relativePath": "date/year/2058.mp3",
+      "text": "にせんごじゅうはちねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2059",
+      "status": "generated",
+      "relativePath": "date/year/2059.mp3",
+      "text": "にせんごじゅうきゅうねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2060",
+      "status": "generated",
+      "relativePath": "date/year/2060.mp3",
+      "text": "にせんろくじゅうねん",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "year_2061",
+      "status": "generated",
+      "relativePath": "date/year/2061.mp3",
+      "text": "にせんろくじゅういちねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2062",
+      "status": "generated",
+      "relativePath": "date/year/2062.mp3",
+      "text": "にせんろくじゅうにねん",
+      "durationSeconds": 1.512
+    },
+    {
+      "id": "year_2063",
+      "status": "generated",
+      "relativePath": "date/year/2063.mp3",
+      "text": "にせんろくじゅうさんねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_2064",
+      "status": "generated",
+      "relativePath": "date/year/2064.mp3",
+      "text": "にせんろくじゅうよんねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2065",
+      "status": "generated",
+      "relativePath": "date/year/2065.mp3",
+      "text": "にせんろくじゅうごねん",
+      "durationSeconds": 1.632
+    },
+    {
+      "id": "year_2066",
+      "status": "generated",
+      "relativePath": "date/year/2066.mp3",
+      "text": "にせんろくじゅうろくねん",
+      "durationSeconds": 1.608
+    },
+    {
+      "id": "year_2067",
+      "status": "generated",
+      "relativePath": "date/year/2067.mp3",
+      "text": "にせんろくじゅうななねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2068",
+      "status": "generated",
+      "relativePath": "date/year/2068.mp3",
+      "text": "にせんろくじゅうはちねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2069",
+      "status": "generated",
+      "relativePath": "date/year/2069.mp3",
+      "text": "にせんろくじゅうきゅうねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2070",
+      "status": "generated",
+      "relativePath": "date/year/2070.mp3",
+      "text": "にせんななじゅうねん",
+      "durationSeconds": 1.464
+    },
+    {
+      "id": "year_2071",
+      "status": "generated",
+      "relativePath": "date/year/2071.mp3",
+      "text": "にせんななじゅういちねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2072",
+      "status": "generated",
+      "relativePath": "date/year/2072.mp3",
+      "text": "にせんななじゅうにねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_2073",
+      "status": "generated",
+      "relativePath": "date/year/2073.mp3",
+      "text": "にせんななじゅうさんねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2074",
+      "status": "generated",
+      "relativePath": "date/year/2074.mp3",
+      "text": "にせんななじゅうよんねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2075",
+      "status": "generated",
+      "relativePath": "date/year/2075.mp3",
+      "text": "にせんななじゅうごねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2076",
+      "status": "generated",
+      "relativePath": "date/year/2076.mp3",
+      "text": "にせんななじゅうろくねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2077",
+      "status": "generated",
+      "relativePath": "date/year/2077.mp3",
+      "text": "にせんななじゅうななねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2078",
+      "status": "generated",
+      "relativePath": "date/year/2078.mp3",
+      "text": "にせんななじゅうはちねん",
+      "durationSeconds": 1.896
+    },
+    {
+      "id": "year_2079",
+      "status": "generated",
+      "relativePath": "date/year/2079.mp3",
+      "text": "にせんななじゅうきゅうねん",
+      "durationSeconds": 1.8
+    },
+    {
+      "id": "year_2080",
+      "status": "generated",
+      "relativePath": "date/year/2080.mp3",
+      "text": "にせんはちじゅうねん",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "year_2081",
+      "status": "generated",
+      "relativePath": "date/year/2081.mp3",
+      "text": "にせんはちじゅういちねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2082",
+      "status": "generated",
+      "relativePath": "date/year/2082.mp3",
+      "text": "にせんはちじゅうにねん",
+      "durationSeconds": 1.56
+    },
+    {
+      "id": "year_2083",
+      "status": "generated",
+      "relativePath": "date/year/2083.mp3",
+      "text": "にせんはちじゅうさんねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2084",
+      "status": "generated",
+      "relativePath": "date/year/2084.mp3",
+      "text": "にせんはちじゅうよんねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2085",
+      "status": "generated",
+      "relativePath": "date/year/2085.mp3",
+      "text": "にせんはちじゅうごねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2086",
+      "status": "generated",
+      "relativePath": "date/year/2086.mp3",
+      "text": "にせんはちじゅうろくねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2087",
+      "status": "generated",
+      "relativePath": "date/year/2087.mp3",
+      "text": "にせんはちじゅうななねん",
+      "durationSeconds": 1.8
+    },
+    {
+      "id": "year_2088",
+      "status": "generated",
+      "relativePath": "date/year/2088.mp3",
+      "text": "にせんはちじゅうはちねん",
+      "durationSeconds": 1.848
+    },
+    {
+      "id": "year_2089",
+      "status": "generated",
+      "relativePath": "date/year/2089.mp3",
+      "text": "にせんはちじゅうきゅうねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2090",
+      "status": "generated",
+      "relativePath": "date/year/2090.mp3",
+      "text": "にせんきゅうじゅうねん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "year_2091",
+      "status": "generated",
+      "relativePath": "date/year/2091.mp3",
+      "text": "にせんきゅうじゅういちねん",
+      "durationSeconds": 1.8
+    },
+    {
+      "id": "year_2092",
+      "status": "generated",
+      "relativePath": "date/year/2092.mp3",
+      "text": "にせんきゅうじゅうにねん",
+      "durationSeconds": 1.584
+    },
+    {
+      "id": "year_2093",
+      "status": "generated",
+      "relativePath": "date/year/2093.mp3",
+      "text": "にせんきゅうじゅうさんねん",
+      "durationSeconds": 1.656
+    },
+    {
+      "id": "year_2094",
+      "status": "generated",
+      "relativePath": "date/year/2094.mp3",
+      "text": "にせんきゅうじゅうよんねん",
+      "durationSeconds": 1.776
+    },
+    {
+      "id": "year_2095",
+      "status": "generated",
+      "relativePath": "date/year/2095.mp3",
+      "text": "にせんきゅうじゅうごねん",
+      "durationSeconds": 1.68
+    },
+    {
+      "id": "year_2096",
+      "status": "generated",
+      "relativePath": "date/year/2096.mp3",
+      "text": "にせんきゅうじゅうろくねん",
+      "durationSeconds": 1.704
+    },
+    {
+      "id": "year_2097",
+      "status": "generated",
+      "relativePath": "date/year/2097.mp3",
+      "text": "にせんきゅうじゅうななねん",
+      "durationSeconds": 1.728
+    },
+    {
+      "id": "year_2098",
+      "status": "generated",
+      "relativePath": "date/year/2098.mp3",
+      "text": "にせんきゅうじゅうはちねん",
+      "durationSeconds": 1.848
+    },
+    {
+      "id": "year_2099",
+      "status": "generated",
+      "relativePath": "date/year/2099.mp3",
+      "text": "にせんきゅうじゅうきゅうねん",
+      "durationSeconds": 1.824
+    },
+    {
+      "id": "year_2100",
+      "status": "generated",
+      "relativePath": "date/year/2100.mp3",
+      "text": "にせんひゃくねん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "month_1",
+      "status": "generated",
+      "relativePath": "date/month/01.mp3",
+      "text": "いちがつ",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "month_2",
+      "status": "generated",
+      "relativePath": "date/month/02.mp3",
+      "text": "にがつ",
+      "durationSeconds": 0.816
+    },
+    {
+      "id": "month_3",
+      "status": "generated",
+      "relativePath": "date/month/03.mp3",
+      "text": "さんがつ",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "month_4",
+      "status": "generated",
+      "relativePath": "date/month/04.mp3",
+      "text": "しがつ",
+      "durationSeconds": 0.864
+    },
+    {
+      "id": "month_5",
+      "status": "generated",
+      "relativePath": "date/month/05.mp3",
+      "text": "ごがつ",
+      "durationSeconds": 0.84
+    },
+    {
+      "id": "month_6",
+      "status": "generated",
+      "relativePath": "date/month/06.mp3",
+      "text": "ろくがつ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "month_7",
+      "status": "generated",
+      "relativePath": "date/month/07.mp3",
+      "text": "しちがつ",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "month_8",
+      "status": "generated",
+      "relativePath": "date/month/08.mp3",
+      "text": "はちがつ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "month_9",
+      "status": "generated",
+      "relativePath": "date/month/09.mp3",
+      "text": "くがつ",
+      "durationSeconds": 0.816
+    },
+    {
+      "id": "month_10",
+      "status": "generated",
+      "relativePath": "date/month/10.mp3",
+      "text": "じゅうがつ",
+      "durationSeconds": 0.96
+    },
+    {
+      "id": "month_11",
+      "status": "generated",
+      "relativePath": "date/month/11.mp3",
+      "text": "じゅういちがつ",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "month_12",
+      "status": "generated",
+      "relativePath": "date/month/12.mp3",
+      "text": "じゅうにがつ",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "day_1",
+      "status": "generated",
+      "relativePath": "date/day/01.mp3",
+      "text": "ついたち",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "day_2",
+      "status": "generated",
+      "relativePath": "date/day/02.mp3",
+      "text": "ふつか",
+      "durationSeconds": 0.744
+    },
+    {
+      "id": "day_3",
+      "status": "generated",
+      "relativePath": "date/day/03.mp3",
+      "text": "みっか",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "day_4",
+      "status": "generated",
+      "relativePath": "date/day/04.mp3",
+      "text": "よっか",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "day_5",
+      "status": "generated",
+      "relativePath": "date/day/05.mp3",
+      "text": "いつか",
+      "durationSeconds": 0.744
+    },
+    {
+      "id": "day_6",
+      "status": "generated",
+      "relativePath": "date/day/06.mp3",
+      "text": "むいか",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "day_7",
+      "status": "generated",
+      "relativePath": "date/day/07.mp3",
+      "text": "なのか",
+      "durationSeconds": 0.84
+    },
+    {
+      "id": "day_8",
+      "status": "generated",
+      "relativePath": "date/day/08.mp3",
+      "text": "ようか",
+      "durationSeconds": 0.84
+    },
+    {
+      "id": "day_9",
+      "status": "generated",
+      "relativePath": "date/day/09.mp3",
+      "text": "ここのか",
+      "durationSeconds": 0.912
+    },
+    {
+      "id": "day_10",
+      "status": "generated",
+      "relativePath": "date/day/10.mp3",
+      "text": "とおか",
+      "durationSeconds": 0.744
+    },
+    {
+      "id": "day_11",
+      "status": "generated",
+      "relativePath": "date/day/11.mp3",
+      "text": "じゅういちにち",
+      "durationSeconds": 1.248
+    },
+    {
+      "id": "day_12",
+      "status": "generated",
+      "relativePath": "date/day/12.mp3",
+      "text": "じゅうににち",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "day_13",
+      "status": "generated",
+      "relativePath": "date/day/13.mp3",
+      "text": "じゅうさんにち",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "day_14",
+      "status": "generated",
+      "relativePath": "date/day/14.mp3",
+      "text": "じゅうよっか",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "day_15",
+      "status": "generated",
+      "relativePath": "date/day/15.mp3",
+      "text": "じゅうごにち",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "day_16",
+      "status": "generated",
+      "relativePath": "date/day/16.mp3",
+      "text": "じゅうろくにち",
+      "durationSeconds": 1.248
+    },
+    {
+      "id": "day_17",
+      "status": "generated",
+      "relativePath": "date/day/17.mp3",
+      "text": "じゅうしちにち",
+      "durationSeconds": 1.248
+    },
+    {
+      "id": "day_18",
+      "status": "generated",
+      "relativePath": "date/day/18.mp3",
+      "text": "じゅうはちにち",
+      "durationSeconds": 1.248
+    },
+    {
+      "id": "day_19",
+      "status": "generated",
+      "relativePath": "date/day/19.mp3",
+      "text": "じゅうくにち",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "day_20",
+      "status": "generated",
+      "relativePath": "date/day/20.mp3",
+      "text": "はつか",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "day_21",
+      "status": "generated",
+      "relativePath": "date/day/21.mp3",
+      "text": "にじゅういちにち",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "day_22",
+      "status": "generated",
+      "relativePath": "date/day/22.mp3",
+      "text": "にじゅうににち",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "day_23",
+      "status": "generated",
+      "relativePath": "date/day/23.mp3",
+      "text": "にじゅうさんにち",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "day_24",
+      "status": "generated",
+      "relativePath": "date/day/24.mp3",
+      "text": "にじゅうよっか",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "day_25",
+      "status": "generated",
+      "relativePath": "date/day/25.mp3",
+      "text": "にじゅうごにち",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "day_26",
+      "status": "generated",
+      "relativePath": "date/day/26.mp3",
+      "text": "にじゅうろくにち",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "day_27",
+      "status": "generated",
+      "relativePath": "date/day/27.mp3",
+      "text": "にじゅうしちにち",
+      "durationSeconds": 1.344
+    },
+    {
+      "id": "day_28",
+      "status": "generated",
+      "relativePath": "date/day/28.mp3",
+      "text": "にじゅうはちにち",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "day_29",
+      "status": "generated",
+      "relativePath": "date/day/29.mp3",
+      "text": "ついたち",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "day_30",
+      "status": "generated",
+      "relativePath": "date/day/30.mp3",
+      "text": "ふつか",
+      "durationSeconds": 0.744
+    },
+    {
+      "id": "day_31",
+      "status": "generated",
+      "relativePath": "date/day/31.mp3",
+      "text": "みっか",
+      "durationSeconds": 0.792
+    }
+  ]
+}

@@ -52,7 +52,7 @@ const ClaimInvitePage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+    <div className="min-h-screen bg-cream flex items-start sm:items-center justify-center px-4 py-8">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">

@@ -26,6 +26,12 @@
     "backfill:furigana": "tsx scripts/backfill-sentence-furigana.ts",
     "check:metadata": "tsx scripts/check-metadata-status.ts",
     "check:prod": "tsx scripts/quick-check-prod.ts",
+    "smoke:fish-audio": "tsx src/scripts/fish-audio-sample-smoke.ts",
+    "smoke:fish-date-components": "tsx src/scripts/fish-audio-date-components-smoke.ts",
+    "smoke:jp-date-components-qc": "tsx src/scripts/japanese-date-components-qc.ts",
+    "smoke:jp-time-voices": "tsx src/scripts/japanese-time-56min-voice-sweep.ts",
+    "smoke:jp-time-favorites-ab": "tsx src/scripts/japanese-time-favorites-ab.ts",
+    "smoke:jp-time-components-qc": "tsx src/scripts/japanese-time-components-qc.ts",
     "prepare": "husky"
   },
   "dependencies": {

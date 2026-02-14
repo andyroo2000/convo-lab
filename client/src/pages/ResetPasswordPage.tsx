@@ -6,6 +6,22 @@ import Logo from '../components/common/Logo';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const parseApiErrorMessage = (data: unknown, fallback: string): string => {
+  if (!data || typeof data !== 'object') return fallback;
+
+  const response = data as {
+    error?: string | { message?: string };
+    message?: string;
+  };
+
+  if (typeof response.error === 'string' && response.error.trim()) return response.error;
+  if (response.error && typeof response.error === 'object' && response.error.message) {
+    return response.error.message;
+  }
+  if (typeof response.message === 'string' && response.message.trim()) return response.message;
+  return fallback;
+};
+
 const ResetPasswordPage = () => {
   const { t } = useTranslation(['auth', 'common']);
   const { token } = useParams<{ token: string }>();
@@ -36,7 +52,7 @@ const ResetPasswordPage = () => {
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || 'Invalid or expired token');
+          throw new Error(parseApiErrorMessage(data, 'Invalid or expired token'));
         }
 
         const data = await response.json();
@@ -84,7 +100,7 @@ const ResetPasswordPage = () => {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to reset password');
+        throw new Error(parseApiErrorMessage(data, 'Failed to reset password'));
       }
 
       setSuccess(true);
@@ -101,7 +117,7 @@ const ResetPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex items-center justify-center px-4">
+    <div className="min-h-screen bg-cream flex items-start sm:items-center justify-center px-4 py-8">
       <div className="max-w-md w-full">
         <div className="mb-6">
           <Link

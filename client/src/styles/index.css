@@ -3254,6 +3254,17 @@
   transform-origin: center;
 }
 
+.japanese-text.retro-date-tool-reading {
+  font-size: clamp(2.15rem, 1.35rem + 2.4vw, 3.6rem);
+  line-height: 1.25;
+}
+
+@media (max-width: 640px) {
+  .japanese-text.retro-date-tool-reading {
+    font-size: clamp(1.9rem, 8.6vw, 2.45rem);
+  }
+}
+
 /* Tighter furigana in dialogue rows */
 .playback-dialog-japanese rt {
   font-size: 0.42em;

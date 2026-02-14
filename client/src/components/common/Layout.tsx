@@ -7,6 +7,7 @@ import useEffectiveUser from '../../hooks/useEffectiveUser';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
+import { SHOW_ONBOARDING_WELCOME } from '../../config';
 
 const Layout = () => {
   const { user, loading, logout } = useAuth();
@@ -43,7 +44,7 @@ const Layout = () => {
   }
 
   // Show onboarding modal if user hasn't completed it
-  if (user.onboardingCompleted === false) {
+  if (SHOW_ONBOARDING_WELCOME && user.onboardingCompleted === false) {
     return <OnboardingModal />;
   }
 

@@ -11,12 +11,21 @@ const ToolsPublicLayout = () => (
             to="/tools"
             className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md"
           >
+            <div className="sm:hidden flex flex-col leading-none">
+              <span className="retro-logo-wordmark text-[1.45rem] text-[#f4f3df]">
+                CONVOLAB TOOLS
+              </span>
+              <span className="retro-logo-kana mt-0.5 text-[0.72rem] text-[#f4f3df]">
+                コンボラボ・ツールズ
+              </span>
+            </div>
             <Logo
               size="small"
               showKana
               showIcons={false}
               wordmarkText="CONVOLAB TOOLS"
               kanaText="コンボラボ・ツールズ"
+              className="hidden sm:flex"
             />
           </Link>
         </div>

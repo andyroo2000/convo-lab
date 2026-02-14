@@ -184,13 +184,9 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 retro-admin-v3-module">
       {/* Error Message */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
+      {error && <div className="retro-admin-v3-alert is-error">{error}</div>}
 
       {/* Japanese Text Input */}
       <div>
@@ -206,7 +202,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           ref={textAreaRef}
           value={text}
           onChange={(e) => setText(e.target.value)}
-          className="w-full border border-gray-200 rounded-md px-3 py-2"
+          className="retro-admin-v3-input w-full px-3 py-2"
           rows={3}
           placeholder="北海道に行きました。"
         />
@@ -216,7 +212,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
       </div>
 
       {/* Speech Control Tags */}
-      <div className="border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-3">
+      <div className="retro-admin-v3-subpanel border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-3">
         <div>
           <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Emotions</div>
           <div className="flex flex-wrap gap-2">
@@ -225,7 +221,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
                 key={item.tag}
                 type="button"
                 onClick={() => insertTagAtCursor(item.tag)}
-                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                className="retro-admin-v3-pill px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
                 title={item.tag}
               >
                 {item.label}
@@ -242,7 +238,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
                 key={item.tag}
                 type="button"
                 onClick={() => insertTagAtCursor(item.tag)}
-                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                className="retro-admin-v3-pill px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
                 title={item.tag}
               >
                 {item.label}
@@ -259,7 +255,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
                 key={item.tag}
                 type="button"
                 onClick={() => insertTagAtCursor(item.tag)}
-                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                className="retro-admin-v3-pill px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
                 title={item.tag}
               >
                 {item.label}
@@ -278,7 +274,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
                 key={item.tag}
                 type="button"
                 onClick={() => insertTagAtCursor(item.tag)}
-                className="px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
+                className="retro-admin-v3-pill px-2.5 py-1 text-xs font-medium rounded-full bg-white border border-gray-200 text-gray-700 hover:border-indigo hover:text-indigo transition-colors"
                 title={item.tag}
               >
                 {item.label}
@@ -300,10 +296,8 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           <button
             type="button"
             onClick={() => setFormat('kanji')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              format === 'kanji'
-                ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`retro-admin-v3-format-btn px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              format === 'kanji' ? 'is-active' : ''
             }`}
           >
             Kanji (as-is)
@@ -311,10 +305,8 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           <button
             type="button"
             onClick={() => setFormat('kana')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              format === 'kana'
-                ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`retro-admin-v3-format-btn px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              format === 'kana' ? 'is-active' : ''
             }`}
           >
             Kana (strip kanji)
@@ -322,10 +314,8 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           <button
             type="button"
             onClick={() => setFormat('mixed')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              format === 'mixed'
-                ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`retro-admin-v3-format-btn px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              format === 'mixed' ? 'is-active' : ''
             }`}
           >
             Mixed (no preprocessing)
@@ -333,10 +323,8 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           <button
             type="button"
             onClick={() => setFormat('furigana_brackets')}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              format === 'furigana_brackets'
-                ? 'bg-indigo text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            className={`retro-admin-v3-format-btn px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              format === 'furigana_brackets' ? 'is-active' : ''
             }`}
           >
             Furigana Brackets
@@ -354,7 +342,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
           id="voice-selector"
           value={voiceId}
           onChange={(e) => setVoiceId(e.target.value)}
-          className="w-full border border-gray-200 rounded-md px-3 py-2"
+          className="retro-admin-v3-input w-full px-3 py-2"
         >
           {japaneseVoiceOptions.map((voice) => (
             <option key={voice.id} value={voice.id}>
@@ -391,7 +379,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
         <button
           type="button"
           onClick={handleGenerateAudio}
-          className="btn-primary flex items-center gap-2"
+          className="retro-admin-v3-btn-primary flex items-center gap-2"
           disabled={isGenerating}
         >
           <Play className="w-4 h-4" />
@@ -401,7 +389,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
         <button
           type="button"
           onClick={handleGenerateAll}
-          className="btn-secondary flex items-center gap-2"
+          className="retro-admin-v3-btn-secondary flex items-center gap-2"
           disabled={isGenerating}
         >
           {isGenerating ? 'Generating All...' : 'Generate All 4 Formats'}

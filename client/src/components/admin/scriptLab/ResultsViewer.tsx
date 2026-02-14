@@ -31,11 +31,14 @@ const ResultsViewer = ({ results }: ResultsViewerProps) => {
   // Handle multiple formats view
   if (results.allFormats) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 retro-admin-v3-module">
         <h3 className="text-lg font-semibold text-navy">All Formats Comparison</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {results.allFormats.map((result, index) => (
-            <div key={`format-${result.format || index}`} className="border border-gray-200 rounded-lg p-4">
+            <div
+              key={`format-${result.format || index}`}
+              className="retro-admin-v3-subpanel border border-gray-200 rounded-lg p-4"
+            >
               <h4 className="font-semibold text-navy mb-2 capitalize">
                 {result.format.replace('_', ' ')}
               </h4>
@@ -57,7 +60,7 @@ const ResultsViewer = ({ results }: ResultsViewerProps) => {
                     <a
                       href={result.audioUrl}
                       download={`test-${result.format}.mp3`}
-                      className="btn-secondary flex items-center gap-2 justify-center text-sm"
+                      className="retro-admin-v3-btn-secondary flex items-center gap-2 justify-center text-sm"
                     >
                       <Download className="w-4 h-4" />
                       Download
@@ -74,18 +77,21 @@ const ResultsViewer = ({ results }: ResultsViewerProps) => {
 
   // Handle single format view
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 retro-admin-v3-module">
       {/* Audio Player */}
       {results.audioUrl && (
         <div>
-          <label htmlFor="audio-player" className="block text-sm font-medium text-gray-700 mb-2">Audio</label>
+          {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+          <label htmlFor="audio-player" className="block text-sm font-medium text-gray-700 mb-2">
+            Audio
+          </label>
           <audio id="audio-player" controls className="w-full mb-2" src={results.audioUrl}>
             Your browser does not support the audio element.
           </audio>
           <a
             href={results.audioUrl}
             download={`test-${results.format}.mp3`}
-            className="btn-secondary flex items-center gap-2 w-fit"
+            className="retro-admin-v3-btn-secondary flex items-center gap-2 w-fit"
           >
             <Download className="w-4 h-4" />
             Download Audio
@@ -111,7 +117,7 @@ const ResultsViewer = ({ results }: ResultsViewerProps) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <div className="block text-sm font-medium text-gray-700 mb-1">Original Text</div>
-          <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+          <div className="retro-admin-v3-subpanel bg-gray-50 border border-gray-200 rounded-md p-3">
             <p className="text-sm font-mono">{results.originalText || 'N/A'}</p>
           </div>
         </div>
@@ -119,7 +125,7 @@ const ResultsViewer = ({ results }: ResultsViewerProps) => {
           <div className="block text-sm font-medium text-gray-700 mb-1">
             Preprocessed Text (sent to TTS)
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
+          <div className="retro-admin-v3-subpanel bg-blue-50 border border-blue-200 rounded-md p-3">
             <p className="text-sm font-mono">{results.preprocessedText || 'N/A'}</p>
           </div>
         </div>

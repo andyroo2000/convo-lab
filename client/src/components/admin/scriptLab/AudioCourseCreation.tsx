@@ -327,12 +327,8 @@ const AudioCourseCreation = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
+    <div className="space-y-6 retro-admin-v3-module">
+      {error && <div className="retro-admin-v3-alert is-error">{error}</div>}
 
       <div>
         {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
@@ -343,7 +339,7 @@ const AudioCourseCreation = () => {
           id="sentence-input"
           value={sentence}
           onChange={(e) => setSentence(e.target.value)}
-          className="w-full border border-gray-200 rounded-md px-3 py-2"
+          className="retro-admin-v3-input w-full px-3 py-2"
           rows={3}
           placeholder="Hokkaido ni ikitai desu."
         />
@@ -359,7 +355,7 @@ const AudioCourseCreation = () => {
             id="l1-voice-input"
             value={l1VoiceId}
             onChange={(e) => setL1VoiceId(e.target.value)}
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm"
+            className="retro-admin-v3-input w-full px-3 py-2 text-sm"
           >
             {narratorVoiceOptions.map((voice) => (
               <option key={voice.id} value={voice.id}>
@@ -379,7 +375,7 @@ const AudioCourseCreation = () => {
             id="l2-voice-input"
             value={l2VoiceId}
             onChange={(e) => setL2VoiceId(e.target.value)}
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm"
+            className="retro-admin-v3-input w-full px-3 py-2 text-sm"
           >
             {japaneseVoiceOptions.map((voice) => (
               <option key={voice.id} value={voice.id}>
@@ -405,7 +401,7 @@ const AudioCourseCreation = () => {
             <button
               type="button"
               onClick={handleSavePrompt}
-              className="text-xs text-indigo hover:text-indigo/80 font-medium"
+              className="text-xs retro-admin-v3-link font-medium"
               disabled={!promptOverride.trim()}
             >
               Save as Base
@@ -413,7 +409,7 @@ const AudioCourseCreation = () => {
             <button
               type="button"
               onClick={handleResetPrompt}
-              className="text-xs text-gray-500 hover:text-indigo flex items-center gap-1"
+              className="text-xs text-gray-500 hover:text-indigo flex items-center gap-1 retro-admin-v3-link"
             >
               <RotateCcw className="w-3 h-3" />
               Reset to Default
@@ -430,7 +426,7 @@ const AudioCourseCreation = () => {
             promptRef.current.style.height = 'auto';
             promptRef.current.style.height = `${promptRef.current.scrollHeight}px`;
           }}
-          className="w-full border border-gray-200 rounded-md px-3 py-2 font-mono text-xs"
+          className="retro-admin-v3-input w-full px-3 py-2 font-mono text-xs"
           rows={6}
         />
         <p className="text-xs text-gray-500 mt-2">
@@ -443,7 +439,7 @@ const AudioCourseCreation = () => {
         <button
           type="button"
           onClick={handleGenerate}
-          className="btn-primary"
+          className="retro-admin-v3-btn-primary"
           disabled={isGenerating}
         >
           {isGenerating ? 'Generating...' : 'Generate Script'}
@@ -466,7 +462,7 @@ const AudioCourseCreation = () => {
               </button>
             )}
           </div>
-          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+          <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100 retro-admin-v3-subpanel">
             {pastTests.map((test) => {
               const isActive = activeTestId === test.id;
               const isLoading = loadingTestId === test.id;
@@ -526,7 +522,7 @@ const AudioCourseCreation = () => {
 
       {response && (
         <div className="space-y-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700">
+          <div className="retro-admin-v3-subpanel bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-700">
             <div className="flex flex-wrap gap-4">
               <div>
                 <span className="font-semibold">Translation:</span> {response.translation || 'Auto'}
@@ -540,7 +536,7 @@ const AudioCourseCreation = () => {
           </div>
 
           {response.parseError && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-lg text-sm">
+            <div className="retro-admin-v3-alert bg-amber-50 border border-amber-200 text-amber-700 text-sm">
               Failed to parse script JSON: {response.parseError}
             </div>
           )}
@@ -556,7 +552,7 @@ const AudioCourseCreation = () => {
                   <div
                     // eslint-disable-next-line react/no-array-index-key
                     key={`unit-${unit.type}-${index}`}
-                    className="flex items-start gap-3 text-sm bg-white border border-gray-200 rounded-lg p-3"
+                    className="flex items-start gap-3 text-sm bg-white border border-gray-200 rounded-lg p-3 retro-admin-v3-subpanel"
                   >
                     <div className="text-xs text-gray-400 font-mono w-8 text-right">
                       {index + 1}
@@ -592,7 +588,7 @@ const AudioCourseCreation = () => {
                       <button
                         type="button"
                         onClick={() => handlePlay(unit, index)}
-                        className="px-3 py-2 bg-indigo text-white rounded-md text-xs font-semibold flex items-center gap-2 disabled:opacity-60"
+                        className="retro-admin-v3-btn-primary px-3 py-2 text-xs font-semibold flex items-center gap-2 disabled:opacity-60"
                         disabled={isLoading}
                       >
                         {/* eslint-disable-next-line no-nested-ternary */}

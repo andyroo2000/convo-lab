@@ -20,6 +20,7 @@ const ClaimInvitePage = lazy(() => import('./pages/ClaimInvitePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const JapaneseDateToolPage = lazy(() => import('./pages/JapaneseDateToolPage'));
+const JapaneseTimeToolPage = lazy(() => import('./pages/JapaneseTimeToolPage'));
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
@@ -58,6 +59,7 @@ const App = () => (
                   <Route path="/tools" element={<ToolsPublicLayout />}>
                     <Route index element={<ToolsPage />} />
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
+                    <Route path="japanese-time" element={<JapaneseTimeToolPage />} />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -91,6 +93,7 @@ const App = () => (
                     {/* Tools */}
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
+                    <Route path="tools/japanese-time" element={<JapaneseTimeToolPage />} />
                   </Route>
 
                   {/* 404 Catch-all Route */}

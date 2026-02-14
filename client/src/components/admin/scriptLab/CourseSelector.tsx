@@ -111,25 +111,17 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
   }, []);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 retro-admin-v3-module">
       {/* Error/Success Messages */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-          {success}
-        </div>
-      )}
+      {error && <div className="retro-admin-v3-alert is-error">{error}</div>}
+      {success && <div className="retro-admin-v3-alert is-success">{success}</div>}
 
       {/* Course Selector Dropdown + Actions */}
       <div className="flex items-center gap-3">
         <select
           value={selectedCourseId || ''}
           onChange={(e) => onSelectCourse(e.target.value || null)}
-          className="flex-1 border border-gray-200 rounded-md px-3 py-2 text-sm"
+          className="retro-admin-v3-input flex-1 px-3 py-2 text-sm"
           disabled={isLoading}
         >
           <option value="">Select a test course...</option>
@@ -146,7 +138,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
         <button
           type="button"
           onClick={fetchCourses}
-          className="btn-secondary flex items-center gap-2"
+          className="retro-admin-v3-btn-secondary flex items-center gap-2"
           disabled={isLoading}
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
@@ -156,7 +148,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
         <button
           type="button"
           onClick={() => setShowCreateForm(!showCreateForm)}
-          className="btn-primary flex items-center gap-2"
+          className="retro-admin-v3-btn-primary flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
           New Test Course
@@ -166,7 +158,7 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
           <button
             type="button"
             onClick={handleDeleteSelected}
-            className="btn-secondary text-red-600 hover:bg-red-50"
+            className="retro-admin-v3-btn-danger"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -175,10 +167,14 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
 
       {/* Create Form */}
       {showCreateForm && (
-        <form onSubmit={handleCreateCourse} className="border border-gray-200 rounded-lg p-4 space-y-4">
+        <form
+          onSubmit={handleCreateCourse}
+          className="retro-admin-v3-subpanel border border-gray-200 rounded-lg p-4 space-y-4"
+        >
           <h3 className="text-lg font-semibold text-navy">Create New Test Course</h3>
 
           <div>
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
             <label htmlFor="course-title" className="block text-sm font-medium text-gray-700 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
@@ -187,21 +183,25 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border border-gray-200 rounded-md px-3 py-2"
+              className="retro-admin-v3-input w-full px-3 py-2"
               placeholder="e.g., Hokkaido Cycling Test"
               required
             />
           </div>
 
           <div>
-            <label htmlFor="course-source-text" className="block text-sm font-medium text-gray-700 mb-1">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+            <label
+              htmlFor="course-source-text"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Source Text <span className="text-red-500">*</span>
             </label>
             <textarea
               id="course-source-text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
-              className="w-full border border-gray-200 rounded-md px-3 py-2"
+              className="retro-admin-v3-input w-full px-3 py-2"
               rows={5}
               placeholder="Enter the episode source text (Japanese scenario)"
               required
@@ -209,14 +209,18 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
           </div>
 
           <div>
-            <label htmlFor="course-jlpt-level" className="block text-sm font-medium text-gray-700 mb-1">
+            {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+            <label
+              htmlFor="course-jlpt-level"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               JLPT Level (Optional)
             </label>
             <select
               id="course-jlpt-level"
               value={jlptLevel}
               onChange={(e) => setJlptLevel(e.target.value)}
-              className="w-full border border-gray-200 rounded-md px-3 py-2"
+              className="retro-admin-v3-input w-full px-3 py-2"
             >
               <option value="">No specific level</option>
               <option value="N5">N5 (Beginner)</option>
@@ -228,13 +232,13 @@ const CourseSelector = ({ selectedCourseId, onSelectCourse }: CourseSelectorProp
           </div>
 
           <div className="flex gap-3">
-            <button type="submit" className="btn-primary" disabled={isCreating}>
+            <button type="submit" className="retro-admin-v3-btn-primary" disabled={isCreating}>
               {isCreating ? 'Creating...' : 'Create Test Course'}
             </button>
             <button
               type="button"
               onClick={() => setShowCreateForm(false)}
-              className="btn-secondary"
+              className="retro-admin-v3-btn-secondary"
             >
               Cancel
             </button>

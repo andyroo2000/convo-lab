@@ -1,0 +1,1530 @@
+{
+  "version": 1,
+  "generatedAt": "2026-02-13T20:04:14.202Z",
+  "voiceId": "ja-JP-Neural2-C",
+  "voiceDescription": "Google: Kento - Professional",
+  "provider": "google",
+  "outputDir": "/Users/andrewlandry/Desktop/time-components-qc/google-kento-professional",
+  "totals": {
+    "totalEntries": 108,
+    "generated": 108,
+    "failed": 0,
+    "skipped": 0
+  },
+  "entries": [
+    {
+      "id": "time_12h_part1_gozen_12",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 12)",
+      "text": "ごぜん じゅうにじ",
+      "relativePath": "time/12h/part1/gozen-12.mp3"
+    },
+    {
+      "id": "time_24h_part1_00",
+      "category": "time_24h_part1",
+      "label": "24h part1 (00)",
+      "text": "れいじ",
+      "relativePath": "time/24h/part1/00.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_01",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 01)",
+      "text": "ごぜん いちじ",
+      "relativePath": "time/12h/part1/gozen-01.mp3"
+    },
+    {
+      "id": "time_24h_part1_01",
+      "category": "time_24h_part1",
+      "label": "24h part1 (01)",
+      "text": "いちじ",
+      "relativePath": "time/24h/part1/01.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_02",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 02)",
+      "text": "ごぜん にじ",
+      "relativePath": "time/12h/part1/gozen-02.mp3"
+    },
+    {
+      "id": "time_24h_part1_02",
+      "category": "time_24h_part1",
+      "label": "24h part1 (02)",
+      "text": "にじ",
+      "relativePath": "time/24h/part1/02.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_03",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 03)",
+      "text": "ごぜん さんじ",
+      "relativePath": "time/12h/part1/gozen-03.mp3"
+    },
+    {
+      "id": "time_24h_part1_03",
+      "category": "time_24h_part1",
+      "label": "24h part1 (03)",
+      "text": "さんじ",
+      "relativePath": "time/24h/part1/03.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_04",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 04)",
+      "text": "ごぜん よじ",
+      "relativePath": "time/12h/part1/gozen-04.mp3"
+    },
+    {
+      "id": "time_24h_part1_04",
+      "category": "time_24h_part1",
+      "label": "24h part1 (04)",
+      "text": "よじ",
+      "relativePath": "time/24h/part1/04.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_05",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 05)",
+      "text": "ごぜん ごじ",
+      "relativePath": "time/12h/part1/gozen-05.mp3"
+    },
+    {
+      "id": "time_24h_part1_05",
+      "category": "time_24h_part1",
+      "label": "24h part1 (05)",
+      "text": "ごじ",
+      "relativePath": "time/24h/part1/05.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_06",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 06)",
+      "text": "ごぜん ろくじ",
+      "relativePath": "time/12h/part1/gozen-06.mp3"
+    },
+    {
+      "id": "time_24h_part1_06",
+      "category": "time_24h_part1",
+      "label": "24h part1 (06)",
+      "text": "ろくじ",
+      "relativePath": "time/24h/part1/06.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_07",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 07)",
+      "text": "ごぜん しちじ",
+      "relativePath": "time/12h/part1/gozen-07.mp3"
+    },
+    {
+      "id": "time_24h_part1_07",
+      "category": "time_24h_part1",
+      "label": "24h part1 (07)",
+      "text": "しちじ",
+      "relativePath": "time/24h/part1/07.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_08",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 08)",
+      "text": "ごぜん はちじ",
+      "relativePath": "time/12h/part1/gozen-08.mp3"
+    },
+    {
+      "id": "time_24h_part1_08",
+      "category": "time_24h_part1",
+      "label": "24h part1 (08)",
+      "text": "はちじ",
+      "relativePath": "time/24h/part1/08.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_09",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 09)",
+      "text": "ごぜん くじ",
+      "relativePath": "time/12h/part1/gozen-09.mp3"
+    },
+    {
+      "id": "time_24h_part1_09",
+      "category": "time_24h_part1",
+      "label": "24h part1 (09)",
+      "text": "くじ",
+      "relativePath": "time/24h/part1/09.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_10",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 10)",
+      "text": "ごぜん じゅうじ",
+      "relativePath": "time/12h/part1/gozen-10.mp3"
+    },
+    {
+      "id": "time_24h_part1_10",
+      "category": "time_24h_part1",
+      "label": "24h part1 (10)",
+      "text": "じゅうじ",
+      "relativePath": "time/24h/part1/10.mp3"
+    },
+    {
+      "id": "time_12h_part1_gozen_11",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOZEN 11)",
+      "text": "ごぜん じゅういちじ",
+      "relativePath": "time/12h/part1/gozen-11.mp3"
+    },
+    {
+      "id": "time_24h_part1_11",
+      "category": "time_24h_part1",
+      "label": "24h part1 (11)",
+      "text": "じゅういちじ",
+      "relativePath": "time/24h/part1/11.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_12",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 12)",
+      "text": "ごご じゅうにじ",
+      "relativePath": "time/12h/part1/gogo-12.mp3"
+    },
+    {
+      "id": "time_24h_part1_12",
+      "category": "time_24h_part1",
+      "label": "24h part1 (12)",
+      "text": "じゅうにじ",
+      "relativePath": "time/24h/part1/12.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_01",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 01)",
+      "text": "ごご いちじ",
+      "relativePath": "time/12h/part1/gogo-01.mp3"
+    },
+    {
+      "id": "time_24h_part1_13",
+      "category": "time_24h_part1",
+      "label": "24h part1 (13)",
+      "text": "じゅうさんじ",
+      "relativePath": "time/24h/part1/13.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_02",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 02)",
+      "text": "ごご にじ",
+      "relativePath": "time/12h/part1/gogo-02.mp3"
+    },
+    {
+      "id": "time_24h_part1_14",
+      "category": "time_24h_part1",
+      "label": "24h part1 (14)",
+      "text": "じゅうよじ",
+      "relativePath": "time/24h/part1/14.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_03",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 03)",
+      "text": "ごご さんじ",
+      "relativePath": "time/12h/part1/gogo-03.mp3"
+    },
+    {
+      "id": "time_24h_part1_15",
+      "category": "time_24h_part1",
+      "label": "24h part1 (15)",
+      "text": "じゅうごじ",
+      "relativePath": "time/24h/part1/15.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_04",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 04)",
+      "text": "ごご よじ",
+      "relativePath": "time/12h/part1/gogo-04.mp3"
+    },
+    {
+      "id": "time_24h_part1_16",
+      "category": "time_24h_part1",
+      "label": "24h part1 (16)",
+      "text": "じゅうろくじ",
+      "relativePath": "time/24h/part1/16.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_05",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 05)",
+      "text": "ごご ごじ",
+      "relativePath": "time/12h/part1/gogo-05.mp3"
+    },
+    {
+      "id": "time_24h_part1_17",
+      "category": "time_24h_part1",
+      "label": "24h part1 (17)",
+      "text": "じゅうしちじ",
+      "relativePath": "time/24h/part1/17.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_06",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 06)",
+      "text": "ごご ろくじ",
+      "relativePath": "time/12h/part1/gogo-06.mp3"
+    },
+    {
+      "id": "time_24h_part1_18",
+      "category": "time_24h_part1",
+      "label": "24h part1 (18)",
+      "text": "じゅうはちじ",
+      "relativePath": "time/24h/part1/18.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_07",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 07)",
+      "text": "ごご しちじ",
+      "relativePath": "time/12h/part1/gogo-07.mp3"
+    },
+    {
+      "id": "time_24h_part1_19",
+      "category": "time_24h_part1",
+      "label": "24h part1 (19)",
+      "text": "じゅうくじ",
+      "relativePath": "time/24h/part1/19.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_08",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 08)",
+      "text": "ごご はちじ",
+      "relativePath": "time/12h/part1/gogo-08.mp3"
+    },
+    {
+      "id": "time_24h_part1_20",
+      "category": "time_24h_part1",
+      "label": "24h part1 (20)",
+      "text": "にじゅうじ",
+      "relativePath": "time/24h/part1/20.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_09",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 09)",
+      "text": "ごご くじ",
+      "relativePath": "time/12h/part1/gogo-09.mp3"
+    },
+    {
+      "id": "time_24h_part1_21",
+      "category": "time_24h_part1",
+      "label": "24h part1 (21)",
+      "text": "にじゅういちじ",
+      "relativePath": "time/24h/part1/21.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_10",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 10)",
+      "text": "ごご じゅうじ",
+      "relativePath": "time/12h/part1/gogo-10.mp3"
+    },
+    {
+      "id": "time_24h_part1_22",
+      "category": "time_24h_part1",
+      "label": "24h part1 (22)",
+      "text": "にじゅうにじ",
+      "relativePath": "time/24h/part1/22.mp3"
+    },
+    {
+      "id": "time_12h_part1_gogo_11",
+      "category": "time_12h_part1",
+      "label": "12h part1 (GOGO 11)",
+      "text": "ごご じゅういちじ",
+      "relativePath": "time/12h/part1/gogo-11.mp3"
+    },
+    {
+      "id": "time_24h_part1_23",
+      "category": "time_24h_part1",
+      "label": "24h part1 (23)",
+      "text": "にじゅうさんじ",
+      "relativePath": "time/24h/part1/23.mp3"
+    },
+    {
+      "id": "minute_00",
+      "category": "minute",
+      "label": "Minute 00",
+      "text": "れいふん",
+      "relativePath": "time/minute/00.mp3"
+    },
+    {
+      "id": "minute_01",
+      "category": "minute",
+      "label": "Minute 01",
+      "text": "いっぷん",
+      "relativePath": "time/minute/01.mp3"
+    },
+    {
+      "id": "minute_02",
+      "category": "minute",
+      "label": "Minute 02",
+      "text": "にふん",
+      "relativePath": "time/minute/02.mp3"
+    },
+    {
+      "id": "minute_03",
+      "category": "minute",
+      "label": "Minute 03",
+      "text": "さんぷん",
+      "relativePath": "time/minute/03.mp3"
+    },
+    {
+      "id": "minute_04",
+      "category": "minute",
+      "label": "Minute 04",
+      "text": "よんぷん",
+      "relativePath": "time/minute/04.mp3"
+    },
+    {
+      "id": "minute_05",
+      "category": "minute",
+      "label": "Minute 05",
+      "text": "ごふん",
+      "relativePath": "time/minute/05.mp3"
+    },
+    {
+      "id": "minute_06",
+      "category": "minute",
+      "label": "Minute 06",
+      "text": "ろっぷん",
+      "relativePath": "time/minute/06.mp3"
+    },
+    {
+      "id": "minute_07",
+      "category": "minute",
+      "label": "Minute 07",
+      "text": "ななふん",
+      "relativePath": "time/minute/07.mp3"
+    },
+    {
+      "id": "minute_08",
+      "category": "minute",
+      "label": "Minute 08",
+      "text": "はっぷん",
+      "relativePath": "time/minute/08.mp3"
+    },
+    {
+      "id": "minute_09",
+      "category": "minute",
+      "label": "Minute 09",
+      "text": "きゅうふん",
+      "relativePath": "time/minute/09.mp3"
+    },
+    {
+      "id": "minute_10",
+      "category": "minute",
+      "label": "Minute 10",
+      "text": "じゅっぷん",
+      "relativePath": "time/minute/10.mp3"
+    },
+    {
+      "id": "minute_11",
+      "category": "minute",
+      "label": "Minute 11",
+      "text": "じゅういっぷん",
+      "relativePath": "time/minute/11.mp3"
+    },
+    {
+      "id": "minute_12",
+      "category": "minute",
+      "label": "Minute 12",
+      "text": "じゅうにふん",
+      "relativePath": "time/minute/12.mp3"
+    },
+    {
+      "id": "minute_13",
+      "category": "minute",
+      "label": "Minute 13",
+      "text": "じゅうさんぷん",
+      "relativePath": "time/minute/13.mp3"
+    },
+    {
+      "id": "minute_14",
+      "category": "minute",
+      "label": "Minute 14",
+      "text": "じゅうよんぷん",
+      "relativePath": "time/minute/14.mp3"
+    },
+    {
+      "id": "minute_15",
+      "category": "minute",
+      "label": "Minute 15",
+      "text": "じゅうごふん",
+      "relativePath": "time/minute/15.mp3"
+    },
+    {
+      "id": "minute_16",
+      "category": "minute",
+      "label": "Minute 16",
+      "text": "じゅうろっぷん",
+      "relativePath": "time/minute/16.mp3"
+    },
+    {
+      "id": "minute_17",
+      "category": "minute",
+      "label": "Minute 17",
+      "text": "じゅうななふん",
+      "relativePath": "time/minute/17.mp3"
+    },
+    {
+      "id": "minute_18",
+      "category": "minute",
+      "label": "Minute 18",
+      "text": "じゅうはっぷん",
+      "relativePath": "time/minute/18.mp3"
+    },
+    {
+      "id": "minute_19",
+      "category": "minute",
+      "label": "Minute 19",
+      "text": "じゅうきゅうふん",
+      "relativePath": "time/minute/19.mp3"
+    },
+    {
+      "id": "minute_20",
+      "category": "minute",
+      "label": "Minute 20",
+      "text": "にじゅっぷん",
+      "relativePath": "time/minute/20.mp3"
+    },
+    {
+      "id": "minute_21",
+      "category": "minute",
+      "label": "Minute 21",
+      "text": "にじゅういっぷん",
+      "relativePath": "time/minute/21.mp3"
+    },
+    {
+      "id": "minute_22",
+      "category": "minute",
+      "label": "Minute 22",
+      "text": "にじゅうにふん",
+      "relativePath": "time/minute/22.mp3"
+    },
+    {
+      "id": "minute_23",
+      "category": "minute",
+      "label": "Minute 23",
+      "text": "にじゅうさんぷん",
+      "relativePath": "time/minute/23.mp3"
+    },
+    {
+      "id": "minute_24",
+      "category": "minute",
+      "label": "Minute 24",
+      "text": "にじゅうよんぷん",
+      "relativePath": "time/minute/24.mp3"
+    },
+    {
+      "id": "minute_25",
+      "category": "minute",
+      "label": "Minute 25",
+      "text": "にじゅうごふん",
+      "relativePath": "time/minute/25.mp3"
+    },
+    {
+      "id": "minute_26",
+      "category": "minute",
+      "label": "Minute 26",
+      "text": "にじゅうろっぷん",
+      "relativePath": "time/minute/26.mp3"
+    },
+    {
+      "id": "minute_27",
+      "category": "minute",
+      "label": "Minute 27",
+      "text": "にじゅうななふん",
+      "relativePath": "time/minute/27.mp3"
+    },
+    {
+      "id": "minute_28",
+      "category": "minute",
+      "label": "Minute 28",
+      "text": "にじゅうはっぷん",
+      "relativePath": "time/minute/28.mp3"
+    },
+    {
+      "id": "minute_29",
+      "category": "minute",
+      "label": "Minute 29",
+      "text": "にじゅうきゅうふん",
+      "relativePath": "time/minute/29.mp3"
+    },
+    {
+      "id": "minute_30",
+      "category": "minute",
+      "label": "Minute 30",
+      "text": "さんじゅっぷん",
+      "relativePath": "time/minute/30.mp3"
+    },
+    {
+      "id": "minute_31",
+      "category": "minute",
+      "label": "Minute 31",
+      "text": "さんじゅういっぷん",
+      "relativePath": "time/minute/31.mp3"
+    },
+    {
+      "id": "minute_32",
+      "category": "minute",
+      "label": "Minute 32",
+      "text": "さんじゅうにふん",
+      "relativePath": "time/minute/32.mp3"
+    },
+    {
+      "id": "minute_33",
+      "category": "minute",
+      "label": "Minute 33",
+      "text": "さんじゅうさんぷん",
+      "relativePath": "time/minute/33.mp3"
+    },
+    {
+      "id": "minute_34",
+      "category": "minute",
+      "label": "Minute 34",
+      "text": "さんじゅうよんぷん",
+      "relativePath": "time/minute/34.mp3"
+    },
+    {
+      "id": "minute_35",
+      "category": "minute",
+      "label": "Minute 35",
+      "text": "さんじゅうごふん",
+      "relativePath": "time/minute/35.mp3"
+    },
+    {
+      "id": "minute_36",
+      "category": "minute",
+      "label": "Minute 36",
+      "text": "さんじゅうろっぷん",
+      "relativePath": "time/minute/36.mp3"
+    },
+    {
+      "id": "minute_37",
+      "category": "minute",
+      "label": "Minute 37",
+      "text": "さんじゅうななふん",
+      "relativePath": "time/minute/37.mp3"
+    },
+    {
+      "id": "minute_38",
+      "category": "minute",
+      "label": "Minute 38",
+      "text": "さんじゅうはっぷん",
+      "relativePath": "time/minute/38.mp3"
+    },
+    {
+      "id": "minute_39",
+      "category": "minute",
+      "label": "Minute 39",
+      "text": "さんじゅうきゅうふん",
+      "relativePath": "time/minute/39.mp3"
+    },
+    {
+      "id": "minute_40",
+      "category": "minute",
+      "label": "Minute 40",
+      "text": "よんじゅっぷん",
+      "relativePath": "time/minute/40.mp3"
+    },
+    {
+      "id": "minute_41",
+      "category": "minute",
+      "label": "Minute 41",
+      "text": "よんじゅういっぷん",
+      "relativePath": "time/minute/41.mp3"
+    },
+    {
+      "id": "minute_42",
+      "category": "minute",
+      "label": "Minute 42",
+      "text": "よんじゅうにふん",
+      "relativePath": "time/minute/42.mp3"
+    },
+    {
+      "id": "minute_43",
+      "category": "minute",
+      "label": "Minute 43",
+      "text": "よんじゅうさんぷん",
+      "relativePath": "time/minute/43.mp3"
+    },
+    {
+      "id": "minute_44",
+      "category": "minute",
+      "label": "Minute 44",
+      "text": "よんじゅうよんぷん",
+      "relativePath": "time/minute/44.mp3"
+    },
+    {
+      "id": "minute_45",
+      "category": "minute",
+      "label": "Minute 45",
+      "text": "よんじゅうごふん",
+      "relativePath": "time/minute/45.mp3"
+    },
+    {
+      "id": "minute_46",
+      "category": "minute",
+      "label": "Minute 46",
+      "text": "よんじゅうろっぷん",
+      "relativePath": "time/minute/46.mp3"
+    },
+    {
+      "id": "minute_47",
+      "category": "minute",
+      "label": "Minute 47",
+      "text": "よんじゅうななふん",
+      "relativePath": "time/minute/47.mp3"
+    },
+    {
+      "id": "minute_48",
+      "category": "minute",
+      "label": "Minute 48",
+      "text": "よんじゅうはっぷん",
+      "relativePath": "time/minute/48.mp3"
+    },
+    {
+      "id": "minute_49",
+      "category": "minute",
+      "label": "Minute 49",
+      "text": "よんじゅうきゅうふん",
+      "relativePath": "time/minute/49.mp3"
+    },
+    {
+      "id": "minute_50",
+      "category": "minute",
+      "label": "Minute 50",
+      "text": "ごじゅっぷん",
+      "relativePath": "time/minute/50.mp3"
+    },
+    {
+      "id": "minute_51",
+      "category": "minute",
+      "label": "Minute 51",
+      "text": "ごじゅういっぷん",
+      "relativePath": "time/minute/51.mp3"
+    },
+    {
+      "id": "minute_52",
+      "category": "minute",
+      "label": "Minute 52",
+      "text": "ごじゅうにふん",
+      "relativePath": "time/minute/52.mp3"
+    },
+    {
+      "id": "minute_53",
+      "category": "minute",
+      "label": "Minute 53",
+      "text": "ごじゅうさんぷん",
+      "relativePath": "time/minute/53.mp3"
+    },
+    {
+      "id": "minute_54",
+      "category": "minute",
+      "label": "Minute 54",
+      "text": "ごじゅうよんぷん",
+      "relativePath": "time/minute/54.mp3"
+    },
+    {
+      "id": "minute_55",
+      "category": "minute",
+      "label": "Minute 55",
+      "text": "ごじゅうごふん",
+      "relativePath": "time/minute/55.mp3"
+    },
+    {
+      "id": "minute_56",
+      "category": "minute",
+      "label": "Minute 56",
+      "text": "ごじゅうろっぷん",
+      "relativePath": "time/minute/56.mp3"
+    },
+    {
+      "id": "minute_57",
+      "category": "minute",
+      "label": "Minute 57",
+      "text": "ごじゅうななふん",
+      "relativePath": "time/minute/57.mp3"
+    },
+    {
+      "id": "minute_58",
+      "category": "minute",
+      "label": "Minute 58",
+      "text": "ごじゅうはっぷん",
+      "relativePath": "time/minute/58.mp3"
+    },
+    {
+      "id": "minute_59",
+      "category": "minute",
+      "label": "Minute 59",
+      "text": "ごじゅうきゅうふん",
+      "relativePath": "time/minute/59.mp3"
+    }
+  ],
+  "results": [
+    {
+      "id": "time_12h_part1_gozen_12",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-12.mp3",
+      "text": "ごぜん じゅうにじ",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "time_24h_part1_00",
+      "status": "generated",
+      "relativePath": "time/24h/part1/00.mp3",
+      "text": "れいじ",
+      "durationSeconds": 0.768
+    },
+    {
+      "id": "time_12h_part1_gozen_01",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-01.mp3",
+      "text": "ごぜん いちじ",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "time_24h_part1_01",
+      "status": "generated",
+      "relativePath": "time/24h/part1/01.mp3",
+      "text": "いちじ",
+      "durationSeconds": 0.744
+    },
+    {
+      "id": "time_12h_part1_gozen_02",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-02.mp3",
+      "text": "ごぜん にじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_02",
+      "status": "generated",
+      "relativePath": "time/24h/part1/02.mp3",
+      "text": "にじ",
+      "durationSeconds": 0.672
+    },
+    {
+      "id": "time_12h_part1_gozen_03",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-03.mp3",
+      "text": "ごぜん さんじ",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "time_24h_part1_03",
+      "status": "generated",
+      "relativePath": "time/24h/part1/03.mp3",
+      "text": "さんじ",
+      "durationSeconds": 0.768
+    },
+    {
+      "id": "time_12h_part1_gozen_04",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-04.mp3",
+      "text": "ごぜん よじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_04",
+      "status": "generated",
+      "relativePath": "time/24h/part1/04.mp3",
+      "text": "よじ",
+      "durationSeconds": 0.648
+    },
+    {
+      "id": "time_12h_part1_gozen_05",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-05.mp3",
+      "text": "ごぜん ごじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_05",
+      "status": "generated",
+      "relativePath": "time/24h/part1/05.mp3",
+      "text": "ごじ",
+      "durationSeconds": 0.696
+    },
+    {
+      "id": "time_12h_part1_gozen_06",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-06.mp3",
+      "text": "ごぜん ろくじ",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "time_24h_part1_06",
+      "status": "generated",
+      "relativePath": "time/24h/part1/06.mp3",
+      "text": "ろくじ",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "time_12h_part1_gozen_07",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-07.mp3",
+      "text": "ごぜん しちじ",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "time_24h_part1_07",
+      "status": "generated",
+      "relativePath": "time/24h/part1/07.mp3",
+      "text": "しちじ",
+      "durationSeconds": 0.768
+    },
+    {
+      "id": "time_12h_part1_gozen_08",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-08.mp3",
+      "text": "ごぜん はちじ",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "time_24h_part1_08",
+      "status": "generated",
+      "relativePath": "time/24h/part1/08.mp3",
+      "text": "はちじ",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "time_12h_part1_gozen_09",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-09.mp3",
+      "text": "ごぜん くじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_09",
+      "status": "generated",
+      "relativePath": "time/24h/part1/09.mp3",
+      "text": "くじ",
+      "durationSeconds": 0.648
+    },
+    {
+      "id": "time_12h_part1_gozen_10",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-10.mp3",
+      "text": "ごぜん じゅうじ",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "time_24h_part1_10",
+      "status": "generated",
+      "relativePath": "time/24h/part1/10.mp3",
+      "text": "じゅうじ",
+      "durationSeconds": 0.816
+    },
+    {
+      "id": "time_12h_part1_gozen_11",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gozen-11.mp3",
+      "text": "ごぜん じゅういちじ",
+      "durationSeconds": 1.536
+    },
+    {
+      "id": "time_24h_part1_11",
+      "status": "generated",
+      "relativePath": "time/24h/part1/11.mp3",
+      "text": "じゅういちじ",
+      "durationSeconds": 1.056
+    },
+    {
+      "id": "time_12h_part1_gogo_12",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-12.mp3",
+      "text": "ごご じゅうにじ",
+      "durationSeconds": 1.152
+    },
+    {
+      "id": "time_24h_part1_12",
+      "status": "generated",
+      "relativePath": "time/24h/part1/12.mp3",
+      "text": "じゅうにじ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "time_12h_part1_gogo_01",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-01.mp3",
+      "text": "ごご いちじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_13",
+      "status": "generated",
+      "relativePath": "time/24h/part1/13.mp3",
+      "text": "じゅうさんじ",
+      "durationSeconds": 1.008
+    },
+    {
+      "id": "time_12h_part1_gogo_02",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-02.mp3",
+      "text": "ごご にじ",
+      "durationSeconds": 0.984
+    },
+    {
+      "id": "time_24h_part1_14",
+      "status": "generated",
+      "relativePath": "time/24h/part1/14.mp3",
+      "text": "じゅうよじ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "time_12h_part1_gogo_03",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-03.mp3",
+      "text": "ごご さんじ",
+      "durationSeconds": 1.032
+    },
+    {
+      "id": "time_24h_part1_15",
+      "status": "generated",
+      "relativePath": "time/24h/part1/15.mp3",
+      "text": "じゅうごじ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "time_12h_part1_gogo_04",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-04.mp3",
+      "text": "ごご よじ",
+      "durationSeconds": 0.96
+    },
+    {
+      "id": "time_24h_part1_16",
+      "status": "generated",
+      "relativePath": "time/24h/part1/16.mp3",
+      "text": "じゅうろくじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_12h_part1_gogo_05",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-05.mp3",
+      "text": "ごご ごじ",
+      "durationSeconds": 0.984
+    },
+    {
+      "id": "time_24h_part1_17",
+      "status": "generated",
+      "relativePath": "time/24h/part1/17.mp3",
+      "text": "じゅうしちじ",
+      "durationSeconds": 1.032
+    },
+    {
+      "id": "time_12h_part1_gogo_06",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-06.mp3",
+      "text": "ごご ろくじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_24h_part1_18",
+      "status": "generated",
+      "relativePath": "time/24h/part1/18.mp3",
+      "text": "じゅうはちじ",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "time_12h_part1_gogo_07",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-07.mp3",
+      "text": "ごご しちじ",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "time_24h_part1_19",
+      "status": "generated",
+      "relativePath": "time/24h/part1/19.mp3",
+      "text": "じゅうくじ",
+      "durationSeconds": 0.936
+    },
+    {
+      "id": "time_12h_part1_gogo_08",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-08.mp3",
+      "text": "ごご はちじ",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "time_24h_part1_20",
+      "status": "generated",
+      "relativePath": "time/24h/part1/20.mp3",
+      "text": "にじゅうじ",
+      "durationSeconds": 0.96
+    },
+    {
+      "id": "time_12h_part1_gogo_09",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-09.mp3",
+      "text": "ごご くじ",
+      "durationSeconds": 0.984
+    },
+    {
+      "id": "time_24h_part1_21",
+      "status": "generated",
+      "relativePath": "time/24h/part1/21.mp3",
+      "text": "にじゅういちじ",
+      "durationSeconds": 1.152
+    },
+    {
+      "id": "time_12h_part1_gogo_10",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-10.mp3",
+      "text": "ごご じゅうじ",
+      "durationSeconds": 1.056
+    },
+    {
+      "id": "time_24h_part1_22",
+      "status": "generated",
+      "relativePath": "time/24h/part1/22.mp3",
+      "text": "にじゅうにじ",
+      "durationSeconds": 1.056
+    },
+    {
+      "id": "time_12h_part1_gogo_11",
+      "status": "generated",
+      "relativePath": "time/12h/part1/gogo-11.mp3",
+      "text": "ごご じゅういちじ",
+      "durationSeconds": 1.416
+    },
+    {
+      "id": "time_24h_part1_23",
+      "status": "generated",
+      "relativePath": "time/24h/part1/23.mp3",
+      "text": "にじゅうさんじ",
+      "durationSeconds": 1.152
+    },
+    {
+      "id": "minute_00",
+      "status": "generated",
+      "relativePath": "time/minute/00.mp3",
+      "text": "れいふん",
+      "durationSeconds": 0.864
+    },
+    {
+      "id": "minute_01",
+      "status": "generated",
+      "relativePath": "time/minute/01.mp3",
+      "text": "いっぷん",
+      "durationSeconds": 0.84
+    },
+    {
+      "id": "minute_02",
+      "status": "generated",
+      "relativePath": "time/minute/02.mp3",
+      "text": "にふん",
+      "durationSeconds": 0.768
+    },
+    {
+      "id": "minute_03",
+      "status": "generated",
+      "relativePath": "time/minute/03.mp3",
+      "text": "さんぷん",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "minute_04",
+      "status": "generated",
+      "relativePath": "time/minute/04.mp3",
+      "text": "よんぷん",
+      "durationSeconds": 0.864
+    },
+    {
+      "id": "minute_05",
+      "status": "generated",
+      "relativePath": "time/minute/05.mp3",
+      "text": "ごふん",
+      "durationSeconds": 0.792
+    },
+    {
+      "id": "minute_06",
+      "status": "generated",
+      "relativePath": "time/minute/06.mp3",
+      "text": "ろっぷん",
+      "durationSeconds": 0.84
+    },
+    {
+      "id": "minute_07",
+      "status": "generated",
+      "relativePath": "time/minute/07.mp3",
+      "text": "ななふん",
+      "durationSeconds": 0.864
+    },
+    {
+      "id": "minute_08",
+      "status": "generated",
+      "relativePath": "time/minute/08.mp3",
+      "text": "はっぷん",
+      "durationSeconds": 0.864
+    },
+    {
+      "id": "minute_09",
+      "status": "generated",
+      "relativePath": "time/minute/09.mp3",
+      "text": "きゅうふん",
+      "durationSeconds": 0.888
+    },
+    {
+      "id": "minute_10",
+      "status": "generated",
+      "relativePath": "time/minute/10.mp3",
+      "text": "じゅっぷん",
+      "durationSeconds": 0.912
+    },
+    {
+      "id": "minute_11",
+      "status": "generated",
+      "relativePath": "time/minute/11.mp3",
+      "text": "じゅういっぷん",
+      "durationSeconds": 1.176
+    },
+    {
+      "id": "minute_12",
+      "status": "generated",
+      "relativePath": "time/minute/12.mp3",
+      "text": "じゅうにふん",
+      "durationSeconds": 1.032
+    },
+    {
+      "id": "minute_13",
+      "status": "generated",
+      "relativePath": "time/minute/13.mp3",
+      "text": "じゅうさんぷん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_14",
+      "status": "generated",
+      "relativePath": "time/minute/14.mp3",
+      "text": "じゅうよんぷん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_15",
+      "status": "generated",
+      "relativePath": "time/minute/15.mp3",
+      "text": "じゅうごふん",
+      "durationSeconds": 1.032
+    },
+    {
+      "id": "minute_16",
+      "status": "generated",
+      "relativePath": "time/minute/16.mp3",
+      "text": "じゅうろっぷん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_17",
+      "status": "generated",
+      "relativePath": "time/minute/17.mp3",
+      "text": "じゅうななふん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_18",
+      "status": "generated",
+      "relativePath": "time/minute/18.mp3",
+      "text": "じゅうはっぷん",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "minute_19",
+      "status": "generated",
+      "relativePath": "time/minute/19.mp3",
+      "text": "じゅうきゅうふん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "minute_20",
+      "status": "generated",
+      "relativePath": "time/minute/20.mp3",
+      "text": "にじゅっぷん",
+      "durationSeconds": 1.008
+    },
+    {
+      "id": "minute_21",
+      "status": "generated",
+      "relativePath": "time/minute/21.mp3",
+      "text": "にじゅういっぷん",
+      "durationSeconds": 1.272
+    },
+    {
+      "id": "minute_22",
+      "status": "generated",
+      "relativePath": "time/minute/22.mp3",
+      "text": "にじゅうにふん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_23",
+      "status": "generated",
+      "relativePath": "time/minute/23.mp3",
+      "text": "にじゅうさんぷん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "minute_24",
+      "status": "generated",
+      "relativePath": "time/minute/24.mp3",
+      "text": "にじゅうよんぷん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "minute_25",
+      "status": "generated",
+      "relativePath": "time/minute/25.mp3",
+      "text": "にじゅうごふん",
+      "durationSeconds": 1.128
+    },
+    {
+      "id": "minute_26",
+      "status": "generated",
+      "relativePath": "time/minute/26.mp3",
+      "text": "にじゅうろっぷん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "minute_27",
+      "status": "generated",
+      "relativePath": "time/minute/27.mp3",
+      "text": "にじゅうななふん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "minute_28",
+      "status": "generated",
+      "relativePath": "time/minute/28.mp3",
+      "text": "にじゅうはっぷん",
+      "durationSeconds": 1.272
+    },
+    {
+      "id": "minute_29",
+      "status": "generated",
+      "relativePath": "time/minute/29.mp3",
+      "text": "にじゅうきゅうふん",
+      "durationSeconds": 1.32
+    },
+    {
+      "id": "minute_30",
+      "status": "generated",
+      "relativePath": "time/minute/30.mp3",
+      "text": "さんじゅっぷん",
+      "durationSeconds": 1.104
+    },
+    {
+      "id": "minute_31",
+      "status": "generated",
+      "relativePath": "time/minute/31.mp3",
+      "text": "さんじゅういっぷん",
+      "durationSeconds": 1.44
+    },
+    {
+      "id": "minute_32",
+      "status": "generated",
+      "relativePath": "time/minute/32.mp3",
+      "text": "さんじゅうにふん",
+      "durationSeconds": 1.272
+    },
+    {
+      "id": "minute_33",
+      "status": "generated",
+      "relativePath": "time/minute/33.mp3",
+      "text": "さんじゅうさんぷん",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "minute_34",
+      "status": "generated",
+      "relativePath": "time/minute/34.mp3",
+      "text": "さんじゅうよんぷん",
+      "durationSeconds": 1.488
+    },
+    {
+      "id": "minute_35",
+      "status": "generated",
+      "relativePath": "time/minute/35.mp3",
+      "text": "さんじゅうごふん",
+      "durationSeconds": 1.272
+    },
+    {
+      "id": "minute_36",
+      "status": "generated",
+      "relativePath": "time/minute/36.mp3",
+      "text": "さんじゅうろっぷん",
+      "durationSeconds": 1.488
+    },
+    {
+      "id": "minute_37",
+      "status": "generated",
+      "relativePath": "time/minute/37.mp3",
+      "text": "さんじゅうななふん",
+      "durationSeconds": 1.464
+    },
+    {
+      "id": "minute_38",
+      "status": "generated",
+      "relativePath": "time/minute/38.mp3",
+      "text": "さんじゅうはっぷん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "minute_39",
+      "status": "generated",
+      "relativePath": "time/minute/39.mp3",
+      "text": "さんじゅうきゅうふん",
+      "durationSeconds": 1.512
+    },
+    {
+      "id": "minute_40",
+      "status": "generated",
+      "relativePath": "time/minute/40.mp3",
+      "text": "よんじゅっぷん",
+      "durationSeconds": 1.08
+    },
+    {
+      "id": "minute_41",
+      "status": "generated",
+      "relativePath": "time/minute/41.mp3",
+      "text": "よんじゅういっぷん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "minute_42",
+      "status": "generated",
+      "relativePath": "time/minute/42.mp3",
+      "text": "よんじゅうにふん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "minute_43",
+      "status": "generated",
+      "relativePath": "time/minute/43.mp3",
+      "text": "よんじゅうさんぷん",
+      "durationSeconds": 1.32
+    },
+    {
+      "id": "minute_44",
+      "status": "generated",
+      "relativePath": "time/minute/44.mp3",
+      "text": "よんじゅうよんぷん",
+      "durationSeconds": 1.44
+    },
+    {
+      "id": "minute_45",
+      "status": "generated",
+      "relativePath": "time/minute/45.mp3",
+      "text": "よんじゅうごふん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "minute_46",
+      "status": "generated",
+      "relativePath": "time/minute/46.mp3",
+      "text": "よんじゅうろっぷん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "minute_47",
+      "status": "generated",
+      "relativePath": "time/minute/47.mp3",
+      "text": "よんじゅうななふん",
+      "durationSeconds": 1.392
+    },
+    {
+      "id": "minute_48",
+      "status": "generated",
+      "relativePath": "time/minute/48.mp3",
+      "text": "よんじゅうはっぷん",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "minute_49",
+      "status": "generated",
+      "relativePath": "time/minute/49.mp3",
+      "text": "よんじゅうきゅうふん",
+      "durationSeconds": 1.464
+    },
+    {
+      "id": "minute_50",
+      "status": "generated",
+      "relativePath": "time/minute/50.mp3",
+      "text": "ごじゅっぷん",
+      "durationSeconds": 1.056
+    },
+    {
+      "id": "minute_51",
+      "status": "generated",
+      "relativePath": "time/minute/51.mp3",
+      "text": "ごじゅういっぷん",
+      "durationSeconds": 1.344
+    },
+    {
+      "id": "minute_52",
+      "status": "generated",
+      "relativePath": "time/minute/52.mp3",
+      "text": "ごじゅうにふん",
+      "durationSeconds": 1.2
+    },
+    {
+      "id": "minute_53",
+      "status": "generated",
+      "relativePath": "time/minute/53.mp3",
+      "text": "ごじゅうさんぷん",
+      "durationSeconds": 1.32
+    },
+    {
+      "id": "minute_54",
+      "status": "generated",
+      "relativePath": "time/minute/54.mp3",
+      "text": "ごじゅうよんぷん",
+      "durationSeconds": 1.272
+    },
+    {
+      "id": "minute_55",
+      "status": "generated",
+      "relativePath": "time/minute/55.mp3",
+      "text": "ごじゅうごふん",
+      "durationSeconds": 1.224
+    },
+    {
+      "id": "minute_56",
+      "status": "generated",
+      "relativePath": "time/minute/56.mp3",
+      "text": "ごじゅうろっぷん",
+      "durationSeconds": 1.344
+    },
+    {
+      "id": "minute_57",
+      "status": "generated",
+      "relativePath": "time/minute/57.mp3",
+      "text": "ごじゅうななふん",
+      "durationSeconds": 1.368
+    },
+    {
+      "id": "minute_58",
+      "status": "generated",
+      "relativePath": "time/minute/58.mp3",
+      "text": "ごじゅうはっぷん",
+      "durationSeconds": 1.296
+    },
+    {
+      "id": "minute_59",
+      "status": "generated",
+      "relativePath": "time/minute/59.mp3",
+      "text": "ごじゅうきゅうふん",
+      "durationSeconds": 1.368
+    }
+  ]
+}
