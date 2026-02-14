@@ -98,13 +98,13 @@ const JapaneseTimePracticeToolPage = () => {
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
   const shouldShowScript = isRevealed;
-  let loopStatus = 'Power off.';
+  let loopStatus = 'Power off';
   if (isPowerOn && isRevealed) {
-    loopStatus = `Revealed. Replaying in ${pauseSeconds}s.`;
+    loopStatus = `Revealed · replaying in ${pauseSeconds}s`;
   } else if (isPowerOn) {
-    loopStatus = `Waiting ${pauseSeconds}s pause before reveal.`;
+    loopStatus = `Waiting ${pauseSeconds}s before reveal`;
   }
-  const statusText = isPlaying ? `${loopStatus} • Playing...` : loopStatus;
+  const statusText = isPlaying ? `${loopStatus} · playing` : loopStatus;
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
