@@ -50,6 +50,17 @@ describe('preRenderedDateAudio', () => {
     );
   });
 
+  it('maps all days of month 1-31 to zero-padded day clips', () => {
+    for (let day = 1; day <= 31; day += 1) {
+      const urls = buildDateAudioClipUrls({ year: 2026, month: 1, day });
+      expect(urls[2]).toBe(
+        `/tools-audio/japanese-date/google-kento-professional/date/day/${day
+          .toString()
+          .padStart(2, '0')}.mp3`
+      );
+    }
+  });
+
   it('returns supported date audio year range', () => {
     expect(getDateAudioYearRange()).toEqual({ minYear: 1900, maxYear: 2100 });
   });

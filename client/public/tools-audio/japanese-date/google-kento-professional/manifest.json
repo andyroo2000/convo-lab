@@ -1707,21 +1707,21 @@
       "id": "day_29",
       "category": "day",
       "label": "Day 29",
-      "text": "ついたち",
+      "text": "にじゅうくにち",
       "relativePath": "date/day/29.mp3"
     },
     {
       "id": "day_30",
       "category": "day",
       "label": "Day 30",
-      "text": "ふつか",
+      "text": "さんじゅうにち",
       "relativePath": "date/day/30.mp3"
     },
     {
       "id": "day_31",
       "category": "day",
       "label": "Day 31",
-      "text": "みっか",
+      "text": "さんじゅういちにち",
       "relativePath": "date/day/31.mp3"
     }
   ],
@@ -3417,21 +3417,21 @@
       "id": "day_29",
       "status": "generated",
       "relativePath": "date/day/29.mp3",
-      "text": "ついたち",
+      "text": "にじゅうくにち",
       "durationSeconds": 0.888
     },
     {
       "id": "day_30",
       "status": "generated",
       "relativePath": "date/day/30.mp3",
-      "text": "ふつか",
+      "text": "さんじゅうにち",
       "durationSeconds": 0.744
     },
     {
       "id": "day_31",
       "status": "generated",
       "relativePath": "date/day/31.mp3",
-      "text": "みっか",
+      "text": "さんじゅういちにち",
       "durationSeconds": 0.792
     }
   ]

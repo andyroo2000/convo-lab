@@ -9,6 +9,51 @@ import {
 
 describe('readingEngine', () => {
   describe('generateJapaneseDateTimeReading', () => {
+    it('uses expected reading for every day of month 1-31', () => {
+      const expected = [
+        '',
+        'ついたち',
+        'ふつか',
+        'みっか',
+        'よっか',
+        'いつか',
+        'むいか',
+        'なのか',
+        'ようか',
+        'ここのか',
+        'とおか',
+        'じゅういちにち',
+        'じゅうににち',
+        'じゅうさんにち',
+        'じゅうよっか',
+        'じゅうごにち',
+        'じゅうろくにち',
+        'じゅうしちにち',
+        'じゅうはちにち',
+        'じゅうくにち',
+        'はつか',
+        'にじゅういちにち',
+        'にじゅうににち',
+        'にじゅうさんにち',
+        'にじゅうよっか',
+        'にじゅうごにち',
+        'にじゅうろくにち',
+        'にじゅうしちにち',
+        'にじゅうはちにち',
+        'にじゅうくにち',
+        'さんじゅうにち',
+        'さんじゅういちにち',
+      ];
+
+      for (let day = 1; day <= 31; day += 1) {
+        const reading = generateJapaneseDateTimeReading(new Date(2026, 0, day, 9, 0, 0, 0), {
+          hourFormat: '12h',
+        });
+
+        expect(reading.parts.dayKana).toBe(expected[day]);
+      }
+    });
+
     it.each([
       [1, 'ついたち'],
       [2, 'ふつか'],

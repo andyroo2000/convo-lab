@@ -95,23 +95,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
     );
   }
 
-  if (
-    script.endsWith('日') &&
-    (kana.endsWith('にち') || kana.endsWith('か') || kana.endsWith('かっ'))
-  ) {
-    const numberScript = script.slice(0, -1);
-    const numberKana = kana.slice(0, -1);
-    return (
-      <span className="mr-1 inline-flex items-start">
-        <ruby>
-          {numberScript}
-          <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
-        </ruby>
-        <ruby>
-          日<rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>にち</rt>
-        </ruby>
-      </span>
-    );
+  if (script.endsWith('日')) {
+    // Day-of-month readings include irregular forms (e.g. 14日 = じゅうよっか),
+    // so keep the entire token in one ruby to avoid incorrect splitting.
+    return <RubyPart script={script} kana={kana} showFurigana={showFurigana} />;
   }
 
   return <RubyPart script={script} kana={kana} showFurigana={showFurigana} />;

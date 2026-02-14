@@ -178,7 +178,8 @@ function buildEntries(startYear: number, endYear: number): DateComponentEntry[] 
   }
 
   for (let day = 1; day <= 31; day += 1) {
-    const d = new Date(2026, 1, day, 9, 0, 0, 0);
+    // Use January so all 1-31 values stay in the same month and avoid date rollover.
+    const d = new Date(2026, 0, day, 9, 0, 0, 0);
     const reading = generateJapaneseDateTimeReading(d, { hourFormat: '12h' });
     entries.push({
       id: `day_${day}`,
