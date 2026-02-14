@@ -12,12 +12,13 @@ import {
 } from '@languageflow/shared/src/voiceSelection.js';
 import { config as loadEnv } from 'dotenv';
 
-import { generateJapaneseDateTimeReading } from '../../../client/src/features/tools/japaneseDate/logic/readingEngine';
 import {
   resolveFishAudioVoiceId,
   synthesizeFishAudioSpeech,
 } from '../services/ttsProviders/FishAudioTTSProvider.js';
 import { GoogleTTSProvider } from '../services/ttsProviders/GoogleTTSProvider.js';
+
+import { generateJapaneseDateTimeReading } from './utils/readingEngine.js';
 
 loadEnv();
 

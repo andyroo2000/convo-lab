@@ -8,12 +8,13 @@ import { Polly, SynthesizeSpeechCommand, VoiceId } from '@aws-sdk/client-polly';
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import { config as loadEnv } from 'dotenv';
 
-import { generateJapaneseDateTimeReading } from '../../../client/src/features/tools/japaneseDate/logic/readingEngine';
 import {
   resolveFishAudioVoiceId,
   synthesizeFishAudioSpeech,
 } from '../services/ttsProviders/FishAudioTTSProvider.js';
 import { GoogleTTSProvider } from '../services/ttsProviders/GoogleTTSProvider.js';
+
+import { generateJapaneseDateTimeReading } from './utils/readingEngine.js';
 
 loadEnv();
 
