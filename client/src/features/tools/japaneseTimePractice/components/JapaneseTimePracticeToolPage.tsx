@@ -248,7 +248,6 @@ const JapaneseTimePracticeToolPage = () => {
 
       <section className="card retro-paper-panel">
         <div className="mb-4 space-y-2">
-          <p className="retro-headline text-lg sm:text-xl">Clock Radio Drill</p>
           <p className="text-sm text-[#2f4f73] sm:text-base">
             Wait for the reveal. Then listen and compare.
           </p>
