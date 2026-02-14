@@ -70,7 +70,7 @@ const JapaneseTimePracticeToolPage = () => {
   const [isPowerOn, setIsPowerOn] = useState(true);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [pauseSeconds, setPauseSeconds] = useState<number>(5);
+  const [pauseSeconds, setPauseSeconds] = useState<number>(8);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
