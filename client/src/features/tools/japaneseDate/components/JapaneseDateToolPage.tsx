@@ -123,7 +123,7 @@ const JapaneseDateToolPage = () => {
   const [isPowerOn, setIsPowerOn] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showYear, setShowYear] = useState(true);
+  const [showYear, setShowYear] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState<number>(1);
   const [pauseSeconds, setPauseSeconds] = useState<number>(12);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
@@ -406,19 +406,16 @@ const JapaneseDateToolPage = () => {
       <section className="card retro-paper-panel">
         <div className="mb-5 rounded border-2 border-[#0f3561] bg-gradient-to-br from-[#102d57] via-[#143b6f] to-[#184779] px-4 pt-6 pb-7 text-[#f7f6ef] shadow-[0_6px_0_rgba(17,51,92,0.26)] sm:px-5 sm:pt-7 sm:pb-8">
           <p className="pb-3 text-[clamp(1.45rem,1.05rem+1.8vw,2.5rem)] font-semibold leading-[1.05] tracking-[0.04em] text-[#8fd3ea]">
-            日本語日付トレーナー
+            日本語デートトレーナー
           </p>
           <p className="retro-headline mt-1 text-[clamp(1.4rem,1rem+1.7vw,2.05rem)] leading-[1.08] text-[#f9f8ed]">
             READ IT.
             <span className="mx-2 text-[#37b4d7]">LISTEN.</span>
             CHECK YOUR ANSWER.
           </p>
-          <div className="mt-4 rounded border border-[#88cbe255] bg-[#0a2c4f88] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
-            <p className="retro-caps text-[0.7rem] tracking-[0.11em] text-[#8fd3ea]">How To Use</p>
-            <p className="mt-1 text-sm font-semibold leading-tight text-[#e2f4fa] sm:text-base">
-              A date appears first. Say it in Japanese before reveal, then compare with the audio.
-            </p>
-          </div>
+          <p className="mt-2 text-sm font-semibold leading-tight text-[#d3ecf4] sm:text-base">
+            A date appears first. Say it in Japanese before reveal, then compare with the audio.
+          </p>
         </div>
 
         <div className="retro-clock-radio-shell">
@@ -531,7 +528,6 @@ const JapaneseDateToolPage = () => {
 
         <div className="retro-date-calendar mt-4">
           <header className="retro-date-calendar-header">
-            <h2 className="retro-headline text-lg text-[#f9f8ed] sm:text-xl">Japanese Calendar</h2>
             <p className="retro-caps text-[0.72rem] tracking-[0.1em] text-[#8fd3ea]">
               {toFullWidthDigits(calendarYear)}年 {toFullWidthDigits(calendarMonth)}月
             </p>
