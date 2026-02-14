@@ -22,7 +22,7 @@ export const DEFAULT_TIME_PRACTICE_SETTINGS: TimePracticeSettings = {
   autoPlayAudio: true,
   displayMode: 'script',
   maxNewCardsPerDay: 20,
-  randomAutoLoop: false,
+  randomAutoLoop: true,
 };
 
 export function createTimeCard(hour24: number, minute: number): TimePracticeCard {
@@ -41,3 +41,12 @@ export function createRandomTimeCard(): TimePracticeCard {
   const minute = Math.floor(Math.random() * 60);
   return createTimeCard(hour24, minute);
 }
+
+export const FULL_DAY_TIME_CARD_POOL: TimePracticeCard[] = Array.from(
+  { length: 24 * 60 },
+  (_, index) => {
+    const hour24 = Math.floor(index / 60);
+    const minute = index % 60;
+    return createTimeCard(hour24, minute);
+  }
+);
