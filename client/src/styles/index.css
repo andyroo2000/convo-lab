@@ -3409,6 +3409,12 @@
   color: #4e3d21;
 }
 
+.retro-clock-radio-power-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
 .retro-clock-radio-control-sub {
   text-align: center;
   font-size: 0.58rem;

@@ -300,8 +300,6 @@ const JapaneseTimePracticeToolPage = () => {
 
         <div className="retro-clock-radio-shell">
           <div className="retro-clock-radio-control is-power">
-            <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
-            <span className="retro-clock-radio-control-label">Power</span>
             <button
               type="button"
               onClick={() => setIsPowerOn((current) => !current)}
@@ -309,6 +307,10 @@ const JapaneseTimePracticeToolPage = () => {
               aria-label={isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
               aria-pressed={isPowerOn}
             />
+            <div className="retro-clock-radio-power-meta">
+              <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
+              <span className="retro-clock-radio-control-label">Power</span>
+            </div>
             <button
               type="button"
               onClick={() => setIsMuted((current) => !current)}
