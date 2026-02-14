@@ -299,7 +299,7 @@ const JapaneseTimePracticeToolPage = () => {
         </div>
 
         <div className="retro-clock-radio-shell">
-          <div className="retro-clock-radio-control">
+          <div className="retro-clock-radio-control is-power">
             <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
             <span className="retro-clock-radio-control-label">Power</span>
             <button
