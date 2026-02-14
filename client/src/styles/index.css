@@ -3380,7 +3380,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(120px, 170px) minmax(0, 1.2fr);
   align-items: end;
-  gap: 0.7rem;
+  gap: 0.95rem;
 }
 
 .retro-clock-radio-volume {
@@ -3452,6 +3452,17 @@
 }
 
 .retro-clock-radio-autoplay-stack .retro-clock-radio-led {
+  align-self: center;
+}
+
+.retro-clock-radio-next-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.24rem;
+}
+
+.retro-clock-radio-next-stack .retro-clock-radio-led {
   align-self: center;
 }
 
@@ -3532,6 +3543,20 @@
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.14),
     0 0 7px rgba(217, 71, 71, 0.6);
+}
+
+.retro-clock-radio-led.retro-clock-radio-led-next {
+  background: #5a4a2d;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.retro-clock-radio-led.retro-clock-radio-led-next.is-flash {
+  background: #53dc70;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 10px rgba(83, 220, 112, 0.75);
 }
 
 @media (max-width: 768px) {

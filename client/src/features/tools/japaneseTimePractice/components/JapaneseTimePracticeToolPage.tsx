@@ -75,6 +75,7 @@ const JapaneseTimePracticeToolPage = () => {
   const [volumeLevel, setVolumeLevel] = useState<number>(1);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isNextLedActive, setIsNextLedActive] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(12);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
@@ -82,6 +83,7 @@ const JapaneseTimePracticeToolPage = () => {
   const revealTimerRef = useRef<number | null>(null);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
+  const nextLedTimerRef = useRef<number | null>(null);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
   const isFirstPowerOnRef = useRef(true);
 
@@ -126,6 +128,13 @@ const JapaneseTimePracticeToolPage = () => {
     if (countdownIntervalRef.current !== null) {
       window.clearInterval(countdownIntervalRef.current);
       countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearNextLedTimer = useCallback(() => {
+    if (nextLedTimerRef.current !== null) {
+      window.clearTimeout(nextLedTimerRef.current);
+      nextLedTimerRef.current = null;
     }
   }, []);
 
@@ -179,6 +188,13 @@ const JapaneseTimePracticeToolPage = () => {
   }, []);
 
   const handleNext = useCallback(() => {
+    clearNextLedTimer();
+    setIsNextLedActive(true);
+    nextLedTimerRef.current = window.setTimeout(() => {
+      setIsNextLedActive(false);
+      nextLedTimerRef.current = null;
+    }, 1000);
+
     clearAutoAdvanceTimer();
     clearRevealTimer();
     clearCountdownInterval();
@@ -193,6 +209,7 @@ const JapaneseTimePracticeToolPage = () => {
     advanceToNextCard,
     clearAutoAdvanceTimer,
     clearCountdownInterval,
+    clearNextLedTimer,
     clearRevealTimer,
     isRevealed,
     revealCard,
@@ -279,17 +296,32 @@ const JapaneseTimePracticeToolPage = () => {
       clearAutoAdvanceTimer();
       clearCountdownInterval();
       clearRevealTimer();
+      clearNextLedTimer();
     };
-  }, [clearAutoAdvanceTimer, clearCountdownInterval, clearRevealTimer, isPowerOn, stopPlayback]);
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    isPowerOn,
+    stopPlayback,
+  ]);
 
   useEffect(
     () => () => {
       clearRevealTimer();
       clearAutoAdvanceTimer();
       clearCountdownInterval();
+      clearNextLedTimer();
       stopPlayback();
     },
-    [clearAutoAdvanceTimer, clearCountdownInterval, clearRevealTimer, stopPlayback]
+    [
+      clearAutoAdvanceTimer,
+      clearCountdownInterval,
+      clearNextLedTimer,
+      clearRevealTimer,
+      stopPlayback,
+    ]
   );
 
   return (
@@ -345,14 +377,19 @@ const JapaneseTimePracticeToolPage = () => {
                   {isPowerOn ? 'Stop' : 'Auto-Play'}
                 </button>
               </div>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="retro-clock-radio-action"
-                aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
-              >
-                {nextButtonLabel}
-              </button>
+              <div className="retro-clock-radio-next-stack">
+                <span
+                  className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
+                />
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="retro-clock-radio-action"
+                  aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
+                >
+                  {nextButtonLabel}
+                </button>
+              </div>
             </div>
             <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
               <span className="retro-clock-radio-control-label">Volume</span>
