@@ -122,6 +122,8 @@ jobs:
             else
               echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.staging
             fi
+            # Ensure compose interpolation uses this run's image tag (shell env takes precedence)
+            export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
 
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
