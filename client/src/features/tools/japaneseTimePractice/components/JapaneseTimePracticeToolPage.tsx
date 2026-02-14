@@ -161,6 +161,14 @@ const JapaneseTimePracticeToolPage = () => {
     }
   }, [card.hour24, card.minute, stopPlayback]);
 
+  const revealCard = useCallback(() => {
+    setIsRevealed(true);
+    if (!settings.autoPlayAudio) return;
+    playCurrentCardAudio().catch(() => {
+      setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
+    });
+  }, [playCurrentCardAudio, settings.autoPlayAudio]);
+
   const moveToNextRandomCard = useCallback(() => {
     clearAutoAdvanceTimer();
     setCard(createRandomTimeCard());
@@ -189,21 +197,20 @@ const JapaneseTimePracticeToolPage = () => {
     setIsRevealed(false);
 
     revealTimerRef.current = window.setTimeout(() => {
-      setIsRevealed(true);
+      revealCard();
     }, revealDelaySeconds * 1000);
 
     return () => {
       clearRevealTimer();
     };
-  }, [card.id, clearAutoAdvanceTimer, clearRevealTimer, revealDelaySeconds, stopPlayback]);
-
-  useEffect(() => {
-    if (!isRevealed || !settings.autoPlayAudio) return;
-
-    playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
-    });
-  }, [isRevealed, playCurrentCardAudio, settings.autoPlayAudio]);
+  }, [
+    card.id,
+    clearAutoAdvanceTimer,
+    clearRevealTimer,
+    revealCard,
+    revealDelaySeconds,
+    stopPlayback,
+  ]);
 
   useEffect(() => {
     clearAutoAdvanceTimer();
@@ -392,11 +399,7 @@ const JapaneseTimePracticeToolPage = () => {
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setIsRevealed(true)}
-            className="btn-outline h-[2.6rem] px-4 py-0"
-          >
+          <button type="button" onClick={revealCard} className="btn-outline h-[2.6rem] px-4 py-0">
             Reveal Now
           </button>
 
