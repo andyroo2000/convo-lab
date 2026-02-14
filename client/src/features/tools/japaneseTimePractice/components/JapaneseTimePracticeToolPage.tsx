@@ -333,23 +333,6 @@ const JapaneseTimePracticeToolPage = () => {
             </div>
           </div>
           <div className="retro-clock-radio-controls">
-            <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
-              <span className="retro-clock-radio-control-label">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(volumeLevel * 100)}
-                onChange={(event) => {
-                  const nextVolume = Number(event.target.value) / 100;
-                  setVolumeLevel(nextVolume);
-                  playbackRef.current?.setVolume(nextVolume);
-                }}
-                className="retro-clock-radio-volume-slider"
-                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
-              />
-            </div>
             <div className="retro-clock-radio-transport">
               <div className="retro-clock-radio-autoplay-stack">
                 <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
@@ -370,6 +353,23 @@ const JapaneseTimePracticeToolPage = () => {
               >
                 {nextButtonLabel}
               </button>
+            </div>
+            <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
+              <span className="retro-clock-radio-control-label">Volume</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(volumeLevel * 100)}
+                onChange={(event) => {
+                  const nextVolume = Number(event.target.value) / 100;
+                  setVolumeLevel(nextVolume);
+                  playbackRef.current?.setVolume(nextVolume);
+                }}
+                className="retro-clock-radio-volume-slider"
+                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
+              />
             </div>
             <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">
               <span className="retro-clock-radio-control-label">

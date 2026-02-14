@@ -3378,7 +3378,7 @@
 
 .retro-clock-radio-controls {
   display: grid;
-  grid-template-columns: minmax(48px, 62px) minmax(0, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 170px) minmax(0, 1.2fr);
   align-items: end;
   gap: 0.7rem;
 }
@@ -3386,16 +3386,14 @@
 .retro-clock-radio-volume {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   gap: 0.28rem;
 }
 
 .retro-clock-radio-volume-slider {
-  width: 96px;
+  width: 100%;
   height: 14px;
   margin: 0;
-  transform: rotate(-90deg);
-  transform-origin: center;
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
@@ -3543,15 +3541,13 @@
   }
 
   .retro-clock-radio-volume {
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .retro-clock-radio-volume-slider {
     width: 100%;
     height: 14px;
-    transform: none;
-    transform-origin: initial;
     -webkit-appearance: none;
     appearance: none;
   }
