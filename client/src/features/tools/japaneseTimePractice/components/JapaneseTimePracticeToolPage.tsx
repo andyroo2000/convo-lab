@@ -429,6 +429,10 @@ const JapaneseTimePracticeToolPage = () => {
           </div>
         </div>
 
+        <p className="mt-3 text-sm font-semibold leading-snug text-[#5a4523]">
+          Use Show Answer + Next for manual practice at your pace. Switch to Auto-Play to get a
+          nonstop quiz loop on the selected pause length.
+        </p>
         {playbackHint && <p className="mt-3 text-sm text-[#9e4c2a]">{playbackHint}</p>}
       </section>
     </div>
