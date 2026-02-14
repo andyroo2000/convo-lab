@@ -100,20 +100,10 @@ const JapaneseTimePracticeToolPage = () => {
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
   const shouldShowScript = isRevealed;
-  let loopStatus = 'Power off';
-  if (isPowerOn && isRevealed && isPlaying) {
-    loopStatus = 'Revealed · playing';
-  } else if (isPowerOn && isRevealed) {
-    if (countdownSeconds !== null) {
-      loopStatus = `Revealed · replaying in ${countdownSeconds}s`;
-    } else {
-      loopStatus = 'Revealed';
-    }
-  } else if (isPowerOn) {
-    const seconds = countdownSeconds ?? pauseSeconds;
-    loopStatus = `Waiting ${seconds}s before reveal`;
-  }
-  const statusText = loopStatus;
+  const statusText =
+    isPowerOn && isRevealed && !isPlaying && countdownSeconds !== null
+      ? `replaying in ${countdownSeconds}s`
+      : '';
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
@@ -319,7 +309,7 @@ const JapaneseTimePracticeToolPage = () => {
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
               <div className="retro-clock-radio-glow" />
-              <p className="retro-clock-radio-status">{statusText}</p>
+              {statusText && <p className="retro-clock-radio-status">{statusText}</p>}
               {shouldShowScript ? (
                 <p className="japanese-text retro-clock-radio-script">
                   <UnitRubyPart
