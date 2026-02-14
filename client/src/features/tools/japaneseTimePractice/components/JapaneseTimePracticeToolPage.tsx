@@ -247,6 +247,17 @@ const JapaneseTimePracticeToolPage = () => {
       </section>
 
       <section className="card retro-paper-panel">
+        <div className="mb-4 space-y-2">
+          <p className="retro-headline text-lg sm:text-xl">Clock Radio Drill</p>
+          <p className="text-sm text-[#2f4f73] sm:text-base">
+            Press power and train like an old-school radio quiz: read the clock, wait for the
+            reveal, then hear the Japanese.
+          </p>
+          <p className="text-xs uppercase tracking-[0.08em] text-[#4e3d21] sm:text-sm">
+            Power toggles the loop. Pause knob cycles 3s / 5s / 8s.
+          </p>
+        </div>
+
         <div className="retro-clock-radio-shell">
           <div className="retro-clock-radio-control">
             <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
