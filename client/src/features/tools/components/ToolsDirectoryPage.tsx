@@ -53,7 +53,7 @@ const ToolsDirectoryPage = () => {
         <article className="card retro-paper-panel">
           <h2 className="retro-headline text-xl">Japanese Time Trainer</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
-            Practice random times with delayed reveal, audio playback, and FSRS or random mode.
+            Train time recognition with a clock-radio autoplay loop, delayed reveal, and audio.
           </p>
 
           <div className="mt-4">

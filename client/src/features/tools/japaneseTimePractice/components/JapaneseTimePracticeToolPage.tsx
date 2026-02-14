@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Play, Radio, RotateCcw, SkipForward, Volume2 } from 'lucide-react';
 
 import {
   generateJapaneseDateTimeReading,
@@ -11,19 +10,7 @@ import {
   playAudioClipSequence,
   type AudioSequencePlayback,
 } from '../../japaneseDate/logic/preRenderedTimeAudio';
-import {
-  createInitialFsrsSessionState,
-  pickNextFsrsCard,
-  reviewFsrsCard,
-  type FsrsGrade,
-  type FsrsSessionState,
-} from '../logic/fsrsSession';
-import {
-  createRandomTimeCard,
-  DEFAULT_TIME_PRACTICE_SETTINGS,
-  type TimePracticeCard,
-  type TimePracticeMode,
-} from '../logic/types';
+import { createRandomTimeCard, type TimePracticeCard } from '../logic/types';
 
 interface RubyPartProps {
   script: string;
@@ -32,6 +19,8 @@ interface RubyPartProps {
 }
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
+const REVEAL_DELAY_SECONDS = 5;
+const REVEAL_HOLD_SECONDS = 5;
 
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
@@ -78,13 +67,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 };
 
 const JapaneseTimePracticeToolPage = () => {
-  const [mode, setMode] = useState<TimePracticeMode>('random');
   const [card, setCard] = useState<TimePracticeCard>(() => createRandomTimeCard());
-  const [settings, setSettings] = useState(DEFAULT_TIME_PRACTICE_SETTINGS);
-  const [fsrsState, setFsrsState] = useState<FsrsSessionState>(createInitialFsrsSessionState);
+  const [isPowerOn, setIsPowerOn] = useState(true);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [lastGrade, setLastGrade] = useState<FsrsGrade | null>(null);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
@@ -106,9 +92,13 @@ const JapaneseTimePracticeToolPage = () => {
   );
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
-  const revealDelaySeconds = mode === 'fsrs' ? 3 : settings.revealDelaySeconds;
-  const shouldShowFurigana = isRevealed && (mode === 'fsrs' ? true : settings.showFurigana);
-  const shouldShowScript = settings.displayMode === 'script' || isRevealed;
+  const shouldShowScript = isRevealed;
+  let loopStatus = 'Power off.';
+  if (isPowerOn && isRevealed) {
+    loopStatus = `Revealed. Replaying in ${REVEAL_HOLD_SECONDS}s.`;
+  } else if (isPowerOn) {
+    loopStatus = `Waiting ${REVEAL_DELAY_SECONDS}s pause before reveal.`;
+  }
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
@@ -163,60 +153,42 @@ const JapaneseTimePracticeToolPage = () => {
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    if (!settings.autoPlayAudio) return;
     playCurrentCardAudio().catch(() => {
       setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
     });
-  }, [playCurrentCardAudio, settings.autoPlayAudio]);
-
-  const moveToNextRandomCard = useCallback(() => {
-    clearAutoAdvanceTimer();
-    setCard(createRandomTimeCard());
-  }, [clearAutoAdvanceTimer]);
-
-  const moveToNextFsrsCard = useCallback(
-    (stateSnapshot: FsrsSessionState = fsrsState, now: Date = new Date()) => {
-      const next = pickNextFsrsCard(stateSnapshot, now, settings.maxNewCardsPerDay);
-      setCard(next);
-    },
-    [fsrsState, settings.maxNewCardsPerDay]
-  );
-
-  useEffect(() => {
-    if (mode === 'fsrs') {
-      moveToNextFsrsCard();
-    } else {
-      setCard(createRandomTimeCard());
-    }
-  }, [mode, moveToNextFsrsCard]);
+  }, [playCurrentCardAudio]);
 
   useEffect(() => {
     clearRevealTimer();
     clearAutoAdvanceTimer();
     stopPlayback();
     setIsRevealed(false);
+    if (!isPowerOn) return undefined;
 
     revealTimerRef.current = window.setTimeout(() => {
       revealCard();
-    }, revealDelaySeconds * 1000);
+    }, REVEAL_DELAY_SECONDS * 1000);
 
     return () => {
       clearRevealTimer();
     };
-  }, [
-    card.id,
-    clearAutoAdvanceTimer,
-    clearRevealTimer,
-    revealCard,
-    revealDelaySeconds,
-    stopPlayback,
-  ]);
+  }, [card.id, clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, revealCard, stopPlayback]);
+
+  useEffect(() => {
+    if (isPowerOn) {
+      setCard(createRandomTimeCard());
+      return;
+    }
+
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    stopPlayback();
+    setIsRevealed(false);
+  }, [clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, stopPlayback]);
 
   useEffect(() => {
     clearAutoAdvanceTimer();
-    if (mode !== 'random' || !settings.randomAutoLoop || !isRevealed) {
-      return undefined;
-    }
+    if (!isPowerOn || !isRevealed) return undefined;
 
     let cancelled = false;
 
@@ -227,26 +199,14 @@ const JapaneseTimePracticeToolPage = () => {
         }
       };
 
-      if (!settings.autoPlayAudio) {
-        advanceToNextCard();
-        return;
-      }
-
       playCurrentCardAudio().then(advanceToNextCard).catch(advanceToNextCard);
-    }, 5000);
+    }, REVEAL_HOLD_SECONDS * 1000);
 
     return () => {
       cancelled = true;
       clearAutoAdvanceTimer();
     };
-  }, [
-    clearAutoAdvanceTimer,
-    isRevealed,
-    mode,
-    playCurrentCardAudio,
-    settings.autoPlayAudio,
-    settings.randomAutoLoop,
-  ]);
+  }, [clearAutoAdvanceTimer, isPowerOn, isRevealed, playCurrentCardAudio]);
 
   useEffect(
     () => () => {
@@ -257,14 +217,6 @@ const JapaneseTimePracticeToolPage = () => {
     [clearAutoAdvanceTimer, clearRevealTimer, stopPlayback]
   );
 
-  const handleGrade = (grade: FsrsGrade) => {
-    const now = new Date();
-    const nextState = reviewFsrsCard(fsrsState, card, grade, now);
-    setFsrsState(nextState);
-    setLastGrade(grade);
-    moveToNextFsrsCard(nextState, now);
-  };
-
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
@@ -274,106 +226,23 @@ const JapaneseTimePracticeToolPage = () => {
             日本語の時刻練習
           </p>
         </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setMode('random')}
-            className={`btn-outline h-[2.6rem] px-4 py-0 ${mode === 'random' ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
-          >
-            Random Flow
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('fsrs')}
-            className={`btn-outline h-[2.6rem] px-4 py-0 ${mode === 'fsrs' ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
-          >
-            FSRS Practice
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <div>
-            <select
-              id="time-practice-display-mode"
-              className="input h-[2.9rem]"
-              value={settings.displayMode}
-              onChange={(event) =>
-                setSettings((current) => ({
-                  ...current,
-                  displayMode: event.target.value === 'digital' ? 'digital' : 'script',
-                }))
-              }
-            >
-              <option value="script">Script + Kanji</option>
-              <option value="digital">Digital Clock</option>
-            </select>
-          </div>
-
-          {mode === 'random' ? (
-            <>
-              <div>
-                <select
-                  id="time-practice-reveal-delay"
-                  className="input h-[2.9rem]"
-                  value={settings.revealDelaySeconds}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      revealDelaySeconds: Number.parseInt(event.target.value, 10) || 5,
-                    }))
-                  }
-                >
-                  {[2, 3, 4, 5, 6, 7, 8].map((value) => (
-                    <option key={value} value={value}>
-                      {value}s pause
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setSettings((current) => ({
-                      ...current,
-                      showFurigana: !current.showFurigana,
-                    }))
-                  }
-                  className={`btn-outline h-[2.9rem] w-full py-0 ${settings.showFurigana ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
-                >
-                  {settings.showFurigana ? 'Hide Furigana' : 'Show Furigana'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div>
-              <input
-                id="time-practice-max-new"
-                type="number"
-                min={1}
-                max={200}
-                className="input h-[2.9rem]"
-                value={settings.maxNewCardsPerDay}
-                onChange={(event) =>
-                  setSettings((current) => ({
-                    ...current,
-                    maxNewCardsPerDay: Math.max(
-                      1,
-                      Math.min(200, Number.parseInt(event.target.value, 10) || 20)
-                    ),
-                  }))
-                }
-              />
-            </div>
-          )}
-        </div>
       </section>
 
       <section className="card retro-paper-panel">
         <div className="retro-clock-radio-shell">
-          <div className="retro-clock-radio-knob retro-clock-radio-knob-left" />
+          <div className="retro-clock-radio-control">
+            <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
+            <span className="retro-clock-radio-control-label">Power</span>
+            <button
+              type="button"
+              onClick={() => setIsPowerOn((current) => !current)}
+              className="retro-clock-radio-knob retro-clock-radio-knob-button"
+              aria-pressed={isPowerOn}
+            />
+            <span className="retro-clock-radio-control-sub">
+              {isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
+            </span>
+          </div>
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
               <div className="retro-clock-radio-glow" />
@@ -382,12 +251,12 @@ const JapaneseTimePracticeToolPage = () => {
                   <UnitRubyPart
                     script={reading.parts.hourScript}
                     kana={reading.parts.hourKana}
-                    showFurigana={shouldShowFurigana}
+                    showFurigana
                   />
                   <UnitRubyPart
                     script={reading.parts.minuteScript}
                     kana={reading.parts.minuteKana}
-                    showFurigana={shouldShowFurigana}
+                    showFurigana
                   />
                 </p>
               ) : (
@@ -395,121 +264,17 @@ const JapaneseTimePracticeToolPage = () => {
               )}
             </div>
           </div>
-          <div className="retro-clock-radio-knob retro-clock-radio-knob-right" />
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <button type="button" onClick={revealCard} className="btn-outline h-[2.6rem] px-4 py-0">
-            Reveal Now
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              playCurrentCardAudio().catch(() => {
-                setPlaybackHint('Playback failed. Try replay.');
-              });
-            }}
-            className={`btn-primary inline-flex h-[2.6rem] items-center gap-2 px-4 py-0 ${isPlaying ? 'animate-pulse' : ''}`}
-          >
-            <Volume2 className="h-4 w-4" />
-            {isPlaying ? 'Playing' : 'Replay'}
-          </button>
-
-          {mode === 'random' ? (
-            <button
-              type="button"
-              onClick={() =>
-                setSettings((current) => ({
-                  ...current,
-                  randomAutoLoop: !current.randomAutoLoop,
-                }))
-              }
-              className="btn-outline h-[2.6rem] px-4 py-0"
-            >
-              {settings.randomAutoLoop ? 'Stop Auto Play' : 'Start Auto Play'}
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={mode === 'random' ? moveToNextRandomCard : () => moveToNextFsrsCard()}
-            className="btn-outline inline-flex h-[2.6rem] items-center gap-2 px-4 py-0"
-          >
-            <RotateCcw className="h-4 w-4" />
-            New Time
-          </button>
-        </div>
-
-        <div className="mt-4 border-t border-[#173b6530] pt-4">
-          {mode === 'fsrs' ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => handleGrade('again')}
-                className="btn-outline h-[2.8rem] min-w-[6rem] py-0"
-              >
-                Again
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGrade('hard')}
-                className="btn-outline h-[2.8rem] min-w-[6rem] py-0"
-              >
-                Hard
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGrade('good')}
-                className="btn-outline h-[2.8rem] min-w-[6rem] py-0"
-              >
-                Good
-              </button>
-              <button
-                type="button"
-                onClick={() => handleGrade('easy')}
-                className="btn-outline h-[2.8rem] min-w-[6rem] py-0"
-              >
-                Easy
-              </button>
-              <p className="ml-auto text-sm text-[#2f4f73]">
-                {lastGrade ? `Last grade: ${lastGrade}` : 'Grade after reveal'}
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={moveToNextRandomCard}
-                className="btn-outline inline-flex h-[2.8rem] items-center gap-2 px-4 py-0"
-              >
-                <SkipForward className="h-4 w-4" />
-                Next
-              </button>
-              <p className="text-sm text-[#2f4f73]">
-                Random mode is separate from FSRS and does not affect scheduling.
-              </p>
-            </div>
-          )}
+          <div className="retro-clock-radio-control">
+            <span className="retro-clock-radio-control-label">Pause</span>
+            <div className="retro-clock-radio-knob" />
+            <span className="retro-clock-radio-control-sub">{REVEAL_DELAY_SECONDS}s</span>
+          </div>
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-[#2f4f73]">
-          <Radio className="h-4 w-4" />
-          <span>
-            {isRevealed
-              ? `Revealed after ${revealDelaySeconds}s pause.`
-              : `Waiting ${revealDelaySeconds}s pause before reveal.`}
-          </span>
-          {mode === 'random' && settings.randomAutoLoop && isRevealed && (
-            <span>Replay in 5s, then next card.</span>
-          )}
+          <span>{loopStatus}</span>
+          {isPlaying && <span>Playing audio...</span>}
           {playbackHint && <span className="text-[#9e4c2a]">{playbackHint}</span>}
-          {settings.autoPlayAudio && (
-            <span className="inline-flex items-center gap-1">
-              <Play className="h-3.5 w-3.5" />
-              Auto Play On
-            </span>
-          )}
         </div>
       </section>
     </div>
