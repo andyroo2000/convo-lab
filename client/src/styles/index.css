@@ -3442,7 +3442,19 @@
 .retro-clock-radio-transport {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
   gap: 0.45rem;
+}
+
+.retro-clock-radio-autoplay-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.24rem;
+}
+
+.retro-clock-radio-autoplay-stack .retro-clock-radio-led {
+  align-self: center;
 }
 
 .retro-clock-radio-action {

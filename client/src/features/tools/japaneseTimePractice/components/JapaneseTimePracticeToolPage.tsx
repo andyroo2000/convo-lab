@@ -351,14 +351,17 @@ const JapaneseTimePracticeToolPage = () => {
               />
             </div>
             <div className="retro-clock-radio-transport">
-              <button
-                type="button"
-                onClick={() => setIsPowerOn((current) => !current)}
-                className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
-                aria-pressed={isPowerOn}
-              >
-                {isPowerOn ? 'Stop' : 'Auto-Play'}
-              </button>
+              <div className="retro-clock-radio-autoplay-stack">
+                <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
+                <button
+                  type="button"
+                  onClick={() => setIsPowerOn((current) => !current)}
+                  className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
+                  aria-pressed={isPowerOn}
+                >
+                  {isPowerOn ? 'Stop' : 'Auto-Play'}
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={handleNext}
