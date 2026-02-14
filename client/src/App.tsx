@@ -20,7 +20,6 @@ const ClaimInvitePage = lazy(() => import('./pages/ClaimInvitePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const JapaneseDateToolPage = lazy(() => import('./pages/JapaneseDateToolPage'));
-const JapaneseTimeToolPage = lazy(() => import('./pages/JapaneseTimeToolPage'));
 const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePracticeToolPage'));
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
@@ -60,7 +59,10 @@ const App = () => (
                   <Route path="/tools" element={<ToolsPublicLayout />}>
                     <Route index element={<ToolsPage />} />
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route path="japanese-time" element={<JapaneseTimeToolPage />} />
+                    <Route
+                      path="japanese-time"
+                      element={<Navigate to="/tools/japanese-time-practice" replace />}
+                    />
                     <Route
                       path="japanese-time-practice"
                       element={<JapaneseTimePracticeToolPage />}
@@ -98,7 +100,10 @@ const App = () => (
                     {/* Tools */}
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route path="tools/japanese-time" element={<JapaneseTimeToolPage />} />
+                    <Route
+                      path="tools/japanese-time"
+                      element={<Navigate to="/app/tools/japanese-time-practice" replace />}
+                    />
                     <Route
                       path="tools/japanese-time-practice"
                       element={<JapaneseTimePracticeToolPage />}

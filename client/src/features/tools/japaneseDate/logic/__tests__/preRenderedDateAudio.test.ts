@@ -34,6 +34,15 @@ describe('preRenderedDateAudio', () => {
     expect(keys).toEqual(['year_2026', 'month_2', 'day_13']);
   });
 
+  it('can omit year clip URLs', () => {
+    const urls = buildDateAudioClipUrls({ year: 2026, month: 2, day: 13, includeYear: false });
+
+    expect(urls).toEqual([
+      '/tools-audio/japanese-date/google-kento-professional/date/month/02.mp3',
+      '/tools-audio/japanese-date/google-kento-professional/date/day/13.mp3',
+    ]);
+  });
+
   it('supports inclusive year boundaries', () => {
     expect(buildDateAudioClipUrls({ year: 1900, month: 1, day: 1 })[0]).toContain('/year/1900.mp3');
     expect(buildDateAudioClipUrls({ year: 2100, month: 12, day: 31 })[0]).toContain(

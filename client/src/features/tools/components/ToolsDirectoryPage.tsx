@@ -11,7 +11,8 @@ const ToolsDirectoryPage = () => {
       <section className="card retro-paper-panel">
         <h1 className="retro-headline text-2xl sm:text-3xl">ConvoLab Tools</h1>
         <p className="mt-2 text-base text-[#2f4f73]">
-          Fast, practical tools for Japanese learners. Start with standalone date and time reading.
+          Fast, practical tools for Japanese learners. Practice dates and time recognition with
+          standalone utilities.
         </p>
       </section>
 
@@ -25,23 +26,6 @@ const ToolsDirectoryPage = () => {
           <div className="mt-4">
             <Link
               to={`${toolsBasePath}/japanese-date`}
-              className="btn-primary inline-flex items-center gap-2"
-            >
-              Open
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </article>
-
-        <article className="card retro-paper-panel">
-          <h2 className="retro-headline text-xl">Japanese Time</h2>
-          <p className="mt-2 text-base text-[#2f4f73]">
-            Convert times into natural Japanese script with 12h/24h options and furigana.
-          </p>
-
-          <div className="mt-4">
-            <Link
-              to={`${toolsBasePath}/japanese-time`}
               className="btn-primary inline-flex items-center gap-2"
             >
               Open

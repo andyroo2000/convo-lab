@@ -4,6 +4,11 @@ type DateAudioSegmentArgs = {
   year: number;
   month: number;
   day: number;
+  includeYear?: boolean;
+};
+
+type DatePlaybackOptions = {
+  volume?: number;
 };
 
 const DATE_AUDIO_BASE_URL = '/tools-audio/japanese-date/google-kento-professional';
@@ -19,21 +24,29 @@ function assertRange(name: string, value: number, min: number, max: number): voi
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 
 export function buildDateAudioClipUrls(args: DateAudioSegmentArgs): string[] {
-  const { year, month, day } = args;
+  const { year, month, day, includeYear = true } = args;
 
   assertRange('year', year, MIN_YEAR, MAX_YEAR);
   assertRange('month', month, 1, 12);
   assertRange('day', day, 1, 31);
 
-  return [
-    `${DATE_AUDIO_BASE_URL}/date/year/${year}.mp3`,
+  const urls = [
     `${DATE_AUDIO_BASE_URL}/date/month/${toTwoDigits(month)}.mp3`,
     `${DATE_AUDIO_BASE_URL}/date/day/${toTwoDigits(day)}.mp3`,
   ];
+
+  if (includeYear) {
+    urls.unshift(`${DATE_AUDIO_BASE_URL}/date/year/${year}.mp3`);
+  }
+
+  return urls;
 }
 
-export function playDateAudioClipSequence(urls: string[]): AudioSequencePlayback {
-  return playAudioClipSequence(urls);
+export function playDateAudioClipSequence(
+  urls: string[],
+  options: DatePlaybackOptions = {}
+): AudioSequencePlayback {
+  return playAudioClipSequence(urls, options);
 }
 
 export function getDateAudioYearRange() {
