@@ -199,11 +199,20 @@ const JapaneseTimePracticeToolPage = () => {
 
   useEffect(() => {
     if (!isRevealed || !settings.autoPlayAudio) return;
+    if (mode === 'random' && settings.randomAutoLoop) return;
 
     playCurrentCardAudio().catch(() => {
       setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
     });
-  }, [isRevealed, playCurrentCardAudio, settings.autoPlayAudio]);
+  }, [isRevealed, mode, playCurrentCardAudio, settings.autoPlayAudio, settings.randomAutoLoop]);
+
+  useEffect(() => {
+    if (mode !== 'random' || !settings.autoPlayAudio) return;
+
+    playCurrentCardAudio().catch(() => {
+      setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
+    });
+  }, [card.id, mode, playCurrentCardAudio, settings.autoPlayAudio]);
 
   useEffect(() => {
     clearAutoAdvanceTimer();
@@ -211,14 +220,35 @@ const JapaneseTimePracticeToolPage = () => {
       return undefined;
     }
 
+    let cancelled = false;
+
     autoAdvanceTimerRef.current = window.setTimeout(() => {
-      setCard(createRandomTimeCard());
+      const advanceToNextCard = () => {
+        if (!cancelled) {
+          setCard(createRandomTimeCard());
+        }
+      };
+
+      if (!settings.autoPlayAudio) {
+        advanceToNextCard();
+        return;
+      }
+
+      playCurrentCardAudio().then(advanceToNextCard).catch(advanceToNextCard);
     }, 5000);
 
     return () => {
+      cancelled = true;
       clearAutoAdvanceTimer();
     };
-  }, [clearAutoAdvanceTimer, isRevealed, mode, settings.randomAutoLoop]);
+  }, [
+    clearAutoAdvanceTimer,
+    isRevealed,
+    mode,
+    playCurrentCardAudio,
+    settings.autoPlayAudio,
+    settings.randomAutoLoop,
+  ]);
 
   useEffect(
     () => () => {
@@ -250,17 +280,17 @@ const JapaneseTimePracticeToolPage = () => {
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setMode('fsrs')}
-            className={`btn-outline h-[2.6rem] px-4 py-0 ${mode === 'fsrs' ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
-          >
-            FSRS Practice
-          </button>
-          <button
-            type="button"
             onClick={() => setMode('random')}
             className={`btn-outline h-[2.6rem] px-4 py-0 ${mode === 'random' ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
           >
             Random Flow
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('fsrs')}
+            className={`btn-outline h-[2.6rem] px-4 py-0 ${mode === 'fsrs' ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
+          >
+            FSRS Practice
           </button>
         </div>
 
@@ -292,7 +322,7 @@ const JapaneseTimePracticeToolPage = () => {
                   onChange={(event) =>
                     setSettings((current) => ({
                       ...current,
-                      revealDelaySeconds: Number.parseInt(event.target.value, 10) || 3,
+                      revealDelaySeconds: Number.parseInt(event.target.value, 10) || 5,
                     }))
                   }
                 >
@@ -477,7 +507,7 @@ const JapaneseTimePracticeToolPage = () => {
               : `Waiting ${revealDelaySeconds}s pause before reveal.`}
           </span>
           {mode === 'random' && settings.randomAutoLoop && isRevealed && (
-            <span>Next card in 5s.</span>
+            <span>Replay in 5s, then next card.</span>
           )}
           {playbackHint && <span className="text-[#9e4c2a]">{playbackHint}</span>}
           {settings.autoPlayAudio && (
