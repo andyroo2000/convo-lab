@@ -104,7 +104,9 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 
 const JapaneseDateToolPage = () => {
   const now = useMemo(() => new Date(), []);
+  const { minYear, maxYear } = getDateAudioYearRange();
   const [dateValue, setDateValue] = useState(toLocalDateInputValue(now));
+  const [isUsingCurrentDate, setIsUsingCurrentDate] = useState(true);
   const [showFurigana, setShowFurigana] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
@@ -115,7 +117,6 @@ const JapaneseDateToolPage = () => {
     () => generateJapaneseDateTimeReading(localDateTime, { hourFormat: '12h' }),
     [localDateTime]
   );
-  const { minYear, maxYear } = getDateAudioYearRange();
 
   useEffect(
     () => () => {
@@ -125,6 +126,32 @@ const JapaneseDateToolPage = () => {
     },
     []
   );
+
+  useEffect(() => {
+    if (!isUsingCurrentDate) return undefined;
+
+    const syncCurrentDate = () => {
+      const nextDate = toLocalDateInputValue(new Date());
+      setDateValue((current) => (current === nextDate ? current : nextDate));
+    };
+
+    syncCurrentDate();
+    const intervalId = window.setInterval(syncCurrentDate, 30_000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isUsingCurrentDate]);
+
+  const handleManualDateChange = (value: string) => {
+    setDateValue(value);
+    setIsUsingCurrentDate(false);
+  };
+
+  const handleUseCurrentDate = () => {
+    setDateValue(toLocalDateInputValue(new Date()));
+    setIsUsingCurrentDate(true);
+  };
 
   const stopPlayback = () => {
     playbackRef.current?.stop();
@@ -195,8 +222,16 @@ const JapaneseDateToolPage = () => {
               value={dateValue}
               min={`${minYear}-01-01`}
               max={`${maxYear}-12-31`}
-              onChange={(event) => setDateValue(event.target.value)}
+              onChange={(event) => handleManualDateChange(event.target.value)}
             />
+            <button
+              type="button"
+              aria-pressed={isUsingCurrentDate}
+              onClick={handleUseCurrentDate}
+              className={`btn-outline retro-date-tool-format-btn mt-2 h-[2.75rem] w-full py-0 ${isUsingCurrentDate ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
+            >
+              Use Current Date
+            </button>
           </label>
         </div>
       </section>

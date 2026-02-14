@@ -91,13 +91,20 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 
-const JapaneseTimeToolPage = () => {
-  const now = useMemo(() => new Date(), []);
-  const [timeParts, setTimeParts] = useState(() => ({
+const getCurrentTimeSnapshot = () => {
+  const now = new Date();
+
+  return {
     hour24: now.getHours(),
     minute: now.getMinutes(),
-  }));
+    localDate: toLocalDateInputValue(now),
+  };
+};
+
+const JapaneseTimeToolPage = () => {
+  const [timeParts, setTimeParts] = useState(() => getCurrentTimeSnapshot());
   const [hourFormat, setHourFormat] = useState<JapaneseHourFormat>('12h');
+  const [isUsingCurrentTime, setIsUsingCurrentTime] = useState(true);
   const [showFurigana, setShowFurigana] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
@@ -105,14 +112,14 @@ const JapaneseTimeToolPage = () => {
   const hourInputRef = useRef<HTMLInputElement | null>(null);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
 
-  const localDate = useMemo(() => toLocalDateInputValue(now), [now]);
-  const currentPeriod = timeParts.hour24 < 12 ? 'AM' : 'PM';
-  const hour12 = timeParts.hour24 % 12 || 12;
-  const timeValue = `${toTwoDigits(timeParts.hour24)}:${toTwoDigits(timeParts.minute)}`;
+  const { hour24, minute, localDate } = timeParts;
+  const currentPeriod = hour24 < 12 ? 'AM' : 'PM';
+  const hour12 = hour24 % 12 || 12;
+  const timeValue = `${toTwoDigits(hour24)}:${toTwoDigits(minute)}`;
   const displayTime =
     hourFormat === '12h'
-      ? `${toTwoDigits(hour12)}:${toTwoDigits(timeParts.minute)} ${currentPeriod}`
-      : `${toTwoDigits(timeParts.hour24)}:${toTwoDigits(timeParts.minute)}`;
+      ? `${toTwoDigits(hour12)}:${toTwoDigits(minute)} ${currentPeriod}`
+      : `${toTwoDigits(hour24)}:${toTwoDigits(minute)}`;
 
   const localDateTime = useMemo(
     () => parseLocalDateTimeInput(localDate, timeValue),
@@ -148,6 +155,31 @@ const JapaneseTimeToolPage = () => {
     []
   );
 
+  useEffect(() => {
+    if (!isUsingCurrentTime) return undefined;
+
+    const syncCurrentTime = () => {
+      setTimeParts((current) => {
+        const next = getCurrentTimeSnapshot();
+        if (
+          current.hour24 === next.hour24 &&
+          current.minute === next.minute &&
+          current.localDate === next.localDate
+        ) {
+          return current;
+        }
+        return next;
+      });
+    };
+
+    syncCurrentTime();
+    const intervalId = window.setInterval(syncCurrentTime, 1000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isUsingCurrentTime]);
+
   const openTimePicker = () => {
     setIsTimePickerOpen(true);
     requestAnimationFrame(() => {
@@ -155,15 +187,26 @@ const JapaneseTimeToolPage = () => {
     });
   };
 
+  const handleManualTimeChange = () => {
+    setIsUsingCurrentTime(false);
+  };
+
+  const handleUseCurrentTime = () => {
+    setTimeParts(getCurrentTimeSnapshot());
+    setIsUsingCurrentTime(true);
+  };
+
   const updateMinute = (value: string) => {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
+    handleManualTimeChange();
     setTimeParts((current) => ({ ...current, minute: clamp(parsed, 0, 59) }));
   };
 
   const updateHour24 = (value: string) => {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
+    handleManualTimeChange();
     setTimeParts((current) => ({ ...current, hour24: clamp(parsed, 0, 23) }));
   };
 
@@ -171,6 +214,7 @@ const JapaneseTimeToolPage = () => {
     const parsed = Number.parseInt(value, 10);
     if (Number.isNaN(parsed)) return;
     const clampedHour12 = clamp(parsed, 1, 12);
+    handleManualTimeChange();
 
     setTimeParts((current) => {
       const nextHour24 = currentPeriod === 'AM' ? clampedHour12 % 12 : (clampedHour12 % 12) + 12;
@@ -182,6 +226,7 @@ const JapaneseTimeToolPage = () => {
   };
 
   const updatePeriod = (nextPeriod: 'AM' | 'PM') => {
+    handleManualTimeChange();
     setTimeParts((current) => {
       const currentHour12 = current.hour24 % 12 || 12;
       const nextHour24 = nextPeriod === 'AM' ? currentHour12 % 12 : (currentHour12 % 12) + 12;
@@ -193,6 +238,7 @@ const JapaneseTimeToolPage = () => {
   };
 
   const stepHour = (delta: number) => {
+    handleManualTimeChange();
     if (hourFormat === '12h') {
       const current = hour12;
       const next = ((current - 1 + delta + 12) % 12) + 1;
@@ -207,6 +253,7 @@ const JapaneseTimeToolPage = () => {
   };
 
   const stepMinute = (delta: number) => {
+    handleManualTimeChange();
     setTimeParts((current) => ({
       ...current,
       minute: (current.minute + delta + 60) % 60,
@@ -394,6 +441,14 @@ const JapaneseTimeToolPage = () => {
                 24h
               </button>
             </div>
+            <button
+              type="button"
+              aria-pressed={isUsingCurrentTime}
+              onClick={handleUseCurrentTime}
+              className={`btn-outline retro-date-tool-format-btn mt-2 h-[2.75rem] w-full py-0 ${isUsingCurrentTime ? 'bg-[#173b65] text-[#fbf5e0]' : ''}`}
+            >
+              Use Current Time
+            </button>
           </div>
         </div>
       </section>
