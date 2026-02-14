@@ -3432,6 +3432,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.32rem;
+  justify-self: end;
+  align-items: flex-end;
 }
 
 .retro-clock-radio-pause-options {
@@ -3443,10 +3445,11 @@
 .retro-clock-radio-pause-button {
   border: 1px solid #7a6135;
   border-radius: 0.5rem;
-  padding: 0.5rem 0;
+  min-width: 2.3rem;
+  padding: 0.34rem 0.2rem;
   background: linear-gradient(170deg, #eeddaf 0%, #d7c18d 100%);
   color: #46351a;
-  font-size: 0.76rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   cursor: pointer;
@@ -3499,6 +3502,11 @@
     writing-mode: horizontal-tb;
     -webkit-appearance: none;
     appearance: none;
+  }
+
+  .retro-clock-radio-pause-group {
+    justify-self: stretch;
+    align-items: flex-start;
   }
 
   .retro-clock-radio-action,

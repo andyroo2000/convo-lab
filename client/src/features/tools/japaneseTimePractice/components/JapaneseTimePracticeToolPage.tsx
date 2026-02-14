@@ -199,6 +199,8 @@ const JapaneseTimePracticeToolPage = () => {
     stopPlayback,
   ]);
 
+  const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
+
   useEffect(() => {
     clearAutoAdvanceTimer();
     clearRevealTimer();
@@ -339,7 +341,9 @@ const JapaneseTimePracticeToolPage = () => {
                 max={100}
                 value={Math.round(volumeLevel * 100)}
                 onChange={(event) => {
-                  setVolumeLevel(Number(event.target.value) / 100);
+                  const nextVolume = Number(event.target.value) / 100;
+                  setVolumeLevel(nextVolume);
+                  playbackRef.current?.setVolume(nextVolume);
                 }}
                 className="retro-clock-radio-volume-slider"
                 aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
@@ -352,15 +356,15 @@ const JapaneseTimePracticeToolPage = () => {
                 className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
                 aria-pressed={isPowerOn}
               >
-                {isPowerOn ? 'Stop' : 'Play'}
+                {isPowerOn ? 'Stop' : 'Auto-Play'}
               </button>
               <button
                 type="button"
                 onClick={handleNext}
                 className="retro-clock-radio-action"
-                aria-label="Advance to the next step"
+                aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
               >
-                Next
+                {nextButtonLabel}
               </button>
             </div>
             <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">

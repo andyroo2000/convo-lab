@@ -9,6 +9,7 @@ type TimeAudioSegmentArgs = {
 export type AudioSequencePlayback = {
   stop: () => void;
   finished: Promise<void>;
+  setVolume: (volume: number) => void;
 };
 
 type PlaybackOptions = {
@@ -25,11 +26,17 @@ function assertRange(name: string, value: number, min: number, max: number): voi
   }
 }
 
-function playSingleClip(url: string, abortSignal: AbortSignal, volume: number): Promise<void> {
+function playSingleClip(
+  url: string,
+  abortSignal: AbortSignal,
+  getVolume: () => number,
+  setActiveAudio: (audio: HTMLAudioElement | null) => void
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
     audio.preload = 'auto';
-    audio.volume = volume;
+    audio.volume = getVolume();
+    setActiveAudio(audio);
 
     let handleAbort: () => void = () => {};
     let handleEnded: () => void = () => {};
@@ -39,6 +46,7 @@ function playSingleClip(url: string, abortSignal: AbortSignal, volume: number): 
       abortSignal.removeEventListener('abort', handleAbort);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      setActiveAudio(null);
     };
 
     handleEnded = () => {
@@ -88,7 +96,8 @@ export function playAudioClipSequence(
   options: PlaybackOptions = {}
 ): AudioSequencePlayback {
   const abortController = new AbortController();
-  const volume = Math.max(0, Math.min(1, options.volume ?? 1));
+  let volume = Math.max(0, Math.min(1, options.volume ?? 1));
+  let activeAudio: HTMLAudioElement | null = null;
 
   const finished = urls.reduce<Promise<void>>(
     (sequence, url) =>
@@ -96,7 +105,14 @@ export function playAudioClipSequence(
         if (abortController.signal.aborted) {
           throw new DOMException('Playback aborted', 'AbortError');
         }
-        return playSingleClip(url, abortController.signal, volume);
+        return playSingleClip(
+          url,
+          abortController.signal,
+          () => volume,
+          (audio) => {
+            activeAudio = audio;
+          }
+        );
       }),
     Promise.resolve()
   );
@@ -106,5 +122,11 @@ export function playAudioClipSequence(
       abortController.abort();
     },
     finished,
+    setVolume: (nextVolume) => {
+      volume = Math.max(0, Math.min(1, nextVolume));
+      if (activeAudio) {
+        activeAudio.volume = volume;
+      }
+    },
   };
 }
