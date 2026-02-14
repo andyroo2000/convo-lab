@@ -80,6 +80,7 @@ const JapaneseTimePracticeToolPage = () => {
   const revealTimerRef = useRef<number | null>(null);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
+  const isFirstPowerOnRef = useRef(true);
 
   const localDate = useMemo(() => toLocalDateInputValue(new Date()), []);
   const timeValue = useMemo(
@@ -182,6 +183,12 @@ const JapaneseTimePracticeToolPage = () => {
     if (!isPowerOn) return undefined;
 
     let cancelled = false;
+
+    if (!isRevealed && isFirstPowerOnRef.current) {
+      isFirstPowerOnRef.current = false;
+      revealCard();
+      return undefined;
+    }
 
     if (isRevealed) {
       autoAdvanceTimerRef.current = window.setTimeout(() => {
