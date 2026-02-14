@@ -3273,10 +3273,9 @@
 
 .retro-clock-radio-shell {
   position: relative;
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) 52px;
-  align-items: center;
-  gap: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
   padding: clamp(0.7rem, 2.3vw, 1rem);
   border-radius: 1.2rem;
   background: linear-gradient(160deg, #f4e7bf 0%, #dbc58f 100%);
@@ -3284,20 +3283,6 @@
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.36),
     0 10px 22px rgba(58, 41, 16, 0.22);
-}
-
-.retro-clock-radio-control {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-}
-
-.retro-clock-radio-control.is-power {
-  align-self: stretch;
-  justify-content: flex-start;
-  padding-block: 0.08rem;
 }
 
 .retro-clock-radio-body {
@@ -3384,24 +3369,6 @@
   opacity: 0.95;
 }
 
-.retro-clock-radio-knob {
-  width: 100%;
-  max-width: 46px;
-  aspect-ratio: 1 / 1;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.22), transparent 34%),
-    linear-gradient(150deg, #444 0%, #1f1f1f 100%);
-  border: 2px solid #0f0f0f;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 7px 10px rgba(15, 13, 10, 0.25);
-}
-
-.retro-clock-radio-knob-button {
-  cursor: pointer;
-}
-
 .retro-clock-radio-control-label {
   font-size: 0.65rem;
   letter-spacing: 0.08em;
@@ -3409,46 +3376,86 @@
   color: #4e3d21;
 }
 
-.retro-clock-radio-power-meta {
-  display: inline-flex;
+.retro-clock-radio-controls {
+  display: grid;
+  grid-template-columns: minmax(48px, 62px) minmax(0, 1fr) minmax(0, 1.2fr);
+  align-items: end;
+  gap: 0.7rem;
+}
+
+.retro-clock-radio-volume {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 0.28rem;
 }
 
-.retro-clock-radio-control-sub {
-  text-align: center;
-  font-size: 0.58rem;
-  line-height: 1.15;
-  color: #5e4a28;
+.retro-clock-radio-volume-slider {
+  width: 12px;
+  height: 88px;
+  margin: 0;
+  writing-mode: bt-lr;
+  -webkit-appearance: slider-vertical;
+  appearance: auto;
+  accent-color: #4b3818;
 }
 
-.retro-clock-radio-mini-button {
-  margin-top: 0.1rem;
-  min-width: 42px;
-  padding: 0.16rem 0.35rem;
-  border-radius: 999px;
-  border: 1px solid #7e6637;
-  background: linear-gradient(170deg, #e8d8af 0%, #d6be8b 100%);
-  color: #47371d;
-  font-size: 0.49rem;
-  line-height: 1;
-  letter-spacing: 0.06em;
+.retro-clock-radio-transport {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.retro-clock-radio-action {
+  border: 1px solid #6c552e;
+  border-radius: 0.55rem;
+  padding: 0.52rem 0.6rem;
+  background: linear-gradient(170deg, #efe0b9 0%, #d9c491 100%);
+  color: #3d2f17;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 700;
   cursor: pointer;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    0 2px 3px rgba(48, 34, 12, 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 4px rgba(53, 38, 13, 0.16);
 }
 
-.retro-clock-radio-control.is-power .retro-clock-radio-mini-button {
-  margin-top: auto;
+.retro-clock-radio-action.is-active {
+  background: linear-gradient(170deg, #41331a 0%, #2a2214 100%);
+  border-color: #1f170d;
+  color: #f3e3be;
 }
 
-.retro-clock-radio-mini-button.is-active {
-  background: linear-gradient(170deg, #4a3d23 0%, #2f2718 100%);
-  border-color: #1e170d;
-  color: #ead9ae;
+.retro-clock-radio-pause-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.retro-clock-radio-pause-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.retro-clock-radio-pause-button {
+  border: 1px solid #7a6135;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0;
+  background: linear-gradient(170deg, #eeddaf 0%, #d7c18d 100%);
+  color: #46351a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.retro-clock-radio-pause-button.is-active {
+  background: linear-gradient(170deg, #3e321b 0%, #282113 100%);
+  border-color: #1f180e;
+  color: #f3e2be;
 }
 
 .retro-clock-radio-led {
@@ -3476,24 +3483,27 @@
 }
 
 @media (max-width: 768px) {
-  .retro-clock-radio-shell {
-    grid-template-columns: 40px minmax(0, 1fr) 40px;
-    gap: 0.5rem;
-    border-radius: 0.95rem;
+  .retro-clock-radio-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
-  .retro-clock-radio-knob {
-    max-width: 36px;
+  .retro-clock-radio-volume {
+    flex-direction: row;
+    align-items: center;
   }
 
-  .retro-clock-radio-control-sub {
-    font-size: 0.52rem;
+  .retro-clock-radio-volume-slider {
+    width: 100%;
+    height: 14px;
+    writing-mode: horizontal-tb;
+    -webkit-appearance: none;
+    appearance: none;
   }
 
-  .retro-clock-radio-mini-button {
-    min-width: 36px;
-    font-size: 0.44rem;
-    padding: 0.15rem 0.3rem;
+  .retro-clock-radio-action,
+  .retro-clock-radio-pause-button {
+    padding: 0.58rem 0.5rem;
   }
 
   .retro-clock-radio-digital {

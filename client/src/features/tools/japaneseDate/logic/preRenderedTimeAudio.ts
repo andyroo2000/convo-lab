@@ -11,6 +11,10 @@ export type AudioSequencePlayback = {
   finished: Promise<void>;
 };
 
+type PlaybackOptions = {
+  volume?: number;
+};
+
 const TIME_AUDIO_BASE_URL = '/tools-audio/japanese-time/google-kento-professional';
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
@@ -21,10 +25,11 @@ function assertRange(name: string, value: number, min: number, max: number): voi
   }
 }
 
-function playSingleClip(url: string, abortSignal: AbortSignal): Promise<void> {
+function playSingleClip(url: string, abortSignal: AbortSignal, volume: number): Promise<void> {
   return new Promise((resolve, reject) => {
     const audio = new Audio(url);
     audio.preload = 'auto';
+    audio.volume = volume;
 
     let handleAbort: () => void = () => {};
     let handleEnded: () => void = () => {};
@@ -78,8 +83,12 @@ export function buildTimeAudioClipUrls(args: TimeAudioSegmentArgs): string[] {
   return [hourPath, minutePath];
 }
 
-export function playAudioClipSequence(urls: string[]): AudioSequencePlayback {
+export function playAudioClipSequence(
+  urls: string[],
+  options: PlaybackOptions = {}
+): AudioSequencePlayback {
   const abortController = new AbortController();
+  const volume = Math.max(0, Math.min(1, options.volume ?? 1));
 
   const finished = urls.reduce<Promise<void>>(
     (sequence, url) =>
@@ -87,7 +96,7 @@ export function playAudioClipSequence(urls: string[]): AudioSequencePlayback {
         if (abortController.signal.aborted) {
           throw new DOMException('Playback aborted', 'AbortError');
         }
-        return playSingleClip(url, abortController.signal);
+        return playSingleClip(url, abortController.signal, volume);
       }),
     Promise.resolve()
   );

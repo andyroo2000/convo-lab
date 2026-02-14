@@ -19,7 +19,7 @@ interface RubyPartProps {
 }
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
-const PAUSE_OPTIONS = [3, 5, 8, 12] as const;
+const PAUSE_OPTIONS = [5, 8, 12] as const;
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
   return createTimeCard(now.getHours(), now.getMinutes());
@@ -72,7 +72,7 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 const JapaneseTimePracticeToolPage = () => {
   const [card, setCard] = useState<TimePracticeCard>(createCurrentLocalTimeCard);
   const [isPowerOn, setIsPowerOn] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState<number>(1);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(12);
@@ -137,10 +137,6 @@ const JapaneseTimePracticeToolPage = () => {
 
   const playCurrentCardAudio = useCallback(async () => {
     stopPlayback();
-    if (isMuted) {
-      setPlaybackHint(null);
-      return;
-    }
 
     let currentPlayback: AudioSequencePlayback | null = null;
 
@@ -151,7 +147,7 @@ const JapaneseTimePracticeToolPage = () => {
         hourFormat: '24h',
       });
 
-      const playback = playAudioClipSequence(urls);
+      const playback = playAudioClipSequence(urls, { volume: volumeLevel });
       currentPlayback = playback;
       playbackRef.current = playback;
       setIsPlaying(true);
@@ -160,7 +156,7 @@ const JapaneseTimePracticeToolPage = () => {
     } catch (error) {
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
       if (!isAbort) {
-        setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
+        setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
       }
     } finally {
       if (currentPlayback && playbackRef.current === currentPlayback) {
@@ -168,12 +164,12 @@ const JapaneseTimePracticeToolPage = () => {
       }
       setIsPlaying(false);
     }
-  }, [card.hour24, card.minute, isMuted, stopPlayback]);
+  }, [card.hour24, card.minute, stopPlayback, volumeLevel]);
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
     playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Autoplay was blocked. Tap replay to hear audio.');
+      setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
     });
   }, [playCurrentCardAudio]);
 
@@ -182,13 +178,26 @@ const JapaneseTimePracticeToolPage = () => {
     setCard(createRandomTimeCard());
   }, []);
 
-  const cyclePause = useCallback(() => {
-    setPauseSeconds((current) => {
-      const index = PAUSE_OPTIONS.findIndex((value) => value === current);
-      const nextIndex = index === -1 ? 0 : (index + 1) % PAUSE_OPTIONS.length;
-      return PAUSE_OPTIONS[nextIndex];
-    });
-  }, []);
+  const handleNext = useCallback(() => {
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    setCountdownSeconds(null);
+    stopPlayback();
+    if (isRevealed) {
+      advanceToNextCard();
+      return;
+    }
+    revealCard();
+  }, [
+    advanceToNextCard,
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearRevealTimer,
+    isRevealed,
+    revealCard,
+    stopPlayback,
+  ]);
 
   useEffect(() => {
     clearAutoAdvanceTimer();
@@ -299,28 +308,6 @@ const JapaneseTimePracticeToolPage = () => {
         </div>
 
         <div className="retro-clock-radio-shell">
-          <div className="retro-clock-radio-control is-power">
-            <button
-              type="button"
-              onClick={() => setIsPowerOn((current) => !current)}
-              className="retro-clock-radio-knob retro-clock-radio-knob-button"
-              aria-label={isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
-              aria-pressed={isPowerOn}
-            />
-            <div className="retro-clock-radio-power-meta">
-              <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
-              <span className="retro-clock-radio-control-label">Power</span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setIsMuted((current) => !current)}
-              className={`retro-clock-radio-mini-button ${isMuted ? 'is-active' : ''}`}
-              aria-label={isMuted ? 'Unmute audio' : 'Mute audio'}
-              aria-pressed={isMuted}
-            >
-              {isMuted ? 'Unmute' : 'Mute'}
-            </button>
-          </div>
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
               <div className="retro-clock-radio-glow" />
@@ -343,15 +330,55 @@ const JapaneseTimePracticeToolPage = () => {
               )}
             </div>
           </div>
-          <div className="retro-clock-radio-control">
-            <span className="retro-clock-radio-control-label">Pause Length</span>
-            <button
-              type="button"
-              onClick={cyclePause}
-              className="retro-clock-radio-knob retro-clock-radio-knob-button"
-              aria-label={`Pause length ${pauseSeconds} seconds between items`}
-            />
-            <span className="retro-clock-radio-control-sub">{pauseSeconds}s</span>
+          <div className="retro-clock-radio-controls">
+            <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
+              <span className="retro-clock-radio-control-label">Volume</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(volumeLevel * 100)}
+                onChange={(event) => {
+                  setVolumeLevel(Number(event.target.value) / 100);
+                }}
+                className="retro-clock-radio-volume-slider"
+                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
+              />
+            </div>
+            <div className="retro-clock-radio-transport">
+              <button
+                type="button"
+                onClick={() => setIsPowerOn((current) => !current)}
+                className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
+                aria-pressed={isPowerOn}
+              >
+                {isPowerOn ? 'Stop' : 'Play'}
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="retro-clock-radio-action"
+                aria-label="Advance to the next step"
+              >
+                Next
+              </button>
+            </div>
+            <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">
+              <span className="retro-clock-radio-control-label">Pause Length</span>
+              <div className="retro-clock-radio-pause-options">
+                {PAUSE_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setPauseSeconds(option)}
+                    className={`retro-clock-radio-pause-button ${pauseSeconds === option ? 'is-active' : ''}`}
+                    aria-pressed={pauseSeconds === option}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
