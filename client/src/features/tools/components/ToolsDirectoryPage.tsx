@@ -15,7 +15,7 @@ const ToolsDirectoryPage = () => {
         </p>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2">
+      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <article className="card retro-paper-panel">
           <h2 className="retro-headline text-xl">Japanese Date</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
@@ -42,6 +42,23 @@ const ToolsDirectoryPage = () => {
           <div className="mt-4">
             <Link
               to={`${toolsBasePath}/japanese-time`}
+              className="btn-primary inline-flex items-center gap-2"
+            >
+              Open
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </article>
+
+        <article className="card retro-paper-panel">
+          <h2 className="retro-headline text-xl">Japanese Time Trainer</h2>
+          <p className="mt-2 text-base text-[#2f4f73]">
+            Practice random times with delayed reveal, audio playback, and FSRS or random mode.
+          </p>
+
+          <div className="mt-4">
+            <Link
+              to={`${toolsBasePath}/japanese-time-practice`}
               className="btn-primary inline-flex items-center gap-2"
             >
               Open

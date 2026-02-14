@@ -3265,6 +3265,112 @@
   }
 }
 
+.retro-clock-radio-shell {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 0.85rem;
+  padding: clamp(0.7rem, 2.3vw, 1rem);
+  border-radius: 1.2rem;
+  background: linear-gradient(160deg, #f4e7bf 0%, #dbc58f 100%);
+  border: 2px solid #b29c69;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 10px 22px rgba(58, 41, 16, 0.22);
+}
+
+.retro-clock-radio-body {
+  border-radius: 0.95rem;
+  padding: clamp(0.48rem, 1.8vw, 0.75rem);
+  background: linear-gradient(170deg, #e6d2a1 0%, #cfb57f 100%);
+  border: 1px solid rgba(119, 90, 40, 0.38);
+}
+
+.retro-clock-radio-window {
+  position: relative;
+  min-height: clamp(7.1rem, 20vw, 9.3rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 0.8rem;
+  border: 2px solid rgba(230, 216, 187, 0.56);
+  background:
+    linear-gradient(180deg, rgba(33, 24, 11, 0.9) 0%, rgba(9, 8, 8, 0.94) 100%),
+    radial-gradient(circle at 16% 24%, rgba(255, 167, 38, 0.26), transparent 42%);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 206, 111, 0.11),
+    inset 0 26px 46px rgba(255, 140, 0, 0.12);
+  overflow: hidden;
+}
+
+.retro-clock-radio-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 52%, rgba(255, 169, 52, 0.2), transparent 36%),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.07) 0%,
+      rgba(255, 255, 255, 0) 46%
+    );
+  mix-blend-mode: screen;
+}
+
+.retro-clock-radio-script {
+  margin: 0;
+  color: #f8b339;
+  text-shadow:
+    0 0 14px rgba(255, 160, 35, 0.35),
+    0 2px 6px rgba(0, 0, 0, 0.56);
+  font-size: clamp(2.25rem, 5vw, 3.7rem);
+  line-height: 1.15;
+}
+
+.retro-clock-radio-digital {
+  margin: 0;
+  color: #f8b339;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: clamp(3.3rem, 10vw, 5.5rem);
+  line-height: 1;
+  letter-spacing: 0.14em;
+  text-shadow:
+    0 0 14px rgba(255, 160, 35, 0.42),
+    0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
+.retro-clock-radio-knob {
+  width: 100%;
+  max-width: 46px;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.22), transparent 34%),
+    linear-gradient(150deg, #444 0%, #1f1f1f 100%);
+  border: 2px solid #0f0f0f;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 7px 10px rgba(15, 13, 10, 0.25);
+}
+
+@media (max-width: 768px) {
+  .retro-clock-radio-shell {
+    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    gap: 0.5rem;
+    border-radius: 0.95rem;
+  }
+
+  .retro-clock-radio-knob {
+    max-width: 36px;
+  }
+
+  .retro-clock-radio-digital {
+    letter-spacing: 0.09em;
+  }
+}
+
 /* Tighter furigana in dialogue rows */
 .playback-dialog-japanese rt {
   font-size: 0.42em;

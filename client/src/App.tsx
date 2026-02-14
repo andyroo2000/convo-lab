@@ -21,6 +21,7 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const JapaneseDateToolPage = lazy(() => import('./pages/JapaneseDateToolPage'));
 const JapaneseTimeToolPage = lazy(() => import('./pages/JapaneseTimeToolPage'));
+const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePracticeToolPage'));
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
@@ -60,6 +61,10 @@ const App = () => (
                     <Route index element={<ToolsPage />} />
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="japanese-time" element={<JapaneseTimeToolPage />} />
+                    <Route
+                      path="japanese-time-practice"
+                      element={<JapaneseTimePracticeToolPage />}
+                    />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -94,6 +99,10 @@ const App = () => (
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="tools/japanese-time" element={<JapaneseTimeToolPage />} />
+                    <Route
+                      path="tools/japanese-time-practice"
+                      element={<JapaneseTimePracticeToolPage />}
+                    />
                   </Route>
 
                   {/* 404 Catch-all Route */}
