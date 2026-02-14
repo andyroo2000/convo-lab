@@ -19,8 +19,7 @@ interface RubyPartProps {
 }
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
-const REVEAL_DELAY_SECONDS = 5;
-const REVEAL_HOLD_SECONDS = 5;
+const PAUSE_OPTIONS = [3, 5, 8] as const;
 
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
@@ -71,6 +70,7 @@ const JapaneseTimePracticeToolPage = () => {
   const [isPowerOn, setIsPowerOn] = useState(true);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pauseSeconds, setPauseSeconds] = useState<number>(5);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
@@ -95,9 +95,9 @@ const JapaneseTimePracticeToolPage = () => {
   const shouldShowScript = isRevealed;
   let loopStatus = 'Power off.';
   if (isPowerOn && isRevealed) {
-    loopStatus = `Revealed. Replaying in ${REVEAL_HOLD_SECONDS}s.`;
+    loopStatus = `Revealed. Replaying in ${pauseSeconds}s.`;
   } else if (isPowerOn) {
-    loopStatus = `Waiting ${REVEAL_DELAY_SECONDS}s pause before reveal.`;
+    loopStatus = `Waiting ${pauseSeconds}s pause before reveal.`;
   }
 
   const clearRevealTimer = useCallback(() => {
@@ -158,55 +158,73 @@ const JapaneseTimePracticeToolPage = () => {
     });
   }, [playCurrentCardAudio]);
 
-  useEffect(() => {
-    clearRevealTimer();
-    clearAutoAdvanceTimer();
-    stopPlayback();
+  const advanceToNextCard = useCallback(() => {
     setIsRevealed(false);
+    setCard(createRandomTimeCard());
+  }, []);
+
+  const cyclePause = useCallback(() => {
+    setPauseSeconds((current) => {
+      const index = PAUSE_OPTIONS.findIndex((value) => value === current);
+      const nextIndex = index === -1 ? 0 : (index + 1) % PAUSE_OPTIONS.length;
+      return PAUSE_OPTIONS[nextIndex];
+    });
+  }, []);
+
+  useEffect(() => {
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
     if (!isPowerOn) return undefined;
-
-    revealTimerRef.current = window.setTimeout(() => {
-      revealCard();
-    }, REVEAL_DELAY_SECONDS * 1000);
-
-    return () => {
-      clearRevealTimer();
-    };
-  }, [card.id, clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, revealCard, stopPlayback]);
-
-  useEffect(() => {
-    if (isPowerOn) {
-      setCard(createRandomTimeCard());
-      return;
-    }
-
-    clearAutoAdvanceTimer();
-    clearRevealTimer();
-    stopPlayback();
-    setIsRevealed(false);
-  }, [clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, stopPlayback]);
-
-  useEffect(() => {
-    clearAutoAdvanceTimer();
-    if (!isPowerOn || !isRevealed) return undefined;
 
     let cancelled = false;
 
-    autoAdvanceTimerRef.current = window.setTimeout(() => {
-      const advanceToNextCard = () => {
-        if (!cancelled) {
-          setCard(createRandomTimeCard());
-        }
-      };
+    if (isRevealed) {
+      autoAdvanceTimerRef.current = window.setTimeout(() => {
+        const finishAdvance = () => {
+          if (!cancelled) {
+            advanceToNextCard();
+          }
+        };
 
-      playCurrentCardAudio().then(advanceToNextCard).catch(advanceToNextCard);
-    }, REVEAL_HOLD_SECONDS * 1000);
+        playCurrentCardAudio().then(finishAdvance).catch(finishAdvance);
+      }, pauseSeconds * 1000);
+    } else {
+      revealTimerRef.current = window.setTimeout(() => {
+        if (!cancelled) {
+          revealCard();
+        }
+      }, pauseSeconds * 1000);
+    }
 
     return () => {
       cancelled = true;
       clearAutoAdvanceTimer();
+      clearRevealTimer();
     };
-  }, [clearAutoAdvanceTimer, isPowerOn, isRevealed, playCurrentCardAudio]);
+  }, [
+    advanceToNextCard,
+    card.id,
+    clearAutoAdvanceTimer,
+    clearRevealTimer,
+    isPowerOn,
+    isRevealed,
+    pauseSeconds,
+    playCurrentCardAudio,
+    revealCard,
+  ]);
+
+  useEffect(() => {
+    if (isPowerOn) return undefined;
+
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    stopPlayback();
+
+    return () => {
+      clearAutoAdvanceTimer();
+      clearRevealTimer();
+    };
+  }, [clearAutoAdvanceTimer, clearRevealTimer, isPowerOn, stopPlayback]);
 
   useEffect(
     () => () => {
@@ -237,11 +255,9 @@ const JapaneseTimePracticeToolPage = () => {
               type="button"
               onClick={() => setIsPowerOn((current) => !current)}
               className="retro-clock-radio-knob retro-clock-radio-knob-button"
+              aria-label={isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
               aria-pressed={isPowerOn}
             />
-            <span className="retro-clock-radio-control-sub">
-              {isPowerOn ? 'Stop Auto Play' : 'Start Auto Play'}
-            </span>
           </div>
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
@@ -266,8 +282,13 @@ const JapaneseTimePracticeToolPage = () => {
           </div>
           <div className="retro-clock-radio-control">
             <span className="retro-clock-radio-control-label">Pause</span>
-            <div className="retro-clock-radio-knob" />
-            <span className="retro-clock-radio-control-sub">{REVEAL_DELAY_SECONDS}s</span>
+            <button
+              type="button"
+              onClick={cyclePause}
+              className="retro-clock-radio-knob retro-clock-radio-knob-button"
+              aria-label={`Pause ${pauseSeconds} seconds`}
+            />
+            <span className="retro-clock-radio-control-sub">{pauseSeconds}s</span>
           </div>
         </div>
 
