@@ -12,6 +12,36 @@ bd close <id>         # Complete work
 bd sync               # Sync with git
 ```
 
+## Staging CI First-Attempt Checklist
+
+Before pushing to `main`, run this quick gate:
+
+1. `npm run precheck` (fast safety check)
+2. If touching infra/build/deploy files, also run:
+   - `npm run precheck:full`
+3. Verify GitHub Actions billing is healthy:
+   - GitHub -> Settings -> Billing and plans
+   - Recent failures have often been account billing/spending-limit, not code.
+4. Confirm staging endpoint currently responds:
+   - `curl -fsS https://stage.convo-lab.com/health`
+   - If this fails before deploy, fix staging health first.
+
+### Known Failure Signatures (and what to do)
+
+- **"The job was not started because recent account payments have failed or your spending limit needs to be increased"**
+  - Root cause: GitHub Actions billing/spending limit.
+  - Action: fix billing first; reruns will keep failing until this is resolved.
+
+- **`KeyError: 'ContainerConfig'` during deploy on droplet**
+  - Root cause: legacy `docker-compose` v1 recreate bug on host.
+  - Action: use `docker compose` (v2) on the droplet for recovery/redeploy.
+
+- **Deploy step says server container is healthy, but workflow health check fails against `https://stage.convo-lab.com/health`**
+  - Root cause: external route/LB/TLS/path issue (not app startup).
+  - Action: validate both:
+    - container-local health (`http://localhost:3001/health` inside host)
+    - external domain health (`https://stage.convo-lab.com/health`)
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
