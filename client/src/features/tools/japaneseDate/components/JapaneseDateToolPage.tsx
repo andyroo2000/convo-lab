@@ -11,6 +11,7 @@ import {
   playDateAudioClipSequence,
 } from '../logic/preRenderedDateAudio';
 import type { AudioSequencePlayback } from '../logic/preRenderedTimeAudio';
+import DateMiniCalendar from './DateMiniCalendar';
 
 interface RubyPartProps {
   script: string;
@@ -24,11 +25,9 @@ interface DatePracticeCard {
 }
 
 const PAUSE_OPTIONS = [5, 8, 12] as const;
-const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
-const toFullWidthDigits = (value: number | string) =>
-  String(value).replace(/\d/g, (digit) => String.fromCharCode(digit.charCodeAt(0) + 0xfee0));
 
 const createDateCard = (date: Date): DatePracticeCard => {
   const normalized = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 9, 0, 0, 0);
@@ -49,16 +48,16 @@ const createRandomDateCard = (minYear: number, maxYear: number): DatePracticeCar
 };
 
 const formatDateDisplay = (date: Date, showYear: boolean): string => {
-  const year = toFullWidthDigits(date.getFullYear());
-  const month = toFullWidthDigits(toTwoDigits(date.getMonth() + 1));
-  const day = toFullWidthDigits(toTwoDigits(date.getDate()));
+  const year = String(date.getFullYear());
+  const month = toTwoDigits(date.getMonth() + 1);
+  const day = toTwoDigits(date.getDate());
   return showYear ? `${year}/${month}/${day}` : `${month}/${day}`;
 };
 
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
     {script}
-    <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
+    <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
   </ruby>
 );
 
@@ -70,10 +69,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
       <span className="mr-1 inline-flex items-start">
         <ruby>
           {numberScript}
-          <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
+          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
         </ruby>
         <ruby>
-          年<rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>ねん</rt>
+          年<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>ねん</rt>
         </ruby>
       </span>
     );
@@ -86,10 +85,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
       <span className="mr-1 inline-flex items-start">
         <ruby>
           {numberScript}
-          <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
+          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
         </ruby>
         <ruby>
-          月<rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>がつ</rt>
+          月<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>がつ</rt>
         </ruby>
       </span>
     );
@@ -141,37 +140,6 @@ const JapaneseDateToolPage = () => {
     if (!isPlaying) return `replaying in ${countdownSeconds}s`;
     return '';
   })();
-
-  const calendarYear = card.date.getFullYear();
-  const calendarMonth = card.date.getMonth() + 1;
-  const selectedDay = card.date.getDate();
-  const monthStartWeekday = new Date(calendarYear, card.date.getMonth(), 1).getDay();
-  const daysInMonth = new Date(calendarYear, card.date.getMonth() + 1, 0).getDate();
-
-  const calendarCells = useMemo(() => {
-    const cells: Array<{ key: string; day: number | null; weekdayIndex: number }> = [];
-
-    for (let index = 0; index < monthStartWeekday; index += 1) {
-      cells.push({ key: `pad-start-${index + 1}`, day: null, weekdayIndex: index % 7 });
-    }
-
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const weekdayIndex = (monthStartWeekday + day - 1) % 7;
-      cells.push({ key: `day-${day}`, day, weekdayIndex });
-    }
-
-    let trailing = 0;
-    while (cells.length % 7 !== 0) {
-      trailing += 1;
-      cells.push({
-        key: `pad-end-${trailing}`,
-        day: null,
-        weekdayIndex: cells.length % 7,
-      });
-    }
-
-    return cells;
-  }, [daysInMonth, monthStartWeekday]);
 
   const clearRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
@@ -405,150 +373,136 @@ const JapaneseDateToolPage = () => {
           </p>
         </div>
 
-        <div className="retro-clock-radio-shell">
-          <div className="retro-clock-radio-body">
-            <div className="retro-clock-radio-window">
-              <div className="retro-clock-radio-glow" />
-              {statusText && <p className="retro-clock-radio-status">{statusText}</p>}
-              {isRevealed ? (
-                <p className="japanese-text retro-clock-radio-script">
-                  {showYear && (
-                    <UnitRubyPart
-                      script={reading.parts.yearScript}
-                      kana={reading.parts.yearKana}
-                      showFurigana
-                    />
+        <div className="retro-date-practice-layout">
+          <div className="retro-date-practice-player">
+            <div className="retro-clock-radio-shell">
+              <div className="retro-clock-radio-body">
+                <div className="retro-clock-radio-window">
+                  <div className="retro-clock-radio-glow" />
+                  {statusText && <p className="retro-clock-radio-status">{statusText}</p>}
+                  {isRevealed ? (
+                    <p className="japanese-text retro-clock-radio-script">
+                      {showYear && (
+                        <UnitRubyPart
+                          script={reading.parts.yearScript}
+                          kana={reading.parts.yearKana}
+                          showFurigana
+                        />
+                      )}
+                      <UnitRubyPart
+                        script={reading.parts.monthScript}
+                        kana={reading.parts.monthKana}
+                        showFurigana
+                      />
+                      <UnitRubyPart
+                        script={reading.parts.dayScript}
+                        kana={reading.parts.dayKana}
+                        showFurigana
+                      />
+                    </p>
+                  ) : (
+                    <p className="retro-clock-radio-digital retro-clock-radio-date-digital">
+                      {dateDisplay}
+                    </p>
                   )}
-                  <UnitRubyPart
-                    script={reading.parts.monthScript}
-                    kana={reading.parts.monthKana}
-                    showFurigana
-                  />
-                  <UnitRubyPart
-                    script={reading.parts.dayScript}
-                    kana={reading.parts.dayKana}
-                    showFurigana
-                  />
-                </p>
-              ) : (
-                <p className="retro-clock-radio-digital retro-clock-radio-date-digital">
-                  {dateDisplay}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="retro-clock-radio-controls">
-            <div className="retro-clock-radio-transport">
-              <div className="retro-clock-radio-autoplay-stack">
-                <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
-                <button
-                  type="button"
-                  onClick={() => setIsPowerOn((current) => !current)}
-                  className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
-                  aria-pressed={isPowerOn}
-                >
-                  {isPowerOn ? 'Stop' : 'Auto-Play'}
-                </button>
-              </div>
-              <div className="retro-clock-radio-next-stack">
-                <span
-                  className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
-                />
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="retro-clock-radio-action"
-                  aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
-                >
-                  {nextButtonLabel}
-                </button>
-              </div>
-            </div>
-
-            <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
-              <span className="retro-clock-radio-control-label">Volume</span>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={Math.round(volumeLevel * 100)}
-                onChange={(event) => {
-                  const nextVolume = Number(event.target.value) / 100;
-                  setVolumeLevel(nextVolume);
-                  playbackRef.current?.setVolume(nextVolume);
-                }}
-                className="retro-clock-radio-volume-slider"
-                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
-              />
-            </div>
-
-            <div className="retro-clock-radio-pause-group" role="group" aria-label="Pause length">
-              <span className="retro-clock-radio-control-label">
-                Pause Length (In Auto-Play Mode)
-              </span>
-              <div className="retro-clock-radio-pause-options">
-                {PAUSE_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setPauseSeconds(option)}
-                    className={`retro-clock-radio-pause-button ${pauseSeconds === option ? 'is-active' : ''}`}
-                    aria-pressed={pauseSeconds === option}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowYear((current) => !current)}
-                className={`retro-clock-radio-pause-button retro-date-year-toggle ${showYear ? 'is-active' : ''}`}
-                aria-pressed={showYear}
-              >
-                {showYear ? 'Year On' : 'Year Off'}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="retro-date-calendar mt-4">
-          <header className="retro-date-calendar-header">
-            <p className="retro-caps text-[0.72rem] tracking-[0.1em] text-[#8fd3ea]">
-              {toFullWidthDigits(calendarYear)}年 {toFullWidthDigits(calendarMonth)}月
-            </p>
-          </header>
-          <div className="retro-date-calendar-grid">
-            {WEEKDAY_LABELS.map((weekday, index) => (
-              <div
-                key={weekday}
-                className={`retro-date-calendar-weekday ${index === 0 ? 'is-sunday' : ''} ${index === 6 ? 'is-saturday' : ''}`}
-              >
-                {weekday}
-              </div>
-            ))}
-            {calendarCells.map((cell) => {
-              const { day, weekdayIndex } = cell;
-              const isSelected = day === selectedDay;
-              const isWeekend = weekdayIndex === 0 || weekdayIndex === 6;
-              return (
-                <div
-                  key={cell.key}
-                  className={`retro-date-calendar-day ${day ? 'has-day' : ''} ${isWeekend ? 'is-weekend' : ''} ${isSelected ? 'is-selected' : ''}`}
-                >
-                  {day ? toFullWidthDigits(day) : ''}
                 </div>
-              );
-            })}
+              </div>
+
+              <div className="retro-clock-radio-controls">
+                <div className="retro-clock-radio-transport">
+                  <div className="retro-clock-radio-autoplay-stack">
+                    <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
+                    <button
+                      type="button"
+                      onClick={() => setIsPowerOn((current) => !current)}
+                      className={`retro-clock-radio-action retro-clock-radio-transport-action ${isPowerOn ? 'is-active' : ''}`}
+                      aria-pressed={isPowerOn}
+                    >
+                      {isPowerOn ? 'Stop' : 'Auto-Play'}
+                    </button>
+                  </div>
+                  <div className="retro-clock-radio-next-stack">
+                    <span
+                      className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="retro-clock-radio-action retro-clock-radio-transport-action"
+                      aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
+                    >
+                      {nextButtonLabel}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="retro-clock-radio-volume" role="group" aria-label="Volume">
+                  <span className="retro-clock-radio-control-label">Volume</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(volumeLevel * 100)}
+                    onChange={(event) => {
+                      const nextVolume = Number(event.target.value) / 100;
+                      setVolumeLevel(nextVolume);
+                      playbackRef.current?.setVolume(nextVolume);
+                    }}
+                    className="retro-clock-radio-volume-slider"
+                    aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
+                  />
+                </div>
+
+                <div
+                  className="retro-clock-radio-pause-group"
+                  role="group"
+                  aria-label="Pause length"
+                >
+                  <span className="retro-clock-radio-control-label">
+                    Pause Length (In Auto-Play Mode)
+                  </span>
+                  <div className="retro-clock-radio-pause-options">
+                    {PAUSE_OPTIONS.map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        onClick={() => setPauseSeconds(option)}
+                        className={`retro-clock-radio-pause-button ${pauseSeconds === option ? 'is-active' : ''}`}
+                        aria-pressed={pauseSeconds === option}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowYear((current) => !current)}
+                    className={`retro-clock-radio-pause-button retro-date-year-toggle ${showYear ? 'is-active' : ''}`}
+                    aria-pressed={showYear}
+                  >
+                    {showYear ? 'Hide Year' : 'Show Year'}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
+          <DateMiniCalendar date={card.date} />
         </div>
 
-        <p className="mt-3 text-sm font-semibold leading-snug text-[#5a4523]">
-          Use Show Answer + Next for manual practice. Turn on Auto-Play for continuous timed date
-          prompts.
-        </p>
-        {playbackHint && <p className="mt-2 text-sm text-[#9e4c2a]">{playbackHint}</p>}
+        <div className="mt-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
+          <ul className="list-disc pl-5 text-sm font-semibold leading-snug text-[#1b3f69] sm:text-[0.96rem]">
+            <li>
+              Use <span className="retro-caps text-[#15355a]">SHOW ANSWER + NEXT</span> for manual
+              practice at your pace.
+            </li>
+            <li>
+              Switch to <span className="retro-caps text-[#15355a]">AUTO-PLAY</span> to get a
+              nonstop quiz loop on the selected pause length.
+            </li>
+          </ul>
+        </div>
+        {playbackHint && <p className="mt-3 text-sm text-[#9e4c2a]">{playbackHint}</p>}
       </section>
     </div>
   );

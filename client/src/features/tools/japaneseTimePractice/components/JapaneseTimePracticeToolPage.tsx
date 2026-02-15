@@ -20,6 +20,7 @@ interface RubyPartProps {
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 const PAUSE_OPTIONS = [5, 8, 12] as const;
+const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
   return createTimeCard(now.getHours(), now.getMinutes());
@@ -28,7 +29,7 @@ const createCurrentLocalTimeCard = (): TimePracticeCard => {
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
     {script}
-    <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
+    <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
   </ruby>
 );
 
@@ -40,10 +41,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
       <span className="mr-1 inline-flex items-start">
         <ruby>
           {numberScript}
-          <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
+          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
         </ruby>
         <ruby>
-          時<rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>じ</rt>
+          時<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>じ</rt>
         </ruby>
       </span>
     );
@@ -57,10 +58,10 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
       <span className="mr-1 inline-flex items-start">
         <ruby>
           {numberScript}
-          <rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
+          <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{numberKana}</rt>
         </ruby>
         <ruby>
-          分<rt className={`!text-[0.27em] ${showFurigana ? '' : 'invisible'}`}>{unitKana}</rt>
+          分<rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{unitKana}</rt>
         </ruby>
       </span>
     );
