@@ -28,6 +28,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "type-check": "npm run type-check --workspaces",
+    "precheck": "./scripts/quick-check.sh",
+    "precheck:full": "./scripts/pre-push-check.sh",
     "harness:i18n": "npx ts-node scripts/i18n-harness.ts",
     "harness:i18n:dry-run": "npx ts-node scripts/i18n-harness.ts --dry-run",
     "harness:test": "npx ts-node scripts/test-harness.ts",
