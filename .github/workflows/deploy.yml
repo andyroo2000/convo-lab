@@ -127,13 +127,13 @@ jobs:
 
             # Pull latest images
             echo "🐋 Pulling latest Docker images..."
-            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging pull
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging pull
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
             # Force-stop any lingering convolab containers that might block network removal
             docker ps -q --filter "name=convolab-" | grep stage | xargs -r docker stop 2>/dev/null || true
-            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
             # Remove stale stopped containers to avoid name conflicts on recreate
             docker rm -f \
               convolab-server-stage \
@@ -144,7 +144,7 @@ jobs:
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
-            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d
 
             # Wait for server health to avoid external health check flaps
             echo "⏳ Waiting for convolab-server-stage to become healthy..."
@@ -171,7 +171,7 @@ jobs:
 
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            docker-compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging ps
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
             # Cleanup old images

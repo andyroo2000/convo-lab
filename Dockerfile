@@ -81,8 +81,7 @@ RUN npm install --omit=dev --ignore-scripts && npm rebuild
 COPY server/prisma ./prisma
 RUN npx prisma generate
 
-# Copy Google Cloud credentials
-COPY server/gcloud-key.json ./gcloud-key.json
+# Google credentials are injected at runtime (mounted file or env), never baked into image
 
 # Copy built server and shared modules
 COPY --from=server-builder /app/server/dist ./dist
