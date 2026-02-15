@@ -42,7 +42,7 @@ const ToolsDirectoryPage = () => {
 
           <div className="mt-4">
             <Link
-              to={`${toolsBasePath}/japanese-time-practice`}
+              to={`${toolsBasePath}/japanese-time`}
               className="btn-primary inline-flex items-center gap-2"
             >
               Open

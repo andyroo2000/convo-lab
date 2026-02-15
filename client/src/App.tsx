@@ -59,14 +59,7 @@ const App = () => (
                   <Route path="/tools" element={<ToolsPublicLayout />}>
                     <Route index element={<ToolsPage />} />
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route
-                      path="japanese-time"
-                      element={<Navigate to="/tools/japanese-time-practice" replace />}
-                    />
-                    <Route
-                      path="japanese-time-practice"
-                      element={<JapaneseTimePracticeToolPage />}
-                    />
+                    <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -100,14 +93,7 @@ const App = () => (
                     {/* Tools */}
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
-                    <Route
-                      path="tools/japanese-time"
-                      element={<Navigate to="/app/tools/japanese-time-practice" replace />}
-                    />
-                    <Route
-                      path="tools/japanese-time-practice"
-                      element={<JapaneseTimePracticeToolPage />}
-                    />
+                    <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
                   </Route>
 
                   {/* 404 Catch-all Route */}
