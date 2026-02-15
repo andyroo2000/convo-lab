@@ -306,7 +306,7 @@ const AudioCourseCreation = () => {
         body: JSON.stringify({
           text: textToSynthesize,
           voiceId: unit.voiceId,
-          speed: unit.speed,
+          speed: unit.type === 'L2' ? unit.speed : undefined,
         }),
       });
 

@@ -1,4 +1,4 @@
-import { createEmptyCard, fsrs, Rating, type Card } from 'ts-fsrs';
+import { createEmptyCard, fsrs, Rating, type Card, type Grade } from 'ts-fsrs';
 
 import { FULL_DAY_TIME_CARD_POOL, type TimePracticeCard } from './types';
 
@@ -12,7 +12,7 @@ export interface FsrsSessionState {
 
 const scheduler = fsrs();
 
-const GRADE_TO_RATING: Record<FsrsGrade, Rating> = {
+const GRADE_TO_RATING: Record<FsrsGrade, Grade> = {
   again: Rating.Again,
   hard: Rating.Hard,
   good: Rating.Good,

@@ -11,15 +11,12 @@ const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
 };
 
 describe('ErrorBoundary', () => {
-  // Suppress console.error for these tests
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    consoleErrorSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
   it('should render children when no error', () => {
@@ -108,13 +105,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('should navigate to library when "Go to Library" clicked', () => {
-    // Save original location
-    const originalLocation = window.location;
-
-    // Mock window.location.href
-    const windowWithLocation = window as unknown as { location?: Location };
-    delete windowWithLocation.location;
-    (window as unknown as { location: Location }).location = { href: '' } as Location;
+    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
 
     render(
       <ErrorBoundary>
@@ -125,10 +116,7 @@ describe('ErrorBoundary', () => {
     const goToLibraryButton = screen.getByText('Go to Library');
     fireEvent.click(goToLibraryButton);
 
-    expect(window.location.href).toBe('/app/library');
-
-    // Restore original location
-    window.location = originalLocation;
+    expect(assignSpy).toHaveBeenCalledWith('/app/library');
   });
 
   it('should log error to console on catch', () => {
@@ -138,7 +126,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
+    expect(console.error).toHaveBeenCalledWith(
       'ErrorBoundary caught an error:',
       expect.any(Error),
       expect.any(Object)

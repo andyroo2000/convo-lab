@@ -549,7 +549,7 @@ const AdminPage = () => {
 
       setCropperImageUrl(data.originalUrl);
       setCropperTitle(`Re-crop ${filename}`);
-      setCropperSaveHandler(() => async (blob: Blob, cropArea: Area) => {
+      setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
         await handleSaveSpeakerRecrop(filename, cropArea);
       });
       setCropperOpen(true);
@@ -594,7 +594,7 @@ const AdminPage = () => {
         setCropperImageUrl(url);
         setCropperTitle(`Upload New ${filename}`);
         // Capture the file in the closure directly instead of relying on state
-        setCropperSaveHandler(() => async (blob: Blob, cropArea: Area) => {
+        setCropperSaveHandler(() => async (_blob: Blob, cropArea: Area) => {
           await handleSaveSpeakerCrop(filename, file, cropArea);
         });
         setCropperOpen(true);
@@ -1269,7 +1269,7 @@ const AdminPage = () => {
                                       );
                                       // Capture the file in the closure directly
                                       setCropperSaveHandler(
-                                        () => async (blob: Blob, cropArea: Area) => {
+                                        () => async (_blob: Blob, cropArea: Area) => {
                                           try {
                                             const formData = new FormData();
                                             formData.append('image', file, `avatar.jpg`);

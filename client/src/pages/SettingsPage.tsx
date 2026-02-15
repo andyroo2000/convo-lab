@@ -5,7 +5,6 @@ import { User, Trash2, Lock, Camera, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ConfirmModal from '../components/common/ConfirmModal';
 import AvatarCropperModal from '../components/admin/AvatarCropperModal';
-import Toast from '../components/common/Toast';
 import { API_URL } from '../config';
 
 type Tab = 'profile' | 'security' | 'billing' | 'danger';
@@ -97,21 +96,10 @@ const SettingsPage = () => {
   const [cropperOpen, setCropperOpen] = useState(false);
   const [cropperImageUrl, setCropperImageUrl] = useState('');
 
-  // Toast state
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState<'success' | 'error' | 'info'>('success');
-
   // Billing state
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [billingError, setBillingError] = useState<string | null>(null);
-
-  const _showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToastMessage(message);
-    setToastType(type);
-    setToastVisible(true);
-  };
 
   useEffect(() => {
     if (tab === 'language') {
@@ -306,14 +294,11 @@ const SettingsPage = () => {
       formData.append('image', blob, 'avatar.jpg');
       formData.append('cropArea', JSON.stringify(cropArea));
 
-      const response = await fetch(
-        `${import.meta.env.VITE_API_URL || ''}/api/admin/avatars/user/${user.id}/upload`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          body: formData,
-        }
-      );
+      const response = await fetch(`${API_URL}/api/admin/avatars/user/${user.id}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
 
       if (!response.ok) {
         throw new Error('Failed to upload avatar');
@@ -791,14 +776,6 @@ const SettingsPage = () => {
         imageUrl={cropperImageUrl}
         onSave={handleSaveAvatarCrop}
         title={t('settings:profile.avatar.cropTitle')}
-      />
-
-      {/* Toast Notification */}
-      <Toast
-        message={toastMessage}
-        type={toastType}
-        isVisible={toastVisible}
-        onClose={() => setToastVisible(false)}
       />
     </div>
   );

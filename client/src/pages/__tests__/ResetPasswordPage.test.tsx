@@ -16,8 +16,8 @@ vi.mock('react-router-dom', async () => {
 });
 
 // Mock global fetch
-const mockFetch = vi.fn() as unknown as typeof fetch;
-global.fetch = mockFetch;
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
 
 function renderWithRouter(initialRoute = '/reset-password/test-token') {
   return render(

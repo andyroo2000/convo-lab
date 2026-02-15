@@ -6,15 +6,10 @@ import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 
 import { API_URL } from '../../../config';
 import VoicePreview from '../../common/VoicePreview';
-
-interface TestResult {
-  format?: string;
-  allFormats?: unknown[];
-  [key: string]: unknown;
-}
+import type { FormatResult, TestResults } from './ResultsViewer';
 
 interface AudioTesterProps {
-  onResultsChange: (results: TestResult | null) => void;
+  onResultsChange: (results: TestResults | null) => void;
 }
 
 type AudioFormat = 'kanji' | 'kana' | 'mixed' | 'furigana_brackets';
@@ -103,7 +98,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
         throw new Error(data.message || 'Failed to generate audio');
       }
 
-      const result = await response.json();
+      const result = (await response.json()) as TestResults;
       onResultsChange(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate audio');
@@ -146,7 +141,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
         })
       );
 
-      onResultsChange({ allFormats: results });
+      onResultsChange({ allFormats: results as FormatResult[] });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to generate all formats');
       onResultsChange(null);

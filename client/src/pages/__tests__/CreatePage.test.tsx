@@ -1,6 +1,6 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex page testing with multiple card elements requires direct node access
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import CreatePage from '../CreatePage';

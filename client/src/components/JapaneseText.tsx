@@ -8,15 +8,6 @@ interface JapaneseTextProps {
 }
 
 /**
- * Check if a character is kanji
- */
-function _isKanji(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x4e00 && code <= 0x9faf;
-}
-
-/**
  * Check if a character is hiragana
  */
 function isHiragana(char: string): boolean {
@@ -50,7 +41,7 @@ function renderRuby(text: string): string {
   // Pattern matches any characters (kanji, hiragana, katakana) followed by bracket notation
   const rubyPattern = /([\u4E00-\u9FAF\u3040-\u309F\u30A0-\u30FF]+)\[([^\]]+)\]/g;
 
-  return text.replace(rubyPattern, (match, base, reading) => {
+  return text.replace(rubyPattern, (_match, base, reading) => {
     // Remove extra spaces from the reading
     const cleanReading = reading.replace(/\s+/g, '');
 

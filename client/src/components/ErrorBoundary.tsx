@@ -49,7 +49,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   // eslint-disable-next-line class-methods-use-this
   handleGoToLibrary = () => {
-    window.location.href = '/app/library';
+    window.location.assign('/app/library');
   };
 
   render() {

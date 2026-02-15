@@ -30,6 +30,8 @@ export interface User {
   preferredNativeLanguage?: LanguageCode;
   proficiencyLevel?: ProficiencyLevel;
   onboardingCompleted?: boolean;
+  seenSampleContentGuide?: boolean;
+  seenCustomContentGuide?: boolean;
   emailVerified?: boolean;
   emailVerifiedAt?: Date;
   isTestUser?: boolean;
@@ -218,7 +220,7 @@ export interface Course {
 }
 
 export interface CourseEpisode {
-  id: string;
+  id?: string;
   courseId: string;
   episodeId: string;
   order: number;
@@ -231,6 +233,7 @@ export interface CourseCoreItem {
   textL2: string;
   readingL2?: string;
   translationL1: string;
+  order?: number;
   complexityScore: number;
   sourceEpisodeId?: string;
   sourceSentenceId?: string;

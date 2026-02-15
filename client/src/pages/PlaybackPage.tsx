@@ -63,9 +63,9 @@ const PlaybackPage = () => {
   // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
   // Must be defined before useEffect hooks that reference speedKey
   const normalizeSpeedKey = (speed: AudioSpeed): 'slow' | 'medium' | 'normal' => {
-    if (speed === '0.7x' || speed === 'slow' || speed === 0.7) return 'slow';
-    if (speed === '0.85x' || speed === 'medium' || speed === 0.85) return 'medium';
-    return 'normal'; // '1.0x', 'normal', 1.0
+    if (speed === 'slow') return 'slow';
+    if (speed === 'medium') return 'medium';
+    return 'normal';
   };
   const speedKey = normalizeSpeedKey(selectedSpeed);
 

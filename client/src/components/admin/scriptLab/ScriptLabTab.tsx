@@ -4,13 +4,7 @@ import AudioTester from './AudioTester';
 import AudioCourseCreation from './AudioCourseCreation';
 import CourseSelector from './CourseSelector';
 import CourseDetails from './CourseDetails';
-import ResultsViewer from './ResultsViewer';
-
-interface TestResults {
-  format?: string;
-  allFormats?: unknown[];
-  [key: string]: unknown;
-}
+import ResultsViewer, { type TestResults } from './ResultsViewer';
 
 const ScriptLabTab = () => {
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);

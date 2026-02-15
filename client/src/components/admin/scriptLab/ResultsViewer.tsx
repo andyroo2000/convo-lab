@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { Download, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface FormatResult {
+export interface FormatResult {
   format: string;
   preprocessedText?: string;
   durationSeconds?: number;
   audioUrl?: string;
+  [key: string]: unknown;
 }
 
-interface TestResults {
+export interface TestResults {
   format?: string;
   preprocessedText?: string;
   durationSeconds?: number;
   audioUrl?: string;
   originalText?: string;
   allFormats?: FormatResult[];
+  [key: string]: unknown;
 }
 
 interface ResultsViewerProps {

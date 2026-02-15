@@ -1,6 +1,6 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex layout structure testing requires direct node access for navigation and content areas
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../Layout';
@@ -12,7 +12,7 @@ const mockAuthState = vi.hoisted(() => ({
     name: 'Test User',
     displayName: 'Test User',
     role: 'user',
-    onboardingCompleted: true,
+    onboardingCompleted: true as boolean | undefined,
     avatarColor: '#000000',
   },
   loading: false,
@@ -52,7 +52,7 @@ describe('Layout', () => {
     name: 'Test User',
     displayName: 'Test User',
     role: 'user' as const,
-    onboardingCompleted: true,
+    onboardingCompleted: true as boolean | undefined,
     avatarColor: '#000000',
   };
 

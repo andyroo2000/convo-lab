@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import DialogueGenerator from '../components/dialogue/DialogueGenerator';
 
 const DialogueCreatorPage = () => {
   const { t } = useTranslation(['dialogue']);
-  const _navigate = useNavigate();
 
   return (
     <div className="retro-dialogue-create-v3-wrap">

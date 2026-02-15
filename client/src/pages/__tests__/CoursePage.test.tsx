@@ -48,8 +48,12 @@ const mockCourse: Course = {
   status: 'ready',
   audioUrl: 'https://example.com/course.mp3',
   approxDurationSeconds: 300,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  maxLessonDurationMinutes: 20,
+  l1VoiceId: 'voice-l1',
+  speaker1Gender: 'female',
+  speaker2Gender: 'male',
+  createdAt: new Date(),
+  updatedAt: new Date(),
   coreItems: [
     {
       id: 'item-1',
@@ -58,6 +62,7 @@ const mockCourse: Course = {
       readingL2: 'おはよう',
       translationL1: 'Good morning',
       order: 0,
+      complexityScore: 1,
     },
     {
       id: 'item-2',
@@ -66,6 +71,7 @@ const mockCourse: Course = {
       readingL2: 'ありがとう',
       translationL1: 'Thank you',
       order: 1,
+      complexityScore: 1,
     },
   ],
   courseEpisodes: [

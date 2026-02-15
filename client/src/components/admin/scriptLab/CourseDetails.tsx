@@ -23,11 +23,12 @@ interface Exchange {
 }
 
 interface ScriptUnit {
-  type: string;
+  type: 'narration_L1' | 'L2' | 'pause' | 'marker';
   text?: string;
+  reading?: string;
   speed?: number;
-  seconds?: number;
-  [key: string]: unknown;
+  durationSeconds?: number;
+  label?: string;
 }
 
 interface CourseInfo {
