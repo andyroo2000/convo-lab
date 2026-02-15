@@ -3,8 +3,7 @@ import fetch from 'node-fetch';
 import fs from 'fs/promises';
 import path from 'path';
 
-// Google AI Studio API key
-const GOOGLE_API_KEY = 'REMOVED_GEMINI_KEY';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 interface AvatarConfig {
   filename: string;
@@ -53,6 +52,10 @@ const ENGLISH_AVATARS: AvatarConfig[] = [
 ];
 
 async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
   // Updated Imagen 3 endpoint
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:generate`;
 
@@ -68,7 +71,7 @@ async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
     safety_filter_level: 'block_some',
   };
 
-  const response = await fetch(`${endpoint}?key=${GOOGLE_API_KEY}`, {
+  const response = await fetch(`${endpoint}?key=${GEMINI_API_KEY}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -2,8 +2,7 @@ import sharp from 'sharp';
 import fetch from 'node-fetch';
 import { uploadSpeakerAvatar } from '../src/services/avatarService.js';
 
-// Nano Banana API key for Google AI Studio
-const NANOBANANA_API_KEY = 'REMOVED_GEMINI_KEY';
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 interface AvatarConfig {
   filename: string;
@@ -52,8 +51,12 @@ const ENGLISH_AVATARS: AvatarConfig[] = [
 ];
 
 async function generateImageWithGoogleAI(prompt: string): Promise<Buffer> {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY environment variable is required');
+  }
+
   // Try Google AI Imagen 2 API
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${NANOBANANA_API_KEY}`;
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-001:predict?key=${GEMINI_API_KEY}`;
 
   const requestBody = {
     instances: [
