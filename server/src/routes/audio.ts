@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
+
+import i18next from '../i18n/index.js';
 import { audioQueue } from '../jobs/audioQueue.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 
@@ -58,7 +59,7 @@ router.post('/generate-all-speeds', async (req: AuthRequest, res, next) => {
     );
 
     if (duplicateJob) {
-      console.log(
+      console.warn(
         `Duplicate job detected for episode ${episodeId}, returning existing job ${duplicateJob.id}`
       );
       return res.json({

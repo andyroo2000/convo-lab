@@ -14,8 +14,8 @@ vi.mock('../../../db/client.js', () => ({
 }));
 
 // Import after mocks are set up
-import { revokeGoogleTokens, getValidAccessToken } from '../../../services/oauth.js';
 import { prisma } from '../../../db/client.js';
+import { revokeGoogleTokens, getValidAccessToken } from '../../../services/oauth.js';
 
 // Mock global fetch
 global.fetch = vi.fn();

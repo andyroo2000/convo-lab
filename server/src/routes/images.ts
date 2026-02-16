@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
+
+import i18next from '../i18n/index.js';
 import { imageQueue } from '../jobs/imageQueue.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 

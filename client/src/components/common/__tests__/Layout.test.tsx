@@ -184,13 +184,13 @@ describe('Layout', () => {
   });
 
   describe('Onboarding behavior', () => {
-    it('should show onboarding modal only when onboardingCompleted is explicitly false', () => {
+    it('should not show onboarding modal when welcome surfaces are disabled', () => {
       mockAuthState.user = { ...baseMockUser, onboardingCompleted: false };
       window.history.pushState({}, '', '/app/library');
       renderLayout('/app/library');
 
-      expect(screen.getByText('Onboarding Modal')).toBeInTheDocument();
-      expect(screen.queryByTestId('library-page')).not.toBeInTheDocument();
+      expect(screen.queryByText('Onboarding Modal')).not.toBeInTheDocument();
+      expect(screen.getByTestId('library-page')).toBeInTheDocument();
     });
 
     it('should not block the app when onboardingCompleted is undefined', () => {

@@ -1,4 +1,5 @@
 import { google } from 'googleapis';
+
 import { prisma } from '../db/client.js';
 
 /**
@@ -55,8 +56,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
   if (!account) return null;
 
   // Check if token is expired or about to expire (5 min buffer)
-  const isExpired =
-    account.expiresAt && account.expiresAt < new Date(Date.now() + 5 * 60 * 1000);
+  const isExpired = account.expiresAt && account.expiresAt < new Date(Date.now() + 5 * 60 * 1000);
 
   if (isExpired && account.refreshToken) {
     try {

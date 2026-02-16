@@ -17,8 +17,8 @@ window.addEventListener('error', (event) => {
     event.preventDefault();
 
     // Show a simple alert and reload
-    // eslint-disable-next-line no-alert
     if (
+      // eslint-disable-next-line no-alert
       window.confirm(
         'A new version of ConvoLab is available. Reload now to get the latest updates?'
       )

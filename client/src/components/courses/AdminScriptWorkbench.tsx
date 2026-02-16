@@ -199,7 +199,6 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
       }
     };
     loadPipelineData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, handleBuildPrompt, readOnly]);
 
   // Poll for audio completion
@@ -982,7 +981,6 @@ const AdminScriptWorkbench = ({ courseId, readOnly = false }: AdminScriptWorkben
                 </svg>
                 <span className="font-bold">Audio generation complete!</span>
               </div>
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <audio controls src={audioUrl} className="w-full" />
             </div>
           )}

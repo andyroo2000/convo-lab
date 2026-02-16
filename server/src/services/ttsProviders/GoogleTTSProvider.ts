@@ -1,4 +1,5 @@
 import { TextToSpeechClient, protos } from '@google-cloud/text-to-speech';
+
 import type { TTSProvider, TTSOptions } from './types.js';
 
 type IAudioConfig = protos.google.cloud.texttospeech.v1.IAudioConfig;

@@ -1,7 +1,9 @@
 import { Response, NextFunction } from 'express';
+
+import { prisma } from '../db/client.js';
+
 import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
-import { prisma } from '../db/client.js';
 
 /**
  * Middleware to block demo users from creating or deleting content.

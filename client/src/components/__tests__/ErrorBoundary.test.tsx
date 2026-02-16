@@ -105,7 +105,11 @@ describe('ErrorBoundary', () => {
   });
 
   it('should navigate to library when "Go to Library" clicked', () => {
-    const assignSpy = vi.spyOn(window.location, 'assign').mockImplementation(() => undefined);
+    const assignSpy = vi.fn();
+    vi.stubGlobal('location', {
+      ...window.location,
+      assign: assignSpy,
+    } as Location);
 
     render(
       <ErrorBoundary>
@@ -117,6 +121,7 @@ describe('ErrorBoundary', () => {
     fireEvent.click(goToLibraryButton);
 
     expect(assignSpy).toHaveBeenCalledWith('/app/library');
+    vi.unstubAllGlobals();
   });
 
   it('should log error to console on catch', () => {

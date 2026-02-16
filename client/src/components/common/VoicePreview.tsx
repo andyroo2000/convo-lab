@@ -28,9 +28,7 @@ const VoicePreview = ({ voiceId }: VoicePreviewProps) => {
     () => () => {
       stop();
     },
-    // Only run cleanup when voiceId changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [voiceId]
+    [voiceId, stop]
   );
 
   // Lazy loading: only render when visible
@@ -59,7 +57,6 @@ const VoicePreview = ({ voiceId }: VoicePreviewProps) => {
       try {
         await play(src);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error(`Failed to play voice preview for ${voiceId}:`, error);
         setHasError(true);
       }

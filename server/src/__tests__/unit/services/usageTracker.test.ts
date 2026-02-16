@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   checkGenerationLimit,
   logGeneration,
@@ -81,10 +82,7 @@ describe('Usage Tracker Service', () => {
       });
 
       it('should work for any content type', async () => {
-        const contentTypes: ContentType[] = [
-          'dialogue',
-          'course',
-        ];
+        const contentTypes: ContentType[] = ['dialogue', 'course'];
 
         for (const contentType of contentTypes) {
           const result = await checkGenerationLimit(userId, contentType);
@@ -293,10 +291,7 @@ describe('Usage Tracker Service', () => {
       it('should allow all content types for paid users', async () => {
         mockPrisma.generationLog.count.mockResolvedValue(10);
 
-        const contentTypes: ContentType[] = [
-          'dialogue',
-          'course',
-        ];
+        const contentTypes: ContentType[] = ['dialogue', 'course'];
 
         for (const contentType of contentTypes) {
           const result = await checkGenerationLimit(userId, contentType);
@@ -343,10 +338,7 @@ describe('Usage Tracker Service', () => {
     });
 
     it('should log all supported content types', async () => {
-      const contentTypes: ContentType[] = [
-        'dialogue',
-        'course',
-      ];
+      const contentTypes: ContentType[] = ['dialogue', 'course'];
 
       for (const contentType of contentTypes) {
         await logGeneration(userId, contentType);
@@ -475,7 +467,11 @@ describe('Usage Tracker Service', () => {
     it('should use correct cooldown duration (30 seconds)', async () => {
       await setCooldown(userId);
 
-      expect(mockRedisClient.setex).toHaveBeenCalledWith(expect.any(String), 30, expect.any(String));
+      expect(mockRedisClient.setex).toHaveBeenCalledWith(
+        expect.any(String),
+        30,
+        expect.any(String)
+      );
     });
 
     it('should use consistent key format', async () => {
@@ -491,9 +487,24 @@ describe('Usage Tracker Service', () => {
       await setCooldown('user-3');
 
       expect(mockRedisClient.setex).toHaveBeenCalledTimes(3);
-      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(1, 'cooldown:generation:user-1', 30, '1');
-      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(2, 'cooldown:generation:user-2', 30, '1');
-      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(3, 'cooldown:generation:user-3', 30, '1');
+      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(
+        1,
+        'cooldown:generation:user-1',
+        30,
+        '1'
+      );
+      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(
+        2,
+        'cooldown:generation:user-2',
+        30,
+        '1'
+      );
+      expect(mockRedisClient.setex).toHaveBeenNthCalledWith(
+        3,
+        'cooldown:generation:user-3',
+        30,
+        '1'
+      );
     });
 
     it('should create new Redis connection for each operation', async () => {

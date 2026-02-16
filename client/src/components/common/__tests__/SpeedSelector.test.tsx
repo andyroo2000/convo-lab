@@ -21,17 +21,19 @@ describe('SpeedSelector', () => {
   it('should highlight the current speed', () => {
     const { rerender } = render(<SpeedSelector {...defaultProps} selectedSpeed="slow" />);
 
-    // Slow should be active (has bg-strawberry)
+    // Selected option uses the retro selected class
     const slowButton = screen.getByTestId('playback-speed-slow');
-    expect(slowButton?.className).toContain('bg-strawberry');
+    expect(slowButton?.className).toContain('is-selected');
 
     rerender(<SpeedSelector {...defaultProps} selectedSpeed="medium" />);
     const mediumButton = screen.getByTestId('playback-speed-medium');
-    expect(mediumButton?.className).toContain('bg-yellow');
+    expect(mediumButton?.className).toContain('is-selected');
+    expect(slowButton?.className).not.toContain('is-selected');
 
     rerender(<SpeedSelector {...defaultProps} selectedSpeed="normal" />);
     const normalButton = screen.getByTestId('playback-speed-normal');
-    expect(normalButton?.className).toContain('bg-keylime');
+    expect(normalButton?.className).toContain('is-selected');
+    expect(mediumButton?.className).not.toContain('is-selected');
   });
 
   it('should call onSpeedChange when a speed is clicked', () => {

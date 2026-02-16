@@ -2,8 +2,8 @@
  * Usage tracking service for rate limiting and quota management
  */
 
-import { prisma } from '../db/client.js';
 import { createRedisConnection } from '../config/redis.js';
+import { prisma } from '../db/client.js';
 import { getMonthStart, getNextMonthStart } from '../utils/dateUtils.js';
 
 // Free tier: Lifetime limits per content type

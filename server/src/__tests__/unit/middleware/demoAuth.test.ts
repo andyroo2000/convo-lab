@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response, NextFunction } from 'express';
-import { blockDemoUser, getLibraryUserId } from '../../../middleware/demoAuth.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { AuthRequest } from '../../../middleware/auth.js';
+import { blockDemoUser, getLibraryUserId } from '../../../middleware/demoAuth.js';
 import { AppError } from '../../../middleware/errorHandler.js';
 import { mockPrisma } from '../../setup.js';
 

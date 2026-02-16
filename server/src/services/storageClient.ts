@@ -1,6 +1,7 @@
+import { createReadStream } from 'fs';
+
 import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
-import { createReadStream } from 'fs';
 
 const storage = new Storage({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,

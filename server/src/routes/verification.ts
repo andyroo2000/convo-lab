@@ -1,8 +1,11 @@
-import { Router } from 'express';
+/* eslint-disable import/no-named-as-default-member */
 import bcrypt from 'bcrypt';
+import { Router } from 'express';
+
 import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
+import i18next from '../i18n/index.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { AppError } from '../middleware/errorHandler.js';
 import {
   sendVerificationEmail,
   sendPasswordResetEmail,
@@ -12,7 +15,6 @@ import {
   verifyPasswordResetToken,
   markPasswordResetTokenUsed,
 } from '../services/emailService.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 

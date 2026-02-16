@@ -3,16 +3,18 @@
  */
 
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from './auth.js';
-import { AppError } from './errorHandler.js';
+
 import { prisma } from '../db/client.js';
+import i18next from '../i18n/index.js';
 import {
   checkGenerationLimit,
   checkCooldown,
   setCooldown,
   ContentType,
 } from '../services/usageTracker.js';
-import i18next from '../i18n/index.js';
+
+import { AuthRequest } from './auth.js';
+import { AppError } from './errorHandler.js';
 
 /**
  * Factory function to create rate limiting middleware for a specific content type.

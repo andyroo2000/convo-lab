@@ -69,30 +69,30 @@ describe('ViewToggleButtons', () => {
       render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
-      expect(readingsButton).toHaveClass('bg-periwinkle', 'text-white', 'shadow-md');
+      expect(readingsButton).toHaveClass('retro-toggle-button', 'is-on');
     });
 
     it('should show inactive styling when showReadings is false', () => {
       render(<ViewToggleButtons {...defaultProps} showReadings={false} />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
-      expect(readingsButton).toHaveClass('text-navy');
-      expect(readingsButton).not.toHaveClass('bg-periwinkle');
+      expect(readingsButton).toHaveClass('retro-toggle-button');
+      expect(readingsButton).not.toHaveClass('is-on');
     });
 
     it('should show active styling when showTranslations is true', () => {
       render(<ViewToggleButtons {...defaultProps} showTranslations />);
 
       const translationsButton = screen.getByTestId('playback-toggle-translations');
-      expect(translationsButton).toHaveClass('bg-coral', 'text-white', 'shadow-md');
+      expect(translationsButton).toHaveClass('retro-toggle-button', 'is-on');
     });
 
     it('should show inactive styling when showTranslations is false', () => {
       render(<ViewToggleButtons {...defaultProps} showTranslations={false} />);
 
       const translationsButton = screen.getByTestId('playback-toggle-translations');
-      expect(translationsButton).toHaveClass('text-navy');
-      expect(translationsButton).not.toHaveClass('bg-coral');
+      expect(translationsButton).toHaveClass('retro-toggle-button');
+      expect(translationsButton).not.toHaveClass('is-on');
     });
 
     it('should show both active when both are true', () => {
@@ -101,8 +101,8 @@ describe('ViewToggleButtons', () => {
       const readingsButton = screen.getByTestId('playback-toggle-readings');
       const translationsButton = screen.getByTestId('playback-toggle-translations');
 
-      expect(readingsButton).toHaveClass('bg-periwinkle');
-      expect(translationsButton).toHaveClass('bg-coral');
+      expect(readingsButton).toHaveClass('is-on');
+      expect(translationsButton).toHaveClass('is-on');
     });
   });
 
@@ -143,29 +143,31 @@ describe('ViewToggleButtons', () => {
     });
   });
 
-  describe('icons', () => {
-    it('should render Eye icon when readings are shown', () => {
+  describe('switch indicators', () => {
+    it('should render switch indicator for readings', () => {
       render(<ViewToggleButtons {...defaultProps} showReadings />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
-      const svg = readingsButton.querySelector('svg');
-      expect(svg).toBeInTheDocument();
+      const switchEl = readingsButton.querySelector('.retro-toggle-switch');
+      expect(switchEl).toBeInTheDocument();
     });
 
-    it('should render EyeOff icon when readings are hidden', () => {
+    it('should render switch indicator for translations', () => {
       render(<ViewToggleButtons {...defaultProps} showReadings={false} />);
 
-      const readingsButton = screen.getByTestId('playback-toggle-readings');
-      const svg = readingsButton.querySelector('svg');
-      expect(svg).toBeInTheDocument();
+      const translationsButton = screen.getByTestId('playback-toggle-translations');
+      const switchEl = translationsButton.querySelector('.retro-toggle-switch');
+      expect(switchEl).toBeInTheDocument();
     });
 
-    it('should have correct icon sizes', () => {
+    it('should have a switch span in each button', () => {
       render(<ViewToggleButtons {...defaultProps} />);
 
       const readingsButton = screen.getByTestId('playback-toggle-readings');
-      const svg = readingsButton.querySelector('svg');
-      expect(svg).toHaveClass('w-3.5', 'h-3.5');
+      const translationsButton = screen.getByTestId('playback-toggle-translations');
+
+      expect(readingsButton.querySelectorAll('.retro-toggle-switch')).toHaveLength(1);
+      expect(translationsButton.querySelectorAll('.retro-toggle-switch')).toHaveLength(1);
     });
   });
 
@@ -174,15 +176,7 @@ describe('ViewToggleButtons', () => {
       const { container } = render(<ViewToggleButtons {...defaultProps} />);
 
       const wrapper = container.firstChild;
-      expect(wrapper).toHaveClass(
-        'flex',
-        'items-center',
-        'gap-1',
-        'bg-white',
-        'rounded-lg',
-        'p-1',
-        'shadow-sm'
-      );
+      expect(wrapper).toHaveClass('retro-toggle-row', 'w-full');
     });
   });
 });

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { AudioPreviewProvider } from '../../../contexts/AudioPreviewContext';
 import CourseGenerator from '../CourseGenerator';
 
 // Mock hooks and context
@@ -39,6 +40,7 @@ vi.mock('../../../../../shared/src/voiceSelection', () => ({
     narratorVoice: 'ja-voice-narrator',
     speakerVoices: ['ja-voice-1', 'ja-voice-2'],
   }),
+  voiceIdToFilename: (voiceId: string) => voiceId,
 }));
 
 // Mock TTS voices constants
@@ -80,9 +82,11 @@ global.fetch = mockFetch;
 describe('CourseGenerator - Upgrade Prompt', () => {
   const renderCourseGenerator = () =>
     render(
-      <MemoryRouter>
-        <CourseGenerator />
-      </MemoryRouter>
+      <AudioPreviewProvider>
+        <MemoryRouter>
+          <CourseGenerator />
+        </MemoryRouter>
+      </AudioPreviewProvider>
     );
 
   beforeEach(() => {

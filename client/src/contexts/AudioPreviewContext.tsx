@@ -56,7 +56,6 @@ export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
         setCurrentSrc(src);
         setIsPlaying(true);
       } catch (error) {
-        // eslint-disable-next-line no-console
         console.error('Voice preview playback failed:', error);
         setIsPlaying(false);
         setCurrentSrc(null);
@@ -86,7 +85,6 @@ export const AudioPreviewProvider = ({ children }: { children: ReactNode }) => {
     <AudioPreviewContext.Provider value={value}>
       {children}
       {/* Single shared audio element for all voice previews */}
-      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <audio
         ref={audioRef}
         preload="none"

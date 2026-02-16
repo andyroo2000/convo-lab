@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { mockPrisma } from '../../setup.js';
 
 describe('Feature Flags Route Logic', () => {
@@ -123,10 +124,7 @@ describe('Feature Flags Route Logic', () => {
 
   describe('Feature Flag Structure', () => {
     it('should contain all expected feature flags', () => {
-      const expectedFlags = [
-        'dialoguesEnabled',
-        'audioCourseEnabled',
-      ];
+      const expectedFlags = ['dialoguesEnabled', 'audioCourseEnabled'];
 
       const flagKeys = Object.keys({
         dialoguesEnabled: true,

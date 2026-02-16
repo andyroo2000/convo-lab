@@ -1,13 +1,14 @@
 import { Router } from 'express';
+
+import i18next from '../i18n/index.js';
+import { dialogueQueue } from '../jobs/dialogueQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { requireEmailVerified } from '../middleware/emailVerification.js';
+import { AppError } from '../middleware/errorHandler.js';
 import { rateLimitGeneration } from '../middleware/rateLimit.js';
 import { logGeneration } from '../services/usageTracker.js';
-import { dialogueQueue } from '../jobs/dialogueQueue.js';
-import { AppError } from '../middleware/errorHandler.js';
 import { triggerWorkerJob } from '../services/workerTrigger.js';
-import i18next from '../i18n/index.js';
 
 const router = Router();
 

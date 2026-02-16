@@ -9,7 +9,6 @@
     "sourceType": "module",
     "project": "./tsconfig.json"
   },
-  "ignorePatterns": ["src/**/*.d.ts", "src/**/*.js", "src/**/*.js.map"],
   "settings": {
     "import/resolver": {
       "typescript": {
