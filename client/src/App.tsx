@@ -13,6 +13,7 @@ import {
   isGoogleAnalyticsEnabled,
   trackPageView,
 } from './lib/googleAnalytics';
+import useSeoMeta from './hooks/useSeoMeta';
 import './i18n';
 
 // Lazy load all page components for code splitting
@@ -47,6 +48,100 @@ const PageLoader = () => (
   </div>
 );
 
+const SITE_URL = 'https://convo-lab.com';
+
+interface RouteSeoConfig {
+  title: string;
+  description: string;
+  canonicalPath: string;
+}
+
+const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
+  '/': {
+    title: 'ConvoLab | Japanese Date & Time Practice Tools',
+    description:
+      'Practice Japanese date and time reading with free furigana and audio tools from ConvoLab.',
+    canonicalPath: '/',
+  },
+  '/pricing': {
+    title: 'Pricing | ConvoLab',
+    description:
+      'Compare ConvoLab plans for Japanese language practice, AI dialogue generation, and audio tools.',
+    canonicalPath: '/pricing',
+  },
+  '/tools': {
+    title: 'Japanese Learning Tools | ConvoLab',
+    description:
+      'Use free ConvoLab tools to practice Japanese date and time reading with furigana and audio support.',
+    canonicalPath: '/tools',
+  },
+  '/tools/japanese-date': {
+    title: 'Japanese Date Practice Tool (Furigana + Audio) | ConvoLab',
+    description:
+      'Practice reading Japanese dates with furigana and audio playback. Convert Gregorian dates into natural Japanese quickly.',
+    canonicalPath: '/tools/japanese-date',
+  },
+  '/tools/japanese-time': {
+    title: 'Japanese Time Practice Tool (Furigana + Audio) | ConvoLab',
+    description:
+      'Train Japanese time reading with furigana, audio playback, and interactive practice for AM/PM and 24-hour formats.',
+    canonicalPath: '/tools/japanese-time',
+  },
+};
+
+const normalizePathname = (pathname: string): string => {
+  if (pathname.length > 1 && pathname.endsWith('/')) {
+    return pathname.slice(0, -1);
+  }
+  return pathname;
+};
+
+const RouteSeoController = () => {
+  const location = useLocation();
+  const normalizedPath = normalizePathname(location.pathname);
+  const indexableConfig = INDEXABLE_ROUTE_CONFIG[normalizedPath];
+
+  let seoOptions: {
+    title: string;
+    description: string;
+    robots: string;
+    canonicalUrl?: string;
+  };
+
+  if (indexableConfig) {
+    seoOptions = {
+      title: indexableConfig.title,
+      description: indexableConfig.description,
+      canonicalUrl: `${SITE_URL}${indexableConfig.canonicalPath}`,
+      robots: 'index,follow',
+    };
+  } else {
+    const noIndexPathPrefixes = [
+      '/app',
+      '/login',
+      '/claim-invite',
+      '/verify-email',
+      '/forgot-password',
+      '/reset-password',
+    ];
+    const shouldNoIndex = noIndexPathPrefixes.some(
+      (prefix) => normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`)
+    );
+
+    seoOptions = {
+      title: shouldNoIndex ? 'ConvoLab' : 'Page Not Found | ConvoLab',
+      description: shouldNoIndex
+        ? 'ConvoLab language learning application.'
+        : 'The page you requested could not be found on ConvoLab.',
+      robots: 'noindex,nofollow',
+    };
+  }
+
+  useSeoMeta(seoOptions);
+
+  return null;
+};
+
 const GoogleAnalyticsTracker = () => {
   const location = useLocation();
 
@@ -68,6 +163,7 @@ const App = () => (
   <ErrorBoundary>
     <BrowserRouter>
       <GoogleAnalyticsTracker />
+      <RouteSeoController />
       <AuthProvider>
         <LocaleProvider>
           <AudioPlayerProvider>
