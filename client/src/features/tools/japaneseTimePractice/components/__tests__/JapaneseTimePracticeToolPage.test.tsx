@@ -64,23 +64,19 @@ describe('JapaneseTimePracticeToolPage', () => {
     expect(mockPlayAudioClipSequence).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(12000);
+      await vi.advanceTimersByTimeAsync(8000);
     });
 
     expect(mockPlayAudioClipSequence.mock.calls.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('shows FSRS grading controls after reveal', () => {
+  it('does not render mode or display controls', () => {
     render(<JapaneseTimePracticeToolPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'FSRS' }));
-    fireEvent.click(screen.getByRole('button', { name: /reveal answer/i }));
-
-    expect(screen.getByRole('button', { name: 'Again' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Good' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Auto-Play (Random)' })).toBeDisabled();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Good' }));
-    expect(screen.queryByRole('button', { name: 'Again' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Mode')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'FSRS' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Script' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Digital' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Furigana' })).not.toBeInTheDocument();
   });
 });

@@ -111,7 +111,7 @@ const JapaneseDateToolPage = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showYear, setShowYear] = useState(false);
   const [volumeLevel, setVolumeLevel] = useState<number>(1);
-  const [pauseSeconds, setPauseSeconds] = useState<number>(12);
+  const [pauseSeconds, setPauseSeconds] = useState<number>(8);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [isNextLedActive, setIsNextLedActive] = useState(false);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);

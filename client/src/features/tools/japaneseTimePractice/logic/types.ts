@@ -17,7 +17,7 @@ export interface TimePracticeSettings {
 }
 
 export const DEFAULT_TIME_PRACTICE_SETTINGS: TimePracticeSettings = {
-  revealDelaySeconds: 5,
+  revealDelaySeconds: 8,
   showFurigana: true,
   autoPlayAudio: true,
   displayMode: 'script',
