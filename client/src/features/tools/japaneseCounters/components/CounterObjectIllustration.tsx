@@ -20,20 +20,18 @@ const CounterObjectIllustration = ({
   switch (illustrationId) {
     case 'paper-sheet':
       return (
-        <svg className={className} viewBox="0 0 140 110" aria-label="sheet of paper" role="img">
-          <path
-            d="M44 11l77 12-20 67c-3 10-12 15-24 13L20 87c-2 0-3-2-3-4 7-14 11-27 15-39l12-33z"
-            {...STROKE_PROPS}
-          />
-          <path d="M78 103c10-2 16-10 18-19 8 3 16 1 23-5-8 13-21 22-41 24z" {...STROKE_PROPS} />
-          <path d="M82 94c5-1 10-4 13-8" {...STROKE_PROPS} />
-          <line x1="53" y1="26" x2="112" y2="36" {...STROKE_PROPS} />
-          <line x1="51" y1="35" x2="110" y2="45" {...STROKE_PROPS} />
-          <line x1="48" y1="44" x2="108" y2="54" {...STROKE_PROPS} />
-          <line x1="46" y1="53" x2="106" y2="63" {...STROKE_PROPS} />
-          <line x1="43" y1="62" x2="103" y2="72" {...STROKE_PROPS} />
-          <line x1="41" y1="71" x2="100" y2="81" {...STROKE_PROPS} />
-          <line x1="38" y1="80" x2="85" y2="88" {...STROKE_PROPS} />
+        <svg
+          className={className}
+          viewBox="-650 -750 4700 6200"
+          aria-label="sheet of paper"
+          role="img"
+        >
+          <g transform="translate(0,4700) scale(1,-1)" fill="currentColor" stroke="none">
+            <path d="M66 4639 l-26 -20 0 -1692 0 -1692 598 -597 597 -598 1036 0 c1033 0 1036 0 1063 21 l26 20 0 2269 0 2269 -26 20 -27 21 -1607 0 -1607 0 -27 -21z m3154 -2289 l0 -2160 -955 0 -955 0 0 548 c0 413 -3 551 -12 560 -9 9 -148 12 -565 12 l-553 0 0 1600 0 1600 1520 0 1520 0 0 -2160z m-2000 -1605 c0 -261 -1 -475 -3 -475 -1 0 -216 214 -477 475 l-475 475 478 0 477 0 0 -475z" />
+            <path d="M737 3122 c-21 -23 -21 -36 -1 -56 14 -14 115 -16 964 -16 849 0 950 2 964 16 21 20 20 37 -2 57 -17 16 -98 17 -964 17 -903 0 -946 -1 -961 -18z" />
+            <path d="M728 2615 c-9 -21 -8 -28 7 -45 18 -20 30 -20 956 -20 515 0 945 3 953 6 26 10 38 41 26 64 -11 20 -21 20 -971 20 l-959 0 -12 -25z" />
+            <path d="M752 2143 c-22 -9 -34 -41 -22 -63 11 -20 21 -20 970 -20 l959 0 11 21 c9 16 8 26 -5 45 l-15 24 -943 -1 c-518 0 -948 -3 -955 -6z" />
+          </g>
         </svg>
       );
 

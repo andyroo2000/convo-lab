@@ -25,6 +25,7 @@ const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'));
 const ClaimInvitePage = lazy(() => import('./pages/ClaimInvitePage'));
 const PricingPage = lazy(() => import('./pages/PricingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
+const CreditsPage = lazy(() => import('./pages/CreditsPage'));
 const JapaneseDateToolPage = lazy(() => import('./pages/JapaneseDateToolPage'));
 const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePracticeToolPage'));
 const JapaneseCounterPracticeToolPage = lazy(
@@ -95,6 +96,11 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
     description:
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     canonicalPath: '/tools/japanese-counters',
+  },
+  '/tools/credits': {
+    title: 'Credits | ConvoLab Tools',
+    description: 'Review icon credits and source license information for ConvoLab tools.',
+    canonicalPath: '/tools/credits',
   },
 };
 
@@ -189,6 +195,7 @@ const App = () => (
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
                     <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+                    <Route path="credits" element={<CreditsPage />} />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -202,6 +209,7 @@ const App = () => (
                     <Route path="library" element={<LibraryPage />} />
                     <Route path="settings" element={<SettingsPage />} />
                     <Route path="settings/:tab" element={<SettingsPage />} />
+                    <Route path="credits" element={<CreditsPage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="admin/:tab" element={<AdminPage />} />
 

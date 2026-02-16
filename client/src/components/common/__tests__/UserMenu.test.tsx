@@ -64,6 +64,7 @@ describe('UserMenu', () => {
       fireEvent.click(screen.getByTestId('user-menu-button'));
 
       expect(screen.getByTestId('user-menu-item-settings')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-item-credits')).toBeInTheDocument();
       expect(screen.getByTestId('user-menu-item-logout')).toBeInTheDocument();
     });
 
@@ -123,6 +124,16 @@ describe('UserMenu', () => {
       fireEvent.click(screen.getByTestId('user-menu-item-settings'));
 
       expect(screen.queryByTestId('user-menu-item-settings')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to credits page', () => {
+      renderWithRouter(<UserMenu {...defaultProps} />);
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+      fireEvent.click(screen.getByTestId('user-menu-item-credits'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/app/credits');
+      expect(screen.queryByTestId('user-menu-item-credits')).not.toBeInTheDocument();
     });
   });
 

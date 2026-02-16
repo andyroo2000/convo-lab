@@ -88,6 +88,12 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
   },
+  '/tools/credits': {
+    title: 'Credits | ConvoLab Tools',
+    description: 'Review icon credits and source license information for ConvoLab tools.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/credits`,
+  },
 };
 
 const NOINDEX_PREFIXES = [
