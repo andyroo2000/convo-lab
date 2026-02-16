@@ -21,10 +21,19 @@ const CounterObjectIllustration = ({
     case 'paper-sheet':
       return (
         <svg className={className} viewBox="0 0 140 110" aria-label="sheet of paper" role="img">
-          <rect x="26" y="12" width="88" height="84" rx="4" {...STROKE_PROPS} />
-          <line x1="37" y1="34" x2="103" y2="34" {...STROKE_PROPS} />
-          <line x1="37" y1="50" x2="103" y2="50" {...STROKE_PROPS} />
-          <line x1="37" y1="66" x2="85" y2="66" {...STROKE_PROPS} />
+          <path
+            d="M44 11l77 12-20 67c-3 10-12 15-24 13L20 87c-2 0-3-2-3-4 7-14 11-27 15-39l12-33z"
+            {...STROKE_PROPS}
+          />
+          <path d="M78 103c10-2 16-10 18-19 8 3 16 1 23-5-8 13-21 22-41 24z" {...STROKE_PROPS} />
+          <path d="M82 94c5-1 10-4 13-8" {...STROKE_PROPS} />
+          <line x1="53" y1="26" x2="112" y2="36" {...STROKE_PROPS} />
+          <line x1="51" y1="35" x2="110" y2="45" {...STROKE_PROPS} />
+          <line x1="48" y1="44" x2="108" y2="54" {...STROKE_PROPS} />
+          <line x1="46" y1="53" x2="106" y2="63" {...STROKE_PROPS} />
+          <line x1="43" y1="62" x2="103" y2="72" {...STROKE_PROPS} />
+          <line x1="41" y1="71" x2="100" y2="81" {...STROKE_PROPS} />
+          <line x1="38" y1="80" x2="85" y2="88" {...STROKE_PROPS} />
         </svg>
       );
 
