@@ -191,7 +191,7 @@ describe('Impersonation Middleware', () => {
       });
 
       it('should log IP address from req.ip', async () => {
-        mockReq.ip = '10.0.0.1';
+        (mockReq as { ip?: string }).ip = '10.0.0.1';
         mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
         await getEffectiveUserId(mockReq as AuthRequest);
@@ -206,7 +206,7 @@ describe('Impersonation Middleware', () => {
       });
 
       it('should fallback to socket.remoteAddress if req.ip is undefined', async () => {
-        mockReq.ip = undefined;
+        (mockReq as { ip?: string }).ip = undefined;
         mockReq.socket = { remoteAddress: '172.16.0.1' } as unknown as Socket;
         mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
@@ -222,7 +222,7 @@ describe('Impersonation Middleware', () => {
       });
 
       it('should use null for IP if neither source is available', async () => {
-        mockReq.ip = undefined;
+        (mockReq as { ip?: string }).ip = undefined;
         mockReq.socket = { remoteAddress: undefined } as unknown as Socket;
         mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);
 
@@ -268,7 +268,7 @@ describe('Impersonation Middleware', () => {
       });
 
       it('should include request metadata (path, method, query)', async () => {
-        mockReq.path = '/api/courses';
+        (mockReq as { path?: string }).path = '/api/courses';
         mockReq.method = 'POST';
         mockReq.query = { viewAs: 'target-user-123', someParam: 'value' };
         mockPrisma.adminAuditLog.create.mockResolvedValue({} as AdminAuditLog);

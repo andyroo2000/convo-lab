@@ -17,15 +17,6 @@ async function initKuroshiro(): Promise<Kuroshiro> {
 }
 
 /**
- * Check if a character is kanji
- */
-function isKanji(char: string): boolean {
-  if (!char) return false;
-  const code = char.charCodeAt(0);
-  return code >= 0x4e00 && code <= 0x9faf;
-}
-
-/**
  * Check if a character is hiragana
  */
 function isHiragana(char: string): boolean {

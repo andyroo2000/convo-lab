@@ -1,7 +1,9 @@
-import { Resend } from 'resend';
+/* eslint-disable no-console */
 import crypto from 'crypto';
+
+import { Resend } from 'resend';
+
 import { prisma } from '../db/client.js';
-import i18next from '../i18n/index.js';
 import {
   generateVerificationEmail,
   generatePasswordResetEmail,
@@ -12,6 +14,7 @@ import {
   generateSubscriptionCanceledEmail,
   generateQuotaWarningEmail,
 } from '../i18n/emailTemplates.js';
+import i18next from '../i18n/index.js';
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
@@ -44,11 +47,6 @@ async function getUserLocaleByEmail(email: string): Promise<string> {
 // Generate a secure random token
 function generateToken(): string {
   return crypto.randomBytes(32).toString('hex');
-}
-
-// Generate a 6-digit verification code
-function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 /**

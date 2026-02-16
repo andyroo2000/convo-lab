@@ -183,7 +183,7 @@ function stripPhoneticNotation(text: string): string {
 
 function buildSystemInstruction(
   targetLanguage: string,
-  nativeLanguage: string,
+  _nativeLanguage: string,
   speakers: Speaker[]
 ): string {
   const languageName = getLanguageName(targetLanguage);
@@ -418,7 +418,7 @@ async function createDialogueInDB(
           order: index,
           text: sent.text,
           translation: sent.translation,
-          metadata: metadata as Prisma.JsonValue, // Store precomputed metadata (cast for Prisma JSON type)
+          metadata: metadata as Prisma.InputJsonValue, // Store precomputed metadata
           variations: sent.variations || [],
           selected: false,
         },

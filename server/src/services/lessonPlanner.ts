@@ -181,7 +181,6 @@ function planSingleLesson(
  */
 function scheduleSRSDrills(coreItems: CoreItem[], sections: LessonSection[]): DrillEvent[] {
   const drillEvents: DrillEvent[] = [];
-  const currentOffset = 0;
 
   // Track when each item is introduced
   const itemIntroTimes = new Map<string, number>();
@@ -197,7 +196,7 @@ function scheduleSRSDrills(coreItems: CoreItem[], sections: LessonSection[]): Dr
   }
 
   // Schedule drills for each core item
-  coreItems.forEach((item, itemIndex) => {
+  coreItems.forEach((item) => {
     const introTime = itemIntroTimes.get(item.id) || 0;
 
     SRS_INTERVALS.forEach((interval, intervalIndex) => {

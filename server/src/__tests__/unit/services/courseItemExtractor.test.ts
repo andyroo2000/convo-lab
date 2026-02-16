@@ -1,4 +1,4 @@
-import type { Episode, Sentence, Speaker } from '@prisma/client';
+import type { Episode, Prisma, Sentence, Speaker } from '@prisma/client';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import {
@@ -65,17 +65,29 @@ describe('courseItemExtractor', () => {
     };
   };
 
-  // Helper to create mock episode with dialogue
-  const createMockEpisode = (sentences: SentenceWithMetadata[]): MockEpisode => ({
+  const createBaseEpisode = (): Episode => ({
     id: 'episode-123',
+    userId: 'user-123',
     title: 'Test Episode',
     sourceText: 'Two friends talking about their weekend',
     targetLanguage: 'ja',
     nativeLanguage: 'en',
+    jlptLevel: null,
+    autoGenerateAudio: true,
     status: 'ready',
-    userId: 'user-123',
+    isSampleContent: false,
+    audioUrl: null,
+    audioSpeed: 'medium',
+    audioUrl_0_7: null,
+    audioUrl_0_85: null,
+    audioUrl_1_0: null,
     createdAt: new Date(),
     updatedAt: new Date(),
+  });
+
+  // Helper to create mock episode with dialogue
+  const createMockEpisode = (sentences: SentenceWithMetadata[]): MockEpisode => ({
+    ...createBaseEpisode(),
     dialogue: {
       sentences,
     },
@@ -89,34 +101,45 @@ describe('courseItemExtractor', () => {
     metadata?: LanguageMetadata
   ): SentenceWithMetadata => ({
     id,
+    dialogueId: 'dialogue-123',
+    speakerId: 'speaker-1',
     text,
     translation,
     order: 0,
-    episodeId: 'episode-123',
+    metadata: (metadata || {}) as Prisma.JsonValue & LanguageMetadata,
+    audioUrl: null,
+    startTime: null,
+    endTime: null,
+    startTime_0_7: null,
+    endTime_0_7: null,
+    startTime_0_85: null,
+    endTime_0_85: null,
+    startTime_1_0: null,
+    endTime_1_0: null,
+    variations: null,
+    selected: false,
     createdAt: new Date(),
     updatedAt: new Date(),
-    metadata: metadata || {},
     speaker: {
       id: 'speaker-1',
+      dialogueId: 'dialogue-123',
       name: '田中',
       voiceId: 'ja-JP-Neural2-B',
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      voiceProvider: 'google',
+      proficiency: 'intermediate',
+      tone: 'casual',
+      gender: null,
+      color: null,
+      avatarUrl: null,
     },
   });
 
   describe('extractCoreItems', () => {
     it('should throw error when episode has no dialogue', async () => {
       const episode: Episode & { dialogue: { sentences: SentenceWithMetadata[] } | null } = {
-        id: 'episode-123',
+        ...createBaseEpisode(),
         title: 'Test',
         sourceText: '',
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-        status: 'ready',
-        userId: 'user-123',
-        createdAt: new Date(),
-        updatedAt: new Date(),
         dialogue: null,
       };
 
@@ -132,10 +155,14 @@ describe('courseItemExtractor', () => {
     it('should extract core items from dialogue sentences', async () => {
       const sentences = [
         createMockSentence('s1', 'こんにちは', 'Hello', {
-          japanese: { kanji: 'こんにちは', kana: 'こんにちは' },
+          japanese: { kanji: 'こんにちは', kana: 'こんにちは', furigana: 'こんにちは' },
         }),
         createMockSentence('s2', 'お元気ですか', 'How are you?', {
-          japanese: { kanji: 'お元気ですか', kana: 'おげんきですか' },
+          japanese: {
+            kanji: 'お元気ですか',
+            kana: 'おげんきですか',
+            furigana: 'お元気[げんき]ですか',
+          },
         }),
       ];
       const episode = createMockEpisode(sentences);
@@ -188,7 +215,7 @@ describe('courseItemExtractor', () => {
     it('should extract reading from Japanese metadata', async () => {
       const sentences = [
         createMockSentence('s1', '漢字', 'Kanji', {
-          japanese: { kanji: '漢字', kana: 'かんじ' },
+          japanese: { kanji: '漢字', kana: 'かんじ', furigana: '漢[かん]字[じ]' },
         }),
       ];
       const episode = createMockEpisode(sentences);
@@ -206,13 +233,17 @@ describe('courseItemExtractor', () => {
 
       const result = await extractCoreItems(episode);
 
-      expect(result[0].readingL2).toBe('かんじ');
+      expect(result[0].readingL2).toBe('漢[かん]字[じ]');
     });
 
     it('should include Pimsleur components for longer phrases', async () => {
       const sentences = [
         createMockSentence('s1', '東京に行きたいです', 'I want to go to Tokyo', {
-          japanese: { kanji: '東京に行きたいです', kana: 'とうきょうにいきたいです' },
+          japanese: {
+            kanji: '東京に行きたいです',
+            kana: 'とうきょうにいきたいです',
+            furigana: '東[とう]京[きょう]に行[い]きたいです',
+          },
         }),
       ];
       const episode = createMockEpisode(sentences);
@@ -348,13 +379,17 @@ describe('courseItemExtractor', () => {
     it('should add complexity for kanji characters', async () => {
       const sentences = [
         createMockSentence('s1', 'こんにちは', 'Hello', {
-          japanese: { kanji: 'こんにちは', kana: 'こんにちは' },
+          japanese: { kanji: 'こんにちは', kana: 'こんにちは', furigana: 'こんにちは' },
         }), // All kana
         createMockSentence('s2', '漢字文章です', 'Kanji text', {
-          japanese: { kanji: '漢字文章です', kana: 'かんじぶんしょうです' },
+          japanese: {
+            kanji: '漢字文章です',
+            kana: 'かんじぶんしょうです',
+            furigana: '漢[かん]字[じ]文[ぶん]章[しょう]です',
+          },
         }), // Has kanji
         createMockSentence('s3', 'いいですね', 'That is nice', {
-          japanese: { kanji: 'いいですね', kana: 'いいですね' },
+          japanese: { kanji: 'いいですね', kana: 'いいですね', furigana: 'いいですね' },
         }), // All kana
       ];
       const episode = createMockEpisode(sentences);
@@ -388,9 +423,8 @@ describe('courseItemExtractor', () => {
 
   describe('extractDialogueExchanges', () => {
     it('should throw error when episode has no dialogue', async () => {
-      const episode = {
-        id: 'episode-123',
-        targetLanguage: 'ja',
+      const episode: Parameters<typeof extractDialogueExchanges>[0] = {
+        ...createBaseEpisode(),
         dialogue: null,
       };
 

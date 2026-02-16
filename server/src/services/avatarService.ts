@@ -1,15 +1,9 @@
-import path from 'path';
-import { fileURLToPath } from 'url';
-
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import sharp from 'sharp';
 
 import { prisma } from '../db/client.js';
 
 import { uploadToGCS } from './storageClient.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 interface CropArea {
   x: number;
@@ -226,7 +220,7 @@ function getVoiceGenderFromConfig(voiceId: string): string {
  * - Polly: Takumi -> { language: 'ja', gender: 'male' }
  */
 function parseVoiceId(voiceId: string): { language: string; gender: string } {
-  let language: string;
+  let language = 'en';
 
   // Check if this is a Polly voice (no hyphens) or Google voice (has hyphens)
   if (voiceId.includes('-')) {
@@ -246,8 +240,7 @@ function parseVoiceId(voiceId: string): { language: string; gender: string } {
     }
 
     if (!found) {
-      // Fallback to 'en' if voice not found
-      language = 'en';
+      // Keep fallback language ('en') if voice not found
     }
   }
 

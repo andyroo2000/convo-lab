@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   checkGenerationLimit,
   logGeneration,
@@ -6,7 +7,6 @@ import {
   setCooldown,
 } from '../../../services/usageTracker.js';
 import { mockPrisma } from '../../setup.js';
-import { getMonthStart, getNextMonthStart } from '../../../utils/dateUtils.js';
 
 // Mock Redis
 const mockRedis = {
@@ -21,8 +21,6 @@ vi.mock('../../../config/redis.js', () => ({
 
 describe('Quota System Race Conditions - Integration Tests', () => {
   const mockUserId = 'user-123';
-  const _monthStart = getMonthStart();
-  const _nextMonthStart = getNextMonthStart();
 
   beforeEach(() => {
     vi.clearAllMocks();

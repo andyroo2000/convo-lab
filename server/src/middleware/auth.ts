@@ -1,3 +1,4 @@
+/* eslint-disable import/no-named-as-default-member */
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -10,7 +11,7 @@ export interface AuthRequest extends Request {
   role?: string;
 }
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+export function requireAuth(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
     const { token } = req.cookies;
 

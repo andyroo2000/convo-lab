@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
+import type { UploadFileOptions, UploadOptions } from '../../../services/storageClient.js';
+
 // Note: The storage client functions require complex GCS mocking that is
 // difficult to set up properly in unit tests because the Storage class is
 // instantiated at module load time. For comprehensive testing, we recommend:
@@ -40,7 +42,7 @@ describe('Storage Client', () => {
     it('should accept valid upload options', () => {
       // This test verifies the TypeScript interface at compile time
       // The actual upload would require GCS credentials
-      const options = {
+      const options: UploadOptions = {
         buffer: Buffer.from('test'),
         filename: 'test.txt',
         contentType: 'text/plain',
@@ -54,7 +56,7 @@ describe('Storage Client', () => {
     });
 
     it('should work without optional folder', () => {
-      const options = {
+      const options: UploadOptions = {
         buffer: Buffer.from('test'),
         filename: 'test.txt',
         contentType: 'text/plain',
@@ -64,7 +66,7 @@ describe('Storage Client', () => {
     });
 
     it('should handle different content types', () => {
-      const audioOptions = {
+      const audioOptions: UploadOptions = {
         buffer: Buffer.from('audio data'),
         filename: 'audio.mp3',
         contentType: 'audio/mpeg',
@@ -72,7 +74,7 @@ describe('Storage Client', () => {
 
       expect(audioOptions.contentType).toBe('audio/mpeg');
 
-      const imageOptions = {
+      const imageOptions: UploadOptions = {
         buffer: Buffer.from('image data'),
         filename: 'image.png',
         contentType: 'image/png',
@@ -80,7 +82,7 @@ describe('Storage Client', () => {
 
       expect(imageOptions.contentType).toBe('image/png');
 
-      const textOptions = {
+      const textOptions: UploadOptions = {
         buffer: Buffer.from('text data'),
         filename: 'document.txt',
         contentType: 'text/plain',
@@ -92,7 +94,7 @@ describe('Storage Client', () => {
 
   describe('UploadFileOptions interface', () => {
     it('should accept valid file upload options', () => {
-      const options = {
+      const options: UploadFileOptions = {
         filePath: '/tmp/test.mp3',
         filename: 'audio.mp3',
         contentType: 'audio/mpeg',
@@ -106,7 +108,7 @@ describe('Storage Client', () => {
     });
 
     it('should work without optional folder', () => {
-      const options = {
+      const options: UploadFileOptions = {
         filePath: '/tmp/test.mp3',
         filename: 'audio.mp3',
         contentType: 'audio/mpeg',
@@ -116,7 +118,7 @@ describe('Storage Client', () => {
     });
 
     it('should handle different file paths', () => {
-      const options1 = {
+      const options1: UploadFileOptions = {
         filePath: '/tmp/audio.mp3',
         filename: 'audio.mp3',
         contentType: 'audio/mpeg',
@@ -124,7 +126,7 @@ describe('Storage Client', () => {
 
       expect(options1.filePath).toBe('/tmp/audio.mp3');
 
-      const options2 = {
+      const options2: UploadFileOptions = {
         filePath: '/var/data/image.png',
         filename: 'image.png',
         contentType: 'image/png',

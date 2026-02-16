@@ -1,6 +1,7 @@
 import { Queue, Worker } from 'bullmq';
-import { generateDialogue } from '../services/dialogueGenerator.js';
+
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
+import { generateDialogue } from '../services/dialogueGenerator.js';
 
 const connection = createRedisConnection();
 
@@ -11,7 +12,6 @@ export const dialogueWorker = new Worker(
   'dialogue-generation',
   async (job) => {
     const {
-      userId,
       episodeId,
       speakers,
       variationCount,
@@ -49,9 +49,11 @@ export const dialogueWorker = new Worker(
 );
 
 dialogueWorker.on('completed', (job) => {
+  // eslint-disable-next-line no-console
   console.log(`Dialogue job ${job.id} completed`);
 });
 
 dialogueWorker.on('failed', (job, err) => {
+  // eslint-disable-next-line no-console
   console.error(`Dialogue job ${job?.id} failed:`, err);
 });

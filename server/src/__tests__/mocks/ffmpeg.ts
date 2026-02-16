@@ -10,7 +10,7 @@ interface FfprobeMetadata {
 
 // Mock ffprobe function
 export const mockFfprobe = vi.fn(
-  (filePath: string, callback: (err: Error | null, metadata: FfprobeMetadata) => void) => {
+  (_filePath: string, callback: (err: Error | null, metadata: FfprobeMetadata) => void) => {
     callback(null, {
       format: {
         duration: 120, // 120 seconds
@@ -64,7 +64,13 @@ export const createMockFfmpegChain = () => {
 };
 
 // Mock ffmpeg function
-export const mockFfmpeg = vi.fn(() => createMockFfmpegChain());
+type MockFfmpegFn = ReturnType<typeof vi.fn> & {
+  ffprobe: typeof mockFfprobe;
+  setFfprobePath: ReturnType<typeof vi.fn>;
+  setFfmpegPath: ReturnType<typeof vi.fn>;
+};
+
+export const mockFfmpeg = vi.fn(() => createMockFfmpegChain()) as MockFfmpegFn;
 mockFfmpeg.ffprobe = mockFfprobe;
 mockFfmpeg.setFfprobePath = vi.fn();
 mockFfmpeg.setFfmpegPath = vi.fn();

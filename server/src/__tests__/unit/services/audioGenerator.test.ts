@@ -52,7 +52,7 @@ const mockFfmpeg = vi.hoisted(() => {
         cb: (err: unknown, data: { format: { duration: number } }) => void
       ) => void;
     }
-  ).ffprobe = vi.fn((path, cb) => {
+  ).ffprobe = vi.fn((_path, cb) => {
     cb(null, { format: { duration: 2.5 } }); // 2.5 seconds
   });
   (ffmpegFn as unknown as { setFfprobePath: (path: string) => void }).setFfprobePath = vi.fn();

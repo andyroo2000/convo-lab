@@ -1,4 +1,4 @@
-import { vi, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 
 // Create a mock Prisma client with common methods
 export const mockPrisma = {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // Define CoreItem interface locally to avoid import chain
 interface CoreItem {
@@ -171,7 +171,7 @@ function scheduleDrills(coreItems: CoreItem[], lessonDuration: number): DrillEve
 function splitIntoMultipleLessons(
   coreItems: CoreItem[],
   episodeTitle: string,
-  maxDurationSeconds: number
+  _maxDurationSeconds: number
 ): CoursePlan {
   const lessons: LessonPlan[] = [];
   const remainingItems = [...coreItems];

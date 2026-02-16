@@ -38,9 +38,17 @@ const mockFfmpeg = vi.hoisted(() => {
     }),
     run: vi.fn(),
   };
-  const ffmpegFn = vi.fn(() => mockInstance);
-  (ffmpegFn as typeof ffmpegFn & { ffprobe: typeof vi.fn }).ffprobe = vi.fn(
-    (path: string, cb: (err: Error | null, metadata: { format: { duration: number } }) => void) => {
+  const ffmpegFn = vi.fn(() => mockInstance) as ReturnType<typeof vi.fn> & {
+    ffprobe: (
+      path: string,
+      cb: (err: Error | null, metadata: { format: { duration: number } }) => void
+    ) => void;
+  };
+  ffmpegFn.ffprobe = vi.fn(
+    (
+      _path: string,
+      cb: (err: Error | null, metadata: { format: { duration: number } }) => void
+    ) => {
       cb(null, { format: { duration: 10.0 } });
     }
   );
@@ -154,7 +162,7 @@ describe('batchedTTSClient', () => {
     it('should skip marker units entirely', () => {
       const units: LessonScriptUnit[] = [
         { type: 'L2', text: 'Hello', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
-        { type: 'marker', name: 'section_start' },
+        { type: 'marker', label: 'section_start' },
         { type: 'L2', text: 'World', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
       ];
 
@@ -240,7 +248,7 @@ describe('batchedTTSClient', () => {
 
     it('should use native language code for narration_L1 units', () => {
       const units: LessonScriptUnit[] = [
-        { type: 'narration_L1', text: 'English narration', voiceId: 'en-US-Neural2-A', speed: 1.0 },
+        { type: 'narration_L1', text: 'English narration', voiceId: 'en-US-Neural2-A' },
         { type: 'L2', text: 'Japanese text', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
       ];
 
@@ -272,7 +280,7 @@ describe('batchedTTSClient', () => {
 
     it('should preserve original index in unit markers', () => {
       const units: LessonScriptUnit[] = [
-        { type: 'marker', name: 'start' },
+        { type: 'marker', label: 'start' },
         { type: 'L2', text: 'Hello', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
         { type: 'pause', seconds: 1 },
         { type: 'L2', text: 'World', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
@@ -459,14 +467,14 @@ describe('batchedTTSClient', () => {
   describe('complex scenarios', () => {
     it('should handle a full lesson script with mixed unit types', () => {
       const units: LessonScriptUnit[] = [
-        { type: 'marker', name: 'lesson_start' },
+        { type: 'marker', label: 'lesson_start' },
         { type: 'narration_L1', text: 'Welcome to the lesson', voiceId: 'en-US-Neural2-A' },
         { type: 'pause', seconds: 1 },
         { type: 'L2', text: 'こんにちは', voiceId: 'ja-JP-Neural2-B', speed: 0.7 },
         { type: 'L2', text: 'おはようございます', voiceId: 'ja-JP-Neural2-B', speed: 0.7 },
         { type: 'pause', seconds: 2 },
         { type: 'L2', text: 'さようなら', voiceId: 'ja-JP-Neural2-B', speed: 1.0 },
-        { type: 'marker', name: 'lesson_end' },
+        { type: 'marker', label: 'lesson_end' },
       ];
 
       const { batches, pauseIndices } = groupUnitsIntoBatches(units, 'en-US', 'ja-JP');

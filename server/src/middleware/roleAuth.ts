@@ -8,7 +8,7 @@ import { AppError } from './errorHandler.js';
 /**
  * Middleware to require admin role
  */
-export async function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
+export async function requireAdmin(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
     if (!req.userId) {
       throw new AppError('Authentication required', 401);
@@ -45,7 +45,7 @@ export async function requireAdmin(req: AuthRequest, res: Response, next: NextFu
  * Middleware to require specific roles
  */
 export function requireRole(roles: string[]) {
-  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+  return async (req: AuthRequest, _res: Response, next: NextFunction) => {
     try {
       if (!req.userId) {
         throw new AppError('Authentication required', 401);

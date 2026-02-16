@@ -21,7 +21,7 @@ const mockPrisma = vi.hoisted(() => ({
 const mockGetLibraryUserId = vi.hoisted(() => vi.fn());
 const mockGetEffectiveUserId = vi.hoisted(() => vi.fn());
 const mockBlockDemoUser = vi.hoisted(() =>
-  vi.fn((req: AuthRequest, res: Response, next: NextFunction) => next())
+  vi.fn((_req: AuthRequest, _res: Response, next: NextFunction) => next())
 );
 
 vi.mock('../../../db/client.js', () => ({
@@ -38,7 +38,7 @@ vi.mock('../../../middleware/impersonation.js', () => ({
 }));
 
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: vi.fn((req: AuthRequest, res: Response, next: NextFunction) => {
+  requireAuth: vi.fn((req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   }),
@@ -64,7 +64,7 @@ describe('Episodes Routes Integration', () => {
     vi.clearAllMocks();
     mockGetLibraryUserId.mockResolvedValue('test-user-id');
     mockGetEffectiveUserId.mockResolvedValue('test-user-id');
-    mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response, next: NextFunction) =>
+    mockBlockDemoUser.mockImplementation((_req: AuthRequest, _res: Response, next: NextFunction) =>
       next()
     );
 
@@ -396,7 +396,7 @@ describe('Episodes Routes Integration', () => {
     });
 
     it('should block demo users from creating episodes', async () => {
-      mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response) => {
+      mockBlockDemoUser.mockImplementation((_req: AuthRequest, res: Response) => {
         res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
       });
 
@@ -506,7 +506,7 @@ describe('Episodes Routes Integration', () => {
     });
 
     it('should block demo users from deleting episodes', async () => {
-      mockBlockDemoUser.mockImplementation((req: AuthRequest, res: Response) => {
+      mockBlockDemoUser.mockImplementation((_req: AuthRequest, res: Response) => {
         res.status(403).json({ error: { message: 'Demo users cannot perform this action' } });
       });
 

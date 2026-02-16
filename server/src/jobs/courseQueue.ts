@@ -121,7 +121,7 @@ async function processCourseGeneration(job: {
         data: {
           audioUrl: assembledAudio.audioUrl,
           approxDurationSeconds: assembledAudio.actualDurationSeconds,
-          timingData: assembledAudio.timingData as unknown as Prisma.JsonValue,
+          timingData: assembledAudio.timingData as Prisma.InputJsonValue,
           status: 'ready',
         },
       });
@@ -217,7 +217,7 @@ async function processCourseGeneration(job: {
         scriptJson: {
           _pipelineStage: 'exchanges',
           _exchanges: dialogueExchanges,
-        } as unknown as Prisma.JsonValue,
+        } as unknown as Prisma.InputJsonValue,
       },
     });
 
@@ -226,7 +226,6 @@ async function processCourseGeneration(job: {
     // For now, create a single lesson per episode
     // Future: could split long dialogues into multiple lessons
     const lessonTitle = `${firstEpisode.title} - Lesson 1`;
-    const _estimatedDuration = dialogueExchanges.length * 90; // ~1.5 min per exchange
 
     console.log(`Planning conversational lesson: ${lessonTitle}`);
     await job.updateProgress(30);
@@ -307,12 +306,12 @@ async function processCourseGeneration(job: {
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptUnitsJson: scriptUnits as unknown as Prisma.JsonValue,
+        scriptUnitsJson: scriptUnits as Prisma.InputJsonValue,
         scriptJson: {
           _pipelineStage: 'script',
           _exchanges: dialogueExchanges,
           _scriptUnits: scriptUnits,
-        } as unknown as Prisma.JsonValue,
+        } as unknown as Prisma.InputJsonValue,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
       },
     });
@@ -410,7 +409,7 @@ async function processCourseGeneration(job: {
       data: {
         audioUrl: assembledAudio.audioUrl,
         approxDurationSeconds: assembledAudio.actualDurationSeconds,
-        timingData: assembledAudio.timingData as unknown as Prisma.JsonValue,
+        timingData: assembledAudio.timingData as Prisma.InputJsonValue,
         status: 'ready',
       },
     });

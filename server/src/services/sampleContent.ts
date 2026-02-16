@@ -3,6 +3,8 @@
  * Service for managing sample content for new users
  */
 
+import { Prisma } from '@prisma/client';
+
 import { prisma } from '../db/client.js';
 
 /**
@@ -122,7 +124,7 @@ export async function copySampleContentToUser(
               order: sentence.order,
               text: sentence.text,
               translation: sentence.translation,
-              metadata: sentence.metadata,
+              metadata: sentence.metadata ?? Prisma.JsonNull,
               audioUrl: sentence.audioUrl,
               startTime: sentence.startTime,
               endTime: sentence.endTime,
@@ -132,7 +134,7 @@ export async function copySampleContentToUser(
               endTime_0_85: sentence.endTime_0_85,
               startTime_1_0: sentence.startTime_1_0,
               endTime_1_0: sentence.endTime_1_0,
-              variations: sentence.variations,
+              variations: sentence.variations ?? Prisma.JsonNull,
               selected: sentence.selected,
             },
           });
@@ -250,10 +252,10 @@ async function copySampleCourses(
           speaker1VoiceProvider: sampleCourse.speaker1VoiceProvider,
           speaker2VoiceId: sampleCourse.speaker2VoiceId,
           speaker2VoiceProvider: sampleCourse.speaker2VoiceProvider,
-          scriptJson: sampleCourse.scriptJson,
+          scriptJson: sampleCourse.scriptJson ?? Prisma.JsonNull,
           approxDurationSeconds: sampleCourse.approxDurationSeconds,
           audioUrl: sampleCourse.audioUrl,
-          timingData: sampleCourse.timingData,
+          timingData: sampleCourse.timingData ?? Prisma.JsonNull,
         },
       });
 
@@ -291,7 +293,7 @@ async function copySampleCourses(
             sourceEpisodeId: coreItem.sourceEpisodeId,
             sourceSentenceId: coreItem.sourceSentenceId,
             sourceUnitIndex: coreItem.sourceUnitIndex,
-            components: coreItem.components,
+            components: coreItem.components ?? Prisma.JsonNull,
           },
         });
       }

@@ -18,6 +18,7 @@ async function waitForRateLimit() {
 
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL_MS) {
     const waitTime = MIN_REQUEST_INTERVAL_MS - timeSinceLastRequest;
+    // eslint-disable-next-line no-console
     console.log(`Rate limiting: waiting ${waitTime}ms before next Gemini call`);
     await new Promise((resolve) => setTimeout(resolve, waitTime));
   }
@@ -43,6 +44,7 @@ export async function generateWithGemini(
     const { response } = result;
     return response.text();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Gemini API error:', error);
     throw new Error('Failed to generate content with Gemini');
   }
@@ -69,12 +71,13 @@ export async function generateWithGeminiChat(
     const result = await chat.sendMessage(messages[messages.length - 1].parts);
     return result.response.text();
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('Gemini chat error:', error);
     throw new Error('Failed to generate chat response with Gemini');
   }
 }
 
-export async function generateImageWithGemini(prompt: string): Promise<string> {
+export async function generateImageWithGemini(_prompt: string): Promise<string> {
   // Note: As of now, Gemini doesn't directly generate images in the same way as DALL-E
   // This would integrate with Imagen API or similar
   // For MVP, we'll use Nano Banana or another service

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
 import { assembleLessonAudio } from '../../../services/audioCourseAssembler.js';
+import type { LessonScriptUnit } from '../../../services/lessonScriptGenerator.js';
 
 // Hoisted mocks
 const mockUploadFileToGCS = vi.hoisted(() => vi.fn());
@@ -39,7 +40,11 @@ const mockFfmpegChain = vi.hoisted(() => {
   return chain;
 });
 const mockFfmpeg = vi.hoisted(() => {
-  const fn = vi.fn(() => mockFfmpegChain);
+  const fn = vi.fn(() => mockFfmpegChain) as ReturnType<typeof vi.fn> & {
+    ffprobe?: typeof mockFfprobe;
+    setFfprobePath?: ReturnType<typeof vi.fn>;
+    setFfmpegPath?: ReturnType<typeof vi.fn>;
+  };
   fn.ffprobe = mockFfprobe;
   fn.setFfprobePath = vi.fn();
   fn.setFfmpegPath = vi.fn();
@@ -86,12 +91,12 @@ vi.mock('child_process', () => ({
 }));
 
 describe('audioCourseAssembler', () => {
-  const mockScriptUnits = [
-    { type: 'intro', text: 'Welcome', voiceId: 'en-US-Neural2-D' },
-    { type: 'l2', text: 'こんにちは', voiceId: 'ja-JP-Neural2-B' },
+  const mockScriptUnits: LessonScriptUnit[] = [
+    { type: 'narration_L1', text: 'Welcome', voiceId: 'en-US-Neural2-D' },
+    { type: 'L2', text: 'こんにちは', voiceId: 'ja-JP-Neural2-B' },
     { type: 'pause', seconds: 1 },
     { type: 'marker', label: 'Section 1' },
-    { type: 'narration', text: 'Now repeat', voiceId: 'en-US-Neural2-D' },
+    { type: 'narration_L1', text: 'Now repeat', voiceId: 'en-US-Neural2-D' },
   ];
 
   const mockBatchResult = {
@@ -111,7 +116,7 @@ describe('audioCourseAssembler', () => {
     mockFs.unlink.mockResolvedValue(undefined);
     mockProcessBatches.mockResolvedValue(mockBatchResult);
     mockUploadFileToGCS.mockResolvedValue('https://storage.example.com/lesson-123.mp3');
-    mockFfprobe.mockImplementation((filePath, callback) => {
+    mockFfprobe.mockImplementation((_filePath, callback) => {
       callback(null, { format: { duration: 120 } });
     });
   });
@@ -275,7 +280,7 @@ describe('audioCourseAssembler', () => {
       const onProgress = vi.fn();
 
       // Make processBatches call the onProgress callback
-      mockProcessBatches.mockImplementation((units, options) => {
+      mockProcessBatches.mockImplementation((_units, options) => {
         if (options.onProgress) {
           options.onProgress(1, 2);
           options.onProgress(2, 2);
@@ -295,7 +300,9 @@ describe('audioCourseAssembler', () => {
     });
 
     it('should handle single audio file without concatenation', async () => {
-      const singleUnit = [{ type: 'intro', text: 'Hello', voiceId: 'en-US' }];
+      const singleUnit: LessonScriptUnit[] = [
+        { type: 'narration_L1', text: 'Hello', voiceId: 'en-US' },
+      ];
       mockProcessBatches.mockResolvedValue({
         segments: new Map([[0, Buffer.from('single-audio')]]),
         pauseSegments: new Map(),
@@ -321,7 +328,7 @@ describe('audioCourseAssembler', () => {
       });
 
       // All units are markers - produce no audio
-      const markerOnlyUnits = [
+      const markerOnlyUnits: LessonScriptUnit[] = [
         { type: 'marker', label: 'Start' },
         { type: 'marker', label: 'End' },
       ];

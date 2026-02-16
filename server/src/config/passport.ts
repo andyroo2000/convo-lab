@@ -125,11 +125,9 @@ passport.use(
 );
 
 // Serialize user for session
-passport.serializeUser(
-  (user: User & { isExistingUser?: boolean; isNewOAuthUser?: boolean }, done) => {
-    done(null, user.id);
-  }
-);
+passport.serializeUser((user, done) => {
+  done(null, (user as User).id);
+});
 
 // Deserialize user from session
 passport.deserializeUser(async (id: string, done) => {

@@ -210,6 +210,10 @@ describe('dialogueGenerator', () => {
       // Check that episode was updated with status 'ready' and new title
       const updateCalls = mockPrisma.episode.update.mock.calls;
       const readyUpdate = updateCalls.find((call) => call[0].data.status === 'ready');
+      expect(readyUpdate).toBeDefined();
+      if (!readyUpdate) {
+        throw new Error('Expected ready status update call');
+      }
       expect(readyUpdate[0].data.title).toBe('Weekend Plans');
     });
 
@@ -243,6 +247,10 @@ describe('dialogueGenerator', () => {
       // Should fallback to original title
       const updateCalls = mockPrisma.episode.update.mock.calls;
       const readyUpdate = updateCalls.find((call) => call[0].data.status === 'ready');
+      expect(readyUpdate).toBeDefined();
+      if (!readyUpdate) {
+        throw new Error('Expected ready status update call');
+      }
       expect(readyUpdate[0].data.title).toBe('Test Episode');
     });
 

@@ -1,5 +1,6 @@
-import { generateWithGemini } from './geminiClient.js';
+/* eslint-disable no-console */
 import { LessonPlan, LessonSection, DrillEvent } from './coursePlanner.js';
+import { generateWithGemini } from './geminiClient.js';
 
 // Script unit types for the audio timeline
 export type LessonScriptUnit =
@@ -508,13 +509,15 @@ async function _generateSectionScript(
   }
 }
 
+void _generateSectionScript;
+
 /**
  * BATCH 1: Generate intro, core vocabulary intros, and early SRS intro in one call
  */
 async function generateBatch1Script(
-  introSection: LessonSection,
+  _introSection: LessonSection,
   coreIntroSection: LessonSection,
-  earlySRSSection: LessonSection,
+  _earlySRSSection: LessonSection,
   context: ScriptGenerationContext
 ): Promise<{
   introNarration: string;
@@ -588,7 +591,7 @@ Write only the JSON, no additional text.`;
  * Generate introduction narration using Gemini
  */
 async function generateIntroScript(
-  section: LessonSection,
+  _section: LessonSection,
   context: ScriptGenerationContext
 ): Promise<LessonScriptUnit[]> {
   const prompt = `You are creating a Pimsleur-style language learning lesson in ${context.targetLanguage} for ${context.nativeLanguage} speakers.
@@ -799,8 +802,8 @@ Explain that learners will now use these phrases in conversation. Keep it brief 
  * BATCH 2: Generate phrase construction, dialogue integration, and Q&A scenarios in one call
  */
 async function generateBatch2Script(
-  phraseSection: LessonSection,
-  dialogueSection: LessonSection,
+  _phraseSection: LessonSection,
+  _dialogueSection: LessonSection,
   qaSection: LessonSection,
   context: ScriptGenerationContext
 ): Promise<{
@@ -1013,9 +1016,9 @@ async function generateLateSRSScript(
  * BATCH 3: Generate roleplay intro, late SRS intro, and outro in one call
  */
 async function generateBatch3Script(
-  roleplaySection: LessonSection,
-  lateSRSSection: LessonSection,
-  outroSection: LessonSection,
+  _roleplaySection: LessonSection,
+  _lateSRSSection: LessonSection,
+  _outroSection: LessonSection,
   context: ScriptGenerationContext
 ): Promise<{
   roleplayIntro: string;
@@ -1081,7 +1084,7 @@ Write only the JSON, no additional text.`;
  * Outro - conclusion and encouragement
  */
 async function generateOutroScript(
-  section: LessonSection,
+  _section: LessonSection,
   context: ScriptGenerationContext
 ): Promise<LessonScriptUnit[]> {
   const prompt = `You are completing a ${context.targetLanguage} lesson. Write 2-3 sentences of ${context.nativeLanguage} narration that:

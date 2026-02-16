@@ -33,7 +33,7 @@ const upload = multer({
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     // Accept only images
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -47,7 +47,7 @@ const upload = multer({
 router.use(requireAuth, requireAdmin);
 
 // Get analytics stats
-router.get('/stats', async (req: AuthRequest, res, next) => {
+router.get('/stats', async (_req: AuthRequest, res, next) => {
   try {
     const [userCount, episodeCount, courseCount, inviteCodeCount, usedInviteCodeCount] =
       await Promise.all([
@@ -398,7 +398,7 @@ router.post('/users/:id/subscription/cancel', async (req: AuthRequest, res, next
 });
 
 // Get all invite codes
-router.get('/invite-codes', async (req: AuthRequest, res, next) => {
+router.get('/invite-codes', async (_req: AuthRequest, res, next) => {
   try {
     const inviteCodes = await prisma.inviteCode.findMany({
       include: {
@@ -588,7 +588,7 @@ router.post('/avatars/speaker/:filename/recrop', async (req: AuthRequest, res, n
 });
 
 // Get all speaker avatars
-router.get('/avatars/speakers', async (req: AuthRequest, res, next) => {
+router.get('/avatars/speakers', async (_req: AuthRequest, res, next) => {
   try {
     const avatars = await getAllSpeakerAvatars();
     // Avatars rarely change, cache for 1 hour on browser, 1 day on CDN
@@ -647,7 +647,7 @@ router.post(
 // ============================================
 
 // Get feature flags
-router.get('/feature-flags', async (req: AuthRequest, res, next) => {
+router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
   try {
     // Feature flags is a singleton - get the first (and only) row
     let flags = await prisma.featureFlag.findFirst();

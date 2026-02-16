@@ -183,7 +183,7 @@ router.post('/:id/generate-dialogue', async (req: AuthRequest, res, next) => {
         scriptJson: {
           _pipelineStage: 'exchanges',
           _exchanges: exchanges,
-        } as unknown as Prisma.JsonValue,
+        } as unknown as Prisma.InputJsonValue,
         // Clear audio since we're regenerating
         audioUrl: null,
         timingData: Prisma.JsonNull,
@@ -278,7 +278,7 @@ router.post('/:id/generate-script', async (req: AuthRequest, res, next) => {
           _pipelineStage: 'script',
           _exchanges: exchanges,
           _scriptUnits: scriptUnits,
-        } as unknown as Prisma.JsonValue,
+        } as unknown as Prisma.InputJsonValue,
         approxDurationSeconds: generatedScript.estimatedDurationSeconds,
         // Clear audio since we're regenerating
         audioUrl: null,
@@ -372,7 +372,7 @@ router.post('/:id/generate-audio', async (req: AuthRequest, res, next) => {
     await prisma.course.update({
       where: { id: course.id },
       data: {
-        scriptUnitsJson: scriptUnits as unknown as Prisma.JsonValue,
+        scriptUnitsJson: scriptUnits as Prisma.InputJsonValue,
         status: 'generating',
       },
     });
@@ -489,7 +489,7 @@ router.put('/:id/pipeline-data', async (req: AuthRequest, res, next) => {
           scriptJson: {
             _pipelineStage: 'exchanges',
             _exchanges: data,
-          } as unknown as Prisma.JsonValue,
+          } as Prisma.InputJsonValue,
           // Clear audio and script since exchanges changed
           audioUrl: null,
           timingData: Prisma.JsonNull,
@@ -503,7 +503,7 @@ router.put('/:id/pipeline-data', async (req: AuthRequest, res, next) => {
             _pipelineStage: 'script',
             _exchanges: existingJson._exchanges || [],
             _scriptUnits: data,
-          } as unknown as Prisma.JsonValue,
+          } as Prisma.InputJsonValue,
           // Clear audio since script changed
           audioUrl: null,
           timingData: Prisma.JsonNull,

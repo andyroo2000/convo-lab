@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll, afterEach } from 'vitest';
 
 // Create hoisted mocks that will be available during module initialization
 const { mockGenerateContent, mockStartChat, mockGetGenerativeModel } = vi.hoisted(() => {

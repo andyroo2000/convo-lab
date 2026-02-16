@@ -1,6 +1,6 @@
 import { prisma } from '../db/client.js';
+
 import { generateWithGemini } from './geminiClient.js';
-import { uploadImage } from './storageClient.js';
 
 interface GenerateImagesRequest {
   episodeId: string;
@@ -79,7 +79,7 @@ export async function generateDialogueImages(request: GenerateImagesRequest) {
 async function generateImagePrompt(
   sourceText: string,
   dialogueSection: string,
-  targetLanguage: string
+  _targetLanguage: string
 ): Promise<string> {
   const prompt = `Based on this story and dialogue section, create a detailed image prompt for a realistic scene:
 

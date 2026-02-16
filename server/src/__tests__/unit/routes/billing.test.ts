@@ -36,7 +36,7 @@ vi.mock('stripe', () => {
 
 // Mock auth middleware
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: AuthRequest, res: Response, next: NextFunction) => {
+  requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = 'test-user-id';
     next();
   },

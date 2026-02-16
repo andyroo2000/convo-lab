@@ -126,7 +126,6 @@ export async function createCustomerPortalSession(userId: string): Promise<{ url
  * Handle subscription created webhook
  */
 export async function handleSubscriptionCreated(subscription: Stripe.Subscription): Promise<void> {
-  const _customerId = subscription.customer as string;
   const { userId } = subscription.metadata;
   const { current_period_start, current_period_end } = getSubscriptionPeriodFields(subscription);
 
@@ -198,8 +197,6 @@ export async function handleSubscriptionUpdated(subscription: Stripe.Subscriptio
   }
 
   const priceId = subscription.items.data[0]?.price.id;
-  const _tier = 'pro';
-
   // Update subscription status
   await prisma.user.update({
     where: userId ? { id: userId } : { stripeCustomerId: subscription.customer as string },

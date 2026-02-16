@@ -1,6 +1,7 @@
 import { Queue, Worker } from 'bullmq';
-import { generateEpisodeAudio, generateAllSpeedsAudio } from '../services/audioGenerator.js';
+
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
+import { generateEpisodeAudio, generateAllSpeedsAudio } from '../services/audioGenerator.js';
 
 const connection = createRedisConnection();
 
@@ -25,7 +26,7 @@ export const audioWorker = new Worker(
       }
     } else {
       // Legacy single-speed generation
-      const { userId, episodeId, dialogueId, speed, pauseMode } = job.data;
+      const { episodeId, dialogueId, speed, pauseMode } = job.data;
 
       try {
         await job.updateProgress(10);
@@ -53,9 +54,11 @@ export const audioWorker = new Worker(
 );
 
 audioWorker.on('completed', (job) => {
+  // eslint-disable-next-line no-console
   console.log(`Audio job ${job.id} completed`);
 });
 
 audioWorker.on('failed', (job, err) => {
+  // eslint-disable-next-line no-console
   console.error(`Audio job ${job?.id} failed:`, err);
 });

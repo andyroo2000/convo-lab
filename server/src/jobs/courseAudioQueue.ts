@@ -59,7 +59,7 @@ async function processCourseAudio(job: {
       data: {
         audioUrl: assembledAudio.audioUrl,
         approxDurationSeconds: assembledAudio.actualDurationSeconds,
-        timingData: assembledAudio.timingData as unknown as Prisma.JsonValue,
+        timingData: assembledAudio.timingData as Prisma.InputJsonValue,
         status: 'ready',
       },
     });

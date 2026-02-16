@@ -15,6 +15,12 @@ interface TranslationParams {
   name?: string;
   tier?: string;
   supportEmail?: string;
+  weeklyLimit?: number;
+  appUrl?: string;
+  billingUrl?: string;
+  used?: number;
+  limit?: number;
+  pricingUrl?: string;
   count?: number;
   percentage?: number;
   remaining?: number;
@@ -30,13 +36,13 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
     'verification.button': () => 'Verify Email',
     'verification.linkInstructions': () => 'Or copy and paste this link',
     'verification.expiry': () => 'Link expires in 24 hours',
-    'passwordReset.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'passwordReset.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'passwordReset.title': () => 'Reset Your Password',
     'passwordReset.body': () => 'Reset your password',
     'passwordReset.button': () => 'Reset Password',
     'passwordReset.linkInstructions': () => 'Or copy and paste this link',
     'passwordReset.expiry': () => 'Link expires in 1 hour',
-    'welcome.greeting': (p: TranslationParams) => `Welcome ${p.name}`,
+    'welcome.greeting': (p?: TranslationParams) => `Welcome ${p?.name}`,
     'welcome.title': () => 'Welcome to ConvoLab!',
     'welcome.body': () => 'Start your language journey',
     'welcome.whatYouCanCreate': () => 'What You Can Create',
@@ -47,21 +53,21 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
     'welcome.button': () => 'Get Started',
     'welcome.help': () => 'Need help? Contact us',
     'welcome.footer': () => 'ConvoLab Team',
-    'passwordChanged.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'passwordChanged.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'passwordChanged.title': () => 'Password Changed',
     'passwordChanged.body': () => 'Your password was changed',
     'passwordChanged.warning': () => 'Contact support if not you',
-    'passwordChanged.supportEmail': (p: TranslationParams) => p.supportEmail ?? '',
-    'subscriptionConfirmed.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'passwordChanged.supportEmail': (p?: TranslationParams) => p?.supportEmail ?? '',
+    'subscriptionConfirmed.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'subscriptionConfirmed.title': () => 'Subscription Confirmed',
-    'subscriptionConfirmed.body': (p: TranslationParams) => `Welcome to ${p.tier} tier`,
+    'subscriptionConfirmed.body': (p?: TranslationParams) => `Welcome to ${p?.tier} tier`,
     'subscriptionConfirmed.benefits': () => 'Your Benefits',
     'subscriptionConfirmed.benefit1': () => '30 generations per week',
     'subscriptionConfirmed.benefit2': () => 'Priority support',
     'subscriptionConfirmed.benefit3': () => 'All features included',
     'subscriptionConfirmed.button': () => 'Start Creating',
     'subscriptionConfirmed.footer': () => 'ConvoLab Team',
-    'paymentFailed.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'paymentFailed.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'paymentFailed.title': () => 'Payment Failed',
     'paymentFailed.body': () => 'Payment could not be processed',
     'paymentFailed.reasons': () => 'Common reasons',
@@ -71,12 +77,13 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
     'paymentFailed.action': () => 'Update payment method',
     'paymentFailed.button': () => 'Update Payment',
     'paymentFailed.footer': () => 'ConvoLab Team',
-    'subscriptionCanceled.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'subscriptionCanceled.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'subscriptionCanceled.title': () => 'Subscription Canceled',
     'subscriptionCanceled.body': () =>
       'Your premium access will continue until the end of your billing period',
     'subscriptionCanceled.freeTierTitle': () => 'Free Tier Benefits',
-    'subscriptionCanceled.generations': (p: TranslationParams) => `${p.count} generations per week`,
+    'subscriptionCanceled.generations': (p?: TranslationParams) =>
+      `${p?.count} generations per week`,
     'subscriptionCanceled.contentTypes': () => 'All content types available',
     'subscriptionCanceled.support': () => 'Community support',
     'subscriptionCanceled.sorryToSeeYouGo': () => "We're sorry to see you go",
@@ -84,11 +91,11 @@ const mockTranslations: Record<string, Record<string, (params?: TranslationParam
       'You can reactivate anytime from your billing page',
     'subscriptionCanceled.button': () => 'Manage Billing',
     'subscriptionCanceled.footer': () => 'ConvoLab Team',
-    'quotaWarning.greeting': (p: TranslationParams) => `Hello ${p.name}`,
+    'quotaWarning.greeting': (p?: TranslationParams) => `Hello ${p?.name}`,
     'quotaWarning.title': () => 'Quota Warning',
-    'quotaWarning.body': (p: TranslationParams) => `${p.percentage}% of quota used`,
-    'quotaWarning.remaining': (p: TranslationParams) => `${p.remaining} generations left`,
-    'quotaWarning.reset': (p: TranslationParams) => `Resets on ${p.resetDate}`,
+    'quotaWarning.body': (p?: TranslationParams) => `${p?.percentage}% of quota used`,
+    'quotaWarning.remaining': (p?: TranslationParams) => `${p?.remaining} generations left`,
+    'quotaWarning.reset': (p?: TranslationParams) => `Resets on ${p?.resetDate}`,
     'quotaWarning.upgradeTitle': () => 'Upgrade to Pro',
     'quotaWarning.upgradeBody': () => 'Get 30 generations per week',
     'quotaWarning.upgradeButton': () => 'Upgrade Now',
@@ -330,6 +337,8 @@ describe('emailTemplates - XSS Prevention', () => {
       const html = generateSubscriptionConfirmedEmail({
         name: '<script>alert(1)</script>',
         tier: 'pro',
+        weeklyLimit: 30,
+        appUrl: 'https://example.com/app',
         locale: 'en',
       });
 
@@ -343,6 +352,8 @@ describe('emailTemplates - XSS Prevention', () => {
     it('should generate LTR email and escape XSS', () => {
       const html = generatePaymentFailedEmail({
         name: '<img src=x onerror=alert(1)>',
+        billingUrl: 'https://example.com/billing',
+        supportEmail: 'support@example.com',
         locale: 'en',
       });
 
@@ -370,12 +381,12 @@ describe('emailTemplates - XSS Prevention', () => {
     it('should show percentage and remaining count for free tier with upgrade prompt', () => {
       const html = generateQuotaWarningEmail({
         name: 'Frank',
+        used: 4,
+        limit: 5,
         percentage: 80,
-        remaining: 1,
-        resetDate: '2024-01-15',
         tier: 'free',
         locale: 'en',
-        appUrl: 'https://example.com/app',
+        pricingUrl: 'https://example.com/pricing',
       });
 
       expect(html).toContain('dir="ltr"');
@@ -386,12 +397,12 @@ describe('emailTemplates - XSS Prevention', () => {
     it('should NOT show upgrade prompt for pro tier', () => {
       const html = generateQuotaWarningEmail({
         name: 'Grace',
+        used: 27,
+        limit: 30,
         percentage: 90,
-        remaining: 3,
-        resetDate: '2024-01-15',
         tier: 'pro',
         locale: 'en',
-        appUrl: 'https://example.com/app',
+        pricingUrl: 'https://example.com/pricing',
       });
 
       expect(html).toContain('dir="ltr"');
@@ -401,12 +412,12 @@ describe('emailTemplates - XSS Prevention', () => {
     it('should escape XSS in name', () => {
       const html = generateQuotaWarningEmail({
         name: '<script>alert(1)</script>',
+        used: 4,
+        limit: 5,
         percentage: 80,
-        remaining: 1,
-        resetDate: '2024-01-15',
         tier: 'free',
         locale: 'en',
-        appUrl: 'https://example.com/app',
+        pricingUrl: 'https://example.com/pricing',
       });
 
       expect(html).toContain('&lt;script&gt;');
@@ -441,6 +452,8 @@ describe('emailTemplates - XSS Prevention', () => {
       const html = generateSubscriptionConfirmedEmail({
         name: 'Test',
         tier: 'pro',
+        weeklyLimit: 30,
+        appUrl: 'https://example.com/app',
         locale: 'en',
       });
 

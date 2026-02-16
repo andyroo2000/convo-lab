@@ -436,7 +436,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         id: mockSubscriptionId,
         customer: mockCustomerId,
         metadata: {},
-      } as Stripe.Subscription;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
@@ -456,7 +456,7 @@ describe('Stripe Webhook Handlers - Integration Tests', () => {
         },
         current_period_end: Math.floor(Date.now() / 1000),
         cancel_at_period_end: false,
-      } as Stripe.Subscription;
+      } as unknown as Stripe.Subscription;
 
       mockPrisma.user.update.mockResolvedValue({});
 

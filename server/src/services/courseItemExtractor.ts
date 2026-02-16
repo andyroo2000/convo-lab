@@ -617,6 +617,8 @@ ${readingL2 ? '- Include phonetic reading for each component\n' : '- Omit "readi
   }
 }
 
+void decomposePhraseForPimsleur;
+
 /**
  * Split long sentences with multiple questions or statements into separate exchanges
  * This keeps each turn to one sentence/question for better Pimsleur pacing
@@ -1228,7 +1230,7 @@ export async function runDialogueExtraction(
   const exchanges: DialogueExchange[] = [];
 
   const voicesConfig = (TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices ||
-    []) as Array<{
+    []) as ReadonlyArray<{
     id: string;
     gender: 'male' | 'female';
     provider?: string;

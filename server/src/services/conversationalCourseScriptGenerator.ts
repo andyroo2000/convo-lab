@@ -3,43 +3,6 @@ import { LessonScriptUnit } from './courseScriptGenerator.js';
 import { generateWithGemini } from './geminiClient.js';
 import { buildSpeakerIntro } from './speakerNarration.js';
 
-/**
- * Convert furigana notation to pure kana for TTS
- * Example: "北[ほっ]海[かい]道[どう]に行[い]きました" → "ほっかいどうにいきました"
- */
-function _stripFuriganaToKana(text: string): string {
-  let output = '';
-  let inBracket = false;
-
-  for (const char of text) {
-    if (char === '[') {
-      inBracket = true;
-      continue;
-    }
-    if (char === ']') {
-      inBracket = false;
-      continue;
-    }
-
-    if (inBracket) {
-      // Inside brackets - this is the kana reading
-      output += char;
-      continue;
-    }
-
-    // Outside brackets - only include if it's already kana or punctuation
-    const isHiragana = char >= '\u3040' && char <= '\u309F';
-    const isKatakana = char >= '\u30A0' && char <= '\u30FF';
-    const isPunctuation = /[、。！？\s]/.test(char);
-
-    if (isHiragana || isKatakana || isPunctuation) {
-      output += char;
-    }
-  }
-
-  return output;
-}
-
 interface ConversationalScriptContext {
   episodeTitle: string;
   targetLanguage: string;
@@ -560,7 +523,7 @@ function normalizeNarratorText(text: string): string {
   // Example: "In or at" becomes "In, or at,"
   normalized = normalized.replace(
     /"([^"]+)\s+or\s+([^"]+)"/g,
-    (match, before, after) => `"${before.trim()}, or ${after.trim()},"`
+    (_match, before, after) => `"${before.trim()}, or ${after.trim()},"`
   );
 
   // Add comma before " is:" at the end of phrases for natural pause

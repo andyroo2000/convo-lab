@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Response, NextFunction } from 'express';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { AuthRequest } from '../../../middleware/auth.js';
-import { rateLimitGeneration } from '../../../middleware/rateLimit.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { rateLimitGeneration } from '../../../middleware/rateLimit.js';
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -119,8 +120,12 @@ describe('rateLimitGeneration middleware', () => {
       await rateLimitGeneration('dialogue')(mockReq as AuthRequest, mockRes as Response, mockNext);
 
       const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
-      const retryAfter = error.metadata?.cooldown.retryAfter;
+      const retryAfter = (error.metadata as { cooldown?: { retryAfter?: Date } } | undefined)
+        ?.cooldown?.retryAfter;
       expect(retryAfter).toBeInstanceOf(Date);
+      if (!retryAfter) {
+        throw new Error('Expected retryAfter timestamp');
+      }
       // Should be approximately 30 seconds in the future (with 1 second tolerance)
       expect(retryAfter.getTime()).toBeGreaterThanOrEqual(now + 29000);
       expect(retryAfter.getTime()).toBeLessThanOrEqual(now + 31000);
@@ -163,7 +168,7 @@ describe('rateLimitGeneration middleware', () => {
       expect(mockNext).toHaveBeenCalledWith(expect.any(AppError));
       const error = (mockNext as ReturnType<typeof vi.fn>).mock.calls[0][0] as AppError;
       expect(error.message).toMatch(/quota exceeded/i);
-      expect(error.message).toContain("20 of 20");
+      expect(error.message).toContain('20 of 20');
       expect(error.statusCode).toBe(429);
       expect(error.metadata).toEqual({
         quota: {

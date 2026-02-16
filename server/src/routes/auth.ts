@@ -234,6 +234,9 @@ router.post('/login', async (req, res, next) => {
     if (!user) {
       throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
     }
+    if (!user.password) {
+      throw new AppError(i18next.t('server:auth.invalidCredentials'), 401);
+    }
 
     // Check password
     const validPassword = await bcrypt.compare(password, user.password);
@@ -291,7 +294,7 @@ router.post('/login', async (req, res, next) => {
 });
 
 // Logout
-router.post('/logout', (req, res) => {
+router.post('/logout', (_req, res) => {
   res.clearCookie('token');
   res.json({ message: 'Logged out successfully' });
 });
@@ -477,6 +480,9 @@ router.patch('/change-password', requireAuth, async (req: AuthRequest, res, next
 
     if (!user) {
       throw new AppError(i18next.t('server:auth.userNotFound'), 404);
+    }
+    if (!user.password) {
+      throw new AppError('Current password is incorrect', 401);
     }
 
     // Verify current password

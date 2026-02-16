@@ -60,7 +60,7 @@ app.use(requestLogger);
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check with Redis and Database connectivity
-app.get('/health', async (req, res) => {
+app.get('/health', async (_req, res) => {
   const checks = {
     redis: false,
     database: false,
@@ -150,7 +150,7 @@ if (process.env.NODE_ENV === 'production') {
   );
 
   // Handle client-side routing - return index.html for all non-API routes
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     // Always send fresh index.html with no-cache headers
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');

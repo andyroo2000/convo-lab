@@ -1,13 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
-import {
-  generateCourseScript,
-  LessonScriptUnit,
-  GeneratedScript,
-} from '../../../services/courseScriptGenerator.js';
-import { LessonPlan, LessonSection, DrillEvent } from '../../../services/coursePlanner.js';
 import { CoreItem } from '../../../services/courseItemExtractor.js';
+import { LessonPlan, LessonSection, DrillEvent } from '../../../services/coursePlanner.js';
+import { generateCourseScript, LessonScriptUnit } from '../../../services/courseScriptGenerator.js';
 
 // Create hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
@@ -27,20 +23,36 @@ describe('courseScriptGenerator', () => {
   };
 
   const mockCoreItem: CoreItem = {
+    id: 'core-item-1',
     textL2: 'これをください',
     translationL1: 'I would like this please',
     readingL2: 'kore o kudasai',
+    complexityScore: 1,
+    sourceEpisodeId: 'episode-1',
+    sourceSentenceId: 'sentence-1',
+    order: 0,
   };
 
   const mockCoreItem2: CoreItem = {
+    id: 'core-item-2',
     textL2: 'いくらですか',
     translationL1: 'How much is it?',
     readingL2: 'ikura desu ka',
+    complexityScore: 1,
+    sourceEpisodeId: 'episode-1',
+    sourceSentenceId: 'sentence-2',
+    order: 1,
   };
 
   const createMinimalLessonPlan = (sections: LessonSection[]): LessonPlan => ({
     lessonNumber: 1,
+    title: 'Test Lesson',
     sections,
+    coreItems: [],
+    totalEstimatedDuration: sections.reduce(
+      (total, section) => total + section.targetDurationSeconds,
+      0
+    ),
     drillEvents: [],
   });
 
@@ -94,8 +106,8 @@ describe('courseScriptGenerator', () => {
 
     it('should add section markers for each section', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
+        { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -115,6 +127,8 @@ describe('courseScriptGenerator', () => {
 
     it('should process drill events at correct times', async () => {
       const drillEvent: DrillEvent = {
+        id: 'drill-recall-1',
+        coreItemId: mockCoreItem.id,
         coreItem: mockCoreItem,
         drillType: 'recall',
         targetOffsetSeconds: 0,
@@ -122,7 +136,10 @@ describe('courseScriptGenerator', () => {
 
       const lessonPlan: LessonPlan = {
         lessonNumber: 1,
-        sections: [{ type: 'intro', title: 'Introduction', durationMinutes: 1 }],
+        title: 'Drill Event Lesson',
+        sections: [{ type: 'intro', title: 'Introduction', targetDurationSeconds: 60 }],
+        coreItems: [mockCoreItem],
+        totalEstimatedDuration: 60,
         drillEvents: [drillEvent],
       };
 
@@ -140,17 +157,17 @@ describe('courseScriptGenerator', () => {
   describe('batch 1 processing (intro + core_intro + early_srs)', () => {
     it('should use batched results for intro section', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -166,22 +183,22 @@ describe('courseScriptGenerator', () => {
 
     it('should use batched core intros for vocabulary introduction', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem, mockCoreItem2],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
 
-      const result = await generateCourseScript(lessonPlan, mockContext);
+      await generateCourseScript(lessonPlan, mockContext);
 
       // Should have generated Gemini call for batch 1
       expect(mockGenerateWithGemini).toHaveBeenCalled();
@@ -189,17 +206,17 @@ describe('courseScriptGenerator', () => {
 
     it('should generate L2 audio units for core items', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -216,17 +233,17 @@ describe('courseScriptGenerator', () => {
 
     it('should include pause units after L2 audio', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -244,19 +261,24 @@ describe('courseScriptGenerator', () => {
         {
           type: 'phrase_construction',
           title: 'Phrase Building',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
         {
           type: 'dialogue_integration',
           title: 'Dialogue Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
-        { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'qa',
+          title: 'Q&A Practice',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
-      const result = await generateCourseScript(lessonPlan, mockContext);
+      await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 2 call
       const batch2Call = mockGenerateWithGemini.mock.calls.find((call) =>
@@ -270,16 +292,21 @@ describe('courseScriptGenerator', () => {
         {
           type: 'phrase_construction',
           title: 'Phrase Building',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
         {
           type: 'dialogue_integration',
           title: 'Dialogue Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
-        { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+        {
+          type: 'qa',
+          title: 'Q&A Practice',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -298,14 +325,19 @@ describe('courseScriptGenerator', () => {
         {
           type: 'roleplay',
           title: 'Role Play',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem, mockCoreItem2],
         },
-        { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+        {
+          type: 'late_srs',
+          title: 'Final Review',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
+        { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
       ]);
 
-      const result = await generateCourseScript(lessonPlan, mockContext);
+      await generateCourseScript(lessonPlan, mockContext);
 
       // Should have made batch 3 call
       const batch3Call = mockGenerateWithGemini.mock.calls.find((call) =>
@@ -319,11 +351,16 @@ describe('courseScriptGenerator', () => {
         {
           type: 'roleplay',
           title: 'Role Play',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem, mockCoreItem2],
         },
-        { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+        {
+          type: 'late_srs',
+          title: 'Final Review',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
+        { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -340,17 +377,17 @@ describe('courseScriptGenerator', () => {
       mockGenerateWithGemini.mockResolvedValueOnce('Invalid JSON response');
 
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -370,17 +407,17 @@ describe('courseScriptGenerator', () => {
 \`\`\``);
 
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -397,8 +434,19 @@ describe('courseScriptGenerator', () => {
   describe('drill event types', () => {
     const createDrillPlan = (drillType: DrillEvent['drillType']): LessonPlan => ({
       lessonNumber: 1,
-      sections: [{ type: 'intro', title: 'Introduction', durationMinutes: 1 }],
-      drillEvents: [{ coreItem: mockCoreItem, drillType, targetOffsetSeconds: 0 }],
+      title: 'Drill Test Lesson',
+      sections: [{ type: 'intro', title: 'Introduction', targetDurationSeconds: 60 }],
+      coreItems: [mockCoreItem],
+      totalEstimatedDuration: 60,
+      drillEvents: [
+        {
+          id: `drill-${drillType}`,
+          coreItemId: mockCoreItem.id,
+          coreItem: mockCoreItem,
+          drillType,
+          targetOffsetSeconds: 0,
+        },
+      ],
     });
 
     it('should generate recall drill with "How do you say" prompt', async () => {
@@ -450,9 +498,14 @@ describe('courseScriptGenerator', () => {
   describe('core items with components (backward-build)', () => {
     it('should teach components in backward-build order', async () => {
       const coreItemWithComponents: CoreItem = {
+        id: 'core-item-components-1',
         textL2: '水をください',
         translationL1: 'Water please',
         readingL2: 'mizu o kudasai',
+        complexityScore: 1,
+        sourceEpisodeId: 'episode-1',
+        sourceSentenceId: 'sentence-components-1',
+        order: 0,
         components: [
           { textL2: 'ください', translationL1: 'please', readingL2: 'kudasai', order: 0 },
           { textL2: '水を', translationL1: 'water (object)', readingL2: 'mizu o', order: 1 },
@@ -460,17 +513,17 @@ describe('courseScriptGenerator', () => {
       };
 
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [coreItemWithComponents],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [coreItemWithComponents],
         },
       ]);
@@ -490,8 +543,14 @@ describe('courseScriptGenerator', () => {
 
     it('should prompt learner to try full phrase after components', async () => {
       const coreItemWithComponents: CoreItem = {
+        id: 'core-item-components-2',
         textL2: '水をください',
         translationL1: 'Water please',
+        readingL2: 'mizu o kudasai',
+        complexityScore: 1,
+        sourceEpisodeId: 'episode-1',
+        sourceSentenceId: 'sentence-components-2',
+        order: 0,
         components: [
           { textL2: 'ください', translationL1: 'please', order: 0 },
           { textL2: '水を', translationL1: 'water', order: 1 },
@@ -499,17 +558,17 @@ describe('courseScriptGenerator', () => {
       };
 
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [coreItemWithComponents],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [coreItemWithComponents],
         },
       ]);
@@ -526,9 +585,9 @@ describe('courseScriptGenerator', () => {
   describe('section without coreItems', () => {
     it('should handle sections with empty coreItems', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5, coreItems: [] },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3, coreItems: [] },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
+        { type: 'core_intro', title: 'Core Vocabulary', targetDurationSeconds: 300, coreItems: [] },
+        { type: 'early_srs', title: 'Early Practice', targetDurationSeconds: 180, coreItems: [] },
       ]);
 
       // Should not throw
@@ -538,9 +597,9 @@ describe('courseScriptGenerator', () => {
 
     it('should handle sections with undefined coreItems', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
-        { type: 'core_intro', title: 'Core Vocabulary', durationMinutes: 5 },
-        { type: 'early_srs', title: 'Early Practice', durationMinutes: 3 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
+        { type: 'core_intro', title: 'Core Vocabulary', targetDurationSeconds: 300 },
+        { type: 'early_srs', title: 'Early Practice', targetDurationSeconds: 180 },
       ]);
 
       // Should not throw
@@ -555,11 +614,16 @@ describe('courseScriptGenerator', () => {
         {
           type: 'roleplay',
           title: 'Role Play',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem, mockCoreItem2],
         },
-        { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+        {
+          type: 'late_srs',
+          title: 'Final Review',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
+        { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -576,11 +640,16 @@ describe('courseScriptGenerator', () => {
         {
           type: 'roleplay',
           title: 'Role Play',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem, mockCoreItem2],
         },
-        { type: 'late_srs', title: 'Final Review', durationMinutes: 3, coreItems: [mockCoreItem] },
-        { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+        {
+          type: 'late_srs',
+          title: 'Final Review',
+          targetDurationSeconds: 180,
+          coreItems: [mockCoreItem],
+        },
+        { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
       ]);
 
       const result = await generateCourseScript(lessonPlan, mockContext);
@@ -596,17 +665,17 @@ describe('courseScriptGenerator', () => {
   describe('L2 unit properties', () => {
     it('should set correct voice ID on L2 units', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -622,17 +691,17 @@ describe('courseScriptGenerator', () => {
 
     it('should include reading when available', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -648,17 +717,17 @@ describe('courseScriptGenerator', () => {
 
     it('should set speed on L2 units when specified', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -679,17 +748,17 @@ describe('courseScriptGenerator', () => {
   describe('narration L1 properties', () => {
     it('should set correct voice ID on narration units', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -707,17 +776,17 @@ describe('courseScriptGenerator', () => {
   describe('pause durations', () => {
     it('should have appropriate pause durations for different contexts', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -737,17 +806,17 @@ describe('courseScriptGenerator', () => {
 
     it('should have anticipation pauses (3+ seconds) for SRS drills', async () => {
       const lessonPlan = createMinimalLessonPlan([
-        { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+        { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
         {
           type: 'core_intro',
           title: 'Core Vocabulary',
-          durationMinutes: 5,
+          targetDurationSeconds: 300,
           coreItems: [mockCoreItem],
         },
         {
           type: 'early_srs',
           title: 'Early Practice',
-          durationMinutes: 3,
+          targetDurationSeconds: 180,
           coreItems: [mockCoreItem],
         },
       ]);
@@ -768,47 +837,55 @@ describe('courseScriptGenerator', () => {
     it('should generate a complete lesson with all section types', async () => {
       const lessonPlan: LessonPlan = {
         lessonNumber: 1,
+        title: 'Complete Lesson',
         sections: [
-          { type: 'intro', title: 'Introduction', durationMinutes: 1 },
+          { type: 'intro', title: 'Introduction', targetDurationSeconds: 60 },
           {
             type: 'core_intro',
             title: 'Core Vocabulary',
-            durationMinutes: 5,
+            targetDurationSeconds: 300,
             coreItems: [mockCoreItem, mockCoreItem2],
           },
           {
             type: 'early_srs',
             title: 'Early Practice',
-            durationMinutes: 3,
+            targetDurationSeconds: 180,
             coreItems: [mockCoreItem, mockCoreItem2],
           },
           {
             type: 'phrase_construction',
             title: 'Phrase Building',
-            durationMinutes: 3,
+            targetDurationSeconds: 180,
             coreItems: [mockCoreItem],
           },
           {
             type: 'dialogue_integration',
             title: 'Dialogue Practice',
-            durationMinutes: 3,
+            targetDurationSeconds: 180,
             coreItems: [mockCoreItem],
           },
-          { type: 'qa', title: 'Q&A Practice', durationMinutes: 3, coreItems: [mockCoreItem] },
+          {
+            type: 'qa',
+            title: 'Q&A Practice',
+            targetDurationSeconds: 180,
+            coreItems: [mockCoreItem],
+          },
           {
             type: 'roleplay',
             title: 'Role Play',
-            durationMinutes: 3,
+            targetDurationSeconds: 180,
             coreItems: [mockCoreItem, mockCoreItem2],
           },
           {
             type: 'late_srs',
             title: 'Final Review',
-            durationMinutes: 3,
+            targetDurationSeconds: 180,
             coreItems: [mockCoreItem, mockCoreItem2],
           },
-          { type: 'outro', title: 'Conclusion', durationMinutes: 1 },
+          { type: 'outro', title: 'Conclusion', targetDurationSeconds: 60 },
         ],
+        coreItems: [mockCoreItem, mockCoreItem2],
+        totalEstimatedDuration: 1620,
         drillEvents: [],
       };
 

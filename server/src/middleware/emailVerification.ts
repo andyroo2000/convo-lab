@@ -1,14 +1,16 @@
 import { Response, NextFunction } from 'express';
-import { AuthRequest } from './auth.js';
+
 import { prisma } from '../db/client.js';
-import { AppError } from './errorHandler.js';
 import i18next from '../i18n/index.js';
+
+import { AuthRequest } from './auth.js';
+import { AppError } from './errorHandler.js';
 
 /**
  * Middleware to require email verification for content generation
  * Admins bypass this check
  */
-export async function requireEmailVerified(req: AuthRequest, res: Response, next: NextFunction) {
+export async function requireEmailVerified(req: AuthRequest, _res: Response, next: NextFunction) {
   try {
     if (!req.userId) {
       throw new AppError(i18next.t('server:errors.authRequired'), 401);

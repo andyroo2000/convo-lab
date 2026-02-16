@@ -120,7 +120,7 @@ router.post('/courses', async (req: AuthRequest, res, next) => {
  * GET /api/admin/script-lab/courses
  * List all test courses
  */
-router.get('/courses', async (req: AuthRequest, res, next) => {
+router.get('/courses', async (_req: AuthRequest, res, next) => {
   try {
     const courses = await prisma.course.findMany({
       where: {

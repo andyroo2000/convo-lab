@@ -60,7 +60,7 @@ vi.mock('../../../db/client.js', () => ({ prisma: mockPrisma }));
 
 // Mock auth middleware to inject test user
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: Request, res: Response, next: NextFunction) => {
+  requireAuth: (req: Request, _res: Response, next: NextFunction) => {
     (req as Request & { user: { id: string; role: string; email: string }; userId: string }).user =
       {
         id: 'admin-user-id',
@@ -75,7 +75,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 // Mock role auth middleware
 vi.mock('../../../middleware/roleAuth.js', () => ({
-  requireAdmin: (req: Request, res: Response, next: NextFunction) => next(),
+  requireAdmin: (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
 // Mock avatar service
@@ -122,7 +122,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
     app.use('/admin', adminRouter);
 
     // Error handler
-    app.use(((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+    app.use(((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
       const error = err as { statusCode?: number; message: string };
       res.status(error.statusCode || 500).json({
         error: error.message,

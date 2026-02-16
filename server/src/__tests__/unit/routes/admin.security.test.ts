@@ -12,7 +12,7 @@ interface AuthRequest extends Request {
 // Mock auth middleware to set userId from test context
 let currentUserId: string | undefined;
 vi.mock('../../../middleware/auth.js', () => ({
-  requireAuth: (req: AuthRequest, res: Response, next: NextFunction) => {
+  requireAuth: (req: AuthRequest, _res: Response, next: NextFunction) => {
     req.userId = currentUserId;
     next();
   },

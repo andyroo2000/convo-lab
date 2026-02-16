@@ -21,13 +21,6 @@ interface TimingDataUnit {
   endTime: number; // milliseconds
 }
 
-interface _PhraseComponent {
-  type: 'word' | 'particle' | 'grammar';
-  textL2: string;
-  translationL1?: string;
-  grammarNote?: string;
-}
-
 /**
  * Extracts audio for a vocabulary word from course audio using timing data
  */

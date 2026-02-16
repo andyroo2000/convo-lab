@@ -54,18 +54,18 @@ describe('lessonScriptGenerator', () => {
     ] as LessonSection[],
     drillEvents: [
       {
+        id: 'drill-0',
         coreItemId: 'item-0',
         coreItem: coreItems[0],
         targetOffsetSeconds: 60,
         drillType: 'recall',
-        intervalIndex: 0,
       },
       {
+        id: 'drill-1',
         coreItemId: 'item-0',
         coreItem: coreItems[0],
         targetOffsetSeconds: 180,
         drillType: 'transform',
-        intervalIndex: 1,
       },
     ] as DrillEvent[],
     totalEstimatedDuration: 1200,
@@ -373,11 +373,11 @@ describe('lessonScriptGenerator', () => {
       // Place drill event early so it fires before most sections
       lessonPlan.drillEvents = [
         {
+          id: 'drill-recall',
           coreItemId: 'item-0',
           coreItem: coreItems[0],
           targetOffsetSeconds: 10, // Early timing
           drillType: 'recall',
-          intervalIndex: 0,
         },
       ];
 
@@ -397,11 +397,11 @@ describe('lessonScriptGenerator', () => {
       const lessonPlan = createMockLessonPlan(coreItems);
       lessonPlan.drillEvents = [
         {
+          id: 'drill-transform',
           coreItemId: 'item-0',
           coreItem: coreItems[0],
           targetOffsetSeconds: 10,
           drillType: 'transform',
-          intervalIndex: 1,
         },
       ];
 
@@ -421,11 +421,11 @@ describe('lessonScriptGenerator', () => {
       const lessonPlan = createMockLessonPlan(coreItems);
       lessonPlan.drillEvents = [
         {
+          id: 'drill-expand',
           coreItemId: 'item-0',
           coreItem: coreItems[0],
           targetOffsetSeconds: 10,
           drillType: 'expand',
-          intervalIndex: 2,
         },
       ];
 
@@ -445,11 +445,11 @@ describe('lessonScriptGenerator', () => {
       const lessonPlan = createMockLessonPlan(coreItems);
       lessonPlan.drillEvents = [
         {
+          id: 'drill-context',
           coreItemId: 'item-0',
           coreItem: coreItems[0],
           targetOffsetSeconds: 10,
           drillType: 'context',
-          intervalIndex: 3,
         },
       ];
 

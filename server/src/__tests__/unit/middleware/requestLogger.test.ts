@@ -1,19 +1,17 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
 import { requestLogger } from '../../../middleware/requestLogger.js';
 
 describe('requestLogger Middleware', () => {
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response> & { on: ReturnType<typeof vi.fn> };
+  let mockReq: { method: string; path: string };
+  let mockRes: { statusCode: number; on: ReturnType<typeof vi.fn> };
   let mockNext: NextFunction;
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     // Setup mocks
-    mockReq = {
-      method: 'GET',
-      path: '/api/test',
-    };
+    mockReq = { method: 'GET', path: '/api/test' };
 
     mockRes = {
       statusCode: 200,
@@ -31,13 +29,13 @@ describe('requestLogger Middleware', () => {
   });
 
   it('should call next() immediately', () => {
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(mockNext).toHaveBeenCalledTimes(1);
   });
 
   it('should register a finish event listener on response', () => {
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(mockRes.on).toHaveBeenCalledWith('finish', expect.any(Function));
   });
@@ -48,7 +46,7 @@ describe('requestLogger Middleware', () => {
     const endTime = 1150;
     vi.spyOn(Date, 'now').mockReturnValueOnce(startTime).mockReturnValueOnce(endTime);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     // Get the finish callback and call it
     const finishCallback = mockRes.on.mock.calls[0][1];
@@ -62,7 +60,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1050);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -75,7 +73,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1200);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -89,7 +87,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1010);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -102,7 +100,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1100);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -121,7 +119,7 @@ describe('requestLogger Middleware', () => {
         .mockReturnValueOnce(1000)
         .mockReturnValueOnce(1000 + (index + 1) * 10);
 
-      requestLogger(mockReq as Request, mockRes as Response, mockNext);
+      requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       const finishCallback = mockRes.on.mock.calls[0][1];
       finishCallback();
@@ -133,7 +131,7 @@ describe('requestLogger Middleware', () => {
   it('should calculate correct duration for fast requests', () => {
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1001);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -144,7 +142,7 @@ describe('requestLogger Middleware', () => {
   it('should calculate correct duration for slow requests', () => {
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(11000); // 10 seconds later
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -158,7 +156,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1075);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();
@@ -172,7 +170,7 @@ describe('requestLogger Middleware', () => {
 
     vi.spyOn(Date, 'now').mockReturnValueOnce(1000).mockReturnValueOnce(1025);
 
-    requestLogger(mockReq as Request, mockRes as Response, mockNext);
+    requestLogger(mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     const finishCallback = mockRes.on.mock.calls[0][1];
     finishCallback();

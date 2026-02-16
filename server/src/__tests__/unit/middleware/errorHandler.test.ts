@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Request, Response, NextFunction } from 'express';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { AppError, errorHandler } from '../../../middleware/errorHandler.js';
 
 describe('AppError', () => {
@@ -20,8 +21,12 @@ describe('AppError', () => {
 });
 
 describe('errorHandler middleware', () => {
-  let mockReq: Partial<Request>;
-  let mockRes: Partial<Response>;
+  let mockReq: Record<string, unknown>;
+  let mockRes: {
+    status: ReturnType<typeof vi.fn>;
+    json: ReturnType<typeof vi.fn>;
+    set?: ReturnType<typeof vi.fn>;
+  };
   let mockNext: NextFunction;
   let jsonMock: ReturnType<typeof vi.fn>;
   let statusMock: ReturnType<typeof vi.fn>;
@@ -31,10 +36,7 @@ describe('errorHandler middleware', () => {
     statusMock = vi.fn().mockReturnValue({ json: jsonMock });
 
     mockReq = {};
-    mockRes = {
-      status: statusMock,
-      json: jsonMock,
-    };
+    mockRes = { status: statusMock, json: jsonMock };
     mockNext = vi.fn();
 
     // Suppress console.error for unhandled errors
@@ -44,7 +46,7 @@ describe('errorHandler middleware', () => {
   it('should handle AppError with correct status code and message', () => {
     const error = new AppError('Not found', 404);
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(statusMock).toHaveBeenCalledWith(404);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -58,7 +60,7 @@ describe('errorHandler middleware', () => {
   it('should handle 401 Unauthorized errors', () => {
     const error = new AppError('Unauthorized', 401);
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(statusMock).toHaveBeenCalledWith(401);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -72,7 +74,7 @@ describe('errorHandler middleware', () => {
   it('should handle 403 Forbidden errors', () => {
     const error = new AppError('Forbidden', 403);
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(statusMock).toHaveBeenCalledWith(403);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -89,7 +91,7 @@ describe('errorHandler middleware', () => {
 
     const error = new Error('Some internal error');
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(statusMock).toHaveBeenCalledWith(500);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -108,7 +110,7 @@ describe('errorHandler middleware', () => {
 
     const error = new Error('Sensitive internal error');
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(statusMock).toHaveBeenCalledWith(500);
     expect(jsonMock).toHaveBeenCalledWith({
@@ -124,7 +126,7 @@ describe('errorHandler middleware', () => {
   it('should log unhandled errors to console', () => {
     const error = new Error('Unhandled error');
 
-    errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+    errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
     expect(console.error).toHaveBeenCalledWith('Unhandled error:', error);
   });
@@ -147,7 +149,7 @@ describe('errorHandler middleware', () => {
         },
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(setMock).toHaveBeenCalledWith({
         'X-RateLimit-Limit': '100',
@@ -164,7 +166,7 @@ describe('errorHandler middleware', () => {
         },
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(setMock).toHaveBeenCalledWith({
         'Retry-After': '60',
@@ -185,7 +187,7 @@ describe('errorHandler middleware', () => {
         },
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(setMock).toHaveBeenCalledWith({
         'X-RateLimit-Limit': '50',
@@ -201,7 +203,7 @@ describe('errorHandler middleware', () => {
     it('should not set headers for 429 errors without metadata', () => {
       const error = new AppError('Rate limit exceeded', 429);
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(setMock).not.toHaveBeenCalled();
       expect(statusMock).toHaveBeenCalledWith(429);
@@ -212,7 +214,7 @@ describe('errorHandler middleware', () => {
         someOtherField: 'value',
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(setMock).not.toHaveBeenCalled();
       expect(statusMock).toHaveBeenCalledWith(429);
@@ -226,7 +228,7 @@ describe('errorHandler middleware', () => {
         reason: 'invalid format',
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(statusMock).toHaveBeenCalledWith(400);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -247,7 +249,7 @@ describe('errorHandler middleware', () => {
         ],
       });
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(statusMock).toHaveBeenCalledWith(422);
       expect(jsonMock).toHaveBeenCalledWith({
@@ -265,7 +267,7 @@ describe('errorHandler middleware', () => {
     it('should not include metadata when not provided', () => {
       const error = new AppError('Simple error', 400);
 
-      errorHandler(error, mockReq as Request, mockRes as Response, mockNext);
+      errorHandler(error, mockReq as unknown as Request, mockRes as unknown as Response, mockNext);
 
       expect(jsonMock).toHaveBeenCalledWith({
         error: {
