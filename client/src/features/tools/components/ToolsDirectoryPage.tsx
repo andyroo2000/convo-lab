@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, Clock3, Sparkles } from 'lucide-react';
+import { ArrowRight, CalendarDays, Clock3, Hash, Sparkles } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const ToolsDirectoryPage = () => {
@@ -12,7 +12,7 @@ const ToolsDirectoryPage = () => {
         <h1 className="retro-headline text-2xl sm:text-3xl">ConvoLab Tools</h1>
         <p className="mt-2 text-base text-[#2f4f73]">
           Fast, practical Japanese learning tools focused on high-frequency skills: reading dates
-          and telling time.
+          and telling time, plus classifier counters used in daily conversation.
         </p>
       </section>
 
@@ -61,6 +61,34 @@ const ToolsDirectoryPage = () => {
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="retro-caps text-sm text-[#2f4f73]">Clock drills + audio</span>
+            <span className="retro-tools-card-launch" aria-hidden>
+              <span className="retro-tools-card-launch-orb">
+                <Sparkles className="h-3.5 w-3.5" />
+              </span>
+              <span className="retro-tools-card-launch-label">
+                Try
+                <ArrowRight className="h-4 w-4" />
+              </span>
+            </span>
+          </div>
+        </Link>
+
+        <Link
+          to={`${toolsBasePath}/japanese-counters`}
+          className="retro-tools-card card retro-paper-panel group"
+          aria-label="Open Japanese Counter Practice Tool"
+        >
+          <div className="inline-flex items-center gap-2 rounded border border-[#14325633] bg-[rgba(26,178,209,0.14)] px-2.5 py-1 text-[0.8rem] text-[#1b3f69] retro-caps">
+            <Hash className="h-4 w-4" />
+            Counter Drills
+          </div>
+          <h2 className="retro-headline mt-3 text-xl">Japanese Counter Practice Tool</h2>
+          <p className="mt-2 text-base text-[#2f4f73]">
+            Practice everyday counters like 枚, 本, and 匹 with random object cards and ruby answer
+            reveal.
+          </p>
+          <div className="mt-5 flex items-center justify-between">
+            <span className="retro-caps text-sm text-[#2f4f73]">Object cards + counter quiz</span>
             <span className="retro-tools-card-launch" aria-hidden>
               <span className="retro-tools-card-launch-orb">
                 <Sparkles className="h-3.5 w-3.5" />

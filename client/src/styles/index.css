@@ -3726,7 +3726,231 @@
   box-shadow: 0 1px 0 rgba(17, 53, 98, 0.26);
 }
 
+.retro-counter-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.retro-counter-sheet {
+  position: relative;
+  min-height: 20rem;
+  border: 2px solid #b5a57f;
+  border-radius: 0.42rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 1.5rem,
+      rgba(169, 67, 57, 0.34) 1.5rem,
+      rgba(169, 67, 57, 0.34) 1.6rem,
+      transparent 1.6rem
+    ),
+    repeating-linear-gradient(180deg, rgba(54, 97, 145, 0.2) 0 1px, transparent 1px 1.85rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 241, 224, 0.93) 100%);
+  padding: 1.2rem 1rem 1.05rem 1.95rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 8px 0 rgba(17, 51, 92, 0.12);
+}
+
+.retro-counter-status {
+  margin: 0;
+  color: #244a75;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.retro-counter-problem-row {
+  margin-top: 0.85rem;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.95rem;
+}
+
+.retro-counter-problem-qty {
+  margin: 0;
+  color: #17365d;
+  font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+  font-size: clamp(2.5rem, 8vw, 4.2rem);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.retro-counter-illustration {
+  width: 100%;
+  max-width: 260px;
+  justify-self: center;
+  color: #24476f;
+}
+
+.retro-counter-prompt {
+  margin: 0.8rem 0 0;
+  color: #2f4f73;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.retro-counter-answer {
+  margin: 0.8rem 0 0;
+  color: #112f53;
+  font-size: clamp(2.05rem, 5vw, 3.2rem);
+  line-height: 1.2;
+}
+
+.retro-counter-gloss {
+  margin: 0.35rem 0 0;
+  color: #274a73;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.retro-counter-controls-panel {
+  border: 2px solid #c9bca0;
+  border-radius: 0.5rem;
+  background: linear-gradient(
+    180deg,
+    rgba(247, 240, 222, 0.96) 0%,
+    rgba(235, 223, 194, 0.95) 100%
+  );
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  box-shadow: 0 8px 0 rgba(17, 51, 92, 0.1);
+}
+
+.retro-counter-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.retro-counter-control-label {
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4e3d21;
+}
+
+.retro-counter-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 0.36rem;
+}
+
+.retro-counter-filter-btn {
+  border: 1px solid #7a6135;
+  border-radius: 0.45rem;
+  background: linear-gradient(170deg, #f1e2bb 0%, #dcc893 100%);
+  color: #46351a;
+  text-align: left;
+  padding: 0.45rem 0.52rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.retro-counter-filter-btn.is-active {
+  background: linear-gradient(170deg, #3d3019 0%, #282113 100%);
+  border-color: #1f180e;
+  color: #f3e2be;
+}
+
+.retro-counter-filter-symbol {
+  font-size: 1.02rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.retro-counter-filter-copy {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.retro-counter-control-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.retro-counter-control-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  align-items: stretch;
+}
+
+.retro-counter-control-stack .retro-clock-radio-led {
+  align-self: center;
+}
+
+.retro-counter-control-btn {
+  border: 1px solid #6c552e;
+  border-radius: 0.55rem;
+  padding: 0.5rem 0.55rem;
+  background: linear-gradient(170deg, #efe0b9 0%, #d9c491 100%);
+  color: #3d2f17;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 2px 4px rgba(53, 38, 13, 0.16);
+}
+
+.retro-counter-control-btn.is-active {
+  background: linear-gradient(170deg, #41331a 0%, #2a2214 100%);
+  border-color: #1f170d;
+  color: #f3e3be;
+}
+
+.retro-counter-pause-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.retro-counter-pause-btn {
+  border: 1px solid #7a6135;
+  border-radius: 0.5rem;
+  min-width: 2.3rem;
+  padding: 0.34rem 0.2rem;
+  background: linear-gradient(170deg, #eeddaf 0%, #d7c18d 100%);
+  color: #46351a;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+.retro-counter-pause-btn.is-active {
+  background: linear-gradient(170deg, #3e321b 0%, #282113 100%);
+  border-color: #1f180e;
+  color: #f3e2be;
+}
+
 @media (max-width: 768px) {
+  .retro-counter-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .retro-counter-sheet {
+    padding: 1.1rem 0.8rem 0.95rem 1.45rem;
+  }
+
+  .retro-counter-control-buttons {
+    grid-template-columns: 1fr;
+  }
+
   .retro-clock-radio-controls {
     grid-template-columns: 1fr;
     align-items: stretch;

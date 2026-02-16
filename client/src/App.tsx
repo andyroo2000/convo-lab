@@ -27,6 +27,9 @@ const PricingPage = lazy(() => import('./pages/PricingPage'));
 const ToolsPage = lazy(() => import('./pages/ToolsPage'));
 const JapaneseDateToolPage = lazy(() => import('./pages/JapaneseDateToolPage'));
 const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePracticeToolPage'));
+const JapaneseCounterPracticeToolPage = lazy(
+  () => import('./pages/JapaneseCounterPracticeToolPage')
+);
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
@@ -58,9 +61,9 @@ interface RouteSeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date & Time Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
     description:
-      'Practice Japanese date and time reading with free furigana and audio tools from ConvoLab.',
+      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
     canonicalPath: '/',
   },
   '/pricing': {
@@ -72,7 +75,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese date and time reading with furigana and audio support.',
+      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
     canonicalPath: '/tools',
   },
   '/tools/japanese-date': {
@@ -86,6 +89,12 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
     description:
       'Train Japanese time reading with furigana, audio playback, and interactive practice for AM/PM and 24-hour formats.',
     canonicalPath: '/tools/japanese-time',
+  },
+  '/tools/japanese-counters': {
+    title: 'Japanese Counter Practice Tool (Furigana Quiz) | ConvoLab',
+    description:
+      'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
+    canonicalPath: '/tools/japanese-counters',
   },
 };
 
@@ -179,6 +188,7 @@ const App = () => (
                     <Route index element={<ToolsPage />} />
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
+                    <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
                   <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -213,6 +223,10 @@ const App = () => (
                     <Route path="tools" element={<ToolsPage />} />
                     <Route path="tools/japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="tools/japanese-time" element={<JapaneseTimePracticeToolPage />} />
+                    <Route
+                      path="tools/japanese-counters"
+                      element={<JapaneseCounterPracticeToolPage />}
+                    />
                   </Route>
 
                   {/* 404 Catch-all Route */}

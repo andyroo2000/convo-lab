@@ -47,9 +47,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date & Time Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
     description:
-      'Practice Japanese date and time reading with free furigana and audio tools from ConvoLab.',
+      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -63,7 +63,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese date and time reading with furigana and audio support.',
+      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -80,6 +80,13 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Train Japanese time reading with furigana, audio playback, and interactive practice for AM/PM and 24-hour formats.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-time`,
+  },
+  '/tools/japanese-counters': {
+    title: 'Japanese Counter Practice Tool (Furigana Quiz) | ConvoLab',
+    description:
+      'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
   },
 };
 

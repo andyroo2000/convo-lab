@@ -65,6 +65,7 @@ test.describe('Japanese tools routes and playback', () => {
     await expect(page.getByRole('heading', { name: 'ConvoLab Tools' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Japanese Date' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Japanese Time' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Japanese Counter/i })).toBeVisible();
 
     await page.getByRole('link', { name: /Open/i }).first().click();
     await expect(page).toHaveURL(/\/tools\/japanese-date$/);
@@ -72,6 +73,10 @@ test.describe('Japanese tools routes and playback', () => {
     await page.goto('/tools');
     await page.getByRole('link', { name: /Open/i }).nth(1).click();
     await expect(page).toHaveURL(/\/tools\/japanese-time$/);
+
+    await page.goto('/tools');
+    await page.getByRole('link', { name: /Open/i }).nth(2).click();
+    await expect(page).toHaveURL(/\/tools\/japanese-counters$/);
   });
 
   test('preserves app-route continuity by redirecting unauthenticated users with return URL', async ({
