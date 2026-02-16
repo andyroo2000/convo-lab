@@ -10,7 +10,22 @@ import {
   playAudioClipSequence,
   type AudioSequencePlayback,
 } from '../../japaneseDate/logic/preRenderedTimeAudio';
-import { createRandomTimeCard, createTimeCard, type TimePracticeCard } from '../logic/types';
+import {
+  createInitialFsrsSessionState,
+  pickNextFsrsCard,
+  reviewFsrsCard,
+  type FsrsGrade,
+  type FsrsSessionState,
+} from '../logic/fsrsSession';
+import trackTimePracticeEvent from '../logic/analytics';
+import { loadTimePracticeLocalState, saveTimePracticeLocalState } from '../logic/localStorageState';
+import {
+  createRandomTimeCard,
+  createTimeCard,
+  DEFAULT_TIME_PRACTICE_SETTINGS,
+  type TimePracticeCard,
+  type TimePracticeMode,
+} from '../logic/types';
 
 interface RubyPartProps {
   script: string;
@@ -20,7 +35,14 @@ interface RubyPartProps {
 
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 const PAUSE_OPTIONS = [5, 8, 12] as const;
+const GRADE_OPTIONS: ReadonlyArray<{ grade: FsrsGrade; label: string }> = [
+  { grade: 'again', label: 'Again' },
+  { grade: 'hard', label: 'Hard' },
+  { grade: 'good', label: 'Good' },
+  { grade: 'easy', label: 'Easy' },
+];
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
+
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
   return createTimeCard(now.getHours(), now.getMinutes());
@@ -71,13 +93,30 @@ const UnitRubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
 };
 
 const JapaneseTimePracticeToolPage = () => {
-  const [card, setCard] = useState<TimePracticeCard>(createCurrentLocalTimeCard);
-  const [isPowerOn, setIsPowerOn] = useState(false);
-  const [volumeLevel, setVolumeLevel] = useState<number>(1);
+  const initialState = useMemo(() => loadTimePracticeLocalState(), []);
+
+  const [mode, setMode] = useState<TimePracticeMode>(() => initialState?.mode ?? 'random');
+  const [card, setCard] = useState<TimePracticeCard>(
+    () => initialState?.currentCard ?? createCurrentLocalTimeCard()
+  );
+  const [settings, setSettings] = useState(() => {
+    if (!initialState) {
+      return DEFAULT_TIME_PRACTICE_SETTINGS;
+    }
+
+    return {
+      ...initialState.settings,
+      revealDelaySeconds: initialState.ui.pauseSeconds,
+    };
+  });
+  const [fsrsState, setFsrsState] = useState<FsrsSessionState>(
+    () => initialState?.fsrsState ?? createInitialFsrsSessionState()
+  );
+  const [isPowerOn, setIsPowerOn] = useState(() => initialState?.ui.isPowerOn ?? false);
+  const [volumeLevel, setVolumeLevel] = useState<number>(() => initialState?.ui.volumeLevel ?? 1);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isNextLedActive, setIsNextLedActive] = useState(false);
-  const [pauseSeconds, setPauseSeconds] = useState<number>(12);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
@@ -88,6 +127,7 @@ const JapaneseTimePracticeToolPage = () => {
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
   const isFirstPowerOnRef = useRef(true);
 
+  const pauseSeconds = settings.revealDelaySeconds;
   const localDate = useMemo(() => toLocalDateInputValue(new Date()), []);
   const timeValue = useMemo(
     () => `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`,
@@ -103,9 +143,9 @@ const JapaneseTimePracticeToolPage = () => {
   );
 
   const digitalDisplay = `${toTwoDigits(card.hour24)}:${toTwoDigits(card.minute)}`;
-  const shouldShowScript = isRevealed;
+  const shouldShowScript = isRevealed && settings.displayMode === 'script';
   const statusText = (() => {
-    if (!isPowerOn || countdownSeconds === null) return '';
+    if (mode !== 'random' || !isPowerOn || countdownSeconds === null) return '';
     if (!isRevealed) return `answer in ${countdownSeconds}s`;
     if (!isPlaying) return `replaying in ${countdownSeconds}s`;
     return '';
@@ -166,6 +206,7 @@ const JapaneseTimePracticeToolPage = () => {
     } catch (error) {
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
       if (!isAbort) {
+        trackTimePracticeEvent('audio_play_error', mode);
         setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
       }
     } finally {
@@ -174,21 +215,92 @@ const JapaneseTimePracticeToolPage = () => {
       }
       setIsPlaying(false);
     }
-  }, [card.hour24, card.minute, stopPlayback, volumeLevel]);
+  }, [card.hour24, card.minute, mode, stopPlayback, volumeLevel]);
 
   const revealCard = useCallback(() => {
+    trackTimePracticeEvent('reveal_answer', mode);
     setIsRevealed(true);
+    if (!settings.autoPlayAudio) {
+      return;
+    }
+
     playCurrentCardAudio().catch(() => {
       setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
     });
-  }, [playCurrentCardAudio]);
+  }, [mode, playCurrentCardAudio, settings.autoPlayAudio]);
 
-  const advanceToNextCard = useCallback(() => {
+  const advanceToRandomCard = useCallback(() => {
     setIsRevealed(false);
     setCard(createRandomTimeCard());
   }, []);
 
+  const enterRandomMode = useCallback(() => {
+    trackTimePracticeEvent('mode_changed', 'random');
+    setMode('random');
+    setIsRevealed(false);
+    setIsPowerOn(false);
+    setCountdownSeconds(null);
+    stopPlayback();
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    setCard(createRandomTimeCard());
+  }, [clearAutoAdvanceTimer, clearCountdownInterval, clearRevealTimer, stopPlayback]);
+
+  const enterFsrsMode = useCallback(() => {
+    trackTimePracticeEvent('mode_changed', 'fsrs');
+    setMode('fsrs');
+    setIsRevealed(false);
+    setIsPowerOn(false);
+    setCountdownSeconds(null);
+    stopPlayback();
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    setCard(pickNextFsrsCard(fsrsState, new Date(), settings.maxNewCardsPerDay));
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearRevealTimer,
+    fsrsState,
+    settings.maxNewCardsPerDay,
+    stopPlayback,
+  ]);
+
+  const handleFsrsGrade = useCallback(
+    (grade: FsrsGrade) => {
+      trackTimePracticeEvent('fsrs_graded', 'fsrs', { grade });
+      const now = new Date();
+      const nextState = reviewFsrsCard(fsrsState, card, grade, now);
+      setFsrsState(nextState);
+      setIsRevealed(false);
+      setIsPowerOn(false);
+      setCountdownSeconds(null);
+      stopPlayback();
+      clearAutoAdvanceTimer();
+      clearRevealTimer();
+      clearCountdownInterval();
+      setCard(pickNextFsrsCard(nextState, now, settings.maxNewCardsPerDay));
+    },
+    [
+      card,
+      clearAutoAdvanceTimer,
+      clearCountdownInterval,
+      clearRevealTimer,
+      fsrsState,
+      settings.maxNewCardsPerDay,
+      stopPlayback,
+    ]
+  );
+
   const handleNext = useCallback(() => {
+    if (mode === 'fsrs') {
+      if (!isRevealed) {
+        revealCard();
+      }
+      return;
+    }
+
     clearNextLedTimer();
     setIsNextLedActive(true);
     nextLedTimerRef.current = window.setTimeout(() => {
@@ -201,29 +313,52 @@ const JapaneseTimePracticeToolPage = () => {
     clearCountdownInterval();
     setCountdownSeconds(null);
     stopPlayback();
+
     if (isRevealed) {
-      advanceToNextCard();
+      trackTimePracticeEvent('next_card_manual', 'random');
+      advanceToRandomCard();
       return;
     }
+
     revealCard();
   }, [
-    advanceToNextCard,
+    advanceToRandomCard,
     clearAutoAdvanceTimer,
     clearCountdownInterval,
     clearNextLedTimer,
     clearRevealTimer,
     isRevealed,
+    mode,
     revealCard,
     stopPlayback,
   ]);
 
-  const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
+  const nextButtonLabel = mode === 'random' && isRevealed ? 'Next' : 'Show Answer';
+  const autoPlayButtonLabel = (() => {
+    if (mode === 'fsrs') {
+      return 'Auto-Play (Random)';
+    }
+    if (isPowerOn) {
+      return 'Stop';
+    }
+    return 'Auto-Play';
+  })();
+  const nextButtonAriaLabel = (() => {
+    if (mode === 'fsrs') {
+      return 'Reveal answer';
+    }
+    if (isRevealed) {
+      return 'Advance to the next item';
+    }
+    return 'Show answer';
+  })();
 
   useEffect(() => {
     clearAutoAdvanceTimer();
     clearRevealTimer();
     clearCountdownInterval();
-    if (!isPowerOn) {
+
+    if (mode !== 'random' || !isPowerOn) {
       setCountdownSeconds(null);
       return undefined;
     }
@@ -250,9 +385,14 @@ const JapaneseTimePracticeToolPage = () => {
         setCountdownSeconds(null);
         const finishAdvance = () => {
           if (!cancelled) {
-            advanceToNextCard();
+            advanceToRandomCard();
           }
         };
+
+        if (!settings.autoPlayAudio) {
+          finishAdvance();
+          return;
+        }
 
         playCurrentCardAudio().then(finishAdvance).catch(finishAdvance);
       }, pauseSeconds * 1000);
@@ -272,20 +412,24 @@ const JapaneseTimePracticeToolPage = () => {
       clearCountdownInterval();
     };
   }, [
-    advanceToNextCard,
+    advanceToRandomCard,
     card.id,
     clearAutoAdvanceTimer,
     clearCountdownInterval,
     clearRevealTimer,
     isPowerOn,
     isRevealed,
+    mode,
     pauseSeconds,
     playCurrentCardAudio,
     revealCard,
+    settings.autoPlayAudio,
   ]);
 
   useEffect(() => {
-    if (isPowerOn) return undefined;
+    if (mode !== 'random' || isPowerOn) {
+      return undefined;
+    }
 
     clearAutoAdvanceTimer();
     clearCountdownInterval();
@@ -305,6 +449,7 @@ const JapaneseTimePracticeToolPage = () => {
     clearNextLedTimer,
     clearRevealTimer,
     isPowerOn,
+    mode,
     stopPlayback,
   ]);
 
@@ -325,6 +470,26 @@ const JapaneseTimePracticeToolPage = () => {
     ]
   );
 
+  useEffect(() => {
+    trackTimePracticeEvent('view_loaded', mode);
+    // Track first page render only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    saveTimePracticeLocalState({
+      mode,
+      currentCard: card,
+      fsrsState,
+      settings,
+      ui: {
+        pauseSeconds,
+        volumeLevel,
+        isPowerOn: mode === 'random' ? isPowerOn : false,
+      },
+    });
+  }, [card, fsrsState, isPowerOn, mode, pauseSeconds, settings, volumeLevel]);
+
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
@@ -342,6 +507,30 @@ const JapaneseTimePracticeToolPage = () => {
           </p>
         </div>
 
+        <div className="mb-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="retro-clock-radio-control-label">Mode</span>
+            <div className="retro-clock-radio-pause-options">
+              <button
+                type="button"
+                onClick={enterRandomMode}
+                className={`retro-clock-radio-pause-button ${mode === 'random' ? 'is-active' : ''}`}
+                aria-pressed={mode === 'random'}
+              >
+                Random
+              </button>
+              <button
+                type="button"
+                onClick={enterFsrsMode}
+                className={`retro-clock-radio-pause-button ${mode === 'fsrs' ? 'is-active' : ''}`}
+                aria-pressed={mode === 'fsrs'}
+              >
+                FSRS
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div className="retro-clock-radio-shell">
           <div className="retro-clock-radio-body">
             <div className="retro-clock-radio-window">
@@ -352,12 +541,12 @@ const JapaneseTimePracticeToolPage = () => {
                   <UnitRubyPart
                     script={reading.parts.hourScript}
                     kana={reading.parts.hourKana}
-                    showFurigana
+                    showFurigana={settings.showFurigana}
                   />
                   <UnitRubyPart
                     script={reading.parts.minuteScript}
                     kana={reading.parts.minuteKana}
-                    showFurigana
+                    showFurigana={settings.showFurigana}
                   />
                 </p>
               ) : (
@@ -371,11 +560,22 @@ const JapaneseTimePracticeToolPage = () => {
                 <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
                 <button
                   type="button"
-                  onClick={() => setIsPowerOn((current) => !current)}
+                  onClick={() => {
+                    setIsPowerOn((current) => {
+                      const next = !current;
+                      trackTimePracticeEvent('autoplay_toggled', mode, { enabled: next });
+                      setSettings((currentSettings) => ({
+                        ...currentSettings,
+                        randomAutoLoop: next,
+                      }));
+                      return next;
+                    });
+                  }}
                   className={`retro-clock-radio-action ${isPowerOn ? 'is-active' : ''}`}
                   aria-pressed={isPowerOn}
+                  disabled={mode === 'fsrs'}
                 >
-                  {isPowerOn ? 'Stop' : 'Auto-Play'}
+                  {autoPlayButtonLabel}
                 </button>
               </div>
               <div className="retro-clock-radio-next-stack">
@@ -386,7 +586,7 @@ const JapaneseTimePracticeToolPage = () => {
                   type="button"
                   onClick={handleNext}
                   className="retro-clock-radio-action"
-                  aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
+                  aria-label={nextButtonAriaLabel}
                 >
                   {nextButtonLabel}
                 </button>
@@ -418,7 +618,13 @@ const JapaneseTimePracticeToolPage = () => {
                   <button
                     key={option}
                     type="button"
-                    onClick={() => setPauseSeconds(option)}
+                    onClick={() => {
+                      trackTimePracticeEvent('pause_length_changed', mode, { seconds: option });
+                      setSettings((currentSettings) => ({
+                        ...currentSettings,
+                        revealDelaySeconds: option,
+                      }));
+                    }}
                     className={`retro-clock-radio-pause-button ${pauseSeconds === option ? 'is-active' : ''}`}
                     aria-pressed={pauseSeconds === option}
                   >
@@ -427,8 +633,83 @@ const JapaneseTimePracticeToolPage = () => {
                 ))}
               </div>
             </div>
+            <div
+              className="retro-clock-radio-pause-group"
+              role="group"
+              aria-label="Display settings"
+            >
+              <span className="retro-clock-radio-control-label">Display</span>
+              <div className="retro-clock-radio-pause-options">
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackTimePracticeEvent('display_mode_changed', mode, {
+                      display_mode: 'script',
+                    });
+                    setSettings((currentSettings) => ({
+                      ...currentSettings,
+                      displayMode: 'script',
+                    }));
+                  }}
+                  className={`retro-clock-radio-pause-button ${settings.displayMode === 'script' ? 'is-active' : ''}`}
+                  aria-pressed={settings.displayMode === 'script'}
+                >
+                  Script
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackTimePracticeEvent('display_mode_changed', mode, {
+                      display_mode: 'digital',
+                    });
+                    setSettings((currentSettings) => ({
+                      ...currentSettings,
+                      displayMode: 'digital',
+                    }));
+                  }}
+                  className={`retro-clock-radio-pause-button ${settings.displayMode === 'digital' ? 'is-active' : ''}`}
+                  aria-pressed={settings.displayMode === 'digital'}
+                >
+                  Digital
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    trackTimePracticeEvent('furigana_toggled', mode, {
+                      enabled: !settings.showFurigana,
+                    });
+                    setSettings((currentSettings) => ({
+                      ...currentSettings,
+                      showFurigana: !currentSettings.showFurigana,
+                    }));
+                  }}
+                  className={`retro-clock-radio-pause-button ${settings.showFurigana ? 'is-active' : ''}`}
+                  aria-pressed={settings.showFurigana}
+                >
+                  Furigana
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+
+        {mode === 'fsrs' && isRevealed && (
+          <div className="mt-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
+            <p className="retro-clock-radio-control-label">Grade this card</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {GRADE_OPTIONS.map((option) => (
+                <button
+                  key={option.grade}
+                  type="button"
+                  onClick={() => handleFsrsGrade(option.grade)}
+                  className="retro-clock-radio-pause-button"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 rounded border border-[#173b6538] bg-[#edf5f9] px-3 py-3 shadow-[0_3px_0_rgba(17,51,92,0.12)] sm:px-4">
           <ul className="list-disc pl-5 text-sm font-semibold leading-snug text-[#1b3f69] sm:text-[0.96rem]">

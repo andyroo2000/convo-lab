@@ -19,12 +19,6 @@ const GRADE_TO_RATING: Record<FsrsGrade, Grade> = {
   easy: Rating.Easy,
 };
 
-const EMPTY_SESSION: FsrsSessionState = {
-  cardsById: {},
-  seenById: {},
-  newCardsByLocalDate: {},
-};
-
 function toLocalDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -49,7 +43,11 @@ function dueTimeOf(state: FsrsSessionState, card: TimePracticeCard): Date {
 }
 
 export function createInitialFsrsSessionState(): FsrsSessionState {
-  return EMPTY_SESSION;
+  return {
+    cardsById: {},
+    seenById: {},
+    newCardsByLocalDate: {},
+  };
 }
 
 export function pickNextFsrsCard(

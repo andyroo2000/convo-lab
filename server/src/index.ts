@@ -23,6 +23,7 @@ import dialogueRoutes from './routes/dialogue.js';
 import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
+import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import verificationRoutes from './routes/verification.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
@@ -113,6 +114,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);
 app.use('/api/admin/script-lab', adminScriptLabRoutes);
 app.use('/api/feature-flags', featureFlagRoutes);
+app.use('/api', toolAnalyticsRoutes);
 
 // Serve client static files in production
 if (process.env.NODE_ENV === 'production') {
