@@ -214,6 +214,66 @@
     z-index: 3;
   }
 
+  .retro-tools-card {
+    display: block;
+    text-decoration: none;
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease,
+      border-color 0.2s ease;
+  }
+
+  .retro-tools-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(20, 50, 86, 0.28);
+    box-shadow:
+      inset 0 0 0 1px rgba(23, 59, 101, 0.08),
+      0 13px 0 rgba(17, 51, 92, 0.14);
+  }
+
+  .retro-tools-card:focus-visible {
+    outline: 3px solid rgba(26, 178, 209, 0.56);
+    outline-offset: 3px;
+  }
+
+  .retro-tools-card-launch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .retro-tools-card-launch-orb {
+    width: 1.7rem;
+    height: 1.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: rgba(18, 52, 90, 0.96);
+    background:
+      radial-gradient(circle at 30% 32%, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0) 56%),
+      linear-gradient(160deg, #a9ebfb 0%, #57cfe7 100%);
+    box-shadow:
+      inset 0 0 0 1px rgba(17, 51, 92, 0.14),
+      0 2px 0 rgba(17, 51, 92, 0.18);
+  }
+
+  .retro-tools-card-launch-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    border: 1px solid rgba(20, 50, 86, 0.2);
+    color: rgba(20, 50, 86, 0.96);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.84), rgba(227, 245, 251, 0.88));
+    font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+    font-size: 0.76rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 3px 0 rgba(17, 51, 92, 0.12);
+  }
+
   .retro-nav-tab {
     padding: 0.64rem 1.2rem;
     border: 2px solid transparent;

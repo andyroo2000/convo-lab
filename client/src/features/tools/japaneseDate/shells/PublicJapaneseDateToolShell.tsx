@@ -11,9 +11,9 @@ const PublicJapaneseDateToolShell = () => {
   const { user } = useAuth();
 
   useSeoMeta({
-    title: 'Japanese Date & Time Reader (with Kana) | ConvoLab',
+    title: 'Japanese Date Practice Tool (Furigana + Audio) | ConvoLab',
     description:
-      'Convert Gregorian dates and times into Japanese script and kana readings. Toggle 12h/24h format and copy results instantly.',
+      'Practice reading Japanese dates with furigana and audio playback. Convert Gregorian dates into natural Japanese quickly.',
     canonicalUrl: CANONICAL_URL,
     robots: 'index,follow',
   });
