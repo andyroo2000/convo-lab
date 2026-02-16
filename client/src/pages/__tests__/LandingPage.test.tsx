@@ -42,50 +42,24 @@ describe('LandingPage', () => {
   });
 
   describe('header', () => {
-    it('should render ConvoLab title', () => {
+    it('renders logo and tools-first CTA', () => {
       renderPage();
-      // Multiple ConvoLab texts exist (header and footer)
-      expect(screen.getAllByText('ConvoLab').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('logo')).toBeInTheDocument();
+      expect(screen.getByTestId('landing-header-button-open-tools')).toBeInTheDocument();
     });
 
-    it('should render Logo', () => {
+    it('navigates to tools when header tools button clicked', () => {
       renderPage();
-      expect(screen.getAllByTestId('logo').length).toBeGreaterThan(0);
+      fireEvent.click(screen.getByTestId('landing-header-button-open-tools'));
+      expect(mockNavigate).toHaveBeenCalledWith('/tools');
     });
   });
 
   describe('unauthenticated user', () => {
-    it('should render Sign In button', () => {
+    it('shows private beta badge and no app CTA', () => {
       renderPage();
-      expect(screen.getByTestId('landing-header-button-signin')).toBeInTheDocument();
-    });
-
-    it('should render Get Started button in header', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-header-button-get-started')).toBeInTheDocument();
-    });
-
-    it('should render Start Learning Free button in hero', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-hero-button-start')).toBeInTheDocument();
-    });
-
-    it('should navigate to login when Sign In clicked', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-header-button-signin'));
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
-    });
-
-    it('should navigate to login when Get Started clicked', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-header-button-get-started'));
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
-    });
-
-    it('should navigate to login when hero CTA clicked', () => {
-      renderPage();
-      fireEvent.click(screen.getByTestId('landing-hero-button-start'));
-      expect(mockNavigate).toHaveBeenCalledWith('/login');
+      expect(screen.getByTestId('landing-header-beta-badge')).toBeInTheDocument();
+      expect(screen.queryByTestId('landing-header-button-go-to-app')).not.toBeInTheDocument();
     });
   });
 
@@ -94,120 +68,54 @@ describe('LandingPage', () => {
       mockUser.mockReturnValue({ id: 'user-1', email: 'test@test.com' });
     });
 
-    it('should render Go to App button in header', () => {
+    it('shows go-to-app CTA in header', () => {
       renderPage();
       expect(screen.getByTestId('landing-header-button-go-to-app')).toBeInTheDocument();
     });
 
-    it('should render Go to App button in hero', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-hero-button-go-to-app')).toBeInTheDocument();
-    });
-
-    it('should not render Sign In button', () => {
-      renderPage();
-      expect(screen.queryByTestId('landing-header-button-signin')).not.toBeInTheDocument();
-    });
-
-    it('should navigate to library when Go to App clicked', () => {
+    it('navigates to app library when go-to-app clicked', () => {
       renderPage();
       fireEvent.click(screen.getByTestId('landing-header-button-go-to-app'));
       expect(mockNavigate).toHaveBeenCalledWith('/app/library');
     });
   });
 
-  describe('hero section', () => {
-    it('should render Research-Backed Language Lab badge', () => {
+  describe('hero and sections', () => {
+    it('renders tools-focused headline and beta messaging', () => {
       renderPage();
-      expect(screen.getByText('Research-Backed Language Lab')).toBeInTheDocument();
+      expect(screen.getByText('Practice Japanese')).toBeInTheDocument();
+      expect(screen.getByText('Dates & Time')).toBeInTheDocument();
+      expect(screen.getByText(/private beta and invite-only/i)).toBeInTheDocument();
     });
 
-    it('should render main headline', () => {
+    it('renders tool cards and cta copy', () => {
       renderPage();
-      expect(screen.getByText('Your Personal')).toBeInTheDocument();
-      expect(screen.getByText('AI Language Lab')).toBeInTheDocument();
-    });
-
-    it('should render description', () => {
-      renderPage();
-      expect(
-        screen.getByText(
-          /Create custom Japanese study material grounded in linguistics and SLA research/
-        )
-      ).toBeInTheDocument();
+      expect(screen.getByText('Japanese Date Practice Tool')).toBeInTheDocument();
+      expect(screen.getByText('Japanese Time Practice Tool')).toBeInTheDocument();
+      expect(screen.getByText(/ConvoLab App: Private Beta/)).toBeInTheDocument();
+      expect(screen.getByText('Start With Free Japanese Tools')).toBeInTheDocument();
     });
   });
 
-  describe('features section', () => {
-    it('should render Your Personal Language Lab heading', () => {
+  describe('hero actions', () => {
+    it('navigates to date tool', () => {
       renderPage();
-      // Multiple elements contain these texts
-      expect(screen.getAllByText(/Your Personal/).length).toBeGreaterThan(0);
-      expect(screen.getAllByText(/Language Lab/).length).toBeGreaterThan(0);
+      fireEvent.click(screen.getByTestId('landing-hero-button-open-date-tool'));
+      expect(mockNavigate).toHaveBeenCalledWith('/tools/japanese-date');
     });
 
-    it('should render Comprehensible Input feature', () => {
+    it('navigates to time tool', () => {
       renderPage();
-      expect(screen.getByText('Comprehensible Input')).toBeInTheDocument();
-    });
-
-    it('should render Guided Audio Courses feature', () => {
-      renderPage();
-      expect(screen.getByText('Guided Audio Courses')).toBeInTheDocument();
-    });
-
-    it('should render Focused Practice feature', () => {
-      renderPage();
-      expect(screen.getByText('Focused Practice')).toBeInTheDocument();
-    });
-
-    it('should render feature descriptions', () => {
-      renderPage();
-      expect(
-        screen.getByText(/Generate AI dialogues calibrated to your proficiency level/)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(/Turn your dialogues into Pimsleur-style lessons/)
-      ).toBeInTheDocument();
-      expect(screen.getByText(/Listen, shadow, and replay with furigana/)).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('landing-hero-button-open-time-tool'));
+      expect(mockNavigate).toHaveBeenCalledWith('/tools/japanese-time');
     });
   });
 
-  describe('CTA section', () => {
-    it('should render Ready to Build heading', () => {
+  describe('cta section', () => {
+    it('navigates to tools directory from final cta', () => {
       renderPage();
-      expect(screen.getByText(/Ready to Build/)).toBeInTheDocument();
-    });
-
-    it('should render CTA description', () => {
-      renderPage();
-      expect(
-        screen.getByText(/Start creating research-backed, personalized content/)
-      ).toBeInTheDocument();
-    });
-
-    it('should render CTA button for unauthenticated user', () => {
-      renderPage();
-      expect(screen.getByTestId('landing-cta-button-start')).toBeInTheDocument();
-    });
-
-    it('should render CTA button for authenticated user', () => {
-      mockUser.mockReturnValue({ id: 'user-1' });
-      renderPage();
-      expect(screen.getByTestId('landing-cta-button-go-to-app')).toBeInTheDocument();
-    });
-  });
-
-  describe('footer', () => {
-    it('should render footer with ConvoLab text', () => {
-      renderPage();
-      const footerText = screen.getAllByText('ConvoLab');
-      expect(footerText.length).toBeGreaterThan(0);
-    });
-
-    it('should not render tagline', () => {
-      renderPage();
-      expect(screen.queryByText('Your personal AI language lab')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('landing-cta-button-open-tools'));
+      expect(mockNavigate).toHaveBeenCalledWith('/tools');
     });
   });
 });

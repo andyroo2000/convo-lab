@@ -1,11 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { MessageSquare, BookOpen, Target, Sparkles } from 'lucide-react';
+import { CalendarDays, Clock3, Lock, Sparkles } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import Logo from '../components/common/Logo';
 
 const LandingPage = () => {
-  const { t } = useTranslation(['landing', 'common']);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -17,34 +15,27 @@ const LandingPage = () => {
           <div className="retro-landing-v3-nav">
             <Logo size="medium" showKana showIcons={false} />
             <div className="flex items-center gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={() => navigate('/tools')}
+                className="retro-landing-v3-nav-btn is-primary"
+                data-testid="landing-header-button-open-tools"
+              >
+                Open Free Tools
+              </button>
               {user ? (
                 <button
                   type="button"
                   onClick={() => navigate('/app/library')}
-                  className="retro-landing-v3-nav-btn is-primary"
+                  className="hidden sm:inline-flex retro-landing-v3-nav-btn"
                   data-testid="landing-header-button-go-to-app"
                 >
-                  {t('landing:header.goToApp')}
+                  Go to App (Beta)
                 </button>
               ) : (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    className="hidden sm:inline-flex retro-landing-v3-nav-btn"
-                    data-testid="landing-header-button-signin"
-                  >
-                    {t('landing:header.signIn')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/login')}
-                    className="retro-landing-v3-nav-btn is-primary"
-                    data-testid="landing-header-button-get-started"
-                  >
-                    {t('landing:header.getStarted')}
-                  </button>
-                </>
+                <span className="retro-landing-v3-nav-btn" data-testid="landing-header-beta-badge">
+                  Invite-Only Beta
+                </span>
               )}
             </div>
           </div>
@@ -61,50 +52,50 @@ const LandingPage = () => {
 
           <div className="retro-landing-v3-hero-main">
             <div className="retro-landing-v3-badge-row">
-              <span className="retro-landing-v3-badge">{t('landing:hero.badge')}</span>
+              <span className="retro-landing-v3-badge">Free Public Japanese Tools</span>
             </div>
 
             <h1 className="retro-landing-v3-title">
-              <span>{t('landing:hero.title1')}</span>
-              <span className="retro-landing-v3-title-accent">{t('landing:hero.title2')}</span>
+              <span>Practice Japanese</span>
+              <span className="retro-landing-v3-title-accent">Dates & Time</span>
             </h1>
 
-            <p className="retro-landing-v3-description">{t('landing:hero.description')}</p>
+            <p className="retro-landing-v3-description">
+              Start instantly with free tools for Japanese date and time reading, with furigana and
+              audio. The full ConvoLab app is currently in private beta and invite-only.
+            </p>
 
             <div className="retro-landing-v3-hero-actions">
-              {user ? (
-                <button
-                  type="button"
-                  onClick={() => navigate('/app/library')}
-                  className="retro-landing-v3-hero-btn"
-                  data-testid="landing-hero-button-go-to-app"
-                >
-                  {t('landing:hero.goToApp')}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate('/login')}
-                  className="retro-landing-v3-hero-btn"
-                  data-testid="landing-hero-button-start"
-                >
-                  {t('landing:hero.startLearning')}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => navigate('/tools/japanese-date')}
+                className="retro-landing-v3-hero-btn"
+                data-testid="landing-hero-button-open-date-tool"
+              >
+                Open Date Practice Tool
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/tools/japanese-time')}
+                className="retro-landing-v3-hero-btn"
+                data-testid="landing-hero-button-open-time-tool"
+              >
+                Open Time Practice Tool
+              </button>
             </div>
 
             <div className="retro-landing-v3-highlights">
               <div className="retro-landing-v3-highlight">
-                <MessageSquare className="w-4 h-4" />
-                <span>JP Dialogues</span>
+                <CalendarDays className="w-4 h-4" />
+                <span>Date Readings</span>
               </div>
               <div className="retro-landing-v3-highlight">
-                <Target className="w-4 h-4" />
-                <span>Audio Builder</span>
+                <Clock3 className="w-4 h-4" />
+                <span>Time Drills</span>
               </div>
               <div className="retro-landing-v3-highlight">
-                <BookOpen className="w-4 h-4" />
-                <span>Practice Loop</span>
+                <Lock className="w-4 h-4" />
+                <span>App Private Beta</span>
               </div>
             </div>
           </div>
@@ -113,46 +104,42 @@ const LandingPage = () => {
         {/* Features Section */}
         <section className="retro-landing-v3-section retro-landing-v3-features">
           <div className="retro-landing-v3-section-head">
-            <h3 className="retro-landing-v3-section-title whitespace-pre-line">
-              {t('landing:features.title')}
-            </h3>
-            <p className="retro-landing-v3-section-subtitle">{t('landing:features.subtitle')}</p>
+            <h3 className="retro-landing-v3-section-title">What You Can Use Right Now</h3>
+            <p className="retro-landing-v3-section-subtitle">
+              Fast, focused tools that work immediately on desktop and mobile.
+            </p>
           </div>
 
           <div className="retro-landing-v3-features-grid">
             <div className="retro-landing-v3-feature-card is-cyan">
               <div className="retro-landing-v3-feature-icon">
-                <MessageSquare className="w-6 h-6" />
+                <CalendarDays className="w-6 h-6" />
               </div>
-              <h4 className="retro-landing-v3-feature-title">
-                {t('landing:features.feature1.title')}
-              </h4>
+              <h4 className="retro-landing-v3-feature-title">Japanese Date Practice Tool</h4>
               <p className="retro-landing-v3-feature-copy">
-                {t('landing:features.feature1.description')}
+                Practice Japanese calendar readings with furigana, audio playback, and quick
+                reveal/quiz flow.
               </p>
             </div>
 
             <div className="retro-landing-v3-feature-card is-ink">
               <div className="retro-landing-v3-feature-icon">
-                <Target className="w-6 h-6" />
+                <Clock3 className="w-6 h-6" />
               </div>
-              <h4 className="retro-landing-v3-feature-title">
-                {t('landing:features.feature2.title')}
-              </h4>
+              <h4 className="retro-landing-v3-feature-title">Japanese Time Practice Tool</h4>
               <p className="retro-landing-v3-feature-copy">
-                {t('landing:features.feature2.description')}
+                Train time recognition with delayed reveal, audio-first loops, and rapid
+                clock-format drills.
               </p>
             </div>
 
             <div className="retro-landing-v3-feature-card is-paper">
               <div className="retro-landing-v3-feature-icon">
-                <BookOpen className="w-6 h-6" />
+                <Lock className="w-6 h-6" />
               </div>
-              <h4 className="retro-landing-v3-feature-title">
-                {t('landing:features.feature3.title')}
-              </h4>
+              <h4 className="retro-landing-v3-feature-title">ConvoLab App: Private Beta</h4>
               <p className="retro-landing-v3-feature-copy">
-                {t('landing:features.feature3.description')}
+                The full paid app is currently invite-only while we finalize onboarding and quality.
               </p>
             </div>
           </div>
@@ -161,23 +148,18 @@ const LandingPage = () => {
         {/* CTA Section */}
         <section className="retro-landing-v3-section retro-landing-v3-cta-shell">
           <Sparkles className="retro-landing-v3-cta-icon" />
-          <h3 className="retro-landing-v3-cta-title">
-            {t('landing:cta.title')
-              .split('\n')
-              .map((line) => (
-                <span key={line} className="block">
-                  {line}
-                </span>
-              ))}
-          </h3>
-          <p className="retro-landing-v3-cta-copy">{t('landing:cta.description')}</p>
+          <h3 className="retro-landing-v3-cta-title">Start With Free Japanese Tools</h3>
+          <p className="retro-landing-v3-cta-copy">
+            Explore the tools directory and jump straight into date/time practice with no account
+            required.
+          </p>
           <button
             type="button"
-            onClick={() => navigate(user ? '/app/library' : '/login')}
+            onClick={() => navigate('/tools')}
             className="retro-landing-v3-cta-btn"
-            data-testid={user ? 'landing-cta-button-go-to-app' : 'landing-cta-button-start'}
+            data-testid="landing-cta-button-open-tools"
           >
-            {user ? t('landing:cta.goToApp') : t('landing:cta.getStarted')}
+            Browse Free Tools
           </button>
         </section>
       </main>
