@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
 import { AudioPlayerProvider } from './contexts/AudioPlayerContext';
@@ -8,6 +8,11 @@ import Layout from './components/common/Layout';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+import {
+  initializeGoogleAnalytics,
+  isGoogleAnalyticsEnabled,
+  trackPageView,
+} from './lib/googleAnalytics';
 import './i18n';
 
 // Lazy load all page components for code splitting
@@ -42,9 +47,27 @@ const PageLoader = () => (
   </div>
 );
 
+const GoogleAnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!isGoogleAnalyticsEnabled()) return;
+    initializeGoogleAnalytics();
+  }, []);
+
+  useEffect(() => {
+    if (!isGoogleAnalyticsEnabled()) return;
+    const pagePath = `${location.pathname}${location.search}${location.hash}`;
+    trackPageView(pagePath);
+  }, [location.hash, location.pathname, location.search]);
+
+  return null;
+};
+
 const App = () => (
   <ErrorBoundary>
     <BrowserRouter>
+      <GoogleAnalyticsTracker />
       <AuthProvider>
         <LocaleProvider>
           <AudioPlayerProvider>
