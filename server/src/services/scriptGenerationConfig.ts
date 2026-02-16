@@ -110,7 +110,8 @@ Return ONLY a JSON array (no markdown, no explanation):
   noVocabTeachTemplate: "Here's how you say that.",
   reviewIntroTemplate: "Let's review some key phrases.",
   reviewQuestionTemplate: 'How do you say: "{translation}"?',
-  outroTemplate: "Great work! You've learned some very useful phrases today. Keep practicing, and we'll see you in the next lesson.",
+  outroTemplate:
+    "Great work! You've learned some very useful phrases today. Keep practicing, and we'll see you in the next lesson.",
 };
 
 /**
@@ -136,7 +137,9 @@ export function buildScriptConfig(
       .replace(/{NATIVE_LANGUAGE}/g, context.nativeLanguage.toUpperCase())
       .replace(/{JLPT_INFO}/g, jlptInfo)
       .replace(/{EPISODE_TITLE}/g, context.episodeTitle),
-    progressivePhrasePrompt: baseConfig.progressivePhrasePrompt
-      .replace(/{TARGET_LANGUAGE}/g, context.targetLanguage.toUpperCase()),
+    progressivePhrasePrompt: baseConfig.progressivePhrasePrompt.replace(
+      /{TARGET_LANGUAGE}/g,
+      context.targetLanguage.toUpperCase()
+    ),
   };
 }

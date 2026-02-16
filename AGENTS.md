@@ -42,6 +42,19 @@ Before pushing to `main`, run this quick gate:
     - container-local health (`http://localhost:3001/health` inside host)
     - external domain health (`https://stage.convo-lab.com/health`)
 
+## Pre-Push Formatting Scope
+
+- Repo-wide `format:check` now excludes generated artifacts and legacy ops scripts via `.prettierignore`.
+- Excluded paths include:
+  - `client/dev-dist`
+  - `server/scripts`
+  - `server/src/scripts`
+  - `scripts`
+  - `check-*.ts`
+  - `sample-courses-results.json`
+  - `tools/kanban`
+- For app changes, keep source files under `client/src`, `server/src` (excluding `server/src/scripts`), `shared/src`, `e2e`, and config files Prettier-clean before push.
+
 ## Landing the Plane (Session Completion)
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.

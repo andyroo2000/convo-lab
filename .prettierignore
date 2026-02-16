@@ -8,6 +8,7 @@ build
 .next
 out
 *.tsbuildinfo
+client/dev-dist
 
 # Environment files
 .env
@@ -43,7 +44,16 @@ client/public/avatars
 # Playwright
 playwright-report
 test-results
+.beads/*.meta.json
 
 # Temporary files
 *.tmp
 *.temp
+
+# Legacy/ops scripts (kept for manual operations; not part of app build path)
+server/scripts
+server/src/scripts
+scripts
+check-*.ts
+sample-courses-results.json
+tools/kanban

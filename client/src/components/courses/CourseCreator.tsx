@@ -138,9 +138,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
   if (!isOpen) return null;
 
   const narratorVoices = TTS_VOICES[nativeLanguage]?.voices || [];
-  const narratorVoiceChoices = narratorVoices.filter(
-    (voice) => voice.provider === 'fishaudio'
-  );
+  const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
 
   return (
     <div
@@ -254,7 +252,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                          </option>
+                      </option>
                     )
                   )}
                 </select>
@@ -285,7 +283,7 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                     }) => (
                       <option key={voice.id} value={voice.id}>
                         ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                          </option>
+                      </option>
                     )
                   )}
                 </select>

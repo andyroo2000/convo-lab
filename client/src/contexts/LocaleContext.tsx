@@ -40,11 +40,7 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
     [locale]
   );
 
-  return (
-    <LocaleContext.Provider value={value}>
-      {children}
-    </LocaleContext.Provider>
-  );
+  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 };
 
 export function useLocale() {

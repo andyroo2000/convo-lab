@@ -32,11 +32,7 @@ export const AudioPlayerProvider = ({ children }: { children: ReactNode }) => {
     [audioUrl, title, speed]
   );
 
-  return (
-    <AudioPlayerContext.Provider value={value}>
-      {children}
-    </AudioPlayerContext.Provider>
-  );
+  return <AudioPlayerContext.Provider value={value}>{children}</AudioPlayerContext.Provider>;
 };
 
 export function useAudioPlayerContext() {

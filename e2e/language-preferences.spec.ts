@@ -94,7 +94,9 @@ test.describe('Language Preferences', () => {
       await waitForLoadingComplete(page);
 
       // Should persist
-      const selectedValue = await page.locator('[data-testid="settings-select-jlpt-level"]').inputValue();
+      const selectedValue = await page
+        .locator('[data-testid="settings-select-jlpt-level"]')
+        .inputValue();
       expect(selectedValue).toBe('N2');
     });
   });

@@ -70,7 +70,6 @@ describe('vocabularySeeding', () => {
     });
   });
 
-
   describe('sampleVocabulary', () => {
     it('should return requested number of vocabulary items', async () => {
       const sample = await sampleVocabulary('ja', 'N5', 10);

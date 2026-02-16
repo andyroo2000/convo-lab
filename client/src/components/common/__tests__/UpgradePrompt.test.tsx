@@ -17,7 +17,7 @@ vi.mock('react-router-dom', async () => {
 
 // Mock AuthContext
 let mockUser: // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any = { id: '1', tier: 'free' };
+any = { id: '1', tier: 'free' };
 vi.mock('../../../contexts/AuthContext', () => ({
   useAuth: () => ({
     user: mockUser,

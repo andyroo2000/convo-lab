@@ -43,9 +43,7 @@ const OnboardingModal = () => {
         {/* JLPT Level Selection */}
         <div className="space-y-6">
           <div className="text-center mb-6">
-            <h2 className="text-2xl font-semibold text-navy mb-2">
-              {t('onboarding:step3.title')}
-            </h2>
+            <h2 className="text-2xl font-semibold text-navy mb-2">{t('onboarding:step3.title')}</h2>
           </div>
 
           <div className="space-y-3">
@@ -59,9 +57,7 @@ const OnboardingModal = () => {
               }`}
             >
               <h3 className="font-semibold text-navy mb-1">N5 (Beginner)</h3>
-              <p className="text-sm text-gray-600">
-                Basic grammar and around 800 vocabulary words
-              </p>
+              <p className="text-sm text-gray-600">Basic grammar and around 800 vocabulary words</p>
             </button>
 
             <button
@@ -89,9 +85,7 @@ const OnboardingModal = () => {
               }`}
             >
               <h3 className="font-semibold text-navy mb-1">N3 (Intermediate)</h3>
-              <p className="text-sm text-gray-600">
-                Can understand most everyday conversations
-              </p>
+              <p className="text-sm text-gray-600">Can understand most everyday conversations</p>
             </button>
 
             <button

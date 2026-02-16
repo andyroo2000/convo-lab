@@ -235,7 +235,10 @@ export const DEFAULT_NARRATOR_VOICES = {
 
 // Default L2 speaker voices for courses (used when no voice is specified at course creation)
 export const DEFAULT_SPEAKER_VOICES: Record<string, { speaker1: string; speaker2: string }> = {
-  ja: { speaker1: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25', speaker2: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32' },
+  ja: {
+    speaker1: 'fishaudio:0dff3f6860294829b98f8c4501b2cf25',
+    speaker2: 'fishaudio:72416f3ff95541d9a2456b945e8a7c32',
+  },
 };
 
 // Language abbreviations for UI display

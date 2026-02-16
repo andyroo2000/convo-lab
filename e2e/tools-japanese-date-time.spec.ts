@@ -4,8 +4,10 @@ const DATE_YEAR_URL = '/tools-audio/japanese-date/google-kento-professional/date
 const DATE_MONTH_URL = '/tools-audio/japanese-date/google-kento-professional/date/month/02.mp3';
 const DATE_DAY_URL = '/tools-audio/japanese-date/google-kento-professional/date/day/13.mp3';
 
-const TIME_24H_HOUR_URL = '/tools-audio/japanese-time/google-kento-professional/time/24h/part1/21.mp3';
-const TIME_12H_HOUR_URL = '/tools-audio/japanese-time/google-kento-professional/time/12h/part1/gogo-09.mp3';
+const TIME_24H_HOUR_URL =
+  '/tools-audio/japanese-time/google-kento-professional/time/24h/part1/21.mp3';
+const TIME_12H_HOUR_URL =
+  '/tools-audio/japanese-time/google-kento-professional/time/12h/part1/gogo-09.mp3';
 const TIME_MINUTE_URL = '/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3';
 
 async function installAudioMock(page: Page): Promise<void> {
@@ -105,9 +107,7 @@ test.describe('Japanese tools routes and playback', () => {
     await page.locator('#jp-date-input').fill('2026-02-13');
     await page.getByRole('button', { name: 'Play' }).click();
 
-    await expect
-      .poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 })
-      .toBe(3);
+    await expect.poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 }).toBe(3);
 
     const played = await getPlayedClips(page);
     expect(played).toEqual([DATE_YEAR_URL, DATE_MONTH_URL, DATE_DAY_URL]);
@@ -127,9 +127,7 @@ test.describe('Japanese tools routes and playback', () => {
 
     await page.getByRole('button', { name: 'Play' }).click();
 
-    await expect
-      .poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 })
-      .toBe(2);
+    await expect.poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 }).toBe(2);
 
     const played = await getPlayedClips(page);
     expect(played).toEqual([TIME_24H_HOUR_URL, TIME_MINUTE_URL]);
@@ -150,9 +148,7 @@ test.describe('Japanese tools routes and playback', () => {
 
     await page.getByRole('button', { name: 'Play' }).click();
 
-    await expect
-      .poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 })
-      .toBe(2);
+    await expect.poll(async () => (await getPlayedClips(page)).length, { timeout: 5000 }).toBe(2);
 
     const played = await getPlayedClips(page);
     expect(played).toEqual([TIME_12H_HOUR_URL, TIME_MINUTE_URL]);

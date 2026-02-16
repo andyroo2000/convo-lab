@@ -69,13 +69,20 @@ export async function getVocabularyForLevel(
 
   try {
     const filePath = join(__dirname, '../data/vocabulary', language, `${fileName}.json`);
+    // eslint-disable-next-line no-console
     console.log(`[VocabSeeding] Attempting to load vocabulary from: ${filePath}`);
     const data: VocabularyData = JSON.parse(await readFile(filePath, 'utf-8'));
-    console.log(`[VocabSeeding] Successfully loaded ${data.vocabulary.length} words for ${language}:${level}`);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[VocabSeeding] Successfully loaded ${data.vocabulary.length} words for ${language}:${level}`
+    );
     vocabularyCache.set(cacheKey, data.vocabulary);
     return data.vocabulary;
   } catch (error) {
-    console.error(`[VocabSeeding] Failed to load vocabulary for ${language}:${level} from ${join(__dirname, '../data/vocabulary', language, `${fileName}.json`)}:`, error);
+    console.error(
+      `[VocabSeeding] Failed to load vocabulary for ${language}:${level} from ${join(__dirname, '../data/vocabulary', language, `${fileName}.json`)}:`,
+      error
+    );
     return [];
   }
 }
@@ -120,13 +127,20 @@ export async function getGrammarForLevel(language: string, level: string): Promi
 
   try {
     const filePath = join(__dirname, '../data/grammar', language, `${fileName}.json`);
+    // eslint-disable-next-line no-console
     console.log(`[GrammarSeeding] Attempting to load grammar from: ${filePath}`);
     const data: GrammarData = JSON.parse(await readFile(filePath, 'utf-8'));
-    console.log(`[GrammarSeeding] Successfully loaded ${data.grammarPoints.length} grammar points for ${language}:${level}`);
+    // eslint-disable-next-line no-console
+    console.log(
+      `[GrammarSeeding] Successfully loaded ${data.grammarPoints.length} grammar points for ${language}:${level}`
+    );
     grammarCache.set(cacheKey, data.grammarPoints);
     return data.grammarPoints;
   } catch (error) {
-    console.error(`[GrammarSeeding] Failed to load grammar for ${language}:${level} from ${join(__dirname, '../data/grammar', language, `${fileName}.json`)}:`, error);
+    console.error(
+      `[GrammarSeeding] Failed to load grammar for ${language}:${level} from ${join(__dirname, '../data/grammar', language, `${fileName}.json`)}:`,
+      error
+    );
     return [];
   }
 }

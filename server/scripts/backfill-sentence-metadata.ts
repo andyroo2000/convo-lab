@@ -13,7 +13,8 @@ const isProd = process.env.NODE_ENV === 'production';
 const basePath = isProd ? '../dist/server/src' : '../src';
 
 const { prisma } = await import(`${basePath}/db/client.js`);
-const { processLanguageTextBatch, type LanguageMetadata } = await import(`${basePath}/services/languageProcessor.js`);
+const { processLanguageTextBatch } = await import(`${basePath}/services/languageProcessor.js`);
+type LanguageMetadata = Awaited<ReturnType<typeof processLanguageTextBatch>>[number];
 
 interface SentenceWithEpisode {
   id: string;
