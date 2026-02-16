@@ -240,7 +240,9 @@ const JapaneseCounterPracticeToolPage = () => {
 
         <div className="retro-counter-layout">
           <div className="retro-counter-sheet" role="region" aria-label="Counter quiz card">
-            {statusText && <p className="retro-counter-status">{statusText}</p>}
+            <p className="retro-counter-status" aria-live="polite">
+              {statusText || '\u00A0'}
+            </p>
             <div className="retro-counter-problem-row">
               <p className="retro-counter-problem-qty">{card.quantity} ×</p>
               <CounterObjectIllustration
