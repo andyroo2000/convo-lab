@@ -43,4 +43,10 @@ describe('counterPractice', () => {
     expect(card.object.script.length).toBeGreaterThan(0);
     expect(card.object.kana.length).toBeGreaterThan(0);
   });
+
+  it('uses kanji counter symbols in revealed script', () => {
+    expect(createCounterPracticeCard(['mai']).countScript).toContain('枚');
+    expect(createCounterPracticeCard(['hon']).countScript).toContain('本');
+    expect(createCounterPracticeCard(['hiki']).countScript).toContain('匹');
+  });
 });

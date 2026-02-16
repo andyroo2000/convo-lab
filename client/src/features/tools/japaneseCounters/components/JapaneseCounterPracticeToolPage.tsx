@@ -18,6 +18,7 @@ interface RubyPartProps {
 
 const PAUSE_OPTIONS = [5, 8, 12] as const;
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
+const DEFAULT_AUTO_LOOP_ENABLED = false;
 
 const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
   <ruby className="mr-1">
@@ -31,7 +32,7 @@ const JapaneseCounterPracticeToolPage = () => {
   const [card, setCard] = useState<CounterPracticeCard>(() =>
     createCounterPracticeCard(DEFAULT_COUNTER_IDS)
   );
-  const [isPowerOn, setIsPowerOn] = useState(false);
+  const [isPowerOn, setIsPowerOn] = useState(DEFAULT_AUTO_LOOP_ENABLED);
   const [isRevealed, setIsRevealed] = useState(false);
   const [pauseSeconds, setPauseSeconds] = useState<number>(8);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
@@ -233,8 +234,7 @@ const JapaneseCounterPracticeToolPage = () => {
             Japanese Counter Practice Tool
           </h1>
           <p className="mt-2 text-sm font-semibold leading-tight text-[#395d86] sm:text-base">
-            Old-textbook drills for counters. Read the image, pick the right counter, then check the
-            ruby answer.
+            Read the image, pick the right counter, then check the answer.
           </p>
         </div>
 

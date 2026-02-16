@@ -9,7 +9,7 @@ vi.mock('../../logic/counterPractice', () => ({
     { id: 'hon', symbol: '本', hint: 'long objects' },
     { id: 'hiki', symbol: '匹', hint: 'small animals' },
   ],
-  DEFAULT_COUNTER_IDS: ['mai', 'hon', 'hiki'],
+  DEFAULT_COUNTER_IDS: ['hon'],
   toggleCounterSelection: (current: string[], counterId: string) => {
     if (current.includes(counterId)) {
       if (current.length > 1) {
@@ -21,20 +21,20 @@ vi.mock('../../logic/counterPractice', () => ({
   },
   createCounterPracticeCard: () => ({
     id: 'test-card',
-    counterId: 'mai',
-    counterSymbol: '枚',
-    counterKana: 'まい',
-    counterHint: 'flat things',
+    counterId: 'hon',
+    counterSymbol: '本',
+    counterKana: 'ほん',
+    counterHint: 'long objects',
     quantity: 5,
-    countScript: '五枚',
-    countKana: 'ごまい',
+    countScript: '五本',
+    countKana: 'ごほん',
     object: {
-      id: 'paper',
-      counterId: 'mai',
-      script: '紙',
-      kana: 'かみ',
-      englishLabel: 'sheet of paper',
-      illustrationId: 'paper-sheet',
+      id: 'pencil',
+      counterId: 'hon',
+      script: '鉛筆',
+      kana: 'えんぴつ',
+      englishLabel: 'pencil',
+      illustrationId: 'pencil',
     },
   }),
 }));
@@ -45,22 +45,29 @@ describe('JapaneseCounterPracticeToolPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
 
-    expect(screen.getByText('かみ')).toBeInTheDocument();
-    expect(screen.getByText('ごまい')).toBeInTheDocument();
+    expect(screen.getByText('えんぴつ')).toBeInTheDocument();
+    expect(screen.getByText('ごほん')).toBeInTheDocument();
+    expect(screen.getByText('五本')).toBeInTheDocument();
     expect(screen.getByText('を')).toBeInTheDocument();
+  });
+
+  it('defaults to long objects and starts with auto-loop off', () => {
+    render(<JapaneseCounterPracticeToolPage />);
+
+    expect(screen.getByRole('button', { name: /本/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /枚/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /匹/i })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: /auto-loop/i })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
   });
 
   it('does not allow deselecting all counters', () => {
     render(<JapaneseCounterPracticeToolPage />);
 
-    fireEvent.click(screen.getByRole('button', { name: /枚/i }));
-    fireEvent.click(screen.getByRole('button', { name: /本/i }));
-
-    const onlyRemaining = screen.getByRole('button', { name: /匹/i });
-    expect(onlyRemaining).toHaveAttribute('aria-pressed', 'true');
-
-    fireEvent.click(onlyRemaining);
-
-    expect(onlyRemaining).toHaveAttribute('aria-pressed', 'true');
+    const longObjects = screen.getByRole('button', { name: /本/i });
+    fireEvent.click(longObjects);
+    expect(longObjects).toHaveAttribute('aria-pressed', 'true');
   });
 });

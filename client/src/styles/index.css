@@ -33,24 +33,26 @@
     background-image:
       radial-gradient(circle at 14% 8%, rgba(255, 255, 255, 0.24), transparent 30%),
       radial-gradient(circle at 78% 26%, rgba(255, 255, 255, 0.14), transparent 34%),
-      repeating-linear-gradient(
-        35deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 5px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 3px
-      );
+      repeating-linear-gradient(35deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 3px);
     color: var(--retro-ink);
-    font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family:
+      'Noto Sans JP',
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     box-shadow: inset 0 0 0 6px var(--retro-navy-border);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold;
   }
 
@@ -70,8 +72,7 @@
   }
 
   code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-      monospace;
+    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
   }
 
   button:focus,
@@ -178,12 +179,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.075) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.075) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.18;
   }
 
@@ -201,11 +201,7 @@
     z-index: 1;
     background-image:
       radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.23), transparent 32%),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.034) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.034) 0 1px, transparent 1px 4px);
     opacity: 0.66;
   }
 
@@ -454,7 +450,9 @@
     box-shadow:
       inset 0 0 0 2px rgba(20, 50, 86, 0.1),
       0 10px 0 rgba(17, 51, 92, 0.1);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
     border: 2px solid transparent;
     position: relative;
     isolation: isolate;
@@ -510,12 +508,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -577,16 +574,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-library-v3-toolbar {
@@ -654,7 +643,9 @@
       0 10px 0 rgba(17, 51, 92, 0.18),
       inset 0 0 0 2px rgba(20, 50, 86, 0.1);
     overflow: visible;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
     position: relative;
     isolation: isolate;
   }
@@ -731,16 +722,8 @@
     background: rgba(252, 246, 228, 0.96);
     background-image:
       radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.2), transparent 36%),
-      repeating-linear-gradient(
-        24deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(24deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-library-v3-card-mini {
@@ -934,12 +917,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -968,16 +950,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-create-v3-badge-row {
@@ -1001,7 +975,9 @@
     box-shadow:
       0 10px 0 rgba(17, 51, 92, 0.18),
       inset 0 0 0 2px rgba(20, 50, 86, 0.1);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      box-shadow 0.18s ease;
     position: relative;
     isolation: isolate;
   }
@@ -1061,16 +1037,8 @@
     background: rgba(252, 246, 228, 0.96);
     background-image:
       radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.2), transparent 36%),
-      repeating-linear-gradient(
-        24deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(24deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-create-v3-card-mini {
@@ -1156,12 +1124,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -1187,16 +1154,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-dialogue-create-v3-generator {
@@ -1266,7 +1225,9 @@
     color: rgba(20, 50, 86, 0.9);
     box-shadow: inset 0 0 0 1px rgba(20, 50, 86, 0.06);
     padding: 0.74rem 0.9rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     font-size: 1.02rem;
   }
 
@@ -1358,7 +1319,8 @@
     transform: translateX(24px);
   }
 
-  .retro-dialogue-create-v3-switch-input:checked + .retro-dialogue-create-v3-switch-track.is-course {
+  .retro-dialogue-create-v3-switch-input:checked
+    + .retro-dialogue-create-v3-switch-track.is-course {
     background: rgba(194, 98, 75, 0.9);
   }
 
@@ -1418,7 +1380,10 @@
     font-weight: 700;
     font-size: 1.06rem;
     box-shadow: 0 7px 0 rgba(17, 51, 92, 0.2);
-    transition: transform 0.18s ease, background-color 0.18s ease, opacity 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease,
+      opacity 0.18s ease;
     white-space: nowrap;
   }
 
@@ -1533,16 +1498,8 @@
     background-image:
       radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.24), transparent 30%),
       radial-gradient(circle at 76% 20%, rgba(255, 255, 255, 0.14), transparent 34%),
-      repeating-linear-gradient(
-        35deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 5px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 3px
-      );
+      repeating-linear-gradient(35deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 5px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 3px);
   }
 
   .retro-login-v3-shell {
@@ -1570,12 +1527,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -1639,16 +1595,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-login-v3-card {
@@ -1682,7 +1630,9 @@
     font-size: 0.88rem;
     font-weight: 700;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.1);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-login-v3-tab:hover {
@@ -1723,7 +1673,9 @@
     background: rgba(251, 245, 224, 0.96);
     color: rgba(20, 50, 86, 0.9);
     box-shadow: inset 0 0 0 1px rgba(20, 50, 86, 0.06);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .retro-login-v3-input::placeholder {
@@ -1770,7 +1722,9 @@
     text-transform: uppercase;
     font-weight: 700;
     box-shadow: 0 6px 0 rgba(17, 51, 92, 0.18);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-login-v3-submit:hover {
@@ -1811,7 +1765,9 @@
     color: rgba(20, 50, 86, 0.88);
     font-weight: 700;
     box-shadow: 0 6px 0 rgba(17, 51, 92, 0.1);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-login-v3-google-btn:hover {
@@ -1855,12 +1811,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -1885,16 +1840,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-settings-tabs {
@@ -1925,7 +1872,9 @@
     font-weight: 700;
     font-size: 0.86rem;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.12);
-    transition: background-color 0.2s ease, color 0.2s ease;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 
   .retro-settings-tab:hover {
@@ -2020,7 +1969,9 @@
     background: rgba(251, 245, 224, 0.96);
     color: rgba(20, 50, 86, 0.9);
     box-shadow: inset 0 0 0 1px rgba(20, 50, 86, 0.06);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
   }
 
   .retro-settings-input::placeholder {
@@ -2047,7 +1998,9 @@
     text-transform: uppercase;
     font-weight: 700;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.18);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-settings-btn-primary:hover {
@@ -2065,7 +2018,9 @@
     text-transform: uppercase;
     font-weight: 700;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.1);
-    transition: background-color 0.18s ease, transform 0.18s ease;
+    transition:
+      background-color 0.18s ease,
+      transform 0.18s ease;
   }
 
   .retro-settings-btn-secondary:hover {
@@ -2103,7 +2058,9 @@
     text-transform: uppercase;
     font-weight: 700;
     box-shadow: 0 5px 0 rgba(97, 24, 18, 0.22);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-settings-btn-danger:hover {
@@ -2173,12 +2130,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -2207,16 +2163,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-pricing-v3-alert {
@@ -2341,16 +2289,8 @@
     background: rgba(252, 246, 228, 0.96);
     background-image:
       radial-gradient(circle at 12% 10%, rgba(255, 255, 255, 0.2), transparent 36%),
-      repeating-linear-gradient(
-        24deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(24deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-pricing-v3-card-description {
@@ -2422,7 +2362,10 @@
     text-transform: uppercase;
     font-weight: 700;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.18);
-    transition: transform 0.18s ease, background-color 0.18s ease, opacity 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease,
+      opacity 0.18s ease;
   }
 
   .retro-pricing-v3-cta:hover {
@@ -2488,7 +2431,9 @@
     font-weight: 700;
     font-size: 0.86rem;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.12);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-landing-v3-nav-btn:hover {
@@ -2534,12 +2479,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -2567,16 +2511,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-landing-v3-badge-row {
@@ -2636,7 +2572,9 @@
     font-weight: 700;
     font-size: 0.9rem;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.18);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-landing-v3-hero-btn:hover {
@@ -2681,16 +2619,8 @@
     padding: 16px 14px;
     background-image:
       radial-gradient(circle at 10% 8%, rgba(255, 255, 255, 0.2), transparent 34%),
-      repeating-linear-gradient(
-        30deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(30deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-landing-v3-section-head {
@@ -2812,7 +2742,9 @@
     font-weight: 700;
     font-size: 0.9rem;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.22);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-landing-v3-cta-btn:hover {
@@ -2839,16 +2771,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 16% 12%, rgba(255, 255, 255, 0.24), transparent 34%),
-      repeating-linear-gradient(
-        30deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(30deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-404-shell {
@@ -2876,12 +2800,11 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background-image:
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.08) 0 1px,
-        transparent 1px 5px
-      );
+    background-image: repeating-linear-gradient(
+      0deg,
+      rgba(20, 50, 86, 0.08) 0 1px,
+      transparent 1px 5px
+    );
     opacity: 0.24;
   }
 
@@ -2940,16 +2863,8 @@
     background: var(--retro-cream);
     background-image:
       radial-gradient(circle at 14% 10%, rgba(255, 255, 255, 0.25), transparent 36%),
-      repeating-linear-gradient(
-        32deg,
-        rgba(20, 50, 86, 0.014) 0 1px,
-        transparent 1px 6px
-      ),
-      repeating-linear-gradient(
-        0deg,
-        rgba(20, 50, 86, 0.03) 0 1px,
-        transparent 1px 4px
-      );
+      repeating-linear-gradient(32deg, rgba(20, 50, 86, 0.014) 0 1px, transparent 1px 6px),
+      repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.03) 0 1px, transparent 1px 4px);
   }
 
   .retro-404-code-row {
@@ -3051,7 +2966,9 @@
     font-weight: 700;
     font-size: 0.88rem;
     box-shadow: 0 5px 0 rgba(17, 51, 92, 0.15);
-    transition: transform 0.18s ease, background-color 0.18s ease;
+    transition:
+      transform 0.18s ease,
+      background-color 0.18s ease;
   }
 
   .retro-404-btn-primary {
@@ -3294,8 +3211,8 @@
 
 /* Japanese text rendering */
 .japanese-text {
-  font-family: 'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN',
-               'Yu Gothic', 'Meiryo', sans-serif;
+  font-family:
+    'Noto Sans JP', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
   font-size: 1.55rem;
   font-weight: 700;
   line-height: 1.4;
@@ -3378,11 +3295,7 @@
   pointer-events: none;
   background:
     radial-gradient(circle at 18% 52%, rgba(255, 169, 52, 0.2), transparent 36%),
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.07) 0%,
-      rgba(255, 255, 255, 0) 46%
-    );
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0) 46%);
   mix-blend-mode: screen;
 }
 
@@ -3749,7 +3662,7 @@
     ),
     repeating-linear-gradient(180deg, rgba(54, 97, 145, 0.2) 0 1px, transparent 1px 1.85rem),
     linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 241, 224, 0.93) 100%);
-  padding: 1.2rem 1rem 1.05rem 1.95rem;
+  padding: 1.2rem 1rem 1.05rem 2.7rem;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.75),
     0 8px 0 rgba(17, 51, 92, 0.12);
@@ -3812,11 +3725,7 @@
 .retro-counter-controls-panel {
   border: 2px solid #c9bca0;
   border-radius: 0.5rem;
-  background: linear-gradient(
-    180deg,
-    rgba(247, 240, 222, 0.96) 0%,
-    rgba(235, 223, 194, 0.95) 100%
-  );
+  background: linear-gradient(180deg, rgba(247, 240, 222, 0.96) 0%, rgba(235, 223, 194, 0.95) 100%);
   padding: 0.85rem;
   display: flex;
   flex-direction: column;
@@ -3944,7 +3853,7 @@
   }
 
   .retro-counter-sheet {
-    padding: 1.1rem 0.8rem 0.95rem 1.45rem;
+    padding: 1.1rem 0.8rem 0.95rem 2rem;
   }
 
   .retro-counter-control-buttons {

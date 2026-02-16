@@ -89,7 +89,7 @@ const COUNTER_OBJECTS: Record<CounterId, CounterObject[]> = {
     {
       id: 'postcard',
       counterId: 'mai',
-      script: 'はがき',
+      script: '葉書',
       kana: 'はがき',
       englishLabel: 'postcard',
       illustrationId: 'postcard',
@@ -107,7 +107,7 @@ const COUNTER_OBJECTS: Record<CounterId, CounterObject[]> = {
     {
       id: 'pencil',
       counterId: 'hon',
-      script: 'えんぴつ',
+      script: '鉛筆',
       kana: 'えんぴつ',
       englishLabel: 'pencil',
       illustrationId: 'pencil',
@@ -197,7 +197,7 @@ const COUNTER_READINGS: Record<CounterId, CounterReading[]> = {
 };
 
 export const COUNTER_POOL: CounterOption[] = COUNTER_OPTIONS;
-export const DEFAULT_COUNTER_IDS: CounterId[] = COUNTER_OPTIONS.map((counter) => counter.id);
+export const DEFAULT_COUNTER_IDS: CounterId[] = ['hon'];
 
 function randomItem<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
