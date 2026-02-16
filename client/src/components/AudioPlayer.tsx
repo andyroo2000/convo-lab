@@ -11,6 +11,21 @@ interface AudioPlayerProps {
   onEnded?: () => void;
 }
 
+const requestNextFrame = (callback: FrameRequestCallback): number => {
+  if (typeof window.requestAnimationFrame === 'function') {
+    return window.requestAnimationFrame(callback);
+  }
+  return window.setTimeout(() => callback(performance.now()), 16);
+};
+
+const cancelNextFrame = (frameId: number): void => {
+  if (typeof window.cancelAnimationFrame === 'function') {
+    window.cancelAnimationFrame(frameId);
+    return;
+  }
+  window.clearTimeout(frameId);
+};
+
 const AudioPlayer = ({
   src,
   audioRef,
@@ -66,21 +81,28 @@ const AudioPlayer = ({
 
   // Smooth progress updates using requestAnimationFrame - runs continuously
   useEffect(() => {
-    let animationFrameId: number;
+    let animationFrameId: number | null = null;
+    let isCancelled = false;
+
     const updateProgress = () => {
+      if (isCancelled) return;
+
       const audio = audioElementRef.current;
       if (audio && !isDragging) {
         setCurrentTime(audio.currentTime);
         // Update isPlaying state based on audio element's state
         setIsPlaying(!audio.paused);
       }
-      animationFrameId = requestAnimationFrame(updateProgress);
+      animationFrameId = requestNextFrame(updateProgress);
     };
 
-    animationFrameId = requestAnimationFrame(updateProgress);
+    animationFrameId = requestNextFrame(updateProgress);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      isCancelled = true;
+      if (animationFrameId !== null) {
+        cancelNextFrame(animationFrameId);
+      }
     };
   }, [isDragging]);
 
