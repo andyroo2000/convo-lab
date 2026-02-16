@@ -30,8 +30,10 @@ export const initializeGoogleAnalytics = (): void => {
   window.dataLayer = window.dataLayer || [];
   window.gtag =
     window.gtag ||
-    function gtag(...args: unknown[]) {
-      window.dataLayer?.push(args);
+    function gtag() {
+      // Match Google's official gtag bootstrap shape.
+      // eslint-disable-next-line prefer-rest-params
+      window.dataLayer?.push(arguments);
     };
 
   window.gtag('js', new Date());
