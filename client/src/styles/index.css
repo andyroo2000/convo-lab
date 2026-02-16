@@ -2465,6 +2465,20 @@
 
   .retro-landing-v3-wrap {
     color: var(--retro-ink-strong);
+    background: var(--retro-cream);
+    background-image:
+      radial-gradient(circle at 14% 8%, rgba(255, 255, 255, 0.24), transparent 30%),
+      radial-gradient(circle at 78% 26%, rgba(255, 255, 255, 0.14), transparent 34%),
+      repeating-linear-gradient(
+        35deg,
+        rgba(20, 50, 86, 0.014) 0 1px,
+        transparent 1px 5px
+      ),
+      repeating-linear-gradient(
+        0deg,
+        rgba(20, 50, 86, 0.03) 0 1px,
+        transparent 1px 3px
+      );
   }
 
   .retro-landing-v3-nav {
