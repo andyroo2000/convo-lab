@@ -95,8 +95,10 @@ services:
     volumes:
       - ./server/gcloud-key.json:/app/gcloud-key.json:ro
     networks:
-      - convolab-stage-network
-      - health-network
+      convolab-stage-network: {}
+      health-network:
+        aliases:
+          - convolab-server-stage
     depends_on:
       postgres-stage:
         condition: service_healthy

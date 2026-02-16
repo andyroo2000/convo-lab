@@ -171,6 +171,25 @@ jobs:
               exit 1
             fi
 
+            echo "🔎 Verifying stage route from droplet..."
+            if ! curl -fsS https://stage.convo-lab.com/health | grep -q '"status":"ok"'; then
+              echo "⚠️ External stage health is not passing yet."
+              echo "Validating local stage endpoint on host port 3002..."
+              curl -sS http://localhost:3002/health || true
+
+              CADDY_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i caddy | head -n1 || true)
+              if [ -n "$CADDY_CONTAINER" ]; then
+                echo "♻️ Reloading Caddy container: $CADDY_CONTAINER"
+                docker exec "$CADDY_CONTAINER" caddy reload --config /etc/caddy/Caddyfile || \
+                  docker restart "$CADDY_CONTAINER" || true
+                echo "Recent Caddy logs:"
+                docker logs --tail=100 "$CADDY_CONTAINER" || true
+              else
+                echo "⚠️ No Caddy container found; trying host service reload."
+                systemctl reload caddy 2>/dev/null || systemctl restart caddy 2>/dev/null || true
+              fi
+            fi
+
             # Show status
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging ps
@@ -190,13 +209,18 @@ jobs:
           sleep 60
 
           for i in {1..30}; do
-            response=$(curl -f -s https://stage.convo-lab.com/health 2>&1) || true
-            if echo "$response" | grep -q '"status":"ok"'; then
+            response_file="$(mktemp)"
+            http_code=$(curl -sS -o "$response_file" -w "%{http_code}" https://stage.convo-lab.com/health || true)
+            response=$(cat "$response_file" 2>/dev/null || true)
+            rm -f "$response_file"
+
+            if [ "$http_code" = "200" ] && echo "$response" | grep -q '"status":"ok"'; then
               echo "✅ Health check passed!"
+              echo "HTTP: $http_code"
               echo "Response: $response"
               exit 0
             fi
-            echo "Attempt $i/30 failed, retrying in 5s..."
+            echo "Attempt $i/30 failed (HTTP: ${http_code:-n/a}), retrying in 5s..."
             echo "Response: $response"
             sleep 5
           done
