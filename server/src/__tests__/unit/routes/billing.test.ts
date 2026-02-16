@@ -1,6 +1,6 @@
 import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -45,13 +45,20 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 describe('Billing Routes', () => {
   let app: express.Application;
+  const originalStripePriceProMonthly = process.env.STRIPE_PRICE_PRO_MONTHLY;
+  const originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     app = express();
     app.use(expressJson());
     app.use('/api', billingRouter);
     app.use(errorHandler);
+  });
+
+  afterEach(() => {
+    process.env.STRIPE_PRICE_PRO_MONTHLY = originalStripePriceProMonthly;
+    process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhookSecret;
   });
 
   describe('POST /api/billing/create-checkout-session', () => {

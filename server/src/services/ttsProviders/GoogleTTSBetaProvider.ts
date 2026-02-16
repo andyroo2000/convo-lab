@@ -59,7 +59,9 @@ export class GoogleTTSBetaProvider {
     // Convert Hz pitch to semitones (same as GoogleTTSProvider)
     const pitchSemitones = pitch / 3.0;
 
+    // eslint-disable-next-line no-console -- useful diagnostics for production TTS batch debugging
     console.log(`[TTS BATCH] Synthesizing with timepoints: voice=${voiceId}, speed=${speed}`);
+    // eslint-disable-next-line no-console -- useful diagnostics for production TTS batch debugging
     console.log(`[TTS BATCH] SSML preview: ${ssml.substring(0, 200)}...`);
 
     try {
@@ -79,6 +81,7 @@ export class GoogleTTSBetaProvider {
         enableTimePointing: [SSML_MARK],
       };
 
+      // eslint-disable-next-line no-console -- useful diagnostics for production TTS batch debugging
       console.log(`[TTS BATCH] Request:`, JSON.stringify(request, null, 2));
 
       const [response] = await this.client.synthesizeSpeech(request);
@@ -103,6 +106,7 @@ export class GoogleTTSBetaProvider {
         );
       }
 
+      // eslint-disable-next-line no-console -- useful diagnostics for production TTS batch debugging
       console.log(`[TTS BATCH] Got ${timepoints.length} timepoints from API`);
 
       return {
