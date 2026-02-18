@@ -21,6 +21,11 @@ interface ScriptJsonData {
   _pipelineStage?: string;
   _exchanges?: unknown;
   _scriptUnits?: unknown;
+  [key: string]: unknown;
+}
+
+function isScriptJsonData(value: unknown): value is ScriptJsonData {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 const router = Router();
@@ -146,8 +151,8 @@ router.get('/courses', async (_req: AuthRequest, res, next) => {
       let hasScript = false;
       const hasAudio = !!course.audioUrl;
 
-      if (course.scriptJson) {
-        const scriptData = course.scriptJson as ScriptJsonData;
+      if (course.scriptJson && isScriptJsonData(course.scriptJson)) {
+        const scriptData = course.scriptJson;
         if (scriptData._pipelineStage === 'exchanges' || scriptData._exchanges) {
           hasExchanges = true;
         }
@@ -206,12 +211,11 @@ router.get('/courses/:id', async (req: AuthRequest, res, next) => {
     // Parse scriptJson to determine pipeline stage
     let hasExchanges = false;
     let hasScript = false;
-    let exchanges = null;
-    let scriptUnits = null;
+    let exchanges: unknown = null;
+    let scriptUnits: unknown = null;
 
-    if (course.scriptJson) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const scriptData = course.scriptJson as any;
+    if (course.scriptJson && isScriptJsonData(course.scriptJson)) {
+      const scriptData = course.scriptJson;
       if (scriptData._pipelineStage === 'exchanges' || scriptData._exchanges) {
         hasExchanges = true;
         exchanges = scriptData._exchanges || scriptData;
