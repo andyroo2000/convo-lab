@@ -9,10 +9,11 @@ const ToolsDirectoryPage = () => {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <section className="card retro-paper-panel">
-        <h1 className="retro-headline text-2xl sm:text-3xl">ConvoLab Tools</h1>
+        <h1 className="retro-headline text-2xl sm:text-3xl">
+          ConvoLab Tools: Small drills, big progress.
+        </h1>
         <p className="mt-2 text-base text-[#2f4f73]">
-          Fast, practical Japanese learning tools focused on high-frequency skills: reading dates
-          and telling time, plus classifier counters used in daily conversation.
+          Practice Japanese dates, times, and counting at your own pace.
         </p>
       </section>
 
@@ -26,10 +27,10 @@ const ToolsDirectoryPage = () => {
             <CalendarDays className="h-4 w-4" />
             Date Reading
           </div>
-          <h2 className="retro-headline mt-3 text-xl">Japanese Date Practice Tool</h2>
+          <h2 className="retro-headline mt-3 text-xl">Dates</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
-            Practice reading Japanese dates with furigana and audio. Great for mastering monthly,
-            yearly, and irregular day readings.
+            Can you read today&apos;s date in Japanese? How about a random one? Practice until dates
+            roll off your tongue.
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="retro-caps text-sm text-[#2f4f73]">Date converter + quiz</span>
@@ -54,10 +55,10 @@ const ToolsDirectoryPage = () => {
             <Clock3 className="h-4 w-4" />
             Time Reading
           </div>
-          <h2 className="retro-headline mt-3 text-xl">Japanese Time Practice Tool</h2>
+          <h2 className="retro-headline mt-3 text-xl">Telling Time</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
-            Build Japanese time fluency with a clock-style trainer, delayed reveal, and audio-first
-            review loops.
+            What time is it? Say it in Japanese! Start simple and work your way up. You&apos;ll be
+            reading clocks like a pro before you know it.
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="retro-caps text-sm text-[#2f4f73]">Clock drills + audio</span>
@@ -82,10 +83,11 @@ const ToolsDirectoryPage = () => {
             <Hash className="h-4 w-4" />
             Counter Drills
           </div>
-          <h2 className="retro-headline mt-3 text-xl">Japanese Counter Practice Tool</h2>
+          <h2 className="retro-headline mt-3 text-xl">Counting Things</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
-            Practice everyday counters like 枚, 本, and 匹 with random object cards and ruby answer
-            reveal.
+            In Japanese, how you count depends on what you&apos;re counting. It&apos;s one of those
+            things that clicks with practice, so start with the most common ones and build from
+            there.
           </p>
           <div className="mt-5 flex items-center justify-between">
             <span className="retro-caps text-sm text-[#2f4f73]">Object cards + counter quiz</span>
