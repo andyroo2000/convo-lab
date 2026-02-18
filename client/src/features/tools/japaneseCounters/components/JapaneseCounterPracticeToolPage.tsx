@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import CounterObjectIllustration from './CounterObjectIllustration';
+import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
+import { playCounterAudioClip } from '../logic/preRenderedCounterAudio';
 import {
   COUNTER_POOL,
   createCounterPracticeCard,
@@ -19,12 +21,39 @@ interface RubyPartProps {
 const PAUSE_OPTIONS = [5, 8, 12] as const;
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const DEFAULT_AUTO_LOOP_ENABLED = false;
+const HISTORY_LIMIT = 120;
+const KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々]/u;
 
-const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => (
-  <ruby className="mr-1">
-    {script}
-    <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>{kana}</rt>
-  </ruby>
+interface CounterCardSnapshot {
+  card: CounterPracticeCard;
+  isRevealed: boolean;
+}
+
+const RubyPart = ({ script, kana, showFurigana }: RubyPartProps) => {
+  const shouldShowFurigana = showFurigana && KANJI_REGEX.test(script);
+
+  return (
+    <ruby className="mr-1">
+      {script}
+      {shouldShowFurigana ? <rt className={RUBY_RT_CLASS}>{kana}</rt> : null}
+    </ruby>
+  );
+};
+
+const FloorStairsCue = () => (
+  <svg
+    className="retro-counter-floor-cue"
+    viewBox="-5 -10 110 135"
+    aria-hidden="true"
+    focusable="false"
+    data-testid="floor-stairs-cue"
+  >
+    <path
+      d="m52.82 20.996c-0.46094 0.10547-0.81641 0.53125-0.81641 0.99219v7.0156h-5.1719c-0.46094 0.070313-0.85156 0.53125-0.81641 0.99219v7.0156h-5.207c-0.46094 0.070312-0.81641 0.53125-0.81641 0.99219v6.9805h-5.1719c-0.46094 0.10547-0.81641 0.53125-0.81641 1.0273v6.9805h-5.1719c-0.46094 0.10547-0.85156 0.53125-0.81641 0.99219v7.0156h-5.207c-0.46094 0.070312-0.81641 0.53125-0.81641 0.99219v7.0156h-5.1719c-0.46484 0.074219-0.81641 0.53516-0.81641 0.99609v8.0078c0 0.53125 0.46094 0.99219 0.99219 0.99219h66.012c0.53125 0 0.99219-0.46094 0.99219-0.99219v-56.02c-0.003906-0.5-0.46094-0.99609-0.99219-0.99609h-30.191zm3.1875 2.0195h13.996v5.9883h-13.996zm18 0h8.0078v54h-44.008v-6.0234h4.9961c0.53125 0 0.99219-0.46094 0.99219-0.99219v-7.0156h4.9961c0.53125 0 1.0273-0.46094 1.0273-0.99219v-6.9805h4.9961c0.49609 0 0.99219-0.49609 0.99219-1.0273v-6.9805h4.9961c0.53125 0 0.99219-0.49609 0.99219-0.99219v-7.0156h4.9961c0.53125 0 1.0273-0.46094 1.0273-0.99219v-7.0156h4.9961c0.49609 0 0.99219-0.46094 0.99219-0.99219zm-23.988 7.9727h13.996v6.0234h-13.996zm-6.0234 8.0078h13.996v5.9883h-13.996zm-5.9883 8.0078h13.996v5.9883h-13.996zm-5.9883 8.0078h13.996v5.9883h-13.996zm47.871 6.9453c-0.49609 0.070313-0.92188 0.53125-0.88672 1.0273v11.02h-1.9844c-0.53125 0-1.0273 0.46094-1.0273 0.99219s0.49609 1.0273 1.0273 0.99219h2.9766c0.53125 0 0.99219-0.46094 0.99219-0.99219v-12.012c0.035157-0.56641-0.53125-1.0977-1.0977-1.0273zm-53.895 1.0273h13.996v6.0234h-13.996zm-5.9883 8.0078h13.996v6.0234h-13.996z"
+      fill="currentColor"
+      stroke="none"
+    />
+  </svg>
 );
 
 const JapaneseCounterPracticeToolPage = () => {
@@ -34,15 +63,19 @@ const JapaneseCounterPracticeToolPage = () => {
   );
   const [isPowerOn, setIsPowerOn] = useState(DEFAULT_AUTO_LOOP_ENABLED);
   const [isRevealed, setIsRevealed] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState<number>(1);
   const [pauseSeconds, setPauseSeconds] = useState<number>(8);
   const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
   const [isNextLedActive, setIsNextLedActive] = useState(false);
+  const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const revealTimerRef = useRef<number | null>(null);
   const autoAdvanceTimerRef = useRef<number | null>(null);
   const countdownIntervalRef = useRef<number | null>(null);
   const nextLedTimerRef = useRef<number | null>(null);
+  const playbackRef = useRef<ReturnType<typeof playCounterAudioClip> | null>(null);
   const isFirstPowerOnRef = useRef(true);
+  const previousCardsRef = useRef<CounterCardSnapshot[]>([]);
 
   const statusText = (() => {
     if (!isPowerOn || countdownSeconds === null) return '';
@@ -78,9 +111,53 @@ const JapaneseCounterPracticeToolPage = () => {
     }
   }, []);
 
+  const pushCurrentCardToHistory = useCallback(() => {
+    previousCardsRef.current.push({ card, isRevealed });
+    if (previousCardsRef.current.length > HISTORY_LIMIT) {
+      previousCardsRef.current.shift();
+    }
+  }, [card, isRevealed]);
+
+  const stopPlayback = useCallback(() => {
+    playbackRef.current?.stop();
+    playbackRef.current = null;
+  }, []);
+
+  const playCurrentCardAudio = useCallback(async () => {
+    stopPlayback();
+
+    let currentPlayback: ReturnType<typeof playCounterAudioClip> | null = null;
+
+    try {
+      const audioCard = {
+        counterId: card.counterId,
+        quantity: card.quantity,
+        object: { id: card.object.id },
+      };
+
+      const playback = playCounterAudioClip(audioCard, { volume: volumeLevel });
+      currentPlayback = playback;
+      playbackRef.current = playback;
+      setPlaybackHint(null);
+      await playback.finished;
+    } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      if (!isAbort) {
+        setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
+      }
+    } finally {
+      if (currentPlayback && playbackRef.current === currentPlayback) {
+        playbackRef.current = null;
+      }
+    }
+  }, [card.counterId, card.object.id, card.quantity, stopPlayback, volumeLevel]);
+
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-  }, []);
+    playCurrentCardAudio().catch(() => {
+      setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
+    });
+  }, [playCurrentCardAudio]);
 
   const advanceToNextCard = useCallback(() => {
     setIsRevealed(false);
@@ -98,13 +175,16 @@ const JapaneseCounterPracticeToolPage = () => {
     clearAutoAdvanceTimer();
     clearRevealTimer();
     clearCountdownInterval();
+    stopPlayback();
     setCountdownSeconds(null);
 
     if (isRevealed) {
+      pushCurrentCardToHistory();
       advanceToNextCard();
       return;
     }
 
+    pushCurrentCardToHistory();
     revealCard();
   }, [
     advanceToNextCard,
@@ -113,8 +193,39 @@ const JapaneseCounterPracticeToolPage = () => {
     clearNextLedTimer,
     clearRevealTimer,
     isRevealed,
+    pushCurrentCardToHistory,
     revealCard,
+    stopPlayback,
   ]);
+
+  const handlePrevious = useCallback(() => {
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    clearNextLedTimer();
+    stopPlayback();
+    setIsNextLedActive(false);
+    setCountdownSeconds(null);
+
+    const previousCard = previousCardsRef.current.pop();
+    if (!previousCard) {
+      return;
+    }
+
+    setCard(previousCard.card);
+    setIsRevealed(previousCard.isRevealed);
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    stopPlayback,
+  ]);
+
+  useToolArrowKeyNavigation({
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+  });
 
   useEffect(() => {
     clearAutoAdvanceTimer();
@@ -145,10 +256,14 @@ const JapaneseCounterPracticeToolPage = () => {
 
     if (isRevealed) {
       autoAdvanceTimerRef.current = window.setTimeout(() => {
-        if (!cancelled) {
-          setCountdownSeconds(null);
-          advanceToNextCard();
-        }
+        setCountdownSeconds(null);
+        const finishAdvance = () => {
+          if (!cancelled) {
+            advanceToNextCard();
+          }
+        };
+
+        playCurrentCardAudio().then(finishAdvance).catch(finishAdvance);
       }, pauseSeconds * 1000);
     } else {
       revealTimerRef.current = window.setTimeout(() => {
@@ -174,6 +289,7 @@ const JapaneseCounterPracticeToolPage = () => {
     isPowerOn,
     isRevealed,
     pauseSeconds,
+    playCurrentCardAudio,
     revealCard,
   ]);
 
@@ -185,6 +301,7 @@ const JapaneseCounterPracticeToolPage = () => {
     clearAutoAdvanceTimer();
     clearCountdownInterval();
     clearRevealTimer();
+    stopPlayback();
     setCountdownSeconds(null);
 
     return () => {
@@ -199,6 +316,7 @@ const JapaneseCounterPracticeToolPage = () => {
     clearNextLedTimer,
     clearRevealTimer,
     isPowerOn,
+    stopPlayback,
   ]);
 
   useEffect(
@@ -207,8 +325,15 @@ const JapaneseCounterPracticeToolPage = () => {
       clearAutoAdvanceTimer();
       clearCountdownInterval();
       clearNextLedTimer();
+      stopPlayback();
     },
-    [clearAutoAdvanceTimer, clearCountdownInterval, clearNextLedTimer, clearRevealTimer]
+    [
+      clearAutoAdvanceTimer,
+      clearCountdownInterval,
+      clearNextLedTimer,
+      clearRevealTimer,
+      stopPlayback,
+    ]
   );
 
   useEffect(() => {
@@ -216,57 +341,82 @@ const JapaneseCounterPracticeToolPage = () => {
       return;
     }
 
+    previousCardsRef.current = [];
     setIsRevealed(false);
     setCard(createCounterPracticeCard(selectedCounterIds));
   }, [card.counterId, selectedCounterIds]);
 
   const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
   const autoPlayButtonLabel = isPowerOn ? 'Stop Loop' : 'Auto-Loop';
+  const showFloorStairsCue = card.counterId === 'kai';
+  const normalizedCountdownSeconds =
+    countdownSeconds === null
+      ? pauseSeconds
+      : Math.max(0, Math.min(pauseSeconds, countdownSeconds));
+  const elapsedCountdownSeconds = Math.max(0, pauseSeconds - normalizedCountdownSeconds);
 
   return (
     <div className="space-y-5">
       <section className="card retro-paper-panel">
-        <div className="mb-5 rounded border-2 border-[#0f3561] bg-gradient-to-br from-[#f8f4e8] via-[#eee2c9] to-[#e1d0ac] px-4 pt-6 pb-7 text-[#17365d] shadow-[0_6px_0_rgba(17,51,92,0.18)] sm:px-5 sm:pt-7 sm:pb-8">
-          <p className="pb-2 text-[clamp(1.2rem,0.95rem+1.2vw,1.9rem)] font-semibold leading-[1.1] tracking-[0.04em] text-[#325984]">
+        <div className="mb-5 rounded border-2 border-[#0f3561] bg-gradient-to-br from-[#102d57] via-[#143b6f] to-[#184779] px-4 pt-6 pb-7 text-[#f7f6ef] shadow-[0_6px_0_rgba(17,51,92,0.26)] sm:px-5 sm:pt-7 sm:pb-8">
+          <p className="pb-3 text-[clamp(1.45rem,1.05rem+1.8vw,2.5rem)] font-semibold leading-[1.05] tracking-[0.04em] text-[#8fd3ea]">
             日本語カウンタートレーナー
           </p>
-          <h1 className="retro-headline text-[clamp(1.3rem,1rem+1.4vw,2rem)] leading-[1.1] text-[#17365d]">
+          <p className="retro-headline mt-1 text-[clamp(1.4rem,1rem+1.7vw,2.05rem)] leading-[1.08] text-[#f9f8ed]">
             Japanese Counter Practice Tool
-          </h1>
-          <p className="mt-2 text-sm font-semibold leading-tight text-[#395d86] sm:text-base">
+          </p>
+          <p className="mt-2 text-sm font-semibold leading-tight text-[#d3ecf4] sm:text-base">
             Read the image, pick the right counter, then check the answer.
           </p>
         </div>
 
         <div className="retro-counter-layout">
-          <div className="retro-counter-sheet" role="region" aria-label="Counter quiz card">
-            <p className="retro-counter-status" aria-live="polite">
-              {statusText || '\u00A0'}
-            </p>
-            <div className="retro-counter-problem-row">
-              <p className="retro-counter-problem-qty">{card.quantity} ×</p>
-              <CounterObjectIllustration
-                illustrationId={card.object.illustrationId}
-                className="retro-counter-illustration"
-              />
-            </div>
-            {!isRevealed && (
-              <p className="retro-counter-prompt">
-                Say the phrase out loud, then reveal the answer.
+          <div className="retro-counter-main-panel">
+            <div className="retro-counter-sheet" role="region" aria-label="Counter quiz card">
+              <p className="retro-counter-status" aria-live="polite">
+                {statusText || '\u00A0'}
               </p>
-            )}
-            {isRevealed && (
-              <>
-                <p className="japanese-text retro-counter-answer" aria-live="polite">
-                  <RubyPart script={card.object.script} kana={card.object.kana} showFurigana />
-                  <span className="mx-1">を</span>
-                  <RubyPart script={card.countScript} kana={card.countKana} showFurigana />
-                </p>
-                <p className="retro-counter-gloss">
-                  {card.object.englishLabel} uses counter {card.counterSymbol} ({card.counterHint}).
-                </p>
-              </>
-            )}
+              <div className="retro-counter-problem-row">
+                <p className="retro-counter-problem-qty">{card.quantity} ×</p>
+                <div className="retro-counter-illustration-wrap">
+                  {showFloorStairsCue && <FloorStairsCue />}
+                  <CounterObjectIllustration
+                    illustrationId={card.object.illustrationId}
+                    className={`retro-counter-illustration illustration-${card.object.illustrationId} ${showFloorStairsCue ? 'has-floor-cue' : ''}`}
+                  />
+                </div>
+              </div>
+              <div className="retro-counter-answer-slot">
+                {isRevealed && (
+                  <>
+                    <p className="japanese-text retro-counter-answer" aria-live="polite">
+                      <RubyPart script={card.object.script} kana={card.object.kana} showFurigana />
+                      <span className="mx-1">{card.particle}</span>
+                      <RubyPart script={card.countScript} kana={card.countKana} showFurigana />
+                    </p>
+                    <p className="retro-counter-gloss">
+                      {card.object.englishLabel} uses counter {card.counterSymbol} (
+                      {card.counterHint}
+                      ).
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="retro-counter-next-row">
+              <span
+                className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
+              />
+              <button
+                type="button"
+                onClick={handleNext}
+                className="retro-counter-control-btn retro-counter-next-btn"
+                aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
+              >
+                {nextButtonLabel}
+              </button>
+            </div>
           </div>
 
           <div className="retro-counter-controls-panel">
@@ -280,6 +430,7 @@ const JapaneseCounterPracticeToolPage = () => {
                       key={counter.id}
                       type="button"
                       onClick={() => {
+                        previousCardsRef.current = [];
                         setSelectedCounterIds((current) =>
                           toggleCounterSelection(current, counter.id)
                         );
@@ -299,7 +450,24 @@ const JapaneseCounterPracticeToolPage = () => {
               <span className="retro-counter-control-label">Quiz Controls</span>
               <div className="retro-counter-control-buttons">
                 <div className="retro-counter-control-stack">
-                  <span className={`retro-clock-radio-led ${isPowerOn ? 'is-on' : 'is-off'}`} />
+                  <div className="retro-counter-countdown-led-row" aria-hidden="true">
+                    {Array.from({ length: pauseSeconds }, (_, index) => {
+                      let stateClass = 'is-off';
+                      if (isPowerOn) {
+                        const indexFromRight = pauseSeconds - 1 - index;
+                        stateClass =
+                          indexFromRight < elapsedCountdownSeconds ? 'is-red' : 'is-green';
+                      }
+
+                      return (
+                        <span
+                          key={`countdown-led-${pauseSeconds}-${index}`}
+                          data-testid="auto-loop-countdown-led"
+                          className={`retro-clock-radio-led retro-counter-countdown-led ${stateClass}`}
+                        />
+                      );
+                    })}
+                  </div>
                   <button
                     type="button"
                     onClick={() => setIsPowerOn((current) => !current)}
@@ -307,19 +475,6 @@ const JapaneseCounterPracticeToolPage = () => {
                     aria-pressed={isPowerOn}
                   >
                     {autoPlayButtonLabel}
-                  </button>
-                </div>
-                <div className="retro-counter-control-stack">
-                  <span
-                    className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    className="retro-counter-control-btn"
-                    aria-label={isRevealed ? 'Advance to the next item' : 'Show answer'}
-                  >
-                    {nextButtonLabel}
                   </button>
                 </div>
               </div>
@@ -341,6 +496,24 @@ const JapaneseCounterPracticeToolPage = () => {
                 ))}
               </div>
             </div>
+
+            <div className="retro-counter-control-group" role="group" aria-label="Volume">
+              <span className="retro-counter-control-label">Volume</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(volumeLevel * 100)}
+                onChange={(event) => {
+                  const nextVolume = Number(event.target.value) / 100;
+                  setVolumeLevel(nextVolume);
+                  playbackRef.current?.setVolume(nextVolume);
+                }}
+                className="retro-clock-radio-volume-slider"
+                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
+              />
+            </div>
           </div>
         </div>
 
@@ -356,6 +529,7 @@ const JapaneseCounterPracticeToolPage = () => {
             </li>
           </ul>
         </div>
+        {playbackHint && <p className="mt-3 text-sm text-[#9e4c2a]">{playbackHint}</p>}
       </section>
     </div>
   );

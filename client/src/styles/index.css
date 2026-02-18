@@ -3646,6 +3646,12 @@
   margin-top: 1rem;
 }
 
+.retro-counter-main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .retro-counter-sheet {
   position: relative;
   min-height: 24rem;
@@ -3684,10 +3690,21 @@
 
 .retro-counter-problem-row {
   margin-top: 0.85rem;
-  display: grid;
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.95rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.retro-counter-illustration-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  flex: 0 0 auto;
 }
 
 .retro-counter-problem-qty {
@@ -3697,6 +3714,16 @@
   font-size: clamp(2.5rem, 8vw, 4.2rem);
   line-height: 1;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+.retro-counter-floor-cue {
+  width: 100%;
+  max-width: 144px;
+  flex: 0 0 auto;
+  color: #24476f;
+  opacity: 0.96;
 }
 
 .retro-counter-illustration {
@@ -3706,6 +3733,110 @@
   color: #24476f;
 }
 
+.retro-counter-illustration.has-floor-cue {
+  max-width: 220px;
+}
+
+/* Per-illustration alignment tuning so icon optical centers line up with the quantity. */
+.retro-counter-illustration.illustration-fish {
+  transform: translateY(-21px);
+}
+
+.retro-counter-illustration.illustration-dog {
+  transform: translateY(-9px);
+}
+
+.retro-counter-illustration.illustration-cat {
+  transform: translateY(-8px);
+}
+
+.retro-counter-illustration.illustration-banana {
+  transform: translateX(-28px);
+}
+
+.retro-counter-illustration.illustration-postcard {
+  transform: translateY(18px);
+}
+
+.retro-counter-illustration.illustration-bicycle {
+  transform: translateY(-14px);
+}
+
+.retro-counter-illustration.illustration-socks {
+  max-width: 150px;
+  transform: translateY(10px);
+}
+
+.retro-counter-illustration.illustration-paper-sheet {
+  max-width: 130px;
+}
+
+.retro-counter-illustration.illustration-sneakers {
+  max-width: 205px;
+}
+
+.retro-counter-illustration.illustration-student {
+  max-width: 360px;
+  transform: translate(-76px, -24px);
+}
+
+.retro-counter-illustration.illustration-tshirt {
+  max-width: 150px;
+  transform: translateY(18px);
+}
+
+.retro-counter-illustration.illustration-coffee-cup {
+  max-width: 185px;
+}
+
+.retro-counter-illustration.illustration-chicken {
+  max-width: 220px;
+}
+
+.retro-counter-illustration.illustration-beer-glass {
+  max-width: 180px;
+}
+
+.retro-counter-illustration.illustration-pencil {
+  max-width: 205px;
+}
+
+.retro-counter-illustration.illustration-umbrella {
+  max-width: 210px;
+}
+
+.retro-counter-illustration.illustration-tea-cup {
+  max-width: 185px;
+}
+
+.retro-counter-illustration.illustration-egg {
+  max-width: 185px;
+}
+
+.retro-counter-illustration.illustration-magazine {
+  transform: translateY(12px);
+}
+
+.retro-counter-illustration.illustration-bird {
+  max-width: 205px;
+}
+
+.retro-counter-illustration.illustration-notebook {
+  max-width: 205px;
+}
+
+.retro-counter-illustration.illustration-kimono {
+  max-width: 205px;
+}
+
+.retro-counter-illustration.illustration-apple {
+  max-width: 190px;
+}
+
+.retro-counter-illustration.illustration-rabbit {
+  transform: translate(-14px, -35px);
+}
+
 .retro-counter-prompt {
   margin: 0.8rem 0 0;
   color: #2f4f73;
@@ -3713,8 +3844,13 @@
   font-weight: 700;
 }
 
+.retro-counter-answer-slot {
+  min-height: 8.3rem;
+  margin-top: 0.9rem;
+}
+
 .retro-counter-answer {
-  margin: 0.8rem 0 0;
+  margin: 0;
   color: #112f53;
   font-size: clamp(2.05rem, 5vw, 3.2rem);
   line-height: 1.2;
@@ -3753,7 +3889,7 @@
 
 .retro-counter-filter-grid {
   display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.36rem;
 }
 
@@ -3790,7 +3926,7 @@
 
 .retro-counter-control-buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 0.45rem;
 }
 
@@ -3803,6 +3939,41 @@
 
 .retro-counter-control-stack .retro-clock-radio-led {
   align-self: center;
+}
+
+.retro-counter-countdown-led-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 0.22rem;
+  min-height: 0.75rem;
+}
+
+.retro-counter-countdown-led {
+  width: 7px;
+  height: 7px;
+}
+
+.retro-counter-countdown-led.is-green {
+  background: #53dc70;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 8px rgba(83, 220, 112, 0.68);
+}
+
+.retro-counter-countdown-led.is-red {
+  background: #d94747;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 8px rgba(217, 71, 71, 0.62);
+}
+
+.retro-counter-countdown-led.is-off {
+  background: #5a4a2d;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 4px rgba(0, 0, 0, 0.2);
 }
 
 .retro-counter-control-btn {
@@ -3825,6 +3996,22 @@
   background: linear-gradient(170deg, #41331a 0%, #2a2214 100%);
   border-color: #1f170d;
   color: #f3e3be;
+}
+
+.retro-counter-next-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.22rem;
+}
+
+.retro-counter-next-row .retro-clock-radio-led {
+  align-self: center;
+}
+
+.retro-counter-next-btn {
+  width: 100%;
+  min-height: 3rem;
 }
 
 .retro-counter-pause-grid {
@@ -3862,7 +4049,23 @@
     padding: 1.1rem 1.3rem 1.35rem 2.9rem;
   }
 
+  .retro-counter-answer-slot {
+    min-height: 8.8rem;
+  }
+
+  .retro-counter-floor-cue {
+    max-width: 120px;
+  }
+
+  .retro-counter-illustration.has-floor-cue {
+    max-width: 190px;
+  }
+
   .retro-counter-control-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .retro-counter-filter-grid {
     grid-template-columns: 1fr;
   }
 

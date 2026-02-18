@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  buildCounterPhraseCatalog,
   createCounterPracticeCard,
   DEFAULT_COUNTER_IDS,
   sanitizeSelectedCounterIds,
@@ -48,5 +49,32 @@ describe('counterPractice', () => {
     expect(createCounterPracticeCard(['mai']).countScript).toContain('枚');
     expect(createCounterPracticeCard(['hon']).countScript).toContain('本');
     expect(createCounterPracticeCard(['hiki']).countScript).toContain('匹');
+    expect(createCounterPracticeCard(['satsu']).countScript).toContain('冊');
+    expect(createCounterPracticeCard(['dai']).countScript).toContain('台');
+    expect(createCounterPracticeCard(['ko']).countScript).toContain('個');
+    expect(createCounterPracticeCard(['nin']).countScript).toContain('人');
+    expect(createCounterPracticeCard(['hai']).countScript).toContain('杯');
+    expect(createCounterPracticeCard(['chaku']).countScript).toContain('着');
+    expect(createCounterPracticeCard(['soku']).countScript).toContain('足');
+    expect(createCounterPracticeCard(['wa']).countScript).toContain('羽');
+    expect(createCounterPracticeCard(['kai']).countScript).toContain('階');
+  });
+
+  it('builds deterministic phrase catalog for pre-rendered audio', () => {
+    const entries = buildCounterPhraseCatalog();
+    const honPencilSix = entries.find((entry) => entry.id === 'hon_pencil_06');
+    const ninPersonOne = entries.find((entry) => entry.id === 'nin_person_01');
+
+    expect(entries).toHaveLength(340);
+    expect(honPencilSix).toMatchObject({
+      relativePath: 'phrase/hon/pencil/06.mp3',
+      text: '鉛筆を六本',
+      kanaText: 'えんぴつ を ろっぽん',
+    });
+    expect(ninPersonOne).toMatchObject({
+      relativePath: 'phrase/nin/person/01.mp3',
+      text: '人を一人',
+      kanaText: 'ひと を ひとり',
+    });
   });
 });

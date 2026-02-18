@@ -25,6 +25,7 @@ import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
+import toolAudioRoutes from './routes/toolAudio.js';
 import verificationRoutes from './routes/verification.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
@@ -248,6 +249,7 @@ app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/tools-audio', toolAudioRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);

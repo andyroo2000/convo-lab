@@ -32,6 +32,7 @@
     "smoke:jp-time-voices": "tsx src/scripts/japanese-time-56min-voice-sweep.ts",
     "smoke:jp-time-favorites-ab": "tsx src/scripts/japanese-time-favorites-ab.ts",
     "smoke:jp-time-components-qc": "tsx src/scripts/japanese-time-components-qc.ts",
+    "smoke:jp-counter-phrases-qc": "tsx src/scripts/japanese-counter-phrases-qc.ts",
     "prepare": "husky"
   },
   "dependencies": {
