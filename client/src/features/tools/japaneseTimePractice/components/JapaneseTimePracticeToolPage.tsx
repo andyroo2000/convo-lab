@@ -20,6 +20,7 @@ import {
   type TimePracticeCard,
   type TimePracticeSettings,
 } from '../logic/types';
+import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
 
 interface RubyPartProps {
   script: string;
@@ -30,6 +31,12 @@ interface RubyPartProps {
 const toTwoDigits = (value: number) => String(value).padStart(2, '0');
 const PAUSE_OPTIONS = [5, 8, 12] as const;
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
+const HISTORY_LIMIT = 120;
+
+interface TimeCardSnapshot {
+  card: TimePracticeCard;
+  isRevealed: boolean;
+}
 
 const createCurrentLocalTimeCard = (): TimePracticeCard => {
   const now = new Date();
@@ -115,6 +122,7 @@ const JapaneseTimePracticeToolPage = () => {
   const nextLedTimerRef = useRef<number | null>(null);
   const playbackRef = useRef<AudioSequencePlayback | null>(null);
   const isFirstPowerOnRef = useRef(true);
+  const previousCardsRef = useRef<TimeCardSnapshot[]>([]);
 
   const pauseSeconds = settings.revealDelaySeconds;
   const localDate = useMemo(() => toLocalDateInputValue(new Date()), []);
@@ -167,6 +175,13 @@ const JapaneseTimePracticeToolPage = () => {
       nextLedTimerRef.current = null;
     }
   }, []);
+
+  const pushCurrentCardToHistory = useCallback(() => {
+    previousCardsRef.current.push({ card, isRevealed });
+    if (previousCardsRef.current.length > HISTORY_LIMIT) {
+      previousCardsRef.current.shift();
+    }
+  }, [card, isRevealed]);
 
   const stopPlayback = useCallback(() => {
     playbackRef.current?.stop();
@@ -238,11 +253,13 @@ const JapaneseTimePracticeToolPage = () => {
     stopPlayback();
 
     if (isRevealed) {
+      pushCurrentCardToHistory();
       trackTimePracticeEvent('next_card_manual', 'random');
       advanceToRandomCard();
       return;
     }
 
+    pushCurrentCardToHistory();
     revealCard();
   }, [
     advanceToRandomCard,
@@ -251,9 +268,39 @@ const JapaneseTimePracticeToolPage = () => {
     clearNextLedTimer,
     clearRevealTimer,
     isRevealed,
+    pushCurrentCardToHistory,
     revealCard,
     stopPlayback,
   ]);
+
+  const handlePrevious = useCallback(() => {
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    clearNextLedTimer();
+    setIsNextLedActive(false);
+    setCountdownSeconds(null);
+    stopPlayback();
+
+    const previousCard = previousCardsRef.current.pop();
+    if (!previousCard) {
+      return;
+    }
+
+    setCard(previousCard.card);
+    setIsRevealed(previousCard.isRevealed);
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    stopPlayback,
+  ]);
+
+  useToolArrowKeyNavigation({
+    onNext: handleNext,
+    onPrevious: handlePrevious,
+  });
 
   const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
   const autoPlayButtonLabel = isPowerOn ? 'Stop' : 'Auto-Play';

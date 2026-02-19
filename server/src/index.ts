@@ -25,6 +25,7 @@ import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
+import toolAudioRoutes from './routes/toolAudio.js';
 import verificationRoutes from './routes/verification.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
@@ -47,9 +48,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date & Time Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
     description:
-      'Practice Japanese date and time reading with free furigana and audio tools from ConvoLab.',
+      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -63,7 +64,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese date and time reading with furigana and audio support.',
+      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -80,6 +81,19 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Train Japanese time reading with furigana, audio playback, and interactive practice for AM/PM and 24-hour formats.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-time`,
+  },
+  '/tools/japanese-counters': {
+    title: 'Japanese Counter Practice Tool (Furigana Quiz) | ConvoLab',
+    description:
+      'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
+  },
+  '/tools/credits': {
+    title: 'Credits | ConvoLab Tools',
+    description: 'Review icon credits and source license information for ConvoLab tools.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/credits`,
   },
 };
 
@@ -235,6 +249,7 @@ app.use('/api/episodes', episodeRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/tools-audio', toolAudioRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/courses', adminCourseRoutes);

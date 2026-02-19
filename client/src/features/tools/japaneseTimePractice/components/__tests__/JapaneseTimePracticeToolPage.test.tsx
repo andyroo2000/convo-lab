@@ -56,6 +56,16 @@ describe('JapaneseTimePracticeToolPage', () => {
     expect(screen.getByRole('button', { name: /show answer/i })).toBeInTheDocument();
   });
 
+  it('supports keyboard next and previous navigation', () => {
+    render(<JapaneseTimePracticeToolPage />);
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByRole('button', { name: /advance to the next item/i })).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(screen.getByRole('button', { name: /show answer/i })).toBeInTheDocument();
+  });
+
   it('runs autoplay loop timers in random mode', async () => {
     vi.useFakeTimers();
     render(<JapaneseTimePracticeToolPage />);

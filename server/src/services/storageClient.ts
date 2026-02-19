@@ -6,7 +6,15 @@ import { v4 as uuidv4 } from 'uuid';
 const storage = new Storage({
   keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
 });
-const bucketName = process.env.GCS_BUCKET_NAME!;
+
+function requireBucketName(): string {
+  const bucketName = process.env.GCS_BUCKET_NAME;
+  if (!bucketName) {
+    throw new Error('GCS_BUCKET_NAME is not configured');
+  }
+
+  return bucketName;
+}
 
 export interface UploadOptions {
   buffer: Buffer;
@@ -19,7 +27,8 @@ export async function uploadToGCS(options: UploadOptions): Promise<string> {
   const { buffer, filename, contentType, folder = 'uploads' } = options;
 
   try {
-    const bucket = storage.bucket(bucketName);
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
     const uniqueFilename = `${uuidv4()}-${filename}`;
     const filepath = folder ? `${folder}/${uniqueFilename}` : uniqueFilename;
     const file = bucket.file(filepath);
@@ -35,7 +44,7 @@ export async function uploadToGCS(options: UploadOptions): Promise<string> {
     await file.makePublic();
 
     // Return public URL
-    return `https://storage.googleapis.com/${bucketName}/${filepath}`;
+    return `https://storage.googleapis.com/${resolvedBucketName}/${filepath}`;
   } catch (error) {
     console.error('GCS upload error:', error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -57,7 +66,8 @@ export async function uploadFileToGCS(options: UploadFileOptions): Promise<strin
   const { filePath, filename, contentType, folder = 'uploads' } = options;
 
   try {
-    const bucket = storage.bucket(bucketName);
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
     const uniqueFilename = `${uuidv4()}-${filename}`;
     const filepath = folder ? `${folder}/${uniqueFilename}` : uniqueFilename;
     const file = bucket.file(filepath);
@@ -81,7 +91,7 @@ export async function uploadFileToGCS(options: UploadFileOptions): Promise<strin
     await file.makePublic();
 
     // Return public URL
-    return `https://storage.googleapis.com/${bucketName}/${filepath}`;
+    return `https://storage.googleapis.com/${resolvedBucketName}/${filepath}`;
   } catch (error) {
     console.error('GCS streaming upload error:', error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
@@ -117,8 +127,10 @@ export async function uploadImage(
 
 export async function deleteFromGCS(url: string): Promise<void> {
   try {
+    const resolvedBucketName = requireBucketName();
+
     // Extract filepath from URL
-    const urlPattern = new RegExp(`https://storage.googleapis.com/${bucketName}/(.+)`);
+    const urlPattern = new RegExp(`https://storage.googleapis.com/${resolvedBucketName}/(.+)`);
     const match = url.match(urlPattern);
 
     if (!match) {
@@ -126,10 +138,49 @@ export async function deleteFromGCS(url: string): Promise<void> {
     }
 
     const filepath = match[1];
-    const bucket = storage.bucket(bucketName);
+    const bucket = storage.bucket(resolvedBucketName);
     await bucket.file(filepath).delete();
   } catch (error) {
     console.error('GCS delete error:', error);
     throw new Error('Failed to delete file from Google Cloud Storage');
   }
+}
+
+export interface SignedReadUrlOptions {
+  filePath: string;
+  expiresInSeconds: number;
+}
+
+export interface SignedReadUrlResult {
+  url: string;
+  expiresAt: string;
+}
+
+export async function gcsFileExists(filePath: string): Promise<boolean> {
+  const resolvedBucketName = requireBucketName();
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(filePath);
+  const [exists] = await file.exists();
+  return exists;
+}
+
+export async function getSignedReadUrl(
+  options: SignedReadUrlOptions
+): Promise<SignedReadUrlResult> {
+  const { filePath, expiresInSeconds } = options;
+  const resolvedBucketName = requireBucketName();
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(filePath);
+  const expiresAtMs = Date.now() + expiresInSeconds * 1000;
+
+  const [url] = await file.getSignedUrl({
+    version: 'v4',
+    action: 'read',
+    expires: expiresAtMs,
+  });
+
+  return {
+    url,
+    expiresAt: new Date(expiresAtMs).toISOString(),
+  };
 }

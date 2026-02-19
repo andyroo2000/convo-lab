@@ -1,3 +1,5 @@
+import { resolveToolAudioPlaybackUrls } from '../../logic/toolAudioUrlResolver';
+
 export type TimeHourFormat = '12h' | '24h';
 
 type TimeAudioSegmentArgs = {
@@ -99,23 +101,27 @@ export function playAudioClipSequence(
   let volume = Math.max(0, Math.min(1, options.volume ?? 1));
   let activeAudio: HTMLAudioElement | null = null;
 
-  const finished = urls.reduce<Promise<void>>(
-    (sequence, url) =>
-      sequence.then(() => {
-        if (abortController.signal.aborted) {
-          throw new DOMException('Playback aborted', 'AbortError');
-        }
-        return playSingleClip(
-          url,
-          abortController.signal,
-          () => volume,
-          (audio) => {
-            activeAudio = audio;
-          }
-        );
-      }),
-    Promise.resolve()
-  );
+  const finished = resolveToolAudioPlaybackUrls(urls)
+    .catch(() => urls)
+    .then((resolvedUrls) =>
+      resolvedUrls.reduce<Promise<void>>(
+        (sequence, url) =>
+          sequence.then(() => {
+            if (abortController.signal.aborted) {
+              throw new DOMException('Playback aborted', 'AbortError');
+            }
+            return playSingleClip(
+              url,
+              abortController.signal,
+              () => volume,
+              (audio) => {
+                activeAudio = audio;
+              }
+            );
+          }),
+        Promise.resolve()
+      )
+    );
 
   return {
     stop: () => {

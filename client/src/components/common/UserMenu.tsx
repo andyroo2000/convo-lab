@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Settings, LogOut, Shield } from 'lucide-react';
+import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
 
 interface UserMenuProps {
   userName: string;
@@ -120,6 +120,20 @@ const UserMenu = ({
             >
               <Settings className="w-4 h-4" />
               <span>{t('settings')}</span>
+            </button>
+
+            {/* Credits */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                navigate('/app/credits');
+              }}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
+              data-testid="user-menu-item-credits"
+            >
+              <BookMarked className="w-4 h-4" />
+              <span>Credits</span>
             </button>
 
             {/* Divider */}
