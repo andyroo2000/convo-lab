@@ -28,5 +28,8 @@ export function playCounterAudioClip(
   card: CounterAudioCard,
   options: CounterPlaybackOptions = {}
 ): AudioSequencePlayback {
-  return playAudioClipSequence([buildCounterAudioClipUrl(card)], options);
+  return playAudioClipSequence([buildCounterAudioClipUrl(card)], {
+    ...options,
+    resolveToolAudioUrls: false,
+  });
 }

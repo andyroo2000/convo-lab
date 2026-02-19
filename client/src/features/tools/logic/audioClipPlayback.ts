@@ -8,6 +8,7 @@ export type AudioSequencePlayback = {
 
 type PlaybackOptions = {
   volume?: number;
+  resolveToolAudioUrls?: boolean;
 };
 
 function playSingleClip(
@@ -68,28 +69,45 @@ export function playAudioClipSequence(
   const abortController = new AbortController();
   let volume = Math.max(0, Math.min(1, options.volume ?? 1));
   let activeAudio: HTMLAudioElement | null = null;
+  const shouldResolveToolAudioUrls = options.resolveToolAudioUrls ?? true;
 
-  const finished = resolveToolAudioPlaybackUrls(urls)
-    .catch(() => urls)
-    .then((resolvedUrls) =>
-      resolvedUrls.reduce<Promise<void>>(
-        (sequence, url) =>
-          sequence.then(() => {
-            if (abortController.signal.aborted) {
-              throw new DOMException('Playback aborted', 'AbortError');
+  const playResolvedSequence = (resolvedUrls: string[]): Promise<void> => {
+    if (resolvedUrls.length === 0) {
+      return Promise.resolve();
+    }
+
+    return resolvedUrls.slice(1).reduce<Promise<void>>(
+      (sequence, url) =>
+        sequence.then(() => {
+          if (abortController.signal.aborted) {
+            throw new DOMException('Playback aborted', 'AbortError');
+          }
+
+          return playSingleClip(
+            url,
+            abortController.signal,
+            () => volume,
+            (audio) => {
+              activeAudio = audio;
             }
-            return playSingleClip(
-              url,
-              abortController.signal,
-              () => volume,
-              (audio) => {
-                activeAudio = audio;
-              }
-            );
-          }),
-        Promise.resolve()
+          );
+        }),
+      playSingleClip(
+        resolvedUrls[0],
+        abortController.signal,
+        () => volume,
+        (audio) => {
+          activeAudio = audio;
+        }
       )
     );
+  };
+
+  const finished = shouldResolveToolAudioUrls
+    ? resolveToolAudioPlaybackUrls(urls)
+        .catch(() => urls)
+        .then(playResolvedSequence)
+    : playResolvedSequence(urls);
 
   return {
     stop: () => {

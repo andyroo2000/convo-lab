@@ -1,8 +1,25 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { buildCounterAudioClipUrl, type CounterAudioCard } from '../preRenderedCounterAudio';
+import { playAudioClipSequence } from '../../../logic/audioClipPlayback';
+import {
+  buildCounterAudioClipUrl,
+  playCounterAudioClip,
+  type CounterAudioCard,
+} from '../preRenderedCounterAudio';
+
+vi.mock('../../../logic/audioClipPlayback', () => ({
+  playAudioClipSequence: vi.fn(() => ({
+    stop: vi.fn(),
+    finished: Promise.resolve(),
+    setVolume: vi.fn(),
+  })),
+}));
 
 describe('preRenderedCounterAudio', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('builds expected clip URL for counter card', () => {
     const card = {
       counterId: 'hon',
@@ -26,5 +43,20 @@ describe('preRenderedCounterAudio', () => {
         object: { id: 'paper' },
       } as CounterAudioCard)
     ).toThrow(expectedMessage);
+  });
+
+  it('plays counter clips without signed-url resolution', () => {
+    const card = {
+      counterId: 'hon',
+      quantity: 3,
+      object: { id: 'umbrella' },
+    } as CounterAudioCard;
+
+    playCounterAudioClip(card, { volume: 0.35 });
+
+    expect(playAudioClipSequence).toHaveBeenCalledWith(
+      ['/tools-audio/japanese-counters/google-kento-professional/phrase/hon/umbrella/03.mp3'],
+      { volume: 0.35, resolveToolAudioUrls: false }
+    );
   });
 });
