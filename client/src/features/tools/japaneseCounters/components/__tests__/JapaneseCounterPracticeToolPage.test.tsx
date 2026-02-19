@@ -39,14 +39,18 @@ const counterPracticeMocks = vi.hoisted(() => {
 });
 
 const counterAudioMocks = vi.hoisted(() => {
+  const stop = vi.fn();
+  const setVolume = vi.fn();
   const playCounterAudioClip = vi.fn(() => ({
-    stop: vi.fn(),
+    stop,
     finished: Promise.resolve(),
-    setVolume: vi.fn(),
+    setVolume,
   }));
 
   return {
     playCounterAudioClip,
+    stop,
+    setVolume,
   };
 });
 
@@ -79,6 +83,8 @@ describe('JapaneseCounterPracticeToolPage', () => {
     counterPracticeMocks.state.card = counterPracticeMocks.makeCard();
     counterPracticeMocks.createCard.mockClear();
     counterAudioMocks.playCounterAudioClip.mockClear();
+    counterAudioMocks.stop.mockClear();
+    counterAudioMocks.setVolume.mockClear();
   });
 
   afterEach(() => {
@@ -119,6 +125,18 @@ describe('JapaneseCounterPracticeToolPage', () => {
     expect(screen.getByText('五本')).toBeInTheDocument();
     expect(screen.getByText('を')).toBeInTheDocument();
     expect(counterAudioMocks.playCounterAudioClip).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not abort manual reveal playback while auto-loop is off', async () => {
+    render(<JapaneseCounterPracticeToolPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(counterAudioMocks.playCounterAudioClip).toHaveBeenCalledTimes(1);
+    expect(counterAudioMocks.stop).not.toHaveBeenCalled();
   });
 
   it('supports keyboard next and previous navigation', () => {

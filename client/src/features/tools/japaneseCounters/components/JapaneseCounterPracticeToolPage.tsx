@@ -79,6 +79,7 @@ const JapaneseCounterPracticeToolPage = () => {
   const nextLedTimerRef = useRef<number | null>(null);
   const playbackRef = useRef<ReturnType<typeof playCounterAudioClip> | null>(null);
   const isFirstPowerOnRef = useRef(true);
+  const wasPowerOnRef = useRef(isPowerOn);
   const previousCardsRef = useRef<CounterCardSnapshot[]>([]);
   const recentObjectKeysRef = useRef<string[]>([]);
 
@@ -246,16 +247,21 @@ const JapaneseCounterPracticeToolPage = () => {
   });
 
   useEffect(() => {
+    const wasPowerOn = wasPowerOnRef.current;
+    wasPowerOnRef.current = isPowerOn;
+
     clearAutoAdvanceTimer();
     clearRevealTimer();
     clearCountdownInterval();
 
     if (!isPowerOn) {
-      clearAutoAdvanceTimer();
-      clearRevealTimer();
-      clearNextLedTimer();
-      stopPlayback();
-      setIsNextLedActive(false);
+      if (wasPowerOn) {
+        clearAutoAdvanceTimer();
+        clearRevealTimer();
+        clearNextLedTimer();
+        stopPlayback();
+        setIsNextLedActive(false);
+      }
       setCountdownSeconds(null);
       // Intentionally preserve the current card and reveal state while powered
       // off so practice can resume from the same spot after toggling power back on.
