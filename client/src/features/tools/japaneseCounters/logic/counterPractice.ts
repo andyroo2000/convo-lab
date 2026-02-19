@@ -187,7 +187,7 @@ const COUNTER_OPTIONS: CounterOption[] = [
 const COUNTER_OPTIONS_BY_ID = new Map<CounterId, CounterOption>(
   COUNTER_OPTIONS.map((option) => [option.id, option])
 );
-const COUNTER_ID_SET = new Set<CounterId>(COUNTER_OPTIONS.map((option) => option.id));
+const COUNTER_ID_SET: ReadonlySet<string> = new Set(COUNTER_OPTIONS.map((option) => option.id));
 
 const COUNTER_OBJECTS: Record<CounterId, CounterObject[]> = {
   mai: [
@@ -651,7 +651,7 @@ function buildObjectHistoryKey(counterId: CounterId, objectId: string): string {
 }
 
 function isCounterId(value: string): value is CounterId {
-  return COUNTER_ID_SET.has(value as CounterId);
+  return COUNTER_ID_SET.has(value);
 }
 
 export function sanitizeSelectedCounterIds(ids: readonly string[]): CounterId[] {

@@ -72,6 +72,8 @@ const toPathArray = (value: unknown): string[] | null => {
 
 // In-memory per-instance limiter state: suitable for a single app instance and
 // non-critical abuse controls, but not a shared/global limiter across replicas.
+// If this endpoint needs cross-replica enforcement, move counters to shared
+// storage (for example Redis) and enforce limits there.
 const signedUrlRateLimitByIp = new Map<string, RateLimitEntry>();
 
 const parseEnvInteger = (

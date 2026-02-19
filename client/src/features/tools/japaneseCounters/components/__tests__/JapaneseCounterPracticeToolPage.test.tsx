@@ -214,4 +214,24 @@ describe('JapaneseCounterPracticeToolPage', () => {
     });
     expect(screen.getByText('五本')).toBeInTheDocument();
   });
+
+  it('clears active loop timers when powering off and unmounting', async () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<JapaneseCounterPracticeToolPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /auto-loop/i }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(vi.getTimerCount()).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: /stop loop/i }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(vi.getTimerCount()).toBe(0);
+
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
+  });
 });
