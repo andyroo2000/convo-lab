@@ -225,7 +225,7 @@ const JapaneseTimePracticeToolPage = () => {
       return;
     }
 
-    playCurrentCardAudio().catch(() => undefined);
+    playCurrentCardAudio();
   }, [playCurrentCardAudio, settings.autoPlayAudio]);
 
   const advanceToRandomCard = useCallback(() => {

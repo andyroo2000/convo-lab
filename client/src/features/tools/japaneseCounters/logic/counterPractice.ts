@@ -191,8 +191,7 @@ const COUNTER_OPTIONS_BY_ID: Record<CounterId, CounterOption> = COUNTER_OPTIONS.
   },
   {} as Record<CounterId, CounterOption>
 );
-const COUNTER_IDS: CounterId[] = COUNTER_OPTIONS.map((option) => option.id);
-const COUNTER_ID_SET = new Set<CounterId>(COUNTER_IDS);
+const COUNTER_ID_SET = new Set<CounterId>(COUNTER_OPTIONS.map((option) => option.id));
 
 const COUNTER_OBJECTS: Record<CounterId, CounterObject[]> = {
   mai: [

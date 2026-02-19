@@ -99,7 +99,7 @@ const getSignedUrlRateLimitConfig = () => ({
   ),
 });
 
-const getClientIp = (req: Request): string => {
+const getForwardedClientIp = (req: Request): string | null => {
   const forwarded = req.headers['x-forwarded-for'];
 
   if (typeof forwarded === 'string' && forwarded.trim().length > 0) {
@@ -108,6 +108,18 @@ const getClientIp = (req: Request): string => {
 
   if (Array.isArray(forwarded) && forwarded.length > 0 && forwarded[0].trim().length > 0) {
     return forwarded[0].trim();
+  }
+
+  return null;
+};
+
+const getClientIp = (req: Request): string => {
+  const trustProxy = req.app.get('trust proxy');
+  if (trustProxy) {
+    const forwardedIp = getForwardedClientIp(req);
+    if (forwardedIp) {
+      return forwardedIp;
+    }
   }
 
   return req.ip || 'unknown';
@@ -134,11 +146,6 @@ const applySignedUrlRateLimit = (
 };
 
 const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
-  // Keep memory usage bounded for unauthenticated clients hitting this endpoint.
-  if (signedUrlRateLimitByIp.size < 1000) {
-    return;
-  }
-
   signedUrlRateLimitByIp.forEach((entry, ip) => {
     if (nowMs - entry.windowStartMs >= windowMs) {
       signedUrlRateLimitByIp.delete(ip);

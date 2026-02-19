@@ -159,7 +159,7 @@ const JapaneseCounterPracticeToolPage = () => {
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    playCurrentCardAudio().catch(() => undefined);
+    playCurrentCardAudio();
   }, [playCurrentCardAudio]);
 
   const rememberCardObject = useCallback((currentCard: CounterPracticeCard): string[] => {
@@ -244,6 +244,9 @@ const JapaneseCounterPracticeToolPage = () => {
     clearCountdownInterval();
 
     if (!isPowerOn) {
+      clearAutoAdvanceTimer();
+      clearRevealTimer();
+      clearCountdownInterval();
       clearNextLedTimer();
       stopPlayback();
       setIsNextLedActive(false);

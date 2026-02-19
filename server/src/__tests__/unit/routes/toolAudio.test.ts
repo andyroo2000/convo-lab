@@ -148,23 +148,65 @@ describe('toolAudio route', () => {
       paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
     };
 
-    await request(app)
-      .post('/api/tools-audio/signed-urls')
-      .set('x-forwarded-for', '203.0.113.10')
-      .send(payload)
-      .expect(200);
-    await request(app)
-      .post('/api/tools-audio/signed-urls')
-      .set('x-forwarded-for', '203.0.113.10')
-      .send(payload)
-      .expect(200);
+    await request(app).post('/api/tools-audio/signed-urls').send(payload).expect(200);
+    await request(app).post('/api/tools-audio/signed-urls').send(payload).expect(200);
 
     const response = await request(app)
       .post('/api/tools-audio/signed-urls')
-      .set('x-forwarded-for', '203.0.113.10')
       .send(payload)
       .expect(429);
 
     expect(response.body.error).toContain('Too many signed-url requests');
+  });
+
+  it('ignores x-forwarded-for when trust proxy is disabled', async () => {
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '1';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+
+    const payload = {
+      paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
+    };
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(200);
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '198.51.100.4')
+      .send(payload)
+      .expect(429);
+  });
+
+  it('uses x-forwarded-for when trust proxy is enabled', async () => {
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '1';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+    app.set('trust proxy', true);
+
+    const payload = {
+      paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
+    };
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(200);
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '198.51.100.4')
+      .send(payload)
+      .expect(200);
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(429);
   });
 });
