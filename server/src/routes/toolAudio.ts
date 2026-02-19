@@ -70,6 +70,8 @@ const toPathArray = (value: unknown): string[] | null => {
   return Array.from(new Set(normalized as string[]));
 };
 
+// In-memory per-instance limiter state: suitable for a single app instance and
+// non-critical abuse controls, but not a shared/global limiter across replicas.
 const signedUrlRateLimitByIp = new Map<string, RateLimitEntry>();
 
 const parseEnvInteger = (
@@ -103,6 +105,14 @@ const getSignedUrlRateLimitConfig = () => ({
 const getClientIp = (ip: string | undefined, remoteAddress: string | undefined): string =>
   ip || remoteAddress || 'unknown';
 
+const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
+  signedUrlRateLimitByIp.forEach((entry, ip) => {
+    if (nowMs - entry.windowStartMs >= windowMs) {
+      signedUrlRateLimitByIp.delete(ip);
+    }
+  });
+};
+
 const applySignedUrlRateLimit = (
   ip: string,
   nowMs: number,
@@ -114,11 +124,11 @@ const applySignedUrlRateLimit = (
     if (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
       pruneRateLimitEntries(nowMs, windowMs);
       while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
-        const oldestIp = signedUrlRateLimitByIp.keys().next().value;
-        if (!oldestIp) {
+        const earliestInsertedIp = signedUrlRateLimitByIp.keys().next().value;
+        if (!earliestInsertedIp) {
           break;
         }
-        signedUrlRateLimitByIp.delete(oldestIp);
+        signedUrlRateLimitByIp.delete(earliestInsertedIp);
       }
     }
 
@@ -132,14 +142,6 @@ const applySignedUrlRateLimit = (
 
   existingEntry.requestCount += 1;
   return false;
-};
-
-const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
-  signedUrlRateLimitByIp.forEach((entry, ip) => {
-    if (nowMs - entry.windowStartMs >= windowMs) {
-      signedUrlRateLimitByIp.delete(ip);
-    }
-  });
 };
 
 const getRateLimitRetryAfterSeconds = (ip: string, nowMs: number, windowMs: number): number => {
@@ -186,6 +188,8 @@ const toBucketObjectPath = (requestPath: string): string => {
 // Public-by-design endpoint for static practice audio; constrained by strict path
 // validation, file allowlisting, and per-IP rate limiting.
 router.post('/signed-urls', async (req, res) => {
+  // Intentionally read from env per request so operators/tests can adjust
+  // throttle behavior without changing code paths or rebuilding.
   const { maxRequests, windowMs } = getSignedUrlRateLimitConfig();
   const nowMs = Date.now();
   const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
