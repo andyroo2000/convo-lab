@@ -12,7 +12,7 @@ vi.mock('../../../services/storageClient.js', () => ({
   getSignedReadUrl: storageClientMocks.getSignedReadUrl,
 }));
 
-import toolAudioRoutes from '../../../routes/toolAudio.js';
+import toolAudioRoutes, { resetToolAudioRateLimitForTests } from '../../../routes/toolAudio.js';
 
 describe('toolAudio route', () => {
   let app: Application;
@@ -20,15 +20,19 @@ describe('toolAudio route', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     app = express();
     app.use(json());
     app.use('/api/tools-audio', toolAudioRoutes);
     storageClientMocks.gcsFileExists.mockResolvedValue(true);
     storageClientMocks.getSignedReadUrl.mockReset();
+    resetToolAudioRateLimitForTests();
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    resetToolAudioRateLimitForTests();
   });
 
   it('returns passthrough URLs when signing is disabled', async () => {
@@ -110,5 +114,57 @@ describe('toolAudio route', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.error).toContain('valid /tools-audio/*.mp3 values');
+  });
+
+  it('rejects requests with more than 60 paths', async () => {
+    const paths = Array.from(
+      { length: 61 },
+      (_, index) => `/tools-audio/japanese-time/google-kento-professional/time/minute/${index}.mp3`
+    );
+
+    const response = await request(app).post('/api/tools-audio/signed-urls').send({ paths });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('1-60');
+  });
+
+  it('rejects paths that exceed max length', async () => {
+    const tooLongPath = `/tools-audio/${'a'.repeat(320)}.mp3`;
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({ paths: [tooLongPath] });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('valid /tools-audio/*.mp3 values');
+  });
+
+  it('rate-limits repeated signed-url requests by client IP', async () => {
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '2';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+
+    const payload = {
+      paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
+    };
+
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(200);
+    await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(200);
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send(payload)
+      .expect(429);
+
+    expect(response.body.error).toContain('Too many signed-url requests');
   });
 });

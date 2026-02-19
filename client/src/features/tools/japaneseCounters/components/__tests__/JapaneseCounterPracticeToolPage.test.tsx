@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import JapaneseCounterPracticeToolPage from '../JapaneseCounterPracticeToolPage';
 
@@ -79,6 +79,10 @@ describe('JapaneseCounterPracticeToolPage', () => {
     counterPracticeMocks.state.card = counterPracticeMocks.makeCard();
     counterPracticeMocks.createCard.mockClear();
     counterAudioMocks.playCounterAudioClip.mockClear();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows stairs cue when floor counter card is active', () => {
@@ -179,5 +183,35 @@ describe('JapaneseCounterPracticeToolPage', () => {
     const longObjects = screen.getByRole('button', { name: /本/i });
     fireEvent.click(longObjects);
     expect(longObjects).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('reveals immediately on first power-on and waits timer on later power-ons', async () => {
+    vi.useFakeTimers();
+    render(<JapaneseCounterPracticeToolPage />);
+
+    expect(screen.queryByText('五本')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /auto-loop/i }));
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText('五本')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /stop loop/i }));
+    fireEvent.click(screen.getByRole('button', { name: /advance to the next item/i }));
+    expect(screen.queryByText('五本')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /auto-loop/i }));
+    expect(screen.queryByText('五本')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(7999);
+    });
+    expect(screen.queryByText('五本')).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(screen.getByText('五本')).toBeInTheDocument();
   });
 });

@@ -159,9 +159,7 @@ const JapaneseCounterPracticeToolPage = () => {
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
-    });
+    playCurrentCardAudio().catch(() => undefined);
   }, [playCurrentCardAudio]);
 
   const rememberCardObject = useCallback((currentCard: CounterPracticeCard): string[] => {
@@ -246,6 +244,9 @@ const JapaneseCounterPracticeToolPage = () => {
     clearCountdownInterval();
 
     if (!isPowerOn) {
+      clearNextLedTimer();
+      stopPlayback();
+      setIsNextLedActive(false);
       setCountdownSeconds(null);
       return undefined;
     }
@@ -298,37 +299,13 @@ const JapaneseCounterPracticeToolPage = () => {
     card.id,
     clearAutoAdvanceTimer,
     clearCountdownInterval,
+    clearNextLedTimer,
     clearRevealTimer,
     isPowerOn,
     isRevealed,
     pauseSeconds,
     playCurrentCardAudio,
     revealCard,
-  ]);
-
-  useEffect(() => {
-    if (isPowerOn) {
-      return undefined;
-    }
-
-    clearAutoAdvanceTimer();
-    clearCountdownInterval();
-    clearRevealTimer();
-    stopPlayback();
-    setCountdownSeconds(null);
-
-    return () => {
-      clearAutoAdvanceTimer();
-      clearCountdownInterval();
-      clearRevealTimer();
-      clearNextLedTimer();
-    };
-  }, [
-    clearAutoAdvanceTimer,
-    clearCountdownInterval,
-    clearNextLedTimer,
-    clearRevealTimer,
-    isPowerOn,
     stopPlayback,
   ]);
 

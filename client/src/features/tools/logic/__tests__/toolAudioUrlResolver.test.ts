@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   resolveToolAudioPlaybackUrls,
@@ -9,6 +9,10 @@ describe('toolAudioUrlResolver', () => {
   beforeEach(() => {
     resetToolAudioUrlResolverCacheForTests();
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('returns signed URLs for tool audio paths', async () => {
@@ -97,5 +101,44 @@ describe('toolAudioUrlResolver', () => {
 
     expect(fetchMock).not.toHaveBeenCalled();
     expect(resolved).toEqual([url]);
+  });
+
+  it('retries signed-url resolution after failure backoff window elapses', async () => {
+    vi.useFakeTimers();
+    const startTimeMs = Date.parse('2026-01-01T00:00:00.000Z');
+    vi.setSystemTime(startTimeMs);
+
+    const originalUrl =
+      '/tools-audio/japanese-counters/google-kento-professional/phrase/hon/pencil/06.mp3';
+    const recoveredSignedUrl = 'https://signed.example/recovered.mp3';
+
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('Network down'))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          urls: {
+            [originalUrl]: {
+              url: recoveredSignedUrl,
+              expiresAt: new Date(startTimeMs + 60 * 60 * 1000).toISOString(),
+            },
+          },
+        }),
+      } as Response);
+
+    const firstAttempt = await resolveToolAudioPlaybackUrls([originalUrl]);
+    expect(firstAttempt).toEqual([originalUrl]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(startTimeMs + 30_000);
+    const duringBackoff = await resolveToolAudioPlaybackUrls([originalUrl]);
+    expect(duringBackoff).toEqual([originalUrl]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(startTimeMs + 61_000);
+    const afterBackoff = await resolveToolAudioPlaybackUrls([originalUrl]);
+    expect(afterBackoff).toEqual([recoveredSignedUrl]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

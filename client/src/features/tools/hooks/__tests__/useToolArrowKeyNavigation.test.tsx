@@ -45,4 +45,17 @@ describe('useToolArrowKeyNavigation', () => {
     expect(onNext).not.toHaveBeenCalled();
     expect(onPrevious).not.toHaveBeenCalled();
   });
+
+  it('ignores shift+arrow navigation shortcuts', () => {
+    const onNext = vi.fn();
+    const onPrevious = vi.fn();
+
+    render(<TestHarness onNext={onNext} onPrevious={onPrevious} />);
+
+    fireEvent.keyDown(window, { key: 'ArrowRight', shiftKey: true });
+    fireEvent.keyDown(window, { key: 'ArrowLeft', shiftKey: true });
+
+    expect(onNext).not.toHaveBeenCalled();
+    expect(onPrevious).not.toHaveBeenCalled();
+  });
 });

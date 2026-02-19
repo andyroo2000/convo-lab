@@ -221,9 +221,7 @@ const JapaneseDateToolPage = () => {
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Autoplay was blocked. Tap Auto-Play or Show Answer to hear audio.');
-    });
+    playCurrentCardAudio().catch(() => undefined);
   }, [playCurrentCardAudio]);
 
   const advanceToNextCard = useCallback(() => {

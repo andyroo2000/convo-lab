@@ -22,6 +22,9 @@ vi.mock('../../../japaneseDate/logic/readingEngine', () => ({
 
 vi.mock('../../../japaneseDate/logic/preRenderedTimeAudio', () => ({
   buildTimeAudioClipUrls: mockBuildTimeAudioClipUrls,
+}));
+
+vi.mock('../../../logic/audioClipPlayback', () => ({
   playAudioClipSequence: mockPlayAudioClipSequence,
 }));
 
