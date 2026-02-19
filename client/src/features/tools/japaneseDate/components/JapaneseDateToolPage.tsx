@@ -10,8 +10,8 @@ import {
   getDateAudioYearRange,
   playDateAudioClipSequence,
 } from '../logic/preRenderedDateAudio';
+import type { AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
-import type { AudioSequencePlayback } from '../logic/preRenderedTimeAudio';
 import DateMiniCalendar from './DateMiniCalendar';
 
 interface RubyPartProps {

@@ -1,3 +1,5 @@
+import { randomUUID } from 'crypto';
+
 import { Router } from 'express';
 
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
@@ -102,8 +104,19 @@ const getSignedUrlRateLimitConfig = () => ({
   ),
 });
 
-const getClientIp = (ip: string | undefined, remoteAddress: string | undefined): string =>
-  ip || remoteAddress || 'unknown';
+// Parse once at module load; tests that need alternate values re-import this route
+// after updating env.
+const SIGNED_URL_RATE_LIMIT_CONFIG = getSignedUrlRateLimitConfig();
+
+const getClientIp = (ip: string | undefined, remoteAddress: string | undefined): string => {
+  if (ip) {
+    return ip;
+  }
+  if (remoteAddress) {
+    return remoteAddress;
+  }
+  return randomUUID();
+};
 
 const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
   signedUrlRateLimitByIp.forEach((entry, ip) => {
@@ -119,10 +132,11 @@ const applySignedUrlRateLimit = (
   windowMs: number,
   maxRequests: number
 ): boolean => {
+  pruneRateLimitEntries(nowMs, windowMs);
+
   const existingEntry = signedUrlRateLimitByIp.get(ip);
   if (!existingEntry || nowMs - existingEntry.windowStartMs >= windowMs) {
     if (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
-      pruneRateLimitEntries(nowMs, windowMs);
       while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
         const earliestInsertedIp = signedUrlRateLimitByIp.keys().next().value;
         if (!earliestInsertedIp) {
@@ -188,13 +202,10 @@ const toBucketObjectPath = (requestPath: string): string => {
 // Public-by-design endpoint for static practice audio; constrained by strict path
 // validation, file allowlisting, and per-IP rate limiting.
 router.post('/signed-urls', async (req, res) => {
-  // Intentionally read from env per request so operators/tests can adjust
-  // throttle behavior without changing code paths or rebuilding.
-  const { maxRequests, windowMs } = getSignedUrlRateLimitConfig();
+  const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
   const nowMs = Date.now();
   const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
 
-  pruneRateLimitEntries(nowMs, windowMs);
   if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
     const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
     res.set('Retry-After', `${retryAfterSeconds}`);

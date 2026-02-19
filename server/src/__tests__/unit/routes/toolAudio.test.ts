@@ -16,17 +16,21 @@ describe('toolAudio route', () => {
   let app: Application;
   const originalEnv = process.env;
 
-  beforeEach(async () => {
+  const mountToolAudioApp = async () => {
     vi.resetModules();
-    process.env = { ...originalEnv };
-    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
-    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     const { default: toolAudioRoutes } = await import('../../../routes/toolAudio.js');
     app = express();
     app.use(json());
     app.use('/api/tools-audio', toolAudioRoutes);
     storageClientMocks.gcsFileExists.mockResolvedValue(true);
     storageClientMocks.getSignedReadUrl.mockReset();
+  };
+
+  beforeEach(async () => {
+    process.env = { ...originalEnv };
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    await mountToolAudioApp();
   });
 
   afterEach(() => {
@@ -141,6 +145,7 @@ describe('toolAudio route', () => {
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '2';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+    await mountToolAudioApp();
 
     const payload = {
       paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
@@ -163,6 +168,7 @@ describe('toolAudio route', () => {
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '1';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+    await mountToolAudioApp();
 
     const payload = {
       paths: ['/tools-audio/japanese-time/google-kento-professional/time/minute/44.mp3'],
@@ -193,6 +199,7 @@ describe('toolAudio route', () => {
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '1';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
     process.env.TOOLS_AUDIO_SIGNED_URLS_ENABLED = 'false';
+    await mountToolAudioApp();
     app.set('trust proxy', true);
 
     const payload = {

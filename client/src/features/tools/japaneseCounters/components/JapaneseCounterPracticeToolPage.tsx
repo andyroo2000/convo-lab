@@ -258,6 +258,8 @@ const JapaneseCounterPracticeToolPage = () => {
       stopPlayback();
       setIsNextLedActive(false);
       setCountdownSeconds(null);
+      // Intentionally preserve the current card and reveal state while powered
+      // off so practice can resume from the same spot after toggling power back on.
       return undefined;
     }
 
