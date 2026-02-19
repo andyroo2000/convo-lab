@@ -253,7 +253,6 @@ const JapaneseCounterPracticeToolPage = () => {
     if (!isPowerOn) {
       clearAutoAdvanceTimer();
       clearRevealTimer();
-      clearCountdownInterval();
       clearNextLedTimer();
       stopPlayback();
       setIsNextLedActive(false);

@@ -1,5 +1,3 @@
-import { randomUUID } from 'crypto';
-
 import { Router } from 'express';
 
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
@@ -115,7 +113,8 @@ const getClientIp = (ip: string | undefined, remoteAddress: string | undefined):
   if (remoteAddress) {
     return remoteAddress;
   }
-  return randomUUID();
+  // Fail closed: unknown clients share one bucket instead of bypassing limiter.
+  return 'unknown';
 };
 
 const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
@@ -136,14 +135,12 @@ const applySignedUrlRateLimit = (
 
   const existingEntry = signedUrlRateLimitByIp.get(ip);
   if (!existingEntry || nowMs - existingEntry.windowStartMs >= windowMs) {
-    if (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
-      while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
-        const earliestInsertedIp = signedUrlRateLimitByIp.keys().next().value;
-        if (!earliestInsertedIp) {
-          break;
-        }
-        signedUrlRateLimitByIp.delete(earliestInsertedIp);
+    while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
+      const earliestInsertedIp = signedUrlRateLimitByIp.keys().next().value;
+      if (!earliestInsertedIp) {
+        break;
       }
+      signedUrlRateLimitByIp.delete(earliestInsertedIp);
     }
 
     signedUrlRateLimitByIp.set(ip, { windowStartMs: nowMs, requestCount: 1 });
