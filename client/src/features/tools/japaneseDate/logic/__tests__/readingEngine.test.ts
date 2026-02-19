@@ -93,6 +93,18 @@ describe('readingEngine', () => {
       expect(reading.parts.yearKana).toBe('せんきゅうひゃくはちじゅうはちねん');
     });
 
+    it.each([
+      [1904, 'せんきゅうひゃくよねん'],
+      [2014, 'にせんじゅうよねん'],
+      [2024, 'にせんにじゅうよねん'],
+    ])('uses よねん reading for years ending in 4 (%i)', (year, expected) => {
+      const reading = generateJapaneseDateTimeReading(new Date(year, 0, 5, 9, 0, 0, 0), {
+        hourFormat: '12h',
+      });
+
+      expect(reading.parts.yearKana).toBe(expected);
+    });
+
     it('includes period in 12h mode and omits it in 24h mode', () => {
       const reading12h = generateJapaneseDateTimeReading(new Date(2026, 1, 13, 21, 44, 0, 0), {
         hourFormat: '12h',

@@ -79,13 +79,13 @@ describe('counterPractice', () => {
     expect(entries).toHaveLength(340);
     expect(honPencilSix).toMatchObject({
       relativePath: 'phrase/hon/pencil/06.mp3',
-      text: '鉛筆を六本',
-      kanaText: 'えんぴつ を ろっぽん',
+      text: '鉛筆が六本',
+      kanaText: 'えんぴつ が ろっぽん',
     });
     expect(ninPersonOne).toMatchObject({
       relativePath: 'phrase/nin/person/01.mp3',
-      text: '人を一人',
-      kanaText: 'ひと を ひとり',
+      text: '人が一人',
+      kanaText: 'ひと が ひとり',
     });
   });
 });

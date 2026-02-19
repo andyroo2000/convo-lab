@@ -71,7 +71,7 @@ export interface CounterObject {
   kana: string;
   englishLabel: string;
   illustrationId: CounterIllustrationId;
-  particle?: 'を' | 'の';
+  particle?: 'を' | 'が' | 'の';
 }
 
 export interface CounterPracticeCard {
@@ -83,7 +83,7 @@ export interface CounterPracticeCard {
   quantity: number;
   countScript: string;
   countKana: string;
-  particle: 'を' | 'の';
+  particle: 'を' | 'が' | 'の';
   object: CounterObject;
 }
 
@@ -718,7 +718,7 @@ export function createCounterPracticeCard(
     quantity: reading.value,
     countScript: reading.script,
     countKana: reading.kana,
-    particle: object.particle ?? 'を',
+    particle: object.particle ?? 'が',
     object,
   };
 }
@@ -731,7 +731,7 @@ export function buildCounterPhraseCatalog(): CounterPhraseCatalogEntry[] {
     const readings = COUNTER_READINGS[counterId];
 
     objects.forEach((object) => {
-      const particle = object.particle ?? 'を';
+      const particle = object.particle ?? 'が';
       readings.forEach((reading) => {
         entries.push({
           id: `${counterId}_${object.id}_${String(reading.value).padStart(2, '0')}`,

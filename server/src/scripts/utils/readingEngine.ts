@@ -221,7 +221,11 @@ function readNumber(value: number): string {
 }
 
 function readYear(year: number): string {
-  return `${readNumber(year)}ねん`;
+  const numberReading = readNumber(year);
+  if (year % 10 === 4 && numberReading.endsWith('よん')) {
+    return `${numberReading.slice(0, -1)}ねん`;
+  }
+  return `${numberReading}ねん`;
 }
 
 function readMonth(month: number): string {
