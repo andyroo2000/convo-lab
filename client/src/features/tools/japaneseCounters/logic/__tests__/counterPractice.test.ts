@@ -45,6 +45,17 @@ describe('counterPractice', () => {
     expect(card.object.kana.length).toBeGreaterThan(0);
   });
 
+  it('avoids recently seen objects when alternatives exist', () => {
+    const card = createCounterPracticeCard(['hon'], ['hon:pencil', 'hon:umbrella']);
+    expect(card.object.id).toBe('banana');
+  });
+
+  it('falls back when object pool has no alternatives', () => {
+    const card = createCounterPracticeCard(['nin'], ['nin:person']);
+    expect(card.counterId).toBe('nin');
+    expect(card.object.id).toBe('person');
+  });
+
   it('uses kanji counter symbols in revealed script', () => {
     expect(createCounterPracticeCard(['mai']).countScript).toContain('枚');
     expect(createCounterPracticeCard(['hon']).countScript).toContain('本');

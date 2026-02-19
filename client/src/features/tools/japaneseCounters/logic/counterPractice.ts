@@ -650,9 +650,14 @@ const COUNTER_READINGS: Record<CounterId, CounterReading[]> = {
 
 export const COUNTER_POOL: CounterOption[] = COUNTER_OPTIONS;
 export const DEFAULT_COUNTER_IDS: CounterId[] = ['hon'];
+const RECENT_OBJECT_EXCLUSION_LIMIT = 10;
 
 function randomItem<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function buildObjectHistoryKey(counterId: CounterId, objectId: string): string {
+  return `${counterId}:${objectId}`;
 }
 
 function isCounterId(value: string): value is CounterId {
@@ -692,13 +697,36 @@ export function toggleCounterSelection(
 }
 
 export function createCounterPracticeCard(
-  selectedCounterIds: readonly CounterId[]
+  selectedCounterIds: readonly CounterId[],
+  recentObjectKeys: readonly string[] = []
 ): CounterPracticeCard {
   const safeCounterIds =
     selectedCounterIds.length > 0 ? [...selectedCounterIds] : [...DEFAULT_COUNTER_IDS];
-  const counterId = randomItem(safeCounterIds);
+  const totalObjectCount = safeCounterIds.reduce(
+    (count, counterId) => count + COUNTER_OBJECTS[counterId].length,
+    0
+  );
+  const recentWindowSize =
+    totalObjectCount > 1
+      ? Math.min(RECENT_OBJECT_EXCLUSION_LIMIT, totalObjectCount - 1, recentObjectKeys.length)
+      : 0;
+  const excludedObjectKeys = new Set(recentObjectKeys.slice(0, recentWindowSize));
+
+  const selectableCounterIds = safeCounterIds.filter((counterId) =>
+    COUNTER_OBJECTS[counterId].some(
+      (object) => !excludedObjectKeys.has(buildObjectHistoryKey(counterId, object.id))
+    )
+  );
+  const counterId =
+    selectableCounterIds.length > 0 ? randomItem(selectableCounterIds) : randomItem(safeCounterIds);
   const counter = COUNTER_OPTIONS_BY_ID[counterId];
-  const object = randomItem(COUNTER_OBJECTS[counterId]);
+  const eligibleObjects = COUNTER_OBJECTS[counterId].filter(
+    (object) => !excludedObjectKeys.has(buildObjectHistoryKey(counterId, object.id))
+  );
+  const object =
+    eligibleObjects.length > 0
+      ? randomItem(eligibleObjects)
+      : randomItem(COUNTER_OBJECTS[counterId]);
   const reading = randomItem(COUNTER_READINGS[counterId]);
 
   return {

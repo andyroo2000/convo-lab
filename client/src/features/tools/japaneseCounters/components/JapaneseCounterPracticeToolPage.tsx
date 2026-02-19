@@ -22,6 +22,7 @@ const PAUSE_OPTIONS = [5, 8, 12] as const;
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const DEFAULT_AUTO_LOOP_ENABLED = false;
 const HISTORY_LIMIT = 120;
+const RECENT_OBJECT_HISTORY_LIMIT = 10;
 const KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々]/u;
 
 interface CounterCardSnapshot {
@@ -56,6 +57,9 @@ const FloorStairsCue = () => (
   </svg>
 );
 
+const buildCardObjectHistoryKey = (card: CounterPracticeCard): string =>
+  `${card.counterId}:${card.object.id}`;
+
 const JapaneseCounterPracticeToolPage = () => {
   const [selectedCounterIds, setSelectedCounterIds] = useState<CounterId[]>(DEFAULT_COUNTER_IDS);
   const [card, setCard] = useState<CounterPracticeCard>(() =>
@@ -76,6 +80,7 @@ const JapaneseCounterPracticeToolPage = () => {
   const playbackRef = useRef<ReturnType<typeof playCounterAudioClip> | null>(null);
   const isFirstPowerOnRef = useRef(true);
   const previousCardsRef = useRef<CounterCardSnapshot[]>([]);
+  const recentObjectKeysRef = useRef<string[]>([]);
 
   const statusText = (() => {
     if (!isPowerOn || countdownSeconds === null) return '';
@@ -159,10 +164,18 @@ const JapaneseCounterPracticeToolPage = () => {
     });
   }, [playCurrentCardAudio]);
 
+  const rememberCardObject = useCallback((currentCard: CounterPracticeCard): string[] => {
+    const key = buildCardObjectHistoryKey(currentCard);
+    const dedupedKeys = [key, ...recentObjectKeysRef.current.filter((entry) => entry !== key)];
+    recentObjectKeysRef.current = dedupedKeys.slice(0, RECENT_OBJECT_HISTORY_LIMIT);
+    return recentObjectKeysRef.current;
+  }, []);
+
   const advanceToNextCard = useCallback(() => {
     setIsRevealed(false);
-    setCard(createCounterPracticeCard(selectedCounterIds));
-  }, [selectedCounterIds]);
+    const recentObjectKeys = rememberCardObject(card);
+    setCard(createCounterPracticeCard(selectedCounterIds, recentObjectKeys));
+  }, [card, rememberCardObject, selectedCounterIds]);
 
   const handleNext = useCallback(() => {
     clearNextLedTimer();
@@ -342,8 +355,9 @@ const JapaneseCounterPracticeToolPage = () => {
     }
 
     previousCardsRef.current = [];
+    recentObjectKeysRef.current = [];
     setIsRevealed(false);
-    setCard(createCounterPracticeCard(selectedCounterIds));
+    setCard(createCounterPracticeCard(selectedCounterIds, recentObjectKeysRef.current));
   }, [card.counterId, selectedCounterIds]);
 
   const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
@@ -357,15 +371,15 @@ const JapaneseCounterPracticeToolPage = () => {
 
   return (
     <div className="space-y-5">
-      <section className="card retro-paper-panel">
+      <section className="card retro-paper-panel !p-3 sm:!p-5 lg:!p-6">
         <div className="mb-5 rounded border-2 border-[#0f3561] bg-gradient-to-br from-[#102d57] via-[#143b6f] to-[#184779] px-4 pt-6 pb-7 text-[#f7f6ef] shadow-[0_6px_0_rgba(17,51,92,0.26)] sm:px-5 sm:pt-7 sm:pb-8">
-          <p className="pb-3 text-[clamp(1.45rem,1.05rem+1.8vw,2.5rem)] font-semibold leading-[1.05] tracking-[0.04em] text-[#8fd3ea]">
+          <p className="pb-3 text-[clamp(1.1rem,0.95rem+1.8vw,2.5rem)] font-semibold leading-[1.05] tracking-[0.04em] text-[#8fd3ea]">
             日本語カウンタートレーナー
           </p>
-          <p className="retro-headline mt-1 text-[clamp(1.4rem,1rem+1.7vw,2.05rem)] leading-[1.08] text-[#f9f8ed]">
+          <p className="retro-headline mt-1 text-[clamp(1.25rem,0.95rem+1.7vw,2.05rem)] leading-[1.08] text-[#f9f8ed]">
             Japanese Counter Practice Tool
           </p>
-          <p className="mt-2 text-sm font-semibold leading-tight text-[#d3ecf4] sm:text-base">
+          <p className="mt-2 text-[0.79rem] font-semibold leading-tight text-[#d3ecf4] sm:text-base">
             Read the image, pick the right counter, then check the answer.
           </p>
         </div>
