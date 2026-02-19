@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PricingPage from '../PricingPage';
@@ -46,7 +46,12 @@ describe('PricingPage', () => {
     vi.clearAllMocks();
     mockFetch.mockClear();
     mockUser = null;
+    vi.stubEnv('VITE_STRIPE_PRICE_PRO_MONTHLY', 'price_test_pro_monthly');
     window.location.href = '';
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe('Rendering', () => {

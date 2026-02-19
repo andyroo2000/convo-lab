@@ -1,4 +1,4 @@
-import { playAudioClipSequence, type AudioSequencePlayback } from './preRenderedTimeAudio';
+import { playAudioClipSequence, type AudioSequencePlayback } from '../../logic/audioClipPlayback';
 
 type DateAudioSegmentArgs = {
   year: number;

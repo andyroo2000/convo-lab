@@ -7,11 +7,8 @@ import {
   toLocalDateInputValue,
   type JapaneseHourFormat,
 } from '../logic/readingEngine';
-import {
-  buildTimeAudioClipUrls,
-  playAudioClipSequence,
-  type AudioSequencePlayback,
-} from '../logic/preRenderedTimeAudio';
+import { buildTimeAudioClipUrls } from '../logic/preRenderedTimeAudio';
+import { playAudioClipSequence, type AudioSequencePlayback } from '../../logic/audioClipPlayback';
 
 interface RubyPartProps {
   script: string;

@@ -10,8 +10,8 @@ import {
   getDateAudioYearRange,
   playDateAudioClipSequence,
 } from '../logic/preRenderedDateAudio';
+import type { AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
-import type { AudioSequencePlayback } from '../logic/preRenderedTimeAudio';
 import DateMiniCalendar from './DateMiniCalendar';
 
 interface RubyPartProps {
@@ -219,12 +219,17 @@ const JapaneseDateToolPage = () => {
     }
   }, [card.date, showYear, stopPlayback, volumeLevel]);
 
-  const revealCard = useCallback(() => {
-    setIsRevealed(true);
-    playCurrentCardAudio().catch(() => {
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Date Tool] Unexpected reveal audio rejection:', error);
       setPlaybackHint('Autoplay was blocked. Tap Auto-Play or Show Answer to hear audio.');
     });
-  }, [playCurrentCardAudio]);
+  }, [playCurrentCardAudio, setPlaybackHint]);
+
+  const revealCard = useCallback(() => {
+    setIsRevealed(true);
+    triggerRevealAudioPlayback();
+  }, [triggerRevealAudioPlayback]);
 
   const advanceToNextCard = useCallback(() => {
     setIsRevealed(false);

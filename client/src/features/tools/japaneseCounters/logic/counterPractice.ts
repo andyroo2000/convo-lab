@@ -184,20 +184,10 @@ const COUNTER_OPTIONS: CounterOption[] = [
   },
 ];
 
-const COUNTER_OPTIONS_BY_ID: Record<CounterId, CounterOption> = {
-  mai: COUNTER_OPTIONS[0],
-  hon: COUNTER_OPTIONS[1],
-  hiki: COUNTER_OPTIONS[2],
-  satsu: COUNTER_OPTIONS[3],
-  dai: COUNTER_OPTIONS[4],
-  ko: COUNTER_OPTIONS[5],
-  nin: COUNTER_OPTIONS[6],
-  hai: COUNTER_OPTIONS[7],
-  chaku: COUNTER_OPTIONS[8],
-  soku: COUNTER_OPTIONS[9],
-  wa: COUNTER_OPTIONS[10],
-  kai: COUNTER_OPTIONS[11],
-};
+const COUNTER_OPTIONS_BY_ID = new Map<CounterId, CounterOption>(
+  COUNTER_OPTIONS.map((option) => [option.id, option])
+);
+const COUNTER_ID_SET: ReadonlySet<string> = new Set(COUNTER_OPTIONS.map((option) => option.id));
 
 const COUNTER_OBJECTS: Record<CounterId, CounterObject[]> = {
   mai: [
@@ -661,20 +651,7 @@ function buildObjectHistoryKey(counterId: CounterId, objectId: string): string {
 }
 
 function isCounterId(value: string): value is CounterId {
-  return (
-    value === 'mai' ||
-    value === 'hon' ||
-    value === 'hiki' ||
-    value === 'satsu' ||
-    value === 'dai' ||
-    value === 'ko' ||
-    value === 'nin' ||
-    value === 'hai' ||
-    value === 'chaku' ||
-    value === 'soku' ||
-    value === 'wa' ||
-    value === 'kai'
-  );
+  return COUNTER_ID_SET.has(value);
 }
 
 export function sanitizeSelectedCounterIds(ids: readonly string[]): CounterId[] {
@@ -719,7 +696,10 @@ export function createCounterPracticeCard(
   );
   const counterId =
     selectableCounterIds.length > 0 ? randomItem(selectableCounterIds) : randomItem(safeCounterIds);
-  const counter = COUNTER_OPTIONS_BY_ID[counterId];
+  const counter = COUNTER_OPTIONS_BY_ID.get(counterId);
+  if (!counter) {
+    throw new Error(`Missing counter option for id: ${counterId}`);
+  }
   const eligibleObjects = COUNTER_OBJECTS[counterId].filter(
     (object) => !excludedObjectKeys.has(buildObjectHistoryKey(counterId, object.id))
   );

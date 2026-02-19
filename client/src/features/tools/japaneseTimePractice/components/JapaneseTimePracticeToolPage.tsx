@@ -5,11 +5,8 @@ import {
   parseLocalDateTimeInput,
   toLocalDateInputValue,
 } from '../../japaneseDate/logic/readingEngine';
-import {
-  buildTimeAudioClipUrls,
-  playAudioClipSequence,
-  type AudioSequencePlayback,
-} from '../../japaneseDate/logic/preRenderedTimeAudio';
+import { buildTimeAudioClipUrls } from '../../japaneseDate/logic/preRenderedTimeAudio';
+import { playAudioClipSequence, type AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import { createInitialFsrsSessionState, type FsrsSessionState } from '../logic/fsrsSession';
 import trackTimePracticeEvent from '../logic/analytics';
 import { loadTimePracticeLocalState, saveTimePracticeLocalState } from '../logic/localStorageState';
@@ -221,6 +218,13 @@ const JapaneseTimePracticeToolPage = () => {
     }
   }, [card.hour24, card.minute, stopPlayback, volumeLevel]);
 
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Time Tool] Unexpected reveal audio rejection:', error);
+      setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
+    });
+  }, [playCurrentCardAudio, setPlaybackHint]);
+
   const revealCard = useCallback(() => {
     trackTimePracticeEvent('reveal_answer', 'random');
     setIsRevealed(true);
@@ -228,10 +232,8 @@ const JapaneseTimePracticeToolPage = () => {
       return;
     }
 
-    playCurrentCardAudio().catch(() => {
-      setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
-    });
-  }, [playCurrentCardAudio, settings.autoPlayAudio]);
+    triggerRevealAudioPlayback();
+  }, [settings.autoPlayAudio, triggerRevealAudioPlayback]);
 
   const advanceToRandomCard = useCallback(() => {
     setIsRevealed(false);

@@ -1,7 +1,4 @@
-import {
-  playAudioClipSequence,
-  type AudioSequencePlayback,
-} from '../../japaneseDate/logic/preRenderedTimeAudio';
+import { playAudioClipSequence, type AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import type { CounterPracticeCard } from './counterPractice';
 
 type CounterPlaybackOptions = {

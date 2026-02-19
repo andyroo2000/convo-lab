@@ -10,6 +10,16 @@ const MIN_TTL_SECONDS = 5 * 60;
 const MAX_TTL_SECONDS = 24 * 60 * 60;
 const MAX_PATHS_PER_REQUEST = 60;
 const MAX_PATH_LENGTH = 300;
+const DEFAULT_SIGNED_URL_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const DEFAULT_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = 120;
+const MAX_SIGNED_URL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+const MAX_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = 5000;
+const MAX_SIGNED_URL_RATE_LIMIT_ENTRIES = 10_000;
+
+type RateLimitEntry = {
+  windowStartMs: number;
+  requestCount: number;
+};
 
 interface SignedUrlRequestBody {
   paths?: unknown;
@@ -60,6 +70,103 @@ const toPathArray = (value: unknown): string[] | null => {
   return Array.from(new Set(normalized as string[]));
 };
 
+// In-memory per-instance limiter state: suitable for a single app instance and
+// non-critical abuse controls, but not a shared/global limiter across replicas.
+// If this endpoint needs cross-replica enforcement, move counters to shared
+// storage (for example Redis) and enforce limits there.
+const signedUrlRateLimitByIp = new Map<string, RateLimitEntry>();
+
+const parseEnvInteger = (
+  rawValue: string | undefined,
+  fallback: number,
+  minimum: number,
+  maximum: number
+): number => {
+  const parsed = Number.parseInt(rawValue ?? `${fallback}`, 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(Math.max(parsed, minimum), maximum);
+};
+
+const getSignedUrlRateLimitConfig = () => ({
+  windowMs: parseEnvInteger(
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS,
+    DEFAULT_SIGNED_URL_RATE_LIMIT_WINDOW_MS,
+    1000,
+    MAX_SIGNED_URL_RATE_LIMIT_WINDOW_MS
+  ),
+  maxRequests: parseEnvInteger(
+    process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS,
+    DEFAULT_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS,
+    1,
+    MAX_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS
+  ),
+});
+
+// Parse once at module load; tests that need alternate values re-import this route
+// after updating env.
+const SIGNED_URL_RATE_LIMIT_CONFIG = getSignedUrlRateLimitConfig();
+
+const getClientIp = (ip: string | undefined, remoteAddress: string | undefined): string => {
+  if (ip) {
+    return ip;
+  }
+  if (remoteAddress) {
+    return remoteAddress;
+  }
+  // Fail closed: unknown clients share one bucket instead of bypassing limiter.
+  return 'unknown';
+};
+
+const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
+  signedUrlRateLimitByIp.forEach((entry, ip) => {
+    if (nowMs - entry.windowStartMs >= windowMs) {
+      signedUrlRateLimitByIp.delete(ip);
+    }
+  });
+};
+
+const applySignedUrlRateLimit = (
+  ip: string,
+  nowMs: number,
+  windowMs: number,
+  maxRequests: number
+): boolean => {
+  pruneRateLimitEntries(nowMs, windowMs);
+
+  const existingEntry = signedUrlRateLimitByIp.get(ip);
+  if (!existingEntry || nowMs - existingEntry.windowStartMs >= windowMs) {
+    while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
+      const earliestInsertedIp = signedUrlRateLimitByIp.keys().next().value;
+      if (!earliestInsertedIp) {
+        break;
+      }
+      signedUrlRateLimitByIp.delete(earliestInsertedIp);
+    }
+
+    signedUrlRateLimitByIp.set(ip, { windowStartMs: nowMs, requestCount: 1 });
+    return false;
+  }
+
+  if (existingEntry.requestCount >= maxRequests) {
+    return true;
+  }
+
+  existingEntry.requestCount += 1;
+  return false;
+};
+
+const getRateLimitRetryAfterSeconds = (ip: string, nowMs: number, windowMs: number): number => {
+  const entry = signedUrlRateLimitByIp.get(ip);
+  if (!entry) {
+    return Math.ceil(windowMs / 1000);
+  }
+
+  const retryAfterMs = Math.max(1000, entry.windowStartMs + windowMs - nowMs);
+  return Math.ceil(retryAfterMs / 1000);
+};
+
 const parseTtlSeconds = (): number => {
   const rawValue = Number.parseInt(
     process.env.TOOLS_AUDIO_SIGNED_URL_TTL_SECONDS ?? `${DEFAULT_TTL_SECONDS}`,
@@ -91,7 +198,21 @@ const toBucketObjectPath = (requestPath: string): string => {
   return `${root}/${relativePath}`;
 };
 
+// Public-by-design endpoint for static practice audio; constrained by strict path
+// validation, file allowlisting, and per-IP rate limiting.
 router.post('/signed-urls', async (req, res) => {
+  const { maxRequests, windowMs } = SIGNED_URL_RATE_LIMIT_CONFIG;
+  const nowMs = Date.now();
+  const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
+
+  if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
+    const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
+    res.set('Retry-After', `${retryAfterSeconds}`);
+    return res.status(429).json({
+      error: 'Too many signed-url requests. Please retry shortly.',
+    });
+  }
+
   const body = req.body as SignedUrlRequestBody | null;
   const paths = toPathArray(body?.paths);
 

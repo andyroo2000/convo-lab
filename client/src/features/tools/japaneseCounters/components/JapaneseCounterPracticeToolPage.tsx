@@ -157,12 +157,17 @@ const JapaneseCounterPracticeToolPage = () => {
     }
   }, [card.counterId, card.object.id, card.quantity, stopPlayback, volumeLevel]);
 
-  const revealCard = useCallback(() => {
-    setIsRevealed(true);
-    playCurrentCardAudio().catch(() => {
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Counter Tool] Unexpected reveal audio rejection:', error);
       setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
     });
-  }, [playCurrentCardAudio]);
+  }, [playCurrentCardAudio, setPlaybackHint]);
+
+  const revealCard = useCallback(() => {
+    setIsRevealed(true);
+    triggerRevealAudioPlayback();
+  }, [triggerRevealAudioPlayback]);
 
   const rememberCardObject = useCallback((currentCard: CounterPracticeCard): string[] => {
     const key = buildCardObjectHistoryKey(currentCard);
@@ -246,7 +251,14 @@ const JapaneseCounterPracticeToolPage = () => {
     clearCountdownInterval();
 
     if (!isPowerOn) {
+      clearAutoAdvanceTimer();
+      clearRevealTimer();
+      clearNextLedTimer();
+      stopPlayback();
+      setIsNextLedActive(false);
       setCountdownSeconds(null);
+      // Intentionally preserve the current card and reveal state while powered
+      // off so practice can resume from the same spot after toggling power back on.
       return undefined;
     }
 
@@ -298,37 +310,13 @@ const JapaneseCounterPracticeToolPage = () => {
     card.id,
     clearAutoAdvanceTimer,
     clearCountdownInterval,
+    clearNextLedTimer,
     clearRevealTimer,
     isPowerOn,
     isRevealed,
     pauseSeconds,
     playCurrentCardAudio,
     revealCard,
-  ]);
-
-  useEffect(() => {
-    if (isPowerOn) {
-      return undefined;
-    }
-
-    clearAutoAdvanceTimer();
-    clearCountdownInterval();
-    clearRevealTimer();
-    stopPlayback();
-    setCountdownSeconds(null);
-
-    return () => {
-      clearAutoAdvanceTimer();
-      clearCountdownInterval();
-      clearRevealTimer();
-      clearNextLedTimer();
-    };
-  }, [
-    clearAutoAdvanceTimer,
-    clearCountdownInterval,
-    clearNextLedTimer,
-    clearRevealTimer,
-    isPowerOn,
     stopPlayback,
   ]);
 
