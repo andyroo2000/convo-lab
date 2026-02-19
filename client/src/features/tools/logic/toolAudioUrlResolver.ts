@@ -29,8 +29,11 @@ const extractToolAudioPath = (value: string): string | null => {
   }
 };
 
-const isFresh = (cacheEntry: CachedAudioUrl, nowMs: number): boolean =>
-  cacheEntry.expiresAtMs - nowMs > REFRESH_WINDOW_MS;
+const isUsable = (cacheEntry: CachedAudioUrl, nowMs: number): boolean =>
+  cacheEntry.expiresAtMs > nowMs;
+
+const shouldRefresh = (cacheEntry: CachedAudioUrl, nowMs: number): boolean =>
+  cacheEntry.expiresAtMs - nowMs <= REFRESH_WINDOW_MS;
 
 async function fetchSignedUrls(paths: string[]): Promise<Record<string, SignedToolAudioEntry>> {
   const response = await fetch('/api/tools-audio/signed-urls', {
@@ -62,7 +65,7 @@ export async function resolveToolAudioPlaybackUrls(urls: string[]): Promise<stri
         .filter((path): path is string => Boolean(path))
         .filter((path) => {
           const cached = signedUrlCache.get(path);
-          return !cached || !isFresh(cached, nowMs);
+          return !cached || !isUsable(cached, nowMs) || shouldRefresh(cached, nowMs);
         })
     )
   );
@@ -95,7 +98,7 @@ export async function resolveToolAudioPlaybackUrls(urls: string[]): Promise<stri
     }
 
     const cached = signedUrlCache.get(path);
-    if (!cached || !isFresh(cached, Date.now())) {
+    if (!cached || !isUsable(cached, Date.now())) {
       return url;
     }
 

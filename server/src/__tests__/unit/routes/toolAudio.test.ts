@@ -100,4 +100,15 @@ describe('toolAudio route', () => {
       })
       .expect(400);
   });
+
+  it('rejects malformed absolute URLs instead of throwing', async () => {
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .send({
+        paths: ['https://[bad'],
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toContain('valid /tools-audio/*.mp3 values');
+  });
 });

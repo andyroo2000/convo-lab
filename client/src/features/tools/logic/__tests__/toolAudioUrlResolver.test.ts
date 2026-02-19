@@ -67,6 +67,28 @@ describe('toolAudioUrlResolver', () => {
     expect(resolved).toEqual([originalUrl]);
   });
 
+  it('uses signed URLs even when they are within the refresh window', async () => {
+    const signedUrl = 'https://signed.example/short-lived.mp3';
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        urls: {
+          '/tools-audio/japanese-counters/google-kento-professional/phrase/hon/pencil/06.mp3': {
+            url: signedUrl,
+            expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+          },
+        },
+      }),
+    } as Response);
+
+    const originalUrl =
+      '/tools-audio/japanese-counters/google-kento-professional/phrase/hon/pencil/06.mp3';
+    const resolved = await resolveToolAudioPlaybackUrls([originalUrl]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(resolved).toEqual([signedUrl]);
+  });
+
   it('does not call signed-url API for non-tool URLs', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch');
     const url = 'https://example.com/audio.mp3';

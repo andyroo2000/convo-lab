@@ -30,7 +30,13 @@ const toPathArray = (value: unknown): string[] | null => {
       return null;
     }
 
-    const parsed = new URL(trimmed, 'https://convo-lab.local');
+    let parsed: URL;
+    try {
+      parsed = new URL(trimmed, 'https://convo-lab.local');
+    } catch {
+      return null;
+    }
+
     const pathname = parsed.pathname;
     if (parsed.search || parsed.hash) {
       return null;
@@ -86,8 +92,8 @@ const toBucketObjectPath = (requestPath: string): string => {
 };
 
 router.post('/signed-urls', async (req, res) => {
-  const body = req.body as SignedUrlRequestBody;
-  const paths = toPathArray(body.paths);
+  const body = req.body as SignedUrlRequestBody | null;
+  const paths = toPathArray(body?.paths);
 
   if (!paths) {
     return res.status(400).json({
