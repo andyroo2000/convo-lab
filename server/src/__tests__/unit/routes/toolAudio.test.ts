@@ -155,6 +155,8 @@ describe('toolAudio route', () => {
       .expect(429);
 
     expect(response.body.error).toContain('Too many signed-url requests');
+    expect(response.headers['retry-after']).toBeDefined();
+    expect(Number(response.headers['retry-after'])).toBeGreaterThanOrEqual(1);
   });
 
   it('ignores x-forwarded-for when trust proxy is disabled', async () => {
@@ -177,6 +179,14 @@ describe('toolAudio route', () => {
       .set('x-forwarded-for', '198.51.100.4')
       .send(payload)
       .expect(429);
+
+    const response = await request(app)
+      .post('/api/tools-audio/signed-urls')
+      .set('x-forwarded-for', '198.51.100.5')
+      .send(payload)
+      .expect(429);
+
+    expect(response.headers['retry-after']).toBeDefined();
   });
 
   it('uses x-forwarded-for when trust proxy is enabled', async () => {
@@ -205,6 +215,7 @@ describe('toolAudio route', () => {
       .post('/api/tools-audio/signed-urls')
       .set('x-forwarded-for', '203.0.113.10')
       .send(payload)
-      .expect(429);
+      .expect(429)
+      .expect('Retry-After', /.+/);
   });
 });

@@ -14,6 +14,7 @@ const DEFAULT_SIGNED_URL_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const DEFAULT_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = 120;
 const MAX_SIGNED_URL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const MAX_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = 5000;
+const MAX_SIGNED_URL_RATE_LIMIT_ENTRIES = 10_000;
 
 type RateLimitEntry = {
   windowStartMs: number;
@@ -110,6 +111,17 @@ const applySignedUrlRateLimit = (
 ): boolean => {
   const existingEntry = signedUrlRateLimitByIp.get(ip);
   if (!existingEntry || nowMs - existingEntry.windowStartMs >= windowMs) {
+    if (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
+      pruneRateLimitEntries(nowMs, windowMs);
+      while (signedUrlRateLimitByIp.size >= MAX_SIGNED_URL_RATE_LIMIT_ENTRIES) {
+        const oldestIp = signedUrlRateLimitByIp.keys().next().value;
+        if (!oldestIp) {
+          break;
+        }
+        signedUrlRateLimitByIp.delete(oldestIp);
+      }
+    }
+
     signedUrlRateLimitByIp.set(ip, { windowStartMs: nowMs, requestCount: 1 });
     return false;
   }
@@ -128,6 +140,16 @@ const pruneRateLimitEntries = (nowMs: number, windowMs: number) => {
       signedUrlRateLimitByIp.delete(ip);
     }
   });
+};
+
+const getRateLimitRetryAfterSeconds = (ip: string, nowMs: number, windowMs: number): number => {
+  const entry = signedUrlRateLimitByIp.get(ip);
+  if (!entry) {
+    return Math.ceil(windowMs / 1000);
+  }
+
+  const retryAfterMs = Math.max(1000, entry.windowStartMs + windowMs - nowMs);
+  return Math.ceil(retryAfterMs / 1000);
 };
 
 const parseTtlSeconds = (): number => {
@@ -170,6 +192,8 @@ router.post('/signed-urls', async (req, res) => {
 
   pruneRateLimitEntries(nowMs, windowMs);
   if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
+    const retryAfterSeconds = getRateLimitRetryAfterSeconds(clientIp, nowMs, windowMs);
+    res.set('Retry-After', `${retryAfterSeconds}`);
     return res.status(429).json({
       error: 'Too many signed-url requests. Please retry shortly.',
     });

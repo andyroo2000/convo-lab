@@ -222,8 +222,9 @@ const JapaneseDateToolPage = () => {
   const triggerRevealAudioPlayback = useCallback(() => {
     playCurrentCardAudio().catch((error) => {
       console.warn('[Date Tool] Unexpected reveal audio rejection:', error);
+      setPlaybackHint('Autoplay was blocked. Tap Auto-Play or Show Answer to hear audio.');
     });
-  }, [playCurrentCardAudio]);
+  }, [playCurrentCardAudio, setPlaybackHint]);
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);

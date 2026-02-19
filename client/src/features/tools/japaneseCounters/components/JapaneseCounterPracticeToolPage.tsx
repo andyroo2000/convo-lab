@@ -160,8 +160,9 @@ const JapaneseCounterPracticeToolPage = () => {
   const triggerRevealAudioPlayback = useCallback(() => {
     playCurrentCardAudio().catch((error) => {
       console.warn('[Counter Tool] Unexpected reveal audio rejection:', error);
+      setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
     });
-  }, [playCurrentCardAudio]);
+  }, [playCurrentCardAudio, setPlaybackHint]);
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);

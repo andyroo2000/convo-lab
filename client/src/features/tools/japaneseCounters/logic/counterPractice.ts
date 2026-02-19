@@ -184,12 +184,8 @@ const COUNTER_OPTIONS: CounterOption[] = [
   },
 ];
 
-const COUNTER_OPTIONS_BY_ID: Record<CounterId, CounterOption> = COUNTER_OPTIONS.reduce(
-  (acc, option) => {
-    acc[option.id] = option;
-    return acc;
-  },
-  {} as Record<CounterId, CounterOption>
+const COUNTER_OPTIONS_BY_ID = new Map<CounterId, CounterOption>(
+  COUNTER_OPTIONS.map((option) => [option.id, option])
 );
 const COUNTER_ID_SET = new Set<CounterId>(COUNTER_OPTIONS.map((option) => option.id));
 
@@ -700,7 +696,10 @@ export function createCounterPracticeCard(
   );
   const counterId =
     selectableCounterIds.length > 0 ? randomItem(selectableCounterIds) : randomItem(safeCounterIds);
-  const counter = COUNTER_OPTIONS_BY_ID[counterId];
+  const counter = COUNTER_OPTIONS_BY_ID.get(counterId);
+  if (!counter) {
+    throw new Error(`Missing counter option for id: ${counterId}`);
+  }
   const eligibleObjects = COUNTER_OBJECTS[counterId].filter(
     (object) => !excludedObjectKeys.has(buildObjectHistoryKey(counterId, object.id))
   );

@@ -221,8 +221,9 @@ const JapaneseTimePracticeToolPage = () => {
   const triggerRevealAudioPlayback = useCallback(() => {
     playCurrentCardAudio().catch((error) => {
       console.warn('[Time Tool] Unexpected reveal audio rejection:', error);
+      setPlaybackHint('Autoplay was blocked. Tap Play or Next to hear audio.');
     });
-  }, [playCurrentCardAudio]);
+  }, [playCurrentCardAudio, setPlaybackHint]);
 
   const revealCard = useCallback(() => {
     trackTimePracticeEvent('reveal_answer', 'random');
