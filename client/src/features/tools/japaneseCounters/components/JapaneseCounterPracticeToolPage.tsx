@@ -157,10 +157,16 @@ const JapaneseCounterPracticeToolPage = () => {
     }
   }, [card.counterId, card.object.id, card.quantity, stopPlayback, volumeLevel]);
 
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Counter Tool] Unexpected reveal audio rejection:', error);
+    });
+  }, [playCurrentCardAudio]);
+
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    playCurrentCardAudio();
-  }, [playCurrentCardAudio]);
+    triggerRevealAudioPlayback();
+  }, [triggerRevealAudioPlayback]);
 
   const rememberCardObject = useCallback((currentCard: CounterPracticeCard): string[] => {
     const key = buildCardObjectHistoryKey(currentCard);

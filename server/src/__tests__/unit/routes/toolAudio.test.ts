@@ -12,27 +12,25 @@ vi.mock('../../../services/storageClient.js', () => ({
   getSignedReadUrl: storageClientMocks.getSignedReadUrl,
 }));
 
-import toolAudioRoutes, { resetToolAudioRateLimitForTests } from '../../../routes/toolAudio.js';
-
 describe('toolAudio route', () => {
   let app: Application;
   const originalEnv = process.env;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    vi.resetModules();
     process.env = { ...originalEnv };
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_MAX_REQUESTS = '500';
     process.env.TOOLS_AUDIO_SIGNED_URL_RATE_LIMIT_WINDOW_MS = '60000';
+    const { default: toolAudioRoutes } = await import('../../../routes/toolAudio.js');
     app = express();
     app.use(json());
     app.use('/api/tools-audio', toolAudioRoutes);
     storageClientMocks.gcsFileExists.mockResolvedValue(true);
     storageClientMocks.getSignedReadUrl.mockReset();
-    resetToolAudioRateLimitForTests();
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    resetToolAudioRateLimitForTests();
   });
 
   it('returns passthrough URLs when signing is disabled', async () => {

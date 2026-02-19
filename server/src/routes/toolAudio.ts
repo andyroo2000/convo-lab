@@ -1,4 +1,4 @@
-import { type Request, Router } from 'express';
+import { Router } from 'express';
 
 import { gcsFileExists, getSignedReadUrl } from '../services/storageClient.js';
 
@@ -99,31 +99,8 @@ const getSignedUrlRateLimitConfig = () => ({
   ),
 });
 
-const getForwardedClientIp = (req: Request): string | null => {
-  const forwarded = req.headers['x-forwarded-for'];
-
-  if (typeof forwarded === 'string' && forwarded.trim().length > 0) {
-    return forwarded.split(',')[0].trim();
-  }
-
-  if (Array.isArray(forwarded) && forwarded.length > 0 && forwarded[0].trim().length > 0) {
-    return forwarded[0].trim();
-  }
-
-  return null;
-};
-
-const getClientIp = (req: Request): string => {
-  const trustProxy = req.app.get('trust proxy');
-  if (trustProxy) {
-    const forwardedIp = getForwardedClientIp(req);
-    if (forwardedIp) {
-      return forwardedIp;
-    }
-  }
-
-  return req.ip || 'unknown';
-};
+const getClientIp = (ip: string | undefined, remoteAddress: string | undefined): string =>
+  ip || remoteAddress || 'unknown';
 
 const applySignedUrlRateLimit = (
   ip: string,
@@ -189,7 +166,7 @@ const toBucketObjectPath = (requestPath: string): string => {
 router.post('/signed-urls', async (req, res) => {
   const { maxRequests, windowMs } = getSignedUrlRateLimitConfig();
   const nowMs = Date.now();
-  const clientIp = getClientIp(req);
+  const clientIp = getClientIp(req.ip, req.socket.remoteAddress);
 
   pruneRateLimitEntries(nowMs, windowMs);
   if (applySignedUrlRateLimit(clientIp, nowMs, windowMs, maxRequests)) {
@@ -247,9 +224,5 @@ router.post('/signed-urls', async (req, res) => {
     urls: Object.fromEntries(resolvedEntries),
   });
 });
-
-export function resetToolAudioRateLimitForTests(): void {
-  signedUrlRateLimitByIp.clear();
-}
 
 export default router;

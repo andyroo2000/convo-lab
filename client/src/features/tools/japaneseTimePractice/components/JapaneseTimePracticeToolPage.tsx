@@ -218,6 +218,12 @@ const JapaneseTimePracticeToolPage = () => {
     }
   }, [card.hour24, card.minute, stopPlayback, volumeLevel]);
 
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Time Tool] Unexpected reveal audio rejection:', error);
+    });
+  }, [playCurrentCardAudio]);
+
   const revealCard = useCallback(() => {
     trackTimePracticeEvent('reveal_answer', 'random');
     setIsRevealed(true);
@@ -225,8 +231,8 @@ const JapaneseTimePracticeToolPage = () => {
       return;
     }
 
-    playCurrentCardAudio();
-  }, [playCurrentCardAudio, settings.autoPlayAudio]);
+    triggerRevealAudioPlayback();
+  }, [settings.autoPlayAudio, triggerRevealAudioPlayback]);
 
   const advanceToRandomCard = useCallback(() => {
     setIsRevealed(false);

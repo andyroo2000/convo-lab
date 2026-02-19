@@ -219,10 +219,16 @@ const JapaneseDateToolPage = () => {
     }
   }, [card.date, showYear, stopPlayback, volumeLevel]);
 
+  const triggerRevealAudioPlayback = useCallback(() => {
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Date Tool] Unexpected reveal audio rejection:', error);
+    });
+  }, [playCurrentCardAudio]);
+
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-    playCurrentCardAudio();
-  }, [playCurrentCardAudio]);
+    triggerRevealAudioPlayback();
+  }, [triggerRevealAudioPlayback]);
 
   const advanceToNextCard = useCallback(() => {
     setIsRevealed(false);
