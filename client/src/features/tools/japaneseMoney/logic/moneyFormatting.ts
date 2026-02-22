@@ -1,4 +1,15 @@
-const DIGIT_READINGS = ['', 'いち', 'に', 'さん', 'よん', 'ご', 'ろく', 'なな', 'はち', 'きゅう'] as const;
+const DIGIT_READINGS = [
+  '',
+  'いち',
+  'に',
+  'さん',
+  'よん',
+  'ご',
+  'ろく',
+  'なな',
+  'はち',
+  'きゅう',
+] as const;
 const UNIT_SCRIPT = ['', '万', '億', '兆'] as const;
 const UNIT_KANA = ['', 'まん', 'おく', 'ちょう'] as const;
 
@@ -126,19 +137,17 @@ export function buildMoneyReading(amount: number): MoneyReading {
 
   for (let index = chunks.length - 1; index >= 0; index -= 1) {
     const chunk = chunks[index];
-    if (chunk === 0) {
-      continue;
+    if (chunk !== 0) {
+      const unitScript = UNIT_SCRIPT[index] ?? '';
+      const unitKana = UNIT_KANA[index] ?? '';
+
+      segments.push({
+        digits: String(chunk),
+        digitsReading: readUnder10000(chunk),
+        unitScript,
+        unitKana,
+      });
     }
-
-    const unitScript = UNIT_SCRIPT[index] ?? '';
-    const unitKana = UNIT_KANA[index] ?? '';
-
-    segments.push({
-      digits: String(chunk),
-      digitsReading: readUnder10000(chunk),
-      unitScript,
-      unitKana,
-    });
   }
 
   const kana = `${segments

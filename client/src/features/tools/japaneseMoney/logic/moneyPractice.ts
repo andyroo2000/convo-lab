@@ -60,7 +60,9 @@ export const MONEY_TIERS: MoneyTier[] = [
   },
 ];
 
-const MONEY_TIER_BY_ID = new Map<MoneyTierId, MoneyTier>(MONEY_TIERS.map((tier) => [tier.id, tier]));
+const MONEY_TIER_BY_ID = new Map<MoneyTierId, MoneyTier>(
+  MONEY_TIERS.map((tier) => [tier.id, tier])
+);
 
 const TEMPLATE_BY_TIER: Record<MoneyTierId, ReceiptTemplateId> = {
   lt_1k: 'lawsen-24',
@@ -81,7 +83,7 @@ const randomInt = (min: number, max: number): number => {
   return Math.floor(Math.random() * (upper - lower + 1)) + lower;
 };
 
-const randomItem = <T,>(items: readonly T[]): T => items[randomInt(0, items.length - 1)];
+const randomItem = <T>(items: readonly T[]): T => items[randomInt(0, items.length - 1)];
 
 const buildReceiptNumber = (): string => {
   const timestampPart = Date.now().toString(36).toUpperCase();
@@ -112,8 +114,14 @@ const splitAmount = (totalAmount: number, count: number): number[] => {
 };
 
 const pickLineItems = (template: ReceiptTemplateDefinition, amount: number): ReceiptLineItem[] => {
-  const itemCount =
-    amount < 3_000 ? 1 : amount < 1_000_000 ? randomInt(2, 3) : randomInt(3, 4);
+  let itemCount: number;
+  if (amount < 3_000) {
+    itemCount = 1;
+  } else if (amount < 1_000_000) {
+    itemCount = randomInt(2, 3);
+  } else {
+    itemCount = randomInt(3, 4);
+  }
 
   const labels = [...template.itemPool];
   const chosenLabels: string[] = [];
@@ -121,12 +129,11 @@ const pickLineItems = (template: ReceiptTemplateDefinition, amount: number): Rec
   for (let index = 0; index < itemCount; index += 1) {
     if (labels.length === 0) {
       chosenLabels.push(`Line Item ${index + 1}`);
-      continue;
+    } else {
+      const labelIndex = randomInt(0, labels.length - 1);
+      const [label] = labels.splice(labelIndex, 1);
+      chosenLabels.push(label);
     }
-
-    const labelIndex = randomInt(0, labels.length - 1);
-    const [label] = labels.splice(labelIndex, 1);
-    chosenLabels.push(label);
   }
 
   const split = splitAmount(amount, itemCount).sort((left, right) => right - left);
@@ -138,7 +145,8 @@ const pickLineItems = (template: ReceiptTemplateDefinition, amount: number): Rec
   }));
 };
 
-const createAmountFromTier = (tier: MoneyTier): number => randomInt(tier.minInclusive, tier.maxExclusive - 1);
+const createAmountFromTier = (tier: MoneyTier): number =>
+  randomInt(tier.minInclusive, tier.maxExclusive - 1);
 
 export function sanitizeMoneyTierId(value: string | null | undefined): MoneyTierId {
   if (!value || !MONEY_TIER_BY_ID.has(value as MoneyTierId)) {
@@ -157,7 +165,9 @@ export function getMoneyTierById(tierId: MoneyTierId): MoneyTier {
   return tier;
 }
 
-export function createMoneyPracticeCard(tierId: MoneyTierId = DEFAULT_MONEY_TIER_ID): MoneyPracticeCard {
+export function createMoneyPracticeCard(
+  tierId: MoneyTierId = DEFAULT_MONEY_TIER_ID
+): MoneyPracticeCard {
   const tier = getMoneyTierById(tierId);
   const amount = createAmountFromTier(tier);
   const templateId = TEMPLATE_BY_TIER[tierId];
