@@ -161,7 +161,7 @@ const JapaneseMoneyToolPage = () => {
             ) : null}
             <p className="retro-money-meta">
               <span>{card.template.headerLabel}</span>
-              <span>Receipt #{card.receiptNumber}</span>
+              <span>レシート番号 {card.receiptNumber}</span>
               <span>{issuedAtLabel}</span>
             </p>
           </header>
@@ -176,7 +176,7 @@ const JapaneseMoneyToolPage = () => {
           </div>
 
           <div className="retro-money-total-row">
-            <span className="retro-money-total-label">TOTAL</span>
+            <span className="retro-money-total-label">合計</span>
             <span className="retro-money-total-value" data-testid="money-total-amount">
               {formattedAmount}
             </span>
@@ -186,7 +186,7 @@ const JapaneseMoneyToolPage = () => {
           {isRevealed ? (
             <p className="japanese-text retro-money-reading-kana" data-testid="money-reading-kana">
               <Banknote
-                className="inline-block h-7 w-7 align-[-0.12em] text-[#0f3e6e]"
+                className="inline-block h-5 w-5 align-[-0.12em] text-[#0f3e6e]"
                 aria-hidden
               />{' '}
               {reading.kana}
