@@ -131,95 +131,104 @@ const JapaneseMoneyToolPage = () => {
       </section>
 
       <section className="card retro-paper-panel retro-money-card">
-        <h2 className="retro-headline text-base sm:text-lg">Amount Tier</h2>
-        <div className="retro-money-tier-grid" role="group" aria-label="Money amount tier">
-          {MONEY_TIERS.map((tier) => {
-            const isActive = selectedTierIds.includes(tier.id);
+        <div className="retro-money-practice-layout">
+          <div className="retro-money-main">
+            <div
+              className={`retro-money-receipt template-${card.templateId}`}
+              role="region"
+              aria-label="Japanese receipt card"
+            >
+              <header className="retro-money-receipt-head">
+                <p className="retro-money-category">{card.template.categoryLabel}</p>
+                <h2 className="retro-money-store">{card.storeName}</h2>
+                {card.storeKana ? <p className="retro-money-store-kana">{card.storeKana}</p> : null}
+                <p className="retro-money-meta">
+                  <span>{card.template.headerLabel}</span>
+                  <span>レシート番号 {card.receiptNumber}</span>
+                  <span>{issuedAtLabel}</span>
+                </p>
+              </header>
 
-            return (
-              <button
-                key={tier.id}
-                type="button"
-                aria-pressed={isActive}
-                aria-label={`Use amount tier ${tier.label}`}
-                className={`retro-money-tier-btn ${isActive ? 'is-active' : ''}`}
-                onClick={() => handleTierChange(tier.id)}
-              >
-                {tier.label}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="card retro-paper-panel retro-money-card">
-        <div
-          className={`retro-money-receipt template-${card.templateId}`}
-          role="region"
-          aria-label="Japanese receipt card"
-        >
-          <header className="retro-money-receipt-head">
-            <p className="retro-money-category">{card.template.categoryLabel}</p>
-            <h2 className="retro-money-store">{card.storeName}</h2>
-            {card.storeKana ? <p className="retro-money-store-kana">{card.storeKana}</p> : null}
-            <p className="retro-money-meta">
-              <span>{card.template.headerLabel}</span>
-              <span>レシート番号 {card.receiptNumber}</span>
-              <span>{issuedAtLabel}</span>
-            </p>
-          </header>
-
-          <div className="retro-money-line-items">
-            {card.lineItems.map((lineItem) => (
-              <div className="retro-money-line-item" key={lineItem.id}>
-                <span className="retro-money-line-label">{lineItem.description}</span>
-                <span className="retro-money-line-value">{formatYenAmount(lineItem.amount)}</span>
+              <div className="retro-money-line-items">
+                {card.lineItems.map((lineItem) => (
+                  <div className="retro-money-line-item" key={lineItem.id}>
+                    <span className="retro-money-line-label">{lineItem.description}</span>
+                    <span className="retro-money-line-value">
+                      {formatYenAmount(lineItem.amount)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
+
+              <div className="retro-money-total-row">
+                <span className="retro-money-total-label">合計</span>
+                <span className="retro-money-total-value" data-testid="money-total-amount">
+                  {formattedAmount}
+                </span>
+              </div>
+            </div>
+            <div className="retro-money-reading-box" aria-live="polite">
+              {isRevealed ? (
+                <p
+                  className="japanese-text retro-money-reading-kana"
+                  data-testid="money-reading-kana"
+                >
+                  <Banknote
+                    className="inline-block h-5 w-5 align-[-0.12em] text-[#0f3e6e]"
+                    aria-hidden
+                  />{' '}
+                  {reading.kana}
+                </p>
+              ) : (
+                <p className="retro-money-reading-placeholder">
+                  Press <strong>Show Answer</strong> to reveal the Japanese reading.
+                </p>
+              )}
+            </div>
+
+            <div className="retro-money-controls" role="group" aria-label="Money quiz controls">
+              <button
+                type="button"
+                onClick={handlePrevious}
+                disabled={historyDepth === 0}
+                className="retro-money-control-btn"
+                aria-label="Go to previous amount"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="retro-money-control-btn is-primary"
+                aria-label={isRevealed ? 'Advance to the next amount' : 'Show answer'}
+              >
+                {nextButtonLabel}
+                <ArrowRightLeft className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
-          <div className="retro-money-total-row">
-            <span className="retro-money-total-label">合計</span>
-            <span className="retro-money-total-value" data-testid="money-total-amount">
-              {formattedAmount}
-            </span>
-          </div>
-        </div>
-        <div className="retro-money-reading-box" aria-live="polite">
-          {isRevealed ? (
-            <p className="japanese-text retro-money-reading-kana" data-testid="money-reading-kana">
-              <Banknote
-                className="inline-block h-5 w-5 align-[-0.12em] text-[#0f3e6e]"
-                aria-hidden
-              />{' '}
-              {reading.kana}
-            </p>
-          ) : (
-            <p className="retro-money-reading-placeholder">
-              Press <strong>Show Answer</strong> to reveal the Japanese reading.
-            </p>
-          )}
-        </div>
+          <aside className="retro-money-tier-panel" aria-label="Amount Tier filter">
+            <h2 className="retro-headline retro-money-tier-title">Amount Tier</h2>
+            <div className="retro-money-tier-grid" role="group" aria-label="Money amount tier">
+              {MONEY_TIERS.map((tier) => {
+                const isActive = selectedTierIds.includes(tier.id);
 
-        <div className="retro-money-controls" role="group" aria-label="Money quiz controls">
-          <button
-            type="button"
-            onClick={handlePrevious}
-            disabled={historyDepth === 0}
-            className="retro-money-control-btn"
-            aria-label="Go to previous amount"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            className="retro-money-control-btn is-primary"
-            aria-label={isRevealed ? 'Advance to the next amount' : 'Show answer'}
-          >
-            {nextButtonLabel}
-            <ArrowRightLeft className="h-4 w-4" />
-          </button>
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    aria-pressed={isActive}
+                    aria-label={`Use amount tier ${tier.label}`}
+                    className={`retro-money-tier-btn ${isActive ? 'is-active' : ''}`}
+                    onClick={() => handleTierChange(tier.id)}
+                  >
+                    {tier.label}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
         </div>
       </section>
     </div>

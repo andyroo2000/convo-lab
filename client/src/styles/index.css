@@ -4632,23 +4632,50 @@
   border-color: rgba(20, 50, 86, 0.15);
 }
 
-.retro-money-tier-grid {
-  margin-top: 0.85rem;
+.retro-money-practice-layout {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 190px);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.retro-money-main {
+  min-width: 0;
+}
+
+.retro-money-tier-panel {
+  margin-top: 0.2rem;
+  border: 2px solid rgba(20, 50, 86, 0.2);
+  background:
+    linear-gradient(180deg, rgba(253, 250, 241, 0.96), rgba(245, 239, 224, 0.94)),
+    repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.028) 0 1px, transparent 1px 3px);
+  padding: 0.55rem 0.55rem 0.65rem;
+}
+
+.retro-money-tier-title {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.retro-money-tier-grid {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.36rem;
 }
 
 .retro-money-tier-btn {
-  min-height: 2.55rem;
+  min-height: 1.95rem;
   border: 2px solid rgba(20, 50, 86, 0.18);
   background: rgba(251, 245, 224, 0.96);
   color: rgba(20, 50, 86, 0.92);
   font-family: 'Oswald', 'Noto Sans JP', sans-serif;
-  letter-spacing: 0.05em;
-  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+  padding: 0.22rem 0.28rem;
   text-transform: uppercase;
-  box-shadow: 0 4px 0 rgba(17, 51, 92, 0.12);
+  box-shadow: 0 3px 0 rgba(17, 51, 92, 0.12);
 }
 
 .retro-money-tier-btn.is-active {
@@ -4877,8 +4904,19 @@
 }
 
 @media (max-width: 640px) {
+  .retro-money-practice-layout {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .retro-money-tier-panel {
+    order: -1;
+    padding: 0.5rem 0.5rem 0.58rem;
+  }
+
   .retro-money-tier-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
   }
 
   .retro-money-receipt {
@@ -4904,7 +4942,8 @@
 
 @media (max-width: 420px) {
   .retro-money-tier-btn {
-    font-size: 0.68rem;
+    font-size: 0.58rem;
+    min-height: 1.8rem;
   }
 
   .retro-money-line-item {
