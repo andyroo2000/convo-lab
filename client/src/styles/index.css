@@ -4851,56 +4851,52 @@
   box-shadow: none;
 }
 
-.retro-money-reading-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-}
-
-.retro-money-furigana-btn {
-  border: 2px solid rgba(20, 50, 86, 0.2);
-  background: rgba(251, 245, 224, 0.95);
-  color: rgba(20, 50, 86, 0.92);
-  min-height: 2.3rem;
-  padding: 0.4rem 0.72rem;
-  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-size: 0.69rem;
-  box-shadow: 0 4px 0 rgba(17, 51, 92, 0.1);
-}
-
 .retro-money-reading-box {
-  margin-top: 0.65rem;
-  border: 2px solid rgba(20, 50, 86, 0.18);
-  background: rgba(251, 245, 224, 0.96);
-  min-height: 8.2rem;
-  padding: 0.8rem 0.85rem;
+  margin-top: 1rem;
+  border-top: 2px dashed rgba(20, 50, 86, 0.35);
+  min-height: 9.4rem;
+  padding: 0.8rem 0 0;
 }
 
 .retro-money-reading-script {
   margin: 0;
-  font-size: clamp(1.28rem, 0.95rem + 1.4vw, 2.02rem);
-  line-height: 1.18;
+  font-size: clamp(2.3rem, 1.55rem + 2.8vw, 4.6rem);
+  line-height: 1.05;
   color: rgba(16, 52, 86, 0.98);
+  letter-spacing: 0.01em;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
 }
 
 .retro-money-reading-segment {
   display: inline-flex;
-  align-items: baseline;
-  margin-right: 0.2rem;
+  align-items: flex-end;
+  margin-right: 0.18rem;
+}
+
+.retro-money-reading-ruby {
+  display: inline-grid;
+  justify-items: center;
+}
+
+.retro-money-reading-rt {
+  font-size: 0.44em;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  white-space: nowrap;
+  transform: translateY(-0.04em);
 }
 
 .retro-money-reading-unit {
-  margin-left: 0.06rem;
+  margin-left: 0.03rem;
+  font-size: 0.72em;
+  line-height: 1;
 }
 
 .retro-money-reading-kana {
-  margin: 0.6rem 0 0;
+  margin: 0.72rem 0 0;
   color: rgba(20, 50, 86, 0.82);
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   line-height: 1.4;
 }
 
@@ -4924,6 +4920,10 @@
     font-size: clamp(1.45rem, 7vw, 2.02rem);
   }
 
+  .retro-money-reading-script {
+    font-size: clamp(1.75rem, 8.8vw, 3rem);
+  }
+
   .retro-money-controls {
     justify-content: stretch;
   }
@@ -4943,8 +4943,8 @@
   }
 
   .retro-money-reading-box {
-    min-height: 7.6rem;
-    padding: 0.68rem 0.65rem;
+    min-height: 7.2rem;
+    padding-top: 0.62rem;
   }
 }
 

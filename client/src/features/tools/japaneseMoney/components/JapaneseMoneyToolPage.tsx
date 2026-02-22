@@ -10,7 +10,11 @@ import {
   type MoneyPracticeCard,
   type MoneyTierId,
 } from '../logic/moneyPractice';
-import { buildMoneyReading, formatReceiptTimestamp, formatYenAmount } from '../logic/moneyFormatting';
+import {
+  buildMoneyReading,
+  formatReceiptTimestamp,
+  formatYenAmount,
+} from '../logic/moneyFormatting';
 
 interface CardSnapshot {
   card: MoneyPracticeCard;
@@ -19,13 +23,14 @@ interface CardSnapshot {
 }
 
 const HISTORY_LIMIT = 120;
-const RUBY_RT_CLASS = '!text-[0.35em] sm:!text-[0.28em]';
+const RUBY_RT_CLASS = 'retro-money-reading-rt';
 
 const JapaneseMoneyToolPage = () => {
   const [selectedTierId, setSelectedTierId] = useState<MoneyTierId>(DEFAULT_MONEY_TIER_ID);
-  const [card, setCard] = useState<MoneyPracticeCard>(() => createMoneyPracticeCard(DEFAULT_MONEY_TIER_ID));
+  const [card, setCard] = useState<MoneyPracticeCard>(() =>
+    createMoneyPracticeCard(DEFAULT_MONEY_TIER_ID)
+  );
   const [isRevealed, setIsRevealed] = useState(false);
-  const [showFurigana, setShowFurigana] = useState(true);
   const [historyDepth, setHistoryDepth] = useState(0);
 
   const previousCardsRef = useRef<CardSnapshot[]>([]);
@@ -111,10 +116,12 @@ const JapaneseMoneyToolPage = () => {
       <section className="card retro-paper-panel retro-money-card">
         <div className="retro-money-header">
           <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Money</h1>
-          <p className="retro-money-kana text-lg font-semibold text-[#2f4f73] sm:text-xl">日本語のお金</p>
+          <p className="retro-money-kana text-lg font-semibold text-[#2f4f73] sm:text-xl">
+            日本語のお金
+          </p>
           <p className="retro-money-copy mt-1 text-sm text-[#2f4f73] sm:text-base">
-            Read realistic yen totals on receipt-style cards. Start with small purchases, then move up
-            to statement-scale amounts.
+            Read realistic yen totals on receipt-style cards. Start with small purchases, then move
+            up to statement-scale amounts.
           </p>
         </div>
       </section>
@@ -173,6 +180,43 @@ const JapaneseMoneyToolPage = () => {
               {formattedAmount}
             </span>
           </div>
+          <div className="retro-money-reading-box" aria-live="polite">
+            {isRevealed ? (
+              <>
+                <p
+                  className="japanese-text retro-money-reading-script"
+                  data-testid="money-reading-script"
+                >
+                  <Banknote
+                    className="inline-block h-6 w-6 align-[-0.16em] text-[#0f3e6e]"
+                    aria-hidden
+                  />{' '}
+                  {reading.segments.map((segment) => (
+                    <span
+                      key={`${segment.unitScript || 'ones'}-${segment.digits}-${segment.digitsReading}`}
+                      className="retro-money-reading-segment"
+                    >
+                      <ruby className="retro-money-reading-ruby">
+                        {segment.digits}
+                        <rt className={RUBY_RT_CLASS}>{segment.digitsReading}</rt>
+                      </ruby>
+                      {segment.unitScript ? (
+                        <span className="retro-money-reading-unit">{segment.unitScript}</span>
+                      ) : null}
+                    </span>
+                  ))}
+                  <span className="retro-money-reading-unit">円</span>
+                </p>
+                <p className="retro-money-reading-kana" data-testid="money-reading-kana">
+                  {reading.kana}
+                </p>
+              </>
+            ) : (
+              <p className="retro-money-reading-placeholder">
+                Press <strong>Show Answer</strong> to reveal the Japanese reading.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="retro-money-controls" role="group" aria-label="Money quiz controls">
@@ -194,54 +238,6 @@ const JapaneseMoneyToolPage = () => {
             {nextButtonLabel}
             <ArrowRightLeft className="h-4 w-4" />
           </button>
-        </div>
-      </section>
-
-      <section className="card retro-paper-panel retro-money-card">
-        <div className="retro-money-reading-head">
-          <h2 className="retro-headline text-base sm:text-lg">Japanese Reading</h2>
-          <button
-            type="button"
-            onClick={() => setShowFurigana((current) => !current)}
-            aria-pressed={showFurigana}
-            className="retro-money-furigana-btn"
-          >
-            {showFurigana ? 'Hide Furigana' : 'Show Furigana'}
-          </button>
-        </div>
-
-        <div className="retro-money-reading-box" aria-live="polite">
-          {isRevealed ? (
-            <>
-              <p className="japanese-text retro-money-reading-script" data-testid="money-reading-script">
-                <Banknote className="inline-block h-5 w-5 align-[-0.15em] text-[#0f3e6e]" aria-hidden />{' '}
-                {reading.segments.map((segment, index) => (
-                  <span
-                    key={`${segment.digits}-${segment.unitScript}-${index}`}
-                    className="retro-money-reading-segment"
-                  >
-                    <ruby>
-                      {segment.digits}
-                      <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>
-                        {segment.digitsReading}
-                      </rt>
-                    </ruby>
-                    {segment.unitScript ? (
-                      <span className="retro-money-reading-unit">{segment.unitScript}</span>
-                    ) : null}
-                  </span>
-                ))}
-                <span className="retro-money-reading-unit">円</span>
-              </p>
-              <p className="retro-money-reading-kana" data-testid="money-reading-kana">
-                {reading.kana}
-              </p>
-            </>
-          ) : (
-            <p className="retro-money-reading-placeholder">
-              Press <strong>Show Answer</strong> to reveal the Japanese reading.
-            </p>
-          )}
         </div>
       </section>
     </div>

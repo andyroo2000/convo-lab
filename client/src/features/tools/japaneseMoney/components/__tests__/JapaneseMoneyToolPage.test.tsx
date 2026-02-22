@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import JapaneseMoneyToolPage from '../JapaneseMoneyToolPage';
@@ -54,6 +54,19 @@ describe('JapaneseMoneyToolPage', () => {
     expect(screen.getByTestId('money-reading-script')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    expect(screen.getByText(/press show answer to reveal/i)).toBeInTheDocument();
+    const receiptCard = screen.getByRole('region', { name: 'Japanese receipt card' });
+    expect(
+      within(receiptCard).getByText(/to reveal the japanese reading\./i, {
+        selector: '.retro-money-reading-placeholder',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('does not render separate reading title or furigana toggle button', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    expect(screen.queryByRole('heading', { name: 'Japanese Reading' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /hide furigana/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /show furigana/i })).not.toBeInTheDocument();
   });
 });
