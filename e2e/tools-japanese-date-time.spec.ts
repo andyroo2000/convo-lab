@@ -63,9 +63,15 @@ test.describe('Japanese tools routes and playback', () => {
     await page.goto('/tools');
 
     await expect(page.getByRole('heading', { name: 'ConvoLab Tools' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open Japanese Date Practice Tool' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open Japanese Time Practice Tool' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Open Japanese Money Receipt Tool' })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Japanese Date Practice Tool' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Japanese Time Practice Tool' })
+    ).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Japanese Money Receipt Tool' })
+    ).toBeVisible();
     await expect(
       page.getByRole('link', { name: 'Open Japanese Counter Practice Tool' })
     ).toBeVisible();

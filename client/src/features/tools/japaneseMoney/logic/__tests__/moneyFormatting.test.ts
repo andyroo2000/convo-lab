@@ -27,7 +27,9 @@ describe('moneyFormatting', () => {
     it('handles large units up to oku and joins kana correctly', () => {
       const reading = buildMoneyReading(1234567890);
 
-      expect(reading.kana).toBe('じゅうにおくさんぜんよんひゃくごじゅうろくまんななせんはっぴゃくきゅうじゅうえん');
+      expect(reading.kana).toBe(
+        'じゅうにおくさんぜんよんひゃくごじゅうろくまんななせんはっぴゃくきゅうじゅうえん'
+      );
       expect(reading.segments).toEqual([
         {
           digits: '12',

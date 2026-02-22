@@ -56,7 +56,13 @@ export const RECEIPT_TEMPLATE_DEFINITIONS: Record<ReceiptTemplateId, ReceiptTemp
     storeKana: 'いんぺりある べい ほてる',
     categoryLabel: 'Premium Invoice',
     headerLabel: 'Corporate Billing',
-    itemPool: ['Suite Charge', 'Conference Hall', 'Banquet Service', 'Transport Fee', 'Service Charge'],
+    itemPool: [
+      'Suite Charge',
+      'Conference Hall',
+      'Banquet Service',
+      'Transport Fee',
+      'Service Charge',
+    ],
   },
   'tokyo-property-ledger': {
     id: 'tokyo-property-ledger',
@@ -72,7 +78,13 @@ export const RECEIPT_TEMPLATE_DEFINITIONS: Record<ReceiptTemplateId, ReceiptTemp
     storeKana: 'せとるめんと めも',
     categoryLabel: 'Settlement Statement',
     headerLabel: 'Transaction Memo',
-    itemPool: ['Principal Amount', 'Transfer Fee', 'Advisory Fee', 'Processing Cost', 'Documentation Fee'],
+    itemPool: [
+      'Principal Amount',
+      'Transfer Fee',
+      'Advisory Fee',
+      'Processing Cost',
+      'Documentation Fee',
+    ],
   },
   'kizuna-bank': {
     id: 'kizuna-bank',
@@ -80,6 +92,12 @@ export const RECEIPT_TEMPLATE_DEFINITIONS: Record<ReceiptTemplateId, ReceiptTemp
     storeKana: 'きずな ばんく',
     categoryLabel: 'Bank Statement',
     headerLabel: 'Account Statement',
-    itemPool: ['Incoming Transfer', 'Asset Allocation', 'Custody Fee', 'Account Charge', 'Management Fee'],
+    itemPool: [
+      'Incoming Transfer',
+      'Asset Allocation',
+      'Custody Fee',
+      'Account Charge',
+      'Management Fee',
+    ],
   },
 };
