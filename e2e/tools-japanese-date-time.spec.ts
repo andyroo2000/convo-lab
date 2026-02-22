@@ -63,19 +63,26 @@ test.describe('Japanese tools routes and playback', () => {
     await page.goto('/tools');
 
     await expect(page.getByRole('heading', { name: 'ConvoLab Tools' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Japanese Date' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Japanese Time' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: /Japanese Counter/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Japanese Date Practice Tool' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Japanese Time Practice Tool' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Japanese Money Receipt Tool' })).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Open Japanese Counter Practice Tool' })
+    ).toBeVisible();
 
-    await page.getByRole('link', { name: /Open/i }).first().click();
+    await page.getByRole('link', { name: 'Open Japanese Date Practice Tool' }).click();
     await expect(page).toHaveURL(/\/tools\/japanese-date$/);
 
     await page.goto('/tools');
-    await page.getByRole('link', { name: /Open/i }).nth(1).click();
+    await page.getByRole('link', { name: 'Open Japanese Time Practice Tool' }).click();
     await expect(page).toHaveURL(/\/tools\/japanese-time$/);
 
     await page.goto('/tools');
-    await page.getByRole('link', { name: /Open/i }).nth(2).click();
+    await page.getByRole('link', { name: 'Open Japanese Money Receipt Tool' }).click();
+    await expect(page).toHaveURL(/\/tools\/japanese-money$/);
+
+    await page.goto('/tools');
+    await page.getByRole('link', { name: 'Open Japanese Counter Practice Tool' }).click();
     await expect(page).toHaveURL(/\/tools\/japanese-counters$/);
   });
 

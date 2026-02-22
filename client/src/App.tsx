@@ -31,6 +31,7 @@ const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePrac
 const JapaneseCounterPracticeToolPage = lazy(
   () => import('./pages/JapaneseCounterPracticeToolPage')
 );
+const JapaneseMoneyToolPage = lazy(() => import('./pages/JapaneseMoneyToolPage'));
 const JapaneseVerbConjugationToolPage = lazy(
   () => import('./pages/JapaneseVerbConjugationToolPage')
 );
@@ -65,9 +66,9 @@ interface RouteSeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time, Counter & Verb Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Money, Counter & Verb Practice Tools',
     description:
-      'Practice Japanese date, time, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     canonicalPath: '/',
   },
   '/pricing': {
@@ -79,7 +80,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, counters, and verb conjugation with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, money, counters, and verb conjugation with furigana-friendly quiz flows.',
     canonicalPath: '/tools',
   },
   '/tools/japanese-date': {
@@ -99,6 +100,12 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
     description:
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     canonicalPath: '/tools/japanese-counters',
+  },
+  '/tools/japanese-money': {
+    title: 'Japanese Money Practice Tool (Receipt Style) | ConvoLab',
+    description:
+      'Practice reading Japanese yen amounts on receipt-style cards with furigana over Arabic numerals.',
+    canonicalPath: '/tools/japanese-money',
   },
   '/tools/japanese-verbs': {
     title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
@@ -204,6 +211,7 @@ const App = () => (
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
                     <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+                    <Route path="japanese-money" element={<JapaneseMoneyToolPage />} />
                     <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
                     <Route path="credits" element={<CreditsPage />} />
                   </Route>
@@ -245,6 +253,7 @@ const App = () => (
                       path="tools/japanese-counters"
                       element={<JapaneseCounterPracticeToolPage />}
                     />
+                    <Route path="tools/japanese-money" element={<JapaneseMoneyToolPage />} />
                     <Route
                       path="tools/japanese-verbs"
                       element={<JapaneseVerbConjugationToolPage />}

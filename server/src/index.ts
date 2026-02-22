@@ -48,9 +48,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Money & Counter Practice Tools',
     description:
-      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, money, and counter reading with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -64,7 +64,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, money, and counters with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -88,6 +88,13 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
+  },
+  '/tools/japanese-money': {
+    title: 'Japanese Money Practice Tool (Receipt Style) | ConvoLab',
+    description:
+      'Practice Japanese yen readings with receipt-style visuals and furigana over Arabic numerals.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-money`,
   },
   '/tools/credits': {
     title: 'Credits | ConvoLab Tools',
@@ -270,6 +277,10 @@ if (process.env.NODE_ENV === 'production') {
 
   app.get('/tools/time', (_req, res) => {
     res.redirect(301, '/tools/japanese-time');
+  });
+
+  app.get('/tools/money', (_req, res) => {
+    res.redirect(301, '/tools/japanese-money');
   });
 
   // Serve static files with proper cache headers
