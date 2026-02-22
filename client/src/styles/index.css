@@ -4861,10 +4861,12 @@
 .retro-money-reading-kana {
   margin: 0;
   color: rgba(16, 52, 86, 0.98);
-  font-size: clamp(1.05rem, 0.68rem + 1.3vw, 2rem);
-  line-height: 1.15;
-  letter-spacing: 0.03em;
-  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: clamp(0.7rem, 0.53rem + 0.62vw, 1.02rem);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
 }
 
 .retro-money-reading-placeholder {
@@ -4888,7 +4890,7 @@
   }
 
   .retro-money-reading-kana {
-    font-size: clamp(0.82rem, 3.6vw, 1.4rem);
+    font-size: clamp(0.64rem, 2.7vw, 0.82rem);
   }
 
   .retro-money-controls {

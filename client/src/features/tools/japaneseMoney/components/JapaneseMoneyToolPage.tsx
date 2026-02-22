@@ -3,9 +3,9 @@ import { ArrowRightLeft, Banknote } from 'lucide-react';
 
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
 import {
-  createMoneyPracticeCard,
+  createMoneyPracticeCardFromTiers,
   DEFAULT_MONEY_TIER_ID,
-  getNextRandomCardFromTier,
+  getNextRandomCardFromTiers,
   MONEY_TIERS,
   type MoneyPracticeCard,
   type MoneyTierId,
@@ -18,16 +18,16 @@ import {
 
 interface CardSnapshot {
   card: MoneyPracticeCard;
-  selectedTierId: MoneyTierId;
+  selectedTierIds: MoneyTierId[];
   isRevealed: boolean;
 }
 
 const HISTORY_LIMIT = 120;
 
 const JapaneseMoneyToolPage = () => {
-  const [selectedTierId, setSelectedTierId] = useState<MoneyTierId>(DEFAULT_MONEY_TIER_ID);
+  const [selectedTierIds, setSelectedTierIds] = useState<MoneyTierId[]>([DEFAULT_MONEY_TIER_ID]);
   const [card, setCard] = useState<MoneyPracticeCard>(() =>
-    createMoneyPracticeCard(DEFAULT_MONEY_TIER_ID)
+    createMoneyPracticeCardFromTiers([DEFAULT_MONEY_TIER_ID])
   );
   const [isRevealed, setIsRevealed] = useState(false);
   const [historyDepth, setHistoryDepth] = useState(0);
@@ -46,7 +46,7 @@ const JapaneseMoneyToolPage = () => {
   const pushCurrentCardToHistory = useCallback(() => {
     previousCardsRef.current.push({
       card,
-      selectedTierId,
+      selectedTierIds,
       isRevealed,
     });
 
@@ -55,27 +55,27 @@ const JapaneseMoneyToolPage = () => {
     }
 
     setHistoryDepth(previousCardsRef.current.length);
-  }, [card, isRevealed, selectedTierId]);
+  }, [card, isRevealed, selectedTierIds]);
 
   const revealCard = useCallback(() => {
     setIsRevealed(true);
   }, []);
 
-  const advanceToNextCard = useCallback((tierId: MoneyTierId) => {
-    setCard(getNextRandomCardFromTier(tierId));
+  const advanceToNextCard = useCallback((tierIds: MoneyTierId[]) => {
+    setCard(getNextRandomCardFromTiers(tierIds));
     setIsRevealed(false);
   }, []);
 
   const handleNext = useCallback(() => {
     if (isRevealed) {
       pushCurrentCardToHistory();
-      advanceToNextCard(selectedTierId);
+      advanceToNextCard(selectedTierIds);
       return;
     }
 
     pushCurrentCardToHistory();
     revealCard();
-  }, [advanceToNextCard, isRevealed, pushCurrentCardToHistory, revealCard, selectedTierId]);
+  }, [advanceToNextCard, isRevealed, pushCurrentCardToHistory, revealCard, selectedTierIds]);
 
   const handlePrevious = useCallback(() => {
     const previousCard = previousCardsRef.current.pop();
@@ -84,23 +84,28 @@ const JapaneseMoneyToolPage = () => {
     }
 
     setCard(previousCard.card);
-    setSelectedTierId(previousCard.selectedTierId);
+    setSelectedTierIds(previousCard.selectedTierIds);
     setIsRevealed(previousCard.isRevealed);
     setHistoryDepth(previousCardsRef.current.length);
   }, []);
 
   const handleTierChange = useCallback(
     (tierId: MoneyTierId) => {
-      if (tierId === selectedTierId) {
+      const isSelected = selectedTierIds.includes(tierId);
+      if (isSelected && selectedTierIds.length === 1) {
         return;
       }
 
-      setSelectedTierId(tierId);
-      setCard(createMoneyPracticeCard(tierId));
+      const nextTierIds = isSelected
+        ? selectedTierIds.filter((id) => id !== tierId)
+        : [...selectedTierIds, tierId];
+
+      setSelectedTierIds(nextTierIds);
+      setCard(createMoneyPracticeCardFromTiers(nextTierIds));
       setIsRevealed(false);
       resetHistory();
     },
-    [resetHistory, selectedTierId]
+    [resetHistory, selectedTierIds]
   );
 
   useToolArrowKeyNavigation({
@@ -129,7 +134,7 @@ const JapaneseMoneyToolPage = () => {
         <h2 className="retro-headline text-base sm:text-lg">Amount Tier</h2>
         <div className="retro-money-tier-grid" role="group" aria-label="Money amount tier">
           {MONEY_TIERS.map((tier) => {
-            const isActive = selectedTierId === tier.id;
+            const isActive = selectedTierIds.includes(tier.id);
 
             return (
               <button
@@ -155,10 +160,8 @@ const JapaneseMoneyToolPage = () => {
         >
           <header className="retro-money-receipt-head">
             <p className="retro-money-category">{card.template.categoryLabel}</p>
-            <h2 className="retro-money-store">{card.template.storeName}</h2>
-            {card.template.storeKana ? (
-              <p className="retro-money-store-kana">{card.template.storeKana}</p>
-            ) : null}
+            <h2 className="retro-money-store">{card.storeName}</h2>
+            {card.storeKana ? <p className="retro-money-store-kana">{card.storeKana}</p> : null}
             <p className="retro-money-meta">
               <span>{card.template.headerLabel}</span>
               <span>レシート番号 {card.receiptNumber}</span>

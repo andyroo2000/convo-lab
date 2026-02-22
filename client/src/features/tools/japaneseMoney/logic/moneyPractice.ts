@@ -1,5 +1,6 @@
 import {
   RECEIPT_TEMPLATE_DEFINITIONS,
+  type ReceiptStoreVariant,
   type ReceiptTemplateDefinition,
   type ReceiptTemplateId,
 } from './receiptTemplates';
@@ -34,6 +35,8 @@ export interface MoneyPracticeCard {
   tierLabel: string;
   templateId: ReceiptTemplateId;
   template: ReceiptTemplateDefinition;
+  storeName: string;
+  storeKana: string;
   issuedAt: Date;
   receiptNumber: string;
   lineItems: ReceiptLineItem[];
@@ -113,7 +116,7 @@ const splitAmount = (totalAmount: number, count: number): number[] => {
   return parts;
 };
 
-const pickLineItems = (template: ReceiptTemplateDefinition, amount: number): ReceiptLineItem[] => {
+const pickLineItems = (itemPool: readonly string[], amount: number): ReceiptLineItem[] => {
   let itemCount: number;
   if (amount < 3_000) {
     itemCount = 1;
@@ -123,12 +126,12 @@ const pickLineItems = (template: ReceiptTemplateDefinition, amount: number): Rec
     itemCount = randomInt(3, 4);
   }
 
-  const labels = [...template.itemPool];
+  const labels = [...itemPool];
   const chosenLabels: string[] = [];
 
   for (let index = 0; index < itemCount; index += 1) {
     if (labels.length === 0) {
-      chosenLabels.push(`Line Item ${index + 1}`);
+      chosenLabels.push(`品目${index + 1}`);
     } else {
       const labelIndex = randomInt(0, labels.length - 1);
       const [label] = labels.splice(labelIndex, 1);
@@ -176,9 +179,13 @@ export function createMoneyPracticeCard(
   if (!template) {
     throw new Error(`Missing receipt template for tier id: ${tierId}`);
   }
+  if (template.stores.length === 0) {
+    throw new Error(`Missing receipt stores for template id: ${templateId}`);
+  }
 
+  const store = randomItem<ReceiptStoreVariant>(template.stores);
   const issuedAt = new Date(Date.now() - randomInt(0, 20 * 24 * 60 * 60 * 1000));
-  const lineItems = pickLineItems(template, amount);
+  const lineItems = pickLineItems(store.itemPool, amount);
 
   return {
     id: `${tierId}:${amount}:${Math.random().toString(36).slice(2, 8)}`,
@@ -187,6 +194,8 @@ export function createMoneyPracticeCard(
     tierLabel: tier.label,
     templateId,
     template,
+    storeName: store.storeName,
+    storeKana: store.storeKana,
     issuedAt,
     receiptNumber: buildReceiptNumber(),
     lineItems,
@@ -195,6 +204,29 @@ export function createMoneyPracticeCard(
 
 export function getNextRandomCardFromTier(tierId: MoneyTierId): MoneyPracticeCard {
   return createMoneyPracticeCard(tierId);
+}
+
+const normalizeMoneyTierIds = (tierIds: readonly MoneyTierId[]): MoneyTierId[] => {
+  const uniqueTierIds = Array.from(new Set(tierIds)).filter((tierId) =>
+    MONEY_TIER_BY_ID.has(tierId)
+  );
+
+  if (uniqueTierIds.length === 0) {
+    return [DEFAULT_MONEY_TIER_ID];
+  }
+
+  return uniqueTierIds;
+};
+
+export function createMoneyPracticeCardFromTiers(
+  tierIds: readonly MoneyTierId[]
+): MoneyPracticeCard {
+  const availableTierIds = normalizeMoneyTierIds(tierIds);
+  return createMoneyPracticeCard(randomItem(availableTierIds));
+}
+
+export function getNextRandomCardFromTiers(tierIds: readonly MoneyTierId[]): MoneyPracticeCard {
+  return createMoneyPracticeCardFromTiers(tierIds);
 }
 
 export function randomizeTier(): MoneyTier {

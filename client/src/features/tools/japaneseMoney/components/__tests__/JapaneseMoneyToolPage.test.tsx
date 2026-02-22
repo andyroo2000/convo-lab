@@ -38,8 +38,27 @@ describe('JapaneseMoneyToolPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Use amount tier < 10,000' }));
 
+    const defaultTierButton = screen.getByRole('button', { name: 'Use amount tier < 1,000' });
     const selectedButton = screen.getByRole('button', { name: 'Use amount tier < 10,000' });
+    expect(defaultTierButton).toHaveAttribute('aria-pressed', 'true');
     expect(selectedButton).toHaveAttribute('aria-pressed', 'true');
+
+    const amount = parseDisplayedAmount();
+    expect(amount).toBeGreaterThanOrEqual(1);
+    expect(amount).toBeLessThan(10000);
+  });
+
+  it('allows deselecting a tier while keeping at least one tier selected', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    const lt1kButton = screen.getByRole('button', { name: 'Use amount tier < 1,000' });
+    const lt10kButton = screen.getByRole('button', { name: 'Use amount tier < 10,000' });
+
+    fireEvent.click(lt10kButton);
+    fireEvent.click(lt1kButton);
+
+    expect(lt1kButton).toHaveAttribute('aria-pressed', 'false');
+    expect(lt10kButton).toHaveAttribute('aria-pressed', 'true');
 
     const amount = parseDisplayedAmount();
     expect(amount).toBeGreaterThanOrEqual(1000);
@@ -71,12 +90,11 @@ describe('JapaneseMoneyToolPage', () => {
     expect(screen.getByTestId('money-total-amount').textContent).toBe(initialAmount);
   });
 
-  it('does not show kana subtitle for YODOCAM PLAZA', () => {
+  it('does not show the removed YODOCAM kana subtitle text', () => {
     render(<JapaneseMoneyToolPage />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Use amount tier < 100,000' }));
 
-    expect(screen.getByRole('heading', { name: 'YODOCAM PLAZA' })).toBeInTheDocument();
     expect(screen.queryByText('よどかむ ぷらざ')).not.toBeInTheDocument();
   });
 
