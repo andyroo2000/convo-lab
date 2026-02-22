@@ -31,6 +31,9 @@ const JapaneseTimePracticeToolPage = lazy(() => import('./pages/JapaneseTimePrac
 const JapaneseCounterPracticeToolPage = lazy(
   () => import('./pages/JapaneseCounterPracticeToolPage')
 );
+const JapaneseVerbConjugationToolPage = lazy(
+  () => import('./pages/JapaneseVerbConjugationToolPage')
+);
 const CreatePage = lazy(() => import('./pages/CreatePage'));
 const DialogueCreatorPage = lazy(() => import('./pages/DialogueCreatorPage'));
 const CourseCreatorPage = lazy(() => import('./pages/CourseCreatorPage'));
@@ -62,9 +65,9 @@ interface RouteSeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Counter & Verb Practice Tools',
     description:
-      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     canonicalPath: '/',
   },
   '/pricing': {
@@ -76,7 +79,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, counters, and verb conjugation with furigana-friendly quiz flows.',
     canonicalPath: '/tools',
   },
   '/tools/japanese-date': {
@@ -96,6 +99,12 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
     description:
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     canonicalPath: '/tools/japanese-counters',
+  },
+  '/tools/japanese-verbs': {
+    title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
+    description:
+      'Practice Japanese verb conjugation with N5/N4 filters, verb group targeting, and textbook vs colloquial potential drills.',
+    canonicalPath: '/tools/japanese-verbs',
   },
   '/tools/credits': {
     title: 'Credits | ConvoLab Tools',
@@ -195,6 +204,7 @@ const App = () => (
                     <Route path="japanese-date" element={<JapaneseDateToolPage />} />
                     <Route path="japanese-time" element={<JapaneseTimePracticeToolPage />} />
                     <Route path="japanese-counters" element={<JapaneseCounterPracticeToolPage />} />
+                    <Route path="japanese-verbs" element={<JapaneseVerbConjugationToolPage />} />
                     <Route path="credits" element={<CreditsPage />} />
                   </Route>
                   <Route path="/claim-invite" element={<ClaimInvitePage />} />
@@ -234,6 +244,10 @@ const App = () => (
                     <Route
                       path="tools/japanese-counters"
                       element={<JapaneseCounterPracticeToolPage />}
+                    />
+                    <Route
+                      path="tools/japanese-verbs"
+                      element={<JapaneseVerbConjugationToolPage />}
                     />
                   </Route>
 

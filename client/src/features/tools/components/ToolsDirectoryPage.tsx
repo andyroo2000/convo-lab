@@ -13,7 +13,7 @@ const ToolsDirectoryPage = () => {
           ConvoLab Tools: Small drills, big progress.
         </h1>
         <p className="mt-2 text-base text-[#2f4f73]">
-          Practice Japanese dates, times, and counting at your own pace.
+          Practice Japanese dates, times, counters, and verb forms at your own pace.
         </p>
       </section>
 

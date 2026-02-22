@@ -4046,14 +4046,283 @@
   color: #f3e2be;
 }
 
+.retro-verb-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 1fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.retro-verb-main-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.retro-verb-sheet {
+  position: relative;
+  min-height: clamp(20.5rem, 58vw, 24rem);
+  border: 2px solid #b5a57f;
+  border-radius: 0.42rem;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 1.5rem,
+      rgba(169, 67, 57, 0.34) 1.5rem,
+      rgba(169, 67, 57, 0.34) 1.6rem,
+      transparent 1.6rem
+    ),
+    repeating-linear-gradient(180deg, rgba(54, 97, 145, 0.2) 0 1px, transparent 1px 1.85rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(247, 241, 224, 0.93) 100%);
+  padding: 1.1rem clamp(0.95rem, 3vw, 2.2rem) 1.6rem clamp(2.2rem, 5vw, 3.5rem);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 8px 0 rgba(17, 51, 92, 0.12);
+}
+
+.retro-verb-badge-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+}
+
+.retro-verb-badge {
+  border-radius: 999px;
+  padding: 0.18rem 0.48rem;
+  color: #ffffff;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.retro-verb-badge-group-1 {
+  background: #225f94;
+}
+
+.retro-verb-badge-group-2 {
+  background: #2f8053;
+}
+
+.retro-verb-badge-group-3 {
+  background: #a6492d;
+}
+
+.retro-verb-badge-jlpt {
+  background: #364154;
+}
+
+.retro-verb-badge-register-formal {
+  background: #1f6f95;
+}
+
+.retro-verb-badge-register-casual {
+  background: #357347;
+}
+
+.retro-verb-badge-register-spoken {
+  background: #a45b27;
+}
+
+.retro-verb-badge-register-colloquial {
+  background: #9d2f45;
+}
+
+.retro-verb-badge-conjugation {
+  background: #3a4d90;
+}
+
+.retro-verb-target-label {
+  margin: 0.7rem 0 0;
+  color: #2f4f73;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.retro-verb-dictionary-form {
+  margin: 0.35rem 0 0;
+  color: #12365d;
+  font-size: clamp(2.05rem, 5vw, 3.2rem);
+  line-height: 1.2;
+}
+
+.retro-verb-meaning {
+  margin: 0.3rem 0 0;
+  color: #2f4f73;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.retro-verb-prompt-hint {
+  margin: 0.62rem 0 0;
+  color: #a23f2c;
+  background: rgba(226, 153, 92, 0.2);
+  border: 1px solid rgba(162, 63, 44, 0.32);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.retro-verb-answer-slot {
+  min-height: 7.8rem;
+  margin-top: 0.8rem;
+}
+
+.retro-verb-answer {
+  margin: 0;
+  color: #112f53;
+  font-size: clamp(2rem, 4.8vw, 3rem);
+  line-height: 1.14;
+}
+
+.retro-verb-reference-answer {
+  margin: 0.35rem 0 0;
+  color: #274a73;
+  font-size: 0.79rem;
+  font-weight: 700;
+}
+
+.retro-verb-empty-state {
+  min-height: 11.8rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.2rem;
+  color: #2f4f73;
+}
+
+.retro-verb-empty-title {
+  margin: 0;
+  font-size: 1.16rem;
+  font-weight: 800;
+  color: #17365d;
+}
+
+.retro-verb-empty-copy {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.38;
+}
+
+.retro-verb-controls-panel {
+  border: 2px solid #c9bca0;
+  border-radius: 0.5rem;
+  background: linear-gradient(180deg, rgba(247, 240, 222, 0.96) 0%, rgba(235, 223, 194, 0.95) 100%);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  min-width: 0;
+  box-shadow: 0 8px 0 rgba(17, 51, 92, 0.1);
+}
+
+.retro-verb-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.retro-verb-filter-chip {
+  border: 1px solid #7a6135;
+  border-radius: 999px;
+  background: linear-gradient(170deg, #f1e2bb 0%, #dcc893 100%);
+  color: #46351a;
+  padding: 0.32rem 0.6rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.retro-verb-filter-chip.is-active {
+  background: linear-gradient(170deg, #3d3019 0%, #282113 100%);
+  border-color: #1f180e;
+  color: #f3e2be;
+}
+
+.retro-verb-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.36rem;
+}
+
+.retro-verb-conjugation-btn {
+  border: 1px solid #7a6135;
+  border-radius: 0.45rem;
+  background: linear-gradient(170deg, #f1e2bb 0%, #dcc893 100%);
+  color: #46351a;
+  text-align: left;
+  padding: 0.5rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.17rem;
+  cursor: pointer;
+}
+
+.retro-verb-conjugation-btn.is-active {
+  background: linear-gradient(170deg, #3d3019 0%, #282113 100%);
+  border-color: #1f180e;
+  color: #f3e2be;
+}
+
+.retro-verb-conjugation-btn-title {
+  font-size: 0.77rem;
+  font-weight: 800;
+  line-height: 1.12;
+}
+
+.retro-verb-conjugation-btn-meta {
+  font-size: 0.65rem;
+  opacity: 0.92;
+  font-weight: 700;
+}
+
+.retro-verb-next-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.22rem;
+}
+
+.retro-verb-next-btn {
+  width: 100%;
+  min-height: 3rem;
+}
+
+.retro-verb-next-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 @media (max-width: 768px) {
   .retro-counter-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .retro-verb-layout {
     grid-template-columns: 1fr;
   }
 
   .retro-counter-sheet {
     min-height: 21.25rem;
     padding: 1rem 1.1rem 1.2rem 2.5rem;
+  }
+
+  .retro-verb-sheet {
+    min-height: 21.25rem;
+    padding: 0.95rem 1.1rem 1.2rem 2.3rem;
+  }
+
+  .retro-verb-answer-slot {
+    min-height: 7.4rem;
   }
 
   .retro-counter-answer-slot {
@@ -4111,13 +4380,25 @@
     grid-template-columns: 1fr;
   }
 
+  .retro-verb-layout {
+    grid-template-columns: 1fr;
+  }
+
   .retro-counter-sheet {
+    max-width: 100%;
+  }
+
+  .retro-verb-sheet {
     max-width: 100%;
   }
 }
 
 @media (max-width: 540px) {
   .retro-counter-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .retro-verb-filter-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -4128,9 +4409,72 @@
     gap: 0.7rem;
   }
 
+  .retro-verb-layout {
+    margin-top: 0.75rem;
+    gap: 0.7rem;
+  }
+
   .retro-counter-sheet {
     min-height: 19rem;
     padding: 0.85rem 0.85rem 1rem 2.05rem;
+  }
+
+  .retro-verb-sheet {
+    min-height: 19.2rem;
+    padding: 0.8rem 0.85rem 1rem 1.95rem;
+  }
+
+  .retro-verb-badge {
+    font-size: 0.58rem;
+  }
+
+  .retro-verb-dictionary-form {
+    font-size: clamp(1.4rem, 8vw, 2rem);
+    line-height: 1.14;
+  }
+
+  .retro-verb-meaning {
+    font-size: 0.72rem;
+    line-height: 1.32;
+  }
+
+  .retro-verb-answer-slot {
+    min-height: 7rem;
+    margin-top: 0.6rem;
+  }
+
+  .retro-verb-answer {
+    font-size: clamp(1.4rem, 8vw, 2rem);
+    line-height: 1.14;
+  }
+
+  .retro-verb-reference-answer {
+    font-size: 0.65rem;
+  }
+
+  .retro-verb-controls-panel {
+    padding: 0.7rem;
+    gap: 0.68rem;
+  }
+
+  .retro-verb-filter-chip {
+    font-size: 0.62rem;
+  }
+
+  .retro-verb-conjugation-btn {
+    padding: 0.4rem 0.45rem;
+  }
+
+  .retro-verb-conjugation-btn-title {
+    font-size: 0.68rem;
+  }
+
+  .retro-verb-conjugation-btn-meta {
+    font-size: 0.59rem;
+  }
+
+  .retro-verb-next-btn {
+    min-height: 2.45rem;
   }
 
   .retro-counter-status {
@@ -4220,6 +4564,23 @@
   .retro-counter-sheet {
     min-height: 18.2rem;
     padding: 0.75rem 0.6rem 0.88rem 1.75rem;
+  }
+
+  .retro-verb-sheet {
+    min-height: 18.4rem;
+    padding: 0.72rem 0.55rem 0.88rem 1.6rem;
+  }
+
+  .retro-verb-dictionary-form {
+    font-size: clamp(1.22rem, 7vw, 1.72rem);
+  }
+
+  .retro-verb-answer-slot {
+    min-height: 6.6rem;
+  }
+
+  .retro-verb-answer {
+    font-size: clamp(1.2rem, 7vw, 1.7rem);
   }
 
   .retro-counter-problem-qty {
