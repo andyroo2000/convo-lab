@@ -4852,52 +4852,19 @@
 }
 
 .retro-money-reading-box {
-  margin-top: 1rem;
+  margin-top: 0.9rem;
   border-top: 2px dashed rgba(20, 50, 86, 0.35);
-  min-height: 9.4rem;
-  padding: 0.8rem 0 0;
-}
-
-.retro-money-reading-script {
-  margin: 0;
-  font-size: clamp(2.3rem, 1.55rem + 2.8vw, 4.6rem);
-  line-height: 1.05;
-  color: rgba(16, 52, 86, 0.98);
-  letter-spacing: 0.01em;
-  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
-}
-
-.retro-money-reading-segment {
-  display: inline-flex;
-  align-items: flex-end;
-  margin-right: 0.18rem;
-}
-
-.retro-money-reading-ruby {
-  display: inline-grid;
-  justify-items: center;
-}
-
-.retro-money-reading-rt {
-  font-size: 0.44em;
-  line-height: 1;
-  letter-spacing: 0;
-  text-align: center;
-  white-space: nowrap;
-  transform: translateY(-0.04em);
-}
-
-.retro-money-reading-unit {
-  margin-left: 0.03rem;
-  font-size: 0.72em;
-  line-height: 1;
+  min-height: 7rem;
+  padding: 0.92rem 0 0.08rem;
 }
 
 .retro-money-reading-kana {
-  margin: 0.72rem 0 0;
-  color: rgba(20, 50, 86, 0.82);
-  font-size: 0.95rem;
-  line-height: 1.4;
+  margin: 0;
+  color: rgba(16, 52, 86, 0.98);
+  font-size: clamp(2.1rem, 1.35rem + 2.6vw, 4rem);
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
 }
 
 .retro-money-reading-placeholder {
@@ -4920,8 +4887,8 @@
     font-size: clamp(1.45rem, 7vw, 2.02rem);
   }
 
-  .retro-money-reading-script {
-    font-size: clamp(1.75rem, 8.8vw, 3rem);
+  .retro-money-reading-kana {
+    font-size: clamp(1.6rem, 7.2vw, 2.8rem);
   }
 
   .retro-money-controls {
@@ -4943,7 +4910,7 @@
   }
 
   .retro-money-reading-box {
-    min-height: 7.2rem;
+    min-height: 6rem;
     padding-top: 0.62rem;
   }
 }

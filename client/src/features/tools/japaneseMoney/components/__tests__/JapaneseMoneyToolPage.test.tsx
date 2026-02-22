@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import JapaneseMoneyToolPage from '../JapaneseMoneyToolPage';
@@ -26,7 +26,6 @@ describe('JapaneseMoneyToolPage', () => {
     const initialAmount = screen.getByTestId('money-total-amount').textContent;
 
     fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
-    expect(screen.getByTestId('money-reading-script')).toBeInTheDocument();
     expect(screen.getByTestId('money-reading-kana')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /go to previous amount/i }));
@@ -51,15 +50,34 @@ describe('JapaneseMoneyToolPage', () => {
     render(<JapaneseMoneyToolPage />);
 
     fireEvent.keyDown(window, { key: 'ArrowRight' });
-    expect(screen.getByTestId('money-reading-script')).toBeInTheDocument();
+    expect(screen.getByTestId('money-reading-kana')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
-    const receiptCard = screen.getByRole('region', { name: 'Japanese receipt card' });
     expect(
-      within(receiptCard).getByText(/to reveal the japanese reading\./i, {
+      screen.getByText(/to reveal the japanese reading\./i, {
         selector: '.retro-money-reading-placeholder',
       })
     ).toBeInTheDocument();
+  });
+
+  it('ignores repeated right-arrow keydown events', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    const initialAmount = screen.getByTestId('money-total-amount').textContent;
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    fireEvent.keyDown(window, { key: 'ArrowRight', repeat: true });
+
+    expect(screen.getByTestId('money-reading-kana')).toBeInTheDocument();
+    expect(screen.getByTestId('money-total-amount').textContent).toBe(initialAmount);
+  });
+
+  it('does not show kana subtitle for YODOCAM PLAZA', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Use amount tier < 100,000' }));
+
+    expect(screen.getByRole('heading', { name: 'YODOCAM PLAZA' })).toBeInTheDocument();
+    expect(screen.queryByText('よどかむ ぷらざ')).not.toBeInTheDocument();
   });
 
   it('does not render separate reading title or furigana toggle button', () => {

@@ -37,7 +37,7 @@ export const RECEIPT_TEMPLATE_DEFINITIONS: Record<ReceiptTemplateId, ReceiptTemp
   'yodocam-plaza': {
     id: 'yodocam-plaza',
     storeName: 'YODOCAM PLAZA',
-    storeKana: 'よどかむ ぷらざ',
+    storeKana: '',
     categoryLabel: 'Electronics Receipt',
     headerLabel: 'Point Eligible',
     itemPool: ['Headphones', 'Keyboard', 'SD Card', 'Portable SSD', 'Battery Pack'],

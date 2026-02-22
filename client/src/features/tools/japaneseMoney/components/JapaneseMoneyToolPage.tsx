@@ -23,7 +23,6 @@ interface CardSnapshot {
 }
 
 const HISTORY_LIMIT = 120;
-const RUBY_RT_CLASS = 'retro-money-reading-rt';
 
 const JapaneseMoneyToolPage = () => {
   const [selectedTierId, setSelectedTierId] = useState<MoneyTierId>(DEFAULT_MONEY_TIER_ID);
@@ -157,7 +156,9 @@ const JapaneseMoneyToolPage = () => {
           <header className="retro-money-receipt-head">
             <p className="retro-money-category">{card.template.categoryLabel}</p>
             <h2 className="retro-money-store">{card.template.storeName}</h2>
-            <p className="retro-money-store-kana">{card.template.storeKana}</p>
+            {card.template.storeKana ? (
+              <p className="retro-money-store-kana">{card.template.storeKana}</p>
+            ) : null}
             <p className="retro-money-meta">
               <span>{card.template.headerLabel}</span>
               <span>Receipt #{card.receiptNumber}</span>
@@ -180,43 +181,21 @@ const JapaneseMoneyToolPage = () => {
               {formattedAmount}
             </span>
           </div>
-          <div className="retro-money-reading-box" aria-live="polite">
-            {isRevealed ? (
-              <>
-                <p
-                  className="japanese-text retro-money-reading-script"
-                  data-testid="money-reading-script"
-                >
-                  <Banknote
-                    className="inline-block h-6 w-6 align-[-0.16em] text-[#0f3e6e]"
-                    aria-hidden
-                  />{' '}
-                  {reading.segments.map((segment) => (
-                    <span
-                      key={`${segment.unitScript || 'ones'}-${segment.digits}-${segment.digitsReading}`}
-                      className="retro-money-reading-segment"
-                    >
-                      <ruby className="retro-money-reading-ruby">
-                        {segment.digits}
-                        <rt className={RUBY_RT_CLASS}>{segment.digitsReading}</rt>
-                      </ruby>
-                      {segment.unitScript ? (
-                        <span className="retro-money-reading-unit">{segment.unitScript}</span>
-                      ) : null}
-                    </span>
-                  ))}
-                  <span className="retro-money-reading-unit">円</span>
-                </p>
-                <p className="retro-money-reading-kana" data-testid="money-reading-kana">
-                  {reading.kana}
-                </p>
-              </>
-            ) : (
-              <p className="retro-money-reading-placeholder">
-                Press <strong>Show Answer</strong> to reveal the Japanese reading.
-              </p>
-            )}
-          </div>
+        </div>
+        <div className="retro-money-reading-box" aria-live="polite">
+          {isRevealed ? (
+            <p className="japanese-text retro-money-reading-kana" data-testid="money-reading-kana">
+              <Banknote
+                className="inline-block h-7 w-7 align-[-0.12em] text-[#0f3e6e]"
+                aria-hidden
+              />{' '}
+              {reading.kana}
+            </p>
+          ) : (
+            <p className="retro-money-reading-placeholder">
+              Press <strong>Show Answer</strong> to reveal the Japanese reading.
+            </p>
+          )}
         </div>
 
         <div className="retro-money-controls" role="group" aria-label="Money quiz controls">
