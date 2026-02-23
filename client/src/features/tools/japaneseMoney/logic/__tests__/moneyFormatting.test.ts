@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildMoneyReading, formatYenAmount } from '../moneyFormatting';
+import { buildMoneyReading, formatReceiptTimestamp, formatYenAmount } from '../moneyFormatting';
 
 describe('moneyFormatting', () => {
   describe('formatYenAmount', () => {
@@ -57,6 +57,18 @@ describe('moneyFormatting', () => {
       expect(reading.kana).toBe('れい');
       expect(reading.segments[0]?.digits).toBe('0');
       expect(reading.segments[0]?.digitsReading).toBe('れい');
+    });
+  });
+
+  describe('formatReceiptTimestamp', () => {
+    it('formats receipt timestamp with zero-padded date and time', () => {
+      const timestamp = new Date(2026, 1, 3, 7, 5, 42);
+      expect(formatReceiptTimestamp(timestamp)).toBe('2026/02/03 07:05');
+    });
+
+    it('omits seconds and preserves two-digit formatting', () => {
+      const timestamp = new Date(2026, 10, 29, 23, 59, 1);
+      expect(formatReceiptTimestamp(timestamp)).toBe('2026/11/29 23:59');
     });
   });
 });

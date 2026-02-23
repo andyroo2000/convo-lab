@@ -36,6 +36,7 @@ export interface MoneyPracticeCard {
   templateId: ReceiptTemplateId;
   template: ReceiptTemplateDefinition;
   storeName: string;
+  storeClassName: string;
   storeKana: string;
   issuedAt: Date;
   receiptNumber: string;
@@ -187,6 +188,7 @@ export function createMoneyPracticeCard(
     templateId,
     template,
     storeName: store.storeName,
+    storeClassName: store.storeClassName,
     storeKana: store.storeKana,
     issuedAt,
     receiptNumber: buildReceiptNumber(),
