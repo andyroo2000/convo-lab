@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
-import { ArrowRightLeft, Banknote } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRightLeft, Banknote, Volume2 } from 'lucide-react';
 
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
+import type { AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import {
   createMoneyPracticeCardFromTiers,
   DEFAULT_MONEY_TIER_ID,
@@ -15,6 +16,10 @@ import {
   formatReceiptTimestamp,
   formatYenAmount,
 } from '../logic/moneyFormatting';
+import {
+  buildMoneyAudioClipUrls,
+  playMoneyAudioClipSequence,
+} from '../logic/preRenderedMoneyAudio';
 
 interface CardSnapshot {
   card: MoneyPracticeCard;
@@ -24,6 +29,13 @@ interface CardSnapshot {
 
 const HISTORY_LIMIT = 120;
 
+const toStoreVisualClass = (storeName: string): string =>
+  storeName
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+
 const JapaneseMoneyToolPage = () => {
   const [selectedTierIds, setSelectedTierIds] = useState<MoneyTierId[]>([DEFAULT_MONEY_TIER_ID]);
   const [card, setCard] = useState<MoneyPracticeCard>(() =>
@@ -31,12 +43,16 @@ const JapaneseMoneyToolPage = () => {
   );
   const [isRevealed, setIsRevealed] = useState(false);
   const [historyDepth, setHistoryDepth] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackHint, setPlaybackHint] = useState<string | null>(null);
 
   const previousCardsRef = useRef<CardSnapshot[]>([]);
+  const playbackRef = useRef<AudioSequencePlayback | null>(null);
 
   const formattedAmount = useMemo(() => formatYenAmount(card.amount), [card.amount]);
   const reading = useMemo(() => buildMoneyReading(card.amount), [card.amount]);
   const issuedAtLabel = useMemo(() => formatReceiptTimestamp(card.issuedAt), [card.issuedAt]);
+  const storeVisualClass = useMemo(() => toStoreVisualClass(card.storeName), [card.storeName]);
 
   const resetHistory = useCallback(() => {
     previousCardsRef.current = [];
@@ -57,16 +73,55 @@ const JapaneseMoneyToolPage = () => {
     setHistoryDepth(previousCardsRef.current.length);
   }, [card, isRevealed, selectedTierIds]);
 
+  const stopPlayback = useCallback(() => {
+    playbackRef.current?.stop();
+    playbackRef.current = null;
+    setIsPlaying(false);
+  }, []);
+
+  const playCurrentCardAudio = useCallback(async () => {
+    stopPlayback();
+
+    let currentPlayback: AudioSequencePlayback | null = null;
+
+    try {
+      const urls = buildMoneyAudioClipUrls(card.amount);
+      const playback = playMoneyAudioClipSequence(urls);
+      currentPlayback = playback;
+      playbackRef.current = playback;
+      setIsPlaying(true);
+      setPlaybackHint(null);
+      await playback.finished;
+    } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      if (!isAbort) {
+        setPlaybackHint('Autoplay was blocked. Tap Replay Audio to hear it.');
+      }
+    } finally {
+      if (currentPlayback && playbackRef.current === currentPlayback) {
+        playbackRef.current = null;
+      }
+      setIsPlaying(false);
+    }
+  }, [card.amount, stopPlayback]);
+
   const revealCard = useCallback(() => {
     setIsRevealed(true);
-  }, []);
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Money Tool] Unexpected reveal audio rejection:', error);
+      setPlaybackHint('Autoplay was blocked. Tap Replay Audio to hear it.');
+    });
+  }, [playCurrentCardAudio]);
 
   const advanceToNextCard = useCallback((tierIds: MoneyTierId[]) => {
     setCard(getNextRandomCardFromTiers(tierIds));
     setIsRevealed(false);
+    setPlaybackHint(null);
   }, []);
 
   const handleNext = useCallback(() => {
+    stopPlayback();
+
     if (isRevealed) {
       pushCurrentCardToHistory();
       advanceToNextCard(selectedTierIds);
@@ -75,9 +130,18 @@ const JapaneseMoneyToolPage = () => {
 
     pushCurrentCardToHistory();
     revealCard();
-  }, [advanceToNextCard, isRevealed, pushCurrentCardToHistory, revealCard, selectedTierIds]);
+  }, [
+    advanceToNextCard,
+    isRevealed,
+    pushCurrentCardToHistory,
+    revealCard,
+    selectedTierIds,
+    stopPlayback,
+  ]);
 
   const handlePrevious = useCallback(() => {
+    stopPlayback();
+
     const previousCard = previousCardsRef.current.pop();
     if (!previousCard) {
       return;
@@ -87,7 +151,8 @@ const JapaneseMoneyToolPage = () => {
     setSelectedTierIds(previousCard.selectedTierIds);
     setIsRevealed(previousCard.isRevealed);
     setHistoryDepth(previousCardsRef.current.length);
-  }, []);
+    setPlaybackHint(null);
+  }, [stopPlayback]);
 
   const handleTierChange = useCallback(
     (tierId: MoneyTierId) => {
@@ -101,11 +166,36 @@ const JapaneseMoneyToolPage = () => {
         : [...selectedTierIds, tierId];
 
       setSelectedTierIds(nextTierIds);
+      stopPlayback();
       setCard(createMoneyPracticeCardFromTiers(nextTierIds));
       setIsRevealed(false);
+      setPlaybackHint(null);
       resetHistory();
     },
-    [resetHistory, selectedTierIds]
+    [resetHistory, selectedTierIds, stopPlayback]
+  );
+
+  const handleReplayAudio = useCallback(() => {
+    if (isPlaying) {
+      stopPlayback();
+      return;
+    }
+
+    if (!isRevealed) {
+      return;
+    }
+
+    playCurrentCardAudio().catch((error) => {
+      console.warn('[Money Tool] Replay audio failed:', error);
+      setPlaybackHint('Playback failed. Please try again.');
+    });
+  }, [isPlaying, isRevealed, playCurrentCardAudio, stopPlayback]);
+
+  useEffect(
+    () => () => {
+      stopPlayback();
+    },
+    [stopPlayback]
   );
 
   useToolArrowKeyNavigation({
@@ -134,11 +224,12 @@ const JapaneseMoneyToolPage = () => {
         <div className="retro-money-practice-layout">
           <div className="retro-money-main">
             <div
-              className={`retro-money-receipt template-${card.templateId}`}
+              className={`retro-money-receipt template-${card.templateId} store-${storeVisualClass}`}
               role="region"
               aria-label="Japanese receipt card"
             >
               <header className="retro-money-receipt-head">
+                <span className="retro-money-brand-mark" aria-hidden />
                 <p className="retro-money-category">{card.template.categoryLabel}</p>
                 <h2 className="retro-money-store">{card.storeName}</h2>
                 {card.storeKana ? <p className="retro-money-store-kana">{card.storeKana}</p> : null}
@@ -198,6 +289,16 @@ const JapaneseMoneyToolPage = () => {
               </button>
               <button
                 type="button"
+                onClick={handleReplayAudio}
+                disabled={!isRevealed && !isPlaying}
+                className="retro-money-control-btn"
+                aria-label={isPlaying ? 'Stop audio playback' : 'Replay audio playback'}
+              >
+                {isPlaying ? 'Stop Audio' : 'Replay Audio'}
+                <Volume2 className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
                 onClick={handleNext}
                 className="retro-money-control-btn is-primary"
                 aria-label={isRevealed ? 'Advance to the next amount' : 'Show answer'}
@@ -206,6 +307,7 @@ const JapaneseMoneyToolPage = () => {
                 <ArrowRightLeft className="h-4 w-4" />
               </button>
             </div>
+            {playbackHint && <p className="mt-2 text-sm text-[#9e4c2a]">{playbackHint}</p>}
           </div>
 
           <aside className="retro-money-tier-panel" aria-label="Amount Tier filter">

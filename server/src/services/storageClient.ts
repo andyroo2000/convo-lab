@@ -59,6 +59,13 @@ export interface UploadFileOptions {
   folder?: string;
 }
 
+export interface UploadFileToPathOptions {
+  localFilePath: string;
+  destinationPath: string;
+  contentType: string;
+  makePublic?: boolean;
+}
+
 /**
  * Upload a file to GCS using streaming (memory-efficient for large files)
  */
@@ -96,6 +103,45 @@ export async function uploadFileToGCS(options: UploadFileOptions): Promise<strin
     console.error('GCS streaming upload error:', error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to upload file to Google Cloud Storage: ${errorMsg}`);
+  }
+}
+
+/**
+ * Upload a local file to a deterministic bucket object path.
+ * Useful when callers need stable paths for signed URL resolution.
+ */
+export async function uploadFileToGCSPath(options: UploadFileToPathOptions): Promise<string> {
+  const { localFilePath, destinationPath, contentType, makePublic = false } = options;
+
+  try {
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
+    const normalizedPath = destinationPath.replace(/^\/+/, '');
+    const file = bucket.file(normalizedPath);
+
+    await new Promise<void>((resolve, reject) => {
+      createReadStream(localFilePath)
+        .pipe(
+          file.createWriteStream({
+            contentType,
+            metadata: {
+              cacheControl: 'public, max-age=31536000',
+            },
+          })
+        )
+        .on('error', reject)
+        .on('finish', resolve);
+    });
+
+    if (makePublic) {
+      await file.makePublic();
+    }
+
+    return `https://storage.googleapis.com/${resolvedBucketName}/${normalizedPath}`;
+  } catch (error) {
+    console.error('GCS fixed-path upload error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload file to Google Cloud Storage path: ${errorMsg}`);
   }
 }
 

@@ -17,18 +17,18 @@ describe('moneyFormatting', () => {
 
   describe('buildMoneyReading', () => {
     it('returns irregular phonetic readings for hundreds and thousands', () => {
-      expect(buildMoneyReading(300).kana).toBe('さんびゃくえん');
-      expect(buildMoneyReading(600).kana).toBe('ろっぴゃくえん');
-      expect(buildMoneyReading(800).kana).toBe('はっぴゃくえん');
-      expect(buildMoneyReading(3000).kana).toBe('さんぜんえん');
-      expect(buildMoneyReading(8000).kana).toBe('はっせんえん');
+      expect(buildMoneyReading(300).kana).toBe('さんびゃく');
+      expect(buildMoneyReading(600).kana).toBe('ろっぴゃく');
+      expect(buildMoneyReading(800).kana).toBe('はっぴゃく');
+      expect(buildMoneyReading(3000).kana).toBe('さんぜん');
+      expect(buildMoneyReading(8000).kana).toBe('はっせん');
     });
 
     it('handles large units up to oku and joins kana correctly', () => {
       const reading = buildMoneyReading(1234567890);
 
       expect(reading.kana).toBe(
-        'じゅうにおくさんぜんよんひゃくごじゅうろくまんななせんはっぴゃくきゅうじゅうえん'
+        'じゅうにおくさんぜんよんひゃくごじゅうろくまんななせんはっぴゃくきゅうじゅう'
       );
       expect(reading.segments).toEqual([
         {
@@ -54,7 +54,7 @@ describe('moneyFormatting', () => {
 
     it('handles zero explicitly', () => {
       const reading = buildMoneyReading(0);
-      expect(reading.kana).toBe('れいえん');
+      expect(reading.kana).toBe('れい');
       expect(reading.segments[0]?.digits).toBe('0');
       expect(reading.segments[0]?.digitsReading).toBe('れい');
     });

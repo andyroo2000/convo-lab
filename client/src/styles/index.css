@@ -4747,6 +4747,10 @@
   color: rgba(20, 50, 86, 0.74);
 }
 
+.retro-money-brand-mark {
+  display: none;
+}
+
 .retro-money-meta {
   margin: 0.55rem 0 0;
   display: grid;
@@ -4836,6 +4840,548 @@
 
 .template-kizuna-bank {
   border-left: 7px solid rgba(15, 65, 99, 0.82);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) {
+  max-width: 30rem;
+  margin-inline: auto;
+  border: 1.6px solid rgba(31, 41, 58, 0.35);
+  border-left-width: 1.6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 248, 248, 0.98));
+  color: rgba(30, 37, 50, 0.96);
+  box-shadow:
+    0 10px 20px rgba(16, 32, 52, 0.08),
+    0 1px 0 rgba(16, 32, 52, 0.08);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  )::before,
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  )::after {
+  border-top-style: dashed;
+  border-top-color: rgba(39, 45, 56, 0.28);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-receipt-head {
+  margin-top: 0.16rem;
+  padding-bottom: 0.62rem;
+  border-bottom: 1px dashed rgba(39, 45, 56, 0.34);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-category {
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: none;
+  color: rgba(29, 39, 53, 0.74);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-store {
+  font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.46rem, 0.9rem + 1.6vw, 2rem);
+  letter-spacing: 0.04em;
+  color: rgba(28, 35, 48, 0.97);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-store-kana {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(45, 57, 73, 0.74);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-meta {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(39, 49, 63, 0.78);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-line-item {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 1.08rem;
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-line-value {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 700;
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-total-label {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.25rem, 0.84rem + 1vw, 1.68rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(26, 36, 52, 0.98);
+}
+
+.retro-money-receipt:is(
+    .store-lawsen-24,
+    .store-family-stop,
+    .store-seven-mart,
+    .store-ab-shoe-square,
+    .store-step-run-tokyo,
+    .store-kicks-warehouse,
+    .store-yodocam-plaza,
+    .store-bic-tech-hub,
+    .store-sakura-denki,
+    .store-sakura-inn-tokyo,
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-total-value {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(2.1rem, 1.24rem + 2.35vw, 3.2rem);
+  font-weight: 900;
+  color: rgba(28, 37, 52, 0.99);
+  letter-spacing: 0.01em;
+}
+
+.retro-money-receipt:is(.store-yodocam-plaza, .store-bic-tech-hub, .store-sakura-denki)
+  .retro-money-receipt-head,
+.retro-money-receipt:is(
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-receipt-head {
+  text-align: center;
+}
+
+.retro-money-receipt:is(.store-yodocam-plaza, .store-bic-tech-hub, .store-sakura-denki)
+  .retro-money-brand-mark,
+.retro-money-receipt:is(
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-brand-mark {
+  display: block;
+  margin: 0 auto 0.42rem;
+  position: relative;
+}
+
+.retro-money-receipt.store-yodocam-plaza .retro-money-brand-mark {
+  width: 4.2rem;
+  height: 2rem;
+  border: 3px solid rgba(31, 36, 45, 0.9);
+  border-radius: 1.2rem;
+}
+
+.retro-money-receipt.store-yodocam-plaza .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  width: 1.08rem;
+  height: 1.08rem;
+  border: 3px solid rgba(31, 36, 45, 0.9);
+  border-radius: 999px;
+  inset: 0;
+  margin: auto;
+}
+
+.retro-money-receipt.store-bic-tech-hub .retro-money-brand-mark {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  background: rgba(22, 26, 33, 0.95);
+}
+
+.retro-money-receipt.store-bic-tech-hub .retro-money-brand-mark::after {
+  content: 'B';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 2.1rem;
+  transform: rotate(-12deg);
+}
+
+.retro-money-receipt.store-sakura-denki .retro-money-brand-mark {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(248, 191, 210, 0.95) 0 0.4rem, transparent 0.42rem),
+    radial-gradient(circle at 50% 0.78rem, rgba(219, 124, 164, 0.95) 0 0.64rem, transparent 0.67rem),
+    radial-gradient(circle at 0.8rem 1.95rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 2.45rem 1.95rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 1.4rem 2.72rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 1.9rem 2.72rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem);
+}
+
+.retro-money-receipt.store-kicks-warehouse .retro-money-store {
+  display: inline-block;
+  padding: 0.12rem 0.48rem;
+  background: rgba(25, 28, 34, 0.92);
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.retro-money-receipt.store-step-run-tokyo .retro-money-store {
+  letter-spacing: 0.1em;
+}
+
+.retro-money-receipt.store-ab-shoe-square .retro-money-store {
+  letter-spacing: 0.02em;
+}
+
+.retro-money-receipt.store-harbour-view-hotel .retro-money-brand-mark {
+  width: 3.5rem;
+  height: 1.4rem;
+  background:
+    radial-gradient(circle at 0.5rem 0.35rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 1.35rem 0.35rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 0.5rem 1.05rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 1.35rem 1.05rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem);
+}
+
+.retro-money-receipt.store-midtown-business-hotel .retro-money-brand-mark {
+  width: 2.6rem;
+  height: 2.35rem;
+  background:
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem),
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem),
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem);
+  background-size:
+    0.45rem 1.9rem,
+    0.45rem 1.35rem,
+    0.45rem 1.6rem;
+  background-position:
+    0.2rem 0.45rem,
+    1.06rem 0.75rem,
+    1.93rem 0.58rem;
+  background-repeat: no-repeat;
+}
+
+.retro-money-receipt.store-grand-regency-tokyo .retro-money-brand-mark {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 2px solid rgba(40, 42, 49, 0.85);
+}
+
+.retro-money-receipt.store-grand-regency-tokyo .retro-money-brand-mark::after {
+  content: 'GR';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'Times New Roman', 'Noto Serif JP', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(40, 42, 49, 0.9);
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-brand-mark {
+  width: 2.5rem;
+  height: 2.7rem;
+  background: rgba(20, 63, 119, 0.94);
+  clip-path: polygon(50% 0%, 95% 20%, 86% 100%, 14% 100%, 5% 20%);
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0.48rem 0.78rem 0.8rem;
+  border-radius: 999px 999px 0 0;
+  border: 2px solid rgba(247, 207, 99, 0.95);
+  border-bottom: 0;
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-brand-mark {
+  width: 4rem;
+  height: 2.35rem;
+  background:
+    linear-gradient(90deg, transparent 0.2rem, rgba(203, 177, 98, 0.78) 0.2rem 1.4rem, transparent 1.4rem),
+    linear-gradient(90deg, transparent 2.6rem, rgba(203, 177, 98, 0.78) 2.6rem 3.8rem, transparent 3.8rem);
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  left: 1.35rem;
+  top: 0.25rem;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(161, 94, 166, 0.95) 0 65%, rgba(120, 63, 125, 0.95) 66% 100%);
+}
+
+.retro-money-receipt:is(
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace,
+    .store-grand-regency-tokyo,
+    .store-midtown-business-hotel
+  ) .retro-money-store {
+  letter-spacing: 0.08em;
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-store {
+  color: rgba(24, 53, 95, 0.98);
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-store {
+  color: rgba(63, 49, 78, 0.98);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) {
+  max-width: none;
+  border: 2px solid rgba(172, 182, 196, 0.75);
+  border-left: 10px solid rgba(133, 147, 108, 0.9);
+  background:
+    linear-gradient(180deg, rgba(254, 254, 254, 0.97), rgba(246, 243, 232, 0.96)),
+    repeating-linear-gradient(0deg, rgba(30, 55, 92, 0.035) 0 1px, transparent 1px 4px);
+  color: rgba(35, 55, 87, 0.96);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-category {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: rgba(66, 88, 123, 0.85);
+}
+
+.retro-money-receipt.store-metro-estate-partners .retro-money-store {
+  font-size: clamp(2rem, 1.25rem + 2.9vw, 3.35rem);
+  line-height: 1.02;
+  letter-spacing: 0.03em;
+  color: rgba(31, 53, 92, 0.98);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-store-kana,
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-meta {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  color: rgba(70, 92, 124, 0.88);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-line-item {
+  font-size: 1.12rem;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-line-value {
+  font-weight: 700;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-total-row {
+  border-top-width: 4px;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-total-value {
+  font-size: clamp(2.8rem, 1.65rem + 4vw, 5rem);
 }
 
 .retro-money-controls {

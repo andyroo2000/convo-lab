@@ -9,11 +9,13 @@ export type AudioSequencePlayback = {
 type PlaybackOptions = {
   volume?: number;
   resolveToolAudioUrls?: boolean;
+  clipTrimEndMs?: number;
 };
 
 function playSingleClip(
   url: string,
   abortSignal: AbortSignal,
+  trimEndMs: number,
   getVolume: () => number,
   setActiveAudio: (audio: HTMLAudioElement | null) => void
 ): Promise<void> {
@@ -26,11 +28,17 @@ function playSingleClip(
     let handleAbort: () => void = () => {};
     let handleEnded: () => void = () => {};
     let handleError: () => void = () => {};
+    let handleLoadedMetadata: () => void = () => {};
+    let trimTimeoutId: number | null = null;
 
     const cleanup = () => {
       abortSignal.removeEventListener('abort', handleAbort);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      if (trimTimeoutId !== null) {
+        window.clearTimeout(trimTimeoutId);
+      }
       setActiveAudio(null);
     };
 
@@ -54,6 +62,27 @@ function playSingleClip(
     abortSignal.addEventListener('abort', handleAbort);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
+    if (trimEndMs > 0) {
+      handleLoadedMetadata = () => {
+        if (!Number.isFinite(audio.duration) || audio.duration <= 0) {
+          return;
+        }
+
+        const trimDelayMs = Math.max(0, audio.duration * 1000 - trimEndMs);
+        trimTimeoutId = window.setTimeout(() => {
+          cleanup();
+          audio.pause();
+          audio.currentTime = 0;
+          resolve();
+        }, trimDelayMs);
+      };
+
+      if (audio.readyState >= 1) {
+        handleLoadedMetadata();
+      } else {
+        audio.addEventListener('loadedmetadata', handleLoadedMetadata, { once: true });
+      }
+    }
 
     audio.play().catch((error) => {
       cleanup();
@@ -70,6 +99,7 @@ export function playAudioClipSequence(
   let volume = Math.max(0, Math.min(1, options.volume ?? 1));
   let activeAudio: HTMLAudioElement | null = null;
   const shouldResolveToolAudioUrls = options.resolveToolAudioUrls ?? true;
+  const clipTrimEndMs = Math.max(0, options.clipTrimEndMs ?? 0);
 
   const playResolvedSequence = (resolvedUrls: string[]): Promise<void> => {
     if (resolvedUrls.length === 0) {
@@ -77,7 +107,7 @@ export function playAudioClipSequence(
     }
 
     return resolvedUrls.slice(1).reduce<Promise<void>>(
-      (sequence, url) =>
+      (sequence, url, index) =>
         sequence.then(() => {
           if (abortController.signal.aborted) {
             throw new DOMException('Playback aborted', 'AbortError');
@@ -86,6 +116,7 @@ export function playAudioClipSequence(
           return playSingleClip(
             url,
             abortController.signal,
+            index < resolvedUrls.length - 2 ? clipTrimEndMs : 0,
             () => volume,
             (audio) => {
               activeAudio = audio;
@@ -95,6 +126,7 @@ export function playAudioClipSequence(
       playSingleClip(
         resolvedUrls[0],
         abortController.signal,
+        resolvedUrls.length > 1 ? clipTrimEndMs : 0,
         () => volume,
         (audio) => {
           activeAudio = audio;

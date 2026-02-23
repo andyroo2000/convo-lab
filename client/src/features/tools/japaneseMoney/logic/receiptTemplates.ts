@@ -117,7 +117,7 @@ export const RECEIPT_TEMPLATE_DEFINITIONS: Record<ReceiptTemplateId, ReceiptTemp
         itemPool: ['宿泊料金', '朝食代', 'ランドリー代', '宿泊税', 'レイトチェックアウト'],
       },
       {
-        storeName: 'HARBOR VIEW HOTEL',
+        storeName: 'HARBOUR VIEW HOTEL',
         storeKana: 'はーばー びゅー ほてる',
         itemPool: ['宿泊料金', '朝食ビュッフェ', 'クリーニング代', 'サービス料', '入湯税'],
       },

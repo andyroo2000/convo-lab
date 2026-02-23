@@ -1,7 +1,38 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import JapaneseMoneyToolPage from '../JapaneseMoneyToolPage';
+
+const audioMocks = vi.hoisted(() => {
+  const stopPlayback = vi.fn();
+  const setVolume = vi.fn();
+  const buildMoneyAudioClipUrls = vi.fn(
+    () =>
+      [
+        '/tools-audio/japanese-money/google-kento-professional/money/chunk/0747.mp3',
+        '/tools-audio/japanese-money/google-kento-professional/money/unit/yen.mp3',
+      ] as string[]
+  );
+  const playMoneyAudioClipSequence = vi.fn(() => ({
+    stop: stopPlayback,
+    finished: new Promise<void>(() => {
+      // Intentionally unresolved for deterministic playback state in tests.
+    }),
+    setVolume,
+  }));
+
+  return {
+    stopPlayback,
+    setVolume,
+    buildMoneyAudioClipUrls,
+    playMoneyAudioClipSequence,
+  };
+});
+
+vi.mock('../../logic/preRenderedMoneyAudio', () => ({
+  buildMoneyAudioClipUrls: audioMocks.buildMoneyAudioClipUrls,
+  playMoneyAudioClipSequence: audioMocks.playMoneyAudioClipSequence,
+}));
 
 const parseDisplayedAmount = (): number => {
   const value = screen.getByTestId('money-total-amount').textContent ?? '';
@@ -9,6 +40,10 @@ const parseDisplayedAmount = (): number => {
 };
 
 describe('JapaneseMoneyToolPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('defaults to < 1,000 tier and generates amount in range', () => {
     render(<JapaneseMoneyToolPage />);
 
@@ -27,10 +62,41 @@ describe('JapaneseMoneyToolPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
     expect(screen.getByTestId('money-reading-kana')).toBeInTheDocument();
+    expect(audioMocks.playMoneyAudioClipSequence).toHaveBeenCalledTimes(1);
 
     fireEvent.click(screen.getByRole('button', { name: /go to previous amount/i }));
     expect(screen.getByRole('button', { name: /show answer/i })).toBeInTheDocument();
     expect(screen.getByTestId('money-total-amount').textContent).toBe(initialAmount);
+  });
+
+  it('replays and stops audio from the replay control', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
+    expect(audioMocks.playMoneyAudioClipSequence).toHaveBeenCalledTimes(1);
+
+    const replayButton = screen.getByRole('button', { name: /stop audio playback/i });
+    fireEvent.click(replayButton);
+    expect(audioMocks.stopPlayback).toHaveBeenCalledTimes(1);
+  });
+
+  it('stops playback on next, previous, and tier change actions', () => {
+    render(<JapaneseMoneyToolPage />);
+    fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
+    expect(audioMocks.playMoneyAudioClipSequence).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /advance to the next amount/i }));
+    expect(audioMocks.stopPlayback).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
+    expect(audioMocks.playMoneyAudioClipSequence).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: /go to previous amount/i }));
+    expect(audioMocks.stopPlayback).toHaveBeenCalledTimes(2);
+
+    fireEvent.click(screen.getByRole('button', { name: /show answer/i }));
+    expect(audioMocks.playMoneyAudioClipSequence).toHaveBeenCalledTimes(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Use amount tier < 10,000' }));
+    expect(audioMocks.stopPlayback).toHaveBeenCalledTimes(3);
   });
 
   it('changes tier and constrains generated amount to selected band', () => {
@@ -104,5 +170,11 @@ describe('JapaneseMoneyToolPage', () => {
     expect(screen.queryByRole('heading', { name: 'Japanese Reading' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /hide furigana/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /show furigana/i })).not.toBeInTheDocument();
+  });
+
+  it('does not render an auto-play loop toggle', () => {
+    render(<JapaneseMoneyToolPage />);
+
+    expect(screen.queryByRole('button', { name: /auto-play/i })).not.toBeInTheDocument();
   });
 });

@@ -121,7 +121,7 @@ export function buildMoneyReading(amount: number): MoneyReading {
           unitKana: '',
         },
       ],
-      kana: 'れいえん',
+      kana: 'れい',
     };
   }
 
@@ -150,9 +150,7 @@ export function buildMoneyReading(amount: number): MoneyReading {
     }
   }
 
-  const kana = `${segments
-    .map((segment) => `${segment.digitsReading}${segment.unitKana}`)
-    .join('')}えん`;
+  const kana = segments.map((segment) => `${segment.digitsReading}${segment.unitKana}`).join('');
 
   return {
     segments,
