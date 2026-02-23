@@ -151,14 +151,6 @@ const pickLineItems = (itemPool: readonly string[], amount: number): ReceiptLine
 const createAmountFromTier = (tier: MoneyTier): number =>
   randomInt(tier.minInclusive, tier.maxExclusive - 1);
 
-export function sanitizeMoneyTierId(value: string | null | undefined): MoneyTierId {
-  if (!value || !MONEY_TIER_BY_ID.has(value as MoneyTierId)) {
-    return DEFAULT_MONEY_TIER_ID;
-  }
-
-  return value as MoneyTierId;
-}
-
 export function getMoneyTierById(tierId: MoneyTierId): MoneyTier {
   const tier = MONEY_TIER_BY_ID.get(tierId);
   if (!tier) {
@@ -202,10 +194,6 @@ export function createMoneyPracticeCard(
   };
 }
 
-export function getNextRandomCardFromTier(tierId: MoneyTierId): MoneyPracticeCard {
-  return createMoneyPracticeCard(tierId);
-}
-
 const normalizeMoneyTierIds = (tierIds: readonly MoneyTierId[]): MoneyTierId[] => {
   const uniqueTierIds = Array.from(new Set(tierIds)).filter((tierId) =>
     MONEY_TIER_BY_ID.has(tierId)
@@ -227,8 +215,4 @@ export function createMoneyPracticeCardFromTiers(
 
 export function getNextRandomCardFromTiers(tierIds: readonly MoneyTierId[]): MoneyPracticeCard {
   return createMoneyPracticeCardFromTiers(tierIds);
-}
-
-export function randomizeTier(): MoneyTier {
-  return randomItem(MONEY_TIERS);
 }

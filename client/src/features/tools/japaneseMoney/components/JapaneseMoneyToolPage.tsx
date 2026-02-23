@@ -28,6 +28,13 @@ interface CardSnapshot {
 }
 
 const HISTORY_LIMIT = 120;
+const THERMAL_RECEIPT_TEMPLATE_IDS = new Set<MoneyPracticeCard['templateId']>([
+  'lawsen-24',
+  'ab-shoe-square',
+  'yodocam-plaza',
+  'sakura-inn',
+  'imperial-bay-hotel',
+]);
 
 const toStoreVisualClass = (storeName: string): string =>
   storeName
@@ -53,6 +60,10 @@ const JapaneseMoneyToolPage = () => {
   const reading = useMemo(() => buildMoneyReading(card.amount), [card.amount]);
   const issuedAtLabel = useMemo(() => formatReceiptTimestamp(card.issuedAt), [card.issuedAt]);
   const storeVisualClass = useMemo(() => toStoreVisualClass(card.storeName), [card.storeName]);
+  const receiptStyleClass = useMemo(
+    () => (THERMAL_RECEIPT_TEMPLATE_IDS.has(card.templateId) ? 'receipt-style-thermal' : ''),
+    [card.templateId]
+  );
 
   const resetHistory = useCallback(() => {
     previousCardsRef.current = [];
@@ -224,7 +235,7 @@ const JapaneseMoneyToolPage = () => {
         <div className="retro-money-practice-layout">
           <div className="retro-money-main">
             <div
-              className={`retro-money-receipt template-${card.templateId} store-${storeVisualClass}`}
+              className={`retro-money-receipt template-${card.templateId} store-${storeVisualClass} ${receiptStyleClass}`}
               role="region"
               aria-label="Japanese receipt card"
             >

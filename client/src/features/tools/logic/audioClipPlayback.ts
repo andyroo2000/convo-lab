@@ -116,6 +116,8 @@ export function playAudioClipSequence(
           return playSingleClip(
             url,
             abortController.signal,
+            // `index` is in `resolvedUrls.slice(1)`, so the last playable clip in this reduce chain
+            // is at `resolvedUrls.length - 2` (the overall final clip should not be trimmed).
             index < resolvedUrls.length - 2 ? clipTrimEndMs : 0,
             () => volume,
             (audio) => {

@@ -53,6 +53,7 @@ const ensureParentDir = async (filePath: string) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
 };
 
+// Man-chunk clips are spoken as full `Xまん` values, so we materialize the reading at 10,000-unit scale.
 const chunkToKana = (chunkValue: number): string => buildMoneyReading(chunkValue * 10_000).kana;
 
 const toRelativePath = (chunkValue: number): string =>

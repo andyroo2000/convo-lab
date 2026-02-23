@@ -71,6 +71,12 @@ type Manifest = {
 };
 
 function parseArgValue(args: string[], name: string): string | undefined {
+  const prefixed = `--${name}=`;
+  const withEquals = args.find((arg) => arg.startsWith(prefixed));
+  if (withEquals) {
+    return withEquals.slice(prefixed.length);
+  }
+
   const index = args.indexOf(`--${name}`);
   if (index === -1) return undefined;
   return args[index + 1];
@@ -289,6 +295,7 @@ async function main() {
   const provider = getProviderFromVoiceId(voiceId) as Provider;
   const languageCode = getLanguageCodeFromVoiceId(voiceId);
   const voiceDescription = resolveVoiceDescription(voiceId);
+  // Logged for operator visibility; object paths stay fixed to google-kento-professional.
   const voiceSlug = sanitizeFilePart(voiceDescription) || sanitizeFilePart(voiceId) || 'voice';
   const outDir = outDirArg || resolveDefaultOutputDir();
 
@@ -302,6 +309,7 @@ async function main() {
   console.log(`[Money Components] Output: ${outDir}`);
   console.log(`[Money Components] Upload to GCS: ${uploadGcs ? 'yes' : 'no'}`);
   console.log(`[Money Components] Only missing: ${onlyMissing ? 'yes' : 'no'}`);
+  // We keep a stable object prefix so client URLs and signed-URL caching stay deterministic.
   console.log(`[Money Components] Voice slug: ${voiceSlug}`);
 
   const entries = buildEntries(chunkStart, chunkEnd);
@@ -337,6 +345,7 @@ async function main() {
       }
 
       if (uploadGcs) {
+        // Intentionally fixed path: clients reference this canonical prefix.
         const destinationPath = `${gcsRoot}/japanese-money/google-kento-professional/${entry.relativePath}`;
         const shouldUpload =
           !onlyMissing || !(await gcsFileExists(destinationPath).catch(() => false));

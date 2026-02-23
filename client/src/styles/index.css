@@ -4842,23 +4842,7 @@
   border-left: 7px solid rgba(15, 65, 99, 0.82);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) {
+.retro-money-receipt.receipt-style-thermal {
   max-width: 30rem;
   margin-inline: auto;
   border: 1.6px solid rgba(31, 41, 58, 0.35);
@@ -4870,151 +4854,39 @@
     0 1px 0 rgba(16, 32, 52, 0.08);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  )::before,
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  )::after {
+.retro-money-receipt.receipt-style-thermal::before,
+.retro-money-receipt.receipt-style-thermal::after {
   border-top-style: dashed;
   border-top-color: rgba(39, 45, 56, 0.28);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-receipt-head {
+.retro-money-receipt.receipt-style-thermal .retro-money-receipt-head {
   margin-top: 0.16rem;
   padding-bottom: 0.62rem;
   border-bottom: 1px dashed rgba(39, 45, 56, 0.34);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-category {
+.retro-money-receipt.receipt-style-thermal .retro-money-category {
   font-family: 'Noto Sans JP', sans-serif;
   letter-spacing: 0.12em;
   text-transform: none;
   color: rgba(29, 39, 53, 0.74);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-store {
+.retro-money-receipt.receipt-style-thermal .retro-money-store {
   font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
   font-size: clamp(1.46rem, 0.9rem + 1.6vw, 2rem);
   letter-spacing: 0.04em;
   color: rgba(28, 35, 48, 0.97);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-store-kana {
+.retro-money-receipt.receipt-style-thermal .retro-money-store-kana {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 0.82rem;
   color: rgba(45, 57, 73, 0.74);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-meta {
+.retro-money-receipt.receipt-style-thermal .retro-money-meta {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 0.82rem;
   letter-spacing: 0.02em;
@@ -5022,66 +4894,18 @@
   color: rgba(39, 49, 63, 0.78);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-line-item {
+.retro-money-receipt.receipt-style-thermal .retro-money-line-item {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 1.08rem;
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-line-value {
+.retro-money-receipt.receipt-style-thermal .retro-money-line-value {
   font-family: 'Noto Sans JP', sans-serif;
   font-feature-settings: 'tnum' 1;
   font-weight: 700;
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-total-label {
+.retro-money-receipt.receipt-style-thermal .retro-money-total-label {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: clamp(1.25rem, 0.84rem + 1vw, 1.68rem);
   font-weight: 800;
@@ -5089,23 +4913,7 @@
   color: rgba(26, 36, 52, 0.98);
 }
 
-.retro-money-receipt:is(
-    .store-lawsen-24,
-    .store-family-stop,
-    .store-seven-mart,
-    .store-ab-shoe-square,
-    .store-step-run-tokyo,
-    .store-kicks-warehouse,
-    .store-yodocam-plaza,
-    .store-bic-tech-hub,
-    .store-sakura-denki,
-    .store-sakura-inn-tokyo,
-    .store-harbour-view-hotel,
-    .store-midtown-business-hotel,
-    .store-grand-regency-tokyo,
-    .store-imperial-bay-hotel,
-    .store-royal-orchid-palace
-  ) .retro-money-total-value {
+.retro-money-receipt.receipt-style-thermal .retro-money-total-value {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: clamp(2.1rem, 1.24rem + 2.35vw, 3.2rem);
   font-weight: 900;
