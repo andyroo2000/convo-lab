@@ -5237,6 +5237,8 @@
   border-top: 2px dashed rgba(20, 50, 86, 0.35);
   min-height: 7rem;
   padding: 0.92rem 0 0.08rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .retro-money-reading-kana {

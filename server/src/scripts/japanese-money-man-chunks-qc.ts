@@ -3,51 +3,18 @@ import fs from 'fs/promises';
 import path from 'path';
 
 import { TextToSpeechClient } from '@google-cloud/text-to-speech';
+import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 
 import { buildMoneyReading } from '../../../client/src/features/tools/japaneseMoney/logic/moneyFormatting';
-import { uploadFileToGCSPath } from '../services/storageClient.js';
+import { gcsFileExists, uploadFileToGCSPath } from '../services/storageClient.js';
+
+import { parseArgValue, parseIntegerArg } from './utils/scriptArgs.js';
 
 const MIN_CHUNK = 1;
 const MAX_CHUNK = 9999;
 const DEFAULT_VOICE_ID = 'ja-JP-Neural2-C';
-const DEFAULT_LANGUAGE_CODE = 'ja-JP';
 const DEFAULT_GCS_ROOT = 'tools-audio';
 const DEFAULT_OUT_DIR = '../client/public/tools-audio/japanese-money/google-kento-professional';
-
-const parseArgValue = (args: string[], argName: string): string | null => {
-  const prefixed = `--${argName}=`;
-  const withEquals = args.find((arg) => arg.startsWith(prefixed));
-  if (withEquals) {
-    return withEquals.slice(prefixed.length);
-  }
-
-  const index = args.findIndex((arg) => arg === `--${argName}`);
-  if (index !== -1) {
-    return args[index + 1] ?? null;
-  }
-
-  return null;
-};
-
-const parseIntegerArg = (
-  args: string[],
-  argName: string,
-  defaultValue: number,
-  minimum: number,
-  maximum: number
-): number => {
-  const rawValue = parseArgValue(args, argName);
-  if (!rawValue) {
-    return defaultValue;
-  }
-
-  const parsed = Number.parseInt(rawValue, 10);
-  if (!Number.isFinite(parsed) || parsed < minimum || parsed > maximum) {
-    throw new Error(`--${argName} must be an integer between ${minimum} and ${maximum}`);
-  }
-
-  return parsed;
-};
 
 const ensureParentDir = async (filePath: string) => {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -67,6 +34,7 @@ async function main() {
   const uploadGcs = args.includes('--upload-gcs');
   const outDir = parseArgValue(args, 'out-dir') || DEFAULT_OUT_DIR;
   const voiceId = parseArgValue(args, 'voice-id') || DEFAULT_VOICE_ID;
+  const languageCode = getLanguageCodeFromVoiceId(voiceId);
   const gcsRoot = (parseArgValue(args, 'gcs-root') || DEFAULT_GCS_ROOT).replace(/^\/+|\/+$/g, '');
 
   if (chunkStart > chunkEnd) {
@@ -107,7 +75,7 @@ async function main() {
         const [response] = await ttsClient.synthesizeSpeech({
           input: { text: readingKana },
           voice: {
-            languageCode: DEFAULT_LANGUAGE_CODE,
+            languageCode,
             name: voiceId,
           },
           audioConfig: {
@@ -132,12 +100,17 @@ async function main() {
 
       if (uploadGcs) {
         const destinationPath = `${gcsRoot}/japanese-money/google-kento-professional/${relativePath}`;
-        await uploadFileToGCSPath({
-          localFilePath: absolutePath,
-          destinationPath,
-          contentType: 'audio/mpeg',
-        });
-        uploaded += 1;
+        const shouldUpload =
+          !onlyMissing || !(await gcsFileExists(destinationPath).catch(() => false));
+
+        if (shouldUpload) {
+          await uploadFileToGCSPath({
+            localFilePath: absolutePath,
+            destinationPath,
+            contentType: 'audio/mpeg',
+          });
+          uploaded += 1;
+        }
       }
     } catch (error) {
       failed += 1;

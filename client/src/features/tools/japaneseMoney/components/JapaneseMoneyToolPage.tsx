@@ -6,7 +6,6 @@ import type { AudioSequencePlayback } from '../../logic/audioClipPlayback';
 import {
   createMoneyPracticeCardFromTiers,
   DEFAULT_MONEY_TIER_ID,
-  getNextRandomCardFromTiers,
   MONEY_TIERS,
   type MoneyPracticeCard,
   type MoneyTierId,
@@ -125,7 +124,7 @@ const JapaneseMoneyToolPage = () => {
   }, [playCurrentCardAudio]);
 
   const advanceToNextCard = useCallback((tierIds: MoneyTierId[]) => {
-    setCard(getNextRandomCardFromTiers(tierIds));
+    setCard(createMoneyPracticeCardFromTiers(tierIds));
     setIsRevealed(false);
     setPlaybackHint(null);
   }, []);
@@ -139,6 +138,7 @@ const JapaneseMoneyToolPage = () => {
       return;
     }
 
+    // Intentionally preserve an unrevealed snapshot before reveal so learners can step back through both states.
     pushCurrentCardToHistory();
     revealCard();
   }, [

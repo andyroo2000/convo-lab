@@ -20,6 +20,8 @@ import {
 } from '../services/ttsProviders/FishAudioTTSProvider.js';
 import { GoogleTTSProvider } from '../services/ttsProviders/GoogleTTSProvider.js';
 
+import { parseArgValue, parseIntegerArg } from './utils/scriptArgs.js';
+
 loadEnv();
 
 const execFileAsync = promisify(execFile);
@@ -69,38 +71,6 @@ type Manifest = {
   entries: MoneyAudioEntry[];
   results: GenerationResult[];
 };
-
-function parseArgValue(args: string[], name: string): string | undefined {
-  const prefixed = `--${name}=`;
-  const withEquals = args.find((arg) => arg.startsWith(prefixed));
-  if (withEquals) {
-    return withEquals.slice(prefixed.length);
-  }
-
-  const index = args.indexOf(`--${name}`);
-  if (index === -1) return undefined;
-  return args[index + 1];
-}
-
-function parseIntegerArg(
-  args: string[],
-  name: string,
-  fallback: number,
-  min: number,
-  max: number
-): number {
-  const raw = parseArgValue(args, name);
-  if (!raw) {
-    return fallback;
-  }
-
-  const parsed = Number.parseInt(raw, 10);
-  if (!Number.isInteger(parsed) || parsed < min || parsed > max) {
-    throw new Error(`Invalid --${name} value: ${raw}. Expected integer between ${min} and ${max}.`);
-  }
-
-  return parsed;
-}
 
 function sanitizeFilePart(value: string): string {
   return value
@@ -162,11 +132,21 @@ async function streamToBuffer(stream: unknown): Promise<Buffer> {
 }
 
 async function synthesizePollySpeech(text: string, voiceId: string): Promise<Buffer> {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  if (!accessKeyId) {
+    throw new Error('AWS_ACCESS_KEY_ID is not set');
+  }
+
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  if (!secretAccessKey) {
+    throw new Error('AWS_SECRET_ACCESS_KEY is not set');
+  }
+
   const polly = new Polly({
     region: process.env.AWS_REGION || 'us-east-1',
     credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      accessKeyId,
+      secretAccessKey,
     },
   });
 

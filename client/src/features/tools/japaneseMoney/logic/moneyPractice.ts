@@ -212,7 +212,3 @@ export function createMoneyPracticeCardFromTiers(
   const availableTierIds = normalizeMoneyTierIds(tierIds);
   return createMoneyPracticeCard(randomItem(availableTierIds));
 }
-
-export function getNextRandomCardFromTiers(tierIds: readonly MoneyTierId[]): MoneyPracticeCard {
-  return createMoneyPracticeCardFromTiers(tierIds);
-}
