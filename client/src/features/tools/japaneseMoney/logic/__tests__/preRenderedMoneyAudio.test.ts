@@ -27,11 +27,15 @@ describe('preRenderedMoneyAudio', () => {
     [1000, ['1000']],
     [9999, ['9999']],
     [10000, ['man-chunk/0001']],
-    [100000000, ['0001', 'oku']],
+    [100000000, ['oku-chunk/0001']],
   ])('builds expected boundary clip URLs for %i', (amount, expectedParts) => {
     const urls = buildMoneyAudioClipUrls(amount);
     const compact = urls.map((url) =>
       url
+        .replace(
+          '/tools-audio/japanese-money/google-kento-professional/money/oku-chunk/',
+          'oku-chunk/'
+        )
         .replace(
           '/tools-audio/japanese-money/google-kento-professional/money/man-chunk/',
           'man-chunk/'
@@ -46,8 +50,7 @@ describe('preRenderedMoneyAudio', () => {
 
   it('builds expected multi-segment clips for a large mixed amount', () => {
     expect(buildMoneyAudioClipUrls(1_234_567_890)).toEqual([
-      '/tools-audio/japanese-money/google-kento-professional/money/chunk/0012.mp3',
-      '/tools-audio/japanese-money/google-kento-professional/money/unit/oku.mp3',
+      '/tools-audio/japanese-money/google-kento-professional/money/oku-chunk/0012.mp3',
       '/tools-audio/japanese-money/google-kento-professional/money/man-chunk/3456.mp3',
       '/tools-audio/japanese-money/google-kento-professional/money/chunk/7890.mp3',
     ]);

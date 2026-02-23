@@ -8,6 +8,7 @@ type MoneyPlaybackOptions = {
 const MONEY_AUDIO_BASE_URL = '/tools-audio/japanese-money/google-kento-professional';
 const MAX_SUPPORTED_AMOUNT = 9_999_999_999_999;
 const MONEY_INTER_CLIP_TRIM_MS = 90;
+const MAX_OKU_COMPOUND_CHUNK = 99;
 
 const UNIT_AUDIO_FILE_BY_SCRIPT: Record<string, string> = {
   '': '',
@@ -39,6 +40,9 @@ const toChunkAudioPath = (value: number): string =>
 const toManChunkAudioPath = (value: number): string =>
   `${MONEY_AUDIO_BASE_URL}/money/man-chunk/${String(value).padStart(4, '0')}.mp3`;
 
+const toOkuChunkAudioPath = (value: number): string =>
+  `${MONEY_AUDIO_BASE_URL}/money/oku-chunk/${String(value).padStart(4, '0')}.mp3`;
+
 const toUnitAudioPath = (unitFile: string): string =>
   `${MONEY_AUDIO_BASE_URL}/money/unit/${unitFile}.mp3`;
 
@@ -55,6 +59,11 @@ export function buildMoneyAudioClipUrls(amount: number): string[] {
 
     if (segment.unitScript === '万') {
       urls.push(toManChunkAudioPath(chunkValue));
+      return;
+    }
+
+    if (segment.unitScript === '億' && chunkValue >= 1 && chunkValue <= MAX_OKU_COMPOUND_CHUNK) {
+      urls.push(toOkuChunkAudioPath(chunkValue));
       return;
     }
 
