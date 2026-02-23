@@ -36,6 +36,7 @@ const useToolArrowKeyNavigation = ({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         event.defaultPrevented ||
+        event.repeat ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||

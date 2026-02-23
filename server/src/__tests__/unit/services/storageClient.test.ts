@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 
-import type { UploadFileOptions, UploadOptions } from '../../../services/storageClient.js';
+import type {
+  UploadFileOptions,
+  UploadFileToPathOptions,
+  UploadOptions,
+} from '../../../services/storageClient.js';
 
 // Note: The storage client functions require complex GCS mocking that is
 // difficult to set up properly in unit tests because the Storage class is
@@ -30,6 +34,11 @@ describe('Storage Client', () => {
     it('should export uploadFileToGCS function', async () => {
       const { uploadFileToGCS } = await import('../../../services/storageClient.js');
       expect(typeof uploadFileToGCS).toBe('function');
+    });
+
+    it('should export uploadFileToGCSPath function', async () => {
+      const { uploadFileToGCSPath } = await import('../../../services/storageClient.js');
+      expect(typeof uploadFileToGCSPath).toBe('function');
     });
 
     it('should export deleteFromGCS function', async () => {
@@ -133,6 +142,21 @@ describe('Storage Client', () => {
       };
 
       expect(options2.filePath).toBe('/var/data/image.png');
+    });
+  });
+
+  describe('UploadFileToPathOptions interface', () => {
+    it('should accept valid deterministic upload options', () => {
+      const options: UploadFileToPathOptions = {
+        localFilePath: '/tmp/chunk-0747.mp3',
+        destinationPath:
+          'tools-audio/japanese-money/google-kento-professional/money/chunk/0747.mp3',
+        contentType: 'audio/mpeg',
+      };
+
+      expect(options.localFilePath).toBe('/tmp/chunk-0747.mp3');
+      expect(options.destinationPath).toContain('/japanese-money/');
+      expect(options.contentType).toBe('audio/mpeg');
     });
   });
 
