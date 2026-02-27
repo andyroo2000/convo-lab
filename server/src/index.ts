@@ -48,9 +48,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time & Counter Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Counter & Verb Practice Tools',
     description:
-      'Practice Japanese date, time, and counter reading with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -64,7 +64,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, and counters with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, counters, and verb conjugation with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -88,6 +88,13 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
+  },
+  '/tools/japanese-verbs': {
+    title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
+    description:
+      'Practice Japanese verb conjugation with N5/N4 filters, verb group targeting, and textbook vs colloquial potential drills.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-verbs`,
   },
   '/tools/credits': {
     title: 'Credits | ConvoLab Tools',
