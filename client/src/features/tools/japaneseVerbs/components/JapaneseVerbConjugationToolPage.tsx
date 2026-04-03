@@ -140,6 +140,20 @@ const loadShowFurigana = (): boolean => {
 
 const JapaneseVerbConjugationToolPage = () => {
   const [showFurigana, setShowFurigana] = useState(loadShowFurigana);
+  const isInitialFuriganaRender = useRef(true);
+
+  useEffect(() => {
+    if (isInitialFuriganaRender.current) {
+      isInitialFuriganaRender.current = false;
+      return;
+    }
+    try {
+      window.localStorage.setItem(FURIGANA_STORAGE_KEY, String(showFurigana));
+    } catch {
+      // Ignore storage write errors (quota/private mode).
+    }
+  }, [showFurigana]);
+
   const [selectedJlptLevels, setSelectedJlptLevels] = useState<JLPTLevel[]>(DEFAULT_JLPT_LEVELS);
   const [selectedVerbGroups, setSelectedVerbGroups] = useState<VerbGroup[]>(DEFAULT_VERB_GROUPS);
   const [selectedConjugationIds, setSelectedConjugationIds] =
@@ -740,17 +754,7 @@ const JapaneseVerbConjugationToolPage = () => {
               <span className="retro-counter-control-label">Display</span>
               <button
                 type="button"
-                onClick={() =>
-                  setShowFurigana((current) => {
-                    const next = !current;
-                    try {
-                      window.localStorage.setItem(FURIGANA_STORAGE_KEY, String(next));
-                    } catch {
-                      // Ignore storage write errors (quota/private mode).
-                    }
-                    return next;
-                  })
-                }
+                onClick={() => setShowFurigana((current) => !current)}
                 className={`retro-toggle-button ${showFurigana ? 'is-on' : ''}`}
                 title={showFurigana ? 'Hide furigana' : 'Show furigana'}
                 aria-pressed={showFurigana}
