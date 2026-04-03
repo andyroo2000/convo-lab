@@ -23,6 +23,7 @@ import {
 interface RubyPartProps {
   script: string;
   kana: string;
+  showFurigana?: boolean;
 }
 
 interface VerbCardSnapshot {
@@ -104,7 +105,7 @@ const buildRubyParts = (
   };
 };
 
-const RubyPart = ({ script, kana }: RubyPartProps) => {
+const RubyPart = ({ script, kana, showFurigana = true }: RubyPartProps) => {
   const rubyParts = buildRubyParts(script, kana);
   if (!rubyParts) {
     return <span className="mr-1">{script}</span>;
@@ -115,7 +116,9 @@ const RubyPart = ({ script, kana }: RubyPartProps) => {
       {rubyParts.prefix}
       <ruby>
         {rubyParts.kanjiPart}
-        <rt className={RUBY_RT_CLASS}>{rubyParts.reading}</rt>
+        <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>
+          {rubyParts.reading}
+        </rt>
       </ruby>
       {rubyParts.suffix}
     </span>
@@ -126,6 +129,7 @@ const buildCardHistoryKey = (card: VerbPracticeCard): string =>
   `${card.verb.id}:${card.conjugation.id}`;
 
 const JapaneseVerbConjugationToolPage = () => {
+  const [showFurigana, setShowFurigana] = useState(true);
   const [selectedJlptLevels, setSelectedJlptLevels] = useState<JLPTLevel[]>(DEFAULT_JLPT_LEVELS);
   const [selectedVerbGroups, setSelectedVerbGroups] = useState<VerbGroup[]>(DEFAULT_VERB_GROUPS);
   const [selectedConjugationIds, setSelectedConjugationIds] =
@@ -480,7 +484,11 @@ const JapaneseVerbConjugationToolPage = () => {
                   </p>
 
                   <p className="japanese-text retro-verb-dictionary-form" aria-live="polite">
-                    <RubyPart script={card.verb.dictionary} kana={card.verb.reading} />
+                    <RubyPart
+                      script={card.verb.dictionary}
+                      kana={card.verb.reading}
+                      showFurigana={showFurigana}
+                    />
                   </p>
                   <p className="retro-verb-meaning">{card.verb.meaning}</p>
 
@@ -508,7 +516,11 @@ const JapaneseVerbConjugationToolPage = () => {
                     {isRevealed && (
                       <>
                         <p className="japanese-text retro-verb-answer" aria-live="polite">
-                          <RubyPart script={card.answer.script} kana={card.answer.reading} />
+                          <RubyPart
+                            script={card.answer.script}
+                            kana={card.answer.reading}
+                            showFurigana={showFurigana}
+                          />
                         </p>
                         {card.referenceAnswer && (
                           <p className="retro-verb-reference-answer">
@@ -712,6 +724,20 @@ const JapaneseVerbConjugationToolPage = () => {
                 className="retro-clock-radio-volume-slider"
                 aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
               />
+            </div>
+
+            <div className="retro-counter-control-group" role="group" aria-label="Display options">
+              <span className="retro-counter-control-label">Display</span>
+              <button
+                type="button"
+                onClick={() => setShowFurigana((current) => !current)}
+                className={`retro-toggle-button ${showFurigana ? 'is-on' : ''}`}
+                title={showFurigana ? 'Hide furigana' : 'Show furigana'}
+                aria-pressed={showFurigana}
+              >
+                <span className="retro-toggle-switch" aria-hidden="true" />
+                <span>Furigana</span>
+              </button>
             </div>
           </div>
         </div>
