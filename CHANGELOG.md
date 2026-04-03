@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- **[fix]** Exclude QC scripts from server tsconfig.build.json — these scripts import from client/src which isn't available in the Docker worker build, causing CI failures
+
 ### Changed
 
 - **[style]** Improve retro counter layout — fixed rem widths for sheet/panel, centered main panel, adjusted font sizes, padding, and illustration sizes for better proportions
