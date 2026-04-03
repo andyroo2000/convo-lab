@@ -49,6 +49,8 @@ const JapaneseMoneyToolPage = () => {
     [card.template.receiptStyle]
   );
 
+  const isWideTier = ['lt_10m', 'lt_100m', 'lt_1b', 'lt_10b'].includes(card.tierId);
+
   const resetHistory = useCallback(() => {
     previousCardsRef.current = [];
     setHistoryDepth(0);
@@ -218,7 +220,7 @@ const JapaneseMoneyToolPage = () => {
 
       <section className="card retro-paper-panel retro-money-card">
         <div className="retro-money-practice-layout">
-          <div className="retro-money-main">
+          <div className={`retro-money-main${isWideTier ? ' is-wide-tier' : ''}`}>
             <div
               className={`retro-money-receipt template-${card.templateId} store-${card.storeClassName} ${receiptStyleClass}`}
               role="region"

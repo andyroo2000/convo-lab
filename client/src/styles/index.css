@@ -5353,6 +5353,25 @@
   line-height: 1.38;
 }
 
+/* Wide-tier overrides: larger tiers (≥ 10M) use an invoice-style wider card */
+.retro-money-main.is-wide-tier > .retro-money-receipt,
+.retro-money-main.is-wide-tier > .retro-money-reading-box,
+.retro-money-main.is-wide-tier > .retro-money-controls,
+.retro-money-main.is-wide-tier > .retro-money-playback-hint {
+  width: min(100%, 36rem);
+  max-width: 36rem;
+}
+
+.retro-money-main.is-wide-tier .retro-money-reading-box {
+  overflow-x: hidden;
+}
+
+.retro-money-main.is-wide-tier .retro-money-reading-kana {
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.55;
+}
+
 @media (max-width: 640px) {
   .retro-money-practice-layout {
     grid-template-columns: 1fr;
