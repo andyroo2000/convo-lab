@@ -117,6 +117,7 @@ vi.mock('../../logic/verbConjugation', () => ({
 
 describe('JapaneseVerbConjugationToolPage', () => {
   beforeEach(() => {
+    window.localStorage.removeItem('convolab:japanese-verbs:show-furigana');
     verbConjugationMocks.createCard.mockClear();
     verbConjugationMocks.state.card = verbConjugationMocks.makeCard();
     verbAudioMocks.playVerbAudioClip.mockClear();
@@ -474,6 +475,28 @@ describe('JapaneseVerbConjugationToolPage', () => {
 
     expect(furiganaToggle).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('み')).not.toHaveClass('invisible');
+  });
+
+  it('persists furigana preference to localStorage', () => {
+    render(<JapaneseVerbConjugationToolPage />);
+
+    fireEvent.click(screen.getByRole('button', { name: /furigana/i }));
+
+    expect(window.localStorage.getItem('convolab:japanese-verbs:show-furigana')).toBe('false');
+
+    fireEvent.click(screen.getByRole('button', { name: /furigana/i }));
+
+    expect(window.localStorage.getItem('convolab:japanese-verbs:show-furigana')).toBe('true');
+  });
+
+  it('restores furigana preference from localStorage', () => {
+    window.localStorage.setItem('convolab:japanese-verbs:show-furigana', 'false');
+
+    render(<JapaneseVerbConjugationToolPage />);
+
+    const furiganaToggle = screen.getByRole('button', { name: /furigana/i });
+    expect(furiganaToggle).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByText('み')).toHaveClass('invisible');
   });
 
   it('does not show playback hint on abort error', async () => {

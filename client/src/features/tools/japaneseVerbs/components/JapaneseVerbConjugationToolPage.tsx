@@ -128,8 +128,18 @@ const RubyPart = ({ script, kana, showFurigana = true }: RubyPartProps) => {
 const buildCardHistoryKey = (card: VerbPracticeCard): string =>
   `${card.verb.id}:${card.conjugation.id}`;
 
+const FURIGANA_STORAGE_KEY = 'convolab:japanese-verbs:show-furigana';
+
+const loadShowFurigana = (): boolean => {
+  try {
+    return window.localStorage.getItem(FURIGANA_STORAGE_KEY) !== 'false';
+  } catch {
+    return true;
+  }
+};
+
 const JapaneseVerbConjugationToolPage = () => {
-  const [showFurigana, setShowFurigana] = useState(true);
+  const [showFurigana, setShowFurigana] = useState(loadShowFurigana);
   const [selectedJlptLevels, setSelectedJlptLevels] = useState<JLPTLevel[]>(DEFAULT_JLPT_LEVELS);
   const [selectedVerbGroups, setSelectedVerbGroups] = useState<VerbGroup[]>(DEFAULT_VERB_GROUPS);
   const [selectedConjugationIds, setSelectedConjugationIds] =
@@ -730,7 +740,17 @@ const JapaneseVerbConjugationToolPage = () => {
               <span className="retro-counter-control-label">Display</span>
               <button
                 type="button"
-                onClick={() => setShowFurigana((current) => !current)}
+                onClick={() =>
+                  setShowFurigana((current) => {
+                    const next = !current;
+                    try {
+                      window.localStorage.setItem(FURIGANA_STORAGE_KEY, String(next));
+                    } catch {
+                      // Ignore storage write errors (quota/private mode).
+                    }
+                    return next;
+                  })
+                }
                 className={`retro-toggle-button ${showFurigana ? 'is-on' : ''}`}
                 title={showFurigana ? 'Hide furigana' : 'Show furigana'}
                 aria-pressed={showFurigana}
