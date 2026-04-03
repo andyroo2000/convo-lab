@@ -23,3 +23,28 @@ DATABASE_URL="postgresql://YOUR_MAC_USERNAME@localhost:5432/languageflow?schema=
 - Production server access instructions
 
 If you don't have `LOCAL_SETUP.md`, copy `LOCAL_SETUP.md.example` and ask the project owner for credentials.
+
+## Audio Storage
+
+**NEVER commit binary audio files (MP3, WAV, etc.) to the git repository.** All pre-rendered audio must be stored on Google Cloud Storage (GCS) in the `convolab-storage` bucket under `tools-audio/`.
+
+### Upload flow
+
+1. Generate audio files locally (e.g., via a TTS QC script)
+2. Upload to GCS: `gsutil -m cp -r <local-dir>/* gs://convolab-storage/tools-audio/<tool-name>/google-kento-professional/`
+3. In client code, build paths like `/tools-audio/<tool-name>/google-kento-professional/<id>.mp3`
+4. Use the default `resolveToolAudioUrls: true` behavior in `playAudioClipSequence` — this resolves paths to GCS signed URLs via `POST /api/tools-audio/signed-urls`
+
+### Do NOT
+
+- Set `resolveToolAudioUrls: false` — this bypasses GCS and tries to serve from the local filesystem
+- Place MP3 files in `client/public/tools-audio/` — they bloat the repo and clone times
+- Commit audio files even temporarily — they persist in git history forever
+
+### Existing tools on GCS
+
+- `tools-audio/japanese-counters/google-kento-professional/`
+- `tools-audio/japanese-date/google-kento-professional/`
+- `tools-audio/japanese-time/google-kento-professional/`
+- `tools-audio/japanese-money/google-kento-professional/`
+- `tools-audio/japanese-verbs/google-kento-professional/`

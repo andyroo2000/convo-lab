@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import useToolArrowKeyNavigation from '../../hooks/useToolArrowKeyNavigation';
+import { playVerbAudioClip } from '../logic/preRenderedVerbAudio';
 import {
   CONJUGATION_BADGE_LABELS,
   createVerbPracticeCard,
@@ -29,6 +30,7 @@ interface VerbCardSnapshot {
   isRevealed: boolean;
 }
 
+const PAUSE_OPTIONS = [5, 8, 12] as const;
 const RUBY_RT_CLASS = '!text-[0.34em] sm:!text-[0.27em]';
 const HISTORY_LIMIT = 120;
 const RECENT_CARD_HISTORY_LIMIT = 18;
@@ -132,9 +134,63 @@ const JapaneseVerbConjugationToolPage = () => {
     createVerbPracticeCard(DEFAULT_JLPT_LEVELS, DEFAULT_VERB_GROUPS, DEFAULT_CONJUGATION_IDS)
   );
   const [isRevealed, setIsRevealed] = useState(false);
+  const [isPowerOn, setIsPowerOn] = useState(false);
+  const [volumeLevel, setVolumeLevel] = useState<number>(1);
+  const [pauseSeconds, setPauseSeconds] = useState<number>(8);
+  const [countdownSeconds, setCountdownSeconds] = useState<number | null>(null);
+  const [isNextLedActive, setIsNextLedActive] = useState(false);
+  const [playbackHint, setPlaybackHint] = useState<string | null>(null);
+
+  // Volume is read from a ref inside playCurrentCardAudio so that changing the
+  // slider doesn't cascade through useCallback deps and restart the auto-loop.
+  const volumeRef = useRef(volumeLevel);
+  volumeRef.current = volumeLevel;
 
   const previousCardsRef = useRef<VerbCardSnapshot[]>([]);
   const recentCardKeysRef = useRef<string[]>([]);
+  const revealTimerRef = useRef<number | null>(null);
+  const autoAdvanceTimerRef = useRef<number | null>(null);
+  const countdownIntervalRef = useRef<number | null>(null);
+  const nextLedTimerRef = useRef<number | null>(null);
+  const playbackRef = useRef<ReturnType<typeof playVerbAudioClip> | null>(null);
+  const isFirstPowerOnRef = useRef(true);
+  // Tracks the previous isPowerOn value so the auto-loop effect can distinguish
+  // an on→off transition (needs cleanup) from an already-off re-render (no-op).
+  const wasPowerOnRef = useRef(false);
+
+  const statusText = (() => {
+    if (!isPowerOn || countdownSeconds === null) return '';
+    if (!isRevealed) return `answer in ${countdownSeconds}s`;
+    return `next card in ${countdownSeconds}s`;
+  })();
+
+  const clearRevealTimer = useCallback(() => {
+    if (revealTimerRef.current !== null) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }, []);
+
+  const clearAutoAdvanceTimer = useCallback(() => {
+    if (autoAdvanceTimerRef.current !== null) {
+      window.clearTimeout(autoAdvanceTimerRef.current);
+      autoAdvanceTimerRef.current = null;
+    }
+  }, []);
+
+  const clearCountdownInterval = useCallback(() => {
+    if (countdownIntervalRef.current !== null) {
+      window.clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearNextLedTimer = useCallback(() => {
+    if (nextLedTimerRef.current !== null) {
+      window.clearTimeout(nextLedTimerRef.current);
+      nextLedTimerRef.current = null;
+    }
+  }, []);
 
   const pushCurrentCardToHistory = useCallback(() => {
     previousCardsRef.current.push({ card, isRevealed });
@@ -142,6 +198,44 @@ const JapaneseVerbConjugationToolPage = () => {
       previousCardsRef.current.shift();
     }
   }, [card, isRevealed]);
+
+  const stopPlayback = useCallback(() => {
+    playbackRef.current?.stop();
+    playbackRef.current = null;
+  }, []);
+
+  const playCurrentCardAudio = useCallback(async () => {
+    stopPlayback();
+
+    if (!card) return;
+
+    let currentPlayback: ReturnType<typeof playVerbAudioClip> | null = null;
+
+    try {
+      const playback = playVerbAudioClip(
+        { verb: card.verb, conjugation: card.conjugation },
+        { volume: volumeRef.current }
+      );
+      currentPlayback = playback;
+      playbackRef.current = playback;
+      setPlaybackHint(null);
+      await playback.finished;
+    } catch (error) {
+      const isAbort = error instanceof DOMException && error.name === 'AbortError';
+      if (!isAbort) {
+        setPlaybackHint('Audio playback failed. Tap Show Answer or Next to retry.');
+      }
+    } finally {
+      if (currentPlayback && playbackRef.current === currentPlayback) {
+        playbackRef.current = null;
+      }
+    }
+  }, [card, stopPlayback]);
+
+  const revealCard = useCallback(() => {
+    setIsRevealed(true);
+    playCurrentCardAudio();
+  }, [playCurrentCardAudio]);
 
   const advanceToNextCard = useCallback(() => {
     if (card) {
@@ -169,6 +263,19 @@ const JapaneseVerbConjugationToolPage = () => {
       return;
     }
 
+    clearNextLedTimer();
+    setIsNextLedActive(true);
+    nextLedTimerRef.current = window.setTimeout(() => {
+      setIsNextLedActive(false);
+      nextLedTimerRef.current = null;
+    }, 1000);
+
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    stopPlayback();
+    setCountdownSeconds(null);
+
     if (isRevealed) {
       pushCurrentCardToHistory();
       advanceToNextCard();
@@ -176,10 +283,29 @@ const JapaneseVerbConjugationToolPage = () => {
     }
 
     pushCurrentCardToHistory();
-    setIsRevealed(true);
-  }, [advanceToNextCard, card, isRevealed, pushCurrentCardToHistory]);
+    revealCard();
+  }, [
+    advanceToNextCard,
+    card,
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    isRevealed,
+    pushCurrentCardToHistory,
+    revealCard,
+    stopPlayback,
+  ]);
 
   const handlePrevious = useCallback(() => {
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    clearNextLedTimer();
+    stopPlayback();
+    setIsNextLedActive(false);
+    setCountdownSeconds(null);
+
     const previousCard = previousCardsRef.current.pop();
     if (!previousCard) {
       return;
@@ -187,21 +313,147 @@ const JapaneseVerbConjugationToolPage = () => {
 
     setCard(previousCard.card);
     setIsRevealed(previousCard.isRevealed);
-  }, []);
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    stopPlayback,
+  ]);
 
   useToolArrowKeyNavigation({
     onNext: handleNext,
     onPrevious: handlePrevious,
   });
 
+  // Auto-loop effect
+  useEffect(() => {
+    const wasPowerOn = wasPowerOnRef.current;
+    wasPowerOnRef.current = isPowerOn;
+
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+
+    if (!isPowerOn) {
+      if (wasPowerOn) {
+        clearNextLedTimer();
+        stopPlayback();
+        setIsNextLedActive(false);
+      }
+      setCountdownSeconds(null);
+      return undefined;
+    }
+
+    // Guards against stale closures: if React re-runs this effect before the
+    // timeout fires, the cleanup function sets cancelled = true so the old
+    // callback becomes a no-op.
+    let cancelled = false;
+
+    if (!isRevealed && isFirstPowerOnRef.current) {
+      isFirstPowerOnRef.current = false;
+      setCountdownSeconds(null);
+      revealCard();
+      return undefined;
+    }
+
+    setCountdownSeconds(pauseSeconds);
+    countdownIntervalRef.current = window.setInterval(() => {
+      setCountdownSeconds((current) => {
+        if (current === null) return null;
+        return Math.max(0, current - 1);
+      });
+    }, 1000);
+
+    if (isRevealed) {
+      autoAdvanceTimerRef.current = window.setTimeout(() => {
+        if (!cancelled) {
+          setCountdownSeconds(null);
+          advanceToNextCard();
+        }
+      }, pauseSeconds * 1000);
+    } else {
+      revealTimerRef.current = window.setTimeout(() => {
+        if (!cancelled) {
+          setCountdownSeconds(null);
+          revealCard();
+        }
+      }, pauseSeconds * 1000);
+    }
+
+    return () => {
+      cancelled = true;
+      clearAutoAdvanceTimer();
+      clearRevealTimer();
+      clearCountdownInterval();
+    };
+    // card?.id restarts the countdown cycle when the active card changes (e.g. after advancing)
+  }, [
+    advanceToNextCard,
+    card?.id,
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    isPowerOn,
+    isRevealed,
+    pauseSeconds,
+    revealCard,
+    stopPlayback,
+  ]);
+
+  // Cleanup on unmount
+  useEffect(
+    () => () => {
+      clearRevealTimer();
+      clearAutoAdvanceTimer();
+      clearCountdownInterval();
+      clearNextLedTimer();
+      stopPlayback();
+    },
+    [
+      clearAutoAdvanceTimer,
+      clearCountdownInterval,
+      clearNextLedTimer,
+      clearRevealTimer,
+      stopPlayback,
+    ]
+  );
+
+  // Filter change effect
   useEffect(() => {
     previousCardsRef.current = [];
     recentCardKeysRef.current = [];
+    // Reset so the next power-on after a filter change immediately reveals
+    // rather than waiting a full countdown cycle.
+    isFirstPowerOnRef.current = true;
+    stopPlayback();
+    clearAutoAdvanceTimer();
+    clearRevealTimer();
+    clearCountdownInterval();
+    clearNextLedTimer();
+    setIsNextLedActive(false);
+    setCountdownSeconds(null);
     setIsRevealed(false);
     setCard(createVerbPracticeCard(selectedJlptLevels, selectedVerbGroups, selectedConjugationIds));
-  }, [selectedConjugationIds, selectedJlptLevels, selectedVerbGroups]);
+  }, [
+    clearAutoAdvanceTimer,
+    clearCountdownInterval,
+    clearNextLedTimer,
+    clearRevealTimer,
+    selectedConjugationIds,
+    selectedJlptLevels,
+    selectedVerbGroups,
+    stopPlayback,
+  ]);
 
   const nextButtonLabel = isRevealed ? 'Next' : 'Show Answer';
+  const autoPlayButtonLabel = isPowerOn ? 'Stop Loop' : 'Auto-Loop';
+  const normalizedCountdownSeconds =
+    countdownSeconds === null
+      ? pauseSeconds
+      : Math.max(0, Math.min(pauseSeconds, countdownSeconds));
+  const elapsedCountdownSeconds = Math.max(0, pauseSeconds - normalizedCountdownSeconds);
 
   return (
     <div className="space-y-5">
@@ -223,13 +475,16 @@ const JapaneseVerbConjugationToolPage = () => {
             <div className="retro-verb-sheet" role="region" aria-label="Verb conjugation quiz card">
               {card ? (
                 <>
-                  <div className="retro-verb-badge-row">
-                    <span className={`retro-verb-badge ${GROUP_BADGE_CLASSES[card.verb.group]}`}>
-                      Group {card.verb.group}
-                    </span>
-                    <span className="retro-verb-badge retro-verb-badge-jlpt">
-                      {card.verb.jlptLevel}
-                    </span>
+                  <p className="retro-verb-status" aria-live="polite">
+                    {statusText || '\u00A0'}
+                  </p>
+
+                  <p className="japanese-text retro-verb-dictionary-form" aria-live="polite">
+                    <RubyPart script={card.verb.dictionary} kana={card.verb.reading} />
+                  </p>
+                  <p className="retro-verb-meaning">{card.verb.meaning}</p>
+
+                  <div className="retro-verb-badge-row mt-2">
                     {card.conjugation.registers.map((register) => (
                       <span
                         key={`register-${register}`}
@@ -242,12 +497,6 @@ const JapaneseVerbConjugationToolPage = () => {
                       {CONJUGATION_BADGE_LABELS[card.conjugation.conjugationBadge]}
                     </span>
                   </div>
-
-                  <p className="retro-verb-target-label">{card.conjugation.label}</p>
-                  <p className="japanese-text retro-verb-dictionary-form" aria-live="polite">
-                    <RubyPart script={card.verb.dictionary} kana={card.verb.reading} />
-                  </p>
-                  <p className="retro-verb-meaning">{card.verb.meaning}</p>
 
                   {card.conjugation.promptHint && (
                     <p className="retro-verb-prompt-hint" data-testid="verb-colloquial-hint">
@@ -266,6 +515,16 @@ const JapaneseVerbConjugationToolPage = () => {
                             Textbook: {card.referenceAnswer.script} ({card.referenceAnswer.reading})
                           </p>
                         )}
+                        <div className="retro-verb-badge-row mt-2">
+                          <span
+                            className={`retro-verb-badge ${GROUP_BADGE_CLASSES[card.verb.group]}`}
+                          >
+                            Group {card.verb.group}
+                          </span>
+                          <span className="retro-verb-badge retro-verb-badge-jlpt">
+                            {card.verb.jlptLevel}
+                          </span>
+                        </div>
                       </>
                     )}
                   </div>
@@ -281,6 +540,9 @@ const JapaneseVerbConjugationToolPage = () => {
             </div>
 
             <div className="retro-verb-next-row">
+              <span
+                className={`retro-clock-radio-led retro-clock-radio-led-next ${isNextLedActive ? 'is-flash' : ''}`}
+              />
               <button
                 type="button"
                 onClick={handleNext}
@@ -382,6 +644,75 @@ const JapaneseVerbConjugationToolPage = () => {
                 })}
               </div>
             </div>
+
+            <div className="retro-counter-control-group" role="group" aria-label="Quiz controls">
+              <span className="retro-counter-control-label">Quiz Controls</span>
+              <div className="retro-counter-control-buttons">
+                <div className="retro-counter-control-stack">
+                  <div className="retro-counter-countdown-led-row" aria-hidden="true">
+                    {Array.from({ length: pauseSeconds }, (_, index) => {
+                      let stateClass = 'is-off';
+                      if (isPowerOn) {
+                        const indexFromRight = pauseSeconds - 1 - index;
+                        stateClass =
+                          indexFromRight < elapsedCountdownSeconds ? 'is-red' : 'is-green';
+                      }
+
+                      return (
+                        <span
+                          key={`countdown-led-${pauseSeconds}-${index}`}
+                          data-testid="auto-loop-countdown-led"
+                          className={`retro-clock-radio-led retro-counter-countdown-led ${stateClass}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPowerOn((current) => !current)}
+                    className={`retro-counter-control-btn ${isPowerOn ? 'is-active' : ''}`}
+                    aria-pressed={isPowerOn}
+                  >
+                    {autoPlayButtonLabel}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="retro-counter-control-group" role="group" aria-label="Pause length">
+              <span className="retro-counter-control-label">Pause Length (Auto-Loop)</span>
+              <div className="retro-counter-pause-grid">
+                {PAUSE_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setPauseSeconds(option)}
+                    className={`retro-counter-pause-btn ${pauseSeconds === option ? 'is-active' : ''}`}
+                    aria-pressed={pauseSeconds === option}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="retro-counter-control-group" role="group" aria-label="Volume">
+              <span className="retro-counter-control-label">Volume</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={Math.round(volumeLevel * 100)}
+                onChange={(event) => {
+                  const nextVolume = Number(event.target.value) / 100;
+                  setVolumeLevel(nextVolume);
+                  playbackRef.current?.setVolume(nextVolume);
+                }}
+                className="retro-clock-radio-volume-slider"
+                aria-label={`Volume ${Math.round(volumeLevel * 100)} percent`}
+              />
+            </div>
           </div>
         </div>
 
@@ -392,11 +723,16 @@ const JapaneseVerbConjugationToolPage = () => {
               deliberate conjugation drills.
             </li>
             <li>
+              Use <span className="retro-caps text-[#15355a]">Auto-Loop</span> for continuous random
+              drills.
+            </li>
+            <li>
               For <span className="retro-caps text-[#15355a]">Potential (Colloquial)</span> cards,
               answer with the spoken contraction.
             </li>
           </ul>
         </div>
+        {playbackHint && <p className="mt-3 text-sm text-[#9e4c2a]">{playbackHint}</p>}
       </section>
     </div>
   );

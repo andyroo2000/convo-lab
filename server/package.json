@@ -36,6 +36,7 @@
     "smoke:jp-money-components-qc": "tsx src/scripts/japanese-money-components-qc.ts",
     "smoke:jp-money-man-chunks-qc": "tsx src/scripts/japanese-money-man-chunks-qc.ts",
     "smoke:jp-money-oku-chunks-qc": "tsx src/scripts/japanese-money-oku-chunks-qc.ts",
+    "smoke:jp-verb-conjugations-qc": "tsx src/scripts/japanese-verb-conjugations-qc.ts",
     "prepare": "husky"
   },
   "dependencies": {

@@ -1,11 +1,11 @@
 /* eslint-disable import/no-named-as-default-member */
+import './env.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 
 import passport from './config/passport.js';
@@ -33,8 +33,6 @@ import verificationRoutes from './routes/verification.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 const SITE_URL = 'https://convo-lab.com';
@@ -48,9 +46,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time, Money & Counter Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Money, Counter & Verb Practice Tools',
     description:
-      'Practice Japanese date, time, money, and counter reading with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -64,7 +62,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, money, and counters with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, money, counters, and verb conjugation with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -95,6 +93,13 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Practice Japanese yen readings with receipt-style visuals and furigana over Arabic numerals.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-money`,
+  },
+  '/tools/japanese-verbs': {
+    title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
+    description:
+      'Practice Japanese verb conjugation with N5/N4 filters, verb group targeting, and textbook vs colloquial potential drills.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-verbs`,
   },
   '/tools/credits': {
     title: 'Credits | ConvoLab Tools',
