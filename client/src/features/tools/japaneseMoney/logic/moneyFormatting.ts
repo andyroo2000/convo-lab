@@ -36,6 +36,10 @@ const sanitizeAmount = (amount: number): number => {
 function readUnder10000(value: number): string {
   const safe = Math.trunc(value);
 
+  if (safe < 0 || safe > 9_999) {
+    throw new Error(`readUnder10000 only supports values between 0 and 9999. Received: ${value}`);
+  }
+
   if (safe === 0) {
     return 'れい';
   }

@@ -142,8 +142,18 @@ const pickLineItems = (itemPool: readonly string[], amount: number): ReceiptLine
 
   const split = splitAmount(amount, itemCount).sort((left, right) => right - left);
 
+  const buildLineItemId = (description: string, index: number): string => {
+    const normalizedBase = description
+      .normalize('NFKC')
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, '-')
+      .replace(/^-+|-+$/g, '');
+
+    return `${normalizedBase || 'item'}-${index}`;
+  };
+
   return chosenLabels.map((description, index) => ({
-    id: `${description.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+    id: buildLineItemId(description, index),
     description,
     amount: split[index] ?? 0,
   }));

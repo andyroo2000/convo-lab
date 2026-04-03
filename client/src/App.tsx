@@ -104,7 +104,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, RouteSeoConfig> = {
   '/tools/japanese-money': {
     title: 'Japanese Money Practice Tool (Receipt Style) | ConvoLab',
     description:
-      'Practice reading Japanese yen amounts on receipt-style cards with furigana over Arabic numerals.',
+      'Practice Japanese yen readings with receipt-style visuals and furigana over Arabic numerals.',
     canonicalPath: '/tools/japanese-money',
   },
   '/tools/japanese-verbs': {

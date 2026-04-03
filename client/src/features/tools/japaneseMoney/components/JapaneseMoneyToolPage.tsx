@@ -303,12 +303,16 @@ const JapaneseMoneyToolPage = () => {
                 <ArrowRightLeft className="h-4 w-4" />
               </button>
             </div>
-            {playbackHint && <p className="mt-2 text-sm text-[#9e4c2a]">{playbackHint}</p>}
+            {playbackHint && (
+              <p className="retro-money-playback-hint mt-2 text-sm text-[#9e4c2a]">
+                {playbackHint}
+              </p>
+            )}
           </div>
 
           <aside className="retro-money-tier-panel" aria-label="Amount Tier filter">
             <h2 className="retro-headline retro-money-tier-title">Amount Tier</h2>
-            <div className="retro-money-tier-grid" role="group" aria-label="Money amount tier">
+            <div className="retro-money-tier-grid" role="group" aria-label="Amount Tier">
               {MONEY_TIERS.map((tier) => {
                 const isActive = selectedTierIds.includes(tier.id);
 

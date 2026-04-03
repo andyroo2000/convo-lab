@@ -72,13 +72,6 @@ type Manifest = {
   results: GenerationResult[];
 };
 
-function sanitizeFilePart(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-}
-
 function resolveDefaultOutputDir(): string {
   const directClientPath = path.join(
     process.cwd(),
@@ -275,8 +268,6 @@ async function main() {
   const provider = getProviderFromVoiceId(voiceId) as Provider;
   const languageCode = getLanguageCodeFromVoiceId(voiceId);
   const voiceDescription = resolveVoiceDescription(voiceId);
-  // Logged for operator visibility; object paths stay fixed to google-kento-professional.
-  const voiceSlug = sanitizeFilePart(voiceDescription) || sanitizeFilePart(voiceId) || 'voice';
   const outDir = outDirArg || resolveDefaultOutputDir();
 
   if (provider === 'azure') {
@@ -289,8 +280,6 @@ async function main() {
   console.log(`[Money Components] Output: ${outDir}`);
   console.log(`[Money Components] Upload to GCS: ${uploadGcs ? 'yes' : 'no'}`);
   console.log(`[Money Components] Only missing: ${onlyMissing ? 'yes' : 'no'}`);
-  // We keep a stable object prefix so client URLs and signed-URL caching stay deterministic.
-  console.log(`[Money Components] Voice slug: ${voiceSlug}`);
 
   const entries = buildEntries(chunkStart, chunkEnd);
   await fs.mkdir(outDir, { recursive: true });

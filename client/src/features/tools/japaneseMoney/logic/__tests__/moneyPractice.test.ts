@@ -35,6 +35,13 @@ describe('moneyPractice', () => {
     expect(card.lineItems.every((lineItem) => lineItem.amount > 0)).toBe(true);
   });
 
+  it('keeps line item ids readable for Japanese descriptions', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    const card = createMoneyPracticeCard(DEFAULT_MONEY_TIER_ID);
+
+    expect(card.lineItems[0]?.id).toMatch(/^おにぎり-0$/);
+  });
+
   it('falls back to the default tier when tier list is empty', () => {
     const card = createMoneyPracticeCardFromTiers([]);
     expect(card.tierId).toBe(DEFAULT_MONEY_TIER_ID);
