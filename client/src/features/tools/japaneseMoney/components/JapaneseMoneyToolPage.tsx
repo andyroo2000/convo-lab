@@ -207,13 +207,13 @@ const JapaneseMoneyToolPage = () => {
     <div className="retro-money-page space-y-4 sm:space-y-5">
       <section className="card retro-paper-panel retro-money-card">
         <div className="retro-money-header">
-          <h1 className="retro-headline text-2xl sm:text-3xl">Japanese Money</h1>
+          <h1 className="retro-headline text-2xl sm:text-3xl">Large Numbers</h1>
           <p className="retro-money-kana text-lg font-semibold text-[#2f4f73] sm:text-xl">
-            日本語のお金
+            大きい数字
           </p>
           <p className="retro-money-copy mt-1 text-sm text-[#2f4f73] sm:text-base">
-            Read realistic yen totals on receipt-style cards. Start with small purchases, then move
-            up to statement-scale amounts.
+            Practice reading large Japanese numbers on receipt-style cards. Start with everyday
+            amounts, then move up to statement-scale figures.
           </p>
         </div>
       </section>

@@ -85,19 +85,19 @@ const ToolsDirectoryPage = () => {
         <Link
           to={`${toolsBasePath}/japanese-money`}
           className="retro-tools-card card retro-paper-panel group"
-          aria-label="Open Japanese Money Receipt Tool"
+          aria-label="Open Large Numbers Tool"
         >
           <div className="inline-flex items-center gap-2 rounded border border-[#14325633] bg-[rgba(26,178,209,0.14)] px-2.5 py-1 text-[0.8rem] text-[#1b3f69] retro-caps">
             <Banknote className="h-4 w-4" />
-            Money Reading
+            Number Reading
           </div>
-          <h2 className="retro-headline mt-3 text-xl">Money on Receipts</h2>
+          <h2 className="retro-headline mt-3 text-xl">Large Numbers</h2>
           <p className="mt-2 text-base text-[#2f4f73]">
-            Train real-world yen amounts from convenience-store totals up to large bank-statement
-            scale numbers.
+            Practice reading large Japanese numbers on receipt-style cards — from everyday totals to
+            bank-statement scale.
           </p>
           <div className="mt-5 flex items-center justify-between">
-            <span className="retro-caps text-sm text-[#2f4f73]">JPY tiers + receipt visuals</span>
+            <span className="retro-caps text-sm text-[#2f4f73]">Number tiers + receipt visuals</span>
             <span className="retro-tools-card-launch" aria-hidden>
               <span className="retro-tools-card-launch-orb">
                 <Sparkles className="h-3.5 w-3.5" />
