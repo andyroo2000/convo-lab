@@ -36,6 +36,27 @@ describe('toolAudioUrlResolver', () => {
     expect(resolved).toEqual(['https://signed.example/minute-44.mp3']);
   });
 
+  it('resolves signed URLs for japanese money tool paths', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        urls: {
+          '/tools-audio/japanese-money/google-kento-professional/money/chunk/0747.mp3': {
+            url: 'https://signed.example/money-0747.mp3',
+            expiresAt: '2100-01-01T00:00:00.000Z',
+          },
+        },
+      }),
+    } as Response);
+
+    const resolved = await resolveToolAudioPlaybackUrls([
+      '/tools-audio/japanese-money/google-kento-professional/money/chunk/0747.mp3',
+    ]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(resolved).toEqual(['https://signed.example/money-0747.mp3']);
+  });
+
   it('uses cache for fresh signed URLs', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       ok: true,

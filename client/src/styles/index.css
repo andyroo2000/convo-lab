@@ -4656,6 +4656,766 @@
   }
 }
 
+.retro-money-card {
+  border-color: rgba(20, 50, 86, 0.15);
+}
+
+.retro-money-practice-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 190px);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.retro-money-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.retro-money-tier-panel {
+  margin-top: 0.2rem;
+  border: 2px solid rgba(20, 50, 86, 0.2);
+  background:
+    linear-gradient(180deg, rgba(253, 250, 241, 0.96), rgba(245, 239, 224, 0.94)),
+    repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.028) 0 1px, transparent 1px 3px);
+  padding: 0.55rem 0.55rem 0.65rem;
+}
+
+.retro-money-tier-title {
+  margin: 0;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+}
+
+.retro-money-tier-grid {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.36rem;
+}
+
+.retro-money-tier-btn {
+  min-height: 1.95rem;
+  border: 2px solid rgba(20, 50, 86, 0.18);
+  background: rgba(251, 245, 224, 0.96);
+  color: rgba(20, 50, 86, 0.92);
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.04em;
+  font-size: 0.62rem;
+  padding: 0.22rem 0.28rem;
+  text-transform: uppercase;
+  box-shadow: 0 3px 0 rgba(17, 51, 92, 0.12);
+}
+
+.retro-money-tier-btn.is-active {
+  background: rgba(20, 141, 189, 0.92);
+  color: rgba(251, 245, 224, 0.98);
+  border-color: rgba(20, 50, 86, 0.42);
+  box-shadow:
+    0 4px 0 rgba(17, 51, 92, 0.2),
+    inset 0 0 0 1px rgba(251, 245, 224, 0.25);
+}
+
+.retro-money-receipt {
+  margin-top: 0.2rem;
+  width: min(100%, 20.5rem);
+  min-height: 24.5rem;
+  margin-inline: auto;
+  padding: 1.15rem 1.05rem 1.2rem;
+  border: 2px solid rgba(20, 50, 86, 0.23);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(246, 241, 228, 0.72)),
+    url('/textures/white-crinkled-paper-texture.jpg'),
+    repeating-linear-gradient(0deg, rgba(20, 50, 86, 0.04) 0 1px, transparent 1px 3px);
+  background-size:
+    auto,
+    560px 560px,
+    auto;
+  background-position:
+    center,
+    center,
+    center;
+  background-blend-mode:
+    normal,
+    multiply,
+    normal;
+  color: rgba(15, 38, 64, 0.96);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.retro-money-main > .retro-money-receipt,
+.retro-money-main > .retro-money-reading-box,
+.retro-money-main > .retro-money-controls,
+.retro-money-main > .retro-money-playback-hint {
+  width: min(100%, 20.5rem);
+  max-width: 20.5rem;
+}
+
+.retro-money-receipt::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.6rem;
+  height: 1px;
+  border-top: 1px dashed rgba(20, 50, 86, 0.22);
+}
+
+.retro-money-receipt::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.7rem;
+  height: 1px;
+  border-top: 1px dashed rgba(20, 50, 86, 0.22);
+}
+
+.retro-money-receipt-head {
+  margin-top: 0.55rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed rgba(20, 50, 86, 0.3);
+}
+
+.retro-money-category {
+  margin: 0;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(20, 50, 86, 0.75);
+}
+
+.retro-money-store {
+  margin: 0.25rem 0 0;
+  font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.2rem, 0.9rem + 1.2vw, 1.55rem);
+  letter-spacing: 0.03em;
+}
+
+.retro-money-store-kana {
+  margin: 0.05rem 0 0;
+  font-size: 0.73rem;
+  color: rgba(20, 50, 86, 0.74);
+}
+
+.retro-money-brand-mark {
+  display: none;
+}
+
+.retro-money-meta {
+  margin: 0.55rem 0 0;
+  display: grid;
+  gap: 0.18rem;
+  font-size: 0.66rem;
+  color: rgba(20, 50, 86, 0.64);
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.retro-money-line-items {
+  margin-top: 0.95rem;
+  display: grid;
+  gap: 0.42rem;
+}
+
+.retro-money-line-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+  font-size: 0.84rem;
+}
+
+.retro-money-line-label {
+  color: rgba(20, 50, 86, 0.86);
+}
+
+.retro-money-line-value {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.03em;
+}
+
+.retro-money-total-row {
+  margin-top: auto;
+  padding-top: 0.72rem;
+  margin-bottom: 0.18rem;
+  border-top: 2px solid rgba(20, 50, 86, 0.34);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.retro-money-total-label {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.08em;
+  font-size: 0.74rem;
+  color: rgba(20, 50, 86, 0.82);
+}
+
+.retro-money-total-value {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.72rem, 1.2rem + 1.7vw, 2.5rem);
+  line-height: 1;
+  color: rgba(13, 46, 82, 0.98);
+  letter-spacing: 0.03em;
+}
+
+.template-lawsen-24 {
+  border-left: 7px solid rgba(20, 141, 189, 0.7);
+}
+
+.template-ab-shoe-square {
+  border-left: 7px solid rgba(18, 65, 108, 0.72);
+}
+
+.template-yodocam-plaza {
+  border-left: 7px solid rgba(176, 75, 49, 0.72);
+}
+
+.template-sakura-inn {
+  border-left: 7px solid rgba(153, 89, 42, 0.7);
+}
+
+.template-imperial-bay-hotel {
+  border-left: 7px solid rgba(103, 79, 118, 0.74);
+}
+
+.template-tokyo-property-ledger {
+  border-left: 7px solid rgba(85, 100, 57, 0.74);
+}
+
+.template-settlement-memo {
+  border-left: 7px solid rgba(109, 70, 23, 0.76);
+}
+
+.template-kizuna-bank {
+  border-left: 7px solid rgba(15, 65, 99, 0.82);
+}
+
+.retro-money-receipt.receipt-style-thermal {
+  max-width: 100%;
+  margin-inline: auto;
+  border: 1.6px solid rgba(31, 41, 58, 0.35);
+  border-left-width: 1.6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(248, 248, 248, 0.7)),
+    url('/textures/white-crinkled-paper-texture.jpg'),
+    repeating-linear-gradient(0deg, rgba(30, 38, 51, 0.026) 0 1px, transparent 1px 3px);
+  background-size:
+    auto,
+    520px 520px,
+    auto;
+  background-position:
+    center,
+    center,
+    center;
+  background-blend-mode:
+    normal,
+    multiply,
+    normal;
+  color: rgba(30, 37, 50, 0.96);
+  box-shadow:
+    0 10px 20px rgba(16, 32, 52, 0.08),
+    0 1px 0 rgba(16, 32, 52, 0.08);
+}
+
+.retro-money-receipt.receipt-style-thermal::before,
+.retro-money-receipt.receipt-style-thermal::after {
+  border-top-style: dashed;
+  border-top-color: rgba(39, 45, 56, 0.28);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-receipt-head {
+  margin-top: 0.16rem;
+  padding-bottom: 0.62rem;
+  border-bottom: 1px dashed rgba(39, 45, 56, 0.34);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-category {
+  font-family: 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.12em;
+  text-transform: none;
+  color: rgba(29, 39, 53, 0.74);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-store {
+  font-family: 'Archivo Black', 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.46rem, 0.9rem + 1.6vw, 2rem);
+  letter-spacing: 0.04em;
+  color: rgba(28, 35, 48, 0.97);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-store-kana {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(45, 57, 73, 0.74);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-meta {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(39, 49, 63, 0.78);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-line-item {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 1.08rem;
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-line-value {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 700;
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-total-label {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(1.25rem, 0.84rem + 1vw, 1.68rem);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: rgba(26, 36, 52, 0.98);
+}
+
+.retro-money-receipt.receipt-style-thermal .retro-money-total-value {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: clamp(2.1rem, 1.24rem + 2.35vw, 3.2rem);
+  font-weight: 900;
+  color: rgba(28, 37, 52, 0.99);
+  letter-spacing: 0.01em;
+}
+
+.retro-money-receipt:is(.store-yodocam-plaza, .store-bic-tech-hub, .store-sakura-denki)
+  .retro-money-receipt-head,
+.retro-money-receipt:is(
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-receipt-head {
+  text-align: center;
+}
+
+.retro-money-receipt:is(.store-yodocam-plaza, .store-bic-tech-hub, .store-sakura-denki)
+  .retro-money-brand-mark,
+.retro-money-receipt:is(
+    .store-harbour-view-hotel,
+    .store-midtown-business-hotel,
+    .store-grand-regency-tokyo,
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace
+  ) .retro-money-brand-mark {
+  display: block;
+  margin: 0 auto 0.42rem;
+  position: relative;
+}
+
+.retro-money-receipt.store-yodocam-plaza .retro-money-brand-mark {
+  width: 4.2rem;
+  height: 2rem;
+  border: 3px solid rgba(31, 36, 45, 0.9);
+  border-radius: 1.2rem;
+}
+
+.retro-money-receipt.store-yodocam-plaza .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  width: 1.08rem;
+  height: 1.08rem;
+  border: 3px solid rgba(31, 36, 45, 0.9);
+  border-radius: 999px;
+  inset: 0;
+  margin: auto;
+}
+
+.retro-money-receipt.store-bic-tech-hub .retro-money-brand-mark {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  background: rgba(22, 26, 33, 0.95);
+}
+
+.retro-money-receipt.store-bic-tech-hub .retro-money-brand-mark::after {
+  content: 'B';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 2.1rem;
+  transform: rotate(-12deg);
+}
+
+.retro-money-receipt.store-sakura-denki .retro-money-brand-mark {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(248, 191, 210, 0.95) 0 0.4rem, transparent 0.42rem),
+    radial-gradient(circle at 50% 0.78rem, rgba(219, 124, 164, 0.95) 0 0.64rem, transparent 0.67rem),
+    radial-gradient(circle at 0.8rem 1.95rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 2.45rem 1.95rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 1.4rem 2.72rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem),
+    radial-gradient(circle at 1.9rem 2.72rem, rgba(219, 124, 164, 0.95) 0 0.58rem, transparent 0.61rem);
+}
+
+.retro-money-receipt.store-kicks-warehouse .retro-money-store {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.12rem 0.34rem;
+  background: rgba(25, 28, 34, 0.92);
+  color: rgba(255, 255, 255, 0.96);
+  text-align: center;
+  font-size: clamp(1.06rem, 0.84rem + 0.9vw, 1.32rem);
+  letter-spacing: 0.02em;
+}
+
+.retro-money-receipt.store-step-run-tokyo .retro-money-store {
+  letter-spacing: 0.1em;
+}
+
+.retro-money-receipt.store-ab-shoe-square .retro-money-store {
+  letter-spacing: 0.02em;
+  font-size: clamp(1.02rem, 0.82rem + 0.72vw, 1.28rem);
+  white-space: nowrap;
+}
+
+.retro-money-receipt.store-harbour-view-hotel .retro-money-brand-mark {
+  width: 3.5rem;
+  height: 1.4rem;
+  background:
+    radial-gradient(circle at 0.5rem 0.35rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 1.35rem 0.35rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 0.5rem 1.05rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem),
+    radial-gradient(circle at 1.35rem 1.05rem, rgba(26, 32, 45, 0.9) 0 0.3rem, transparent 0.32rem);
+}
+
+.retro-money-receipt.store-midtown-business-hotel .retro-money-brand-mark {
+  width: 2.6rem;
+  height: 2.35rem;
+  background:
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem),
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem),
+    linear-gradient(90deg, rgba(176, 151, 74, 0.93) 0 0.18rem, transparent 0.18rem 0.45rem);
+  background-size:
+    0.45rem 1.9rem,
+    0.45rem 1.35rem,
+    0.45rem 1.6rem;
+  background-position:
+    0.2rem 0.45rem,
+    1.06rem 0.75rem,
+    1.93rem 0.58rem;
+  background-repeat: no-repeat;
+}
+
+.retro-money-receipt.store-grand-regency-tokyo .retro-money-brand-mark {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 2px solid rgba(40, 42, 49, 0.85);
+}
+
+.retro-money-receipt.store-grand-regency-tokyo .retro-money-brand-mark::after {
+  content: 'GR';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'Times New Roman', 'Noto Serif JP', serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: rgba(40, 42, 49, 0.9);
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-brand-mark {
+  width: 2.5rem;
+  height: 2.7rem;
+  background: rgba(20, 63, 119, 0.94);
+  clip-path: polygon(50% 0%, 95% 20%, 86% 100%, 14% 100%, 5% 20%);
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 0.48rem 0.78rem 0.8rem;
+  border-radius: 999px 999px 0 0;
+  border: 2px solid rgba(247, 207, 99, 0.95);
+  border-bottom: 0;
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-brand-mark {
+  width: 4rem;
+  height: 2.35rem;
+  background:
+    linear-gradient(90deg, transparent 0.2rem, rgba(203, 177, 98, 0.78) 0.2rem 1.4rem, transparent 1.4rem),
+    linear-gradient(90deg, transparent 2.6rem, rgba(203, 177, 98, 0.78) 2.6rem 3.8rem, transparent 3.8rem);
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-brand-mark::after {
+  content: '';
+  position: absolute;
+  left: 1.35rem;
+  top: 0.25rem;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(161, 94, 166, 0.95) 0 65%, rgba(120, 63, 125, 0.95) 66% 100%);
+}
+
+.retro-money-receipt:is(
+    .store-imperial-bay-hotel,
+    .store-royal-orchid-palace,
+    .store-grand-regency-tokyo,
+    .store-midtown-business-hotel
+  ) .retro-money-store {
+  letter-spacing: 0.08em;
+}
+
+.retro-money-receipt.store-imperial-bay-hotel .retro-money-store {
+  color: rgba(24, 53, 95, 0.98);
+}
+
+.retro-money-receipt.store-royal-orchid-palace .retro-money-store {
+  color: rgba(63, 49, 78, 0.98);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) {
+  max-width: 100%;
+  border: 2px solid rgba(172, 182, 196, 0.75);
+  border-left: 10px solid rgba(133, 147, 108, 0.9);
+  background:
+    linear-gradient(180deg, rgba(254, 254, 254, 0.7), rgba(246, 243, 232, 0.7)),
+    url('/textures/white-crinkled-paper-texture.jpg'),
+    repeating-linear-gradient(0deg, rgba(30, 55, 92, 0.035) 0 1px, transparent 1px 4px);
+  background-size:
+    auto,
+    560px 560px,
+    auto;
+  background-position:
+    center,
+    center,
+    center;
+  background-blend-mode:
+    normal,
+    multiply,
+    normal;
+  color: rgba(35, 55, 87, 0.96);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-category {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  color: rgba(66, 88, 123, 0.85);
+}
+
+.retro-money-receipt.store-metro-estate-partners .retro-money-store {
+  font-size: clamp(2rem, 1.25rem + 2.9vw, 3.35rem);
+  line-height: 1.02;
+  letter-spacing: 0.03em;
+  color: rgba(31, 53, 92, 0.98);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-store-kana,
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-meta {
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  font-size: 0.74rem;
+  letter-spacing: 0.03em;
+  color: rgba(70, 92, 124, 0.88);
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-line-item {
+  font-size: 1.12rem;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-line-value {
+  font-weight: 700;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-total-row {
+  border-top-width: 4px;
+}
+
+.retro-money-receipt:is(
+    .store-metro-estate-partners,
+    .store-tokyo-property-ledger,
+    .store-urban-capital-realty
+  ) .retro-money-total-value {
+  font-size: clamp(2.8rem, 1.65rem + 4vw, 5rem);
+}
+
+.retro-money-controls {
+  margin-top: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.retro-money-control-btn {
+  border: 2px solid rgba(20, 50, 86, 0.22);
+  background: rgba(251, 245, 224, 0.95);
+  color: rgba(20, 50, 86, 0.9);
+  min-height: 2.6rem;
+  padding: 0.45rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-family: 'Oswald', 'Noto Sans JP', sans-serif;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.73rem;
+  box-shadow: 0 4px 0 rgba(17, 51, 92, 0.12);
+}
+
+.retro-money-control-btn.is-primary {
+  background: rgba(20, 141, 189, 0.92);
+  color: rgba(251, 245, 224, 0.98);
+  border-color: rgba(20, 50, 86, 0.46);
+  box-shadow:
+    0 4px 0 rgba(17, 51, 92, 0.2),
+    inset 0 0 0 1px rgba(251, 245, 224, 0.18);
+}
+
+.retro-money-control-btn:disabled {
+  opacity: 0.46;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.retro-money-reading-box {
+  margin-top: 0.9rem;
+  border-top: 2px dashed rgba(20, 50, 86, 0.35);
+  min-height: 7rem;
+  padding: 0.92rem 0 0.08rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.retro-money-reading-kana {
+  margin: 0;
+  color: rgba(16, 52, 86, 0.98);
+  font-size: clamp(0.7rem, 0.53rem + 0.62vw, 1.02rem);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 700;
+}
+
+.retro-money-reading-placeholder {
+  margin: 0;
+  color: rgba(20, 50, 86, 0.7);
+  font-size: 0.86rem;
+  line-height: 1.38;
+}
+
+@media (max-width: 640px) {
+  .retro-money-practice-layout {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+  }
+
+  .retro-money-tier-panel {
+    order: -1;
+    padding: 0.5rem 0.5rem 0.58rem;
+  }
+
+  .retro-money-tier-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+
+  .retro-money-receipt {
+    width: min(100%, 18.5rem);
+    min-height: 23.25rem;
+    padding: 0.9rem 0.82rem 0.98rem;
+  }
+
+  .retro-money-main > .retro-money-receipt,
+  .retro-money-main > .retro-money-reading-box,
+  .retro-money-main > .retro-money-controls,
+  .retro-money-main > .retro-money-playback-hint {
+    width: min(100%, 18.5rem);
+    max-width: 18.5rem;
+  }
+
+  .retro-money-total-value {
+    font-size: clamp(1.45rem, 7vw, 2.02rem);
+  }
+
+  .retro-money-reading-kana {
+    font-size: clamp(0.64rem, 2.7vw, 0.82rem);
+  }
+
+  .retro-money-controls {
+    justify-content: stretch;
+  }
+
+  .retro-money-control-btn {
+    flex: 1;
+  }
+}
+
+@media (max-width: 420px) {
+  .retro-money-tier-btn {
+    font-size: 0.58rem;
+    min-height: 1.8rem;
+  }
+
+  .retro-money-line-item {
+    font-size: 0.77rem;
+  }
+
+  .retro-money-reading-box {
+    min-height: 6rem;
+    padding-top: 0.62rem;
+  }
+}
+
 /* Tighter furigana in dialogue rows */
 .playback-dialog-japanese rt {
   font-size: 0.42em;

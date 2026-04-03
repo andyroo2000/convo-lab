@@ -46,9 +46,9 @@ interface SeoConfig {
 
 const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/': {
-    title: 'ConvoLab | Japanese Date, Time, Counter & Verb Practice Tools',
+    title: 'ConvoLab | Japanese Date, Time, Money, Counter & Verb Practice Tools',
     description:
-      'Practice Japanese date, time, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
+      'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/`,
   },
@@ -62,7 +62,7 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
-      'Use free ConvoLab tools to practice Japanese dates, time, counters, and verb conjugation with furigana-friendly quiz flows.',
+      'Use free ConvoLab tools to practice Japanese dates, time, money, counters, and verb conjugation with furigana-friendly quiz flows.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools`,
   },
@@ -86,6 +86,13 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
+  },
+  '/tools/japanese-money': {
+    title: 'Japanese Money Practice Tool (Receipt Style) | ConvoLab',
+    description:
+      'Practice Japanese yen readings with receipt-style visuals and furigana over Arabic numerals.',
+    robots: 'index,follow',
+    canonicalUrl: `${SITE_URL}/tools/japanese-money`,
   },
   '/tools/japanese-verbs': {
     title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
@@ -275,6 +282,10 @@ if (process.env.NODE_ENV === 'production') {
 
   app.get('/tools/time', (_req, res) => {
     res.redirect(301, '/tools/japanese-time');
+  });
+
+  app.get('/tools/money', (_req, res) => {
+    res.redirect(301, '/tools/japanese-money');
   });
 
   // Serve static files with proper cache headers
