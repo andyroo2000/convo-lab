@@ -431,8 +431,8 @@ describe('JapaneseVerbConjugationToolPage', () => {
     expect(furiganaToggle).toHaveAttribute('aria-pressed', 'true');
     expect(furiganaToggle).toHaveClass('is-on');
 
-    // Dictionary form reading is visible
-    expect(screen.getByText('み')).toBeVisible();
+    // Dictionary form reading should not have the invisible class
+    expect(screen.getByText('み')).not.toHaveClass('invisible');
   });
 
   it('hides furigana when toggle is clicked', () => {

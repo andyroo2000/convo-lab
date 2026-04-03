@@ -116,7 +116,7 @@ const RubyPart = ({ script, kana, showFurigana = true }: RubyPartProps) => {
       {rubyParts.prefix}
       <ruby>
         {rubyParts.kanjiPart}
-        <rt className={`${RUBY_RT_CLASS} ${showFurigana ? '' : 'invisible'}`}>
+        <rt className={`${RUBY_RT_CLASS}${showFurigana ? '' : ' invisible'}`}>
           {rubyParts.reading}
         </rt>
       </ruby>
