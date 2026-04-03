@@ -128,7 +128,7 @@ const RubyPart = ({ script, kana, showFurigana = true }: RubyPartProps) => {
 const buildCardHistoryKey = (card: VerbPracticeCard): string =>
   `${card.verb.id}:${card.conjugation.id}`;
 
-const FURIGANA_STORAGE_KEY = 'convolab:japanese-verbs:show-furigana';
+export const FURIGANA_STORAGE_KEY = 'convolab:japanese-verbs:show-furigana';
 
 const loadShowFurigana = (): boolean => {
   try {

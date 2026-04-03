@@ -1,7 +1,9 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import JapaneseVerbConjugationToolPage from '../JapaneseVerbConjugationToolPage';
+import JapaneseVerbConjugationToolPage, {
+  FURIGANA_STORAGE_KEY,
+} from '../JapaneseVerbConjugationToolPage';
 
 const verbConjugationMocks = vi.hoisted(() => {
   const makeCard = (overrides: Record<string, unknown> = {}) => ({
@@ -117,7 +119,7 @@ vi.mock('../../logic/verbConjugation', () => ({
 
 describe('JapaneseVerbConjugationToolPage', () => {
   beforeEach(() => {
-    window.localStorage.removeItem('convolab:japanese-verbs:show-furigana');
+    window.localStorage.removeItem(FURIGANA_STORAGE_KEY);
     verbConjugationMocks.createCard.mockClear();
     verbConjugationMocks.state.card = verbConjugationMocks.makeCard();
     verbAudioMocks.playVerbAudioClip.mockClear();
@@ -482,15 +484,15 @@ describe('JapaneseVerbConjugationToolPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /furigana/i }));
 
-    expect(window.localStorage.getItem('convolab:japanese-verbs:show-furigana')).toBe('false');
+    expect(window.localStorage.getItem(FURIGANA_STORAGE_KEY)).toBe('false');
 
     fireEvent.click(screen.getByRole('button', { name: /furigana/i }));
 
-    expect(window.localStorage.getItem('convolab:japanese-verbs:show-furigana')).toBe('true');
+    expect(window.localStorage.getItem(FURIGANA_STORAGE_KEY)).toBe('true');
   });
 
   it('restores furigana preference from localStorage', () => {
-    window.localStorage.setItem('convolab:japanese-verbs:show-furigana', 'false');
+    window.localStorage.setItem(FURIGANA_STORAGE_KEY, 'false');
 
     render(<JapaneseVerbConjugationToolPage />);
 
