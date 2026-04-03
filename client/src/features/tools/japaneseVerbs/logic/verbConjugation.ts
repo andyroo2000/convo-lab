@@ -636,6 +636,7 @@ export function createVerbPracticeCard(
     eligibleCards.length > 0 ? randomItem(eligibleCards) : randomItem(candidateCards);
 
   return {
+    // Random suffix ensures React treats consecutive draws of the same verb+conjugation as distinct cards
     id: `${selectedCard.key}:${Math.random().toString(36).slice(2, 8)}`,
     verb: selectedCard.verb,
     conjugation: selectedCard.conjugation,
@@ -650,3 +651,38 @@ export function conjugateVerb(
 ): ConjugationResult | null {
   return resolveConjugation(verb, conjugationId);
 }
+
+export interface VerbConjugationCatalogEntry {
+  id: string;
+  verbId: string;
+  conjugationId: VerbConjugationId;
+  text: string;
+  kanaText: string;
+  relativePath: string;
+}
+
+/** Used by the server-side TTS generation script to enumerate all verb×conjugation audio clips. */
+export function buildVerbConjugationCatalog(): VerbConjugationCatalogEntry[] {
+  const entries: VerbConjugationCatalogEntry[] = [];
+
+  VERB_DATASET.forEach((verb) => {
+    CONJUGATION_OPTIONS.forEach((conjugation) => {
+      const result = resolveConjugation(verb, conjugation.id);
+      if (!result) return;
+
+      entries.push({
+        id: `${verb.id}_${conjugation.id}`,
+        verbId: verb.id,
+        conjugationId: conjugation.id,
+        text: result.answer.script,
+        kanaText: result.answer.reading,
+        relativePath: `${verb.id}/${conjugation.id}.mp3`,
+      });
+    });
+  });
+
+  return entries;
+}
+
+/** Cached result of `buildVerbConjugationCatalog()` — safe to import without repeated computation. */
+export const VERB_CONJUGATION_CATALOG = buildVerbConjugationCatalog();
