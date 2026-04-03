@@ -88,9 +88,9 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
     canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
   },
   '/tools/japanese-money': {
-    title: 'Japanese Money Practice Tool (Receipt Style) | ConvoLab',
+    title: 'Japanese Large Number Reading Tool | ConvoLab',
     description:
-      'Practice Japanese yen readings with receipt-style visuals and furigana over Arabic numerals.',
+      'Practice reading large Japanese numbers with receipt-style visuals and furigana over Arabic numerals.',
     robots: 'index,follow',
     canonicalUrl: `${SITE_URL}/tools/japanese-money`,
   },
