@@ -28,5 +28,10 @@
     }
   },
   "include": ["src/**/*", "../shared/src/**/*"],
-  "exclude": ["src/**/*.test.ts", "src/**/__tests__/**/*", "src/__tests__/**/*"]
+  "exclude": [
+    "src/**/*.test.ts",
+    "src/**/__tests__/**/*",
+    "src/__tests__/**/*",
+    "src/scripts/**/*-qc.ts"
+  ]
 }
