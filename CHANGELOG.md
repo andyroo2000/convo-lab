@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[style]** Improve retro counter layout — fixed rem widths for sheet/panel, centered main panel, adjusted font sizes, padding, and illustration sizes for better proportions
+
+### Changed
+
 - **[refactor]** Replace furigana microservice with LLM-provided readings — dialogue generator now requests bracket-notation furigana from Gemini, removing dependency on MeCab/UniDic Python service; fixes contextual reading errors (e.g. この前 read as ぜん instead of まえ)
 - **[improvement]** Restore slow-speed L2 review (0.85x) for Pimsleur lesson scripts
 
