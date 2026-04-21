@@ -97,7 +97,9 @@ const ToolsDirectoryPage = () => {
             bank-statement scale.
           </p>
           <div className="mt-5 flex items-center justify-between">
-            <span className="retro-caps text-sm text-[#2f4f73]">Number tiers + receipt visuals</span>
+            <span className="retro-caps text-sm text-[#2f4f73]">
+              Number tiers + receipt visuals
+            </span>
             <span className="retro-tools-card-launch" aria-hidden>
               <span className="retro-tools-card-launch-orb">
                 <Sparkles className="h-3.5 w-3.5" />

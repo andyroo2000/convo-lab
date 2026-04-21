@@ -85,12 +85,13 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
       throw new Error('TTS returned empty audio buffer');
     }
 
-    const normalizedAudioBuffer =
-      looksLikeMp3(audioBuffer) ? await normalizeMp3Buffer(audioBuffer).catch((error) => {
-        const reason = error instanceof Error ? error.message : 'Unknown normalization error';
-        console.warn(`[TTS] MP3 normalization failed, using provider output: ${reason}`);
-        return audioBuffer;
-      }) : audioBuffer;
+    const normalizedAudioBuffer = looksLikeMp3(audioBuffer)
+      ? await normalizeMp3Buffer(audioBuffer).catch((error) => {
+          const reason = error instanceof Error ? error.message : 'Unknown normalization error';
+          console.warn(`[TTS] MP3 normalization failed, using provider output: ${reason}`);
+          return audioBuffer;
+        })
+      : audioBuffer;
 
     // eslint-disable-next-line no-console
     console.log(`[TTS] Generated ${normalizedAudioBuffer.length} bytes for voice: ${voiceId}`);
