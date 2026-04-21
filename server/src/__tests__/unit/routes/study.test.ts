@@ -12,22 +12,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockPrisma } from '../../setup.js';
 
 const {
+  createRedisConnectionMock,
   createStudyCardMock,
+  expireMock,
   getStudyCardOptionsMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
   importJapaneseStudyColpkgMock,
+  incrMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
   startStudySessionMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
+  createRedisConnectionMock: vi.fn(),
   createStudyCardMock: vi.fn(),
+  expireMock: vi.fn(),
   getStudyCardOptionsMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
   importJapaneseStudyColpkgMock: vi.fn(),
+  incrMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
@@ -61,6 +67,10 @@ vi.mock('../../../services/studyService.js', () => ({
   updateStudyCard: updateStudyCardMock,
 }));
 
+vi.mock('../../../config/redis.js', () => ({
+  createRedisConnection: createRedisConnectionMock,
+}));
+
 describe('Study Routes', () => {
   let app: express.Application;
   let studyRouter: Router;
@@ -68,6 +78,16 @@ describe('Study Routes', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
+    incrMock.mockReset();
+    expireMock.mockReset();
+    incrMock.mockResolvedValue(1);
+    expireMock.mockResolvedValue(1);
+    createRedisConnectionMock.mockReset();
+    createRedisConnectionMock.mockReturnValue({
+      incr: incrMock,
+      expire: expireMock,
+    });
     vi.useFakeTimers();
     vi.setSystemTime(
       new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
