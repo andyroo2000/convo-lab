@@ -17,6 +17,7 @@ router.get('/', requireAuth, async (_req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
+          flashcardsEnabled: true,
         },
       });
     }

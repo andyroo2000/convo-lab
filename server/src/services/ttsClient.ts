@@ -17,6 +17,46 @@ export interface TTSOptions {
   useSSML?: boolean;
 }
 
+const MIN_PLAYABLE_TTS_DURATION_SECONDS = 1.5;
+
+function looksLikeMp3(buffer: Buffer): boolean {
+  if (buffer.length < 3) return false;
+  if (buffer.subarray(0, 3).toString('ascii') === 'ID3') return true;
+  return buffer[0] === 0xff && (buffer[1] & 0xe0) === 0xe0;
+}
+
+async function normalizeMp3Buffer(buffer: Buffer): Promise<Buffer> {
+  const tmpDir = os.tmpdir();
+  const token = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const inputPath = path.join(tmpDir, `tts-input-${token}.mp3`);
+  const outputPath = path.join(tmpDir, `tts-output-${token}.mp3`);
+
+  try {
+    await fs.writeFile(inputPath, buffer);
+    await execFileAsync('ffmpeg', [
+      '-y',
+      '-i',
+      inputPath,
+      '-vn',
+      '-af',
+      `apad=whole_dur=${MIN_PLAYABLE_TTS_DURATION_SECONDS}`,
+      '-ac',
+      '2',
+      '-ar',
+      '44100',
+      '-c:a',
+      'libmp3lame',
+      '-b:a',
+      '128k',
+      outputPath,
+    ]);
+    return await fs.readFile(outputPath);
+  } finally {
+    await fs.unlink(inputPath).catch(() => {});
+    await fs.unlink(outputPath).catch(() => {});
+  }
+}
+
 export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
   const { text, voiceId, languageCode, speed = 1.0, pitch = 0, useSSML = false } = options;
 
@@ -45,9 +85,16 @@ export async function synthesizeSpeech(options: TTSOptions): Promise<Buffer> {
       throw new Error('TTS returned empty audio buffer');
     }
 
+    const normalizedAudioBuffer =
+      looksLikeMp3(audioBuffer) ? await normalizeMp3Buffer(audioBuffer).catch((error) => {
+        const reason = error instanceof Error ? error.message : 'Unknown normalization error';
+        console.warn(`[TTS] MP3 normalization failed, using provider output: ${reason}`);
+        return audioBuffer;
+      }) : audioBuffer;
+
     // eslint-disable-next-line no-console
-    console.log(`[TTS] Generated ${audioBuffer.length} bytes for voice: ${voiceId}`);
-    return audioBuffer;
+    console.log(`[TTS] Generated ${normalizedAudioBuffer.length} bytes for voice: ${voiceId}`);
+    return normalizedAudioBuffer;
   } catch (error) {
     console.error('TTS error:', error);
     // Preserve the original error message for better debugging

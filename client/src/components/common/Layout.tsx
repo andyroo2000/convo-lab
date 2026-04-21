@@ -1,9 +1,10 @@
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Library, Mic, Eye } from 'lucide-react';
+import { Library, Mic, Eye, BookOpen } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useIsDemo } from '../../hooks/useDemo';
 import useEffectiveUser from '../../hooks/useEffectiveUser';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
 import UserMenu from './UserMenu';
 import Logo from './Logo';
 import OnboardingModal from '../onboarding/OnboardingModal';
@@ -14,6 +15,7 @@ const Layout = () => {
   const { effectiveUser, isImpersonating } = useEffectiveUser();
   const { t } = useTranslation(['common']);
   const isDemo = useIsDemo();
+  const { isFeatureEnabled } = useFeatureFlags();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -52,6 +54,8 @@ const Layout = () => {
   // Library should only be highlighted on the library index itself.
   const isLibraryActive = location.pathname === '/app/library';
   const isCreateActive = location.pathname.startsWith('/app/create');
+  const isStudyActive = location.pathname.startsWith('/app/study');
+  const studyEnabled = isFeatureEnabled('flashcardsEnabled');
 
   // Pages that should have no horizontal padding on mobile for full-width cards
   const isFullWidthMobilePage =
@@ -104,6 +108,19 @@ const Layout = () => {
                   <Mic className="w-5 h-5 mr-2.5 flex-shrink-0" />
                   {t('common:nav.create')}
                 </Link>
+                {studyEnabled ? (
+                  <Link
+                    to={viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study'}
+                    className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${
+                      isStudyActive
+                        ? 'is-active bg-white text-navy shadow-md'
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <BookOpen className="w-5 h-5 mr-2.5 flex-shrink-0" />
+                    {t('common:nav.study')}
+                  </Link>
+                ) : null}
               </div>
               {/* Mobile Navigation */}
               <div className="flex sm:hidden ml-2 gap-2 flex-1 min-w-0">
@@ -129,6 +146,19 @@ const Layout = () => {
                   <Mic className="w-5 h-5 mr-1.5 flex-shrink-0" />
                   {t('common:nav.create')}
                 </Link>
+                {studyEnabled ? (
+                  <Link
+                    to={viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study'}
+                    className={`retro-nav-tab relative inline-flex items-center justify-center text-xs font-bold transition-all flex-1 ${
+                      isStudyActive
+                        ? 'is-active bg-white text-navy shadow-md'
+                        : 'text-white hover:bg-white/20'
+                    }`}
+                  >
+                    <BookOpen className="w-5 h-5 mr-1.5 flex-shrink-0" />
+                    {t('common:nav.study')}
+                  </Link>
+                ) : null}
               </div>
             </div>
 

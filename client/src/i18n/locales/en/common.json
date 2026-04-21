@@ -1,7 +1,8 @@
 {
   "nav": {
     "library": "Library",
-    "create": "Create"
+    "create": "Create",
+    "study": "Study"
   },
   "demoMode": "Demo Mode",
   "loading": "Loading...",

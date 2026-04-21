@@ -44,6 +44,11 @@ const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const StudyPage = lazy(() => import('./pages/StudyPage'));
+const StudyBrowsePage = lazy(() => import('./pages/StudyBrowsePage'));
+const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
+const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
+const StudyHistoryPage = lazy(() => import('./pages/StudyHistoryPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
@@ -230,6 +235,11 @@ const App = () => (
                     <Route path="credits" element={<CreditsPage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="admin/:tab" element={<AdminPage />} />
+                    <Route path="study" element={<StudyPage />} />
+                    <Route path="study/browse" element={<StudyBrowsePage />} />
+                    <Route path="study/import" element={<StudyImportPage />} />
+                    <Route path="study/create" element={<StudyCreatePage />} />
+                    <Route path="study/history" element={<StudyHistoryPage />} />
 
                     {/* Create - Content Creation Hub */}
                     <Route path="create" element={<CreatePage />} />
