@@ -11,6 +11,7 @@ import {
   getStudyImportJob,
   getStudyOverview,
   importJapaneseStudyColpkg,
+  performStudyCardAction,
   prepareStudyCardAnswerAudio,
   recordStudyReview,
   startStudySession,
@@ -227,6 +228,59 @@ router.patch('/cards/:cardId', async (req: AuthRequest, res, next) => {
     });
 
     res.json(updatedCard);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/cards/:cardId/actions', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new Error('Authenticated user is required.');
+    }
+
+    const { action, mode, dueAt } = req.body as {
+      action?: unknown;
+      mode?: unknown;
+      dueAt?: unknown;
+    };
+
+    if (!req.params.cardId) {
+      res.status(400).json({ message: 'cardId is required.' });
+      return;
+    }
+
+    if (!['suspend', 'unsuspend', 'forget', 'set_due'].includes(String(action))) {
+      res.status(400).json({ message: 'action must be suspend, unsuspend, forget, or set_due.' });
+      return;
+    }
+
+    if (action === 'set_due') {
+      if (!['now', 'tomorrow', 'custom_date'].includes(String(mode))) {
+        res
+          .status(400)
+          .json({ message: 'mode must be now, tomorrow, or custom_date for set_due.' });
+        return;
+      }
+
+      if (
+        mode === 'custom_date' &&
+        (typeof dueAt !== 'string' || Number.isNaN(Date.parse(dueAt)))
+      ) {
+        res.status(400).json({ message: 'dueAt must be a valid ISO date for custom_date.' });
+        return;
+      }
+    }
+
+    const result = await performStudyCardAction({
+      userId: req.userId,
+      cardId: req.params.cardId,
+      action: action as 'suspend' | 'unsuspend' | 'forget' | 'set_due',
+      mode: mode as 'now' | 'tomorrow' | 'custom_date' | undefined,
+      dueAt: typeof dueAt === 'string' ? dueAt : undefined,
+    });
+
+    res.json(result);
   } catch (error) {
     next(error);
   }

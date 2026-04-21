@@ -1,22 +1,29 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { flushSync } from 'react-dom';
 import { fsrs, Rating, type Card as FsrsCard } from 'ts-fsrs';
-import type { StudyCardSummary, StudyFsrsState, StudyOverview } from '@shared/types';
+import type {
+  StudyCardSetDueMode,
+  StudyCardSummary,
+  StudyFsrsState,
+  StudyOverview,
+} from '@shared/types';
 
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
+  type StudySessionResponse,
   prepareStudyAnswerAudio,
   startStudySession,
-  type StudySessionResponse,
   undoStudyReview,
+  useStudyCardAction,
   useStudyOverview,
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
 import { AudioPlayerHandle, StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
+import StudySetDueControls from '../components/study/StudySetDueControls';
 import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
 
 const reviewScheduler = fsrs();
@@ -41,6 +48,10 @@ interface StudyUndoSnapshot {
 type StudyUndoAction =
   | {
       kind: 'reveal';
+      snapshot: StudyUndoSnapshot;
+    }
+  | {
+      kind: 'bury';
       snapshot: StudyUndoSnapshot;
     }
   | {
@@ -125,6 +136,15 @@ const getGradeIntervals = (card: StudyCardSummary | null) => {
   };
 };
 
+const isCardEligibleForSession = (card: StudyCardSummary) => {
+  if (card.state.queueState === 'new') return true;
+  if (!['learning', 'review', 'relearning'].includes(card.state.queueState)) {
+    return false;
+  }
+  if (!card.state.dueAt) return false;
+  return new Date(card.state.dueAt).getTime() <= Date.now();
+};
+
 const gradeButtonStyles: Record<'again' | 'hard' | 'good' | 'easy', string> = {
   again: 'border-red-300 bg-red-50 text-red-700 hover:bg-red-100',
   hard: 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100',
@@ -133,11 +153,13 @@ const gradeButtonStyles: Record<'again' | 'hard' | 'good' | 'easy', string> = {
 };
 
 const StudyPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const reviewMutation = useSubmitStudyReview();
+  const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
   const [focusMode, setFocusMode] = useState(false);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
@@ -146,6 +168,7 @@ const StudyPage = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [showSetDueControls, setShowSetDueControls] = useState(false);
   const [undoPending, setUndoPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
@@ -221,6 +244,17 @@ const StudyPage = () => {
     });
   }, []);
 
+  const removeCardFromSession = useCallback((cardId: string) => {
+    setSession((currentSession) => {
+      if (!currentSession) return currentSession;
+
+      return {
+        ...currentSession,
+        cards: currentSession.cards.filter((card) => card.id !== cardId),
+      };
+    });
+  }, []);
+
   const applyReviewResultToSession = useCallback(
     (updatedCard: StudyCardSummary, grade: 'again' | 'hard' | 'good' | 'easy') => {
       setSession((currentSession) => {
@@ -267,6 +301,7 @@ const StudyPage = () => {
       setAnsweredCardIds(restored.answeredCardIds);
       setFailedCardIds(restored.failedCardIds);
       setSessionError(null);
+      setShowSetDueControls(false);
     },
     [stopAllAudio]
   );
@@ -360,6 +395,7 @@ const StudyPage = () => {
     setCurrentIndex(0);
     setRevealed(false);
     setEditing(false);
+    setShowSetDueControls(false);
     setUndoPending(false);
     setAnsweredCardIds([]);
     setFailedCardIds([]);
@@ -412,6 +448,78 @@ const StudyPage = () => {
     ]
   );
 
+  const handleBuryForSession = useCallback(() => {
+    if (!currentCard || !revealed || editing) return;
+
+    undoStack.current.push({
+      kind: 'bury',
+      snapshot: captureUndoSnapshot(),
+    });
+    stopAllAudio();
+    setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+    setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+    removeCardFromSession(currentCard.id);
+    const nextLength = Math.max(cards.length - 1, 0);
+    setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
+    setRevealed(false);
+    setShowSetDueControls(false);
+  }, [
+    cards.length,
+    captureUndoSnapshot,
+    currentCard,
+    editing,
+    removeCardFromSession,
+    revealed,
+    stopAllAudio,
+  ]);
+
+  const handleCardAction = useCallback(
+    async (
+      action: 'suspend' | 'unsuspend' | 'forget' | 'set_due',
+      options?: { mode?: StudyCardSetDueMode; dueAt?: string }
+    ) => {
+      if (!currentCard || editing || cardActionMutation.isPending) return;
+
+      try {
+        stopAllAudio();
+        const result = await cardActionMutation.mutateAsync({
+          cardId: currentCard.id,
+          action,
+          mode: options?.mode,
+          dueAt: options?.dueAt,
+        });
+
+        syncOverview(result.overview);
+        setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+        setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+        setShowSetDueControls(false);
+
+        if (isCardEligibleForSession(result.card)) {
+          mergeCardIntoSession(result.card);
+        } else {
+          removeCardFromSession(currentCard.id);
+          const nextLength = Math.max(cards.length - 1, 0);
+          setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
+        }
+
+        setRevealed(false);
+        setSessionError(null);
+      } catch (error) {
+        setSessionError(error instanceof Error ? error.message : 'Card action failed.');
+      }
+    },
+    [
+      cardActionMutation,
+      cards.length,
+      currentCard,
+      editing,
+      mergeCardIntoSession,
+      removeCardFromSession,
+      stopAllAudio,
+      syncOverview,
+    ]
+  );
+
   const enterFocusMode = useCallback(async () => {
     stopAllAudio();
     undoStack.current = [];
@@ -434,14 +542,21 @@ const StudyPage = () => {
   }, [availableCount, loadSession, stopAllAudio]);
 
   const handleUndo = useCallback(async () => {
-    if (undoPending || reviewMutation.isPending || sessionLoading || editing) return;
+    if (
+      undoPending ||
+      reviewMutation.isPending ||
+      cardActionMutation.isPending ||
+      sessionLoading ||
+      editing
+    )
+      return;
 
     const action = undoStack.current.pop();
     if (!action) return;
 
     stopAllAudio();
 
-    if (action.kind === 'reveal') {
+    if (action.kind !== 'grade') {
       restoreUndoSnapshot(action.snapshot);
       return;
     }
@@ -459,6 +574,7 @@ const StudyPage = () => {
     }
   }, [
     editing,
+    cardActionMutation.isPending,
     restoreUndoSnapshot,
     reviewMutation.isPending,
     sessionLoading,
@@ -473,6 +589,7 @@ const StudyPage = () => {
 
   useEffect(() => {
     setEditing(false);
+    setShowSetDueControls(false);
   }, [currentCard?.id]);
 
   useEffect(() => {
@@ -533,7 +650,13 @@ const StudyPage = () => {
     if (!focusMode) return undefined;
 
     const handleDeviceMotion = (event: DeviceMotionEvent) => {
-      if (!motionEnabledRef.current || undoPending || reviewMutation.isPending || sessionLoading) {
+      if (
+        !motionEnabledRef.current ||
+        undoPending ||
+        reviewMutation.isPending ||
+        cardActionMutation.isPending ||
+        sessionLoading
+      ) {
         return;
       }
 
@@ -564,7 +687,15 @@ const StudyPage = () => {
 
     window.addEventListener('devicemotion', handleDeviceMotion);
     return () => window.removeEventListener('devicemotion', handleDeviceMotion);
-  }, [focusMode, handleUndo, ignorePromise, reviewMutation.isPending, sessionLoading, undoPending]);
+  }, [
+    focusMode,
+    handleUndo,
+    ignorePromise,
+    reviewMutation.isPending,
+    cardActionMutation.isPending,
+    sessionLoading,
+    undoPending,
+  ]);
 
   useEffect(() => {
     if (!focusMode) return undefined;
@@ -586,7 +717,7 @@ const StudyPage = () => {
         return;
       }
 
-      if (editing) return;
+      if (editing || cardActionMutation.isPending) return;
 
       if (event.code === 'Space') {
         event.preventDefault();
@@ -618,6 +749,7 @@ const StudyPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     editing,
+    cardActionMutation.isPending,
     exitFocusMode,
     focusMode,
     handleGrade,
@@ -734,18 +866,89 @@ const StudyPage = () => {
                       />
                     ) : (
                       <div className="space-y-5">
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              stopAllAudio();
-                              setEditing(true);
-                            }}
-                            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
-                          >
-                            Edit card
-                          </button>
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                stopAllAudio();
+                                setEditing(true);
+                              }}
+                              disabled={cardActionMutation.isPending}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Edit card
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleBuryForSession}
+                              disabled={cardActionMutation.isPending}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Bury for session
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                ignorePromise(
+                                  handleCardAction(
+                                    currentCard.state.queueState === 'suspended'
+                                      ? 'unsuspend'
+                                      : 'suspend'
+                                  )
+                                );
+                              }}
+                              disabled={cardActionMutation.isPending}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {currentCard.state.queueState === 'suspended'
+                                ? 'Unsuspend'
+                                : 'Suspend'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                ignorePromise(handleCardAction('forget'));
+                              }}
+                              disabled={cardActionMutation.isPending}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Forget
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowSetDueControls((current) => !current)}
+                              disabled={cardActionMutation.isPending}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Set due
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const params = new URLSearchParams({
+                                  noteId: currentCard.noteId,
+                                  cardId: currentCard.id,
+                                });
+                                exitFocusMode();
+                                navigate(`/app/study/browse?${params.toString()}`);
+                              }}
+                              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
+                            >
+                              Open in Browse
+                            </button>
+                          </div>
                         </div>
+                        {showSetDueControls ? (
+                          <StudySetDueControls
+                            disabled={cardActionMutation.isPending}
+                            isSubmitting={cardActionMutation.isPending}
+                            onCancel={() => setShowSetDueControls(false)}
+                            onSubmit={async ({ mode, dueAt }) => {
+                              await handleCardAction('set_due', { mode, dueAt });
+                            }}
+                          />
+                        ) : null}
                         <StudyCardFace
                           card={currentCard}
                           side="back"

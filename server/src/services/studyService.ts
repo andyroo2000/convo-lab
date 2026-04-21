@@ -9,6 +9,9 @@ import { zstdDecompressSync } from 'zlib';
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import type {
   StudyAnswerPayload,
+  StudyCardActionName,
+  StudyCardActionResult,
+  StudyCardSetDueMode,
   StudyAudioSource,
   StudyBrowserCardStats,
   StudyBrowserField,
@@ -189,6 +192,14 @@ interface UpdateStudyCardInput {
   answer: StudyAnswerPayload;
 }
 
+interface PerformStudyCardActionInput {
+  userId: string;
+  cardId: string;
+  action: StudyCardActionName;
+  mode?: StudyCardSetDueMode;
+  dueAt?: string;
+}
+
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
 
 interface LegacyDeckConfig {
@@ -327,6 +338,35 @@ function deserializeFsrsCard(state: StudyFsrsState | JsonRecord | null | undefin
         : undefined
     ),
   };
+}
+
+function createFreshSchedulerState(
+  due: Date = new Date(),
+  state: State = State.New
+): StudyFsrsState {
+  return serializeFsrsCard({
+    due,
+    stability: 0.1,
+    difficulty: 5,
+    elapsed_days: 0,
+    scheduled_days: 0,
+    learning_steps: 0,
+    reps: 0,
+    lapses: 0,
+    state,
+    last_review: undefined,
+  });
+}
+
+function dateFromDayBoundary(daysFromToday: number): Date {
+  const date = new Date();
+  date.setHours(9, 0, 0, 0);
+  date.setDate(date.getDate() + daysFromToday);
+  return date;
+}
+
+function getScheduledDaysForDue(dueAt: Date, from: Date = new Date()): number {
+  return Math.max(0, Math.round((dueAt.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
 function normalizeFilename(filename: string): string {
@@ -2219,6 +2259,80 @@ function toQueueStateFromFsrsState(state: number): StudyQueueState {
         : 'review';
 }
 
+function getRestoredQueueState(record: Record<string, unknown>): StudyQueueState {
+  const schedulerState = deserializeFsrsCard(
+    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+  );
+  if (schedulerState) {
+    return toQueueStateFromFsrsState(schedulerState.state);
+  }
+
+  const currentQueueState =
+    typeof record.queueState === 'string' ? (record.queueState as StudyQueueState) : 'review';
+  return currentQueueState === 'suspended' || currentQueueState === 'buried'
+    ? 'review'
+    : currentQueueState;
+}
+
+function getRestoredDueAt(
+  record: Record<string, unknown>,
+  queueState: StudyQueueState
+): Date | null {
+  if (queueState === 'new') return null;
+
+  const schedulerState = deserializeFsrsCard(
+    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+  );
+  if (schedulerState) {
+    return schedulerState.due;
+  }
+
+  return record.dueAt instanceof Date ? record.dueAt : new Date();
+}
+
+function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
+  if (mode === 'now') {
+    return new Date();
+  }
+
+  if (mode === 'tomorrow') {
+    return dateFromDayBoundary(1);
+  }
+
+  const customDueAt = dueAt ? new Date(dueAt) : null;
+  if (!customDueAt || Number.isNaN(customDueAt.getTime())) {
+    throw new AppError('A valid due date is required for custom_date.', 400);
+  }
+
+  return customDueAt;
+}
+
+function getSetDueSchedulerState(record: Record<string, unknown>, dueAt: Date): StudyFsrsState {
+  const existingScheduler = deserializeFsrsCard(
+    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+  );
+  const now = new Date();
+
+  if (existingScheduler && existingScheduler.state !== State.New) {
+    return serializeFsrsCard({
+      ...existingScheduler,
+      due: dueAt,
+      scheduled_days: getScheduledDaysForDue(dueAt, now),
+    });
+  }
+
+  const freshReviewState = deserializeFsrsCard(createFreshSchedulerState(dueAt, State.Review));
+  if (!freshReviewState) {
+    throw new AppError('Unable to create scheduler state for due override.', 500);
+  }
+
+  return serializeFsrsCard({
+    ...freshReviewState,
+    due: dueAt,
+    scheduled_days: getScheduledDaysForDue(dueAt, now),
+  });
+}
+
 export async function recordStudyReview(params: {
   userId: string;
   cardId: string;
@@ -2415,6 +2529,90 @@ export async function undoStudyReview(params: {
   };
 }
 
+export async function performStudyCardAction(
+  input: PerformStudyCardActionInput
+): Promise<StudyCardActionResult> {
+  const existing = (await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  })) as Record<string, unknown> | null;
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  let nextQueueState =
+    typeof existing.queueState === 'string'
+      ? (existing.queueState as StudyQueueState)
+      : ('review' as StudyQueueState);
+  let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
+  let nextSchedulerState = (existing.schedulerStateJson as StudyFsrsState | null) ?? null;
+  let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
+
+  if (input.action === 'suspend') {
+    nextQueueState = 'suspended';
+  } else if (input.action === 'unsuspend') {
+    nextQueueState = getRestoredQueueState(existing);
+    nextDueAt = getRestoredDueAt(existing, nextQueueState);
+  } else if (input.action === 'forget') {
+    nextQueueState = 'new';
+    nextDueAt = null;
+    nextSchedulerState = createFreshSchedulerState();
+    nextLastReviewedAt = null;
+  } else if (input.action === 'set_due') {
+    const mode = input.mode;
+    if (!mode) {
+      throw new AppError('A due mode is required for set_due.', 400);
+    }
+
+    const resolvedDueAt = resolveDueDate(mode, input.dueAt);
+    nextQueueState = getRestoredQueueState(existing);
+    nextQueueState = nextQueueState === 'new' ? 'review' : nextQueueState;
+    nextDueAt = resolvedDueAt;
+    nextSchedulerState = getSetDueSchedulerState(existing, resolvedDueAt);
+  }
+
+  await prisma.studyCard.update({
+    where: { id: input.cardId },
+    data: {
+      queueState: nextQueueState,
+      dueAt: nextDueAt,
+      schedulerStateJson: toNullablePrismaJson(nextSchedulerState),
+      lastReviewedAt: nextLastReviewedAt,
+    },
+  });
+
+  const refreshed = (await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  })) as Record<string, unknown> | null;
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after update.', 404);
+  }
+
+  return {
+    card: await toStudyCardSummary(refreshed),
+    overview: await getStudyOverview(input.userId),
+  };
+}
+
 export async function updateStudyCard(input: UpdateStudyCardInput): Promise<StudyCardSummary> {
   const existing = (await prisma.studyCard.findFirst({
     where: {
@@ -2528,18 +2726,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
     },
   });
 
-  const initialState = serializeFsrsCard({
-    due: new Date(),
-    stability: 0.1,
-    difficulty: 5,
-    elapsed_days: 0,
-    scheduled_days: 0,
-    learning_steps: 0,
-    reps: 0,
-    lapses: 0,
-    state: State.New,
-    last_review: undefined,
-  });
+  const initialState = createFreshSchedulerState();
 
   const created = (await prisma.studyCard.create({
     data: {

@@ -1,14 +1,21 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudyBrowsePage from '../StudyBrowsePage';
 
-const { useStudyBrowserMock, useStudyBrowserNoteDetailMock } = vi.hoisted(() => ({
+const {
+  useStudyBrowserMock,
+  useStudyBrowserNoteDetailMock,
+  updateStudyCardMock,
+  cardActionMutateAsyncMock,
+} = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
   useStudyBrowserNoteDetailMock: vi.fn(),
+  updateStudyCardMock: vi.fn(),
+  cardActionMutateAsyncMock: vi.fn(),
 }));
 
 const browserData = {
@@ -122,6 +129,15 @@ vi.mock('../../hooks/useStudy', () => ({
   useStudyBrowser: (enabled: boolean, query: unknown) => useStudyBrowserMock(enabled, query),
   useStudyBrowserNoteDetail: (enabled: boolean, noteId?: string) =>
     useStudyBrowserNoteDetailMock(enabled, noteId),
+  useStudyCardAction: () => ({
+    mutateAsync: cardActionMutateAsyncMock,
+    isPending: false,
+  }),
+  useUpdateStudyCard: () => ({
+    mutateAsync: updateStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
 }));
 
 const renderPage = () => {
@@ -140,21 +156,70 @@ const renderPage = () => {
   );
 };
 
+const getNoteRow = (text: string) => {
+  const noteRows = screen.getAllByRole('row').slice(1);
+  const matchingRow = noteRows.find((row) => within(row).queryByText(text));
+  if (!matchingRow) {
+    throw new Error(`Could not find note row for "${text}"`);
+  }
+  return matchingRow;
+};
+
 describe('StudyBrowsePage', () => {
   beforeEach(() => {
     useStudyBrowserMock.mockReset();
     useStudyBrowserNoteDetailMock.mockReset();
+    updateStudyCardMock.mockReset();
+    cardActionMutateAsyncMock.mockReset();
 
     useStudyBrowserMock.mockReturnValue({
       data: browserData,
       isLoading: false,
       error: null,
+      refetch: vi.fn(),
     });
     useStudyBrowserNoteDetailMock.mockImplementation((_enabled: boolean, noteId?: string) => ({
       data: noteId ? noteDetailById[noteId as keyof typeof noteDetailById] : undefined,
       isLoading: false,
       error: null,
+      refetch: vi.fn().mockResolvedValue(undefined),
     }));
+    updateStudyCardMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        prompt: Record<string, unknown>;
+        answer: Record<string, unknown>;
+      }) => ({
+        ...(noteDetailById['note-1'].cards[0] ?? {}),
+        id: payload.cardId,
+        prompt: payload.prompt,
+        answer: payload.answer,
+      })
+    );
+    cardActionMutateAsyncMock.mockImplementation(
+      async (payload: { cardId: string; action: string; mode?: string; dueAt?: string }) => ({
+        card: {
+          ...(noteDetailById['note-1'].cards[0] ?? {}),
+          id: payload.cardId,
+          state: {
+            ...(noteDetailById['note-1'].cards[0]?.state ?? {}),
+            queueState: payload.action === 'suspend' ? 'suspended' : 'review',
+            dueAt:
+              payload.action === 'set_due' && payload.mode === 'tomorrow'
+                ? new Date('2026-04-13T09:00:00.000Z').toISOString()
+                : (noteDetailById['note-1'].cards[0]?.state.dueAt ?? null),
+          },
+        },
+        overview: {
+          dueCount: 0,
+          newCount: 0,
+          learningCount: 0,
+          reviewCount: 0,
+          suspendedCount: payload.action === 'suspend' ? 1 : 0,
+          totalCards: 2,
+        },
+      })
+    );
   });
 
   it('renders note rows and selects the first note by default', async () => {
@@ -198,6 +263,43 @@ describe('StudyBrowsePage', () => {
           cardType: 'recognition',
           page: 1,
           pageSize: 100,
+        })
+      );
+    });
+  });
+
+  it('supports selected-card maintenance actions from the detail pane', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
+
+    await waitFor(() => {
+      expect(cardActionMutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          action: 'suspend',
+        })
+      );
+    });
+  });
+
+  it('opens the inline editor for the selected card and saves changes', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    await userEvent.clear(screen.getByLabelText('Answer meaning'));
+    await userEvent.type(screen.getByLabelText('Answer meaning'), 'business');
+    await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
+
+    await waitFor(() => {
+      expect(updateStudyCardMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          answer: expect.objectContaining({
+            meaning: 'business',
+          }),
         })
       );
     });

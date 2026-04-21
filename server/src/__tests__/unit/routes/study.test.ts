@@ -13,6 +13,7 @@ const {
   createStudyCardMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
+  performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
   startStudySessionMock,
@@ -21,6 +22,7 @@ const {
   createStudyCardMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
+  performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyImportJob: vi.fn(),
   getStudyOverview: vi.fn(),
   importJapaneseStudyColpkg: vi.fn(),
+  performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
   startStudySession: startStudySessionMock,
@@ -106,6 +109,43 @@ describe('Study Routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('prompt and answer payloads are required');
     expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('passes card actions through to the service', async () => {
+    performStudyCardActionMock.mockResolvedValue({
+      card: { id: 'card-1' },
+      overview: {
+        dueCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 1,
+        totalCards: 1,
+      },
+    });
+
+    const response = await request(app)
+      .post('/study/cards/card-1/actions')
+      .send({ action: 'set_due', mode: 'tomorrow' });
+
+    expect(response.status).toBe(200);
+    expect(performStudyCardActionMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'set_due',
+      mode: 'tomorrow',
+      dueAt: undefined,
+    });
+  });
+
+  it('rejects invalid set_due payloads', async () => {
+    const response = await request(app)
+      .post('/study/cards/card-1/actions')
+      .send({ action: 'set_due', mode: 'custom_date', dueAt: 'bad-date' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('dueAt must be a valid ISO date');
+    expect(performStudyCardActionMock).not.toHaveBeenCalled();
   });
 
   it('passes browser list query params through to the service', async () => {

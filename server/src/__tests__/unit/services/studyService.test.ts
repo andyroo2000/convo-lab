@@ -11,6 +11,7 @@ import {
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
   importJapaneseStudyColpkg,
+  performStudyCardAction,
   prepareStudyCardAnswerAudio,
   recordStudyReview,
   startStudySession,
@@ -742,6 +743,310 @@ describe('studyService', () => {
     });
     expect(undoResult.reviewLogId).toBe('review-log-1');
     expect(undoResult.card.id).toBe('card-1');
+  });
+
+  it('suspends and unsuspends a study card with the correct queue restoration', async () => {
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'suspended',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'suspended',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const suspendResult = await performStudyCardAction({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'suspend',
+    });
+
+    expect(mockPrisma.studyCard.update).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          queueState: 'suspended',
+        }),
+      })
+    );
+    expect(suspendResult.card.state.queueState).toBe('suspended');
+
+    const unsuspendResult = await performStudyCardAction({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'unsuspend',
+    });
+
+    expect(mockPrisma.studyCard.update).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          queueState: 'review',
+        }),
+      })
+    );
+    expect(unsuspendResult.card.state.queueState).toBe('review');
+  });
+
+  it('forgets a card without deleting review history', async () => {
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'new',
+        dueAt: null,
+        lastReviewedAt: null,
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 0.1,
+          difficulty: 5,
+          elapsed_days: 0,
+          scheduled_days: 0,
+          learning_steps: 0,
+          reps: 0,
+          lapses: 0,
+          state: 0,
+          last_review: null,
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const result = await performStudyCardAction({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'forget',
+    });
+
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          queueState: 'new',
+          dueAt: null,
+          lastReviewedAt: null,
+        }),
+      })
+    );
+    expect(mockPrisma.studyReviewLog.delete).not.toHaveBeenCalled();
+    expect(result.card.state.queueState).toBe('new');
+  });
+
+  it('sets a custom due date and returns the updated card', async () => {
+    const customDueAt = '2026-04-20T09:00:00.000Z';
+
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date(customDueAt),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: customDueAt,
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 8,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const result = await performStudyCardAction({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'set_due',
+      mode: 'custom_date',
+      dueAt: customDueAt,
+    });
+
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          queueState: 'review',
+          dueAt: new Date(customDueAt),
+          schedulerStateJson: expect.objectContaining({
+            due: customDueAt,
+          }),
+        }),
+      })
+    );
+    expect(result.card.state.dueAt).toBe(customDueAt);
   });
 
   it('returns paginated browser rows with search and filters', async () => {

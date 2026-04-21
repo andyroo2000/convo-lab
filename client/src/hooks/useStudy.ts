@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   StudyAnswerPayload,
+  StudyCardActionName,
+  StudyCardActionResult,
+  StudyCardSetDueMode,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
   StudyCardSummary,
@@ -30,6 +33,13 @@ interface UpdateStudyCardPayload {
   cardId: string;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
+}
+
+interface StudyCardActionPayload {
+  cardId: string;
+  action: StudyCardActionName;
+  mode?: StudyCardSetDueMode;
+  dueAt?: string;
 }
 
 export interface StudyBrowserQuery {
@@ -67,9 +77,12 @@ export async function startStudySession(limit: number = 20): Promise<StudySessio
 }
 
 export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCardSummary> {
-  return apiRequest<StudyCardSummary>(`/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`, {
-    method: 'POST',
-  });
+  return apiRequest<StudyCardSummary>(
+    `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
+    {
+      method: 'POST',
+    }
+  );
 }
 
 export async function undoStudyReview(reviewLogId: string): Promise<StudyUndoReviewResult> {
@@ -106,6 +119,22 @@ export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<
       answer: payload.answer,
     }),
   });
+}
+
+export async function performStudyCardAction(
+  payload: StudyCardActionPayload
+): Promise<StudyCardActionResult> {
+  return apiRequest<StudyCardActionResult>(
+    `/api/study/cards/${encodeURIComponent(payload.cardId)}/actions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        action: payload.action,
+        mode: payload.mode,
+        dueAt: payload.dueAt,
+      }),
+    }
+  );
 }
 
 export function useStudyOverview(enabled: boolean) {
@@ -197,6 +226,21 @@ export function useUpdateStudyCard() {
 
   return useMutation({
     mutationFn: updateStudyCard,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
+      ]);
+    },
+  });
+}
+
+export function useStudyCardAction() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: performStudyCardAction,
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),

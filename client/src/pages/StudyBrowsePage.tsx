@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 import type { StudyBrowserField } from '@shared/types';
 
+import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyFormField from '../components/study/StudyFormField';
+import StudySetDueControls from '../components/study/StudySetDueControls';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   type StudyBrowserQuery,
+  useStudyCardAction,
   useStudyBrowser,
   useStudyBrowserNoteDetail,
+  useUpdateStudyCard,
 } from '../hooks/useStudy';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import { toAssetUrl } from '../components/study/studyCardUtils';
@@ -42,6 +46,9 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
 const StudyBrowsePage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
+  const updateCardMutation = useUpdateStudyCard();
+  const cardActionMutation = useStudyCardAction();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState<StudyBrowserQuery>({
     page: 1,
@@ -49,10 +56,16 @@ const StudyBrowsePage = () => {
   });
   const browserQuery = useStudyBrowser(enabled, query);
   const rows = useMemo(() => browserQuery.data?.rows ?? [], [browserQuery.data?.rows]);
-  const [selectedNoteId, setSelectedNoteId] = useState<string>('');
+  const [selectedNoteId, setSelectedNoteId] = useState<string>(
+    () => searchParams.get('noteId') ?? ''
+  );
   const detailQuery = useStudyBrowserNoteDetail(enabled, selectedNoteId || undefined);
-  const [selectedCardId, setSelectedCardId] = useState<string>('');
+  const [selectedCardId, setSelectedCardId] = useState<string>(
+    () => searchParams.get('cardId') ?? ''
+  );
   const [previewSide, setPreviewSide] = useState<'front' | 'back'>('front');
+  const [editing, setEditing] = useState(false);
+  const [showSetDueControls, setShowSetDueControls] = useState(false);
 
   useEffect(() => {
     if (!rows.length) {
@@ -78,6 +91,26 @@ const StudyBrowsePage = () => {
     setPreviewSide('front');
   }, [detailQuery.data, selectedCardId]);
 
+  useEffect(() => {
+    if (!selectedNoteId) return;
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('noteId', selectedNoteId);
+    if (selectedCardId) {
+      nextParams.set('cardId', selectedCardId);
+    } else {
+      nextParams.delete('cardId');
+    }
+    if (nextParams.toString() !== searchParams.toString()) {
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, selectedCardId, selectedNoteId, setSearchParams]);
+
+  useEffect(() => {
+    setEditing(false);
+    setShowSetDueControls(false);
+  }, [selectedCardId]);
+
   const selectedDetail = detailQuery.data;
   const selectedCard = useMemo(
     () => selectedDetail?.cards.find((card) => card.id === selectedCardId) ?? null,
@@ -87,11 +120,45 @@ const StudyBrowsePage = () => {
     () => selectedDetail?.cardStats.find((entry) => entry.cardId === selectedCardId) ?? null,
     [selectedCardId, selectedDetail]
   );
+  const ignorePromise = (task?: Promise<unknown>) => {
+    task?.catch(() => {});
+  };
+  let actionErrorMessage: string | null = null;
+  if (cardActionMutation.error instanceof Error) {
+    actionErrorMessage = cardActionMutation.error.message;
+  } else if (updateCardMutation.error instanceof Error) {
+    actionErrorMessage = updateCardMutation.error.message;
+  }
+
+  const handleCardAction = async (
+    action: 'suspend' | 'unsuspend' | 'forget' | 'set_due',
+    options?: { mode?: 'now' | 'tomorrow' | 'custom_date'; dueAt?: string }
+  ) => {
+    if (!selectedCard) return;
+
+    await cardActionMutation.mutateAsync({
+      cardId: selectedCard.id,
+      action,
+      mode: options?.mode,
+      dueAt: options?.dueAt,
+    });
+    setPreviewSide('front');
+    setEditing(false);
+    setShowSetDueControls(false);
+    await detailQuery.refetch();
+    await browserQuery.refetch();
+  };
 
   const totalPages = Math.max(
     1,
     Math.ceil((browserQuery.data?.total ?? 0) / (query.pageSize ?? PAGE_SIZE))
   );
+  let updateCardErrorMessage: string | null = null;
+  if (updateCardMutation.error instanceof Error) {
+    updateCardErrorMessage = updateCardMutation.error.message;
+  } else if (updateCardMutation.error) {
+    updateCardErrorMessage = 'Card update failed.';
+  }
 
   return (
     <div className="space-y-6">
@@ -386,8 +453,99 @@ const StudyBrowsePage = () => {
                 ) : null}
 
                 {selectedCard ? (
-                  <div className="rounded-[2rem] bg-white px-6 py-10 shadow-sm ring-1 ring-gray-200 md:px-12">
-                    <StudyCardFace card={selectedCard} side={previewSide} />
+                  <div className="space-y-4 rounded-[2rem] bg-white px-6 py-10 shadow-sm ring-1 ring-gray-200 md:px-12">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-gray-500">
+                        Queue:{' '}
+                        <span className="font-medium text-gray-700">
+                          {selectedCard.state.queueState}
+                        </span>
+                        {selectedCard.state.dueAt
+                          ? ` · Due ${new Date(selectedCard.state.dueAt).toLocaleString()}`
+                          : ''}
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(true)}
+                          disabled={updateCardMutation.isPending || cardActionMutation.isPending}
+                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            ignorePromise(
+                              handleCardAction(
+                                selectedCard.state.queueState === 'suspended'
+                                  ? 'unsuspend'
+                                  : 'suspend'
+                              )
+                            );
+                          }}
+                          disabled={updateCardMutation.isPending || cardActionMutation.isPending}
+                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {selectedCard.state.queueState === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            ignorePromise(handleCardAction('forget'));
+                          }}
+                          disabled={updateCardMutation.isPending || cardActionMutation.isPending}
+                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Forget
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowSetDueControls((current) => !current)}
+                          disabled={updateCardMutation.isPending || cardActionMutation.isPending}
+                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Set due
+                        </button>
+                      </div>
+                    </div>
+
+                    {showSetDueControls ? (
+                      <StudySetDueControls
+                        disabled={updateCardMutation.isPending || cardActionMutation.isPending}
+                        isSubmitting={cardActionMutation.isPending}
+                        onCancel={() => setShowSetDueControls(false)}
+                        onSubmit={async ({ mode, dueAt }) => {
+                          await handleCardAction('set_due', { mode, dueAt });
+                        }}
+                      />
+                    ) : null}
+
+                    {actionErrorMessage ? (
+                      <p className="text-sm text-red-600">{actionErrorMessage}</p>
+                    ) : null}
+
+                    {editing ? (
+                      <StudyCardEditor
+                        card={selectedCard}
+                        isSaving={updateCardMutation.isPending}
+                        error={updateCardErrorMessage}
+                        onCancel={() => setEditing(false)}
+                        onSave={async ({ prompt, answer }) => {
+                          await updateCardMutation.mutateAsync({
+                            cardId: selectedCard.id,
+                            prompt,
+                            answer,
+                          });
+                          setEditing(false);
+                          setPreviewSide('front');
+                          await detailQuery.refetch();
+                          await browserQuery.refetch();
+                        }}
+                      />
+                    ) : (
+                      <StudyCardFace card={selectedCard} side={previewSide} />
+                    )}
                   </div>
                 ) : null}
 

@@ -7,12 +7,14 @@ import userEvent from '@testing-library/user-event';
 import StudyPage from '../StudyPage';
 
 const {
+  cardActionMutateAsyncMock,
   startStudySessionMock,
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
+  cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
@@ -42,6 +44,10 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useSubmitStudyReview: () => ({
     mutateAsync: mutateAsyncMock,
+    isPending: false,
+  }),
+  useStudyCardAction: () => ({
+    mutateAsync: cardActionMutateAsyncMock,
     isPending: false,
   }),
   useUpdateStudyCard: () => ({
@@ -119,6 +125,7 @@ class MockDeviceMotionEvent extends Event {
 
 describe('StudyPage', () => {
   beforeEach(() => {
+    cardActionMutateAsyncMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
     undoStudyReviewMock.mockReset();
@@ -163,6 +170,80 @@ describe('StudyPage', () => {
         prompt: payload.prompt,
         answer: payload.answer,
       })
+    );
+    cardActionMutateAsyncMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        action: 'suspend' | 'unsuspend' | 'forget' | 'set_due';
+        mode?: 'now' | 'tomorrow' | 'custom_date';
+        dueAt?: string;
+      }) => {
+        if (payload.action === 'suspend') {
+          return {
+            card: {
+              ...baseCard,
+              id: payload.cardId,
+              state: {
+                ...baseCard.state,
+                queueState: 'suspended',
+              },
+            },
+            overview: {
+              dueCount: 3,
+              newCount: 6,
+              learningCount: 2,
+              reviewCount: 7,
+              suspendedCount: 1,
+              totalCards: 20,
+            },
+          };
+        }
+
+        if (payload.action === 'forget') {
+          return {
+            card: {
+              ...baseCard,
+              id: payload.cardId,
+              state: {
+                ...baseCard.state,
+                queueState: 'new',
+                dueAt: null,
+              },
+            },
+            overview: {
+              dueCount: 3,
+              newCount: 7,
+              learningCount: 2,
+              reviewCount: 7,
+              suspendedCount: 0,
+              totalCards: 20,
+            },
+          };
+        }
+
+        return {
+          card: {
+            ...baseCard,
+            id: payload.cardId,
+            state: {
+              ...baseCard.state,
+              queueState: payload.mode === 'tomorrow' ? 'review' : baseCard.state.queueState,
+              dueAt:
+                payload.mode === 'tomorrow'
+                  ? new Date('2026-04-13T09:00:00.000Z').toISOString()
+                  : (payload.dueAt ?? baseCard.state.dueAt),
+            },
+          },
+          overview: {
+            dueCount: payload.mode === 'tomorrow' ? 3 : 4,
+            newCount: 6,
+            learningCount: 2,
+            reviewCount: 8,
+            suspendedCount: 0,
+            totalCards: 20,
+          },
+        };
+      }
     );
 
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
@@ -723,5 +804,68 @@ describe('StudyPage', () => {
 
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save card' })).not.toBeInTheDocument();
+  });
+
+  it('buries the current card for the session and restores it with Cmd+Z', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Bury for session' }));
+
+    expect(
+      screen.getByText(
+        'No cards are ready right now. Import more cards or come back when something is due.'
+      )
+    ).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: 'z', metaKey: true });
+
+    expect(await screen.findByRole('button', { name: 'Bury for session' })).toBeInTheDocument();
+  });
+
+  it('suspends a revealed card and removes it from the active session', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Suspend' }));
+
+    await waitFor(() => {
+      expect(cardActionMutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          action: 'suspend',
+        })
+      );
+    });
+
+    expect(
+      screen.getByText(
+        'No cards are ready right now. Import more cards or come back when something is due.'
+      )
+    ).toBeInTheDocument();
   });
 });

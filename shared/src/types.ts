@@ -149,6 +149,15 @@ export interface StudyUndoReviewResult {
   overview: StudyOverview;
 }
 
+export type StudyCardActionName = 'suspend' | 'unsuspend' | 'forget' | 'set_due';
+
+export type StudyCardSetDueMode = 'now' | 'tomorrow' | 'custom_date';
+
+export interface StudyCardActionResult {
+  card: StudyCardSummary;
+  overview: StudyOverview;
+}
+
 export interface StudyBrowserRow {
   noteId: string;
   displayText: string;
