@@ -194,6 +194,55 @@ describe('Study Routes', () => {
     expect(updateStudyCardMock).not.toHaveBeenCalled();
   });
 
+  it('rejects oversized create payloads before hitting the service', async () => {
+    const response = await request(app)
+      .post('/study/cards')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        cardType: 'recognition',
+        prompt: { cueText: 'a'.repeat(70 * 1024) },
+        answer: { meaning: 'company' },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('64 KB or smaller');
+    expect(createStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects overly deep update payloads before hitting the service', async () => {
+    const tooDeepPrompt = {
+      level1: {
+        level2: {
+          level3: {
+            level4: {
+              level5: {
+                level6: {
+                  level7: {
+                    level8: {
+                      level9: 'too deep',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const response = await request(app)
+      .patch('/study/cards/card-1')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        prompt: tooDeepPrompt,
+        answer: { meaning: 'company' },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('8 levels deep or fewer');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('passes card actions through to the service', async () => {
     performStudyCardActionMock.mockResolvedValue({
       card: { id: 'card-1' },

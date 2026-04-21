@@ -64,6 +64,13 @@ const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
 const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
+const generatedAnswerAudioInFlight = new Map<
+  string,
+  {
+    token: symbol;
+    promise: Promise<void>;
+  }
+>();
 
 type JsonRecord = Record<string, unknown>;
 type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
@@ -2168,78 +2175,100 @@ function toStudyBrowserField(
 }
 
 async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promise<void> {
-  const card = await prisma.studyCard.findUnique({
-    where: { id: cardId },
-  });
-
-  if (!card || card.userId !== userId) {
+  const existingRequest = generatedAnswerAudioInFlight.get(cardId);
+  if (existingRequest) {
+    await existingRequest.promise;
     return;
   }
 
-  const answer: StudyAnswerPayload = isRecord(card.answerJson) ? { ...card.answerJson } : {};
-  const existingAnswerAudio = answer.answerAudio;
-  const hasPlayableImportedAudio =
-    existingAnswerAudio !== null &&
-    typeof existingAnswerAudio === 'object' &&
-    typeof existingAnswerAudio.url === 'string' &&
-    existingAnswerAudio.url.length > 0;
+  const requestToken = Symbol(cardId);
+  const generationRequest = (async () => {
+    const card = await prisma.studyCard.findUnique({
+      where: { id: cardId },
+    });
 
-  if (String(card.answerAudioSource) !== 'missing' && hasPlayableImportedAudio) {
-    return;
-  }
+    if (!card || card.userId !== userId) {
+      return;
+    }
 
-  const text = getBestAnswerAudioText(answer);
-  if (!text) {
-    return;
-  }
+    const answer: StudyAnswerPayload = isRecord(card.answerJson) ? { ...card.answerJson } : {};
+    const existingAnswerAudio = answer.answerAudio;
+    const hasPlayableImportedAudio =
+      existingAnswerAudio !== null &&
+      typeof existingAnswerAudio === 'object' &&
+      typeof existingAnswerAudio.url === 'string' &&
+      existingAnswerAudio.url.length > 0;
 
-  const audioBuffer = await synthesizeSpeech({
-    text,
-    voiceId: DEFAULT_NARRATOR_VOICES.ja,
-    languageCode: 'ja-JP',
-    speed: 1.0,
-  });
+    if (String(card.answerAudioSource) !== 'missing' && hasPlayableImportedAudio) {
+      return;
+    }
 
-  const filename = `${normalizeFilename(cardId)}.mp3`;
-  const persisted = await persistStudyMediaBuffer({
-    userId,
-    importJobId: 'generated',
-    filename,
-    buffer: audioBuffer,
-  });
+    const text = getBestAnswerAudioText(answer);
+    if (!text) {
+      return;
+    }
 
-  const mediaRecord = await prisma.studyMedia.create({
-    data: {
+    const audioBuffer = await synthesizeSpeech({
+      text,
+      voiceId: DEFAULT_NARRATOR_VOICES.ja,
+      languageCode: 'ja-JP',
+      speed: 1.0,
+    });
+
+    const filename = `${normalizeFilename(cardId)}.mp3`;
+    const persisted = await persistStudyMediaBuffer({
       userId,
-      sourceKind: 'generated',
-      sourceFilename: filename,
-      normalizedFilename: normalizeFilename(filename),
-      mediaKind: 'audio',
-      contentType: 'audio/mpeg',
-      storagePath: persisted.storagePath,
-      publicUrl: persisted.publicUrl,
-    },
-  });
-
-  const nextAnswer: StudyAnswerPayload = {
-    ...answer,
-    answerAudio: {
-      id: mediaRecord.id,
+      importJobId: 'generated',
       filename,
-      url: getStudyMediaApiPath(mediaRecord.id),
-      mediaKind: 'audio',
-      source: 'generated',
-    },
-  };
+      buffer: audioBuffer,
+    });
 
-  await prisma.studyCard.update({
-    where: { id: cardId },
-    data: {
-      answerJson: toPrismaJson(nextAnswer),
-      answerAudioSource: 'generated',
-      answerAudioMediaId: mediaRecord.id,
-    },
+    const mediaRecord = await prisma.studyMedia.create({
+      data: {
+        userId,
+        sourceKind: 'generated',
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: 'audio',
+        contentType: 'audio/mpeg',
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
+
+    const nextAnswer: StudyAnswerPayload = {
+      ...answer,
+      answerAudio: {
+        id: mediaRecord.id,
+        filename,
+        url: getStudyMediaApiPath(mediaRecord.id),
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+    };
+
+    await prisma.studyCard.update({
+      where: { id: cardId },
+      data: {
+        answerJson: toPrismaJson(nextAnswer),
+        answerAudioSource: 'generated',
+        answerAudioMediaId: mediaRecord.id,
+      },
+    });
+  })();
+
+  const trackedRequest = generationRequest.finally(() => {
+    const inFlight = generatedAnswerAudioInFlight.get(cardId);
+    if (inFlight?.token === requestToken) {
+      generatedAnswerAudioInFlight.delete(cardId);
+    }
   });
+
+  generatedAnswerAudioInFlight.set(cardId, {
+    token: requestToken,
+    promise: trackedRequest,
+  });
+  await trackedRequest;
 }
 
 async function backfillImportedStudyMedia(
@@ -2598,16 +2627,7 @@ export async function getStudyImportJob(
 
 export async function getStudyOverview(userId: string): Promise<StudyOverview> {
   const now = new Date();
-  const [
-    dueCount,
-    newCount,
-    learningCount,
-    reviewCount,
-    suspendedCount,
-    totalCards,
-    nextDueCard,
-    latestImport,
-  ] = await Promise.all([
+  const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
     prisma.studyCard.count({
       where: {
         userId,
@@ -2619,36 +2639,12 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
         },
       },
     }),
-    prisma.studyCard.count({
-      where: {
-        userId,
-        queueState: 'new',
-      },
-    }),
-    prisma.studyCard.count({
-      where: {
-        userId,
-        queueState: {
-          in: ['learning', 'relearning'],
-        },
-      },
-    }),
-    prisma.studyCard.count({
-      where: {
-        userId,
-        queueState: 'review',
-      },
-    }),
-    prisma.studyCard.count({
-      where: {
-        userId,
-        queueState: {
-          in: ['suspended', 'buried'],
-        },
-      },
-    }),
-    prisma.studyCard.count({
+    prisma.studyCard.groupBy({
+      by: ['queueState'],
       where: { userId },
+      _count: {
+        _all: true,
+      },
     }),
     prisma.studyCard.findFirst({
       where: {
@@ -2666,6 +2662,21 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
       orderBy: { createdAt: 'desc' },
     }) as Promise<StudyImportJobRecord | null>,
   ]);
+
+  const countsByQueueState = queueStateCounts.reduce<Partial<Record<StudyQueueState, number>>>(
+    (counts, row) => {
+      const queueState = parseStudyQueueState(row.queueState, 'new');
+      counts[queueState] = row._count._all;
+      return counts;
+    },
+    {}
+  );
+
+  const newCount = countsByQueueState.new ?? 0;
+  const learningCount = (countsByQueueState.learning ?? 0) + (countsByQueueState.relearning ?? 0);
+  const reviewCount = countsByQueueState.review ?? 0;
+  const suspendedCount = (countsByQueueState.suspended ?? 0) + (countsByQueueState.buried ?? 0);
+  const totalCards = Object.values(countsByQueueState).reduce((total, count) => total + count, 0);
 
   return {
     dueCount,

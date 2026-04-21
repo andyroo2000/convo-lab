@@ -9,6 +9,7 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 import {
   createStudyCard,
   getStudyHistory,
+  getStudyOverview,
   getStudyMediaAccess,
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
@@ -303,6 +304,7 @@ describe('studyService', () => {
     mockPrisma.studyNote.createMany.mockResolvedValue({ count: 4 });
     mockPrisma.studyMedia.createMany.mockResolvedValue({ count: 8 });
     mockPrisma.studyCard.createMany.mockResolvedValue({ count: 6 });
+    mockPrisma.studyCard.groupBy.mockResolvedValue([]);
     mockPrisma.studyReviewLog.createMany.mockResolvedValue({ count: 3 });
     mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
   });
@@ -797,6 +799,74 @@ describe('studyService', () => {
     expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalledTimes(1);
     expect(mockPrisma.studyCard.update).toHaveBeenCalled();
     expect(card.answerAudioSource).toBe('generated');
+  });
+
+  it('deduplicates concurrent answer-audio generation for the same card', async () => {
+    let resolveAudio!: (buffer: Buffer) => void;
+    vi.mocked(synthesizeSpeech).mockReturnValueOnce(
+      new Promise<Buffer>((resolve) => {
+        resolveAudio = resolve;
+      })
+    );
+    mockPrisma.studyCard.findUnique.mockResolvedValue({
+      id: 'card-concurrent',
+      userId: 'user-1',
+      answerAudioSource: 'missing',
+      answerJson: { expression: '会社', meaning: 'company' },
+    });
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-concurrent',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'review',
+      answerAudioSource: 'generated',
+      promptJson: { cueText: '会社' },
+      answerJson: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudio: {
+          id: 'media-generated',
+          filename: 'card-concurrent.mp3',
+          url: '/api/study/media/media-generated',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      schedulerStateJson: {
+        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+        stability: 10,
+        difficulty: 4,
+        elapsed_days: 4,
+        scheduled_days: 10,
+        learning_steps: 0,
+        reps: 6,
+        lapses: 1,
+        state: 2,
+        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+      },
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: {},
+    });
+    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+
+    const firstRequest = prepareStudyCardAnswerAudio('user-1', 'card-concurrent');
+    const secondRequest = prepareStudyCardAnswerAudio('user-1', 'card-concurrent');
+
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalledTimes(1);
+
+    resolveAudio(Buffer.from('fake-audio'));
+
+    const [firstCard, secondCard] = await Promise.all([firstRequest, secondRequest]);
+
+    expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledTimes(1);
+    expect(firstCard.answerAudioSource).toBe('generated');
+    expect(secondCard.answerAudioSource).toBe('generated');
   });
 
   it('undoes a review and restores the previous scheduler state', async () => {
@@ -1573,6 +1643,54 @@ describe('studyService', () => {
         orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
       })
     );
+  });
+
+  it('aggregates the study overview with grouped queue-state counts', async () => {
+    mockPrisma.studyCard.count.mockResolvedValue(3);
+    mockPrisma.studyCard.groupBy.mockResolvedValue([
+      { queueState: 'new', _count: { _all: 5 } },
+      { queueState: 'learning', _count: { _all: 2 } },
+      { queueState: 'relearning', _count: { _all: 1 } },
+      { queueState: 'review', _count: { _all: 7 } },
+      { queueState: 'suspended', _count: { _all: 2 } },
+      { queueState: 'buried', _count: { _all: 1 } },
+    ]);
+    mockPrisma.studyCard.findFirst.mockReset();
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      dueAt: new Date('2026-04-14T00:00:00.000Z'),
+    });
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue({
+      id: 'import-job-1',
+      status: 'completed',
+      sourceFilename: 'japanese.colpkg',
+      deckName: '日本語',
+      previewJson: {
+        deckName: '日本語',
+        noteCount: 4,
+        cardCount: 6,
+        reviewLogCount: 3,
+        importedNotetypeNames: ['Japanese - Vocab'],
+      },
+      completedAt: new Date('2026-04-15T00:00:00.000Z'),
+      errorMessage: null,
+    });
+
+    const overview = await getStudyOverview('user-1');
+
+    expect(mockPrisma.studyCard.groupBy).toHaveBeenCalledWith({
+      by: ['queueState'],
+      where: { userId: 'user-1' },
+      _count: { _all: true },
+    });
+    expect(overview).toMatchObject({
+      dueCount: 3,
+      newCount: 5,
+      learningCount: 3,
+      reviewCount: 7,
+      suspendedCount: 3,
+      totalCards: 18,
+      nextDueAt: '2026-04-14T00:00:00.000Z',
+    });
   });
 
   it('serves study media from private local storage when available', async () => {

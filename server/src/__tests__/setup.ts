@@ -175,6 +175,7 @@ export const mockPrisma = {
     findUnique: vi.fn(),
     findFirst: vi.fn(),
     findMany: vi.fn(),
+    groupBy: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
