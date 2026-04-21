@@ -18,6 +18,8 @@ const {
   getStudyCardOptionsMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
+  getStudyHistoryMock,
+  getStudyMediaAccessMock,
   importJapaneseStudyColpkgMock,
   incrMock,
   performStudyCardActionMock,
@@ -32,6 +34,8 @@ const {
   getStudyCardOptionsMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
+  getStudyHistoryMock: vi.fn(),
+  getStudyMediaAccessMock: vi.fn(),
   importJapaneseStudyColpkgMock: vi.fn(),
   incrMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
@@ -55,7 +59,8 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyBrowserList: getStudyBrowserListMock,
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getStudyCardOptions: getStudyCardOptionsMock,
-  getStudyHistory: vi.fn(),
+  getStudyHistory: getStudyHistoryMock,
+  getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
   getStudyOverview: vi.fn(),
   importJapaneseStudyColpkg: importJapaneseStudyColpkgMock,
@@ -88,6 +93,11 @@ describe('Study Routes', () => {
       incr: incrMock,
       expire: expireMock,
     });
+    getStudyHistoryMock.mockResolvedValue({
+      events: [],
+      nextCursor: null,
+    });
+    getStudyMediaAccessMock.mockResolvedValue(null);
     vi.useFakeTimers();
     vi.setSystemTime(
       new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
@@ -277,6 +287,26 @@ describe('Study Routes', () => {
     expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
   });
 
+  it('rejects .colpkg uploads that are not ZIP archives', async () => {
+    const response = await request(app)
+      .post('/study/imports')
+      .attach('file', Buffer.from('nope'), 'anki-export.colpkg');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('valid ZIP-based .colpkg archive');
+    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized .colpkg uploads with 413', async () => {
+    const response = await request(app)
+      .post('/study/imports')
+      .attach('file', Buffer.alloc(201 * 1024 * 1024, 0), 'too-large.colpkg');
+
+    expect(response.status).toBe(413);
+    expect(response.body.message).toContain('200 MB or smaller');
+    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+  });
+
   it('returns lightweight card options for the history filter', async () => {
     getStudyCardOptionsMock.mockResolvedValue({
       total: 125,
@@ -288,6 +318,35 @@ describe('Study Routes', () => {
     expect(response.status).toBe(200);
     expect(getStudyCardOptionsMock).toHaveBeenCalledWith('user-1', 100);
     expect(response.body.total).toBe(125);
+  });
+
+  it('passes history cursor pagination params through to the service', async () => {
+    const response = await request(app).get(
+      '/study/history?cardId=card-1&cursor=cursor-1&limit=25'
+    );
+
+    expect(response.status).toBe(200);
+    expect(getStudyHistoryMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      cursor: 'cursor-1',
+      limit: 25,
+    });
+  });
+
+  it('serves authenticated study media through the study media route', async () => {
+    getStudyMediaAccessMock.mockResolvedValue({
+      type: 'redirect',
+      redirectUrl: 'https://example.com/study-audio.mp3',
+      contentType: 'audio/mpeg',
+      filename: 'audio.mp3',
+    });
+
+    const response = await request(app).get('/study/media/media-1');
+
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toBe('https://example.com/study-audio.mp3');
+    expect(getStudyMediaAccessMock).toHaveBeenCalledWith('user-1', 'media-1');
   });
 
   it('blocks study routes when the flashcards feature flag is disabled', async () => {

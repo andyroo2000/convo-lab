@@ -22,6 +22,15 @@ const StudyPage = () => {
   const ignorePromise = (task?: Promise<unknown>) => {
     task?.catch(() => {});
   };
+  const motionBannerMessage = useMemo(() => {
+    if (reviewSession.motionPermissionState === 'unsupported') {
+      return 'Shake to undo is not available on this device.';
+    }
+    if (reviewSession.motionPermissionState === 'denied') {
+      return 'Shake to undo is off because motion access was denied.';
+    }
+    return 'Shake to undo is available after motion access is granted.';
+  }, [reviewSession.motionPermissionState]);
 
   const headline = useMemo(() => {
     if (!overviewQuery.data) return 'Study';
@@ -51,6 +60,24 @@ const StudyPage = () => {
               reviewRemaining={reviewSession.sessionCounts.reviewRemaining}
               onExit={reviewSession.exitFocusMode}
             />
+            {reviewSession.motionPermissionState !== 'granted' ? (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p>{motionBannerMessage}</p>
+                {reviewSession.motionPermissionState !== 'unsupported' ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      ignorePromise(reviewSession.requestMotionPermission());
+                    }}
+                    className="rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100"
+                  >
+                    {reviewSession.motionPermissionState === 'denied'
+                      ? 'Try again'
+                      : 'Enable motion'}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             {reviewSession.sessionLoading ? (
               <p className="py-16 text-center text-gray-500">Loading study session…</p>

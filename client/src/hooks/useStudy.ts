@@ -9,10 +9,10 @@ import type {
   StudyBrowserNoteDetail,
   StudyCardSummary,
   StudyExportManifest,
+  StudyHistoryResponse,
   StudyImportResult,
   StudyOverview,
   StudyPromptPayload,
-  StudyReviewEvent,
   StudyReviewResult,
   StudyUndoReviewResult,
 } from '@shared/types';
@@ -144,6 +144,35 @@ export async function performStudyCardAction(
   );
 }
 
+export function useStudyHistoryPage(
+  enabled: boolean,
+  params: { cardId?: string; cursor?: string; limit?: number }
+) {
+  const searchParams = new URLSearchParams();
+  if (params.cardId) {
+    searchParams.set('cardId', params.cardId);
+  }
+  if (params.cursor) {
+    searchParams.set('cursor', params.cursor);
+  }
+  if (typeof params.limit === 'number') {
+    searchParams.set('limit', String(params.limit));
+  }
+
+  return useQuery({
+    queryKey: [
+      'study',
+      'history',
+      params.cardId ?? 'all',
+      params.cursor ?? 'start',
+      params.limit ?? 50,
+    ],
+    queryFn: () =>
+      apiRequest<StudyHistoryResponse>(`/api/study/history?${searchParams.toString()}`),
+    enabled,
+  });
+}
+
 export function useStudyOverview(enabled: boolean) {
   return useQuery({
     queryKey: ['study', 'overview'],
@@ -153,13 +182,9 @@ export function useStudyOverview(enabled: boolean) {
 }
 
 export function useStudyHistory(enabled: boolean, cardId?: string) {
-  return useQuery({
-    queryKey: ['study', 'history', cardId ?? 'all'],
-    queryFn: () =>
-      apiRequest<StudyReviewEvent[]>(
-        `/api/study/history${cardId ? `?cardId=${encodeURIComponent(cardId)}` : ''}`
-      ),
-    enabled,
+  return useStudyHistoryPage(enabled, {
+    cardId,
+    limit: 50,
   });
 }
 

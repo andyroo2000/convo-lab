@@ -8,6 +8,8 @@ import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   createStudyCard,
+  getStudyHistory,
+  getStudyMediaAccess,
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
   importJapaneseStudyColpkg,
@@ -30,7 +32,7 @@ vi.mock('../../../services/furiganaService.js', () => ({
 }));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
-const generatedStudyMediaPath = path.join(process.cwd(), 'server/public/study-media');
+const generatedStudyMediaPath = path.join(process.cwd(), 'storage/study-media');
 const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
@@ -1440,5 +1442,75 @@ describe('studyService', () => {
     expect(updated.answer.meaning).toBe('business');
     expect(updated.answer.expression).toBe('事業');
     expect(updated.state.queueState).toBe('review');
+  });
+
+  it('returns paginated study history with a cursor', async () => {
+    mockPrisma.studyReviewLog.findMany.mockResolvedValue([
+      {
+        id: 'log-2',
+        cardId: 'card-1',
+        source: 'convolab',
+        reviewedAt: new Date('2026-04-13T00:00:00.000Z'),
+        rating: 3,
+        durationMs: 1200,
+        sourceReviewId: null,
+        stateBeforeJson: null,
+        stateAfterJson: null,
+        rawPayloadJson: { grade: 'good' },
+      },
+      {
+        id: 'log-1',
+        cardId: 'card-1',
+        source: 'anki_import',
+        reviewedAt: new Date('2026-04-12T00:00:00.000Z'),
+        rating: 2,
+        durationMs: null,
+        sourceReviewId: BigInt(1775915610000),
+        stateBeforeJson: null,
+        stateAfterJson: null,
+        rawPayloadJson: { reviewId: 1775915610000 },
+      },
+    ]);
+
+    const result = await getStudyHistory({
+      userId: 'user-1',
+      cardId: 'card-1',
+      limit: 1,
+    });
+
+    expect(result.events).toHaveLength(1);
+    expect(result.events[0]?.id).toBe('log-2');
+    expect(result.nextCursor).toBeTruthy();
+    expect(mockPrisma.studyReviewLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        take: 2,
+        orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+      })
+    );
+  });
+
+  it('serves study media from private local storage when available', async () => {
+    const storagePath = 'study-media/user-1/import/audio.mp3';
+    const absolutePath = path.join(generatedStudyMediaPath, 'user-1/import/audio.mp3');
+    await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+    await fs.writeFile(absolutePath, Buffer.from('audio'));
+
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-1',
+      userId: 'user-1',
+      sourceFilename: 'audio.mp3',
+      storagePath,
+      publicUrl: null,
+      contentType: 'audio/mpeg',
+    });
+
+    const result = await getStudyMediaAccess('user-1', 'media-1');
+
+    expect(result).toEqual({
+      type: 'local',
+      absolutePath,
+      contentType: 'audio/mpeg',
+      filename: 'audio.mp3',
+    });
   });
 });

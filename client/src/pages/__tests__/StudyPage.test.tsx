@@ -104,7 +104,7 @@ const baseCard = {
 };
 
 class MockDeviceMotionEvent extends Event {
-  static requestPermission = vi.fn(async () => 'granted' as const);
+  static requestPermission = vi.fn<[], Promise<'granted' | 'denied'>>(async () => 'granted');
 
   accelerationIncludingGravity: { x?: number | null; y?: number | null; z?: number | null } | null;
 
@@ -536,6 +536,31 @@ describe('StudyPage', () => {
       expect(screen.queryByText('company')).not.toBeInTheDocument();
     });
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
+  });
+
+  it('shows the motion permission affordance when device-motion access is denied', async () => {
+    MockDeviceMotionEvent.requestPermission.mockResolvedValueOnce('denied');
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 4,
+        newCount: 6,
+        learningCount: 2,
+        reviewCount: 8,
+        suspendedCount: 0,
+        totalCards: 20,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Shake to undo is off because motion access was denied.')
+      ).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   it('undoes a graded card with command-z and restores the previous revealed card', async () => {

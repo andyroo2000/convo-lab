@@ -20,19 +20,12 @@ import {
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from './useStudy';
-import { AudioPlayerHandle } from '../components/study/StudyCardPreview';
-import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
+import useStudyAudioAutoplay from './useStudyAudioAutoplay';
+import { useStudyMotionUndo } from './useStudyMotionUndo';
+import useStudyUndoStack from './useStudyUndoStack';
+import { toAssetUrl } from '../components/study/studyCardUtils';
 
 const reviewScheduler = fsrs();
-const PREWARM_CARD_COUNT = 3;
-const SHAKE_ACCELERATION_THRESHOLD = 28;
-const SHAKE_DELTA_THRESHOLD = 14;
-const SHAKE_COOLDOWN_MS = 1200;
-
-interface MotionEnabledDeviceMotionEventConstructor {
-  new (type: string, eventInitDict?: EventInit): DeviceMotionEvent;
-  requestPermission?: () => Promise<'granted' | 'denied'>;
-}
 
 interface StudyUndoSnapshot {
   session: StudySessionResponse | null;
@@ -59,29 +52,6 @@ type StudyUndoAction =
 
 const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
   JSON.parse(JSON.stringify(snapshot)) as StudyUndoSnapshot;
-
-const supportsTouchMotion = () =>
-  typeof window !== 'undefined' &&
-  typeof window.DeviceMotionEvent !== 'undefined' &&
-  (typeof navigator === 'undefined' ? false : navigator.maxTouchPoints > 0);
-
-const requestDeviceMotionAccess = async () => {
-  if (typeof window === 'undefined' || typeof window.DeviceMotionEvent === 'undefined') {
-    return false;
-  }
-
-  const motionEvent = window.DeviceMotionEvent as MotionEnabledDeviceMotionEventConstructor;
-  if (typeof motionEvent.requestPermission === 'function') {
-    try {
-      return (await motionEvent.requestPermission()) === 'granted';
-    } catch (error) {
-      console.warn('Device motion permission request failed:', error);
-      return false;
-    }
-  }
-
-  return true;
-};
 
 const formatReviewInterval = (due: Date, now: Date) => {
   const diffMs = Math.max(0, due.getTime() - now.getTime());
@@ -162,16 +132,8 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const [undoPending, setUndoPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
-  const promptAudioRef = useRef<AudioPlayerHandle | null>(null);
-  const answerAudioRef = useRef<AudioPlayerHandle | null>(null);
   const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
-  const promptAutoplayKeys = useRef(new Set<string>());
-  const answerAutoplayKeys = useRef(new Set<string>());
-  const undoStack = useRef<StudyUndoAction[]>([]);
   const sessionCardCountRef = useRef(0);
-  const motionEnabledRef = useRef(false);
-  const lastShakeAtRef = useRef(0);
-  const lastMotionMagnitudeRef = useRef<number | null>(null);
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
@@ -205,11 +167,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     return updateCardMutation.error ? 'Card update failed.' : null;
   }, [updateCardMutation.error]);
 
-  const stopAllAudio = useCallback(() => {
-    promptAudioRef.current?.stop();
-    answerAudioRef.current?.stop();
-  }, []);
-
   const ignorePromise = useCallback((task?: Promise<unknown>) => {
     task?.catch(() => {});
   }, []);
@@ -217,6 +174,8 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
   }, [session]);
+
+  const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
   const syncOverview = useCallback(
     (overview: StudyOverview) => {
@@ -285,21 +244,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     [answeredCardIds, currentIndex, failedCardIds, revealed, session]
   );
 
-  const restoreUndoSnapshot = useCallback(
-    (snapshot: StudyUndoSnapshot) => {
-      stopAllAudio();
-      const restored = cloneStudySnapshot(snapshot);
-      setSession(restored.session);
-      setCurrentIndex(restored.currentIndex);
-      setRevealed(restored.revealed);
-      setAnsweredCardIds(restored.answeredCardIds);
-      setFailedCardIds(restored.failedCardIds);
-      setSessionError(null);
-      setShowSetDueControls(false);
-    },
-    [stopAllAudio]
-  );
-
   const ensureAnswerAudioPrepared = useCallback(
     async (cardId: string) => {
       const existingPromise = inFlightAudioPrep.current.get(cardId);
@@ -324,6 +268,30 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       return request;
     },
     [mergeCardIntoSession]
+  );
+
+  const { answerAudioRef, promptAudioRef, stopAllAudio } = useStudyAudioAutoplay({
+    cards,
+    currentCard,
+    ensureAnswerAudioPrepared,
+    focusMode,
+    ignorePromise,
+    revealed,
+  });
+
+  const restoreUndoSnapshot = useCallback(
+    (snapshot: StudyUndoSnapshot) => {
+      stopAllAudio();
+      const restored = cloneStudySnapshot(snapshot);
+      setSession(restored.session);
+      setCurrentIndex(restored.currentIndex);
+      setRevealed(restored.revealed);
+      setAnsweredCardIds(restored.answeredCardIds);
+      setFailedCardIds(restored.failedCardIds);
+      setSessionError(null);
+      setShowSetDueControls(false);
+    },
+    [stopAllAudio]
   );
 
   const loadSession = useCallback(
@@ -351,7 +319,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
 
-    undoStack.current.push({
+    pushUndo({
       kind: 'reveal',
       snapshot: captureUndoSnapshot(),
     });
@@ -360,9 +328,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
     const answerUrl = toAssetUrl(currentCard.answer.answerAudio?.url);
     if (answerUrl) {
-      const autoplayKey = `${currentCard.id}:answer:${answerUrl}`;
-      answerAutoplayKeys.current.add(autoplayKey);
-      ignorePromise(answerAudioRef.current?.play());
       return;
     }
 
@@ -373,16 +338,14 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     editing,
     ensureAnswerAudioPrepared,
     ignorePromise,
+    pushUndo,
     revealed,
     stopAllAudio,
   ]);
 
   const exitFocusMode = useCallback(() => {
     stopAllAudio();
-    undoStack.current = [];
-    motionEnabledRef.current = false;
-    lastShakeAtRef.current = 0;
-    lastMotionMagnitudeRef.current = null;
+    resetUndo();
     setFocusMode(false);
     setSession(null);
     setSessionError(null);
@@ -393,7 +356,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     setUndoPending(false);
     setAnsweredCardIds([]);
     setFailedCardIds([]);
-  }, [stopAllAudio]);
+  }, [resetUndo, stopAllAudio]);
 
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
@@ -412,7 +375,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
         return current.filter((cardId) => cardId !== currentCard.id);
       });
-      undoStack.current.push({
+      pushUndo({
         kind: 'grade',
         snapshot: undoSnapshot,
         reviewLogId: reviewResult.reviewLogId,
@@ -434,6 +397,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       captureUndoSnapshot,
       currentCard,
       editing,
+      pushUndo,
       reviewMutation,
       stopAllAudio,
       syncOverview,
@@ -444,7 +408,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const handleBuryForSession = useCallback(() => {
     if (!currentCard || !revealed || editing) return;
 
-    undoStack.current.push({
+    pushUndo({
       kind: 'bury',
       snapshot: captureUndoSnapshot(),
     });
@@ -461,6 +425,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     captureUndoSnapshot,
     currentCard,
     editing,
+    pushUndo,
     removeCardFromSession,
     revealed,
     stopAllAudio,
@@ -531,27 +496,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     [currentCard, mergeCardIntoSession, stopAllAudio, updateCardMutation]
   );
 
-  const enterFocusMode = useCallback(async () => {
-    stopAllAudio();
-    undoStack.current = [];
-    motionEnabledRef.current = supportsTouchMotion() ? await requestDeviceMotionAccess() : false;
-    lastShakeAtRef.current = 0;
-    lastMotionMagnitudeRef.current = null;
-    setFocusMode(true);
-    setCurrentIndex(0);
-    setRevealed(false);
-    setEditing(false);
-    setUndoPending(false);
-    setAnsweredCardIds([]);
-    setFailedCardIds([]);
-    const sessionLimit = Math.max(availableCount, 1);
-    try {
-      await loadSession(sessionLimit);
-    } catch {
-      // loadSession already updates session error state for the dashboard.
-    }
-  }, [availableCount, loadSession, stopAllAudio]);
-
   const handleUndo = useCallback(async () => {
     if (
       undoPending ||
@@ -563,7 +507,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       return;
     }
 
-    const action = undoStack.current.pop();
+    const action = popUndo();
     if (!action) return;
 
     stopAllAudio();
@@ -579,12 +523,14 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
     } catch (error) {
-      undoStack.current.push(action);
+      pushUndo(action);
       setSessionError(error instanceof Error ? error.message : 'Unable to undo study action.');
     } finally {
       setUndoPending(false);
     }
   }, [
+    popUndo,
+    pushUndo,
     editing,
     cardActionMutation.isPending,
     restoreUndoSnapshot,
@@ -593,6 +539,44 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     stopAllAudio,
     syncOverview,
     undoPending,
+  ]);
+
+  const { motionPermissionState, requestMotionPermission } = useStudyMotionUndo({
+    disabled:
+      undoPending ||
+      reviewMutation.isPending ||
+      cardActionMutation.isPending ||
+      sessionLoading ||
+      editing,
+    focusMode,
+    onShake: handleUndo,
+    ignorePromise,
+  });
+
+  const enterFocusMode = useCallback(async () => {
+    stopAllAudio();
+    resetUndo();
+    setFocusMode(true);
+    setCurrentIndex(0);
+    setRevealed(false);
+    setEditing(false);
+    setUndoPending(false);
+    setAnsweredCardIds([]);
+    setFailedCardIds([]);
+    ignorePromise(requestMotionPermission());
+    const sessionLimit = Math.max(availableCount, 1);
+    try {
+      await loadSession(sessionLimit);
+    } catch {
+      // loadSession already updates session error state for the dashboard.
+    }
+  }, [
+    availableCount,
+    ignorePromise,
+    loadSession,
+    requestMotionPermission,
+    resetUndo,
+    stopAllAudio,
   ]);
 
   useEffect(() => {
@@ -620,94 +604,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       document.body.style.overflow = previousOverflow;
     };
   }, [focusMode]);
-
-  useEffect(() => {
-    if (!focusMode || !cards.length) return;
-
-    cards
-      .slice(0, PREWARM_CARD_COUNT)
-      .filter((card) => !toAssetUrl(card.answer.answerAudio?.url))
-      .forEach((card) => {
-        ignorePromise(ensureAnswerAudioPrepared(card.id));
-      });
-  }, [cards, ensureAnswerAudioPrepared, focusMode, ignorePromise]);
-
-  useEffect(() => {
-    if (!focusMode || !currentCard || revealed || !isAudioLedPromptCard(currentCard)) return;
-
-    const promptUrl = toAssetUrl(currentCard.prompt.cueAudio?.url);
-    if (!promptUrl) return;
-
-    const autoplayKey = `${currentCard.id}:prompt:${promptUrl}`;
-    if (promptAutoplayKeys.current.has(autoplayKey)) return;
-
-    promptAutoplayKeys.current.add(autoplayKey);
-    ignorePromise(promptAudioRef.current?.play());
-  }, [currentCard, focusMode, ignorePromise, revealed]);
-
-  useEffect(() => {
-    if (!focusMode || !currentCard || !revealed) return;
-
-    const answerUrl = toAssetUrl(currentCard.answer.answerAudio?.url);
-    if (!answerUrl) return;
-
-    const autoplayKey = `${currentCard.id}:answer:${answerUrl}`;
-    if (answerAutoplayKeys.current.has(autoplayKey)) return;
-
-    answerAutoplayKeys.current.add(autoplayKey);
-    ignorePromise(answerAudioRef.current?.play());
-  }, [currentCard, focusMode, ignorePromise, revealed]);
-
-  useEffect(() => {
-    if (!focusMode) return undefined;
-
-    const handleDeviceMotion = (event: DeviceMotionEvent) => {
-      if (
-        !motionEnabledRef.current ||
-        undoPending ||
-        reviewMutation.isPending ||
-        cardActionMutation.isPending ||
-        sessionLoading
-      ) {
-        return;
-      }
-
-      const acceleration = event.accelerationIncludingGravity ?? event.acceleration;
-      if (!acceleration) return;
-
-      const x = Math.abs(acceleration.x ?? 0);
-      const y = Math.abs(acceleration.y ?? 0);
-      const z = Math.abs(acceleration.z ?? 0);
-      const magnitude = x + y + z;
-      const previousMagnitude = lastMotionMagnitudeRef.current;
-      lastMotionMagnitudeRef.current = magnitude;
-
-      if (previousMagnitude === null) return;
-
-      const delta = Math.abs(magnitude - previousMagnitude);
-      const now = Date.now();
-
-      if (
-        magnitude >= SHAKE_ACCELERATION_THRESHOLD &&
-        delta >= SHAKE_DELTA_THRESHOLD &&
-        now - lastShakeAtRef.current >= SHAKE_COOLDOWN_MS
-      ) {
-        lastShakeAtRef.current = now;
-        ignorePromise(handleUndo());
-      }
-    };
-
-    window.addEventListener('devicemotion', handleDeviceMotion);
-    return () => window.removeEventListener('devicemotion', handleDeviceMotion);
-  }, [
-    focusMode,
-    handleUndo,
-    ignorePromise,
-    reviewMutation.isPending,
-    cardActionMutation.isPending,
-    sessionLoading,
-    undoPending,
-  ]);
 
   useEffect(() => {
     if (!focusMode) return undefined;
@@ -783,6 +679,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     undoPending,
     sessionCounts,
     gradeIntervals,
+    motionPermissionState,
     promptAudioRef,
     answerAudioRef,
     reviewMutation,
@@ -797,6 +694,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     handleBuryForSession,
     handleCardAction,
     handleUndo,
+    requestMotionPermission,
     saveCurrentCard,
     enterFocusMode,
   };

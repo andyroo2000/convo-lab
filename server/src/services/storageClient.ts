@@ -66,6 +66,13 @@ export interface UploadFileToPathOptions {
   makePublic?: boolean;
 }
 
+export interface UploadBufferToPathOptions {
+  buffer: Buffer;
+  destinationPath: string;
+  contentType: string;
+  makePublic?: boolean;
+}
+
 /**
  * Upload a file to GCS using streaming (memory-efficient for large files)
  */
@@ -142,6 +149,34 @@ export async function uploadFileToGCSPath(options: UploadFileToPathOptions): Pro
     console.error('GCS fixed-path upload error:', error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     throw new Error(`Failed to upload file to Google Cloud Storage path: ${errorMsg}`);
+  }
+}
+
+export async function uploadBufferToGCSPath(options: UploadBufferToPathOptions): Promise<string> {
+  const { buffer, destinationPath, contentType, makePublic = false } = options;
+
+  try {
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
+    const normalizedPath = destinationPath.replace(/^\/+/, '');
+    const file = bucket.file(normalizedPath);
+
+    await file.save(buffer, {
+      contentType,
+      metadata: {
+        cacheControl: 'private, max-age=0, no-transform',
+      },
+    });
+
+    if (makePublic) {
+      await file.makePublic();
+    }
+
+    return `https://storage.googleapis.com/${resolvedBucketName}/${normalizedPath}`;
+  } catch (error) {
+    console.error('GCS fixed-path buffer upload error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload buffer to Google Cloud Storage path: ${errorMsg}`);
   }
 }
 

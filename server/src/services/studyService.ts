@@ -26,6 +26,7 @@ import type {
   StudyCardType,
   StudyExportManifest,
   StudyFsrsState,
+  StudyHistoryResponse,
   StudyImportPreview,
   StudyImportResult,
   StudyMediaRef,
@@ -47,7 +48,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { addFuriganaBrackets } from './furiganaService.js';
-import { uploadToGCS } from './storageClient.js';
+import { getSignedReadUrl, uploadBufferToGCSPath } from './storageClient.js';
 import { synthesizeSpeech } from './ttsClient.js';
 
 const require = createRequire(import.meta.url);
@@ -58,6 +59,11 @@ const scheduler = fsrs();
 const ANKI_DECK_NAME = '日本語';
 const FIELD_SEPARATOR = String.fromCharCode(31);
 const DEFAULT_STUDY_LIMIT = 20;
+const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
+const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
+const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
+const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
+const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
 
 type JsonRecord = Record<string, unknown>;
 type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
@@ -257,6 +263,26 @@ interface PerformStudyCardActionInput {
   action: StudyCardActionName;
   mode?: StudyCardSetDueMode;
   dueAt?: string;
+}
+
+interface GetStudyHistoryInput {
+  userId: string;
+  cardId?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+interface StudyHistoryCursor {
+  reviewedAt: string;
+  id: string;
+}
+
+export interface StudyMediaAccessResult {
+  type: 'local' | 'redirect';
+  absolutePath?: string;
+  redirectUrl?: string;
+  contentType: string;
+  filename: string;
 }
 
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
@@ -554,6 +580,60 @@ function sanitizePathSegment(value: string): string {
   return normalized.length > 0 ? normalized : 'unknown';
 }
 
+function getPrivateStudyMediaRoot(): string {
+  return path.join(__dirname, '../../storage');
+}
+
+function getLegacyPublicStudyMediaRoot(): string {
+  return path.join(__dirname, '../../public');
+}
+
+function normalizeStoragePath(storagePath: string): string {
+  return path.posix.normalize(storagePath).replace(/^\/+/, '');
+}
+
+function resolveStudyMediaAbsolutePath(baseDir: string, storagePath: string): string | null {
+  const normalizedStoragePath = normalizeStoragePath(storagePath);
+  if (
+    normalizedStoragePath.length === 0 ||
+    isUnsafeZipPath(normalizedStoragePath) ||
+    !normalizedStoragePath.startsWith('study-media/')
+  ) {
+    return null;
+  }
+
+  const candidate = path.resolve(baseDir, normalizedStoragePath);
+  const resolvedBase = path.resolve(baseDir);
+
+  if (!candidate.startsWith(`${resolvedBase}${path.sep}`) && candidate !== resolvedBase) {
+    return null;
+  }
+
+  return candidate;
+}
+
+async function findAccessibleLocalStudyMediaPath(storagePath: string): Promise<string | null> {
+  const candidatePaths = [
+    resolveStudyMediaAbsolutePath(getPrivateStudyMediaRoot(), storagePath),
+    resolveStudyMediaAbsolutePath(getLegacyPublicStudyMediaRoot(), storagePath),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidatePaths) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function isGcsStudyMediaUrl(url: string | null | undefined): boolean {
+  return typeof url === 'string' && /^https:\/\/storage\.googleapis\.com\//.test(url);
+}
+
 interface ParsedHtmlNode {
   type?: string;
   name?: string;
@@ -641,15 +721,102 @@ function parsePersistedStudyMediaRecord(value: unknown): PersistedStudyMediaReco
   };
 }
 
-function getMediaPublicUrl(media: unknown): string | null {
-  if (!isRecord(media)) return null;
-  if (typeof media.publicUrl === 'string' && media.publicUrl.length > 0) {
-    return media.publicUrl;
+function getStudyMediaApiPath(mediaId: string): string {
+  return `/api/study/media/${encodeURIComponent(mediaId)}`;
+}
+
+function hasPersistedMediaLocation(media: unknown): boolean {
+  if (!isRecord(media)) return false;
+  return (
+    (typeof media.publicUrl === 'string' && media.publicUrl.length > 0) ||
+    (typeof media.storagePath === 'string' && media.storagePath.length > 0)
+  );
+}
+
+function toBoundedReviewRawPayload(
+  payload: JsonRecord,
+  fallback: JsonRecord
+): Prisma.InputJsonValue {
+  const serialized = JSON.stringify(payload);
+  if (Buffer.byteLength(serialized, 'utf8') <= STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES) {
+    return toPrismaJson(payload);
   }
-  if (typeof media.storagePath === 'string' && media.storagePath.length > 0) {
-    return `/${media.storagePath}`;
+
+  return toPrismaJson({
+    ...fallback,
+    truncated: true,
+  });
+}
+
+function toImportReviewRawPayload(log: {
+  sourceReviewId: number;
+  sourceCardId: number;
+  sourceEase: number;
+  sourceInterval: number;
+  sourceLastInterval: number;
+  sourceFactor: number;
+  sourceTimeMs: number;
+  sourceReviewType: number;
+}): Prisma.InputJsonValue {
+  const payload = {
+    reviewId: log.sourceReviewId,
+    cardId: log.sourceCardId,
+    ease: log.sourceEase,
+    ivl: log.sourceInterval,
+    lastIvl: log.sourceLastInterval,
+    factor: log.sourceFactor,
+    time: log.sourceTimeMs,
+    type: log.sourceReviewType,
+  };
+
+  return toBoundedReviewRawPayload(payload, {
+    reviewId: log.sourceReviewId,
+    cardId: log.sourceCardId,
+  });
+}
+
+function toConvolabReviewRawPayload(params: {
+  grade: string;
+  beforeQueueState: string;
+  beforeDueAt: string | null;
+  beforeLastReviewedAt: string | null;
+}): Prisma.InputJsonValue {
+  const payload = {
+    grade: params.grade,
+    beforeQueueState: params.beforeQueueState,
+    beforeDueAt: params.beforeDueAt,
+    beforeLastReviewedAt: params.beforeLastReviewedAt,
+  };
+
+  return toBoundedReviewRawPayload(payload, {
+    grade: params.grade,
+    beforeQueueState: params.beforeQueueState,
+  });
+}
+
+function encodeStudyHistoryCursor(cursor: StudyHistoryCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyHistoryCursor(cursor: string): StudyHistoryCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.reviewedAt !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.reviewedAt).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      reviewedAt: parsed.reviewedAt,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
   }
-  return null;
 }
 
 function hydrateMediaRef(
@@ -658,9 +825,15 @@ function hydrateMediaRef(
 ): StudyMediaRef | null | undefined {
   if (!mediaRef && !media) return mediaRef;
 
-  const resolvedUrl = getMediaPublicUrl(media);
-  if (!resolvedUrl) return mediaRef;
   const mediaRecord = isRecord(media) ? media : null;
+  const mediaId =
+    typeof mediaRecord?.id === 'string'
+      ? mediaRecord.id
+      : typeof mediaRef?.id === 'string'
+        ? mediaRef.id
+        : null;
+  const resolvedUrl = mediaId ? getStudyMediaApiPath(mediaId) : (mediaRef?.url ?? null);
+  if (!resolvedUrl) return mediaRef;
 
   return {
     ...(mediaRef ?? {
@@ -1104,7 +1277,7 @@ function toMediaRef(
     filename: media.filename,
     mediaKind: media.mediaKind,
     source,
-    url: media.publicUrl,
+    url: getStudyMediaApiPath(media.id),
   };
 }
 
@@ -1253,7 +1426,7 @@ async function persistStudyMediaBuffer(params: {
   importJobId: string;
   filename: string;
   buffer: Buffer;
-}): Promise<{ publicUrl: string; storagePath: string }> {
+}): Promise<{ publicUrl: string | null; storagePath: string }> {
   const { userId, importJobId, filename, buffer } = params;
   const normalizedFilename = normalizeFilename(filename);
   const storagePath = path.posix.join(
@@ -1265,15 +1438,15 @@ async function persistStudyMediaBuffer(params: {
 
   if (process.env.GCS_BUCKET_NAME) {
     try {
-      const publicUrl = await uploadToGCS({
+      await uploadBufferToGCSPath({
         buffer,
-        filename: normalizedFilename,
+        destinationPath: storagePath,
         contentType: getContentType(filename),
-        folder: path.posix.dirname(storagePath),
+        makePublic: false,
       });
 
       return {
-        publicUrl,
+        publicUrl: null,
         storagePath,
       };
     } catch (error) {
@@ -1281,12 +1454,12 @@ async function persistStudyMediaBuffer(params: {
     }
   }
 
-  const absolutePath = path.join(__dirname, '../../public', storagePath);
+  const absolutePath = path.join(getPrivateStudyMediaRoot(), storagePath);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, buffer);
 
   return {
-    publicUrl: `/${storagePath}`,
+    publicUrl: null,
     storagePath,
   };
 }
@@ -2023,7 +2196,7 @@ async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promi
     answerAudio: {
       id: mediaRecord.id,
       filename,
-      url: persisted.publicUrl,
+      url: getStudyMediaApiPath(mediaRecord.id),
       mediaKind: 'audio',
       source: 'generated',
     },
@@ -2047,7 +2220,7 @@ async function backfillImportedStudyMedia(
     !media.id ||
     !media.userId ||
     !media.sourceFilename ||
-    getMediaPublicUrl(media)
+    hasPersistedMediaLocation(media)
   ) {
     return media;
   }
@@ -2125,6 +2298,17 @@ export async function importJapaneseStudyColpkg(params: {
   fileBuffer: Buffer;
   filename: string;
 }): Promise<StudyImportResult> {
+  if (params.fileBuffer.length > MAX_STUDY_IMPORT_BYTES) {
+    throw new AppError(
+      `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
+      413
+    );
+  }
+
+  if (params.fileBuffer.length < 2 || params.fileBuffer.subarray(0, 2).toString('utf8') !== 'PK') {
+    throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
+  }
+
   const importJob = await prisma.studyImportJob.create({
     data: {
       userId: params.userId,
@@ -2144,12 +2328,21 @@ export async function importJapaneseStudyColpkg(params: {
   });
 
   try {
-    const parsed = await parseColpkgUpload({
-      fileBuffer: params.fileBuffer,
-      filename: params.filename,
-      userId: params.userId,
-      importJobId: importJob.id,
-    });
+    let parsed: ParsedImportDataset;
+    try {
+      parsed = await parseColpkgUpload({
+        fileBuffer: params.fileBuffer,
+        filename: params.filename,
+        userId: params.userId,
+        importJobId: importJob.id,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError('The uploaded .colpkg could not be parsed.', 400);
+    }
 
     await prisma.$transaction(async (tx) => {
       await tx.studyReviewLog.deleteMany({
@@ -2287,16 +2480,7 @@ export async function importJapaneseStudyColpkg(params: {
             sourceFactor: log.sourceFactor,
             sourceTimeMs: log.sourceTimeMs,
             sourceReviewType: log.sourceReviewType,
-            rawPayloadJson: toPrismaJson({
-              reviewId: log.sourceReviewId,
-              cardId: log.sourceCardId,
-              ease: log.sourceEase,
-              ivl: log.sourceInterval,
-              lastIvl: log.sourceLastInterval,
-              factor: log.sourceFactor,
-              time: log.sourceTimeMs,
-              type: log.sourceReviewType,
-            }),
+            rawPayloadJson: toImportReviewRawPayload(log),
           },
         ];
       });
@@ -2702,7 +2886,7 @@ export async function recordStudyReview(params: {
         durationMs: params.durationMs ?? null,
         stateBeforeJson: toPrismaJson(serializeFsrsCard(previousState)),
         stateAfterJson: toPrismaJson(serializedNextState),
-        rawPayloadJson: toPrismaJson({
+        rawPayloadJson: toConvolabReviewRawPayload({
           grade: params.grade,
           beforeQueueState: String(card.queueState),
           beforeDueAt: card.dueAt instanceof Date ? card.dueAt.toISOString() : null,
@@ -3073,22 +3257,35 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
   return await toStudyCardSummary(refreshed);
 }
 
-export async function getStudyHistory(
-  userId: string,
-  cardId?: string
-): Promise<StudyReviewEvent[]> {
+export async function getStudyHistory(input: GetStudyHistoryInput): Promise<StudyHistoryResponse> {
+  const pageSize = Math.max(
+    1,
+    Math.min(STUDY_HISTORY_PAGE_SIZE_MAX, input.limit ?? STUDY_HISTORY_PAGE_SIZE_DEFAULT)
+  );
+  const cursor = input.cursor ? decodeStudyHistoryCursor(input.cursor) : null;
   const logs: StudyReviewLogRecord[] = await prisma.studyReviewLog.findMany({
     where: {
-      userId,
-      ...(cardId ? { cardId } : {}),
+      userId: input.userId,
+      ...(input.cardId ? { cardId: input.cardId } : {}),
+      ...(cursor
+        ? {
+            OR: [
+              { reviewedAt: { lt: new Date(cursor.reviewedAt) } },
+              {
+                reviewedAt: new Date(cursor.reviewedAt),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
     },
-    orderBy: {
-      reviewedAt: 'desc',
-    },
-    take: 200,
+    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+    take: pageSize + 1,
   });
 
-  return logs.map((log) => ({
+  const hasMore = logs.length > pageSize;
+  const pageLogs = hasMore ? logs.slice(0, pageSize) : logs;
+  const events = pageLogs.map((log) => ({
     id: log.id,
     cardId: log.cardId,
     source: parseStudyReviewSource(log.source),
@@ -3100,6 +3297,19 @@ export async function getStudyHistory(
     stateAfter: toStudyFsrsState(log.stateAfterJson),
     rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
   }));
+
+  const lastLog = pageLogs.at(-1);
+
+  return {
+    events,
+    nextCursor:
+      hasMore && lastLog
+        ? encodeStudyHistoryCursor({
+            reviewedAt: lastLog.reviewedAt.toISOString(),
+            id: lastLog.id,
+          })
+        : null,
+  };
 }
 
 function escapeLikePattern(value: string): string {
@@ -3440,6 +3650,57 @@ export async function getStudyBrowserNoteDetail(
   };
 }
 
+export async function getStudyMediaAccess(
+  userId: string,
+  mediaId: string
+): Promise<StudyMediaAccessResult | null> {
+  const media = await prisma.studyMedia.findFirst({
+    where: {
+      id: mediaId,
+      userId,
+    },
+  });
+
+  if (!media) {
+    return null;
+  }
+
+  const filename = media.sourceFilename;
+  const contentType = media.contentType ?? getContentType(filename);
+
+  if (
+    typeof media.storagePath === 'string' &&
+    media.storagePath.length > 0 &&
+    isGcsStudyMediaUrl(media.publicUrl)
+  ) {
+    const signed = await getSignedReadUrl({
+      filePath: media.storagePath,
+      expiresInSeconds: STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
+    });
+
+    return {
+      type: 'redirect',
+      redirectUrl: signed.url,
+      contentType,
+      filename,
+    };
+  }
+
+  if (typeof media.storagePath === 'string' && media.storagePath.length > 0) {
+    const absolutePath = await findAccessibleLocalStudyMediaPath(media.storagePath);
+    if (absolutePath) {
+      return {
+        type: 'local',
+        absolutePath,
+        contentType,
+        filename,
+      };
+    }
+  }
+
+  return null;
+}
+
 export async function exportStudyData(userId: string): Promise<StudyExportManifest> {
   const [cards, reviewLogs, media, imports] = await Promise.all([
     prisma.studyCard.findMany({
@@ -3479,7 +3740,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
     media: media.map((item) => ({
       id: item.id,
       filename: item.sourceFilename,
-      url: typeof item.publicUrl === 'string' ? item.publicUrl : null,
+      url: getStudyMediaApiPath(item.id),
       mediaKind: parseStudyMediaKind(item.mediaKind),
       source:
         item.sourceKind === 'generated'

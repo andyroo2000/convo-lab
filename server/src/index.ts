@@ -210,6 +210,15 @@ app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(requestLogger);
 
+app.use((req, res, next) => {
+  if (req.path === '/study-media' || req.path.startsWith('/study-media/')) {
+    res.status(404).end();
+    return;
+  }
+
+  next();
+});
+
 // Serve static files from public directory (for audio files)
 app.use(express.static(path.join(__dirname, '../public')));
 

@@ -137,6 +137,11 @@ export interface StudyReviewEvent {
   rawPayload?: Record<string, unknown> | null;
 }
 
+export interface StudyHistoryResponse {
+  events: StudyReviewEvent[];
+  nextCursor: string | null;
+}
+
 export interface StudyReviewResult {
   reviewLogId: string;
   card: StudyCardSummary;

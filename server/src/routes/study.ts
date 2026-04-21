@@ -1,11 +1,13 @@
+import path from 'path';
+
 import type {
   StudyAnswerPayload,
   StudyCardType,
   StudyPromptPayload,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
-import { Router } from 'express';
-import multer, { memoryStorage } from 'multer';
+import { Router, type Response } from 'express';
+import multer, { memoryStorage, MulterError } from 'multer';
 
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -13,10 +15,11 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import {
   createStudyCard,
-  getStudyCardOptions,
   exportStudyData,
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
+  getStudyCardOptions,
+  getStudyMediaAccess,
   getStudyHistory,
   getStudyImportJob,
   getStudyOverview,
@@ -30,8 +33,11 @@ import {
 } from '../services/studyService.js';
 
 const router = Router();
+const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
+const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
+const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'new',
@@ -51,7 +57,7 @@ const STUDY_IMPORT_MIME_TYPES = new Set([
 const upload = multer({
   storage: memoryStorage(),
   limits: {
-    fileSize: 200 * 1024 * 1024,
+    fileSize: MAX_STUDY_IMPORT_BYTES,
   },
   fileFilter: (_req, file, cb) => {
     const hasColpkgExtension = file.originalname.toLowerCase().endsWith('.colpkg');
@@ -65,6 +71,29 @@ const upload = multer({
     cb(new AppError('Only .colpkg Anki collection backups are accepted.', 400));
   },
 });
+
+function runStudyUpload(req: AuthRequest, res: Response) {
+  return new Promise<void>((resolve, reject) => {
+    upload.single('file')(req, res, (error) => {
+      if (!error) {
+        resolve();
+        return;
+      }
+
+      if (error instanceof MulterError && error.code === 'LIMIT_FILE_SIZE') {
+        reject(
+          new AppError(
+            `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
+            413
+          )
+        );
+        return;
+      }
+
+      reject(error);
+    });
+  });
+}
 
 function parsePositiveIntegerQueryParam(name: string, value: unknown): number | undefined {
   if (typeof value === 'undefined') {
@@ -107,21 +136,41 @@ function parseBrowserQueryString(value: unknown): string | undefined {
   return trimmed;
 }
 
+function parseStudyHistoryLimit(value: unknown): number {
+  if (typeof value === 'undefined') {
+    return STUDY_HISTORY_PAGE_SIZE_DEFAULT;
+  }
+
+  const parsed = parsePositiveIntegerQueryParam('limit', value);
+  if (typeof parsed === 'undefined') {
+    return STUDY_HISTORY_PAGE_SIZE_DEFAULT;
+  }
+
+  if (parsed > STUDY_HISTORY_PAGE_SIZE_MAX) {
+    throw new AppError(`limit must be ${String(STUDY_HISTORY_PAGE_SIZE_MAX)} or fewer.`, 400);
+  }
+
+  return parsed;
+}
+
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
 router.post(
   '/imports',
   rateLimitStudyRoute({ key: 'import', max: 3, windowMs: 10 * 60 * 1000 }),
-  upload.single('file'),
   async (req: AuthRequest, res, next) => {
     try {
+      await runStudyUpload(req, res);
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
       if (!req.file) {
         res.status(400).json({ message: 'Please choose a .colpkg file to import.' });
         return;
+      }
+      if (req.file.buffer.length < 2 || req.file.buffer.subarray(0, 2).toString('utf8') !== 'PK') {
+        throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
       }
 
       const result = await importJapaneseStudyColpkg({
@@ -140,7 +189,7 @@ router.post(
 router.get('/imports/:id', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
     const result = await getStudyImportJob(req.userId, req.params.id);
     if (!result) {
@@ -157,7 +206,7 @@ router.get('/imports/:id', async (req: AuthRequest, res, next) => {
 router.get('/overview', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
     const overview = await getStudyOverview(req.userId);
     res.json(overview);
@@ -172,7 +221,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
       const requestedLimit =
         typeof req.body?.limit === 'number' && Number.isFinite(req.body.limit)
@@ -195,7 +244,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       const { cardId, grade, durationMs } = req.body as {
@@ -233,7 +282,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       const { reviewLogId } = req.body as {
@@ -263,7 +312,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       const { cardType, prompt, answer } = req.body as {
@@ -307,7 +356,7 @@ router.patch(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       const { prompt, answer } = req.body as {
@@ -350,7 +399,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       const { action, mode, dueAt } = req.body as {
@@ -426,7 +475,7 @@ router.post(
 router.get('/cards/options', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
 
     const parsedLimit =
@@ -445,10 +494,15 @@ router.get('/cards/options', async (req: AuthRequest, res, next) => {
 router.get('/history', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
     const cardId = typeof req.query.cardId === 'string' ? req.query.cardId : undefined;
-    const history = await getStudyHistory(req.userId, cardId);
+    const history = await getStudyHistory({
+      userId: req.userId,
+      cardId,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      limit: parseStudyHistoryLimit(req.query.limit),
+    });
     res.json(history);
   } catch (error) {
     next(error);
@@ -458,7 +512,7 @@ router.get('/history', async (req: AuthRequest, res, next) => {
 router.get('/browser', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
 
     const q = parseBrowserQueryString(req.query.q);
@@ -505,7 +559,7 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
 router.get('/browser/:noteId', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
 
     const result = await getStudyBrowserNoteDetail(req.userId, req.params.noteId);
@@ -520,10 +574,38 @@ router.get('/browser/:noteId', async (req: AuthRequest, res, next) => {
   }
 });
 
+router.get('/media/:mediaId', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const mediaAccess = await getStudyMediaAccess(req.userId, req.params.mediaId);
+    if (!mediaAccess) {
+      throw new AppError('Study media not found.', 404);
+    }
+
+    if (mediaAccess.type === 'redirect') {
+      res.redirect(302, mediaAccess.redirectUrl as string);
+      return;
+    }
+
+    res.type(mediaAccess.contentType);
+    res.sendFile(mediaAccess.absolutePath as string, {
+      headers: {
+        'Cache-Control': 'private, max-age=60',
+        'Content-Disposition': `inline; filename="${path.basename(mediaAccess.filename)}"`,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/export', async (req: AuthRequest, res, next) => {
   try {
     if (!req.userId) {
-      throw new Error('Authenticated user is required.');
+      throw new AppError('Authenticated user is required.', 401);
     }
     const manifest = await exportStudyData(req.userId);
     res.json(manifest);
