@@ -27,7 +27,7 @@ export function requireFeatureFlag(feature: FeatureFlagKey) {
         },
       });
 
-      if (!flags || flags[feature]) {
+      if (flags?.[feature] === true) {
         next();
         return;
       }

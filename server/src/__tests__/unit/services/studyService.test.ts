@@ -50,8 +50,14 @@ function sqlLiteral(value: string): string {
 }
 
 async function buildFixtureColpkg(
-  options: { includeOrphanedReviewLog?: boolean } = {}
+  options: {
+    includeOrphanedReviewLog?: boolean;
+    companyPhotoFilename?: string;
+    companyPhotoMediaEntryId?: string;
+  } = {}
 ): Promise<Buffer> {
+  const companyPhotoFilename = options.companyPhotoFilename ?? 'company.png';
+  const companyPhotoMediaEntryId = options.companyPhotoMediaEntryId ?? '0';
   const fields = {
     vocab: [
       'Expression',
@@ -144,7 +150,7 @@ async function buildFixtureColpkg(
           '会社で働いています。',
           '会社[かいしゃ]で働[はたら]いています。',
           'I work at a company.',
-          '<img src="company.png">',
+          `<img src="${companyPhotoFilename}">`,
           'Common workplace noun.',
           '[sound:company-word.mp3]',
           '[sound:company-sentence.mp3]',
@@ -248,7 +254,7 @@ async function buildFixtureColpkg(
   zip.file(
     'media',
     JSON.stringify({
-      0: 'company.png',
+      [companyPhotoMediaEntryId]: companyPhotoFilename,
       1: 'company-word.mp3',
       2: 'company-sentence.mp3',
       3: 'vase.png',
@@ -260,7 +266,7 @@ async function buildFixtureColpkg(
   );
 
   const mediaFiles = [
-    'company.png',
+    companyPhotoFilename,
     'company-word.mp3',
     'company-sentence.mp3',
     'vase.png',
@@ -271,7 +277,8 @@ async function buildFixtureColpkg(
   ];
 
   mediaFiles.forEach((mediaFilename, index) => {
-    zip.file(String(index), Buffer.from(`fixture:${mediaFilename}`));
+    const entryName = index === 0 ? companyPhotoMediaEntryId : String(index);
+    zip.file(entryName, Buffer.from(`fixture:${mediaFilename}`));
   });
 
   db.close();
@@ -402,6 +409,50 @@ describe('studyService', () => {
       Record<string, unknown>
     >;
     expect(createdMedia[0].storagePath).toContain('study-media/user_1/import_job-1/');
+  });
+
+  it('skips imported media persistence when the media manifest filename is unsafe', async () => {
+    const colpkgBuffer = await buildFixtureColpkg({
+      companyPhotoFilename: '../company.png',
+    });
+
+    await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+
+    const createdMedia = mockPrisma.studyMedia.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    const companyPhoto = createdMedia.find((media) => media.sourceFilename === '../company.png');
+
+    expect(companyPhoto).toMatchObject({
+      publicUrl: null,
+      storagePath: null,
+    });
+  });
+
+  it('skips imported media persistence when the zip entry id is unsafe', async () => {
+    const colpkgBuffer = await buildFixtureColpkg({
+      companyPhotoMediaEntryId: '../0',
+    });
+
+    await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+
+    const createdMedia = mockPrisma.studyMedia.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    const companyPhoto = createdMedia.find((media) => media.sourceFilename === 'company.png');
+
+    expect(companyPhoto).toMatchObject({
+      publicUrl: null,
+      storagePath: null,
+    });
   });
 
   it('continues FSRS scheduling on review and appends an immutable log entry', async () => {

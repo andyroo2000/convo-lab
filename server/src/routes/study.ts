@@ -1,3 +1,9 @@
+import type {
+  StudyAnswerPayload,
+  StudyCardType,
+  StudyPromptPayload,
+  StudyQueueState,
+} from '@languageflow/shared/src/types.js';
 import { Router } from 'express';
 import multer, { memoryStorage } from 'multer';
 
@@ -24,6 +30,17 @@ import {
 } from '../services/studyService.js';
 
 const router = Router();
+const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
+const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
+const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
+const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
+  'new',
+  'learning',
+  'review',
+  'relearning',
+  'suspended',
+  'buried',
+]);
 const STUDY_IMPORT_MIME_TYPES = new Set([
   '',
   'application/zip',
@@ -48,6 +65,47 @@ const upload = multer({
     cb(new AppError('Only .colpkg Anki collection backups are accepted.', 400));
   },
 });
+
+function parsePositiveIntegerQueryParam(name: string, value: unknown): number | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || !/^\d+$/.test(value)) {
+    throw new AppError(`${name} must be a positive integer.`, 400);
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
+    throw new AppError(`${name} must be a positive integer.`, 400);
+  }
+
+  return parsed;
+}
+
+function parseBrowserQueryString(value: unknown): string | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new AppError('q must be a string.', 400);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  if (trimmed.length > STUDY_BROWSER_QUERY_MAX_LENGTH) {
+    throw new AppError(
+      `q must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  return trimmed;
+}
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
@@ -231,9 +289,9 @@ router.post(
 
       const createdCard = await createStudyCard({
         userId: req.userId,
-        cardType: cardType as 'recognition' | 'production' | 'cloze',
-        prompt: prompt as Record<string, unknown>,
-        answer: answer as Record<string, unknown>,
+        cardType: cardType as StudyCardType,
+        prompt: prompt as StudyPromptPayload,
+        answer: answer as StudyAnswerPayload,
       });
 
       res.status(201).json(createdCard);
@@ -275,8 +333,8 @@ router.patch(
       const updatedCard = await updateStudyCard({
         userId: req.userId,
         cardId: req.params.cardId,
-        prompt: prompt as Record<string, unknown>,
-        answer: answer as Record<string, unknown>,
+        prompt: prompt as StudyPromptPayload,
+        answer: answer as StudyAnswerPayload,
       });
 
       res.json(updatedCard);
@@ -403,31 +461,39 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       throw new Error('Authenticated user is required.');
     }
 
-    const page =
-      typeof req.query.page === 'string' ? Number.parseInt(req.query.page, 10) : undefined;
-    const pageSize =
-      typeof req.query.pageSize === 'string' ? Number.parseInt(req.query.pageSize, 10) : undefined;
+    const q = parseBrowserQueryString(req.query.q);
+    const page = parsePositiveIntegerQueryParam('page', req.query.page);
+    const pageSize = parsePositiveIntegerQueryParam('pageSize', req.query.pageSize);
+    if (typeof pageSize === 'number' && pageSize > STUDY_BROWSER_PAGE_SIZE_MAX) {
+      throw new AppError(`pageSize must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
+    }
+
+    const cardType =
+      typeof req.query.cardType === 'undefined' ? undefined : String(req.query.cardType);
+    if (typeof cardType !== 'undefined' && !STUDY_CARD_TYPES.has(cardType as StudyCardType)) {
+      throw new AppError('cardType must be recognition, production, or cloze.', 400);
+    }
+
+    const queueState =
+      typeof req.query.queueState === 'undefined' ? undefined : String(req.query.queueState);
+    if (
+      typeof queueState !== 'undefined' &&
+      !STUDY_QUEUE_STATES.has(queueState as StudyQueueState)
+    ) {
+      throw new AppError(
+        'queueState must be new, learning, review, relearning, suspended, or buried.',
+        400
+      );
+    }
 
     const result = await getStudyBrowserList({
       userId: req.userId,
-      q: typeof req.query.q === 'string' ? req.query.q : undefined,
+      q,
       noteType: typeof req.query.noteType === 'string' ? req.query.noteType : undefined,
-      cardType:
-        typeof req.query.cardType === 'string'
-          ? (req.query.cardType as 'recognition' | 'production' | 'cloze')
-          : undefined,
-      queueState:
-        typeof req.query.queueState === 'string'
-          ? (req.query.queueState as
-              | 'new'
-              | 'learning'
-              | 'review'
-              | 'relearning'
-              | 'suspended'
-              | 'buried')
-          : undefined,
-      page: Number.isFinite(page) ? page : undefined,
-      pageSize: Number.isFinite(pageSize) ? pageSize : undefined,
+      cardType: cardType as StudyCardType | undefined,
+      queueState: queueState as StudyQueueState | undefined,
+      page,
+      pageSize,
     });
 
     res.json(result);

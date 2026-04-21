@@ -11,19 +11,24 @@ interface StudyRateLimitOptions {
   windowMs: number;
 }
 
-async function incrementWindowCount(rateKey: string, windowSeconds: number): Promise<number> {
-  const redis = createRedisConnection();
+let sharedRedisClient: ReturnType<typeof createRedisConnection> | null = null;
 
-  try {
-    const nextCount = await redis.incr(rateKey);
-    if (nextCount === 1) {
-      await redis.expire(rateKey, windowSeconds);
-    }
-
-    return nextCount;
-  } finally {
-    redis.disconnect();
+function getSharedRedisClient() {
+  if (!sharedRedisClient) {
+    sharedRedisClient = createRedisConnection();
   }
+
+  return sharedRedisClient;
+}
+
+async function incrementWindowCount(rateKey: string, windowSeconds: number): Promise<number> {
+  const redis = getSharedRedisClient();
+  const nextCount = await redis.incr(rateKey);
+  if (nextCount === 1) {
+    await redis.expire(rateKey, windowSeconds);
+  }
+
+  return nextCount;
 }
 
 export function rateLimitStudyRoute(options: StudyRateLimitOptions) {

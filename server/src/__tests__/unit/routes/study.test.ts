@@ -206,6 +206,38 @@ describe('Study Routes', () => {
     });
   });
 
+  it('rejects browser queries longer than 200 characters', async () => {
+    const response = await request(app).get(`/study/browser?q=${'あ'.repeat(201)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('200 characters or fewer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid browser page values', async () => {
+    const response = await request(app).get('/study/browser?page=0');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('page must be a positive integer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects invalid browser pageSize values', async () => {
+    const response = await request(app).get('/study/browser?pageSize=101');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('pageSize must be 100 or fewer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-numeric browser page values', async () => {
+    const response = await request(app).get('/study/browser?page=abc');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('page must be a positive integer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
   it('returns 404 when a browser note detail is missing', async () => {
     getStudyBrowserNoteDetailMock.mockResolvedValue(null);
 
@@ -244,6 +276,15 @@ describe('Study Routes', () => {
       audioCourseEnabled: true,
       flashcardsEnabled: false,
     });
+
+    const response = await request(app).get('/study/browser');
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toContain('not enabled');
+  });
+
+  it('blocks study routes when the flashcards feature flag row is missing', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue(null);
 
     const response = await request(app).get('/study/browser');
 

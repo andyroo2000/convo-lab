@@ -283,8 +283,100 @@ interface LegacyModelConfig {
   tmpls?: LegacyTemplateConfig[];
 }
 
+const STUDY_CARD_TYPES: StudyCardType[] = ['recognition', 'production', 'cloze'];
+const STUDY_QUEUE_STATES: StudyQueueState[] = [
+  'new',
+  'learning',
+  'review',
+  'relearning',
+  'suspended',
+  'buried',
+];
+const STUDY_AUDIO_SOURCES: StudyAudioSource[] = ['imported', 'generated', 'missing'];
+const STUDY_IMPORT_STATUSES: StudyImportResult['status'][] = [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+];
+const STUDY_REVIEW_SOURCES: StudyReviewEvent['source'][] = ['anki_import', 'convolab'];
+const STUDY_MEDIA_KINDS: StudyMediaRef['mediaKind'][] = ['audio', 'image', 'other'];
+
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
+}
+
+function isStudyCardType(value: unknown): value is StudyCardType {
+  return typeof value === 'string' && STUDY_CARD_TYPES.includes(value as StudyCardType);
+}
+
+function parseStudyCardType(
+  value: unknown,
+  fallback: StudyCardType = 'recognition'
+): StudyCardType {
+  return isStudyCardType(value) ? value : fallback;
+}
+
+function isStudyQueueState(value: unknown): value is StudyQueueState {
+  return typeof value === 'string' && STUDY_QUEUE_STATES.includes(value as StudyQueueState);
+}
+
+function parseStudyQueueState(
+  value: unknown,
+  fallback: StudyQueueState = 'review'
+): StudyQueueState {
+  return isStudyQueueState(value) ? value : fallback;
+}
+
+function isStudyAudioSource(value: unknown): value is StudyAudioSource {
+  return typeof value === 'string' && STUDY_AUDIO_SOURCES.includes(value as StudyAudioSource);
+}
+
+function parseStudyAudioSource(
+  value: unknown,
+  fallback: StudyAudioSource = 'missing'
+): StudyAudioSource {
+  return isStudyAudioSource(value) ? value : fallback;
+}
+
+function isStudyImportStatus(value: unknown): value is StudyImportResult['status'] {
+  return (
+    typeof value === 'string' &&
+    STUDY_IMPORT_STATUSES.includes(value as StudyImportResult['status'])
+  );
+}
+
+function parseStudyImportStatus(
+  value: unknown,
+  fallback: StudyImportResult['status'] = 'failed'
+): StudyImportResult['status'] {
+  return isStudyImportStatus(value) ? value : fallback;
+}
+
+function isStudyReviewSource(value: unknown): value is StudyReviewEvent['source'] {
+  return (
+    typeof value === 'string' && STUDY_REVIEW_SOURCES.includes(value as StudyReviewEvent['source'])
+  );
+}
+
+function parseStudyReviewSource(
+  value: unknown,
+  fallback: StudyReviewEvent['source'] = 'convolab'
+): StudyReviewEvent['source'] {
+  return isStudyReviewSource(value) ? value : fallback;
+}
+
+function isStudyMediaKind(value: unknown): value is StudyMediaRef['mediaKind'] {
+  return (
+    typeof value === 'string' && STUDY_MEDIA_KINDS.includes(value as StudyMediaRef['mediaKind'])
+  );
+}
+
+function parseStudyMediaKind(
+  value: unknown,
+  fallback: StudyMediaRef['mediaKind'] = 'other'
+): StudyMediaRef['mediaKind'] {
+  return isStudyMediaKind(value) ? value : fallback;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -438,6 +530,24 @@ function normalizeFilename(filename: string): string {
   return base.replace(/[^a-zA-Z0-9._-]/g, '_');
 }
 
+function normalizeZipPath(value: string): string {
+  return stripNullChars(value).replaceAll('\\', '/').trim();
+}
+
+function isUnsafeZipPath(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  if (!normalized) return true;
+  if (normalized.startsWith('/')) return true;
+  if (/^[a-zA-Z]:/.test(normalized)) return true;
+
+  return normalized.split('/').some((segment) => segment === '.' || segment === '..');
+}
+
+function isSafeZipBasename(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  return !isUnsafeZipPath(normalized) && !normalized.includes('/');
+}
+
 function sanitizePathSegment(value: string): string {
   const base = path.basename(stripNullChars(value));
   const normalized = base.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -560,10 +670,7 @@ function hydrateMediaRef(
           : typeof mediaRecord?.normalizedFilename === 'string'
             ? mediaRecord.normalizedFilename
             : 'media',
-      mediaKind:
-        typeof mediaRecord?.mediaKind === 'string'
-          ? (mediaRecord.mediaKind as StudyMediaRef['mediaKind'])
-          : 'other',
+      mediaKind: parseStudyMediaKind(mediaRecord?.mediaKind),
       source:
         typeof mediaRecord?.sourceKind === 'string' && mediaRecord.sourceKind === 'generated'
           ? 'generated'
@@ -1213,10 +1320,23 @@ async function parseColpkgUpload(params: {
     const mediaManifestText = mediaManifestBuffer.length
       ? mediaManifestBuffer.toString('utf8')
       : '{}';
-    const mediaManifest = JSON.parse(mediaManifestText) as Record<string, string>;
-    const mediaIdByFilename = new Map<string, string>(
-      Object.entries(mediaManifest).map(([id, mediaFilename]) => [mediaFilename, id])
-    );
+    const parsedMediaManifest = JSON.parse(mediaManifestText);
+    const mediaIdByFilename = new Map<string, string>();
+    if (isRecord(parsedMediaManifest)) {
+      for (const [rawMediaId, rawMediaFilename] of Object.entries(parsedMediaManifest)) {
+        if (typeof rawMediaFilename !== 'string') {
+          continue;
+        }
+
+        const mediaId = normalizeZipPath(rawMediaId);
+        const mediaFilename = normalizeZipPath(rawMediaFilename);
+        if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
+          continue;
+        }
+
+        mediaIdByFilename.set(mediaFilename, mediaId);
+      }
+    }
 
     const SQL = await getSqlJs();
     const db = new SQL.Database(
@@ -1400,7 +1520,7 @@ async function parseColpkgUpload(params: {
       let publicUrl: string | null = null;
       let storagePath: string | null = null;
 
-      if (mediaId) {
+      if (mediaId && isSafeZipBasename(mediaId) && isSafeZipBasename(mediaFilename)) {
         const mediaEntry = zip.file(mediaId);
         if (mediaEntry) {
           const persisted = await persistStudyMediaBuffer({
@@ -1571,8 +1691,8 @@ async function normalizeStudyCardPayload(record: StudyCardWithRelations): Promis
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
 }> {
-  let prompt = ((record.promptJson as StudyPromptPayload | null) ?? {}) as StudyPromptPayload;
-  let answer = ((record.answerJson as StudyAnswerPayload | null) ?? {}) as StudyAnswerPayload;
+  let prompt: StudyPromptPayload = isRecord(record.promptJson) ? { ...record.promptJson } : {};
+  let answer: StudyAnswerPayload = isRecord(record.answerJson) ? { ...record.answerJson } : {};
 
   prompt = {
     ...prompt,
@@ -1636,7 +1756,7 @@ async function toStudyCardSummary(record: StudyCardWithRelations): Promise<Study
 
   const state: StudyCardState = {
     dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
-    queueState: String(record.queueState) as StudyQueueState,
+    queueState: parseStudyQueueState(record.queueState),
     scheduler: toStudyFsrsState(record.schedulerStateJson),
     source: {
       noteId: typeof noteRecord.sourceNoteId === 'bigint' ? String(noteRecord.sourceNoteId) : null,
@@ -1675,11 +1795,11 @@ async function toStudyCardSummary(record: StudyCardWithRelations): Promise<Study
   return {
     id: record.id,
     noteId: record.noteId,
-    cardType: record.cardType as StudyCardType,
+    cardType: parseStudyCardType(record.cardType),
     prompt: normalized.prompt,
     answer: normalized.answer,
     state,
-    answerAudioSource: record.answerAudioSource as StudyAudioSource,
+    answerAudioSource: parseStudyAudioSource(record.answerAudioSource),
     createdAt: record.createdAt.toISOString(),
     updatedAt: record.updatedAt.toISOString(),
   };
@@ -1727,20 +1847,50 @@ function getNoteDisplayText(
 }
 
 function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): StudyImportPreview {
-  return (
-    (value as unknown as StudyImportPreview | null) ?? {
-      deckName: ANKI_DECK_NAME,
-      cardCount: 0,
-      noteCount: 0,
-      reviewLogCount: 0,
-      mediaReferenceCount: 0,
-      noteTypeBreakdown: [],
-    }
-  );
+  const fallback: StudyImportPreview = {
+    deckName: ANKI_DECK_NAME,
+    cardCount: 0,
+    noteCount: 0,
+    reviewLogCount: 0,
+    mediaReferenceCount: 0,
+    noteTypeBreakdown: [],
+  };
+
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  return {
+    deckName: typeof value.deckName === 'string' ? value.deckName : fallback.deckName,
+    cardCount: typeof value.cardCount === 'number' ? value.cardCount : fallback.cardCount,
+    noteCount: typeof value.noteCount === 'number' ? value.noteCount : fallback.noteCount,
+    reviewLogCount:
+      typeof value.reviewLogCount === 'number' ? value.reviewLogCount : fallback.reviewLogCount,
+    mediaReferenceCount:
+      typeof value.mediaReferenceCount === 'number'
+        ? value.mediaReferenceCount
+        : fallback.mediaReferenceCount,
+    noteTypeBreakdown: Array.isArray(value.noteTypeBreakdown)
+      ? value.noteTypeBreakdown.flatMap((item) => {
+          if (!isRecord(item) || typeof item.notetypeName !== 'string') {
+            return [];
+          }
+
+          return [
+            {
+              notetypeName: item.notetypeName,
+              noteCount: typeof item.noteCount === 'number' ? item.noteCount : 0,
+              cardCount: typeof item.cardCount === 'number' ? item.cardCount : 0,
+            },
+          ];
+        })
+      : fallback.noteTypeBreakdown,
+  };
 }
 
 function toStudyFsrsState(value: Prisma.JsonValue | null | undefined): StudyFsrsState | null {
-  return (value as unknown as StudyFsrsState | null) ?? null;
+  const state = deserializeFsrsCard(isRecord(value) ? value : null);
+  return state ? serializeFsrsCard(state) : null;
 }
 
 function mergeStudyMediaRecord(
@@ -1823,7 +1973,7 @@ async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promi
     return;
   }
 
-  const answer = (card.answerJson as StudyAnswerPayload) ?? {};
+  const answer: StudyAnswerPayload = isRecord(card.answerJson) ? { ...card.answerJson } : {};
   const existingAnswerAudio = answer.answerAudio;
   const hasPlayableImportedAudio =
     existingAnswerAudio !== null &&
@@ -2223,7 +2373,7 @@ export async function getStudyImportJob(
 
   return {
     id: job.id,
-    status: job.status as StudyImportResult['status'],
+    status: parseStudyImportStatus(job.status),
     sourceFilename: job.sourceFilename,
     deckName: job.deckName,
     preview: toStudyImportPreview(job.previewJson),
@@ -2313,7 +2463,7 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
     latestImport: latestImport
       ? {
           id: latestImport.id,
-          status: latestImport.status as StudyImportResult['status'],
+          status: parseStudyImportStatus(latestImport.status),
           sourceFilename: latestImport.sourceFilename,
           deckName: latestImport.deckName,
           preview: toStudyImportPreview(latestImport.previewJson),
@@ -2421,14 +2571,13 @@ function toQueueStateFromFsrsState(state: number): StudyQueueState {
 
 function getRestoredQueueState(record: StudyCardWithRelations): StudyQueueState {
   const schedulerState = deserializeFsrsCard(
-    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
   );
   if (schedulerState) {
     return toQueueStateFromFsrsState(schedulerState.state);
   }
 
-  const currentQueueState =
-    typeof record.queueState === 'string' ? (record.queueState as StudyQueueState) : 'review';
+  const currentQueueState = parseStudyQueueState(record.queueState);
   return currentQueueState === 'suspended' || currentQueueState === 'buried'
     ? 'review'
     : currentQueueState;
@@ -2441,7 +2590,7 @@ function getRestoredDueAt(
   if (queueState === 'new') return null;
 
   const schedulerState = deserializeFsrsCard(
-    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
   );
   if (schedulerState) {
     return schedulerState.due;
@@ -2469,7 +2618,7 @@ function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
 
 function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): StudyFsrsState {
   const existingScheduler = deserializeFsrsCard(
-    (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
+    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
   );
   const now = new Date();
 
@@ -2639,7 +2788,7 @@ export async function undoStudyReview(params: {
   const rawPayload = isRecord(reviewLog.rawPayloadJson) ? reviewLog.rawPayloadJson : {};
   const restoredQueueState =
     typeof rawPayload.beforeQueueState === 'string'
-      ? (rawPayload.beforeQueueState as StudyQueueState)
+      ? parseStudyQueueState(rawPayload.beforeQueueState)
       : toQueueStateFromFsrsState(previousState.state);
   const restoredDueAt =
     typeof rawPayload.beforeDueAt === 'string'
@@ -2668,7 +2817,7 @@ export async function undoStudyReview(params: {
     });
   });
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: reviewLog.cardId,
       userId: params.userId,
@@ -2679,7 +2828,7 @@ export async function undoStudyReview(params: {
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as StudyCardWithRelations | null;
+  });
 
   if (!refreshed) {
     throw new AppError('Study card not found after undo.', 404);
@@ -2712,10 +2861,7 @@ export async function performStudyCardAction(
     throw new AppError('Study card not found.', 404);
   }
 
-  let nextQueueState =
-    typeof existing.queueState === 'string'
-      ? (existing.queueState as StudyQueueState)
-      : ('review' as StudyQueueState);
+  let nextQueueState = parseStudyQueueState(existing.queueState);
   let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
   let nextSchedulerState = toStudyFsrsState(existing.schedulerStateJson);
   let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
@@ -2945,7 +3091,7 @@ export async function getStudyHistory(
   return logs.map((log) => ({
     id: log.id,
     cardId: log.cardId,
-    source: log.source as StudyReviewEvent['source'],
+    source: parseStudyReviewSource(log.source),
     reviewedAt: log.reviewedAt.toISOString(),
     rating: log.rating,
     durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
@@ -3180,7 +3326,7 @@ export async function getStudyBrowserList(params: {
   const rows: StudyBrowserRow[] = notes.map((note) => {
     const cards: StudyBrowserListCardRecord[] = note.cards;
     const queueSummary = cards.reduce<Partial<Record<StudyQueueState, number>>>((acc, card) => {
-      const state = card.queueState as StudyQueueState;
+      const state = parseStudyQueueState(card.queueState);
       if (state) {
         acc[state] = (acc[state] ?? 0) + 1;
       }
@@ -3300,7 +3446,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
       where: { userId },
       include: { note: true, promptAudioMedia: true, answerAudioMedia: true, imageMedia: true },
       orderBy: { createdAt: 'asc' },
-    }) as Promise<StudyCardWithRelations[]>,
+    }),
     prisma.studyReviewLog.findMany({
       where: { userId },
       orderBy: { reviewedAt: 'asc' },
@@ -3321,7 +3467,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
     reviewLogs: reviewLogs.map((log) => ({
       id: log.id,
       cardId: log.cardId,
-      source: log.source as StudyReviewEvent['source'],
+      source: parseStudyReviewSource(log.source),
       reviewedAt: log.reviewedAt.toISOString(),
       rating: log.rating,
       durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
@@ -3334,7 +3480,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
       id: item.id,
       filename: item.sourceFilename,
       url: typeof item.publicUrl === 'string' ? item.publicUrl : null,
-      mediaKind: item.mediaKind as StudyMediaRef['mediaKind'],
+      mediaKind: parseStudyMediaKind(item.mediaKind),
       source:
         item.sourceKind === 'generated'
           ? 'generated'
@@ -3346,7 +3492,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
     })),
     imports: imports.map((item) => ({
       id: item.id,
-      status: item.status as StudyImportResult['status'],
+      status: parseStudyImportStatus(item.status),
       sourceFilename: item.sourceFilename,
       deckName: item.deckName,
       preview: toStudyImportPreview(item.previewJson),
