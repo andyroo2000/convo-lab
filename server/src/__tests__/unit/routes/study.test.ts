@@ -7,7 +7,7 @@ import express, {
   type Router,
 } from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockPrisma } from '../../setup.js';
 
@@ -64,9 +64,13 @@ vi.mock('../../../services/studyService.js', () => ({
 describe('Study Routes', () => {
   let app: express.Application;
   let studyRouter: Router;
+  let testClockOffset = 0;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(`2026-04-21T12:${String(testClockOffset).padStart(2, '0')}:00.000Z`));
+    testClockOffset += 1;
     app = express();
     app.use(expressJson());
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
@@ -89,6 +93,10 @@ describe('Study Routes', () => {
           : 500;
       res.status(statusCode).json({ message });
     }) as ErrorRequestHandler);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('clamps study session start limits to 200', async () => {

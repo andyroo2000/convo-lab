@@ -52,14 +52,16 @@ describe('StudyCreatePage', () => {
       cardType: 'recognition',
       prompt: {
         cueText: '会社',
-        cueReading: '',
-        cueMeaning: '',
+        cueReading: null,
+        cueMeaning: null,
       },
       answer: {
         expression: '会社',
-        expressionReading: '',
+        expressionReading: null,
         meaning: 'company',
-        notes: '',
+        sentenceJp: null,
+        sentenceEn: null,
+        notes: null,
       },
     });
     expect(

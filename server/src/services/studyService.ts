@@ -60,6 +60,61 @@ const FIELD_SEPARATOR = String.fromCharCode(31);
 const DEFAULT_STUDY_LIMIT = 20;
 
 type JsonRecord = Record<string, unknown>;
+type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
+type StudyImportJobRecord = Prisma.StudyImportJobGetPayload<Prisma.StudyImportJobDefaultArgs>;
+type StudyReviewLogRecord = Prisma.StudyReviewLogGetPayload<Prisma.StudyReviewLogDefaultArgs>;
+type StudyCardWithRelations = Prisma.StudyCardGetPayload<{
+  include: {
+    note: true;
+    promptAudioMedia: true;
+    answerAudioMedia: true;
+    imageMedia: true;
+  };
+}>;
+type StudyCardOptionRecord = Prisma.StudyCardGetPayload<{
+  select: {
+    id: true;
+    promptJson: true;
+    answerJson: true;
+    updatedAt: true;
+  };
+}>;
+type StudyBrowserListCardRecord = Prisma.StudyCardGetPayload<{
+  select: {
+    id: true;
+    cardType: true;
+    queueState: true;
+    promptJson: true;
+    answerJson: true;
+    updatedAt: true;
+  };
+}>;
+type StudyBrowserListNoteRecord = Prisma.StudyNoteGetPayload<{
+  include: {
+    cards: {
+      select: {
+        id: true;
+        cardType: true;
+        queueState: true;
+        promptJson: true;
+        answerJson: true;
+        updatedAt: true;
+      };
+    };
+  };
+}>;
+type StudyBrowserDetailNoteRecord = Prisma.StudyNoteGetPayload<{
+  include: {
+    cards: {
+      include: {
+        note: true;
+        promptAudioMedia: true;
+        answerAudioMedia: true;
+        imageMedia: true;
+      };
+    };
+  };
+}>;
 
 interface QueryRow {
   [key: string]: string | number | Uint8Array | null;
@@ -1512,7 +1567,7 @@ async function parseColpkgUpload(params: {
   }
 }
 
-async function normalizeStudyCardPayload(record: Record<string, unknown>): Promise<{
+async function normalizeStudyCardPayload(record: StudyCardWithRelations): Promise<{
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
 }> {
@@ -1521,41 +1576,20 @@ async function normalizeStudyCardPayload(record: Record<string, unknown>): Promi
 
   prompt = {
     ...prompt,
-    cueAudio:
-      hydrateMediaRef(
-        prompt.cueAudio,
-        isRecord(record.promptAudioMedia)
-          ? (record.promptAudioMedia as Record<string, unknown>)
-          : null
-      ) ?? prompt.cueAudio,
-    cueImage:
-      hydrateMediaRef(
-        prompt.cueImage,
-        isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
-      ) ?? prompt.cueImage,
+    cueAudio: hydrateMediaRef(prompt.cueAudio, record.promptAudioMedia) ?? prompt.cueAudio,
+    cueImage: hydrateMediaRef(prompt.cueImage, record.imageMedia) ?? prompt.cueImage,
   };
   answer = {
     ...answer,
-    answerAudio:
-      hydrateMediaRef(
-        answer.answerAudio,
-        isRecord(record.answerAudioMedia)
-          ? (record.answerAudioMedia as Record<string, unknown>)
-          : null
-      ) ?? answer.answerAudio,
-    answerImage:
-      hydrateMediaRef(
-        answer.answerImage,
-        isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
-      ) ?? answer.answerImage,
+    answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
+    answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
   };
 
-  if (String(record.cardType) !== 'cloze') {
+  if (record.cardType !== 'cloze') {
     return { prompt, answer };
   }
 
-  const noteRecord = isRecord(record.note) ? record.note : {};
-  const rawFields = isRecord(noteRecord.rawFieldsJson) ? noteRecord.rawFieldsJson : {};
+  const rawFields = isRecord(record.note.rawFieldsJson) ? record.note.rawFieldsJson : {};
   const activeOrdinal = typeof record.sourceTemplateOrd === 'number' ? record.sourceTemplateOrd : 0;
   const rawClozeText =
     typeof rawFields.Text === 'string' && rawFields.Text.length > 0
@@ -1596,8 +1630,8 @@ async function normalizeStudyCardPayload(record: Record<string, unknown>): Promi
   });
 }
 
-async function toStudyCardSummary(record: Record<string, unknown>): Promise<StudyCardSummary> {
-  const noteRecord = isRecord(record.note) ? record.note : {};
+async function toStudyCardSummary(record: StudyCardWithRelations): Promise<StudyCardSummary> {
+  const noteRecord = record.note;
   const normalized = await normalizeStudyCardPayload(record);
 
   const state: StudyCardState = {
@@ -1639,15 +1673,15 @@ async function toStudyCardSummary(record: Record<string, unknown>): Promise<Stud
   };
 
   return {
-    id: String(record.id),
-    noteId: String(record.noteId),
-    cardType: String(record.cardType) as StudyCardType,
+    id: record.id,
+    noteId: record.noteId,
+    cardType: record.cardType as StudyCardType,
     prompt: normalized.prompt,
     answer: normalized.answer,
     state,
-    answerAudioSource: String(record.answerAudioSource) as StudyAudioSource,
-    createdAt: (record.createdAt as Date).toISOString(),
-    updatedAt: (record.updatedAt as Date).toISOString(),
+    answerAudioSource: record.answerAudioSource as StudyAudioSource,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
   };
 }
 
@@ -1663,8 +1697,8 @@ function noteFieldValueToString(value: unknown): string | null {
 }
 
 function getNoteDisplayText(
-  note: Record<string, unknown>,
-  cards: Array<Record<string, unknown>>
+  note: Pick<StudyBrowserListNoteRecord, 'id' | 'rawFieldsJson'>,
+  cards: Array<Pick<StudyBrowserListCardRecord, 'promptJson' | 'answerJson'>>
 ): string {
   const rawFields = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
   const candidates = [
@@ -1690,6 +1724,43 @@ function getNoteDisplayText(
   }
 
   return typeof note.id === 'string' ? note.id : 'Untitled note';
+}
+
+function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): StudyImportPreview {
+  return (
+    (value as unknown as StudyImportPreview | null) ?? {
+      deckName: ANKI_DECK_NAME,
+      cardCount: 0,
+      noteCount: 0,
+      reviewLogCount: 0,
+      mediaReferenceCount: 0,
+      noteTypeBreakdown: [],
+    }
+  );
+}
+
+function mergeStudyMediaRecord(
+  current: StudyMediaRecord | null,
+  updated: PersistedStudyMediaRecord
+): StudyMediaRecord {
+  if (!current) {
+    throw new AppError('Study media relation is missing.', 500);
+  }
+
+  return {
+    ...current,
+    ...updated,
+    sourceKind: updated.sourceKind ?? current.sourceKind,
+    sourceFilename: updated.sourceFilename ?? current.sourceFilename,
+    normalizedFilename: updated.normalizedFilename ?? current.normalizedFilename,
+    mediaKind: updated.mediaKind ?? current.mediaKind,
+    storagePath: updated.storagePath ?? current.storagePath,
+    publicUrl: updated.publicUrl ?? current.publicUrl,
+    contentType: current.contentType,
+    sourceMediaKey: current.sourceMediaKey,
+    createdAt: current.createdAt,
+    updatedAt: current.updatedAt,
+  };
 }
 
 function buildMediaLookup(cards: StudyCardSummary[]): Map<string, StudyMediaRef> {
@@ -1740,11 +1811,11 @@ function toStudyBrowserField(
 }
 
 async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promise<void> {
-  const card = (await prisma.studyCard.findUnique({
+  const card = await prisma.studyCard.findUnique({
     where: { id: cardId },
-  })) as Record<string, unknown> | null;
+  });
 
-  if (!card || String(card.userId) !== userId) {
+  if (!card || card.userId !== userId) {
     return;
   }
 
@@ -1850,7 +1921,7 @@ async function backfillImportedStudyMedia(
   );
 }
 
-async function ensureStudyCardMediaAvailable(cards: Array<Record<string, unknown>>): Promise<void> {
+async function ensureStudyCardMediaAvailable(cards: StudyCardWithRelations[]): Promise<void> {
   const mediaRecords = cards.flatMap((card) => {
     const collected: PersistedStudyMediaRecord[] = [];
     const promptAudioMedia = parsePersistedStudyMediaRecord(card.promptAudioMedia);
@@ -1882,13 +1953,13 @@ async function ensureStudyCardMediaAvailable(cards: Array<Record<string, unknown
 
       for (const card of cards) {
         if (isRecord(card.promptAudioMedia) && card.promptAudioMedia.id === media.id) {
-          card.promptAudioMedia = updated;
+          card.promptAudioMedia = mergeStudyMediaRecord(card.promptAudioMedia, updated);
         }
         if (isRecord(card.answerAudioMedia) && card.answerAudioMedia.id === media.id) {
-          card.answerAudioMedia = updated;
+          card.answerAudioMedia = mergeStudyMediaRecord(card.answerAudioMedia, updated);
         }
         if (isRecord(card.imageMedia) && card.imageMedia.id === media.id) {
-          card.imageMedia = updated;
+          card.imageMedia = mergeStudyMediaRecord(card.imageMedia, updated);
         }
       }
     })
@@ -2137,28 +2208,21 @@ export async function getStudyImportJob(
   userId: string,
   importJobId: string
 ): Promise<StudyImportResult | null> {
-  const job = (await prisma.studyImportJob.findFirst({
+  const job: StudyImportJobRecord | null = await prisma.studyImportJob.findFirst({
     where: {
       id: importJobId,
       userId,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!job) return null;
 
   return {
-    id: String(job.id),
-    status: String(job.status) as StudyImportResult['status'],
-    sourceFilename: String(job.sourceFilename),
-    deckName: String(job.deckName),
-    preview: (job.previewJson as StudyImportPreview) ?? {
-      deckName: ANKI_DECK_NAME,
-      cardCount: 0,
-      noteCount: 0,
-      reviewLogCount: 0,
-      mediaReferenceCount: 0,
-      noteTypeBreakdown: [],
-    },
+    id: job.id,
+    status: job.status as StudyImportResult['status'],
+    sourceFilename: job.sourceFilename,
+    deckName: job.deckName,
+    preview: toStudyImportPreview(job.previewJson),
     importedAt: job.completedAt instanceof Date ? job.completedAt.toISOString() : null,
     errorMessage: typeof job.errorMessage === 'string' ? job.errorMessage : null,
   };
@@ -2232,7 +2296,7 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
     prisma.studyImportJob.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-    }),
+    }) as Promise<StudyImportJobRecord | null>,
   ]);
 
   return {
@@ -2244,41 +2308,28 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
     totalCards,
     latestImport: latestImport
       ? {
-          id: String((latestImport as Record<string, unknown>).id),
-          status: String(
-            (latestImport as Record<string, unknown>).status
-          ) as StudyImportResult['status'],
-          sourceFilename: String((latestImport as Record<string, unknown>).sourceFilename),
-          deckName: String((latestImport as Record<string, unknown>).deckName),
-          preview: ((latestImport as Record<string, unknown>)
-            .previewJson as StudyImportPreview) ?? {
-            deckName: ANKI_DECK_NAME,
-            cardCount: 0,
-            noteCount: 0,
-            reviewLogCount: 0,
-            mediaReferenceCount: 0,
-            noteTypeBreakdown: [],
-          },
+          id: latestImport.id,
+          status: latestImport.status as StudyImportResult['status'],
+          sourceFilename: latestImport.sourceFilename,
+          deckName: latestImport.deckName,
+          preview: toStudyImportPreview(latestImport.previewJson),
           importedAt:
-            (latestImport as Record<string, unknown>).completedAt instanceof Date
-              ? ((latestImport as Record<string, unknown>).completedAt as Date).toISOString()
+            latestImport.completedAt instanceof Date
+              ? latestImport.completedAt.toISOString()
               : null,
           errorMessage:
-            typeof (latestImport as Record<string, unknown>).errorMessage === 'string'
-              ? String((latestImport as Record<string, unknown>).errorMessage)
+            typeof latestImport.errorMessage === 'string'
+              ? String(latestImport.errorMessage)
               : null,
         }
       : null,
-    nextDueAt:
-      nextDueCard && (nextDueCard as Record<string, unknown>).dueAt instanceof Date
-        ? ((nextDueCard as Record<string, unknown>).dueAt as Date).toISOString()
-        : null,
+    nextDueAt: nextDueCard?.dueAt instanceof Date ? nextDueCard.dueAt.toISOString() : null,
   };
 }
 
 export async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
   const now = new Date();
-  const cards = (await prisma.studyCard.findMany({
+  const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
     where: {
       userId,
       OR: [
@@ -2301,7 +2352,7 @@ export async function startStudySession(userId: string, limit: number = DEFAULT_
     },
     orderBy: [{ dueAt: 'asc' }, { sourceDue: 'asc' }],
     take: limit,
-  })) as Array<Record<string, unknown>>;
+  });
 
   await ensureStudyCardMediaAvailable(cards);
 
@@ -2315,7 +2366,7 @@ export async function prepareStudyCardAnswerAudio(
   userId: string,
   cardId: string
 ): Promise<StudyCardSummary> {
-  const existing = (await prisma.studyCard.findFirst({
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: cardId,
       userId,
@@ -2326,7 +2377,7 @@ export async function prepareStudyCardAnswerAudio(
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!existing) {
     throw new AppError('Study card not found.', 404);
@@ -2334,7 +2385,7 @@ export async function prepareStudyCardAnswerAudio(
 
   await ensureGeneratedAnswerAudio(userId, cardId);
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: cardId,
       userId,
@@ -2345,7 +2396,7 @@ export async function prepareStudyCardAnswerAudio(
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!refreshed) {
     throw new AppError('Study card not found.', 404);
@@ -2364,7 +2415,7 @@ function toQueueStateFromFsrsState(state: number): StudyQueueState {
         : 'review';
 }
 
-function getRestoredQueueState(record: Record<string, unknown>): StudyQueueState {
+function getRestoredQueueState(record: StudyCardWithRelations): StudyQueueState {
   const schedulerState = deserializeFsrsCard(
     (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
   );
@@ -2380,7 +2431,7 @@ function getRestoredQueueState(record: Record<string, unknown>): StudyQueueState
 }
 
 function getRestoredDueAt(
-  record: Record<string, unknown>,
+  record: StudyCardWithRelations,
   queueState: StudyQueueState
 ): Date | null {
   if (queueState === 'new') return null;
@@ -2412,7 +2463,7 @@ function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
   return customDueAt;
 }
 
-function getSetDueSchedulerState(record: Record<string, unknown>, dueAt: Date): StudyFsrsState {
+function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): StudyFsrsState {
   const existingScheduler = deserializeFsrsCard(
     (record.schedulerStateJson as StudyFsrsState | JsonRecord | null) ?? null
   );
@@ -2451,7 +2502,7 @@ export async function recordStudyReview(params: {
     easy: Rating.Easy,
   };
 
-  const card = (await prisma.studyCard.findFirst({
+  const card: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: params.cardId,
       userId: params.userId,
@@ -2462,7 +2513,7 @@ export async function recordStudyReview(params: {
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!card) {
     throw new AppError('Study card not found.', 404);
@@ -2511,7 +2562,7 @@ export async function recordStudyReview(params: {
     });
   });
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: params.cardId,
       userId: params.userId,
@@ -2522,10 +2573,14 @@ export async function recordStudyReview(params: {
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown>;
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after review.', 404);
+  }
 
   return {
-    reviewLogId: String(createdReviewLog.id),
+    reviewLogId: createdReviewLog.id,
     card: await toStudyCardSummary(refreshed),
     overview: await getStudyOverview(params.userId),
   };
@@ -2535,7 +2590,7 @@ export async function undoStudyReview(params: {
   userId: string;
   reviewLogId: string;
 }): Promise<StudyUndoReviewResult> {
-  const reviewLog = (await prisma.studyReviewLog.findFirst({
+  const reviewLog = await prisma.studyReviewLog.findFirst({
     where: {
       id: params.reviewLogId,
       userId: params.userId,
@@ -2548,13 +2603,13 @@ export async function undoStudyReview(params: {
         },
       },
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!reviewLog) {
     throw new AppError('Undo target not found.', 404);
   }
 
-  const cardRecord = isRecord(reviewLog.card) ? (reviewLog.card as Record<string, unknown>) : null;
+  const cardRecord = reviewLog.card;
   if (!cardRecord) {
     throw new AppError('Study card not found for undo.', 404);
   }
@@ -2615,13 +2670,16 @@ export async function undoStudyReview(params: {
 
   const refreshed = (await prisma.studyCard.findFirst({
     where: {
-      id: String(reviewLog.cardId),
+      id: reviewLog.cardId,
       userId: params.userId,
     },
     include: {
       note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  })) as StudyCardWithRelations | null;
 
   if (!refreshed) {
     throw new AppError('Study card not found after undo.', 404);
@@ -2637,7 +2695,7 @@ export async function undoStudyReview(params: {
 export async function performStudyCardAction(
   input: PerformStudyCardActionInput
 ): Promise<StudyCardActionResult> {
-  const existing = (await prisma.studyCard.findFirst({
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: input.cardId,
       userId: input.userId,
@@ -2648,7 +2706,7 @@ export async function performStudyCardAction(
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!existing) {
     throw new AppError('Study card not found.', 404);
@@ -2695,7 +2753,7 @@ export async function performStudyCardAction(
     },
   });
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: input.cardId,
       userId: input.userId,
@@ -2706,7 +2764,7 @@ export async function performStudyCardAction(
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!refreshed) {
     throw new AppError('Study card not found after update.', 404);
@@ -2719,7 +2777,7 @@ export async function performStudyCardAction(
 }
 
 export async function updateStudyCard(input: UpdateStudyCardInput): Promise<StudyCardSummary> {
-  const existing = (await prisma.studyCard.findFirst({
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: input.cardId,
       userId: input.userId,
@@ -2730,7 +2788,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!existing) {
     throw new AppError('Study card not found.', 404);
@@ -2747,7 +2805,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   };
 
   const normalizedPayload =
-    String(existing.cardType) === 'cloze'
+    existing.cardType === 'cloze'
       ? await normalizeClozePayload({
           activeOrdinal:
             typeof existing.sourceTemplateOrd === 'number' ? existing.sourceTemplateOrd : 0,
@@ -2775,14 +2833,8 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
     data: {
       promptJson: toPrismaJson(normalizedPayload.prompt),
       answerJson: toPrismaJson(nextAnswer),
-      answerAudioSource: shouldRegenerateAnswerAudio
-        ? 'missing'
-        : String(existing.answerAudioSource),
-      answerAudioMediaId: shouldRegenerateAnswerAudio
-        ? null
-        : existing.answerAudioMediaId
-          ? String(existing.answerAudioMediaId)
-          : null,
+      answerAudioSource: shouldRegenerateAnswerAudio ? 'missing' : existing.answerAudioSource,
+      answerAudioMediaId: shouldRegenerateAnswerAudio ? null : existing.answerAudioMediaId,
     },
   });
 
@@ -2790,7 +2842,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
     await ensureGeneratedAnswerAudio(input.userId, input.cardId);
   }
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: input.cardId,
       userId: input.userId,
@@ -2801,7 +2853,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!refreshed) {
     throw new AppError('Study card not found after update.', 404);
@@ -2833,7 +2885,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
 
   const initialState = createFreshSchedulerState();
 
-  const created = (await prisma.studyCard.create({
+  const created: StudyCardWithRelations = await prisma.studyCard.create({
     data: {
       userId: input.userId,
       noteId: note.id,
@@ -2851,13 +2903,13 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown>;
+  });
 
-  await ensureGeneratedAnswerAudio(input.userId, String(created.id));
+  await ensureGeneratedAnswerAudio(input.userId, created.id);
 
-  const refreshed = (await prisma.studyCard.findFirst({
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
-      id: String(created.id),
+      id: created.id,
       userId: input.userId,
     },
     include: {
@@ -2866,7 +2918,11 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       answerAudioMedia: true,
       imageMedia: true,
     },
-  })) as Record<string, unknown>;
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after creation.', 404);
+  }
 
   return await toStudyCardSummary(refreshed);
 }
@@ -2875,7 +2931,7 @@ export async function getStudyHistory(
   userId: string,
   cardId?: string
 ): Promise<StudyReviewEvent[]> {
-  const logs = (await prisma.studyReviewLog.findMany({
+  const logs: StudyReviewLogRecord[] = await prisma.studyReviewLog.findMany({
     where: {
       userId,
       ...(cardId ? { cardId } : {}),
@@ -2884,19 +2940,19 @@ export async function getStudyHistory(
       reviewedAt: 'desc',
     },
     take: 200,
-  })) as Array<Record<string, unknown>>;
+  });
 
   return logs.map((log) => ({
-    id: String(log.id),
-    cardId: String(log.cardId),
-    source: String(log.source) as StudyReviewEvent['source'],
-    reviewedAt: (log.reviewedAt as Date).toISOString(),
-    rating: Number(log.rating),
+    id: log.id,
+    cardId: log.cardId,
+    source: log.source as StudyReviewEvent['source'],
+    reviewedAt: log.reviewedAt.toISOString(),
+    rating: log.rating,
     durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
     sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
     stateBefore: (log.stateBeforeJson as StudyFsrsState | null) ?? null,
     stateAfter: (log.stateAfterJson as StudyFsrsState | null) ?? null,
-    rawPayload: (log.rawPayloadJson as JsonRecord | null) ?? null,
+    rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
   }));
 }
 
@@ -2965,7 +3021,7 @@ function buildStudyBrowserWhereSql(params: {
   return Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}`;
 }
 
-function buildStudyCardOptionLabel(card: Record<string, unknown>): string {
+function buildStudyCardOptionLabel(card: StudyCardOptionRecord): string {
   const prompt = isRecord(card.promptJson) ? card.promptJson : {};
   const answer = isRecord(card.answerJson) ? card.answerJson : {};
   const label =
@@ -2997,13 +3053,13 @@ export async function getStudyCardOptions(
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,
-    }),
+    }) as Promise<StudyCardOptionRecord[]>,
   ]);
 
   return {
     total,
-    options: (cards as Array<Record<string, unknown>>).map<StudyCardOption>((card) => ({
-      id: String(card.id),
+    options: cards.map<StudyCardOption>((card) => ({
+      id: card.id,
       label: buildStudyCardOptionLabel(card),
     })),
   };
@@ -3068,7 +3124,7 @@ export async function getStudyBrowserList(params: {
     ]);
 
   const noteIds = noteIdRows.map((row) => row.id);
-  const notes =
+  const notes: StudyBrowserListNoteRecord[] =
     noteIds.length > 0
       ? await prisma.studyNote.findMany({
           where: {
@@ -3121,11 +3177,10 @@ export async function getStudyBrowserList(params: {
   const totalValue = totalRows[0]?.count ?? 0;
   const total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue);
 
-  const rows: StudyBrowserRow[] = (notes as Array<Record<string, unknown>>).map((note) => {
-    const cards = Array.isArray(note.cards) ? (note.cards as Array<Record<string, unknown>>) : [];
+  const rows: StudyBrowserRow[] = notes.map((note) => {
+    const cards: StudyBrowserListCardRecord[] = note.cards;
     const queueSummary = cards.reduce<Partial<Record<StudyQueueState, number>>>((acc, card) => {
-      const state =
-        typeof card.queueState === 'string' ? (card.queueState as StudyQueueState) : null;
+      const state = card.queueState as StudyQueueState;
       if (state) {
         acc[state] = (acc[state] ?? 0) + 1;
       }
@@ -3136,13 +3191,13 @@ export async function getStudyBrowserList(params: {
     }, 0);
 
     return {
-      noteId: String(note.id),
+      noteId: note.id,
       displayText: getNoteDisplayText(note, cards),
       noteTypeName: typeof note.sourceNotetypeName === 'string' ? note.sourceNotetypeName : null,
       cardCount: cards.length,
       reviewCount,
       queueSummary,
-      updatedAt: (note.updatedAt as Date).toISOString(),
+      updatedAt: note.updatedAt.toISOString(),
     };
   });
 
@@ -3159,7 +3214,7 @@ export async function getStudyBrowserNoteDetail(
   userId: string,
   noteId: string
 ): Promise<StudyBrowserNoteDetail | null> {
-  const note = (await prisma.studyNote.findFirst({
+  const note: StudyBrowserDetailNoteRecord | null = await prisma.studyNote.findFirst({
     where: {
       id: noteId,
       userId,
@@ -3175,13 +3230,13 @@ export async function getStudyBrowserNoteDetail(
         orderBy: [{ sourceTemplateOrd: 'asc' }, { createdAt: 'asc' }],
       },
     },
-  })) as Record<string, unknown> | null;
+  });
 
   if (!note) {
     return null;
   }
 
-  const cards = Array.isArray(note.cards) ? (note.cards as Array<Record<string, unknown>>) : [];
+  const cards = note.cards;
   await ensureStudyCardMediaAvailable(cards);
   const cardSummaries = await Promise.all(cards.map((card) => toStudyCardSummary(card)));
 
@@ -3192,7 +3247,7 @@ export async function getStudyBrowserNoteDetail(
           where: {
             userId,
             cardId: {
-              in: cards.map((card) => String(card.id)),
+              in: cards.map((card) => card.id),
             },
           },
           _count: { _all: true },
@@ -3222,11 +3277,11 @@ export async function getStudyBrowserNoteDetail(
   const canonicalFieldsRecord = isRecord(note.canonicalJson) ? note.canonicalJson : {};
 
   return {
-    noteId: String(note.id),
+    noteId: note.id,
     displayText: getNoteDisplayText(note, cards),
     noteTypeName: typeof note.sourceNotetypeName === 'string' ? note.sourceNotetypeName : null,
     sourceKind: typeof note.sourceKind === 'string' ? note.sourceKind : 'anki_import',
-    updatedAt: (note.updatedAt as Date).toISOString(),
+    updatedAt: note.updatedAt.toISOString(),
     rawFields: Object.entries(rawFieldsRecord).map(([name, value]) =>
       toStudyBrowserField(name, value, mediaLookup)
     ),
@@ -3245,45 +3300,43 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
       where: { userId },
       include: { note: true, promptAudioMedia: true, answerAudioMedia: true, imageMedia: true },
       orderBy: { createdAt: 'asc' },
-    }),
+    }) as Promise<StudyCardWithRelations[]>,
     prisma.studyReviewLog.findMany({
       where: { userId },
       orderBy: { reviewedAt: 'asc' },
-    }),
+    }) as Promise<StudyReviewLogRecord[]>,
     prisma.studyMedia.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
-    }),
+    }) as Promise<StudyMediaRecord[]>,
     prisma.studyImportJob.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
-    }),
+    }) as Promise<StudyImportJobRecord[]>,
   ]);
 
   return {
     exportedAt: new Date().toISOString(),
-    cards: await Promise.all(
-      (cards as Array<Record<string, unknown>>).map((card) => toStudyCardSummary(card))
-    ),
-    reviewLogs: (reviewLogs as Array<Record<string, unknown>>).map((log) => ({
-      id: String(log.id),
-      cardId: String(log.cardId),
-      source: String(log.source) as StudyReviewEvent['source'],
-      reviewedAt: (log.reviewedAt as Date).toISOString(),
-      rating: Number(log.rating),
+    cards: await Promise.all(cards.map((card) => toStudyCardSummary(card))),
+    reviewLogs: reviewLogs.map((log) => ({
+      id: log.id,
+      cardId: log.cardId,
+      source: log.source as StudyReviewEvent['source'],
+      reviewedAt: log.reviewedAt.toISOString(),
+      rating: log.rating,
       durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
       sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
       stateBefore: (log.stateBeforeJson as StudyFsrsState | null) ?? null,
       stateAfter: (log.stateAfterJson as StudyFsrsState | null) ?? null,
-      rawPayload: (log.rawPayloadJson as JsonRecord | null) ?? null,
+      rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
     })),
-    media: (media as Array<Record<string, unknown>>).map((item) => ({
-      id: String(item.id),
-      filename: String(item.sourceFilename),
+    media: media.map((item) => ({
+      id: item.id,
+      filename: item.sourceFilename,
       url: typeof item.publicUrl === 'string' ? item.publicUrl : null,
-      mediaKind: String(item.mediaKind) as StudyMediaRef['mediaKind'],
+      mediaKind: item.mediaKind as StudyMediaRef['mediaKind'],
       source:
-        String(item.sourceKind) === 'generated'
+        item.sourceKind === 'generated'
           ? 'generated'
           : item.mediaKind === 'image'
             ? 'imported_image'
@@ -3291,19 +3344,12 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
               ? 'imported'
               : 'imported_other',
     })),
-    imports: (imports as Array<Record<string, unknown>>).map((item) => ({
-      id: String(item.id),
-      status: String(item.status) as StudyImportResult['status'],
-      sourceFilename: String(item.sourceFilename),
-      deckName: String(item.deckName),
-      preview: (item.previewJson as StudyImportPreview) ?? {
-        deckName: ANKI_DECK_NAME,
-        cardCount: 0,
-        noteCount: 0,
-        reviewLogCount: 0,
-        mediaReferenceCount: 0,
-        noteTypeBreakdown: [],
-      },
+    imports: imports.map((item) => ({
+      id: item.id,
+      status: item.status as StudyImportResult['status'],
+      sourceFilename: item.sourceFilename,
+      deckName: item.deckName,
+      preview: toStudyImportPreview(item.previewJson),
       importedAt: item.completedAt instanceof Date ? item.completedAt.toISOString() : null,
       errorMessage: typeof item.errorMessage === 'string' ? item.errorMessage : null,
     })),

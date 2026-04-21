@@ -26,8 +26,8 @@ export interface StudySessionResponse {
 
 interface CreateStudyCardPayload {
   cardType: 'recognition' | 'production' | 'cloze';
-  prompt: Record<string, unknown>;
-  answer: Record<string, unknown>;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
 }
 
 interface UpdateStudyCardPayload {
