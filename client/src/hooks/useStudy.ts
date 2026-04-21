@@ -3,6 +3,7 @@ import type {
   StudyAnswerPayload,
   StudyCardActionName,
   StudyCardActionResult,
+  StudyCardOptionsResponse,
   StudyCardSetDueMode,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
@@ -63,7 +64,7 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || 'Request failed');
+    throw new Error(error.message || error.error?.message || 'Request failed');
   }
 
   return response.json() as Promise<T>;
@@ -109,6 +110,12 @@ export async function getStudyBrowser(
 
 export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBrowserNoteDetail> {
   return apiRequest<StudyBrowserNoteDetail>(`/api/study/browser/${encodeURIComponent(noteId)}`);
+}
+
+export async function getStudyCardOptions(limit: number = 100): Promise<StudyCardOptionsResponse> {
+  return apiRequest<StudyCardOptionsResponse>(
+    `/api/study/cards/options?limit=${encodeURIComponent(String(limit))}`
+  );
 }
 
 export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
@@ -176,6 +183,14 @@ export function useStudyExport(enabled: boolean) {
   return useQuery({
     queryKey: ['study', 'export'],
     queryFn: () => apiRequest<StudyExportManifest>('/api/study/export'),
+    enabled,
+  });
+}
+
+export function useStudyCardOptions(enabled: boolean, limit: number = 100) {
+  return useQuery({
+    queryKey: ['study', 'card-options', limit],
+    queryFn: () => getStudyCardOptions(limit),
     enabled,
   });
 }

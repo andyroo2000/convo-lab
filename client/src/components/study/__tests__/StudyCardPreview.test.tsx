@@ -109,4 +109,43 @@ describe('StudyCardPreview', () => {
     expect(screen.getByRole('button', { name: 'Play prompt audio' })).toBeInTheDocument();
     expect(screen.queryByText('hidden helper meaning')).not.toBeInTheDocument();
   });
+
+  it('decodes HTML entities in plain study text fields', () => {
+    render(
+      <StudyCardFace
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            meaning: 'Someone, please come. It&#x27;s an accident.',
+          },
+        }}
+        side="back"
+      />
+    );
+
+    expect(screen.getByText("Someone, please come. It's an accident.")).toBeInTheDocument();
+  });
+
+  it('derives the audio MIME type from the answer audio asset', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.ogg',
+              url: 'https://example.com/answer.ogg',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute('type', 'audio/ogg');
+  });
 });

@@ -209,6 +209,16 @@ export interface StudyBrowserNoteDetail {
   selectedCardId: string | null;
 }
 
+export interface StudyCardOption {
+  id: string;
+  label: string;
+}
+
+export interface StudyCardOptionsResponse {
+  total: number;
+  options: StudyCardOption[];
+}
+
 export interface StudyImportPreview {
   deckName: string;
   cardCount: number;

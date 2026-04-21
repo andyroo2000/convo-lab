@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 
 import StudyFormField from '../components/study/StudyFormField';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
-import { useStudyExport, useStudyHistory } from '../hooks/useStudy';
+import { useStudyCardOptions, useStudyHistory } from '../hooks/useStudy';
 
 const StudyHistoryPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const [selectedCardId, setSelectedCardId] = useState<string>('');
-  const exportQuery = useStudyExport(enabled);
+  const cardOptionsQuery = useStudyCardOptions(enabled, 100);
   const historyQuery = useStudyHistory(enabled, selectedCardId || undefined);
 
   return (
@@ -36,13 +36,9 @@ const StudyHistoryPage = () => {
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             >
               <option value="">All cards</option>
-              {(exportQuery.data?.cards ?? []).slice(0, 100).map((card) => (
+              {(cardOptionsQuery.data?.options ?? []).map((card) => (
                 <option key={card.id} value={card.id}>
-                  {card.cardType}:{' '}
-                  {card.answer.expression ??
-                    card.answer.restoredText ??
-                    card.prompt.cueText ??
-                    card.id}
+                  {card.label}
                 </option>
               ))}
             </select>
@@ -54,6 +50,14 @@ const StudyHistoryPage = () => {
             Back to study
           </Link>
         </div>
+
+        {cardOptionsQuery.data &&
+        cardOptionsQuery.data.total > cardOptionsQuery.data.options.length ? (
+          <p className="text-sm text-gray-500">
+            Showing first {cardOptionsQuery.data.options.length} of {cardOptionsQuery.data.total}{' '}
+            cards in the filter dropdown.
+          </p>
+        ) : null}
 
         {historyQuery.isLoading ? <p className="text-gray-500">Loading review history…</p> : null}
         {historyQuery.error ? (

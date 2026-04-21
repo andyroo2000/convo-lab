@@ -178,6 +178,7 @@ const StudyPage = () => {
   const promptAutoplayKeys = useRef(new Set<string>());
   const answerAutoplayKeys = useRef(new Set<string>());
   const undoStack = useRef<StudyUndoAction[]>([]);
+  const sessionCardCountRef = useRef(0);
   const motionEnabledRef = useRef(false);
   const lastShakeAtRef = useRef(0);
   const lastMotionMagnitudeRef = useRef<number | null>(null);
@@ -219,6 +220,10 @@ const StudyPage = () => {
     promptAudioRef.current?.stop();
     answerAudioRef.current?.stop();
   }, []);
+
+  useEffect(() => {
+    sessionCardCountRef.current = session?.cards.length ?? 0;
+  }, [session]);
 
   const ignorePromise = useCallback((task?: Promise<unknown>) => {
     task?.catch(() => {});
@@ -426,7 +431,7 @@ const StudyPage = () => {
       applyReviewResultToSession(reviewResult.card, grade);
       syncOverview(reviewResult.overview);
       setCurrentIndex((current) => {
-        const currentSessionCardCount = session?.cards.length ?? 0;
+        const currentSessionCardCount = sessionCardCountRef.current;
         const nextLength =
           grade === 'again' ? currentSessionCardCount : Math.max(currentSessionCardCount - 1, 0);
 
@@ -441,7 +446,6 @@ const StudyPage = () => {
       currentCard,
       editing,
       reviewMutation,
-      session,
       stopAllAudio,
       syncOverview,
       undoPending,

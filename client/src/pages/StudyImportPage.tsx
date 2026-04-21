@@ -49,7 +49,23 @@ const StudyImportPage = () => {
               id="study-colpkg"
               type="file"
               accept=".colpkg"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                const nextFile = event.target.files?.[0] ?? null;
+                if (!nextFile) {
+                  setFile(null);
+                  setError(null);
+                  return;
+                }
+
+                if (!nextFile.name.toLowerCase().endsWith('.colpkg')) {
+                  setFile(null);
+                  setError('Please choose a .colpkg Anki collection backup.');
+                  return;
+                }
+
+                setFile(nextFile);
+                setError(null);
+              }}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
           </StudyFormField>

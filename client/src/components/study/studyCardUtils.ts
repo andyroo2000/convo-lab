@@ -7,6 +7,14 @@ export const toAssetUrl = (url?: string | null) => {
   return url.startsWith('/') ? `${API_URL}${url}` : url;
 };
 
+export const getAudioMimeType = (url?: string | null, filename?: string | null) => {
+  const target = (filename ?? url ?? '').toLowerCase();
+
+  if (target.endsWith('.wav')) return 'audio/wav';
+  if (target.endsWith('.ogg')) return 'audio/ogg';
+  return 'audio/mpeg';
+};
+
 export const isAudioLedPromptCard = (card: StudyCardSummary) =>
   Boolean(
     card.prompt.cueAudio?.url &&

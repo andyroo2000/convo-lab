@@ -1,9 +1,9 @@
-import { execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
-import os from 'os';
+import { createRequire } from 'module';
 import path from 'path';
 
 import JSZip from 'jszip';
+import initSqlJs from 'sql.js';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import {
@@ -31,15 +31,27 @@ vi.mock('../../../services/furiganaService.js', () => ({
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
 const generatedStudyMediaPath = path.join(process.cwd(), 'server/public/study-media');
+const require = createRequire(import.meta.url);
+const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
+let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+
+async function getSqlJs() {
+  if (!sqlJsPromise) {
+    sqlJsPromise = initSqlJs({
+      locateFile: () => sqlJsWasmPath,
+    });
+  }
+
+  return sqlJsPromise;
+}
 
 function sqlLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-async function buildFixtureColpkg(): Promise<Buffer> {
-  const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'study-import-'));
-  const dbPath = path.join(tempDir, 'collection.anki2');
-
+async function buildFixtureColpkg(
+  options: { includeOrphanedReviewLog?: boolean } = {}
+): Promise<Buffer> {
   const fields = {
     vocab: [
       'Expression',
@@ -220,12 +232,19 @@ async function buildFixtureColpkg(): Promise<Buffer> {
     INSERT INTO revlog VALUES (1775915610000, 11, 0, 3, 15, 10, 2500, 2400, 1);
     INSERT INTO revlog VALUES (1775915611000, 12, 0, 2, 10, 6, 2300, 1800, 1);
     INSERT INTO revlog VALUES (1775915612000, 41, 0, 4, 20, 12, 2600, 1600, 1);
+    ${
+      options.includeOrphanedReviewLog
+        ? 'INSERT INTO revlog VALUES (1775915613000, 9999, 0, 1, 1, 0, 2000, 500, 0);'
+        : ''
+    }
   `;
 
-  execFileSync('sqlite3', [dbPath, sql]);
+  const SQL = await getSqlJs();
+  const db = new SQL.Database();
+  db.run(sql);
 
   const zip = new JSZip();
-  zip.file('collection.anki2', await fs.readFile(dbPath));
+  zip.file('collection.anki2', Buffer.from(db.export()));
   zip.file(
     'media',
     JSON.stringify({
@@ -254,6 +273,8 @@ async function buildFixtureColpkg(): Promise<Buffer> {
   mediaFiles.forEach((mediaFilename, index) => {
     zip.file(String(index), Buffer.from(`fixture:${mediaFilename}`));
   });
+
+  db.close();
 
   return zip.generateAsync({ type: 'nodebuffer' });
 }
@@ -335,6 +356,52 @@ describe('studyService', () => {
     >;
     expect(createdLogs).toHaveLength(3);
     expect(createdLogs[0].source).toBe('anki_import');
+  });
+
+  it('skips orphaned imported revlogs instead of crashing the import', async () => {
+    const colpkgBuffer = await buildFixtureColpkg({ includeOrphanedReviewLog: true });
+
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+
+    const createdLogs = mockPrisma.studyReviewLog.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    expect(createdLogs).toHaveLength(3);
+    expect(createdLogs.every((log) => log.sourceCardId !== BigInt(9999))).toBe(true);
+  });
+
+  it('returns a friendly 400 when the uploaded collection archive is malformed', async () => {
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: Buffer.from('not-a-valid-colpkg'),
+        filename: 'broken.colpkg',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+    });
+  });
+
+  it('sanitizes study media storage paths before persisting imported media', async () => {
+    mockPrisma.studyImportJob.create.mockResolvedValue({ id: '../import:job-1' });
+    const colpkgBuffer = await buildFixtureColpkg();
+
+    await importJapaneseStudyColpkg({
+      userId: '../user:1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+
+    const createdMedia = mockPrisma.studyMedia.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    expect(createdMedia[0].storagePath).toContain('study-media/user_1/import_job-1/');
   });
 
   it('continues FSRS scheduling on review and appends an immutable log entry', async () => {
@@ -1050,6 +1117,12 @@ describe('studyService', () => {
   });
 
   it('returns paginated browser rows with search and filters', async () => {
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ count: 1 }])
+      .mockResolvedValueOnce([{ id: 'note-1' }])
+      .mockResolvedValueOnce([{ value: 'Cloze' }, { value: 'Japanese - Vocab' }])
+      .mockResolvedValueOnce([{ value: 'cloze' }, { value: 'recognition' }])
+      .mockResolvedValueOnce([{ value: 'new' }, { value: 'review' }]);
     mockPrisma.studyNote.findMany.mockResolvedValue([
       {
         id: 'note-1',
@@ -1111,6 +1184,7 @@ describe('studyService', () => {
       queueSummary: { review: 1 },
     });
     expect(result.filterOptions.noteTypes).toContain('Cloze');
+    expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(5);
   });
 
   it('returns note detail with inspector fields, cards, and review stats', async () => {

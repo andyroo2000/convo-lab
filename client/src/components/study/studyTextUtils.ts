@@ -3,6 +3,18 @@ const HIRAGANA_REGEX = /[\u3040-\u309f]/u;
 const KATAKANA_REGEX = /[\u30a0-\u30ff]/u;
 const RUBY_PATTERN =
   /([\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々\u3040-\u309f\u30a0-\u30ff]+)\[([^\]]+)\]/gu;
+const BLOCK_LEVEL_TAGS = new Set([
+  'p',
+  'div',
+  'blockquote',
+  'section',
+  'article',
+  'header',
+  'footer',
+  'li',
+  'ul',
+  'ol',
+]);
 
 export interface StudyRubySegment {
   kind: 'text' | 'ruby';
@@ -14,33 +26,70 @@ export interface StudyRubySegment {
 
 const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_REGEX.test(char);
 
-export const decodeHtmlEntities = (value: string) =>
-  value
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/gi, "'")
-    .replace(/&quot;/g, '"')
-    .replace(/&#(\d+);/g, (match, codePoint) => {
-      const parsed = Number.parseInt(codePoint, 10);
-      return Number.isNaN(parsed) ? match : String.fromCodePoint(parsed);
-    })
-    .replace(/&#x([0-9a-f]+);/gi, (match, codePoint) => {
-      const parsed = Number.parseInt(codePoint, 16);
-      return Number.isNaN(parsed) ? match : String.fromCodePoint(parsed);
-    });
+let htmlEntityDecoder: HTMLTextAreaElement | null = null;
 
-export const stripHtmlToText = (value: string) =>
-  decodeHtmlEntities(
-    value
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/p>/gi, '\n')
-      .replace(/<\/div>/gi, '\n')
-      .replace(/<\/blockquote>/gi, '\n')
-      .replace(/<[^>]+>/g, '')
-  ).trim();
+const getHtmlEntityDecoder = () => {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  if (!htmlEntityDecoder) {
+    htmlEntityDecoder = document.createElement('textarea');
+  }
+
+  return htmlEntityDecoder;
+};
+
+const collapsePlainText = (value: string) =>
+  value
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+const collectNodeText = (node: Node, output: string[]) => {
+  if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE) {
+    output.push(node.textContent ?? '');
+    return;
+  }
+
+  if (!(node instanceof Element)) {
+    return;
+  }
+
+  const tagName = node.tagName.toLowerCase();
+  if (tagName === 'br') {
+    output.push('\n');
+    return;
+  }
+
+  node.childNodes.forEach((child) => collectNodeText(child, output));
+
+  if (BLOCK_LEVEL_TAGS.has(tagName)) {
+    output.push('\n');
+  }
+};
+
+export const decodeHtmlEntities = (value: string) => {
+  const decoder = getHtmlEntityDecoder();
+  if (!decoder) {
+    return value;
+  }
+
+  decoder.innerHTML = value;
+  return decoder.value;
+};
+
+export const stripHtmlToText = (value: string) => {
+  if (typeof DOMParser === 'undefined') {
+    return decodeHtmlEntities(value).trim();
+  }
+
+  const document = new DOMParser().parseFromString(value, 'text/html');
+  const output: string[] = [];
+  document.body.childNodes.forEach((node) => collectNodeText(node, output));
+  return collapsePlainText(decodeHtmlEntities(output.join('')));
+};
 
 export const toDisplayText = (value?: string | null) => {
   if (!value) return null;

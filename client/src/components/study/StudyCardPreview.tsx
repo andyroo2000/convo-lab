@@ -3,7 +3,12 @@ import type { Ref } from 'react';
 import type { StudyCardSummary } from '@shared/types';
 
 import StudyRubyText from './StudyRubyText';
-import { isAudioLedPromptCard, isMediaLedPromptCard, toAssetUrl } from './studyCardUtils';
+import {
+  getAudioMimeType,
+  isAudioLedPromptCard,
+  isMediaLedPromptCard,
+  toAssetUrl,
+} from './studyCardUtils';
 import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils';
 
 export interface AudioPlayerHandle {
@@ -116,7 +121,11 @@ const AudioPlayer = forwardRef<
         aria-label={label}
         className={showTimeline ? 'mx-auto w-full max-w-xl' : 'hidden'}
       >
-        <source src={url} type="audio/mpeg" />
+        <source
+          src={url}
+          type={getAudioMimeType(url)}
+          data-testid={testId ? `${testId}-source` : undefined}
+        />
       </audio>
     </div>
   );
@@ -330,6 +339,7 @@ export const StudyCardFace = ({
           url={answerAudioUrl}
           label="Play answer audio"
           showTimeline
+          testId="study-answer-audio"
         />
       ) : null}
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />

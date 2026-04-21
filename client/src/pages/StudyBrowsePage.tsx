@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import type { StudyBrowserField } from '@shared/types';
@@ -15,7 +15,7 @@ import {
   useUpdateStudyCard,
 } from '../hooks/useStudy';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
-import { toAssetUrl } from '../components/study/studyCardUtils';
+import { getAudioMimeType, toAssetUrl } from '../components/study/studyCardUtils';
 
 const PAGE_SIZE = 100;
 
@@ -33,7 +33,7 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
       ) : null}
       {audioUrl ? (
         <audio controls preload="metadata" className="w-full max-w-xl">
-          <source src={audioUrl} type="audio/mpeg" />
+          <source src={audioUrl} type={getAudioMimeType(audioUrl, field.audio?.filename)} />
         </audio>
       ) : null}
       {!field.textValue && !imageUrl && !audioUrl ? (
@@ -63,9 +63,14 @@ const StudyBrowsePage = () => {
   const [selectedCardId, setSelectedCardId] = useState<string>(
     () => searchParams.get('cardId') ?? ''
   );
+  const selectedCardIdRef = useRef(selectedCardId);
   const [previewSide, setPreviewSide] = useState<'front' | 'back'>('front');
   const [editing, setEditing] = useState(false);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
+
+  useEffect(() => {
+    selectedCardIdRef.current = selectedCardId;
+  }, [selectedCardId]);
 
   useEffect(() => {
     if (!rows.length) {
@@ -83,13 +88,13 @@ const StudyBrowsePage = () => {
     if (!detail) return;
 
     const nextCardId =
-      detail.cards.find((card) => card.id === selectedCardId)?.id ??
+      detail.cards.find((card) => card.id === selectedCardIdRef.current)?.id ??
       detail.selectedCardId ??
       detail.cards[0]?.id ??
       '';
     setSelectedCardId(nextCardId);
     setPreviewSide('front');
-  }, [detailQuery.data, selectedCardId]);
+  }, [detailQuery.data]);
 
   useEffect(() => {
     if (!selectedNoteId) return;
@@ -120,9 +125,9 @@ const StudyBrowsePage = () => {
     () => selectedDetail?.cardStats.find((entry) => entry.cardId === selectedCardId) ?? null,
     [selectedCardId, selectedDetail]
   );
-  const ignorePromise = (task?: Promise<unknown>) => {
+  const ignorePromise = useCallback((task?: Promise<unknown>) => {
     task?.catch(() => {});
-  };
+  }, []);
   let actionErrorMessage: string | null = null;
   if (cardActionMutation.error instanceof Error) {
     actionErrorMessage = cardActionMutation.error.message;

@@ -9,10 +9,14 @@ import express, {
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { mockPrisma } from '../../setup.js';
+
 const {
   createStudyCardMock,
+  getStudyCardOptionsMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
+  importJapaneseStudyColpkgMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
@@ -20,8 +24,10 @@ const {
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   createStudyCardMock: vi.fn(),
+  getStudyCardOptionsMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
+  importJapaneseStudyColpkgMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
@@ -42,10 +48,11 @@ vi.mock('../../../services/studyService.js', () => ({
   exportStudyData: vi.fn(),
   getStudyBrowserList: getStudyBrowserListMock,
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
+  getStudyCardOptions: getStudyCardOptionsMock,
   getStudyHistory: vi.fn(),
   getStudyImportJob: vi.fn(),
   getStudyOverview: vi.fn(),
-  importJapaneseStudyColpkg: vi.fn(),
+  importJapaneseStudyColpkg: importJapaneseStudyColpkgMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
@@ -62,13 +69,25 @@ describe('Study Routes', () => {
     vi.clearAllMocks();
     app = express();
     app.use(expressJson());
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      dialoguesEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+    });
 
     const module = await import('../../../routes/study.js');
     studyRouter = module.default;
     app.use('/study', studyRouter);
     app.use(((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      res.status(500).json({ message });
+      const statusCode =
+        typeof error === 'object' &&
+        error !== null &&
+        'statusCode' in error &&
+        typeof error.statusCode === 'number'
+          ? error.statusCode
+          : 500;
+      res.status(statusCode).json({ message });
     }) as ErrorRequestHandler);
   });
 
@@ -184,5 +203,41 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(404);
     expect(response.body.message).toContain('Study note not found');
+  });
+
+  it('rejects non-.colpkg uploads before import processing', async () => {
+    const response = await request(app)
+      .post('/study/imports')
+      .attach('file', Buffer.from('not-a-colpkg'), 'anki-export.txt');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('Only .colpkg Anki collection backups are accepted');
+    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+  });
+
+  it('returns lightweight card options for the history filter', async () => {
+    getStudyCardOptionsMock.mockResolvedValue({
+      total: 125,
+      options: [{ id: 'card-1', label: '会社' }],
+    });
+
+    const response = await request(app).get('/study/cards/options?limit=500');
+
+    expect(response.status).toBe(200);
+    expect(getStudyCardOptionsMock).toHaveBeenCalledWith('user-1', 100);
+    expect(response.body.total).toBe(125);
+  });
+
+  it('blocks study routes when the flashcards feature flag is disabled', async () => {
+    mockPrisma.featureFlag.findFirst.mockResolvedValue({
+      dialoguesEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: false,
+    });
+
+    const response = await request(app).get('/study/browser');
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toContain('not enabled');
   });
 });

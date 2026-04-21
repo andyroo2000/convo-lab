@@ -61,6 +61,8 @@
     "fluent-ffmpeg": "^2.1.3",
     "google-auth-library": "^9.15.1",
     "googleapis": "^170.1.0",
+    "html-entities": "^2.6.0",
+    "htmlparser2": "^8.0.2",
     "i18next": "^25.7.3",
     "i18next-fs-backend": "^2.6.1",
     "ioredis": "^5.4.1",
