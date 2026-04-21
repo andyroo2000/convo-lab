@@ -32,6 +32,16 @@ vi.mock('../../../hooks/useDemo', () => ({
   useIsDemo: () => false,
 }));
 
+vi.mock('../../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    flags: null,
+    isLoading: false,
+    error: null,
+    isAdmin: false,
+    isFeatureEnabled: () => true,
+  }),
+}));
+
 // Mock child components
 vi.mock('../UserMenu', () => ({
   default: () => <div data-testid="user-menu">User Menu</div>,
