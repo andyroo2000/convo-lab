@@ -12,6 +12,7 @@ import multer, { memoryStorage, MulterError } from 'multer';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
+import { requireSameOriginStudyMutation } from '../middleware/studyCsrf.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import {
   createStudyCard,
@@ -158,6 +159,7 @@ router.use(requireFeatureFlag('flashcardsEnabled'));
 
 router.post(
   '/imports',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'import', max: 3, windowMs: 10 * 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -217,6 +219,7 @@ router.get('/overview', async (req: AuthRequest, res, next) => {
 
 router.post(
   '/session/start',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'session-start', max: 30, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -240,6 +243,7 @@ router.post(
 
 router.post(
   '/reviews',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'reviews', max: 120, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -278,6 +282,7 @@ router.post(
 
 router.post(
   '/reviews/undo',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'review-undo', max: 120, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -308,6 +313,7 @@ router.post(
 
 router.post(
   '/cards',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'card-create', max: 120, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -352,6 +358,7 @@ router.post(
 
 router.patch(
   '/cards/:cardId',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'card-update', max: 120, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -395,6 +402,7 @@ router.patch(
 
 router.post(
   '/cards/:cardId/actions',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'card-action', max: 120, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
@@ -452,6 +460,7 @@ router.post(
 
 router.post(
   '/cards/:cardId/prepare-answer-audio',
+  requireSameOriginStudyMutation,
   rateLimitStudyRoute({ key: 'prepare-answer-audio', max: 30, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {

@@ -144,7 +144,10 @@ describe('Study Routes', () => {
       cards: [],
     });
 
-    const response = await request(app).post('/study/session/start').send({ limit: 999 });
+    const response = await request(app)
+      .post('/study/session/start')
+      .set('Origin', 'http://localhost:5173')
+      .send({ limit: 999 });
 
     expect(response.status).toBe(200);
     expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 200);
@@ -153,6 +156,7 @@ describe('Study Routes', () => {
   it('rejects invalid review grades', async () => {
     const response = await request(app)
       .post('/study/reviews')
+      .set('Origin', 'http://localhost:5173')
       .send({ cardId: 'card-1', grade: 'nope' });
 
     expect(response.status).toBe(400);
@@ -163,6 +167,7 @@ describe('Study Routes', () => {
   it('rejects invalid edit payloads', async () => {
     const response = await request(app)
       .patch('/study/cards/card-1')
+      .set('Origin', 'http://localhost:5173')
       .send({ prompt: 'bad', answer: null });
 
     expect(response.status).toBe(400);
@@ -185,6 +190,7 @@ describe('Study Routes', () => {
 
     const response = await request(app)
       .post('/study/cards/card-1/actions')
+      .set('Origin', 'http://localhost:5173')
       .send({ action: 'set_due', mode: 'tomorrow' });
 
     expect(response.status).toBe(200);
@@ -200,6 +206,7 @@ describe('Study Routes', () => {
   it('rejects invalid set_due payloads', async () => {
     const response = await request(app)
       .post('/study/cards/card-1/actions')
+      .set('Origin', 'http://localhost:5173')
       .send({ action: 'set_due', mode: 'custom_date', dueAt: 'bad-date' });
 
     expect(response.status).toBe(400);
@@ -280,6 +287,7 @@ describe('Study Routes', () => {
   it('rejects non-.colpkg uploads before import processing', async () => {
     const response = await request(app)
       .post('/study/imports')
+      .set('Origin', 'http://localhost:5173')
       .attach('file', Buffer.from('not-a-colpkg'), 'anki-export.txt');
 
     expect(response.status).toBe(400);
@@ -290,6 +298,7 @@ describe('Study Routes', () => {
   it('rejects .colpkg uploads that are not ZIP archives', async () => {
     const response = await request(app)
       .post('/study/imports')
+      .set('Origin', 'http://localhost:5173')
       .attach('file', Buffer.from('nope'), 'anki-export.colpkg');
 
     expect(response.status).toBe(400);
@@ -300,6 +309,7 @@ describe('Study Routes', () => {
   it('rejects oversized .colpkg uploads with 413', async () => {
     const response = await request(app)
       .post('/study/imports')
+      .set('Origin', 'http://localhost:5173')
       .attach('file', Buffer.alloc(201 * 1024 * 1024, 0), 'too-large.colpkg');
 
     expect(response.status).toBe(413);
@@ -369,5 +379,35 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(403);
     expect(response.body.message).toContain('not enabled');
+  });
+
+  it('blocks study mutation routes for cross-origin requests', async () => {
+    const response = await request(app)
+      .post('/study/session/start')
+      .set('Origin', 'https://evil.example.com')
+      .send({ limit: 10 });
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toContain('Invalid request origin');
+    expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
+  it('allows read-only study routes without same-origin mutation headers', async () => {
+    getStudyBrowserListMock.mockResolvedValue({
+      rows: [],
+      total: 0,
+      page: 1,
+      pageSize: 100,
+      filterOptions: {
+        noteTypes: [],
+        cardTypes: [],
+        queueStates: [],
+      },
+    });
+
+    const response = await request(app).get('/study/browser');
+
+    expect(response.status).toBe(200);
+    expect(getStudyBrowserListMock).toHaveBeenCalled();
   });
 });

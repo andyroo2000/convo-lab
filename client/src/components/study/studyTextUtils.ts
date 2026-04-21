@@ -16,6 +16,15 @@ const BLOCK_LEVEL_TAGS = new Set([
   'ol',
 ]);
 
+const HTML_ENTITY_FALLBACK_MAP = new Map<string, string>([
+  ['amp', '&'],
+  ['apos', "'"],
+  ['gt', '>'],
+  ['lt', '<'],
+  ['nbsp', '\u00a0'],
+  ['quot', '"'],
+]);
+
 export interface StudyRubySegment {
   kind: 'text' | 'ruby';
   key: string;
@@ -26,26 +35,43 @@ export interface StudyRubySegment {
 
 const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_REGEX.test(char);
 
-let htmlEntityDecoder: HTMLTextAreaElement | null = null;
-
-const getHtmlEntityDecoder = () => {
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  if (!htmlEntityDecoder) {
-    htmlEntityDecoder = document.createElement('textarea');
-  }
-
-  return htmlEntityDecoder;
-};
-
 const collapsePlainText = (value: string) =>
   value
     .replace(/\r/g, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+
+const decodeHtmlEntitiesWithoutDom = (value: string) =>
+  value.replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]+);/giu, (match, entity: string) => {
+    const normalizedEntity = entity.toLowerCase();
+
+    if (normalizedEntity.startsWith('#x')) {
+      const codePoint = Number.parseInt(normalizedEntity.slice(2), 16);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
+    }
+
+    if (normalizedEntity.startsWith('#')) {
+      const codePoint = Number.parseInt(normalizedEntity.slice(1), 10);
+      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
+    }
+
+    return HTML_ENTITY_FALLBACK_MAP.get(normalizedEntity) ?? match;
+  });
+
+const decodeHtmlEntitiesWithDomParser = (value: string) => {
+  const document = new DOMParser().parseFromString(value, 'text/html');
+  return document.documentElement.textContent ?? value;
+};
+
+const stripHtmlToTextWithoutDom = (value: string) => {
+  const withLineBreaks = value
+    .replace(/<br\s*\/?>/giu, '\n')
+    .replace(/<\/(?:p|div|blockquote|section|article|header|footer|li|ul|ol)>/giu, '\n')
+    .replace(/<[^>]+>/gu, '');
+
+  return collapsePlainText(decodeHtmlEntitiesWithoutDom(withLineBreaks));
+};
 
 const collectNodeText = (node: Node, output: string[]) => {
   if (node.nodeType === Node.TEXT_NODE || node.nodeType === Node.CDATA_SECTION_NODE) {
@@ -71,24 +97,22 @@ const collectNodeText = (node: Node, output: string[]) => {
 };
 
 export const decodeHtmlEntities = (value: string) => {
-  const decoder = getHtmlEntityDecoder();
-  if (!decoder) {
-    return value;
+  if (typeof DOMParser === 'undefined') {
+    return decodeHtmlEntitiesWithoutDom(value);
   }
 
-  decoder.innerHTML = value;
-  return decoder.value;
+  return decodeHtmlEntitiesWithDomParser(value);
 };
 
 export const stripHtmlToText = (value: string) => {
   if (typeof DOMParser === 'undefined') {
-    return decodeHtmlEntities(value).trim();
+    return stripHtmlToTextWithoutDom(value);
   }
 
   const document = new DOMParser().parseFromString(value, 'text/html');
   const output: string[] = [];
   document.body.childNodes.forEach((node) => collectNodeText(node, output));
-  return collapsePlainText(decodeHtmlEntities(output.join('')));
+  return collapsePlainText(output.join(''));
 };
 
 export const toDisplayText = (value?: string | null) => {

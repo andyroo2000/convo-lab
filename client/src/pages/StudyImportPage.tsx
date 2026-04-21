@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import StudyFormField from '../components/study/StudyFormField';
 import { uploadStudyImport } from '../hooks/useStudy';
 
+const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
+
 const StudyImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -60,6 +62,12 @@ const StudyImportPage = () => {
                 if (!nextFile.name.toLowerCase().endsWith('.colpkg')) {
                   setFile(null);
                   setError('Please choose a .colpkg Anki collection backup.');
+                  return;
+                }
+
+                if (nextFile.size > MAX_STUDY_IMPORT_BYTES) {
+                  setFile(null);
+                  setError('Please choose a .colpkg file that is 200 MB or smaller.');
                   return;
                 }
 

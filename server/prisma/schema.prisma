@@ -505,6 +505,7 @@ model StudyReviewLog {
 
   @@unique([userId, sourceReviewId])
   @@index([cardId, reviewedAt])
+  @@index([userId, reviewedAt, id])
   @@index([importJobId])
   @@map("study_review_logs")
 }

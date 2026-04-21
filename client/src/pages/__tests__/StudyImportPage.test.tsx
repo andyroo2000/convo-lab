@@ -36,6 +36,28 @@ describe('StudyImportPage', () => {
     expect(uploadStudyImportMock).not.toHaveBeenCalled();
   });
 
+  it('rejects oversized .colpkg files before submission', async () => {
+    render(
+      <BrowserRouter>
+        <StudyImportPage />
+      </BrowserRouter>
+    );
+
+    const fileInput = screen.getByLabelText('Anki collection backup');
+    const oversizedFile = new File(['ok'], 'large-export.colpkg');
+    Object.defineProperty(oversizedFile, 'size', {
+      configurable: true,
+      value: 200 * 1024 * 1024 + 1,
+    });
+
+    await userEvent.upload(fileInput, oversizedFile);
+
+    expect(
+      screen.getByText('Please choose a .colpkg file that is 200 MB or smaller.')
+    ).toBeInTheDocument();
+    expect(uploadStudyImportMock).not.toHaveBeenCalled();
+  });
+
   it('uploads a valid .colpkg and shows the import summary', async () => {
     uploadStudyImportMock.mockResolvedValue({
       deckName: '日本語',
