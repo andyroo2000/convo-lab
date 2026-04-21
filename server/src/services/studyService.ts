@@ -308,6 +308,15 @@ function deserializeFsrsCard(state: StudyFsrsState | JsonRecord | null | undefin
   const reps = typeof state.reps === 'number' ? state.reps : null;
   const lapses = typeof state.lapses === 'number' ? state.lapses : null;
   const stateValue = typeof state.state === 'number' ? state.state : null;
+  const rawLastReview = state.last_review;
+  let lastReview: string | null | undefined;
+  if (typeof rawLastReview === 'string') {
+    lastReview = rawLastReview;
+  } else if (rawLastReview === null) {
+    lastReview = null;
+  } else {
+    lastReview = undefined;
+  }
 
   if (
     stability === null ||
@@ -332,11 +341,7 @@ function deserializeFsrsCard(state: StudyFsrsState | JsonRecord | null | undefin
     reps,
     lapses,
     state: stateValue,
-    last_review: toFsrsDate(
-      typeof state.last_review === 'string' || state.last_review === null
-        ? state.last_review
-        : undefined
-    ),
+    last_review: toFsrsDate(lastReview),
   };
 }
 
