@@ -64,6 +64,7 @@ const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
 const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
+const STUDY_IMPORT_WARNING_LIMIT = 10;
 const generatedAnswerAudioInFlight = new Map<
   string,
   {
@@ -248,6 +249,11 @@ interface ParsedImportDataset {
     sourceReviewType: number;
   }>;
   media: ParsedAnkiMediaRecord[];
+}
+
+interface StudyImportWarningAccumulator {
+  skippedMediaCount: number;
+  warnings: string[];
 }
 
 interface CreateStudyCardInput {
@@ -1507,13 +1513,20 @@ async function parseColpkgUpload(params: {
 
   try {
     const zip = await JSZip.loadAsync(fileBuffer);
-    const containsUnsafeZipEntry = Object.values(zip.files).some(
-      (entry) => !entry.dir && !isAllowedStudyImportZipEntryName(entry.name)
-    );
+    const importWarnings = createStudyImportWarningAccumulator();
+    const unsafeManifestFilenames = new Set<string>();
+    const unsafeArchiveEntryIds = new Set<string>();
 
-    if (containsUnsafeZipEntry) {
-      throw new AppError('The uploaded .colpkg contains unsafe archive paths.', 400);
-    }
+    Object.values(zip.files).forEach((entry) => {
+      if (entry.dir || isAllowedStudyImportZipEntryName(entry.name)) {
+        return;
+      }
+
+      const basename = path.posix.basename(normalizeZipPath(entry.name));
+      if (isSafeZipBasename(basename)) {
+        unsafeArchiveEntryIds.add(basename);
+      }
+    });
 
     const collectionEntry =
       zip.file('collection.anki21b') ??
@@ -1541,6 +1554,14 @@ async function parseColpkgUpload(params: {
         const mediaId = normalizeZipPath(rawMediaId);
         const mediaFilename = normalizeZipPath(rawMediaFilename);
         if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
+          if (mediaFilename) {
+            unsafeManifestFilenames.add(mediaFilename);
+          }
+          recordStudyImportWarning(
+            importWarnings,
+            mediaFilename || rawMediaFilename || rawMediaId,
+            'Skipped unsafe media path.'
+          );
           continue;
         }
 
@@ -1733,15 +1754,41 @@ async function parseColpkgUpload(params: {
       if (mediaId && isSafeZipBasename(mediaId) && isSafeZipBasename(mediaFilename)) {
         const mediaEntry = zip.file(mediaId);
         if (mediaEntry) {
-          const persisted = await persistStudyMediaBuffer({
-            userId,
-            importJobId,
-            filename: mediaFilename,
-            buffer: await mediaEntry.async('nodebuffer'),
-          });
-          publicUrl = persisted.publicUrl;
-          storagePath = persisted.storagePath;
+          if (!isAllowedStudyImportZipEntryName(mediaEntry.name)) {
+            recordStudyImportWarning(
+              importWarnings,
+              mediaFilename,
+              'Skipped unsafe archive entry.'
+            );
+          } else {
+            const persisted = await persistStudyMediaBuffer({
+              userId,
+              importJobId,
+              filename: mediaFilename,
+              buffer: await mediaEntry.async('nodebuffer'),
+            });
+            publicUrl = persisted.publicUrl;
+            storagePath = persisted.storagePath;
+          }
+        } else {
+          recordStudyImportWarning(
+            importWarnings,
+            mediaFilename,
+            unsafeArchiveEntryIds.has(mediaId)
+              ? 'Skipped unsafe archive entry.'
+              : 'Referenced media was missing.'
+          );
         }
+      } else if (mediaId || (mediaFilename && !unsafeManifestFilenames.has(mediaFilename))) {
+        recordStudyImportWarning(importWarnings, mediaFilename, 'Skipped unsafe media path.');
+      }
+
+      if (!mediaId && mediaFilename && !unsafeManifestFilenames.has(mediaFilename)) {
+        recordStudyImportWarning(
+          importWarnings,
+          mediaFilename,
+          'Referenced media was missing from the archive manifest.'
+        );
       }
 
       media.push({
@@ -1874,6 +1921,8 @@ async function parseColpkgUpload(params: {
         noteCount: notes.length,
         reviewLogCount: reviewLogs.length,
         mediaReferenceCount: media.length,
+        skippedMediaCount: importWarnings.skippedMediaCount,
+        warnings: importWarnings.warnings,
         noteTypeBreakdown: Array.from(noteTypeBreakdownMap.entries()).map(
           ([notetypeName, stats]) => ({
             notetypeName,
@@ -2063,6 +2112,8 @@ function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): Study
     noteCount: 0,
     reviewLogCount: 0,
     mediaReferenceCount: 0,
+    skippedMediaCount: 0,
+    warnings: [],
     noteTypeBreakdown: [],
   };
 
@@ -2080,6 +2131,13 @@ function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): Study
       typeof value.mediaReferenceCount === 'number'
         ? value.mediaReferenceCount
         : fallback.mediaReferenceCount,
+    skippedMediaCount:
+      typeof value.skippedMediaCount === 'number'
+        ? value.skippedMediaCount
+        : fallback.skippedMediaCount,
+    warnings: Array.isArray(value.warnings)
+      ? value.warnings.flatMap((item) => (typeof item === 'string' ? [item] : []))
+      : fallback.warnings,
     noteTypeBreakdown: Array.isArray(value.noteTypeBreakdown)
       ? value.noteTypeBreakdown.flatMap((item) => {
           if (!isRecord(item) || typeof item.notetypeName !== 'string') {
@@ -2096,6 +2154,26 @@ function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): Study
         })
       : fallback.noteTypeBreakdown,
   };
+}
+
+function createStudyImportWarningAccumulator(): StudyImportWarningAccumulator {
+  return {
+    skippedMediaCount: 0,
+    warnings: [],
+  };
+}
+
+function recordStudyImportWarning(
+  accumulator: StudyImportWarningAccumulator,
+  filename: string,
+  reason: string
+) {
+  accumulator.skippedMediaCount += 1;
+  if (accumulator.warnings.length >= STUDY_IMPORT_WARNING_LIMIT) {
+    return;
+  }
+
+  accumulator.warnings.push(`${filename}: ${reason}`);
 }
 
 function toStudyFsrsState(value: Prisma.JsonValue | null | undefined): StudyFsrsState | null {
@@ -2380,6 +2458,8 @@ export async function importJapaneseStudyColpkg(params: {
         noteCount: 0,
         reviewLogCount: 0,
         mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
         noteTypeBreakdown: [],
       }),
       startedAt: new Date(),

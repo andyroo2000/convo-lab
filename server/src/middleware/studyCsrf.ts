@@ -48,13 +48,10 @@ export function requireSameOriginStudyMutation(
   }
 
   const originHeader = req.get('origin');
-  const refererHeader = req.get('referer');
-  // Some same-origin browser requests omit Origin entirely; only fall back to Referer
-  // when Origin is absent/blank, not when a present Origin fails validation.
   const sourceOrigin =
     typeof originHeader === 'string' && originHeader.trim().length > 0
       ? toOrigin(originHeader)
-      : toOrigin(refererHeader ?? undefined);
+      : null;
 
   if (!sourceOrigin || !getAllowedStudyOrigins().has(sourceOrigin)) {
     next(new AppError('Invalid request origin.', 403));

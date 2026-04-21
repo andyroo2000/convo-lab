@@ -27,6 +27,7 @@ const AudioPlayer = forwardRef<
 >(({ label, showTimeline = false, testId, url }, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const stop = useCallback(() => {
     const audio = audioRef.current;
@@ -41,11 +42,13 @@ const AudioPlayer = forwardRef<
     if (!audio) return false;
 
     try {
+      setErrorMessage(null);
       await audio.play();
       return true;
     } catch (error) {
       console.error(`Unable to play ${label}:`, error);
       setPlaying(false);
+      setErrorMessage('Audio playback failed. Try again.');
       return false;
     }
   }, [label]);
@@ -65,11 +68,21 @@ const AudioPlayer = forwardRef<
 
     const handleEnded = () => setPlaying(false);
     const handlePause = () => setPlaying(false);
-    const handlePlay = () => setPlaying(true);
+    const handlePlay = () => {
+      setPlaying(true);
+      setErrorMessage(null);
+    };
+    const handleCanPlay = () => setErrorMessage(null);
+    const handleError = () => {
+      setPlaying(false);
+      setErrorMessage('Audio playback failed. Try again.');
+    };
 
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('play', handlePlay);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('error', handleError);
 
     return () => {
       audio.pause();
@@ -77,7 +90,13 @@ const AudioPlayer = forwardRef<
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('error', handleError);
     };
+  }, [url]);
+
+  useEffect(() => {
+    setErrorMessage(null);
   }, [url]);
 
   const handleClick = () => {
@@ -127,6 +146,14 @@ const AudioPlayer = forwardRef<
           data-testid={testId ? `${testId}-source` : undefined}
         />
       </audio>
+      {errorMessage ? (
+        <p
+          className="text-center text-sm text-red-600"
+          data-testid={testId ? `${testId}-error` : undefined}
+        >
+          {errorMessage}
+        </p>
+      ) : null}
     </div>
   );
 });

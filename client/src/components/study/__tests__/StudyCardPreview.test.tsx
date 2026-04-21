@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyCardFace } from '../StudyCardPreview';
@@ -147,5 +147,34 @@ describe('StudyCardPreview', () => {
     );
 
     expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute('type', 'audio/ogg');
+  });
+
+  it('shows a visible audio playback error when playback fails', async () => {
+    const playMock = vi.fn().mockRejectedValueOnce(new Error('blocked'));
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+
+    expect(await screen.findByText('Audio playback failed. Try again.')).toBeInTheDocument();
   });
 });

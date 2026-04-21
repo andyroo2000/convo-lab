@@ -11,7 +11,10 @@ interface UseStudyAudioAutoplayOptions {
   currentCard: StudyCardSummary | null;
   ensureAnswerAudioPrepared: (cardId: string) => Promise<StudyCardSummary>;
   focusMode: boolean;
-  ignorePromise: (task?: Promise<unknown>) => void;
+  runBackgroundTask: (
+    task?: Promise<unknown> | (() => Promise<unknown> | unknown),
+    options?: { errorMessage?: string; label?: string; onError?: (message: string) => void }
+  ) => void;
   revealed: boolean;
 }
 
@@ -20,7 +23,7 @@ export default function useStudyAudioAutoplay({
   currentCard,
   ensureAnswerAudioPrepared,
   focusMode,
-  ignorePromise,
+  runBackgroundTask,
   revealed,
 }: UseStudyAudioAutoplayOptions) {
   const promptAudioRef = useRef<AudioPlayerHandle | null>(null);
@@ -40,9 +43,12 @@ export default function useStudyAudioAutoplay({
       .slice(0, PREWARM_CARD_COUNT)
       .filter((card) => !toAssetUrl(card.answer.answerAudio?.url))
       .forEach((card) => {
-        ignorePromise(ensureAnswerAudioPrepared(card.id));
+        runBackgroundTask(() => ensureAnswerAudioPrepared(card.id), {
+          label: 'Study answer-audio prewarm',
+          errorMessage: 'Answer audio could not be prepared.',
+        });
       });
-  }, [cards, ensureAnswerAudioPrepared, focusMode, ignorePromise]);
+  }, [cards, ensureAnswerAudioPrepared, focusMode, runBackgroundTask]);
 
   useEffect(() => {
     if (!focusMode || !currentCard || revealed || !isAudioLedPromptCard(currentCard)) return;
@@ -54,8 +60,10 @@ export default function useStudyAudioAutoplay({
     if (promptAutoplayKeys.current.has(autoplayKey)) return;
 
     promptAutoplayKeys.current.add(autoplayKey);
-    ignorePromise(promptAudioRef.current?.play());
-  }, [currentCard, focusMode, ignorePromise, revealed]);
+    runBackgroundTask(() => promptAudioRef.current?.play(), {
+      label: 'Study prompt-audio autoplay',
+    });
+  }, [currentCard, focusMode, revealed, runBackgroundTask]);
 
   useEffect(() => {
     if (!focusMode || !currentCard || !revealed) return;
@@ -67,8 +75,10 @@ export default function useStudyAudioAutoplay({
     if (answerAutoplayKeys.current.has(autoplayKey)) return;
 
     answerAutoplayKeys.current.add(autoplayKey);
-    ignorePromise(answerAudioRef.current?.play());
-  }, [currentCard, focusMode, ignorePromise, revealed]);
+    runBackgroundTask(() => answerAudioRef.current?.play(), {
+      label: 'Study answer-audio autoplay',
+    });
+  }, [currentCard, focusMode, revealed, runBackgroundTask]);
 
   return {
     promptAudioRef,

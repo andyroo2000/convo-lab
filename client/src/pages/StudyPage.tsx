@@ -10,6 +10,7 @@ import StudyReviewHeader from '../components/study/StudyReviewHeader';
 import StudySetDueControls from '../components/study/StudySetDueControls';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyOverview } from '../hooks/useStudy';
+import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
 
 const StudyPage = () => {
@@ -19,9 +20,7 @@ const StudyPage = () => {
   const overviewQuery = useStudyOverview(enabled);
   const availableCount = (overviewQuery.data?.dueCount ?? 0) + (overviewQuery.data?.newCount ?? 0);
   const reviewSession = useStudyReviewSession({ availableCount });
-  const ignorePromise = (task?: Promise<unknown>) => {
-    task?.catch(() => {});
-  };
+  const runBackgroundTask = useStudyBackgroundTask();
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {
       return 'Shake to undo is not available on this device.';
@@ -67,7 +66,9 @@ const StudyPage = () => {
                   <button
                     type="button"
                     onClick={() => {
-                      ignorePromise(reviewSession.requestMotionPermission());
+                      runBackgroundTask(() => reviewSession.requestMotionPermission(), {
+                        label: 'Study motion-permission retry',
+                      });
                     }}
                     className="rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100"
                   >
@@ -145,16 +146,22 @@ const StudyPage = () => {
                           }}
                           onBury={reviewSession.handleBuryForSession}
                           onToggleSuspend={() => {
-                            ignorePromise(
-                              reviewSession.handleCardAction(
-                                reviewSession.currentCard?.state.queueState === 'suspended'
-                                  ? 'unsuspend'
-                                  : 'suspend'
-                              )
+                            runBackgroundTask(
+                              () =>
+                                reviewSession.handleCardAction(
+                                  reviewSession.currentCard?.state.queueState === 'suspended'
+                                    ? 'unsuspend'
+                                    : 'suspend'
+                                ),
+                              {
+                                label: 'Study card action',
+                              }
                             );
                           }}
                           onForget={() => {
-                            ignorePromise(reviewSession.handleCardAction('forget'));
+                            runBackgroundTask(() => reviewSession.handleCardAction('forget'), {
+                              label: 'Study card action',
+                            });
                           }}
                           onToggleSetDue={() =>
                             reviewSession.setShowSetDueControls((current) => !current)
@@ -197,7 +204,9 @@ const StudyPage = () => {
                       reviewSession.undoPending
                     }
                     onGrade={(grade) => {
-                      ignorePromise(reviewSession.handleGrade(grade));
+                      runBackgroundTask(() => reviewSession.handleGrade(grade), {
+                        label: 'Study card grade',
+                      });
                     }}
                   />
                 ) : null}
@@ -217,10 +226,14 @@ const StudyPage = () => {
       loading={overviewQuery.isLoading}
       error={overviewQuery.error instanceof Error ? overviewQuery.error : null}
       onRefresh={() => {
-        ignorePromise(overviewQuery.refetch());
+        runBackgroundTask(() => overviewQuery.refetch(), {
+          label: 'Study overview refresh',
+        });
       }}
       onBeginStudy={() => {
-        ignorePromise(reviewSession.enterFocusMode());
+        runBackgroundTask(() => reviewSession.enterFocusMode(), {
+          label: 'Study session start',
+        });
       }}
       isStartingSession={reviewSession.sessionLoading}
     />

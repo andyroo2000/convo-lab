@@ -122,4 +122,25 @@ describe('studyRateLimit middleware', () => {
     expect(createRedisConnectionMock).toHaveBeenCalledTimes(1);
     expect(disconnectMock).not.toHaveBeenCalled();
   });
+
+  it('can fail closed when redis is unavailable for sensitive routes', async () => {
+    ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
+    execMock.mockRejectedValue(new Error('redis unavailable'));
+
+    const middleware = rateLimitStudyRoute({
+      key: 'import',
+      max: 2,
+      windowMs: 60_000,
+      onBackendError: 'fail-closed',
+    });
+    const next = vi.fn();
+
+    await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next as never);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 503,
+      })
+    );
+  });
 });

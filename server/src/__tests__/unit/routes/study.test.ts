@@ -382,6 +382,30 @@ describe('Study Routes', () => {
     expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
   });
 
+  it('rejects malformed .colpkg uploads that match the ZIP signature but cannot be opened', async () => {
+    const response = await request(app)
+      .post('/study/imports')
+      .set('Origin', 'http://localhost:5173')
+      .attach('file', Buffer.from('PKnot-a-real-zip'), 'anki-export.colpkg');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('could not be parsed');
+    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 503 for imports when study rate limiting is unavailable', async () => {
+    execMock.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    const response = await request(app)
+      .post('/study/imports')
+      .set('Origin', 'http://localhost:5173')
+      .attach('file', Buffer.from('PKnot-a-real-zip'), 'anki-export.colpkg');
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toContain('rate limiting is temporarily unavailable');
+    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+  });
+
   it('rejects oversized .colpkg uploads with 413', async () => {
     const response = await request(app)
       .post('/study/imports')
@@ -514,7 +538,7 @@ describe('Study Routes', () => {
     });
   });
 
-  it('allows same-origin mutations that rely on the referer fallback when Origin is absent', async () => {
+  it('rejects mutation requests when Origin is absent', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 1,
@@ -527,13 +551,10 @@ describe('Study Routes', () => {
       cards: [],
     });
 
-    const response = await request(app)
-      .post('/study/session/start')
-      .set('Referer', 'http://localhost:5173/app/study')
-      .send({ limit: 10 });
+    const response = await request(app).post('/study/session/start').send({ limit: 10 });
 
-    expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 10);
+    expect(response.status).toBe(403);
+    expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 
   it('sanitizes media filenames used in the Content-Disposition header', async () => {

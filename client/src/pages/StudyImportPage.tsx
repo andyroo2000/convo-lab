@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { StudyImportResult } from '@shared/types';
 
 import StudyFormField from '../components/study/StudyFormField';
 import { uploadStudyImport } from '../hooks/useStudy';
@@ -10,7 +11,7 @@ const StudyImportPage = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<StudyImportResult | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -22,10 +23,9 @@ const StudyImportPage = () => {
     try {
       setIsUploading(true);
       setError(null);
+      setImportResult(null);
       const result = await uploadStudyImport(file);
-      setSuccess(
-        `Imported ${result.preview.cardCount} cards and ${result.preview.reviewLogCount} review logs from ${result.deckName}.`
-      );
+      setImportResult(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed.');
     } finally {
@@ -56,23 +56,27 @@ const StudyImportPage = () => {
                 if (!nextFile) {
                   setFile(null);
                   setError(null);
+                  setImportResult(null);
                   return;
                 }
 
                 if (!nextFile.name.toLowerCase().endsWith('.colpkg')) {
                   setFile(null);
                   setError('Please choose a .colpkg Anki collection backup.');
+                  setImportResult(null);
                   return;
                 }
 
                 if (nextFile.size > MAX_STUDY_IMPORT_BYTES) {
                   setFile(null);
                   setError('Please choose a .colpkg file that is 200 MB or smaller.');
+                  setImportResult(null);
                   return;
                 }
 
                 setFile(nextFile);
                 setError(null);
+                setImportResult(null);
               }}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
@@ -88,7 +92,30 @@ const StudyImportPage = () => {
           </div>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
+          {importResult ? (
+            <div className="space-y-2 text-sm text-emerald-700">
+              <p>
+                Imported {importResult.preview.cardCount} cards and{' '}
+                {importResult.preview.reviewLogCount} review logs from {importResult.deckName}.
+              </p>
+              {importResult.preview.skippedMediaCount > 0 ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                  <p className="font-medium">
+                    Skipped {importResult.preview.skippedMediaCount} unsafe or missing media
+                    reference
+                    {importResult.preview.skippedMediaCount === 1 ? '' : 's'}.
+                  </p>
+                  {importResult.preview.warnings.length ? (
+                    <ul className="mt-2 list-disc space-y-1 pl-5">
+                      {importResult.preview.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-3">
             <button

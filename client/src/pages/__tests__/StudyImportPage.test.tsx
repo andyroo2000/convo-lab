@@ -60,13 +60,21 @@ describe('StudyImportPage', () => {
 
   it('uploads a valid .colpkg and shows the import summary', async () => {
     uploadStudyImportMock.mockResolvedValue({
+      id: 'import-1',
+      status: 'completed',
+      sourceFilename: 'japanese.colpkg',
       deckName: '日本語',
+      importedAt: new Date('2026-04-21T00:00:00.000Z').toISOString(),
+      errorMessage: null,
       preview: {
+        deckName: '日本語',
         noteCount: 4,
         cardCount: 6,
         reviewLogCount: 3,
-        mediaCount: 8,
-        noteTypes: [],
+        mediaReferenceCount: 8,
+        skippedMediaCount: 1,
+        warnings: ['nested/0: Skipped unsafe archive entry.'],
+        noteTypeBreakdown: [],
       },
     });
 
@@ -84,5 +92,7 @@ describe('StudyImportPage', () => {
     expect(
       await screen.findByText('Imported 6 cards and 3 review logs from 日本語.')
     ).toBeInTheDocument();
+    expect(screen.getByText('Skipped 1 unsafe or missing media reference.')).toBeInTheDocument();
+    expect(screen.getByText('nested/0: Skipped unsafe archive entry.')).toBeInTheDocument();
   });
 });

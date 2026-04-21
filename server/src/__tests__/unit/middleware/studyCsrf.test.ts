@@ -35,16 +35,12 @@ describe('studyCsrf middleware', () => {
     expect(next).toHaveBeenCalledWith();
   });
 
-  it('falls back to referer when origin is missing', () => {
+  it('rejects mutation requests when origin is missing', () => {
     requireSameOriginStudyMutation(
       {
         method: 'PATCH',
         protocol: 'https',
         get: (header: string) => {
-          if (header.toLowerCase() === 'referer') {
-            return 'https://app.convo-lab.com/app/study';
-          }
-
           if (header.toLowerCase() === 'host') {
             return 'api.convo-lab.com';
           }
@@ -56,7 +52,11 @@ describe('studyCsrf middleware', () => {
       next
     );
 
-    expect(next).toHaveBeenCalledWith();
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 403,
+      })
+    );
   });
 
   it('blocks cross-origin mutation requests', () => {

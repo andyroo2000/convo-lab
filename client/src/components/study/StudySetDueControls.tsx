@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 
+import toLocalNineAmIso from './studySetDueUtils';
+
 interface StudySetDueControlsProps {
   disabled?: boolean;
   isSubmitting?: boolean;
@@ -20,8 +22,7 @@ const StudySetDueControls = ({
   const customDateInputId = 'study-set-due-custom-date';
   const customDateIso = useMemo(() => {
     if (!customDate) return null;
-    const date = new Date(`${customDate}T09:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+    return toLocalNineAmIso(customDate);
   }, [customDate]);
 
   return (

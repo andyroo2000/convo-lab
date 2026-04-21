@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import type { StudyBrowserField } from '@shared/types';
@@ -14,6 +14,7 @@ import {
   useStudyBrowserNoteDetail,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
+import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import { getAudioMimeType, toAssetUrl } from '../components/study/studyCardUtils';
 
@@ -67,6 +68,7 @@ const StudyBrowsePage = () => {
   const [previewSide, setPreviewSide] = useState<'front' | 'back'>('front');
   const [editing, setEditing] = useState(false);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
+  const runBackgroundTask = useStudyBackgroundTask();
 
   useEffect(() => {
     selectedCardIdRef.current = selectedCardId;
@@ -125,9 +127,6 @@ const StudyBrowsePage = () => {
     () => selectedDetail?.cardStats.find((entry) => entry.cardId === selectedCardId) ?? null,
     [selectedCardId, selectedDetail]
   );
-  const ignorePromise = useCallback((task?: Promise<unknown>) => {
-    task?.catch(() => {});
-  }, []);
   let actionErrorMessage: string | null = null;
   if (cardActionMutation.error instanceof Error) {
     actionErrorMessage = cardActionMutation.error.message;
@@ -514,12 +513,16 @@ const StudyBrowsePage = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            ignorePromise(
-                              handleCardAction(
-                                selectedCard.state.queueState === 'suspended'
-                                  ? 'unsuspend'
-                                  : 'suspend'
-                              )
+                            runBackgroundTask(
+                              () =>
+                                handleCardAction(
+                                  selectedCard.state.queueState === 'suspended'
+                                    ? 'unsuspend'
+                                    : 'suspend'
+                                ),
+                              {
+                                label: 'Study browse card action',
+                              }
                             );
                           }}
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
@@ -530,7 +533,9 @@ const StudyBrowsePage = () => {
                         <button
                           type="button"
                           onClick={() => {
-                            ignorePromise(handleCardAction('forget'));
+                            runBackgroundTask(() => handleCardAction('forget'), {
+                              label: 'Study browse card action',
+                            });
                           }}
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
                           className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"

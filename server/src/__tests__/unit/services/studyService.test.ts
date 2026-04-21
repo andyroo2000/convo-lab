@@ -326,6 +326,8 @@ describe('studyService', () => {
     expect(result.preview.cardCount).toBe(6);
     expect(result.preview.noteCount).toBe(4);
     expect(result.preview.reviewLogCount).toBe(3);
+    expect(result.preview.skippedMediaCount).toBe(0);
+    expect(result.preview.warnings).toEqual([]);
 
     const createdCards = mockPrisma.studyCard.createMany.mock.calls[0][0].data as Array<
       Record<string, unknown>
@@ -437,6 +439,16 @@ describe('studyService', () => {
       publicUrl: null,
       storagePath: null,
     });
+    expect(mockPrisma.studyImportJob.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          previewJson: expect.objectContaining({
+            skippedMediaCount: 1,
+            warnings: expect.arrayContaining(['../company.png: Skipped unsafe media path.']),
+          }),
+        }),
+      })
+    );
   });
 
   it('skips imported media persistence when the zip entry id is unsafe', async () => {
@@ -461,20 +473,20 @@ describe('studyService', () => {
     });
   });
 
-  it('rejects .colpkg archives that contain unsafe zip entry paths', async () => {
+  it('skips .colpkg media entries that point at unsafe zip entry paths and reports a warning', async () => {
     const colpkgBuffer = await buildFixtureColpkg({
       companyPhotoZipEntryName: 'nested/0',
     });
 
-    await expect(
-      importJapaneseStudyColpkg({
-        userId: 'user-1',
-        fileBuffer: colpkgBuffer,
-        filename: 'japanese.colpkg',
-      })
-    ).rejects.toMatchObject({
-      statusCode: 400,
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
     });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.skippedMediaCount).toBe(1);
+    expect(result.preview.warnings).toContain('company.png: Skipped unsafe archive entry.');
   });
 
   it('continues FSRS scheduling on review and appends an immutable log entry', async () => {

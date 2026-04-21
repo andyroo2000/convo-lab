@@ -7,6 +7,7 @@ import type {
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
 import { Router, type Response } from 'express';
+import JSZip from 'jszip';
 import multer, { memoryStorage, MulterError } from 'multer';
 
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
@@ -254,7 +255,12 @@ router.use(requireFeatureFlag('flashcardsEnabled'));
 router.post(
   '/imports',
   requireSameOriginStudyMutation,
-  rateLimitStudyRoute({ key: 'import', max: 3, windowMs: 10 * 60 * 1000 }),
+  rateLimitStudyRoute({
+    key: 'import',
+    max: 3,
+    windowMs: 10 * 60 * 1000,
+    onBackendError: 'fail-closed',
+  }),
   async (req: AuthRequest, res, next) => {
     try {
       await runStudyUpload(req, res);
@@ -267,6 +273,11 @@ router.post(
       }
       if (req.file.buffer.length < 2 || req.file.buffer.subarray(0, 2).toString('utf8') !== 'PK') {
         throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
+      }
+      try {
+        await JSZip.loadAsync(req.file.buffer);
+      } catch {
+        throw new AppError('The uploaded .colpkg could not be parsed.', 400);
       }
 
       const result = await importJapaneseStudyColpkg({

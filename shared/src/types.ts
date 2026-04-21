@@ -230,6 +230,8 @@ export interface StudyImportPreview {
   noteCount: number;
   reviewLogCount: number;
   mediaReferenceCount: number;
+  skippedMediaCount: number;
+  warnings: string[];
   noteTypeBreakdown: Array<{
     notetypeName: string;
     noteCount: number;

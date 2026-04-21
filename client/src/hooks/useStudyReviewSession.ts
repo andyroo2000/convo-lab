@@ -24,6 +24,7 @@ import useStudyAudioAutoplay from './useStudyAudioAutoplay';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import { toAssetUrl } from '../components/study/studyCardUtils';
+import useStudyBackgroundTask from './useStudyBackgroundTask';
 
 const reviewScheduler = fsrs();
 
@@ -50,8 +51,33 @@ type StudyUndoAction =
       reviewLogId: string;
     };
 
-const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
-  JSON.parse(JSON.stringify(snapshot)) as StudyUndoSnapshot;
+const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot => {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(snapshot);
+  }
+
+  return {
+    session: snapshot.session
+      ? {
+          overview: { ...snapshot.session.overview },
+          cards: snapshot.session.cards.map((card) => ({
+            ...card,
+            prompt: { ...card.prompt },
+            answer: { ...card.answer },
+            state: {
+              ...card.state,
+              source: { ...card.state.source },
+              scheduler: card.state.scheduler ? { ...card.state.scheduler } : null,
+            },
+          })),
+        }
+      : null,
+    currentIndex: snapshot.currentIndex,
+    revealed: snapshot.revealed,
+    answeredCardIds: [...snapshot.answeredCardIds],
+    failedCardIds: [...snapshot.failedCardIds],
+  };
+};
 
 const formatReviewInterval = (due: Date, now: Date) => {
   const diffMs = Math.max(0, due.getTime() - now.getTime());
@@ -134,6 +160,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
   const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
   const sessionCardCountRef = useRef(0);
+  const runBackgroundTask = useStudyBackgroundTask();
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
@@ -166,10 +193,6 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
     return updateCardMutation.error ? 'Card update failed.' : null;
   }, [updateCardMutation.error]);
-
-  const ignorePromise = useCallback((task?: Promise<unknown>) => {
-    task?.catch(() => {});
-  }, []);
 
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
@@ -235,11 +258,19 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
   const captureUndoSnapshot = useCallback(
     (): StudyUndoSnapshot => ({
-      session: session ? (JSON.parse(JSON.stringify(session)) as StudySessionResponse) : null,
+      session: session
+        ? cloneStudySnapshot({
+            session,
+            currentIndex,
+            revealed,
+            answeredCardIds,
+            failedCardIds,
+          }).session
+        : null,
       currentIndex,
       revealed,
-      answeredCardIds,
-      failedCardIds,
+      answeredCardIds: [...answeredCardIds],
+      failedCardIds: [...failedCardIds],
     }),
     [answeredCardIds, currentIndex, failedCardIds, revealed, session]
   );
@@ -258,6 +289,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
         })
         .catch((error) => {
           console.warn('Unable to prepare answer audio for study card:', cardId, error);
+          setSessionError(
+            error instanceof Error ? error.message : 'Answer audio could not be prepared.'
+          );
           throw error;
         })
         .finally(() => {
@@ -275,7 +309,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     currentCard,
     ensureAnswerAudioPrepared,
     focusMode,
-    ignorePromise,
+    runBackgroundTask,
     revealed,
   });
 
@@ -331,15 +365,19 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       return;
     }
 
-    ignorePromise(ensureAnswerAudioPrepared(currentCard.id));
+    runBackgroundTask(() => ensureAnswerAudioPrepared(currentCard.id), {
+      label: 'Study answer-audio preparation',
+      errorMessage: 'Answer audio could not be prepared.',
+      onError: setSessionError,
+    });
   }, [
     captureUndoSnapshot,
     currentCard,
     editing,
     ensureAnswerAudioPrepared,
-    ignorePromise,
     pushUndo,
     revealed,
+    runBackgroundTask,
     stopAllAudio,
   ]);
 
@@ -363,34 +401,40 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       if (!currentCard || reviewMutation.isPending || undoPending || editing) return;
 
       const undoSnapshot = captureUndoSnapshot();
-      stopAllAudio();
-      const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
-      setAnsweredCardIds((current) =>
-        current.includes(currentCard.id) ? current : [...current, currentCard.id]
-      );
-      setFailedCardIds((current) => {
-        if (grade === 'again') {
-          return current.includes(currentCard.id) ? current : [...current, currentCard.id];
-        }
+      try {
+        stopAllAudio();
+        const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
+        setAnsweredCardIds((current) =>
+          current.includes(currentCard.id) ? current : [...current, currentCard.id]
+        );
+        setFailedCardIds((current) => {
+          if (grade === 'again') {
+            return current.includes(currentCard.id) ? current : [...current, currentCard.id];
+          }
 
-        return current.filter((cardId) => cardId !== currentCard.id);
-      });
-      pushUndo({
-        kind: 'grade',
-        snapshot: undoSnapshot,
-        reviewLogId: reviewResult.reviewLogId,
-      });
-      applyReviewResultToSession(reviewResult.card, grade);
-      syncOverview(reviewResult.overview);
-      setCurrentIndex((current) => {
-        const currentSessionCardCount = sessionCardCountRef.current;
-        const nextLength =
-          grade === 'again' ? currentSessionCardCount : Math.max(currentSessionCardCount - 1, 0);
+          return current.filter((cardId) => cardId !== currentCard.id);
+        });
+        pushUndo({
+          kind: 'grade',
+          snapshot: undoSnapshot,
+          reviewLogId: reviewResult.reviewLogId,
+        });
+        applyReviewResultToSession(reviewResult.card, grade);
+        syncOverview(reviewResult.overview);
+        setCurrentIndex((current) => {
+          const currentSessionCardCount = sessionCardCountRef.current;
+          const nextLength =
+            grade === 'again' ? currentSessionCardCount : Math.max(currentSessionCardCount - 1, 0);
 
-        if (nextLength === 0) return 0;
-        return Math.min(current, nextLength - 1);
-      });
-      setRevealed(false);
+          if (nextLength === 0) return 0;
+          return Math.min(current, nextLength - 1);
+        });
+        setRevealed(false);
+        setSessionError(null);
+      } catch (error) {
+        setSessionError(error instanceof Error ? error.message : 'Review failed.');
+        throw error;
+      }
     },
     [
       applyReviewResultToSession,
@@ -550,7 +594,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       editing,
     focusMode,
     onShake: handleUndo,
-    ignorePromise,
+    runBackgroundTask,
   });
 
   const enterFocusMode = useCallback(async () => {
@@ -563,7 +607,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     setUndoPending(false);
     setAnsweredCardIds([]);
     setFailedCardIds([]);
-    ignorePromise(requestMotionPermission());
+    runBackgroundTask(() => requestMotionPermission(), {
+      label: 'Study motion-permission request',
+    });
     const sessionLimit = Math.max(availableCount, 1);
     try {
       await loadSession(sessionLimit);
@@ -572,9 +618,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     }
   }, [
     availableCount,
-    ignorePromise,
     loadSession,
     requestMotionPermission,
+    runBackgroundTask,
     resetUndo,
     stopAllAudio,
   ]);
@@ -615,7 +661,11 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
         event.preventDefault();
-        ignorePromise(handleUndo());
+        runBackgroundTask(() => handleUndo(), {
+          label: 'Study keyboard undo',
+          errorMessage: 'Undo failed.',
+          onError: setSessionError,
+        });
         return;
       }
 
@@ -637,16 +687,32 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
       if (event.key === '1') {
         event.preventDefault();
-        ignorePromise(handleGrade('again'));
+        runBackgroundTask(() => handleGrade('again'), {
+          label: 'Study keyboard grade',
+          errorMessage: 'Review failed.',
+          onError: setSessionError,
+        });
       } else if (event.key === '2') {
         event.preventDefault();
-        ignorePromise(handleGrade('hard'));
+        runBackgroundTask(() => handleGrade('hard'), {
+          label: 'Study keyboard grade',
+          errorMessage: 'Review failed.',
+          onError: setSessionError,
+        });
       } else if (event.key === '3') {
         event.preventDefault();
-        ignorePromise(handleGrade('good'));
+        runBackgroundTask(() => handleGrade('good'), {
+          label: 'Study keyboard grade',
+          errorMessage: 'Review failed.',
+          onError: setSessionError,
+        });
       } else if (event.key === '4') {
         event.preventDefault();
-        ignorePromise(handleGrade('easy'));
+        runBackgroundTask(() => handleGrade('easy'), {
+          label: 'Study keyboard grade',
+          errorMessage: 'Review failed.',
+          onError: setSessionError,
+        });
       } else if (event.key === 'Escape') {
         event.preventDefault();
         exitFocusMode();
@@ -662,10 +728,10 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     focusMode,
     handleGrade,
     handleUndo,
-    ignorePromise,
     revealCurrentCard,
     revealed,
     reviewMutation.isPending,
+    runBackgroundTask,
   ]);
 
   return {

@@ -9,6 +9,7 @@ interface StudyRateLimitOptions {
   key: string;
   max: number;
   windowMs: number;
+  onBackendError?: 'fail-open' | 'fail-closed';
 }
 
 let sharedRedisClient: ReturnType<typeof createRedisConnection> | null = null;
@@ -75,6 +76,14 @@ export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
     } catch (error) {
       if (error instanceof AppError) {
         next(error);
+        return;
+      }
+
+      if (options.onBackendError === 'fail-closed') {
+        console.error('[Study] Rate limit unavailable; rejecting request:', error);
+        next(
+          new AppError('Study rate limiting is temporarily unavailable. Please try again.', 503)
+        );
         return;
       }
 

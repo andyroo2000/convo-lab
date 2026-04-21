@@ -38,7 +38,10 @@ interface UseStudyMotionUndoOptions {
   disabled: boolean;
   focusMode: boolean;
   onShake: () => Promise<void> | void;
-  ignorePromise: (task?: Promise<unknown>) => void;
+  runBackgroundTask: (
+    task?: Promise<unknown> | (() => Promise<unknown> | unknown),
+    options?: { errorMessage?: string; label?: string; onError?: (message: string) => void }
+  ) => void;
 }
 
 function getInitialMotionPermissionState(): StudyMotionPermissionState {
@@ -49,7 +52,7 @@ export function useStudyMotionUndo({
   disabled,
   focusMode,
   onShake,
-  ignorePromise,
+  runBackgroundTask,
 }: UseStudyMotionUndoOptions) {
   const [motionPermissionState, setMotionPermissionState] = useState<StudyMotionPermissionState>(
     getInitialMotionPermissionState
@@ -113,13 +116,16 @@ export function useStudyMotionUndo({
         now - lastShakeAtRef.current >= SHAKE_COOLDOWN_MS
       ) {
         lastShakeAtRef.current = now;
-        ignorePromise(Promise.resolve(onShake()));
+        runBackgroundTask(() => Promise.resolve(onShake()), {
+          label: 'Study shake undo',
+          errorMessage: 'Undo failed.',
+        });
       }
     };
 
     window.addEventListener('devicemotion', handleDeviceMotion);
     return () => window.removeEventListener('devicemotion', handleDeviceMotion);
-  }, [disabled, focusMode, ignorePromise, onShake]);
+  }, [disabled, focusMode, onShake, runBackgroundTask]);
 
   return {
     motionPermissionState,
