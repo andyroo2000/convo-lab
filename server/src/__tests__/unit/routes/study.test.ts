@@ -69,7 +69,9 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
-    vi.setSystemTime(new Date(`2026-04-21T12:${String(testClockOffset).padStart(2, '0')}:00.000Z`));
+    vi.setSystemTime(
+      new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
+    );
     testClockOffset += 1;
     app = express();
     app.use(expressJson());

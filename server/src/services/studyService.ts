@@ -1637,7 +1637,7 @@ async function toStudyCardSummary(record: StudyCardWithRelations): Promise<Study
   const state: StudyCardState = {
     dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
     queueState: String(record.queueState) as StudyQueueState,
-    scheduler: (record.schedulerStateJson as StudyFsrsState | null) ?? null,
+    scheduler: toStudyFsrsState(record.schedulerStateJson),
     source: {
       noteId: typeof noteRecord.sourceNoteId === 'bigint' ? String(noteRecord.sourceNoteId) : null,
       noteGuid: typeof noteRecord.sourceGuid === 'string' ? String(noteRecord.sourceGuid) : null,
@@ -1737,6 +1737,10 @@ function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): Study
       noteTypeBreakdown: [],
     }
   );
+}
+
+function toStudyFsrsState(value: Prisma.JsonValue | null | undefined): StudyFsrsState | null {
+  return (value as unknown as StudyFsrsState | null) ?? null;
 }
 
 function mergeStudyMediaRecord(
@@ -2519,9 +2523,7 @@ export async function recordStudyReview(params: {
     throw new AppError('Study card not found.', 404);
   }
 
-  const previousState = deserializeFsrsCard(
-    (card.schedulerStateJson as StudyFsrsState | null) ?? null
-  );
+  const previousState = deserializeFsrsCard(toStudyFsrsState(card.schedulerStateJson));
   if (!previousState) {
     throw new AppError('Study card is missing scheduler state.', 400);
   }
@@ -2629,9 +2631,7 @@ export async function undoStudyReview(params: {
     throw new AppError('Only the latest review for this card can be undone.', 409);
   }
 
-  const previousState = deserializeFsrsCard(
-    (reviewLog.stateBeforeJson as StudyFsrsState | null) ?? null
-  );
+  const previousState = deserializeFsrsCard(toStudyFsrsState(reviewLog.stateBeforeJson));
   if (!previousState) {
     throw new AppError('Undo state is missing for this review.', 400);
   }
@@ -2717,7 +2717,7 @@ export async function performStudyCardAction(
       ? (existing.queueState as StudyQueueState)
       : ('review' as StudyQueueState);
   let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
-  let nextSchedulerState = (existing.schedulerStateJson as StudyFsrsState | null) ?? null;
+  let nextSchedulerState = toStudyFsrsState(existing.schedulerStateJson);
   let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
 
   if (input.action === 'suspend') {
@@ -2950,8 +2950,8 @@ export async function getStudyHistory(
     rating: log.rating,
     durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
     sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
-    stateBefore: (log.stateBeforeJson as StudyFsrsState | null) ?? null,
-    stateAfter: (log.stateAfterJson as StudyFsrsState | null) ?? null,
+    stateBefore: toStudyFsrsState(log.stateBeforeJson),
+    stateAfter: toStudyFsrsState(log.stateAfterJson),
     rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
   }));
 }
@@ -3326,8 +3326,8 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
       rating: log.rating,
       durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
       sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
-      stateBefore: (log.stateBeforeJson as StudyFsrsState | null) ?? null,
-      stateAfter: (log.stateAfterJson as StudyFsrsState | null) ?? null,
+      stateBefore: toStudyFsrsState(log.stateBeforeJson),
+      stateAfter: toStudyFsrsState(log.stateAfterJson),
       rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
     })),
     media: media.map((item) => ({
