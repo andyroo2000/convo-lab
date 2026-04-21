@@ -58,6 +58,7 @@ const StudyCardEditor = ({
 
   return (
     <form
+      data-testid="study-card-editor"
       className="space-y-5"
       onSubmit={async (event) => {
         event.preventDefault();

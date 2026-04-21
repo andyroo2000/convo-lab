@@ -16,9 +16,10 @@ const AudioPlayer = forwardRef<
   {
     label: string;
     showTimeline?: boolean;
+    testId?: string;
     url: string;
   }
->(({ label, showTimeline = false, url }, ref) => {
+>(({ label, showTimeline = false, testId, url }, ref) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -84,7 +85,7 @@ const AudioPlayer = forwardRef<
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-testid={testId}>
       {!showTimeline ? (
         <div className="flex justify-center">
           <button
@@ -235,6 +236,7 @@ export const StudyCardFace = ({
                 ref={promptAudioRef}
                 url={cueAudioUrl}
                 label={audioLedPrompt ? 'Replay prompt audio' : 'Play prompt audio'}
+                testId="study-prompt-audio"
               />
             </div>
           ) : null}
@@ -296,6 +298,7 @@ export const StudyCardFace = ({
             url={answerAudioUrl}
             label="Play answer audio"
             showTimeline
+            testId="study-answer-audio"
           />
         ) : null}
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />

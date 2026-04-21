@@ -233,7 +233,8 @@ describe('StudyBrowsePage', () => {
   it('updates the preview pane when another note row is selected and flipped', async () => {
     renderPage();
 
-    await userEvent.click(screen.getByText('お風呂に虫[...]！'));
+    const noteItems = await screen.findAllByTestId('study-browser-note-item');
+    await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
     await userEvent.click(screen.getByRole('button', { name: 'Back' }));
 
     expect(await screen.findByText('There are bugs in the bath!')).toBeInTheDocument();

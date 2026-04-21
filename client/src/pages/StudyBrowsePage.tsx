@@ -26,7 +26,7 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
   return (
     <div className="space-y-3 rounded-xl border border-gray-200 bg-white/80 p-4">
       {field.textValue ? (
-        <p className="whitespace-pre-wrap text-gray-900">{field.textValue}</p>
+        <p className="whitespace-pre-wrap break-words text-gray-900">{field.textValue}</p>
       ) : null}
       {imageUrl ? (
         <img src={imageUrl} alt={field.name} className="max-h-64 rounded-lg object-contain" />
@@ -286,7 +286,7 @@ const StudyBrowsePage = () => {
 
           <button
             type="submit"
-            className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90"
+            className="w-full rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 sm:w-auto"
           >
             Search
           </button>
@@ -294,7 +294,10 @@ const StudyBrowsePage = () => {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(26rem,38rem)_minmax(0,1fr)]">
-        <div className="card retro-paper-panel overflow-hidden">
+        <div
+          data-testid="study-browser-note-list"
+          className="card retro-paper-panel min-w-0 overflow-hidden"
+        >
           <div className="border-b border-gray-200 px-4 py-3">
             <p className="text-sm text-gray-600">
               {browserQuery.data?.total ?? 0} notes
@@ -316,45 +319,72 @@ const StudyBrowsePage = () => {
           ) : null}
 
           {rows.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-cream/60 text-gray-600">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Sort field</th>
-                    <th className="px-4 py-3 font-medium">Note type</th>
-                    <th className="px-4 py-3 font-medium">Cards</th>
-                    <th className="px-4 py-3 font-medium">Reviews</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr
-                      key={row.noteId}
-                      className={`cursor-pointer border-t border-gray-200 ${
-                        row.noteId === selectedNoteId ? 'bg-blue-100/70' : 'hover:bg-cream/50'
-                      }`}
-                      onClick={() => setSelectedNoteId(row.noteId)}
-                    >
-                      <td className="max-w-[16rem] px-4 py-3 align-top">
-                        <p className="line-clamp-2 text-gray-900">{row.displayText}</p>
-                      </td>
-                      <td className="px-4 py-3 align-top text-gray-700">
-                        {row.noteTypeName ?? 'Unknown'}
-                      </td>
-                      <td className="px-4 py-3 align-top text-gray-700">{row.cardCount}</td>
-                      <td className="px-4 py-3 align-top text-gray-700">{row.reviewCount}</td>
+            <>
+              <div className="space-y-3 p-4 md:hidden">
+                {rows.map((row) => (
+                  <button
+                    key={row.noteId}
+                    type="button"
+                    data-testid="study-browser-note-item"
+                    className={`block w-full rounded-2xl border px-4 py-4 text-left ${
+                      row.noteId === selectedNoteId
+                        ? 'border-navy bg-blue-50'
+                        : 'border-gray-200 bg-white hover:bg-cream/50'
+                    }`}
+                    onClick={() => setSelectedNoteId(row.noteId)}
+                  >
+                    <p className="break-words text-base font-semibold text-gray-900">
+                      {row.displayText}
+                    </p>
+                    <p className="mt-2 text-sm text-gray-600">
+                      {row.noteTypeName ?? 'Unknown'} · {row.cardCount} cards · {row.reviewCount}{' '}
+                      reviews
+                    </p>
+                  </button>
+                ))}
+              </div>
+              <div className="hidden overflow-x-auto md:block">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="bg-cream/60 text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Sort field</th>
+                      <th className="px-4 py-3 font-medium">Note type</th>
+                      <th className="px-4 py-3 font-medium">Cards</th>
+                      <th className="px-4 py-3 font-medium">Reviews</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={row.noteId}
+                        className={`cursor-pointer border-t border-gray-200 ${
+                          row.noteId === selectedNoteId ? 'bg-blue-100/70' : 'hover:bg-cream/50'
+                        }`}
+                        onClick={() => setSelectedNoteId(row.noteId)}
+                      >
+                        <td className="max-w-[16rem] px-4 py-3 align-top">
+                          <p className="line-clamp-2 break-words text-gray-900">
+                            {row.displayText}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 align-top text-gray-700">
+                          {row.noteTypeName ?? 'Unknown'}
+                        </td>
+                        <td className="px-4 py-3 align-top text-gray-700">{row.cardCount}</td>
+                        <td className="px-4 py-3 align-top text-gray-700">{row.reviewCount}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           ) : null}
 
-          <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
+          <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
               Page {query.page ?? 1} of {totalPages}
             </p>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button
                 type="button"
                 disabled={(query.page ?? 1) <= 1}
@@ -385,8 +415,8 @@ const StudyBrowsePage = () => {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <section className="card retro-paper-panel">
+        <div className="min-w-0 space-y-6">
+          <section data-testid="study-browser-detail" className="card retro-paper-panel min-w-0">
             {detailQuery.isLoading ? <p className="text-gray-500">Loading note preview…</p> : null}
             {detailQuery.error ? (
               <p className="text-red-600">
@@ -397,22 +427,22 @@ const StudyBrowsePage = () => {
             ) : null}
 
             {selectedDetail ? (
-              <div className="space-y-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-navy">
+              <div className="min-w-0 space-y-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h2 className="break-words text-2xl font-semibold text-navy">
                       {selectedDetail.displayText}
                     </h2>
-                    <p className="text-sm text-gray-500">
+                    <p className="break-words text-sm text-gray-500">
                       {selectedDetail.noteTypeName ?? 'Unknown note type'} · Updated{' '}
                       {new Date(selectedDetail.updatedAt).toLocaleString()}
                     </p>
                   </div>
-                  <div className="inline-flex rounded-full border border-gray-300 bg-white p-1">
+                  <div className="inline-flex w-full min-w-0 max-w-full rounded-full border border-gray-300 bg-white p-1 sm:w-auto">
                     <button
                       type="button"
                       onClick={() => setPreviewSide('front')}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${
+                      className={`min-w-0 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-initial ${
                         previewSide === 'front' ? 'bg-navy text-white' : 'text-navy'
                       }`}
                     >
@@ -421,7 +451,7 @@ const StudyBrowsePage = () => {
                     <button
                       type="button"
                       onClick={() => setPreviewSide('back')}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${
+                      className={`min-w-0 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-initial ${
                         previewSide === 'back' ? 'bg-navy text-white' : 'text-navy'
                       }`}
                     >
@@ -453,9 +483,12 @@ const StudyBrowsePage = () => {
                 ) : null}
 
                 {selectedCard ? (
-                  <div className="space-y-4 rounded-[2rem] bg-white px-6 py-10 shadow-sm ring-1 ring-gray-200 md:px-12">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm text-gray-500">
+                  <div
+                    data-testid="study-browser-preview"
+                    className="min-w-0 max-w-full space-y-4 overflow-hidden rounded-[2rem] bg-white px-4 py-6 shadow-sm ring-1 ring-gray-200 sm:px-6 sm:py-10 md:px-12"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="break-words text-sm text-gray-500">
                         Queue:{' '}
                         <span className="font-medium text-gray-700">
                           {selectedCard.state.queueState}
@@ -464,7 +497,7 @@ const StudyBrowsePage = () => {
                           ? ` · Due ${new Date(selectedCard.state.dueAt).toLocaleString()}`
                           : ''}
                       </p>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                         <button
                           type="button"
                           onClick={() => setEditing(true)}

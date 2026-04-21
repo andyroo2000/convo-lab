@@ -25,9 +25,12 @@ const StudySetDueControls = ({
   }, [customDate]);
 
   return (
-    <div className="space-y-3 rounded-2xl border border-gray-200 bg-cream/60 p-4">
+    <div
+      data-testid="study-set-due-controls"
+      className="space-y-3 rounded-2xl border border-gray-200 bg-cream/60 p-4"
+    >
       <p className="text-sm font-medium text-navy">Set due</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           type="button"
           disabled={disabled || isSubmitting}
@@ -49,10 +52,10 @@ const StudySetDueControls = ({
           Tomorrow
         </button>
       </div>
-      <div className="flex flex-wrap items-end gap-2">
+      <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-end">
         <label
           htmlFor={customDateInputId}
-          className="flex min-w-[12rem] flex-col gap-1 text-sm text-gray-600"
+          className="flex w-full flex-col gap-1 text-sm text-gray-600 sm:min-w-[12rem]"
         >
           <span>Custom date</span>
           <input
@@ -71,7 +74,7 @@ const StudySetDueControls = ({
             if (!customDateIso) return;
             onSubmit({ mode: 'custom_date', dueAt: customDateIso });
           }}
-          className="rounded-full border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           Apply
         </button>
@@ -80,7 +83,7 @@ const StudySetDueControls = ({
             type="button"
             disabled={disabled || isSubmitting}
             onClick={onCancel}
-            className="rounded-full border border-transparent px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-full border border-transparent px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             Cancel
           </button>

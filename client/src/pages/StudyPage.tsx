@@ -778,7 +778,10 @@ const StudyPage = () => {
     return (
       <div className="fixed inset-0 z-[60] overflow-y-auto bg-cream">
         <section className="min-h-screen px-4 py-4 sm:px-6 sm:py-6">
-          <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col rounded-[2rem] bg-[#fdfbf5] p-4 shadow-sm ring-1 ring-gray-200 sm:min-h-[calc(100vh-3rem)] sm:p-6">
+          <div
+            data-testid="study-focus-shell"
+            className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col rounded-[2rem] bg-[#fdfbf5] p-4 shadow-sm ring-1 ring-gray-200 sm:min-h-[calc(100vh-3rem)] sm:p-6"
+          >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <button
                 type="button"
@@ -867,7 +870,10 @@ const StudyPage = () => {
                     ) : (
                       <div className="space-y-5">
                         <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="flex flex-wrap gap-2">
+                          <div
+                            data-testid="study-review-actions"
+                            className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap"
+                          >
                             <button
                               type="button"
                               onClick={() => {
@@ -996,7 +1002,7 @@ const StudyPage = () => {
             <h1 className="text-3xl font-bold text-navy">Study</h1>
             <p className="text-gray-600">{headline}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
             <Link
               to="/app/study/browse"
               className="retro-nav-tab inline-flex items-center justify-center text-white hover:bg-white/20"
