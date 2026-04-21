@@ -1,14 +1,17 @@
 import type { Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppError } from '../../../middleware/errorHandler.js';
 
-const { createRedisConnectionMock, incrMock, expireMock, disconnectMock } = vi.hoisted(() => ({
-  createRedisConnectionMock: vi.fn(),
-  incrMock: vi.fn(),
-  expireMock: vi.fn(),
-  disconnectMock: vi.fn(),
-}));
+const { createRedisConnectionMock, disconnectMock, execMock, expireMock, incrMock, multiMock } =
+  vi.hoisted(() => ({
+    createRedisConnectionMock: vi.fn(),
+    execMock: vi.fn(),
+    incrMock: vi.fn(),
+    multiMock: vi.fn(),
+    expireMock: vi.fn(),
+    disconnectMock: vi.fn(),
+  }));
 
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: createRedisConnectionMock,
@@ -19,21 +22,53 @@ describe('studyRateLimit middleware', () => {
 
   beforeEach(() => {
     vi.resetModules();
+    vi.spyOn(Date, 'now').mockReturnValue(0);
+    execMock.mockReset();
     incrMock.mockReset();
+    multiMock.mockReset();
     expireMock.mockReset();
     disconnectMock.mockReset();
     createRedisConnectionMock.mockReset();
+
+    multiMock.mockImplementation(() => {
+      const pipeline = {
+        incr: (...args: unknown[]) => {
+          incrMock(...args);
+          return pipeline;
+        },
+        expire: (...args: unknown[]) => {
+          expireMock(...args);
+          return pipeline;
+        },
+        exec: execMock,
+      };
+
+      return pipeline;
+    });
 
     createRedisConnectionMock.mockReturnValue({
       incr: incrMock,
       expire: expireMock,
       disconnect: disconnectMock,
+      multi: multiMock,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('returns a 429 AppError after the limit is exceeded and reuses the shared redis client', async () => {
     ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
-    incrMock.mockResolvedValueOnce(1).mockResolvedValueOnce(3);
+    execMock
+      .mockResolvedValueOnce([
+        [null, 1],
+        [null, 1],
+      ])
+      .mockResolvedValueOnce([
+        [null, 3],
+        [null, 0],
+      ]);
 
     const middleware = rateLimitStudyRoute({
       key: 'session-start',
@@ -59,12 +94,20 @@ describe('studyRateLimit middleware', () => {
     const error = secondNext.mock.calls[0][0] as AppError;
     expect(error.statusCode).toBe(429);
     expect(createRedisConnectionMock).toHaveBeenCalledTimes(1);
+    expect(multiMock).toHaveBeenCalledTimes(2);
+    expect(incrMock).toHaveBeenNthCalledWith(1, 'rate-limit:study:session-start:user-1:0');
+    expect(expireMock).toHaveBeenNthCalledWith(
+      1,
+      'rate-limit:study:session-start:user-1:0',
+      60,
+      'NX'
+    );
     expect(disconnectMock).not.toHaveBeenCalled();
   });
 
   it('fails open when redis is unavailable', async () => {
     ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
-    incrMock.mockRejectedValue(new Error('redis unavailable'));
+    execMock.mockRejectedValue(new Error('redis unavailable'));
 
     const middleware = rateLimitStudyRoute({
       key: 'reviews',

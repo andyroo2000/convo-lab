@@ -87,6 +87,42 @@ describe('studyCsrf middleware', () => {
     );
   });
 
+  it('does not trust forwarded host headers when validating the origin', () => {
+    requireSameOriginStudyMutation(
+      {
+        method: 'POST',
+        protocol: 'https',
+        get: (header: string) => {
+          if (header.toLowerCase() === 'origin') {
+            return 'https://evil.example.com';
+          }
+
+          if (header.toLowerCase() === 'x-forwarded-proto') {
+            return 'https';
+          }
+
+          if (header.toLowerCase() === 'x-forwarded-host') {
+            return 'evil.example.com';
+          }
+
+          if (header.toLowerCase() === 'host') {
+            return 'api.convo-lab.com';
+          }
+
+          return undefined;
+        },
+      } as never,
+      {} as Response,
+      next
+    );
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 403,
+      })
+    );
+  });
+
   it('allows localhost development origins outside production', () => {
     process.env.NODE_ENV = 'test';
 

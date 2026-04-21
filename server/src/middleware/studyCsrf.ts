@@ -22,20 +22,7 @@ function toOrigin(value: string | undefined): string | null {
   }
 }
 
-function getRequestOrigin(req: AuthRequest): string | null {
-  const forwardedProto = req.get('x-forwarded-proto')?.split(',')[0]?.trim();
-  const forwardedHost = req.get('x-forwarded-host')?.split(',')[0]?.trim();
-  const host = forwardedHost || req.get('host');
-
-  if (!host) {
-    return null;
-  }
-
-  const protocol = forwardedProto || req.protocol || 'http';
-  return `${protocol}://${host}`;
-}
-
-function getAllowedStudyOrigins(req: AuthRequest): Set<string> {
+function getAllowedStudyOrigins(): Set<string> {
   const origins = new Set<string>();
   const configuredClientOrigin = toOrigin(process.env.CLIENT_URL);
 
@@ -45,11 +32,6 @@ function getAllowedStudyOrigins(req: AuthRequest): Set<string> {
 
   if (process.env.NODE_ENV !== 'production') {
     DEVELOPMENT_STUDY_ORIGINS.forEach((origin) => origins.add(origin));
-  }
-
-  const requestOrigin = getRequestOrigin(req);
-  if (requestOrigin) {
-    origins.add(requestOrigin);
   }
 
   return origins;
@@ -66,7 +48,7 @@ export function requireSameOriginStudyMutation(
   }
 
   const sourceOrigin = toOrigin(req.get('origin') ?? req.get('referer'));
-  const allowedOrigins = getAllowedStudyOrigins(req);
+  const allowedOrigins = getAllowedStudyOrigins();
 
   if (!sourceOrigin || !allowedOrigins.has(sourceOrigin)) {
     next(new AppError('Invalid request origin.', 403));

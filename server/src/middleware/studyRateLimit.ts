@@ -23,12 +23,25 @@ function getSharedRedisClient() {
 
 async function incrementWindowCount(rateKey: string, windowSeconds: number): Promise<number> {
   const redis = getSharedRedisClient();
-  const nextCount = await redis.incr(rateKey);
-  if (nextCount === 1) {
-    await redis.expire(rateKey, windowSeconds);
+  const pipeline = redis.multi();
+  pipeline.incr(rateKey);
+  pipeline.expire(rateKey, windowSeconds, 'NX');
+
+  const results = await pipeline.exec();
+  if (!results || results.length === 0) {
+    throw new Error('Study rate limit pipeline returned no results.');
   }
 
-  return nextCount;
+  const [incrError, incrResult] = results[0] ?? [];
+  if (incrError) {
+    throw incrError;
+  }
+
+  if (typeof incrResult !== 'number') {
+    throw new Error('Study rate limit pipeline returned an invalid count.');
+  }
+
+  return incrResult;
 }
 
 export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
