@@ -16,15 +16,6 @@ const BLOCK_LEVEL_TAGS = new Set([
   'ol',
 ]);
 
-const HTML_ENTITY_FALLBACK_MAP = new Map<string, string>([
-  ['amp', '&'],
-  ['apos', "'"],
-  ['gt', '>'],
-  ['lt', '<'],
-  ['nbsp', '\u00a0'],
-  ['quot', '"'],
-]);
-
 export interface StudyRubySegment {
   kind: 'text' | 'ruby';
   key: string;
@@ -42,35 +33,9 @@ const collapsePlainText = (value: string) =>
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-const decodeHtmlEntitiesWithoutDom = (value: string) =>
-  value.replace(/&(#(?:x[0-9a-f]+|\d+)|[a-z][a-z0-9]+);/giu, (match, entity: string) => {
-    const normalizedEntity = entity.toLowerCase();
-
-    if (normalizedEntity.startsWith('#x')) {
-      const codePoint = Number.parseInt(normalizedEntity.slice(2), 16);
-      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
-    }
-
-    if (normalizedEntity.startsWith('#')) {
-      const codePoint = Number.parseInt(normalizedEntity.slice(1), 10);
-      return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : match;
-    }
-
-    return HTML_ENTITY_FALLBACK_MAP.get(normalizedEntity) ?? match;
-  });
-
 const decodeHtmlEntitiesWithDomParser = (value: string) => {
   const document = new DOMParser().parseFromString(value, 'text/html');
   return document.documentElement.textContent ?? value;
-};
-
-const stripHtmlToTextWithoutDom = (value: string) => {
-  const withLineBreaks = value
-    .replace(/<br\s*\/?>/giu, '\n')
-    .replace(/<\/(?:p|div|blockquote|section|article|header|footer|li|ul|ol)>/giu, '\n')
-    .replace(/<[^>]+>/gu, '');
-
-  return collapsePlainText(decodeHtmlEntitiesWithoutDom(withLineBreaks));
 };
 
 const collectNodeText = (node: Node, output: string[]) => {
@@ -98,7 +63,7 @@ const collectNodeText = (node: Node, output: string[]) => {
 
 export const decodeHtmlEntities = (value: string) => {
   if (typeof DOMParser === 'undefined') {
-    return decodeHtmlEntitiesWithoutDom(value);
+    return value;
   }
 
   return decodeHtmlEntitiesWithDomParser(value);
@@ -106,7 +71,7 @@ export const decodeHtmlEntities = (value: string) => {
 
 export const stripHtmlToText = (value: string) => {
   if (typeof DOMParser === 'undefined') {
-    return stripHtmlToTextWithoutDom(value);
+    return collapsePlainText(value);
   }
 
   const document = new DOMParser().parseFromString(value, 'text/html');

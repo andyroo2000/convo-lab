@@ -574,6 +574,17 @@ function isSafeZipBasename(value: string): boolean {
   return !isUnsafeZipPath(normalized) && !normalized.includes('/');
 }
 
+function isAllowedStudyImportZipEntryName(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  return (
+    normalized === 'collection.anki21b' ||
+    normalized === 'collection.anki21' ||
+    normalized === 'collection.anki2' ||
+    normalized === 'media' ||
+    isSafeZipBasename(normalized)
+  );
+}
+
 function sanitizePathSegment(value: string): string {
   const base = path.basename(stripNullChars(value));
   const normalized = base.replace(/[^a-zA-Z0-9._-]/g, '_');
@@ -869,13 +880,24 @@ function getDefaultAnkiMediaDirectory(): string | null {
 
 async function findLocalAnkiMediaFile(filename: string): Promise<string | null> {
   const configuredDir = sanitizeText(process.env.ANKI_MEDIA_DIR ?? '');
-  const safeFilename = path.basename(stripNullChars(filename));
+  const normalizedFilename = normalizeZipPath(filename);
+
+  if (!isSafeZipBasename(normalizedFilename)) {
+    return null;
+  }
+
   const candidateDirs = [configuredDir, getDefaultAnkiMediaDirectory()].filter(
     (value): value is string => Boolean(value)
   );
 
   for (const dir of candidateDirs) {
-    const absolutePath = path.join(dir, safeFilename);
+    const resolvedDir = path.resolve(dir);
+    const absolutePath = path.resolve(resolvedDir, normalizedFilename);
+
+    if (!absolutePath.startsWith(`${resolvedDir}${path.sep}`) && absolutePath !== resolvedDir) {
+      continue;
+    }
+
     try {
       await fs.access(absolutePath);
       return absolutePath;
@@ -1478,6 +1500,14 @@ async function parseColpkgUpload(params: {
 
   try {
     const zip = await JSZip.loadAsync(fileBuffer);
+    const containsUnsafeZipEntry = Object.values(zip.files).some(
+      (entry) => !entry.dir && !isAllowedStudyImportZipEntryName(entry.name)
+    );
+
+    if (containsUnsafeZipEntry) {
+      throw new AppError('The uploaded .colpkg contains unsafe archive paths.', 400);
+    }
+
     const collectionEntry =
       zip.file('collection.anki21b') ??
       zip.file('collection.anki21') ??
@@ -3592,7 +3622,7 @@ export async function getStudyBrowserNoteDetail(
     return null;
   }
 
-  const cards = note.cards;
+  const cards = note.cards.filter((card) => card.userId === userId);
   await ensureStudyCardMediaAvailable(cards);
   const cardSummaries = await Promise.all(cards.map((card) => toStudyCardSummary(card)));
 

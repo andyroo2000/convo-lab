@@ -56,10 +56,12 @@ async function buildFixtureColpkg(
     includeOrphanedReviewLog?: boolean;
     companyPhotoFilename?: string;
     companyPhotoMediaEntryId?: string;
+    companyPhotoZipEntryName?: string;
   } = {}
 ): Promise<Buffer> {
   const companyPhotoFilename = options.companyPhotoFilename ?? 'company.png';
   const companyPhotoMediaEntryId = options.companyPhotoMediaEntryId ?? '0';
+  const companyPhotoZipEntryName = options.companyPhotoZipEntryName ?? companyPhotoMediaEntryId;
   const fields = {
     vocab: [
       'Expression',
@@ -279,7 +281,7 @@ async function buildFixtureColpkg(
   ];
 
   mediaFiles.forEach((mediaFilename, index) => {
-    const entryName = index === 0 ? companyPhotoMediaEntryId : String(index);
+    const entryName = index === 0 ? companyPhotoZipEntryName : String(index);
     zip.file(entryName, Buffer.from(`fixture:${mediaFilename}`));
   });
 
@@ -454,6 +456,22 @@ describe('studyService', () => {
     expect(companyPhoto).toMatchObject({
       publicUrl: null,
       storagePath: null,
+    });
+  });
+
+  it('rejects .colpkg archives that contain unsafe zip entry paths', async () => {
+    const colpkgBuffer = await buildFixtureColpkg({
+      companyPhotoZipEntryName: 'nested/0',
+    });
+
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: colpkgBuffer,
+        filename: 'japanese.colpkg',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
     });
   });
 
@@ -1335,6 +1353,74 @@ describe('studyService', () => {
     expect(result?.rawFields.find((field) => field.name === 'AudioWord')?.audio?.filename).toBe(
       'company-word.mp3'
     );
+  });
+
+  it('filters foreign cards out of browser note detail results', async () => {
+    mockPrisma.studyNote.findFirst.mockResolvedValue({
+      id: 'note-1',
+      sourceKind: 'anki_import',
+      sourceNotetypeName: 'Japanese - Vocab',
+      rawFieldsJson: {},
+      canonicalJson: {},
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      cards: [
+        {
+          id: 'card-1',
+          userId: 'user-1',
+          noteId: 'note-1',
+          cardType: 'recognition',
+          queueState: 'review',
+          dueAt: null,
+          sourceTemplateOrd: 0,
+          sourceTemplateName: 'Word -> Meaning',
+          answerAudioSource: 'none',
+          promptJson: { cueText: '会社' },
+          answerJson: { expression: '会社', meaning: 'company' },
+          schedulerStateJson: null,
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+          note: {
+            id: 'note-1',
+            sourceNotetypeName: 'Japanese - Vocab',
+            rawFieldsJson: {},
+          },
+          promptAudioMedia: null,
+          answerAudioMedia: null,
+          imageMedia: null,
+        },
+        {
+          id: 'card-2',
+          userId: 'user-2',
+          noteId: 'note-1',
+          cardType: 'recognition',
+          queueState: 'review',
+          dueAt: null,
+          sourceTemplateOrd: 1,
+          sourceTemplateName: 'Other',
+          answerAudioSource: 'none',
+          promptJson: { cueText: 'leak' },
+          answerJson: { expression: 'leak', meaning: 'leak' },
+          schedulerStateJson: null,
+          createdAt: new Date('2026-04-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+          note: {
+            id: 'note-1',
+            sourceNotetypeName: 'Japanese - Vocab',
+            rawFieldsJson: {},
+          },
+          promptAudioMedia: null,
+          answerAudioMedia: null,
+          imageMedia: null,
+        },
+      ],
+    });
+    mockPrisma.studyReviewLog.groupBy.mockResolvedValue([]);
+
+    const result = await getStudyBrowserNoteDetail('user-1', 'note-1');
+
+    expect(result?.cards).toHaveLength(1);
+    expect(result?.cards[0]?.id).toBe('card-1');
+    expect(result?.selectedCardId).toBe('card-1');
   });
 
   it('updates a study card without changing scheduling and regenerates answer audio when spoken answer text changes', async () => {
