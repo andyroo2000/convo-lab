@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
 import type { StudyAnswerPayload, StudyCardSummary, StudyPromptPayload } from '@shared/types';
 
+import StudyFormField from './StudyFormField';
+
 interface StudyCardEditorProps {
   card: StudyCardSummary;
   onCancel: () => void;
-  onSave: (payload: { prompt: StudyPromptPayload; answer: StudyAnswerPayload }) => Promise<void> | void;
+  onSave: (payload: {
+    prompt: StudyPromptPayload;
+    answer: StudyAnswerPayload;
+  }) => Promise<void> | void;
   isSaving?: boolean;
   error?: string | null;
 }
 
-const StudyCardEditor = ({ card, onCancel, onSave, isSaving = false, error }: StudyCardEditorProps) => {
+const StudyCardEditor = ({
+  card,
+  onCancel,
+  onSave,
+  isSaving = false,
+  error,
+}: StudyCardEditorProps) => {
   const [cueText, setCueText] = useState('');
   const [cueReading, setCueReading] = useState('');
   const [cueMeaning, setCueMeaning] = useState('');
@@ -101,10 +112,10 @@ const StudyCardEditor = ({ card, onCancel, onSave, isSaving = false, error }: St
         </span>
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-cue-text">
-          {card.cardType === 'cloze' ? 'Cloze text' : 'Prompt text'}
-        </label>
+      <StudyFormField
+        htmlFor="study-edit-cue-text"
+        label={card.cardType === 'cloze' ? 'Cloze text' : 'Prompt text'}
+      >
         <textarea
           id="study-edit-cue-text"
           value={cueText}
@@ -112,55 +123,43 @@ const StudyCardEditor = ({ card, onCancel, onSave, isSaving = false, error }: St
           className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
           required
         />
-      </div>
+      </StudyFormField>
 
       {card.cardType === 'cloze' ? (
-        <div>
-          <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-cloze-hint">
-            Cloze hint
-          </label>
+        <StudyFormField htmlFor="study-edit-cloze-hint" label="Cloze hint">
           <input
             id="study-edit-cloze-hint"
             value={cueMeaning}
             onChange={(event) => setCueMeaning(event.target.value)}
             className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
           />
-        </div>
+        </StudyFormField>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-cue-reading">
-              Prompt reading
-            </label>
+          <StudyFormField htmlFor="study-edit-cue-reading" label="Prompt reading">
             <input
               id="study-edit-cue-reading"
               value={cueReading}
               onChange={(event) => setCueReading(event.target.value)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-cue-meaning">
-              Prompt meaning / hint
-            </label>
+          </StudyFormField>
+          <StudyFormField htmlFor="study-edit-cue-meaning" label="Prompt meaning / hint">
             <input
               id="study-edit-cue-meaning"
               value={cueMeaning}
               onChange={(event) => setCueMeaning(event.target.value)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
         </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
-        <div>
-          <label
-            className="mb-2 block text-sm font-medium text-gray-700"
-            htmlFor="study-edit-answer-expression"
-          >
-            {card.cardType === 'cloze' ? 'Restored answer' : 'Answer expression'}
-          </label>
+        <StudyFormField
+          htmlFor="study-edit-answer-expression"
+          label={card.cardType === 'cloze' ? 'Restored answer' : 'Answer expression'}
+        >
           <input
             id="study-edit-answer-expression"
             value={answerExpression}
@@ -168,75 +167,57 @@ const StudyCardEditor = ({ card, onCancel, onSave, isSaving = false, error }: St
             className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             required
           />
-        </div>
+        </StudyFormField>
         {card.cardType !== 'cloze' ? (
-          <div>
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-              htmlFor="study-edit-answer-reading"
-            >
-              Answer reading
-            </label>
+          <StudyFormField htmlFor="study-edit-answer-reading" label="Answer reading">
             <input
               id="study-edit-answer-reading"
               value={answerReading}
               onChange={(event) => setAnswerReading(event.target.value)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
         ) : null}
       </div>
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-answer-meaning">
-          Answer meaning
-        </label>
+      <StudyFormField htmlFor="study-edit-answer-meaning" label="Answer meaning">
         <input
           id="study-edit-answer-meaning"
           value={answerMeaning}
           onChange={(event) => setAnswerMeaning(event.target.value)}
           className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
         />
-      </div>
+      </StudyFormField>
 
       {card.cardType !== 'cloze' ? (
         <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-sentence-jp">
-              Example sentence (JP)
-            </label>
+          <StudyFormField htmlFor="study-edit-sentence-jp" label="Example sentence (JP)">
             <textarea
               id="study-edit-sentence-jp"
               value={sentenceJp}
               onChange={(event) => setSentenceJp(event.target.value)}
               className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-sentence-en">
-              Example sentence (EN)
-            </label>
+          </StudyFormField>
+          <StudyFormField htmlFor="study-edit-sentence-en" label="Example sentence (EN)">
             <textarea
               id="study-edit-sentence-en"
               value={sentenceEn}
               onChange={(event) => setSentenceEn(event.target.value)}
               className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
         </div>
       ) : null}
 
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-edit-notes">
-          Notes
-        </label>
+      <StudyFormField htmlFor="study-edit-notes" label="Notes">
         <textarea
           id="study-edit-notes"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
         />
-      </div>
+      </StudyFormField>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import StudyFormField from '../components/study/StudyFormField';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyExport, useStudyHistory } from '../hooks/useStudy';
 
@@ -23,13 +24,11 @@ const StudyHistoryPage = () => {
 
       <section className="card retro-paper-panel max-w-4xl space-y-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[16rem]">
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-              htmlFor="study-history-card"
-            >
-              Filter by card
-            </label>
+          <StudyFormField
+            htmlFor="study-history-card"
+            label="Filter by card"
+            className="flex-1 min-w-[16rem]"
+          >
             <select
               id="study-history-card"
               value={selectedCardId}
@@ -47,7 +46,7 @@ const StudyHistoryPage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </StudyFormField>
           <Link
             to="/app/study"
             className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"

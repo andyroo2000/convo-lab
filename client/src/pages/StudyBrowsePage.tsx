@@ -3,13 +3,15 @@ import { Link } from 'react-router-dom';
 
 import type { StudyBrowserField } from '@shared/types';
 
+import StudyFormField from '../components/study/StudyFormField';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   type StudyBrowserQuery,
   useStudyBrowser,
   useStudyBrowserNoteDetail,
 } from '../hooks/useStudy';
-import { StudyCardFace, toAssetUrl } from '../components/study/StudyCardPreview';
+import { StudyCardFace } from '../components/study/StudyCardPreview';
+import { toAssetUrl } from '../components/study/studyCardUtils';
 
 const PAGE_SIZE = 100;
 
@@ -19,13 +21,11 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
 
   return (
     <div className="space-y-3 rounded-xl border border-gray-200 bg-white/80 p-4">
-      {field.textValue ? <p className="whitespace-pre-wrap text-gray-900">{field.textValue}</p> : null}
+      {field.textValue ? (
+        <p className="whitespace-pre-wrap text-gray-900">{field.textValue}</p>
+      ) : null}
       {imageUrl ? (
-        <img
-          src={imageUrl}
-          alt={field.name}
-          className="max-h-64 rounded-lg object-contain"
-        />
+        <img src={imageUrl} alt={field.name} className="max-h-64 rounded-lg object-contain" />
       ) : null}
       {audioUrl ? (
         <audio controls preload="metadata" className="w-full max-w-xl">
@@ -48,7 +48,7 @@ const StudyBrowsePage = () => {
     pageSize: PAGE_SIZE,
   });
   const browserQuery = useStudyBrowser(enabled, query);
-  const rows = browserQuery.data?.rows ?? [];
+  const rows = useMemo(() => browserQuery.data?.rows ?? [], [browserQuery.data?.rows]);
   const [selectedNoteId, setSelectedNoteId] = useState<string>('');
   const detailQuery = useStudyBrowserNoteDetail(enabled, selectedNoteId || undefined);
   const [selectedCardId, setSelectedCardId] = useState<string>('');
@@ -88,7 +88,10 @@ const StudyBrowsePage = () => {
     [selectedCardId, selectedDetail]
   );
 
-  const totalPages = Math.max(1, Math.ceil((browserQuery.data?.total ?? 0) / (query.pageSize ?? PAGE_SIZE)));
+  const totalPages = Math.max(
+    1,
+    Math.ceil((browserQuery.data?.total ?? 0) / (query.pageSize ?? PAGE_SIZE))
+  );
 
   return (
     <div className="space-y-6">
@@ -121,10 +124,11 @@ const StudyBrowsePage = () => {
             }));
           }}
         >
-          <div className="min-w-[18rem] flex-1">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-browser-search">
-              Search cards/notes
-            </label>
+          <StudyFormField
+            htmlFor="study-browser-search"
+            label="Search cards/notes"
+            className="min-w-[18rem] flex-1"
+          >
             <input
               id="study-browser-search"
               type="text"
@@ -133,12 +137,13 @@ const StudyBrowsePage = () => {
               placeholder="Type text, then press Enter"
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
 
-          <div className="min-w-[12rem]">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-browser-note-type">
-              Note type
-            </label>
+          <StudyFormField
+            htmlFor="study-browser-note-type"
+            label="Note type"
+            className="min-w-[12rem]"
+          >
             <select
               id="study-browser-note-type"
               value={query.noteType ?? ''}
@@ -158,12 +163,13 @@ const StudyBrowsePage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </StudyFormField>
 
-          <div className="min-w-[10rem]">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-browser-card-type">
-              Card type
-            </label>
+          <StudyFormField
+            htmlFor="study-browser-card-type"
+            label="Card type"
+            className="min-w-[10rem]"
+          >
             <select
               id="study-browser-card-type"
               value={query.cardType ?? ''}
@@ -183,12 +189,13 @@ const StudyBrowsePage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </StudyFormField>
 
-          <div className="min-w-[10rem]">
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-browser-queue">
-              Queue state
-            </label>
+          <StudyFormField
+            htmlFor="study-browser-queue"
+            label="Queue state"
+            className="min-w-[10rem]"
+          >
             <select
               id="study-browser-queue"
               value={query.queueState ?? ''}
@@ -208,7 +215,7 @@ const StudyBrowsePage = () => {
                 </option>
               ))}
             </select>
-          </div>
+          </StudyFormField>
 
           <button
             type="submit"
@@ -231,7 +238,9 @@ const StudyBrowsePage = () => {
           {browserQuery.isLoading ? <p className="p-6 text-gray-500">Loading notes…</p> : null}
           {browserQuery.error ? (
             <p className="p-6 text-red-600">
-              {browserQuery.error instanceof Error ? browserQuery.error.message : 'Failed to load notes.'}
+              {browserQuery.error instanceof Error
+                ? browserQuery.error.message
+                : 'Failed to load notes.'}
             </p>
           ) : null}
 
@@ -262,7 +271,9 @@ const StudyBrowsePage = () => {
                       <td className="max-w-[16rem] px-4 py-3 align-top">
                         <p className="line-clamp-2 text-gray-900">{row.displayText}</p>
                       </td>
-                      <td className="px-4 py-3 align-top text-gray-700">{row.noteTypeName ?? 'Unknown'}</td>
+                      <td className="px-4 py-3 align-top text-gray-700">
+                        {row.noteTypeName ?? 'Unknown'}
+                      </td>
                       <td className="px-4 py-3 align-top text-gray-700">{row.cardCount}</td>
                       <td className="px-4 py-3 align-top text-gray-700">{row.reviewCount}</td>
                     </tr>
@@ -312,7 +323,9 @@ const StudyBrowsePage = () => {
             {detailQuery.isLoading ? <p className="text-gray-500">Loading note preview…</p> : null}
             {detailQuery.error ? (
               <p className="text-red-600">
-                {detailQuery.error instanceof Error ? detailQuery.error.message : 'Failed to load note detail.'}
+                {detailQuery.error instanceof Error
+                  ? detailQuery.error.message
+                  : 'Failed to load note detail.'}
               </p>
             ) : null}
 
@@ -320,7 +333,9 @@ const StudyBrowsePage = () => {
               <div className="space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <h2 className="text-2xl font-semibold text-navy">{selectedDetail.displayText}</h2>
+                    <h2 className="text-2xl font-semibold text-navy">
+                      {selectedDetail.displayText}
+                    </h2>
                     <p className="text-sm text-gray-500">
                       {selectedDetail.noteTypeName ?? 'Unknown note type'} · Updated{' '}
                       {new Date(selectedDetail.updatedAt).toLocaleString()}
@@ -394,7 +409,9 @@ const StudyBrowsePage = () => {
             <>
               <section className="card retro-paper-panel">
                 <details open>
-                  <summary className="cursor-pointer text-lg font-semibold text-navy">Imported fields</summary>
+                  <summary className="cursor-pointer text-lg font-semibold text-navy">
+                    Imported fields
+                  </summary>
                   <div className="mt-4 space-y-4">
                     {selectedDetail.rawFields.map((field) => (
                       <div key={field.name} className="space-y-2">
@@ -409,7 +426,9 @@ const StudyBrowsePage = () => {
               {selectedDetail.canonicalFields.length ? (
                 <section className="card retro-paper-panel">
                   <details>
-                    <summary className="cursor-pointer text-lg font-semibold text-navy">Canonical fields</summary>
+                    <summary className="cursor-pointer text-lg font-semibold text-navy">
+                      Canonical fields
+                    </summary>
                     <div className="mt-4 space-y-4">
                       {selectedDetail.canonicalFields.map((field) => (
                         <div key={field.name} className="space-y-2">

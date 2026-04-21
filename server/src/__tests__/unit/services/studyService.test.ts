@@ -6,16 +6,6 @@ import path from 'path';
 import JSZip from 'jszip';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
-import { mockPrisma } from '../../setup.js';
-
-vi.mock('../../../services/ttsClient.js', () => ({
-  synthesizeSpeech: vi.fn(async () => Buffer.from('fake-audio')),
-}));
-
-vi.mock('../../../services/furiganaService.js', () => ({
-  addFuriganaBrackets: vi.fn(async (text: string) => `${text}[furigana]`),
-}));
-
 import {
   createStudyCard,
   getStudyBrowserList,
@@ -28,6 +18,15 @@ import {
   updateStudyCard,
 } from '../../../services/studyService.js';
 import { synthesizeSpeech } from '../../../services/ttsClient.js';
+import { mockPrisma } from '../../setup.js';
+
+vi.mock('../../../services/ttsClient.js', () => ({
+  synthesizeSpeech: vi.fn(async () => Buffer.from('fake-audio')),
+}));
+
+vi.mock('../../../services/furiganaService.js', () => ({
+  addFuriganaBrackets: vi.fn(async (text: string) => `${text}[furigana]`),
+}));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
 const generatedStudyMediaPath = path.join(process.cwd(), 'server/public/study-media');
@@ -898,7 +897,9 @@ describe('studyService', () => {
       cardId: 'card-1',
       reviewCount: 4,
     });
-    expect(result?.rawFields.find((field) => field.name === 'Photo')?.image?.filename).toBe('company.png');
+    expect(result?.rawFields.find((field) => field.name === 'Photo')?.image?.filename).toBe(
+      'company.png'
+    );
     expect(result?.rawFields.find((field) => field.name === 'AudioWord')?.audio?.filename).toBe(
       'company-word.mp3'
     );

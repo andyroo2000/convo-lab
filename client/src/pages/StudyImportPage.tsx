@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import StudyFormField from '../components/study/StudyFormField';
 import { uploadStudyImport } from '../hooks/useStudy';
 
 const StudyImportPage = () => {
@@ -43,10 +44,7 @@ const StudyImportPage = () => {
 
       <section className="card retro-paper-panel max-w-3xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-colpkg">
-              Anki collection backup
-            </label>
+          <StudyFormField htmlFor="study-colpkg" label="Anki collection backup">
             <input
               id="study-colpkg"
               type="file"
@@ -54,7 +52,7 @@ const StudyImportPage = () => {
               onChange={(event) => setFile(event.target.files?.[0] ?? null)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
 
           <div className="rounded-2xl bg-cream/70 p-4 text-sm text-gray-700">
             <p className="font-semibold text-navy">Import behavior</p>

@@ -1,10 +1,15 @@
-import { describe, expect, it, vi } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { BrowserRouter } from 'react-router-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudyBrowsePage from '../StudyBrowsePage';
+
+const { useStudyBrowserMock, useStudyBrowserNoteDetailMock } = vi.hoisted(() => ({
+  useStudyBrowserMock: vi.fn(),
+  useStudyBrowserNoteDetailMock: vi.fn(),
+}));
 
 const browserData = {
   rows: [
@@ -76,7 +81,13 @@ const noteDetailById = {
     noteTypeName: 'Cloze',
     sourceKind: 'anki_import',
     updatedAt: new Date('2026-04-11T00:00:00.000Z').toISOString(),
-    rawFields: [{ name: 'Text', value: 'お風呂に虫{{c1::がいる}}！', textValue: 'お風呂に虫{{c1::がいる}}！' }],
+    rawFields: [
+      {
+        name: 'Text',
+        value: 'お風呂に虫{{c1::がいる}}！',
+        textValue: 'お風呂に虫{{c1::がいる}}！',
+      },
+    ],
     canonicalFields: [],
     cardStats: [{ cardId: 'card-2', reviewCount: 1, lastReviewedAt: null }],
     selectedCardId: 'card-2',
@@ -108,16 +119,9 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
-  useStudyBrowser: () => ({
-    data: browserData,
-    isLoading: false,
-    error: null,
-  }),
-  useStudyBrowserNoteDetail: (_enabled: boolean, noteId?: string) => ({
-    data: noteId ? noteDetailById[noteId as keyof typeof noteDetailById] : undefined,
-    isLoading: false,
-    error: null,
-  }),
+  useStudyBrowser: (enabled: boolean, query: unknown) => useStudyBrowserMock(enabled, query),
+  useStudyBrowserNoteDetail: (enabled: boolean, noteId?: string) =>
+    useStudyBrowserNoteDetailMock(enabled, noteId),
 }));
 
 const renderPage = () => {
@@ -137,6 +141,22 @@ const renderPage = () => {
 };
 
 describe('StudyBrowsePage', () => {
+  beforeEach(() => {
+    useStudyBrowserMock.mockReset();
+    useStudyBrowserNoteDetailMock.mockReset();
+
+    useStudyBrowserMock.mockReturnValue({
+      data: browserData,
+      isLoading: false,
+      error: null,
+    });
+    useStudyBrowserNoteDetailMock.mockImplementation((_enabled: boolean, noteId?: string) => ({
+      data: noteId ? noteDetailById[noteId as keyof typeof noteDetailById] : undefined,
+      isLoading: false,
+      error: null,
+    }));
+  });
+
   it('renders note rows and selects the first note by default', async () => {
     renderPage();
 
@@ -145,7 +165,7 @@ describe('StudyBrowsePage', () => {
     expect(await screen.findByText('Imported fields')).toBeInTheDocument();
   });
 
-  it('updates the preview pane when another note row is selected', async () => {
+  it('updates the preview pane when another note row is selected and flipped', async () => {
     renderPage();
 
     await userEvent.click(screen.getByText('お風呂に虫[...]！'));
@@ -153,5 +173,33 @@ describe('StudyBrowsePage', () => {
 
     expect(await screen.findByText('There are bugs in the bath!')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Front' })).toBeInTheDocument();
+  });
+
+  it('updates the browser query when search and filters are submitted', async () => {
+    renderPage();
+
+    await userEvent.type(screen.getByRole('textbox', { name: 'Search cards/notes' }), '会社');
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Note type' }),
+      'Japanese - Vocab'
+    );
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Card type' }),
+      'recognition'
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    await waitFor(() => {
+      expect(useStudyBrowserMock).toHaveBeenLastCalledWith(
+        true,
+        expect.objectContaining({
+          q: '会社',
+          noteType: 'Japanese - Vocab',
+          cardType: 'recognition',
+          page: 1,
+          pageSize: 100,
+        })
+      );
+    });
   });
 });

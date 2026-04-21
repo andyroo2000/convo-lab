@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
+import StudyFormField from '../components/study/StudyFormField';
 import { useCreateStudyCard } from '../hooks/useStudy';
 
 const StudyCreatePage = () => {
@@ -69,13 +70,7 @@ const StudyCreatePage = () => {
 
       <section className="card retro-paper-panel max-w-3xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <div>
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-              htmlFor="study-card-type"
-            >
-              Card type
-            </label>
+          <StudyFormField htmlFor="study-card-type" label="Card type">
             <select
               id="study-card-type"
               value={cardType}
@@ -88,15 +83,12 @@ const StudyCreatePage = () => {
               <option value="production">Production</option>
               <option value="cloze">Cloze</option>
             </select>
-          </div>
+          </StudyFormField>
 
-          <div>
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-              htmlFor="study-cue-text"
-            >
-              {cardType === 'cloze' ? 'Cloze text' : 'Prompt text'}
-            </label>
+          <StudyFormField
+            htmlFor="study-cue-text"
+            label={cardType === 'cloze' ? 'Cloze text' : 'Prompt text'}
+          >
             <textarea
               id="study-cue-text"
               value={cueText}
@@ -104,64 +96,43 @@ const StudyCreatePage = () => {
               className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
               required
             />
-          </div>
+          </StudyFormField>
 
           {cardType !== 'cloze' ? (
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                  htmlFor="study-cue-reading"
-                >
-                  Prompt reading
-                </label>
+              <StudyFormField htmlFor="study-cue-reading" label="Prompt reading">
                 <input
                   id="study-cue-reading"
                   value={cueReading}
                   onChange={(event) => setCueReading(event.target.value)}
                   className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
                 />
-              </div>
-              <div>
-                <label
-                  className="mb-2 block text-sm font-medium text-gray-700"
-                  htmlFor="study-cue-meaning"
-                >
-                  Prompt meaning / hint
-                </label>
+              </StudyFormField>
+              <StudyFormField htmlFor="study-cue-meaning" label="Prompt meaning / hint">
                 <input
                   id="study-cue-meaning"
                   value={cueMeaning}
                   onChange={(event) => setCueMeaning(event.target.value)}
                   className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
                 />
-              </div>
+              </StudyFormField>
             </div>
           ) : (
-            <div>
-              <label
-                className="mb-2 block text-sm font-medium text-gray-700"
-                htmlFor="study-cloze-hint"
-              >
-                Cloze hint
-              </label>
+            <StudyFormField htmlFor="study-cloze-hint" label="Cloze hint">
               <input
                 id="study-cloze-hint"
                 value={cueMeaning}
                 onChange={(event) => setCueMeaning(event.target.value)}
                 className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
               />
-            </div>
+            </StudyFormField>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label
-                className="mb-2 block text-sm font-medium text-gray-700"
-                htmlFor="study-answer-expression"
-              >
-                {cardType === 'cloze' ? 'Restored answer' : 'Answer expression'}
-              </label>
+            <StudyFormField
+              htmlFor="study-answer-expression"
+              label={cardType === 'cloze' ? 'Restored answer' : 'Answer expression'}
+            >
               <input
                 id="study-answer-expression"
                 value={answerExpression}
@@ -169,14 +140,8 @@ const StudyCreatePage = () => {
                 className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
                 required
               />
-            </div>
-            <div>
-              <label
-                className="mb-2 block text-sm font-medium text-gray-700"
-                htmlFor="study-answer-reading"
-              >
-                Answer reading
-              </label>
+            </StudyFormField>
+            <StudyFormField htmlFor="study-answer-reading" label="Answer reading">
               <input
                 id="study-answer-reading"
                 value={answerReading}
@@ -184,35 +149,26 @@ const StudyCreatePage = () => {
                 className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
                 disabled={cardType === 'cloze'}
               />
-            </div>
+            </StudyFormField>
           </div>
 
-          <div>
-            <label
-              className="mb-2 block text-sm font-medium text-gray-700"
-              htmlFor="study-answer-meaning"
-            >
-              Answer meaning
-            </label>
+          <StudyFormField htmlFor="study-answer-meaning" label="Answer meaning">
             <input
               id="study-answer-meaning"
               value={answerMeaning}
               onChange={(event) => setAnswerMeaning(event.target.value)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
 
-          <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="study-notes">
-              Notes
-            </label>
+          <StudyFormField htmlFor="study-notes" label="Notes">
             <textarea
               id="study-notes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
               className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
-          </div>
+          </StudyFormField>
 
           {createCard.error ? (
             <p className="text-sm text-red-600">

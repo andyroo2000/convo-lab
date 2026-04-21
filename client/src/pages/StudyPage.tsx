@@ -15,8 +15,9 @@ import {
   useSubmitStudyReview,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
-import { AudioPlayerHandle, isAudioLedPromptCard, StudyCardFace, toAssetUrl } from '../components/study/StudyCardPreview';
+import { AudioPlayerHandle, StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
+import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
 
 const reviewScheduler = fsrs();
 const PREWARM_CARD_COUNT = 3;
@@ -158,37 +159,46 @@ const StudyPage = () => {
   const lastShakeAtRef = useRef(0);
   const lastMotionMagnitudeRef = useRef<number | null>(null);
 
-  const cards = session?.cards ?? [];
+  const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
   const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const availableCount = (overviewQuery.data?.dueCount ?? 0) + (overviewQuery.data?.newCount ?? 0);
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
     const failedSet = new Set(failedCardIds);
+    const totals = { newRemaining: 0, failedDue: 0, reviewRemaining: 0 };
 
-    return cards.reduce(
-      (totals, card) => {
-        const isNewCard = card.state.source.type === 0 || card.state.queueState === 'new';
+    cards.forEach((card) => {
+      const isNewCard = card.state.source.type === 0 || card.state.queueState === 'new';
 
-        if (failedSet.has(card.id)) {
-          totals.failedDue += 1;
-        } else if (answeredSet.has(card.id)) {
-          return totals;
-        } else if (isNewCard) {
+      if (failedSet.has(card.id)) {
+        totals.failedDue += 1;
+      } else if (!answeredSet.has(card.id)) {
+        if (isNewCard) {
           totals.newRemaining += 1;
         } else {
           totals.reviewRemaining += 1;
         }
+      }
+    });
 
-        return totals;
-      },
-      { newRemaining: 0, failedDue: 0, reviewRemaining: 0 }
-    );
+    return totals;
   }, [answeredCardIds, cards, failedCardIds]);
+  const updateCardErrorMessage = useMemo(() => {
+    if (updateCardMutation.error instanceof Error) {
+      return updateCardMutation.error.message;
+    }
+
+    return updateCardMutation.error ? 'Card update failed.' : null;
+  }, [updateCardMutation.error]);
 
   const stopAllAudio = useCallback(() => {
     promptAudioRef.current?.stop();
     answerAudioRef.current?.stop();
+  }, []);
+
+  const ignorePromise = useCallback((task?: Promise<unknown>) => {
+    task?.catch(() => {});
   }, []);
 
   const syncOverview = useCallback(
@@ -204,7 +214,9 @@ const StudyPage = () => {
 
       return {
         ...currentSession,
-        cards: currentSession.cards.map((card) => (card.id === updatedCard.id ? updatedCard : card)),
+        cards: currentSession.cards.map((card) =>
+          card.id === updatedCard.id ? updatedCard : card
+        ),
       };
     });
   }, []);
@@ -236,9 +248,7 @@ const StudyPage = () => {
 
   const captureUndoSnapshot = useCallback(
     (): StudyUndoSnapshot => ({
-      session: session
-        ? (JSON.parse(JSON.stringify(session)) as StudySessionResponse)
-        : null,
+      session: session ? (JSON.parse(JSON.stringify(session)) as StudySessionResponse) : null,
       currentIndex,
       revealed,
       answeredCardIds,
@@ -287,24 +297,27 @@ const StudyPage = () => {
     [mergeCardIntoSession]
   );
 
-  const loadSession = useCallback(async (limit: number) => {
-    setSessionLoading(true);
-    setSessionError(null);
+  const loadSession = useCallback(
+    async (limit: number) => {
+      setSessionLoading(true);
+      setSessionError(null);
 
-    try {
-      const nextSession = await startStudySession(limit);
-      setSession(nextSession);
-      syncOverview(nextSession.overview);
-      return nextSession;
-    } catch (error) {
-      setSession(null);
-      const message = error instanceof Error ? error.message : 'Study session failed to load.';
-      setSessionError(message);
-      throw error;
-    } finally {
-      setSessionLoading(false);
-    }
-  }, [syncOverview]);
+      try {
+        const nextSession = await startStudySession(limit);
+        setSession(nextSession);
+        syncOverview(nextSession.overview);
+        return nextSession;
+      } catch (error) {
+        setSession(null);
+        const message = error instanceof Error ? error.message : 'Study session failed to load.';
+        setSessionError(message);
+        throw error;
+      } finally {
+        setSessionLoading(false);
+      }
+    },
+    [syncOverview]
+  );
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -320,12 +333,20 @@ const StudyPage = () => {
     if (answerUrl) {
       const autoplayKey = `${currentCard.id}:answer:${answerUrl}`;
       answerAutoplayKeys.current.add(autoplayKey);
-      void answerAudioRef.current?.play();
+      ignorePromise(answerAudioRef.current?.play());
       return;
     }
 
-    void ensureAnswerAudioPrepared(currentCard.id);
-  }, [captureUndoSnapshot, currentCard, editing, ensureAnswerAudioPrepared, revealed, stopAllAudio]);
+    ignorePromise(ensureAnswerAudioPrepared(currentCard.id));
+  }, [
+    captureUndoSnapshot,
+    currentCard,
+    editing,
+    ensureAnswerAudioPrepared,
+    ignorePromise,
+    revealed,
+    stopAllAudio,
+  ]);
 
   const exitFocusMode = useCallback(() => {
     stopAllAudio();
@@ -369,17 +390,26 @@ const StudyPage = () => {
       applyReviewResultToSession(reviewResult.card, grade);
       syncOverview(reviewResult.overview);
       setCurrentIndex((current) => {
-        const nextLength = session
-          ? grade === 'again'
-            ? session.cards.length
-            : Math.max(session.cards.length - 1, 0)
-          : 0;
+        const currentSessionCardCount = session?.cards.length ?? 0;
+        const nextLength =
+          grade === 'again' ? currentSessionCardCount : Math.max(currentSessionCardCount - 1, 0);
+
         if (nextLength === 0) return 0;
         return Math.min(current, nextLength - 1);
       });
       setRevealed(false);
     },
-    [applyReviewResultToSession, captureUndoSnapshot, currentCard, editing, reviewMutation, session, stopAllAudio, syncOverview, undoPending]
+    [
+      applyReviewResultToSession,
+      captureUndoSnapshot,
+      currentCard,
+      editing,
+      reviewMutation,
+      session,
+      stopAllAudio,
+      syncOverview,
+      undoPending,
+    ]
   );
 
   const enterFocusMode = useCallback(async () => {
@@ -396,7 +426,11 @@ const StudyPage = () => {
     setAnsweredCardIds([]);
     setFailedCardIds([]);
     const sessionLimit = Math.max(availableCount, 1);
-    await loadSession(sessionLimit).catch(() => {});
+    try {
+      await loadSession(sessionLimit);
+    } catch {
+      // loadSession already updates session error state for the dashboard.
+    }
   }, [availableCount, loadSession, stopAllAudio]);
 
   const handleUndo = useCallback(async () => {
@@ -423,7 +457,15 @@ const StudyPage = () => {
     } finally {
       setUndoPending(false);
     }
-  }, [editing, restoreUndoSnapshot, reviewMutation.isPending, sessionLoading, stopAllAudio, syncOverview, undoPending]);
+  }, [
+    editing,
+    restoreUndoSnapshot,
+    reviewMutation.isPending,
+    sessionLoading,
+    stopAllAudio,
+    syncOverview,
+    undoPending,
+  ]);
 
   useEffect(() => {
     stopAllAudio();
@@ -451,15 +493,15 @@ const StudyPage = () => {
   }, [focusMode]);
 
   useEffect(() => {
-    if (!focusMode || !session?.cards.length) return;
+    if (!focusMode || !cards.length) return;
 
-    session.cards
+    cards
       .slice(0, PREWARM_CARD_COUNT)
       .filter((card) => !toAssetUrl(card.answer.answerAudio?.url))
       .forEach((card) => {
-        void ensureAnswerAudioPrepared(card.id);
+        ignorePromise(ensureAnswerAudioPrepared(card.id));
       });
-  }, [ensureAnswerAudioPrepared, focusMode, session?.cards]);
+  }, [cards, ensureAnswerAudioPrepared, focusMode, ignorePromise]);
 
   useEffect(() => {
     if (!focusMode || !currentCard || revealed || !isAudioLedPromptCard(currentCard)) return;
@@ -471,8 +513,8 @@ const StudyPage = () => {
     if (promptAutoplayKeys.current.has(autoplayKey)) return;
 
     promptAutoplayKeys.current.add(autoplayKey);
-    void promptAudioRef.current?.play();
-  }, [currentCard, focusMode, revealed]);
+    ignorePromise(promptAudioRef.current?.play());
+  }, [currentCard, focusMode, ignorePromise, revealed]);
 
   useEffect(() => {
     if (!focusMode || !currentCard || !revealed) return;
@@ -484,19 +526,14 @@ const StudyPage = () => {
     if (answerAutoplayKeys.current.has(autoplayKey)) return;
 
     answerAutoplayKeys.current.add(autoplayKey);
-    void answerAudioRef.current?.play();
-  }, [currentCard, focusMode, revealed]);
+    ignorePromise(answerAudioRef.current?.play());
+  }, [currentCard, focusMode, ignorePromise, revealed]);
 
   useEffect(() => {
     if (!focusMode) return undefined;
 
     const handleDeviceMotion = (event: DeviceMotionEvent) => {
-      if (
-        !motionEnabledRef.current ||
-        undoPending ||
-        reviewMutation.isPending ||
-        sessionLoading
-      ) {
+      if (!motionEnabledRef.current || undoPending || reviewMutation.isPending || sessionLoading) {
         return;
       }
 
@@ -521,13 +558,13 @@ const StudyPage = () => {
         now - lastShakeAtRef.current >= SHAKE_COOLDOWN_MS
       ) {
         lastShakeAtRef.current = now;
-        void handleUndo();
+        ignorePromise(handleUndo());
       }
     };
 
     window.addEventListener('devicemotion', handleDeviceMotion);
     return () => window.removeEventListener('devicemotion', handleDeviceMotion);
-  }, [focusMode, handleUndo, reviewMutation.isPending, sessionLoading, undoPending]);
+  }, [focusMode, handleUndo, ignorePromise, reviewMutation.isPending, sessionLoading, undoPending]);
 
   useEffect(() => {
     if (!focusMode) return undefined;
@@ -539,7 +576,7 @@ const StudyPage = () => {
 
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
         event.preventDefault();
-        void handleUndo();
+        ignorePromise(handleUndo());
         return;
       }
 
@@ -561,16 +598,16 @@ const StudyPage = () => {
 
       if (event.key === '1') {
         event.preventDefault();
-        void handleGrade('again');
+        ignorePromise(handleGrade('again'));
       } else if (event.key === '2') {
         event.preventDefault();
-        void handleGrade('hard');
+        ignorePromise(handleGrade('hard'));
       } else if (event.key === '3') {
         event.preventDefault();
-        void handleGrade('good');
+        ignorePromise(handleGrade('good'));
       } else if (event.key === '4') {
         event.preventDefault();
-        void handleGrade('easy');
+        ignorePromise(handleGrade('easy'));
       } else if (event.key === 'Escape') {
         event.preventDefault();
         exitFocusMode();
@@ -579,7 +616,17 @@ const StudyPage = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [editing, exitFocusMode, focusMode, handleGrade, handleUndo, reviewMutation.isPending, revealCurrentCard, revealed]);
+  }, [
+    editing,
+    exitFocusMode,
+    focusMode,
+    handleGrade,
+    handleUndo,
+    ignorePromise,
+    reviewMutation.isPending,
+    revealCurrentCard,
+    revealed,
+  ]);
 
   const headline = useMemo(() => {
     if (!overviewQuery.data) return 'Study';
@@ -601,28 +648,30 @@ const StudyPage = () => {
         <section className="min-h-screen px-4 py-4 sm:px-6 sm:py-6">
           <div className="mx-auto flex min-h-[calc(100vh-2rem)] max-w-7xl flex-col rounded-[2rem] bg-[#fdfbf5] p-4 shadow-sm ring-1 ring-gray-200 sm:min-h-[calc(100vh-3rem)] sm:p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={exitFocusMode}
-              className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
-            >
-              Exit Study
-            </button>
-            <div className="text-right">
-              <p className="text-lg font-semibold tracking-[0.08em] text-navy">
-                <span className="text-blue-600">{sessionCounts.newRemaining}</span>
-                <span className="px-2 text-gray-400">+</span>
-                <span className="text-red-600">{sessionCounts.failedDue}</span>
-                <span className="px-2 text-gray-400">+</span>
-                <span className="text-emerald-700">{sessionCounts.reviewRemaining}</span>
-              </p>
-              <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
-                New + Failed + Review
-              </p>
+              <button
+                type="button"
+                onClick={exitFocusMode}
+                className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
+              >
+                Exit Study
+              </button>
+              <div className="text-right">
+                <p className="text-lg font-semibold tracking-[0.08em] text-navy">
+                  <span className="text-blue-600">{sessionCounts.newRemaining}</span>
+                  <span className="px-2 text-gray-400">+</span>
+                  <span className="text-red-600">{sessionCounts.failedDue}</span>
+                  <span className="px-2 text-gray-400">+</span>
+                  <span className="text-emerald-700">{sessionCounts.reviewRemaining}</span>
+                </p>
+                <p className="mt-1 text-xs uppercase tracking-[0.18em] text-gray-400">
+                  New + Failed + Review
+                </p>
+              </div>
             </div>
-          </div>
 
-            {sessionLoading ? <p className="py-16 text-center text-gray-500">Loading study session…</p> : null}
+            {sessionLoading ? (
+              <p className="py-16 text-center text-gray-500">Loading study session…</p>
+            ) : null}
             {sessionError ? <p className="py-16 text-center text-red-600">{sessionError}</p> : null}
 
             {!sessionLoading && !sessionError && !currentCard ? (
@@ -648,7 +697,11 @@ const StudyPage = () => {
                     className="flex min-h-[60vh] flex-1 w-full items-center justify-center rounded-[2rem] bg-white px-6 py-12 text-left shadow-sm ring-1 ring-gray-200 transition hover:shadow-md md:px-12"
                   >
                     <div className="w-full">
-                      <StudyCardFace card={currentCard} side="front" promptAudioRef={promptAudioRef} />
+                      <StudyCardFace
+                        card={currentCard}
+                        side="front"
+                        promptAudioRef={promptAudioRef}
+                      />
                       {currentCard.cardType !== 'cloze' ? (
                         <p className="mt-10 text-center text-sm uppercase tracking-[0.2em] text-gray-400">
                           Tap, click, or press space to reveal
@@ -662,13 +715,7 @@ const StudyPage = () => {
                       <StudyCardEditor
                         card={currentCard}
                         isSaving={updateCardMutation.isPending}
-                        error={
-                          updateCardMutation.error instanceof Error
-                            ? updateCardMutation.error.message
-                            : updateCardMutation.error
-                              ? 'Card update failed.'
-                              : null
-                        }
+                        error={updateCardErrorMessage}
                         onCancel={() => {
                           setEditing(false);
                         }}
@@ -699,7 +746,11 @@ const StudyPage = () => {
                             Edit card
                           </button>
                         </div>
-                        <StudyCardFace card={currentCard} side="back" answerAudioRef={answerAudioRef} />
+                        <StudyCardFace
+                          card={currentCard}
+                          side="back"
+                          answerAudioRef={answerAudioRef}
+                        />
                       </div>
                     )}
                   </div>
@@ -712,14 +763,12 @@ const StudyPage = () => {
                         key={grade}
                         type="button"
                         onClick={() => {
-                          void handleGrade(grade);
+                          ignorePromise(handleGrade(grade));
                         }}
                         disabled={reviewMutation.isPending || sessionLoading || undoPending}
                         className={`rounded-[1.5rem] border px-4 py-4 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${gradeButtonStyles[grade]}`}
                       >
-                        <p className="text-2xl font-semibold">
-                          {gradeIntervals?.[grade] ?? '...'}
-                        </p>
+                        <p className="text-2xl font-semibold">{gradeIntervals?.[grade] ?? '...'}</p>
                         <p className="mt-2 text-xl font-semibold capitalize">{grade}</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.18em] text-current/70">
                           Key {index + 1}
@@ -804,7 +853,7 @@ const StudyPage = () => {
             <button
               type="button"
               onClick={() => {
-                void overviewQuery.refetch();
+                ignorePromise(overviewQuery.refetch());
               }}
               className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
             >
@@ -813,7 +862,7 @@ const StudyPage = () => {
             <button
               type="button"
               onClick={() => {
-                void enterFocusMode();
+                ignorePromise(enterFocusMode());
               }}
               disabled={sessionLoading || availableCount === 0}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
@@ -826,7 +875,9 @@ const StudyPage = () => {
         {overviewQuery.isLoading ? <p className="text-gray-500">Loading overview…</p> : null}
         {overviewQuery.error ? (
           <p className="text-red-600">
-            {overviewQuery.error instanceof Error ? overviewQuery.error.message : 'Study overview failed to load.'}
+            {overviewQuery.error instanceof Error
+              ? overviewQuery.error.message
+              : 'Study overview failed to load.'}
           </p>
         ) : null}
 
@@ -849,8 +900,8 @@ const StudyPage = () => {
             <div className="rounded-2xl bg-cream/70 p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-gray-500">Keyboard</p>
               <p className="mt-3 text-base text-navy">
-                `Space` reveals. `1` again. `2` hard. `3` good. `4` easy. `Cmd+Z` undoes. On
-                mobile, shake also undoes.
+                `Space` reveals. `1` again. `2` hard. `3` good. `4` easy. `Cmd+Z` undoes. On mobile,
+                shake also undoes.
               </p>
             </div>
           </div>

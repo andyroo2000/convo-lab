@@ -1,13 +1,12 @@
+import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
+import { createRequire } from 'module';
 import os from 'os';
 import path from 'path';
-import { randomUUID } from 'crypto';
-import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
 import { zstdDecompressSync } from 'zlib';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
-import { Prisma } from '@prisma/client';
 import type {
   StudyAnswerPayload,
   StudyAudioSource,
@@ -32,13 +31,14 @@ import type {
   StudyReviewResult,
   StudyUndoReviewResult,
 } from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
 import JSZip from 'jszip';
 import initSqlJs, { type Database, type QueryExecResult } from 'sql.js';
 import { fsrs, Rating, State, type Card, type Grade } from 'ts-fsrs';
 
 import { prisma } from '../db/client.js';
-
 import { AppError } from '../middleware/errorHandler.js';
+
 import { addFuriganaBrackets } from './furiganaService.js';
 import { uploadToGCS } from './storageClient.js';
 import { synthesizeSpeech } from './ttsClient.js';
@@ -222,7 +222,7 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function stripNullChars(value: string): string {
-  return value.replace(/\u0000/g, '');
+  return value.replaceAll('\0', '');
 }
 
 function sanitizeText(value: string | null | undefined): string | null {
@@ -992,7 +992,10 @@ async function parseColpkgUpload(params: {
   const collectionCreatedAtSeconds = collectionRow.crt;
 
   const usesNormalizedSchema =
-    hasTable(db, 'decks') && hasTable(db, 'notetypes') && hasTable(db, 'fields') && hasTable(db, 'templates');
+    hasTable(db, 'decks') &&
+    hasTable(db, 'notetypes') &&
+    hasTable(db, 'fields') &&
+    hasTable(db, 'templates');
 
   let deckId: number;
   let fieldNamesByNoteType: Map<number, string[]>;
@@ -1034,12 +1037,8 @@ async function parseColpkgUpload(params: {
       ])
     );
   } else {
-    ({
-      deckId,
-      fieldNamesByNoteType,
-      noteTypeNameById,
-      templateNameByNoteTypeAndOrd,
-    } = parseLegacyDeckAndModelMetadata(collectionRow));
+    ({ deckId, fieldNamesByNoteType, noteTypeNameById, templateNameByNoteTypeAndOrd } =
+      parseLegacyDeckAndModelMetadata(collectionRow));
   }
 
   const cardRows = mapRows(
@@ -1090,9 +1089,8 @@ async function parseColpkgUpload(params: {
     noteFields: sanitizeText(String(row.note_fields ?? '')) ?? '',
     noteTags: sanitizeText(String(row.note_tags ?? '')) ?? '',
     notetypeName: noteTypeNameById.get(Number(row.note_type_id)) ?? '',
-    templateName: templateNameByNoteTypeAndOrd.get(
-      `${Number(row.note_type_id)}:${Number(row.ord)}`
-    ) ?? null,
+    templateName:
+      templateNameByNoteTypeAndOrd.get(`${Number(row.note_type_id)}:${Number(row.ord)}`) ?? null,
   }));
 
   if (cardRows.length === 0) {
@@ -1316,25 +1314,33 @@ async function normalizeStudyCardPayload(record: Record<string, unknown>): Promi
 
   prompt = {
     ...prompt,
-    cueAudio: hydrateMediaRef(
-      prompt.cueAudio,
-      isRecord(record.promptAudioMedia) ? (record.promptAudioMedia as Record<string, unknown>) : null
-    ) ?? prompt.cueAudio,
-    cueImage: hydrateMediaRef(
-      prompt.cueImage,
-      isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
-    ) ?? prompt.cueImage,
+    cueAudio:
+      hydrateMediaRef(
+        prompt.cueAudio,
+        isRecord(record.promptAudioMedia)
+          ? (record.promptAudioMedia as Record<string, unknown>)
+          : null
+      ) ?? prompt.cueAudio,
+    cueImage:
+      hydrateMediaRef(
+        prompt.cueImage,
+        isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
+      ) ?? prompt.cueImage,
   };
   answer = {
     ...answer,
-    answerAudio: hydrateMediaRef(
-      answer.answerAudio,
-      isRecord(record.answerAudioMedia) ? (record.answerAudioMedia as Record<string, unknown>) : null
-    ) ?? answer.answerAudio,
-    answerImage: hydrateMediaRef(
-      answer.answerImage,
-      isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
-    ) ?? answer.answerImage,
+    answerAudio:
+      hydrateMediaRef(
+        answer.answerAudio,
+        isRecord(record.answerAudioMedia)
+          ? (record.answerAudioMedia as Record<string, unknown>)
+          : null
+      ) ?? answer.answerAudio,
+    answerImage:
+      hydrateMediaRef(
+        answer.answerImage,
+        isRecord(record.imageMedia) ? (record.imageMedia as Record<string, unknown>) : null
+      ) ?? answer.answerImage,
   };
 
   if (String(record.cardType) !== 'cloze') {
@@ -1347,12 +1353,12 @@ async function normalizeStudyCardPayload(record: Record<string, unknown>): Promi
   const rawClozeText =
     typeof rawFields.Text === 'string' && rawFields.Text.length > 0
       ? String(rawFields.Text)
-      : prompt.clozeText ?? '';
+      : (prompt.clozeText ?? '');
   const fallbackHint =
     stripHtml(
       typeof rawFields.ClozeHint === 'string' && rawFields.ClozeHint.length > 0
         ? rawFields.ClozeHint
-        : prompt.clozeHint ?? prompt.clozeResolvedHint ?? ''
+        : (prompt.clozeHint ?? prompt.clozeResolvedHint ?? '')
     ) ?? null;
   const restoredText =
     answer.restoredText ??
@@ -1473,7 +1479,10 @@ function getStudyCardSearchText(card: Record<string, unknown>): string {
     .toLowerCase();
 }
 
-function getStudyNoteSearchText(note: Record<string, unknown>, cards: Array<Record<string, unknown>>): string {
+function getStudyNoteSearchText(
+  note: Record<string, unknown>,
+  cards: Array<Record<string, unknown>>
+): string {
   const rawFields = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
   const canonical = isRecord(note.canonicalJson) ? note.canonicalJson : {};
 
@@ -1488,7 +1497,10 @@ function getStudyNoteSearchText(note: Record<string, unknown>, cards: Array<Reco
     .toLowerCase();
 }
 
-function getNoteDisplayText(note: Record<string, unknown>, cards: Array<Record<string, unknown>>): string {
+function getNoteDisplayText(
+  note: Record<string, unknown>,
+  cards: Array<Record<string, unknown>>
+): string {
   const rawFields = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
   const candidates = [
     noteFieldValueToString(rawFields.Expression),
@@ -1543,26 +1555,28 @@ function toStudyBrowserField(
 ): StudyBrowserField {
   const stringValue = noteFieldValueToString(value);
   const audio = stringValue
-    ? parseAudioFilenames(stringValue)
+    ? (parseAudioFilenames(stringValue)
         .map((filename) => mediaLookup.get(filename))
-        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null
+        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
     : null;
   const image = stringValue
-    ? parseImageFilenames(stringValue)
+    ? (parseImageFilenames(stringValue)
         .map((filename) => mediaLookup.get(filename))
-        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null
+        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
     : null;
 
   return {
     name,
     value: stringValue,
-    textValue: stringValue ? stripHtml(stringValue) ?? stringValue : null,
+    textValue: stringValue ? (stripHtml(stringValue) ?? stringValue) : null,
     audio,
     image,
   };
 }
 
-function toBrowserFilterOptions(noteRows: Array<Record<string, unknown>>): StudyBrowserFilterOptions {
+function toBrowserFilterOptions(
+  noteRows: Array<Record<string, unknown>>
+): StudyBrowserFilterOptions {
   const noteTypes = new Set<string>();
   const cardTypes = new Set<StudyCardType>();
   const queueStates = new Set<StudyQueueState>();
@@ -1946,9 +1960,7 @@ export async function importJapaneseStudyColpkg(params: {
       errorMessage: null,
     };
   } catch (error) {
-    const message = sanitizeText(
-      error instanceof Error ? error.message : 'Study import failed.'
-    );
+    const message = sanitizeText(error instanceof Error ? error.message : 'Study import failed.');
     await prisma.studyImportJob.update({
       where: { id: importJob.id },
       data: {
@@ -2343,7 +2355,9 @@ export async function undoStudyReview(params: {
     throw new AppError('Only the latest review for this card can be undone.', 409);
   }
 
-  const previousState = deserializeFsrsCard((reviewLog.stateBeforeJson as StudyFsrsState | null) ?? null);
+  const previousState = deserializeFsrsCard(
+    (reviewLog.stateBeforeJson as StudyFsrsState | null) ?? null
+  );
   if (!previousState) {
     throw new AppError('Undo state is missing for this review.', 400);
   }
@@ -2362,7 +2376,7 @@ export async function undoStudyReview(params: {
   const restoredLastReviewedAt =
     typeof rawPayload.beforeLastReviewedAt === 'string'
       ? new Date(rawPayload.beforeLastReviewedAt)
-      : previousState.last_review ?? null;
+      : (previousState.last_review ?? null);
 
   await prisma.$transaction(async (tx) => {
     await tx.studyCard.update({
@@ -2432,7 +2446,8 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   const normalizedPayload =
     String(existing.cardType) === 'cloze'
       ? await normalizeClozePayload({
-          activeOrdinal: typeof existing.sourceTemplateOrd === 'number' ? existing.sourceTemplateOrd : 0,
+          activeOrdinal:
+            typeof existing.sourceTemplateOrd === 'number' ? existing.sourceTemplateOrd : 0,
           prompt: mergedPrompt,
           answer: mergedAnswer,
         })
@@ -2457,8 +2472,14 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
     data: {
       promptJson: toPrismaJson(normalizedPayload.prompt),
       answerJson: toPrismaJson(nextAnswer),
-      answerAudioSource: shouldRegenerateAnswerAudio ? 'missing' : String(existing.answerAudioSource),
-      answerAudioMediaId: shouldRegenerateAnswerAudio ? null : existing.answerAudioMediaId ? String(existing.answerAudioMediaId) : null,
+      answerAudioSource: shouldRegenerateAnswerAudio
+        ? 'missing'
+        : String(existing.answerAudioSource),
+      answerAudioMediaId: shouldRegenerateAnswerAudio
+        ? null
+        : existing.answerAudioMediaId
+          ? String(existing.answerAudioMediaId)
+          : null,
     },
   });
 
@@ -2654,7 +2675,8 @@ export async function getStudyBrowserList(params: {
   const rows: StudyBrowserRow[] = pagedRows.map((note) => {
     const cards = Array.isArray(note.cards) ? (note.cards as Array<Record<string, unknown>>) : [];
     const queueSummary = cards.reduce<Partial<Record<StudyQueueState, number>>>((acc, card) => {
-      const state = typeof card.queueState === 'string' ? (card.queueState as StudyQueueState) : null;
+      const state =
+        typeof card.queueState === 'string' ? (card.queueState as StudyQueueState) : null;
       if (state) {
         acc[state] = (acc[state] ?? 0) + 1;
       }

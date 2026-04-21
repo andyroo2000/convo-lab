@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import StudyPage from '../StudyPage';
@@ -152,12 +152,18 @@ describe('StudyPage', () => {
         totalCards: 20,
       },
     }));
-    updateStudyCardMock.mockImplementation(async (payload: { cardId: string; prompt: Record<string, unknown>; answer: Record<string, unknown> }) => ({
-      ...baseCard,
-      id: payload.cardId,
-      prompt: payload.prompt,
-      answer: payload.answer,
-    }));
+    updateStudyCardMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        prompt: Record<string, unknown>;
+        answer: Record<string, unknown>;
+      }) => ({
+        ...baseCard,
+        id: payload.cardId,
+        prompt: payload.prompt,
+        answer: payload.answer,
+      })
+    );
 
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
@@ -278,7 +284,7 @@ describe('StudyPage', () => {
       expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
     });
     await waitFor(() => {
-      expect(document.querySelector('audio[controls]')).toBeInTheDocument();
+      expect(screen.getByLabelText('Play answer audio')).toBeInTheDocument();
     });
   });
 
@@ -560,20 +566,21 @@ describe('StudyPage', () => {
     });
     expect(screen.getByText('are (existence verb)')).toBeInTheDocument();
     expect(screen.queryByText('Tap, click, or press space to reveal')).not.toBeInTheDocument();
-    expect(screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('お風呂に虫{{c1::がいる::are (existence verb)}}！')
+    ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
     await waitFor(() => {
       expect(screen.getByText('There are bugs in the bath!')).toBeInTheDocument();
     });
-    const restoredHeading = document.querySelector('.study-card-reading');
-    expect(restoredHeading).toBeTruthy();
-    expect(restoredHeading?.textContent ?? '').toContain('ふろ');
-    expect(restoredHeading?.textContent ?? '').toContain('むし');
+    const restoredHeading = screen.getByTestId('study-cloze-heading');
+    expect(within(restoredHeading).getByText('ふろ', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(restoredHeading).getByText('むし', { selector: 'rt' })).toBeInTheDocument();
     expect(screen.queryByText('• お風呂[ふろ]に虫[むし]がいる！')).not.toBeInTheDocument();
-    const rubyNotes = Array.from(document.querySelectorAll('ruby.study-ruby'));
-    expect(rubyNotes.some((node) => (node.textContent ?? '').includes('風呂ふろ'))).toBe(true);
+    expect(screen.getAllByText('ふろ', { selector: 'rt' })).toHaveLength(2);
+    expect(screen.getAllByText('むし', { selector: 'rt' })).toHaveLength(2);
   });
 
   it('decodes numeric html entities in study text', async () => {
@@ -611,7 +618,9 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(screen.getByText("Someone, please come. It's an accident.")).toBeInTheDocument();
     });
-    expect(screen.queryByText('Someone, please come. It&#x27;s an accident.')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Someone, please come. It&#x27;s an accident.')
+    ).not.toBeInTheDocument();
   });
 
   it('keeps furigana aligned to kanji when particles and okurigana surround bracket readings', async () => {
@@ -651,12 +660,12 @@ describe('StudyPage', () => {
       expect(screen.getByText('company')).toBeInTheDocument();
     });
 
-    const rubyNodes = Array.from(document.querySelectorAll('.study-card-reading ruby.study-ruby'));
-    expect(rubyNodes).toHaveLength(4);
-    expect(rubyNodes.map((node) => node.textContent)).toEqual(
-      expect.arrayContaining(['彼かれ', '深ふか', '息いき', '吸す'])
-    );
-    expect(rubyNodes.every((node) => !(node.textContent ?? '').includes('は深'))).toBe(true);
+    const heading = screen.getByTestId('study-japanese-heading');
+    expect(within(heading).getByText('かれ', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(heading).getByText('ふか', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(heading).getByText('いき', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(heading).getByText('す', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(heading).queryByText('は深', { selector: 'ruby' })).not.toBeInTheDocument();
   });
 
   it('opens an in-place editor on the answer side and returns to the front after save', async () => {

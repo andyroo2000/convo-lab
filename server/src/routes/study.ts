@@ -1,8 +1,7 @@
-import multer from 'multer';
 import { Router } from 'express';
+import multer, { memoryStorage } from 'multer';
 
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
-
 import {
   createStudyCard,
   exportStudyData,
@@ -21,7 +20,7 @@ import {
 
 const router = Router();
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: memoryStorage(),
   limits: {
     fileSize: 200 * 1024 * 1024,
   },
@@ -87,10 +86,7 @@ router.post('/session/start', async (req: AuthRequest, res, next) => {
     }
     const requestedLimit =
       typeof req.body?.limit === 'number' && Number.isFinite(req.body.limit) ? req.body.limit : 20;
-    const session = await startStudySession(
-      req.userId,
-      Math.max(1, Math.min(200, requestedLimit))
-    );
+    const session = await startStudySession(req.userId, Math.max(1, Math.min(200, requestedLimit)));
     res.json(session);
   } catch (error) {
     next(error);
@@ -282,7 +278,10 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       userId: req.userId,
       q: typeof req.query.q === 'string' ? req.query.q : undefined,
       noteType: typeof req.query.noteType === 'string' ? req.query.noteType : undefined,
-      cardType: typeof req.query.cardType === 'string' ? (req.query.cardType as 'recognition' | 'production' | 'cloze') : undefined,
+      cardType:
+        typeof req.query.cardType === 'string'
+          ? (req.query.cardType as 'recognition' | 'production' | 'cloze')
+          : undefined,
       queueState:
         typeof req.query.queueState === 'string'
           ? (req.query.queueState as
