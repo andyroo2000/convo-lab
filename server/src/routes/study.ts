@@ -137,6 +137,36 @@ function parseBrowserQueryString(value: unknown): string | undefined {
   return trimmed;
 }
 
+function parseBrowserNoteType(value: unknown): string | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new AppError('noteType must be a string.', 400);
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  if (trimmed.length > STUDY_BROWSER_QUERY_MAX_LENGTH) {
+    throw new AppError(
+      `noteType must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  return trimmed;
+}
+
+function sanitizeDownloadFilename(filename: string): string {
+  const basename = path.basename(filename);
+  const sanitized = basename.replace(/[^A-Za-z0-9._-]/g, '_');
+  return sanitized.length > 0 ? sanitized : 'study-media';
+}
+
 function parseStudyHistoryLimit(value: unknown): number {
   if (typeof value === 'undefined') {
     return STUDY_HISTORY_PAGE_SIZE_DEFAULT;
@@ -465,7 +495,7 @@ router.post(
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
-        throw new Error('Authenticated user is required.');
+        throw new AppError('Authenticated user is required.', 401);
       }
 
       if (!req.params.cardId) {
@@ -525,8 +555,9 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
     }
 
     const q = parseBrowserQueryString(req.query.q);
-    const page = parsePositiveIntegerQueryParam('page', req.query.page);
-    const pageSize = parsePositiveIntegerQueryParam('pageSize', req.query.pageSize);
+    const noteType = parseBrowserNoteType(req.query.noteType);
+    const page = parsePositiveIntegerQueryParam('page', req.query.page) ?? 1;
+    const pageSize = parsePositiveIntegerQueryParam('pageSize', req.query.pageSize) ?? 100;
     if (typeof pageSize === 'number' && pageSize > STUDY_BROWSER_PAGE_SIZE_MAX) {
       throw new AppError(`pageSize must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
     }
@@ -552,7 +583,7 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
     const result = await getStudyBrowserList({
       userId: req.userId,
       q,
-      noteType: typeof req.query.noteType === 'string' ? req.query.noteType : undefined,
+      noteType,
       cardType: cardType as StudyCardType | undefined,
       queueState: queueState as StudyQueueState | undefined,
       page,
@@ -603,7 +634,7 @@ router.get('/media/:mediaId', async (req: AuthRequest, res, next) => {
     res.sendFile(mediaAccess.absolutePath as string, {
       headers: {
         'Cache-Control': 'private, max-age=60',
-        'Content-Disposition': `inline; filename="${path.basename(mediaAccess.filename)}"`,
+        'Content-Disposition': `inline; filename="${sanitizeDownloadFilename(mediaAccess.filename)}"`,
       },
     });
   } catch (error) {

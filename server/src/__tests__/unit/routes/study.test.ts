@@ -1,3 +1,7 @@
+import { mkdtemp, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+
 import express, {
   json as expressJson,
   type ErrorRequestHandler,
@@ -13,6 +17,7 @@ import { mockPrisma } from '../../setup.js';
 
 const {
   createRedisConnectionMock,
+  execMock,
   createStudyCardMock,
   expireMock,
   getStudyCardOptionsMock,
@@ -21,7 +26,7 @@ const {
   getStudyHistoryMock,
   getStudyMediaAccessMock,
   importJapaneseStudyColpkgMock,
-  incrMock,
+  multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
@@ -29,6 +34,7 @@ const {
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   createRedisConnectionMock: vi.fn(),
+  execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
   expireMock: vi.fn(),
   getStudyCardOptionsMock: vi.fn(),
@@ -37,7 +43,7 @@ const {
   getStudyHistoryMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   importJapaneseStudyColpkgMock: vi.fn(),
-  incrMock: vi.fn(),
+  multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
@@ -80,24 +86,37 @@ describe('Study Routes', () => {
   let app: express.Application;
   let studyRouter: Router;
   let testClockOffset = 0;
+  let temporaryDirectory: string;
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    incrMock.mockReset();
     expireMock.mockReset();
-    incrMock.mockResolvedValue(1);
+    execMock.mockReset();
+    multiMock.mockReset();
     expireMock.mockResolvedValue(1);
+    execMock.mockResolvedValue([
+      [null, 1],
+      [null, 1],
+    ]);
+    multiMock.mockImplementation(() => {
+      const pipeline = {
+        incr: vi.fn().mockReturnThis(),
+        expire: vi.fn().mockReturnThis(),
+        exec: execMock,
+      };
+      return pipeline;
+    });
     createRedisConnectionMock.mockReset();
     createRedisConnectionMock.mockReturnValue({
-      incr: incrMock,
-      expire: expireMock,
+      multi: multiMock,
     });
     getStudyHistoryMock.mockResolvedValue({
       events: [],
       nextCursor: null,
     });
     getStudyMediaAccessMock.mockResolvedValue(null);
+    temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
     vi.useFakeTimers();
     vi.setSystemTime(
       new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
@@ -248,6 +267,14 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('200 characters or fewer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects browser noteType values longer than 200 characters', async () => {
+    const response = await request(app).get(`/study/browser?noteType=${'a'.repeat(201)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('noteType must be 200 characters or fewer');
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
@@ -409,5 +436,72 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(200);
     expect(getStudyBrowserListMock).toHaveBeenCalled();
+  });
+
+  it('defaults browser pagination when page and pageSize are omitted', async () => {
+    getStudyBrowserListMock.mockResolvedValue({
+      rows: [],
+      total: 0,
+      page: 1,
+      pageSize: 100,
+      filterOptions: {
+        noteTypes: [],
+        cardTypes: [],
+        queueStates: [],
+      },
+    });
+
+    const response = await request(app).get('/study/browser');
+
+    expect(response.status).toBe(200);
+    expect(getStudyBrowserListMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      q: undefined,
+      noteType: undefined,
+      cardType: undefined,
+      queueState: undefined,
+      page: 1,
+      pageSize: 100,
+    });
+  });
+
+  it('allows same-origin mutations that rely on the referer fallback when Origin is absent', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [],
+    });
+
+    const response = await request(app)
+      .post('/study/session/start')
+      .set('Referer', 'http://localhost:5173/app/study')
+      .send({ limit: 10 });
+
+    expect(response.status).toBe(200);
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 10);
+  });
+
+  it('sanitizes media filenames used in the Content-Disposition header', async () => {
+    const audioPath = path.join(temporaryDirectory, 'study-audio.mp3');
+    await writeFile(audioPath, Buffer.from('audio-data'));
+    getStudyMediaAccessMock.mockResolvedValue({
+      type: 'local',
+      absolutePath: audioPath,
+      contentType: 'audio/mpeg',
+      filename: "evil\"; filename*=utf-8''oops.mp3",
+    });
+
+    const response = await request(app).get('/study/media/media-1');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-disposition']).toBe(
+      'inline; filename="evil___filename__utf-8__oops.mp3"'
+    );
   });
 });
