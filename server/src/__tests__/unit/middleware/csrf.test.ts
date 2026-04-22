@@ -6,9 +6,11 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
+  apiCsrfProtection,
+  apiCsrfErrorHandler,
   getAllowedApiOrigins,
   issueCsrfTokenCookie,
-  requireApiCsrfProtection,
+  requireAllowedApiMutationOrigin,
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -49,7 +51,8 @@ describe('csrf middleware', () => {
     const app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
+    app.use('/api', requireAllowedApiMutationOrigin);
+    app.use('/api', apiCsrfProtection);
     app.get('/api/auth/csrf', (req, res) => {
       issueCsrfTokenCookie(req, res, 'lax');
       res.sendStatus(204);
@@ -57,6 +60,7 @@ describe('csrf middleware', () => {
     app.post('/api/protected', (_req, res) => {
       res.sendStatus(204);
     });
+    app.use(apiCsrfErrorHandler);
     app.use(errorHandler);
     return app;
   }

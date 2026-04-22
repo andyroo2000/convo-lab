@@ -6,7 +6,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
-  requireApiCsrfProtection,
+  apiCsrfProtection,
+  apiCsrfErrorHandler,
+  requireAllowedApiMutationOrigin,
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -71,8 +73,10 @@ describe('Auth route CSRF', () => {
     const app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin);
+    app.use('/api/auth', apiCsrfProtection);
     app.use('/api/auth', authRouter);
+    app.use(apiCsrfErrorHandler);
     app.use(errorHandler);
 
     const response = await request(app)
@@ -91,8 +95,10 @@ describe('Auth route CSRF', () => {
     const app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin);
+    app.use('/api/auth', apiCsrfProtection);
     app.use('/api/auth', authRouter);
+    app.use(apiCsrfErrorHandler);
     app.use(errorHandler);
 
     const csrfResponse = await request(app)
@@ -113,8 +119,10 @@ describe('Auth route CSRF', () => {
     const app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin);
+    app.use('/api/auth', apiCsrfProtection);
     app.use('/api/auth', authRouter);
+    app.use(apiCsrfErrorHandler);
     app.use(errorHandler);
 
     const csrfResponse = await request(app)

@@ -1,5 +1,12 @@
 import csurf from 'csurf';
-import type { CookieOptions, NextFunction, Request, Response } from 'express';
+import type {
+  CookieOptions,
+  ErrorRequestHandler,
+  NextFunction,
+  Request,
+  RequestHandler,
+  Response,
+} from 'express';
 
 import { AppError } from './errorHandler.js';
 
@@ -108,12 +115,12 @@ function getSecretCsrfClearCookieOptions(
   };
 }
 
-const csrfProtection = csurf({
+export const apiCsrfProtection: RequestHandler = csurf({
   cookie: getSecretCsrfCookieOptions(),
   value: (req) => req.get(CSRF_TOKEN_HEADER_NAME) ?? '',
 });
 
-function isCsrfExemptPath(pathname: string): boolean {
+export function isCsrfExemptPath(pathname: string): boolean {
   return CSRF_EXEMPT_PATHS.has(pathname);
 }
 
@@ -135,30 +142,49 @@ function validateMutationOrigin(req: Request): AppError | null {
   return null;
 }
 
-export function requireApiCsrfProtection(req: Request, res: Response, next: NextFunction) {
-  if (isCsrfExemptPath(req.path)) {
-    next();
-    return;
-  }
-
+export function requireAllowedApiMutationOrigin(req: Request, _res: Response, next: NextFunction) {
   const originError = validateMutationOrigin(req);
   if (originError) {
     next(originError);
     return;
   }
 
-  csrfProtection(req, res, (error?: unknown) => {
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      'code' in error &&
-      error.code === 'EBADCSRFTOKEN'
-    ) {
-      next(new AppError('Invalid CSRF token.', 403));
+  next();
+}
+
+function forwardCsrfError(error: unknown, next: NextFunction) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'EBADCSRFTOKEN'
+  ) {
+    next(new AppError('Invalid CSRF token.', 403));
+    return;
+  }
+
+  next(error as Error | undefined);
+}
+
+export const apiCsrfErrorHandler: ErrorRequestHandler = (error, _req, _res, next) => {
+  forwardCsrfError(error, next);
+};
+
+export function requireApiCsrfProtection(req: Request, res: Response, next: NextFunction) {
+  if (isCsrfExemptPath(req.path)) {
+    next();
+    return;
+  }
+
+  requireAllowedApiMutationOrigin(req, res, (originError?: unknown) => {
+    if (originError) {
+      next(originError as Error);
       return;
     }
 
-    next(error as Error | undefined);
+    apiCsrfProtection(req, res, (error?: unknown) => {
+      forwardCsrfError(error, next);
+    });
   });
 }
 

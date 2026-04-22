@@ -7,8 +7,10 @@ import { AuthRequest } from '../../../middleware/auth.js';
 import {
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
+  apiCsrfProtection,
+  apiCsrfErrorHandler,
   issueCsrfTokenCookie,
-  requireApiCsrfProtection,
+  requireAllowedApiMutationOrigin,
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
@@ -80,12 +82,16 @@ describe('Billing Routes', () => {
     app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin);
+    app.use('/api/auth', apiCsrfProtection);
+    app.use('/api/billing', requireAllowedApiMutationOrigin);
+    app.use('/api/billing', apiCsrfProtection);
     app.get('/api/auth/csrf', (req, res) => {
       issueCsrfTokenCookie(req, res, 'lax');
       res.status(204).end();
     });
     app.use('/api', billingRouter);
+    app.use(apiCsrfErrorHandler);
     app.use(errorHandler);
 
     const csrfResponse = await request(app)

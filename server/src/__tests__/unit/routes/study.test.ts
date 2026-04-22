@@ -17,8 +17,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CSRF_TOKEN_COOKIE_NAME,
   CSRF_TOKEN_HEADER_NAME,
+  apiCsrfProtection,
+  apiCsrfErrorHandler,
   issueCsrfTokenCookie,
-  requireApiCsrfProtection,
+  requireAllowedApiMutationOrigin,
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { AppError } from '../../../middleware/errorHandler.js';
@@ -169,8 +171,10 @@ describe('Study Routes', () => {
     app = express();
     app.use(cookieParser());
     app.use(expressJson());
-    app.use('/api', requireApiCsrfProtection);
-    app.use('/study', requireApiCsrfProtection);
+    app.use('/api/auth', requireAllowedApiMutationOrigin);
+    app.use('/api/auth', apiCsrfProtection);
+    app.use('/study', requireAllowedApiMutationOrigin);
+    app.use('/study', apiCsrfProtection);
     app.get('/api/auth/csrf', (req, res) => {
       issueCsrfTokenCookie(req, res, 'lax');
       res.status(204).end();
@@ -184,6 +188,7 @@ describe('Study Routes', () => {
     const module = await import('../../../routes/study.js');
     studyRouter = module.default;
     app.use('/study', studyRouter);
+    app.use(apiCsrfErrorHandler);
     app.use(((error: unknown, _req: Request, res: Response, _next: NextFunction) => {
       const message = error instanceof Error ? error.message : 'Unknown error';
       const statusCode =
