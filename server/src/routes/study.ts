@@ -57,6 +57,15 @@ const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+
+function isValidIanaTimeZone(value: string): boolean {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
+}
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'new',
@@ -749,10 +758,11 @@ router.post(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const { action, mode, dueAt } = req.body as {
+      const { action, mode, dueAt, timeZone } = req.body as {
         action?: unknown;
         mode?: unknown;
         dueAt?: unknown;
+        timeZone?: unknown;
       };
 
       if (!req.params.cardId) {
@@ -803,6 +813,14 @@ router.post(
             .json({ message: 'dueAt must be a valid ISO-8601 datetime for custom_date.' });
           return;
         }
+
+        if (
+          mode === 'tomorrow' &&
+          (typeof timeZone !== 'string' || !isValidIanaTimeZone(timeZone))
+        ) {
+          res.status(400).json({ message: 'timeZone must be a valid IANA timezone for tomorrow.' });
+          return;
+        }
       }
 
       const result = await performStudyCardAction({
@@ -811,6 +829,7 @@ router.post(
         action: action as 'suspend' | 'unsuspend' | 'forget' | 'set_due',
         mode: mode as 'now' | 'tomorrow' | 'custom_date' | undefined,
         dueAt: typeof dueAt === 'string' ? dueAt : undefined,
+        timeZone: typeof timeZone === 'string' ? timeZone : undefined,
         currentOverview: parseOptionalStudyOverview(
           (req.body as { currentOverview?: unknown }).currentOverview
         ),

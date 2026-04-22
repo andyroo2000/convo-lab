@@ -18,6 +18,10 @@ const {
   cardActionMutateAsyncMock: vi.fn(),
 }));
 
+vi.mock('../../components/study/studyTimeZoneUtils', () => ({
+  default: () => 'America/New_York',
+}));
+
 const browserData = {
   rows: [
     {
@@ -197,7 +201,13 @@ describe('StudyBrowsePage', () => {
       })
     );
     cardActionMutateAsyncMock.mockImplementation(
-      async (payload: { cardId: string; action: string; mode?: string; dueAt?: string }) => ({
+      async (payload: {
+        cardId: string;
+        action: string;
+        mode?: string;
+        dueAt?: string;
+        timeZone?: string;
+      }) => ({
         card: {
           ...(noteDetailById['note-1'].cards[0] ?? {}),
           id: payload.cardId,
@@ -280,6 +290,25 @@ describe('StudyBrowsePage', () => {
         expect.objectContaining({
           cardId: 'card-1',
           action: 'suspend',
+        })
+      );
+    });
+  });
+
+  it('sends the device timezone when setting a browse card due tomorrow', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Set due' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }));
+
+    await waitFor(() => {
+      expect(cardActionMutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          action: 'set_due',
+          mode: 'tomorrow',
+          timeZone: 'America/New_York',
         })
       );
     });

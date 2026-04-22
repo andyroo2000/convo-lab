@@ -338,7 +338,7 @@ describe('Study Routes', () => {
     const response = await request(app)
       .post('/study/cards/card-1/actions')
       .set('Origin', 'http://localhost:5173')
-      .send({ action: 'set_due', mode: 'tomorrow' });
+      .send({ action: 'set_due', mode: 'tomorrow', timeZone: 'America/New_York' });
 
     expect(response.status).toBe(200);
     expect(performStudyCardActionMock).toHaveBeenCalledWith({
@@ -347,7 +347,19 @@ describe('Study Routes', () => {
       action: 'set_due',
       mode: 'tomorrow',
       dueAt: undefined,
+      timeZone: 'America/New_York',
     });
+  });
+
+  it('rejects set_due tomorrow without a valid timezone', async () => {
+    const response = await request(app)
+      .post('/study/cards/card-1/actions')
+      .set('Origin', 'http://localhost:5173')
+      .send({ action: 'set_due', mode: 'tomorrow' });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
+    expect(performStudyCardActionMock).not.toHaveBeenCalled();
   });
 
   it('rejects invalid set_due payloads', async () => {

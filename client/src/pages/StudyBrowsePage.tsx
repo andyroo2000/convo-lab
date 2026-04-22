@@ -8,6 +8,7 @@ import type { StudyBrowserField, StudyBrowserListResponse } from '@languageflow/
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyFormField from '../components/study/StudyFormField';
 import StudySetDueControls from '../components/study/StudySetDueControls';
+import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   type StudyBrowserQuery,
@@ -160,6 +161,7 @@ const StudyBrowsePage = () => {
       action,
       mode: options?.mode,
       dueAt: options?.dueAt,
+      timeZone: options?.mode === 'tomorrow' ? getDeviceStudyTimeZone() : undefined,
     });
     setPreviewSide('front');
     setEditing(false);

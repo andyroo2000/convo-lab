@@ -60,6 +60,10 @@ vi.mock('../../hooks/useStudy', () => ({
   undoStudyReview: undoStudyReviewMock,
 }));
 
+vi.mock('../../components/study/studyTimeZoneUtils', () => ({
+  default: () => 'America/New_York',
+}));
+
 const renderStudyPage = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -177,6 +181,7 @@ describe('StudyPage', () => {
         action: 'suspend' | 'unsuspend' | 'forget' | 'set_due';
         mode?: 'now' | 'tomorrow' | 'custom_date';
         dueAt?: string;
+        timeZone?: string;
       }) => {
         if (payload.action === 'suspend') {
           return {
@@ -898,5 +903,36 @@ describe('StudyPage', () => {
         'No cards are ready right now. Import more cards or come back when something is due.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('sends the device timezone when setting a revealed card due tomorrow', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Set due' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Tomorrow' }));
+
+    await waitFor(() => {
+      expect(cardActionMutateAsyncMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          cardId: 'card-1',
+          action: 'set_due',
+          mode: 'tomorrow',
+          timeZone: 'America/New_York',
+        })
+      );
+    });
   });
 });

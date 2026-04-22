@@ -23,6 +23,7 @@ import {
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
+import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
@@ -478,6 +479,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
           action,
           mode: options?.mode,
           dueAt: options?.dueAt,
+          timeZone: options?.mode === 'tomorrow' ? getDeviceStudyTimeZone() : undefined,
         });
 
         syncOverview(result.overview);

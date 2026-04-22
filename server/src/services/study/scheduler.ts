@@ -27,6 +27,7 @@ import type {
   UpdateStudyCardInput,
 } from './shared.js';
 import {
+  assertValidStudyTimeZone,
   buildStudyCardSearchText,
   createFreshSchedulerState,
   dateFromDayBoundary,
@@ -283,13 +284,17 @@ function getRestoredDueAt(
   return record.dueAt instanceof Date ? record.dueAt : new Date();
 }
 
-function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
+function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string, timeZone?: string): Date {
   if (mode === 'now') {
     return new Date();
   }
 
   if (mode === 'tomorrow') {
-    return dateFromDayBoundary(1);
+    if (!timeZone) {
+      throw new AppError('A valid IANA timezone is required for tomorrow.', 400);
+    }
+
+    return dateFromDayBoundary(1, assertValidStudyTimeZone(timeZone));
   }
 
   const customDueAt = dueAt ? new Date(dueAt) : null;
@@ -640,7 +645,7 @@ export async function performStudyCardAction(
       throw new AppError('A due mode is required for set_due.', 400);
     }
 
-    const resolvedDueAt = resolveDueDate(mode, input.dueAt);
+    const resolvedDueAt = resolveDueDate(mode, input.dueAt, input.timeZone);
     nextQueueState = getRestoredQueueState(existing);
     nextQueueState = nextQueueState === 'new' ? 'review' : nextQueueState;
     nextDueAt = resolvedDueAt;

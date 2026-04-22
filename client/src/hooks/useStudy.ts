@@ -3,6 +3,7 @@ import { STUDY_HISTORY_PAGE_SIZE_DEFAULT } from '@languageflow/shared/src/studyC
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
+  StudyCardActionRequest,
   StudyCardActionResult,
   StudyCardOptionsResponse,
   StudyCardSetDueMode,
@@ -42,6 +43,7 @@ interface StudyCardActionPayload {
   action: StudyCardActionName;
   mode?: StudyCardSetDueMode;
   dueAt?: string;
+  timeZone?: string;
   currentOverview?: StudyOverview;
 }
 
@@ -136,16 +138,19 @@ export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<
 export async function performStudyCardAction(
   payload: StudyCardActionPayload
 ): Promise<StudyCardActionResult> {
+  const request: StudyCardActionRequest = {
+    action: payload.action,
+    mode: payload.mode,
+    dueAt: payload.dueAt,
+    timeZone: payload.timeZone,
+    currentOverview: payload.currentOverview,
+  };
+
   return apiRequest<StudyCardActionResult>(
     `/api/study/cards/${encodeURIComponent(payload.cardId)}/actions`,
     {
       method: 'POST',
-      body: JSON.stringify({
-        action: payload.action,
-        mode: payload.mode,
-        dueAt: payload.dueAt,
-        currentOverview: payload.currentOverview,
-      }),
+      body: JSON.stringify(request),
     }
   );
 }
