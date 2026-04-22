@@ -47,9 +47,11 @@ describe('study schema verification', () => {
   it('keeps the scheduler-state hardening migration that backfills legacy rows and enforces queue-state validity', async () => {
     const migration = await readFile(hardenStudyCardStateMigrationPath, 'utf8');
 
-    expect(migration).toContain('WHERE "scheduler_state_json" IS NULL;');
-    expect(migration).toContain('ALTER COLUMN "scheduler_state_json" SET NOT NULL;');
+    expect(migration).toContain('WHERE "schedulerStateJson" IS NULL;');
+    expect(migration).toContain('ALTER COLUMN "schedulerStateJson" SET NOT NULL;');
     expect(migration).toContain('ADD CONSTRAINT "study_cards_queue_state_check"');
+    expect(migration).toContain('COALESCE("dueAt", now())');
+    expect(migration).toContain('CASE "queueState"');
   });
 
   it('keeps the StudyCard cardType check constraint migration', async () => {
