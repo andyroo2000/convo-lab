@@ -13,6 +13,7 @@ import type {
   StudyAnswerPayload,
   StudyCardType,
   StudyImportResult,
+  StudyMediaRef,
   StudyOverview,
   StudyPromptPayload,
   StudyQueueState,
@@ -54,6 +55,8 @@ const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
+const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
+const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'new',
@@ -69,6 +72,41 @@ const STUDY_IMPORT_MIME_TYPES = new Set([
   'application/x-zip-compressed',
   'application/octet-stream',
   'multipart/x-zip',
+]);
+const STUDY_MEDIA_KINDS = new Set<StudyMediaRef['mediaKind']>(['audio', 'image', 'other']);
+const STUDY_MEDIA_SOURCES = new Set<StudyMediaRef['source']>([
+  'imported',
+  'generated',
+  'missing',
+  'imported_image',
+  'imported_other',
+]);
+const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
+const STUDY_PROMPT_ALLOWED_KEYS = new Set([
+  'cueText',
+  'cueHtml',
+  'cueReading',
+  'cueMeaning',
+  'cueAudio',
+  'cueImage',
+  'clozeText',
+  'clozeDisplayText',
+  'clozeAnswerText',
+  'clozeHint',
+  'clozeResolvedHint',
+]);
+const STUDY_ANSWER_ALLOWED_KEYS = new Set([
+  'expression',
+  'expressionReading',
+  'meaning',
+  'notes',
+  'sentenceJp',
+  'sentenceJpKana',
+  'sentenceEn',
+  'restoredText',
+  'restoredTextReading',
+  'answerAudio',
+  'answerImage',
 ]);
 const upload = multer({
   storage: memoryStorage(),
@@ -251,6 +289,168 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function assertKnownKeys(label: string, value: Record<string, unknown>, allowedKeys: Set<string>) {
+  const unexpectedKeys = Object.keys(value).filter((key) => !allowedKeys.has(key));
+  if (unexpectedKeys.length > 0) {
+    throw new AppError(`${label} contains unsupported field "${unexpectedKeys[0]}".`, 400);
+  }
+}
+
+function parseOptionalNullableStringField(
+  label: string,
+  fieldName: string,
+  value: unknown
+): string | null | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  throw new AppError(`${label}.${fieldName} must be a string or null.`, 400);
+}
+
+function parseOptionalStudyMediaRef(
+  label: string,
+  fieldName: string,
+  value: unknown
+): StudyMediaRef | null | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (value === null) {
+    return null;
+  }
+
+  if (!isPlainObject(value)) {
+    throw new AppError(`${label}.${fieldName} must be a media reference object or null.`, 400);
+  }
+
+  assertKnownKeys(`${label}.${fieldName}`, value, STUDY_MEDIA_REF_ALLOWED_KEYS);
+
+  if (typeof value.filename !== 'string' || value.filename.trim().length === 0) {
+    throw new AppError(`${label}.${fieldName}.filename is required.`, 400);
+  }
+
+  if (
+    typeof value.mediaKind !== 'string' ||
+    !STUDY_MEDIA_KINDS.has(value.mediaKind as StudyMediaRef['mediaKind'])
+  ) {
+    throw new AppError(`${label}.${fieldName}.mediaKind must be audio, image, or other.`, 400);
+  }
+
+  if (
+    typeof value.source !== 'string' ||
+    !STUDY_MEDIA_SOURCES.has(value.source as StudyMediaRef['source'])
+  ) {
+    throw new AppError(
+      `${label}.${fieldName}.source must be imported, generated, missing, imported_image, or imported_other.`,
+      400
+    );
+  }
+
+  const id = parseOptionalNullableStringField(`${label}.${fieldName}`, 'id', value.id);
+  const url = parseOptionalNullableStringField(`${label}.${fieldName}`, 'url', value.url);
+
+  return {
+    ...(typeof id !== 'undefined' ? { id: id ?? undefined } : {}),
+    filename: value.filename,
+    ...(typeof url !== 'undefined' ? { url } : {}),
+    mediaKind: value.mediaKind as StudyMediaRef['mediaKind'],
+    source: value.source as StudyMediaRef['source'],
+  };
+}
+
+function parseStudyPromptPayload(value: Record<string, unknown>): StudyPromptPayload {
+  assertKnownKeys('prompt', value, STUDY_PROMPT_ALLOWED_KEYS);
+
+  return {
+    cueText: parseOptionalNullableStringField('prompt', 'cueText', value.cueText),
+    cueHtml: parseOptionalNullableStringField('prompt', 'cueHtml', value.cueHtml),
+    cueReading: parseOptionalNullableStringField('prompt', 'cueReading', value.cueReading),
+    cueMeaning: parseOptionalNullableStringField('prompt', 'cueMeaning', value.cueMeaning),
+    cueAudio: parseOptionalStudyMediaRef('prompt', 'cueAudio', value.cueAudio),
+    cueImage: parseOptionalStudyMediaRef('prompt', 'cueImage', value.cueImage),
+    clozeText: parseOptionalNullableStringField('prompt', 'clozeText', value.clozeText),
+    clozeDisplayText: parseOptionalNullableStringField(
+      'prompt',
+      'clozeDisplayText',
+      value.clozeDisplayText
+    ),
+    clozeAnswerText: parseOptionalNullableStringField(
+      'prompt',
+      'clozeAnswerText',
+      value.clozeAnswerText
+    ),
+    clozeHint: parseOptionalNullableStringField('prompt', 'clozeHint', value.clozeHint),
+    clozeResolvedHint: parseOptionalNullableStringField(
+      'prompt',
+      'clozeResolvedHint',
+      value.clozeResolvedHint
+    ),
+  };
+}
+
+function parseStudyAnswerPayload(value: Record<string, unknown>): StudyAnswerPayload {
+  assertKnownKeys('answer', value, STUDY_ANSWER_ALLOWED_KEYS);
+
+  return {
+    expression: parseOptionalNullableStringField('answer', 'expression', value.expression),
+    expressionReading: parseOptionalNullableStringField(
+      'answer',
+      'expressionReading',
+      value.expressionReading
+    ),
+    meaning: parseOptionalNullableStringField('answer', 'meaning', value.meaning),
+    notes: parseOptionalNullableStringField('answer', 'notes', value.notes),
+    sentenceJp: parseOptionalNullableStringField('answer', 'sentenceJp', value.sentenceJp),
+    sentenceJpKana: parseOptionalNullableStringField(
+      'answer',
+      'sentenceJpKana',
+      value.sentenceJpKana
+    ),
+    sentenceEn: parseOptionalNullableStringField('answer', 'sentenceEn', value.sentenceEn),
+    restoredText: parseOptionalNullableStringField('answer', 'restoredText', value.restoredText),
+    restoredTextReading: parseOptionalNullableStringField(
+      'answer',
+      'restoredTextReading',
+      value.restoredTextReading
+    ),
+    answerAudio: parseOptionalStudyMediaRef('answer', 'answerAudio', value.answerAudio),
+    answerImage: parseOptionalStudyMediaRef('answer', 'answerImage', value.answerImage),
+  };
+}
+
+function parseCursorQueryParam(name: string, value: unknown): string | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new AppError(`${name} must be a non-empty string.`, 400);
+  }
+
+  if (value.length > STUDY_CURSOR_QUERY_MAX_LENGTH) {
+    throw new AppError(
+      `${name} must be ${String(STUDY_CURSOR_QUERY_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  return value;
+}
+
+function isStrictIsoDateTime(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?(?:Z|[+-]\d{2}:\d{2})$/.test(value);
+}
+
 function exceedsMaxJsonDepth(
   value: unknown,
   maxDepth: number,
@@ -304,8 +504,8 @@ function parseStudyCardPayloads(
   }
 
   return {
-    prompt: prompt as StudyPromptPayload,
-    answer: answer as StudyAnswerPayload,
+    prompt: parseStudyPromptPayload(prompt),
+    answer: parseStudyAnswerPayload(answer),
   };
 }
 
@@ -599,9 +799,32 @@ router.post(
 
         if (
           mode === 'custom_date' &&
-          (typeof dueAt !== 'string' || Number.isNaN(Date.parse(dueAt)))
+          (typeof dueAt !== 'string' ||
+            !isStrictIsoDateTime(dueAt) ||
+            Number.isNaN(Date.parse(dueAt)))
         ) {
-          res.status(400).json({ message: 'dueAt must be a valid ISO date for custom_date.' });
+          res
+            .status(400)
+            .json({ message: 'dueAt must be a valid ISO-8601 datetime for custom_date.' });
+          return;
+        }
+
+        if (typeof dueAt === 'string') {
+          const dueAtMs = Date.parse(dueAt);
+          const maxDueAt = new Date();
+          maxDueAt.setFullYear(maxDueAt.getFullYear() + MAX_STUDY_SET_DUE_FUTURE_YEARS);
+          if (dueAtMs > maxDueAt.getTime()) {
+            res.status(400).json({
+              message: `dueAt must be within ${String(MAX_STUDY_SET_DUE_FUTURE_YEARS)} years.`,
+            });
+            return;
+          }
+        }
+
+        if (typeof dueAt !== 'undefined' && typeof dueAt !== 'string') {
+          res
+            .status(400)
+            .json({ message: 'dueAt must be a valid ISO-8601 datetime for custom_date.' });
           return;
         }
       }
@@ -674,7 +897,7 @@ router.get('/history', async (req: AuthRequest, res, next) => {
     const history = await getStudyHistory({
       userId: req.userId,
       cardId,
-      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      cursor: parseCursorQueryParam('cursor', req.query.cursor),
       limit: parsePaginationLimit(
         req.query.limit,
         STUDY_HISTORY_PAGE_SIZE_DEFAULT,
@@ -695,7 +918,7 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
 
     const q = parseBrowserQueryString(req.query.q);
     const noteType = parseBrowserNoteType(req.query.noteType);
-    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+    const cursor = parseCursorQueryParam('cursor', req.query.cursor);
     const limit = parsePaginationLimit(
       req.query.limit,
       STUDY_BROWSER_PAGE_SIZE_DEFAULT,
@@ -802,7 +1025,7 @@ router.get('/export/cards', async (req: AuthRequest, res, next) => {
 
     const result = await exportStudyCardsSection({
       userId: req.userId,
-      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      cursor: parseCursorQueryParam('cursor', req.query.cursor),
       limit: parsePaginationLimit(
         req.query.limit,
         STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -823,7 +1046,7 @@ router.get('/export/review-logs', async (req: AuthRequest, res, next) => {
 
     const result = await exportStudyReviewLogsSection({
       userId: req.userId,
-      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      cursor: parseCursorQueryParam('cursor', req.query.cursor),
       limit: parsePaginationLimit(
         req.query.limit,
         STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -844,7 +1067,7 @@ router.get('/export/media', async (req: AuthRequest, res, next) => {
 
     const result = await exportStudyMediaSection({
       userId: req.userId,
-      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      cursor: parseCursorQueryParam('cursor', req.query.cursor),
       limit: parsePaginationLimit(
         req.query.limit,
         STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -865,7 +1088,7 @@ router.get('/export/imports', async (req: AuthRequest, res, next) => {
 
     const result = await exportStudyImportsSection({
       userId: req.userId,
-      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      cursor: parseCursorQueryParam('cursor', req.query.cursor),
       limit: parsePaginationLimit(
         req.query.limit,
         STUDY_EXPORT_PAGE_SIZE_DEFAULT,

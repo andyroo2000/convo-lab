@@ -236,6 +236,43 @@ describe('Study Routes', () => {
     expect(updateStudyCardMock).not.toHaveBeenCalled();
   });
 
+  it('rejects create payloads with unsupported prompt fields', async () => {
+    const response = await request(app)
+      .post('/study/cards')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        cardType: 'recognition',
+        prompt: { cueText: '会社', unexpected: 'nope' },
+        answer: { meaning: 'company' },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('prompt contains unsupported field');
+    expect(createStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects update payloads with invalid media refs', async () => {
+    const response = await request(app)
+      .patch('/study/cards/card-1')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        prompt: {
+          cueAudio: {
+            filename: 'audio.mp3',
+            mediaKind: 'bad',
+            source: 'generated',
+          },
+        },
+        answer: { meaning: 'company' },
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain(
+      'prompt.cueAudio.mediaKind must be audio, image, or other'
+    );
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('rejects oversized create payloads before hitting the service', async () => {
     const response = await request(app)
       .post('/study/cards')
@@ -320,7 +357,21 @@ describe('Study Routes', () => {
       .send({ action: 'set_due', mode: 'custom_date', dueAt: 'bad-date' });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toContain('dueAt must be a valid ISO date');
+    expect(response.body.message).toContain('dueAt must be a valid ISO-8601 datetime');
+    expect(performStudyCardActionMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects set_due custom dates more than 10 years in the future', async () => {
+    const farFuture = new Date();
+    farFuture.setFullYear(farFuture.getFullYear() + 11);
+
+    const response = await request(app)
+      .post('/study/cards/card-1/actions')
+      .set('Origin', 'http://localhost:5173')
+      .send({ action: 'set_due', mode: 'custom_date', dueAt: farFuture.toISOString() });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('within 10 years');
     expect(performStudyCardActionMock).not.toHaveBeenCalled();
   });
 
@@ -358,6 +409,14 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('200 characters or fewer');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects browser cursors longer than 1000 characters', async () => {
+    const response = await request(app).get(`/study/browser?cursor=${'a'.repeat(1001)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
@@ -494,6 +553,14 @@ describe('Study Routes', () => {
     });
   });
 
+  it('rejects history cursors longer than 1000 characters', async () => {
+    const response = await request(app).get(`/study/history?cursor=${'a'.repeat(1001)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
+    expect(getStudyHistoryMock).not.toHaveBeenCalled();
+  });
+
   it('serves authenticated study media through the study media route', async () => {
     getStudyMediaAccessMock.mockResolvedValue({
       type: 'redirect',
@@ -542,6 +609,14 @@ describe('Study Routes', () => {
       cursor: 'cursor-1',
       limit: 250,
     });
+  });
+
+  it('rejects export cursors longer than 1000 characters', async () => {
+    const response = await request(app).get(`/study/export/cards?cursor=${'a'.repeat(1001)}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
+    expect(exportStudyCardsSectionMock).not.toHaveBeenCalled();
   });
 
   it('defaults export section pagination when omitted', async () => {

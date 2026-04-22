@@ -199,7 +199,7 @@ const StudyPage = () => {
                   <StudyGradeButtons
                     gradeIntervals={reviewSession.gradeIntervals}
                     disabled={
-                      reviewSession.reviewMutation.isPending ||
+                      reviewSession.reviewBusy ||
                       reviewSession.sessionLoading ||
                       reviewSession.undoPending
                     }

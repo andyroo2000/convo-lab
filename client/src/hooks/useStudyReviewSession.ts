@@ -158,14 +158,17 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const [editing, setEditing] = useState(false);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const [undoPending, setUndoPending] = useState(false);
+  const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
   const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
+  const reviewSubmitPendingRef = useRef(false);
   const sessionCardCountRef = useRef(0);
   const runBackgroundTask = useStudyBackgroundTask();
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
   const currentCard = cards[currentIndex] ?? null;
+  const reviewBusy = reviewMutation.isPending || reviewSubmitPending;
   const gradeIntervals = useMemo(() => getGradeIntervals(currentCard), [currentCard]);
   const sessionCounts = useMemo(() => {
     const answeredSet = new Set(answeredCardIds);
@@ -404,6 +407,8 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     setEditing(false);
     setShowSetDueControls(false);
     setUndoPending(false);
+    reviewSubmitPendingRef.current = false;
+    setReviewSubmitPending(false);
     setAnsweredCardIds([]);
     setFailedCardIds([]);
     runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
@@ -413,10 +418,20 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
-      if (!currentCard || reviewMutation.isPending || undoPending || editing) return;
+      if (
+        !currentCard ||
+        reviewSubmitPendingRef.current ||
+        reviewMutation.isPending ||
+        undoPending ||
+        editing
+      ) {
+        return;
+      }
 
       const undoSnapshot = captureUndoSnapshot();
       try {
+        reviewSubmitPendingRef.current = true;
+        setReviewSubmitPending(true);
         stopAllAudio();
         const reviewResult = await reviewMutation.mutateAsync({ cardId: currentCard.id, grade });
         setAnsweredCardIds((current) =>
@@ -449,6 +464,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       } catch (error) {
         setSessionError(error instanceof Error ? error.message : 'Review failed.');
         throw error;
+      } finally {
+        reviewSubmitPendingRef.current = false;
+        setReviewSubmitPending(false);
       }
     },
     [
@@ -560,6 +578,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const handleUndo = useCallback(async () => {
     if (
       undoPending ||
+      reviewSubmitPendingRef.current ||
       reviewMutation.isPending ||
       cardActionMutation.isPending ||
       sessionLoading ||
@@ -703,7 +722,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
         return;
       }
 
-      if (!revealed || reviewMutation.isPending) return;
+      if (!revealed || reviewSubmitPendingRef.current || reviewMutation.isPending) return;
 
       if (event.key === '1') {
         event.preventDefault();
@@ -750,6 +769,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     handleUndo,
     revealCurrentCard,
     revealed,
+    reviewSubmitPending,
     reviewMutation.isPending,
     runBackgroundTask,
   ]);
@@ -763,6 +783,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     editing,
     showSetDueControls,
     undoPending,
+    reviewBusy,
     sessionCounts,
     gradeIntervals,
     motionPermissionState,

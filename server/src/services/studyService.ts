@@ -84,6 +84,23 @@ const generatedAnswerAudioInFlight = new Map<
 >();
 // This only deduplicates answer-audio generation within the current server process.
 
+function createUnsupportedDeckError(detectedDeckNames: string[]): AppError {
+  const sanitizedDeckNames = detectedDeckNames
+    .map((name) => sanitizeText(name))
+    .filter((name): name is string => Boolean(name));
+  const visibleDeckNames = sanitizedDeckNames.slice(0, 5);
+  const deckSummary = visibleDeckNames.length
+    ? ` Found: ${visibleDeckNames.map((name) => `"${name}"`).join(', ')}${
+        sanitizedDeckNames.length > visibleDeckNames.length ? ', …' : ''
+      }.`
+    : '';
+
+  return new AppError(
+    `Only the "${ANKI_DECK_NAME}" deck is supported in this version.${deckSummary}`,
+    400
+  );
+}
+
 type JsonRecord = Record<string, unknown>;
 type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
 type StudyImportJobRecord = Prisma.StudyImportJobGetPayload<Prisma.StudyImportJobDefaultArgs>;
@@ -1352,10 +1369,13 @@ function parseLegacyDeckAndModelMetadata(collectionRow: QueryRow): {
 
   const decks = JSON.parse(decksRaw) as Record<string, LegacyDeckConfig>;
   const models = JSON.parse(modelsRaw) as Record<string, LegacyModelConfig>;
+  const detectedDeckNames = Object.values(decks)
+    .map((deck) => (typeof deck?.name === 'string' ? deck.name : ''))
+    .filter((name) => name.length > 0);
 
   const targetDeck = Object.values(decks).find((deck) => deck?.name === ANKI_DECK_NAME);
   if (!targetDeck || typeof targetDeck.id !== 'number') {
-    throw new AppError(`Deck "${ANKI_DECK_NAME}" was not found in the uploaded collection.`, 400);
+    throw createUnsupportedDeckError(detectedDeckNames);
   }
 
   const fieldNamesByNoteType = new Map<number, string[]>();
@@ -1459,7 +1479,10 @@ function toSchedulerState(
 
   const card: Card = {
     due: dueAt ?? new Date(),
+    // Imported SM-2 intervals do not map cleanly to FSRS stability, so we seed
+    // with the imported interval and keep a small non-zero floor for legacy rows.
     stability: typeof sourceFsrs?.s === 'number' ? sourceFsrs.s : Math.max(sourceInterval, 0.1),
+    // Imported cards start from a neutral FSRS difficulty when no source FSRS value exists.
     difficulty: clamp(typeof sourceFsrs?.d === 'number' ? sourceFsrs.d : 5, 1, 10),
     elapsed_days:
       lastReviewedAt === null
@@ -1811,15 +1834,13 @@ async function parseColpkgUpload(params: {
     let templateNameByNoteTypeAndOrd: Map<string, string>;
 
     if (usesNormalizedSchema) {
-      const deckRow = mapRows(db.exec('SELECT id, name FROM decks')).find(
+      const deckRows = mapRows(db.exec('SELECT id, name FROM decks'));
+      const deckRow = deckRows.find(
         (row) => sanitizeText(String(row.name ?? '')) === ANKI_DECK_NAME
       ) as QueryRow | undefined;
 
       if (!deckRow || typeof deckRow.id !== 'number') {
-        throw new AppError(
-          `Deck "${ANKI_DECK_NAME}" was not found in the uploaded collection.`,
-          400
-        );
+        throw createUnsupportedDeckError(deckRows.map((row) => String(row.name ?? '')));
       }
 
       deckId = deckRow.id;

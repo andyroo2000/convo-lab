@@ -74,12 +74,14 @@ function sqlLiteral(value: string): string {
 
 async function buildFixtureColpkg(
   options: {
+    deckName?: string;
     includeOrphanedReviewLog?: boolean;
     companyPhotoFilename?: string;
     companyPhotoMediaEntryId?: string;
     companyPhotoZipEntryName?: string;
   } = {}
 ): Promise<Buffer> {
+  const deckName = options.deckName ?? '日本語';
   const companyPhotoFilename = options.companyPhotoFilename ?? 'company.png';
   const companyPhotoMediaEntryId = options.companyPhotoMediaEntryId ?? '0';
   const companyPhotoZipEntryName = options.companyPhotoZipEntryName ?? companyPhotoMediaEntryId;
@@ -134,7 +136,7 @@ async function buildFixtureColpkg(
   const legacyDecksJson = JSON.stringify({
     1761751732462: {
       id: 1761751732462,
-      name: '日本語',
+      name: deckName,
     },
   });
 
@@ -432,6 +434,23 @@ describe('studyService', () => {
     expect(createdLogs.every((log) => log.sourceCardId !== BigInt(9999))).toBe(true);
   });
 
+  it('import smoke: parses a valid 日本語 .colpkg and returns a completed import summary', async () => {
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg(),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result).toMatchObject({
+      status: 'completed',
+      deckName: '日本語',
+      preview: {
+        noteCount: 4,
+        cardCount: 6,
+      },
+    });
+  });
+
   it('returns a friendly 400 when the uploaded collection archive is malformed', async () => {
     await expect(
       importJapaneseStudyColpkg({
@@ -441,6 +460,19 @@ describe('studyService', () => {
       })
     ).rejects.toMatchObject({
       statusCode: 400,
+    });
+  });
+
+  it('returns a clearer error when the supported 日本語 deck is missing', async () => {
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: await buildFixtureColpkg({ deckName: 'Spanish' }),
+        filename: 'spanish.colpkg',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: 'Only the "日本語" deck is supported in this version. Found: "Spanish".',
     });
   });
 
@@ -481,6 +513,29 @@ describe('studyService', () => {
     ).rejects.toThrow('Study import failed. Please verify the .colpkg file and try again.');
 
     expect(deleteFromGCSPathMock).toHaveBeenCalled();
+  });
+
+  it('replaces prior anki_import data when the same collection is imported again', async () => {
+    const colpkgBuffer = await buildFixtureColpkg();
+
+    await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+    await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: colpkgBuffer,
+      filename: 'japanese.colpkg',
+    });
+
+    expect(mockPrisma.studyReviewLog.deleteMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyCard.deleteMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyNote.deleteMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyNote.createMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyCard.createMany).toHaveBeenCalledTimes(2);
+    expect(mockPrisma.studyReviewLog.createMany).toHaveBeenCalledTimes(2);
   });
 
   it('sanitizes study media storage paths before persisting imported media', async () => {

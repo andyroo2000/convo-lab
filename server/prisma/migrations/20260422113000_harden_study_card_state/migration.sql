@@ -3,8 +3,10 @@ SET "scheduler_state_json" = jsonb_build_object(
   'due',
   to_char(timezone('UTC', COALESCE("due_at", now())), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'stability',
+  -- Imported SM-2 intervals seed FSRS stability, with a small non-zero floor for legacy rows.
   GREATEST(COALESCE("source_interval"::double precision, 0.1), 0.1),
   'difficulty',
+  -- Imported cards fall back to a neutral FSRS difficulty when no source FSRS value exists.
   5,
   'elapsed_days',
   CASE
