@@ -1,4 +1,5 @@
 import { API_URL } from '../config';
+import { fetchWithCsrf } from './csrf';
 
 class APIClient {
   private baseURL: string;
@@ -18,7 +19,7 @@ class APIClient {
       },
     };
 
-    const response = await fetch(url, config);
+    const response = await fetchWithCsrf(url, config);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({

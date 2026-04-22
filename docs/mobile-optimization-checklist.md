@@ -28,6 +28,10 @@ Viewport baseline: iPhone 13 (`390x844`) via Playwright
 - [x] `/app/practice/:episodeId` (`PracticePage`) reviewed (simple placeholder layout).
 - [x] `/app/settings` (`SettingsPage`) reviewed and mobile-optimized.
 - [x] `/app/settings/:tab` (`SettingsPage`) reviewed across tabs.
+- [x] `/app/study` (`StudyPage`) reviewed and mobile-optimized.
+- [x] `/app/study/browse` (`StudyBrowsePage`) reviewed and mobile-optimized.
+- [x] `/app/study/create` (`StudyCreatePage`) reviewed for mobile layout.
+- [x] `/app/study/history` (`StudyHistoryPage`) reviewed for mobile layout.
 - [x] `/app/admin` (`AdminPage`) reviewed on mobile.
 - [x] `/app/admin/:tab` (`AdminPage`) reviewed across tabs.
 - [x] `/app/tools` (`ToolsDirectoryPage`) shares same mobile styling as public tools.

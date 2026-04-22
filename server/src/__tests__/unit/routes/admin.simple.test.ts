@@ -367,6 +367,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       const response = await request(app).get('/admin/feature-flags');
@@ -382,6 +383,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'new-flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       const response = await request(app).get('/admin/feature-flags');
@@ -391,6 +393,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
+          flashcardsEnabled: true,
         },
       });
     });
@@ -402,12 +405,14 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       mockPrisma.featureFlag.update.mockResolvedValue({
         id: 'flags-id',
         dialoguesEnabled: true,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       const response = await request(app)
@@ -425,6 +430,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'new-flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       const response = await request(app)
@@ -441,6 +447,7 @@ describe('Admin Routes - Critical Branch Coverage', () => {
         id: 'flags-id',
         dialoguesEnabled: false,
         audioCourseEnabled: true,
+        flashcardsEnabled: true,
       });
 
       const response = await request(app)

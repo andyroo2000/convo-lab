@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, memo } from 'react';
 import { Play, Square } from 'lucide-react';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { voiceIdToFilename } from '@languageflow/shared/src/voiceSelection';
 import { useAudioPreview } from '../../contexts/AudioPreviewContext';
 

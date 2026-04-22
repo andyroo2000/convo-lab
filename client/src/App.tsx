@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocaleProvider } from './contexts/LocaleContext';
@@ -8,6 +8,7 @@ import Layout from './components/common/Layout';
 import ToolsPublicLayout from './components/common/ToolsPublicLayout';
 import ErrorBoundary from './components/ErrorBoundary';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
+import StudyRouteErrorBoundary from './components/study/StudyRouteErrorBoundary';
 import {
   initializeGoogleAnalytics,
   isGoogleAnalyticsEnabled,
@@ -44,6 +45,11 @@ const LibraryPage = lazy(() => import('./pages/LibraryPage'));
 const CoursePage = lazy(() => import('./pages/CoursePage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AdminPage = lazy(() => import('./pages/AdminPage'));
+const StudyPage = lazy(() => import('./pages/StudyPage'));
+const StudyBrowsePage = lazy(() => import('./pages/StudyBrowsePage'));
+const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
+const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
+const StudyHistoryPage = lazy(() => import('./pages/StudyHistoryPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
 // Loading fallback component
@@ -57,6 +63,12 @@ const PageLoader = () => (
 );
 
 const SITE_URL = 'https://convo-lab.com';
+
+const StudyRouteWrapper = ({ children }: { children: ReactNode }) => (
+  <StudyRouteErrorBoundary onBackToStudy={() => window.location.assign('/app/study')}>
+    {children}
+  </StudyRouteErrorBoundary>
+);
 
 interface RouteSeoConfig {
   title: string;
@@ -230,6 +242,46 @@ const App = () => (
                     <Route path="credits" element={<CreditsPage />} />
                     <Route path="admin" element={<AdminPage />} />
                     <Route path="admin/:tab" element={<AdminPage />} />
+                    <Route
+                      path="study"
+                      element={
+                        <StudyRouteWrapper>
+                          <StudyPage />
+                        </StudyRouteWrapper>
+                      }
+                    />
+                    <Route
+                      path="study/browse"
+                      element={
+                        <StudyRouteWrapper>
+                          <StudyBrowsePage />
+                        </StudyRouteWrapper>
+                      }
+                    />
+                    <Route
+                      path="study/import"
+                      element={
+                        <StudyRouteWrapper>
+                          <StudyImportPage />
+                        </StudyRouteWrapper>
+                      }
+                    />
+                    <Route
+                      path="study/create"
+                      element={
+                        <StudyRouteWrapper>
+                          <StudyCreatePage />
+                        </StudyRouteWrapper>
+                      }
+                    />
+                    <Route
+                      path="study/history"
+                      element={
+                        <StudyRouteWrapper>
+                          <StudyHistoryPage />
+                        </StudyRouteWrapper>
+                      }
+                    />
 
                     {/* Create - Content Creation Hub */}
                     <Route path="create" element={<CreatePage />} />

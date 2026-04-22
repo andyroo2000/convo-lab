@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Clock, Pause, Play, RotateCcw, Trash2 } from 'lucide-react';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { SENTENCE_SCRIPT_PROMPT } from '@languageflow/shared/src/scriptLabPrompts';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   DEFAULT_NARRATOR_VOICES,
   DEFAULT_SPEAKER_VOICES,

@@ -4,7 +4,7 @@
 // Using default imports for bcrypt and jwt per their official documentation
 import { Prisma } from '@prisma/client';
 import bcrypt from 'bcrypt';
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 
 import passport from '../config/passport.js';
@@ -12,6 +12,7 @@ import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { emailQueue } from '../jobs/emailQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
@@ -19,6 +20,36 @@ import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
 
 const router = Router();
+
+function getSessionCookieOptions(sameSite: 'lax' | 'strict' = 'lax') {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? sameSite : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  } as const;
+}
+
+function setSessionCookies(
+  req: AuthRequest,
+  res: Response,
+  token: string,
+  sameSite: 'lax' | 'strict' = 'lax'
+) {
+  const resolvedSameSite = process.env.NODE_ENV === 'production' ? sameSite : 'lax';
+  res.cookie('token', token, getSessionCookieOptions(sameSite));
+  issueCsrfTokenCookie(req, res, resolvedSameSite);
+}
+
+function clearSessionCookies(res: Response, sameSite: 'lax' | 'strict' = 'lax') {
+  const resolvedSameSite = process.env.NODE_ENV === 'production' ? sameSite : 'lax';
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: resolvedSameSite,
+  });
+  clearCsrfCookies(res, resolvedSameSite);
+}
 
 // Sign up
 router.post('/signup', async (req, res, next) => {
@@ -67,12 +98,7 @@ router.post('/signup', async (req, res, next) => {
           }
         );
 
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+        setSessionCookies(req as AuthRequest, res, token);
 
         // Queue verification email if not yet verified
         if (!existingUser.emailVerified) {
@@ -183,12 +209,7 @@ router.post('/signup', async (req, res, next) => {
     });
 
     // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    setSessionCookies(req as AuthRequest, res, token);
 
     // Queue verification email (non-blocking with retries)
     await emailQueue.add(
@@ -263,12 +284,7 @@ router.post('/login', async (req, res, next) => {
     );
 
     // Set cookie
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    setSessionCookies(req as AuthRequest, res, token);
 
     res.json({
       id: updatedUser.id,
@@ -295,8 +311,13 @@ router.post('/login', async (req, res, next) => {
 
 // Logout
 router.post('/logout', (_req, res) => {
-  res.clearCookie('token');
+  clearSessionCookies(res);
   res.json({ message: 'Logged out successfully' });
+});
+
+router.get('/csrf', (req, res) => {
+  issueCsrfTokenCookie(req as AuthRequest, res, 'lax');
+  res.status(204).end();
 });
 
 // Get current user
@@ -330,6 +351,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
+    issueCsrfTokenCookie(req, res, 'lax');
     res.json(user);
   } catch (error) {
     next(error);
@@ -515,7 +537,7 @@ router.delete('/me', requireAuth, async (req: AuthRequest, res, next) => {
     });
 
     // Clear auth cookie
-    res.clearCookie('token');
+    clearSessionCookies(res, 'strict');
 
     res.json({ message: i18next.t('server:auth.accountDeleted') });
   } catch (error) {
@@ -600,12 +622,7 @@ router.get(
           expiresIn: '7d',
         });
 
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-          maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        });
+        setSessionCookies(req as AuthRequest, res, token, 'strict');
 
         return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
       }
@@ -635,12 +652,7 @@ router.get(
       });
 
       // Set cookie
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      });
+      setSessionCookies(req as AuthRequest, res, token, 'strict');
 
       // Redirect to app
       res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
@@ -747,12 +759,7 @@ router.post('/claim-invite', async (req, res, next) => {
     );
 
     // Set cookie
-    res.cookie('token', sessionToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    });
+    setSessionCookies(req as AuthRequest, res, sessionToken, 'strict');
 
     res.json(user);
   } catch (error) {

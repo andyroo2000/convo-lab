@@ -11,6 +11,7 @@ import express from 'express';
 import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
+import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
@@ -24,6 +25,7 @@ import dialogueRoutes from './routes/dialogue.js';
 import episodeRoutes from './routes/episodes.js';
 import featureFlagRoutes from './routes/featureFlags.js';
 import imageRoutes from './routes/images.js';
+import studyRoutes from './routes/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import toolAudioRoutes from './routes/toolAudio.js';
 import verificationRoutes from './routes/verification.js';
@@ -208,6 +210,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(requestLogger);
+app.use('/api', requireApiCsrfProtection);
+
+app.use((req, res, next) => {
+  if (req.path === '/study-media' || req.path.startsWith('/study-media/')) {
+    res.status(404).end();
+    return;
+  }
+
+  next();
+});
 
 // Serve static files from public directory (for audio files)
 app.use(express.static(path.join(__dirname, '../public')));
@@ -258,6 +270,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', verificationRoutes);
 app.use('/api', billingRoutes);
 app.use('/api/episodes', episodeRoutes);
+app.use('/api/study', studyRoutes);
 app.use('/api/dialogue', dialogueRoutes);
 app.use('/api/audio', audioRoutes);
 app.use('/api/images', imageRoutes);

@@ -66,6 +66,13 @@ export interface UploadFileToPathOptions {
   makePublic?: boolean;
 }
 
+export interface UploadBufferToPathOptions {
+  buffer: Buffer;
+  destinationPath: string;
+  contentType: string;
+  makePublic?: boolean;
+}
+
 /**
  * Upload a file to GCS using streaming (memory-efficient for large files)
  */
@@ -145,6 +152,34 @@ export async function uploadFileToGCSPath(options: UploadFileToPathOptions): Pro
   }
 }
 
+export async function uploadBufferToGCSPath(options: UploadBufferToPathOptions): Promise<string> {
+  const { buffer, destinationPath, contentType, makePublic = false } = options;
+
+  try {
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
+    const normalizedPath = destinationPath.replace(/^\/+/, '');
+    const file = bucket.file(normalizedPath);
+
+    await file.save(buffer, {
+      contentType,
+      metadata: {
+        cacheControl: 'private, max-age=0, no-transform',
+      },
+    });
+
+    if (makePublic) {
+      await file.makePublic();
+    }
+
+    return `https://storage.googleapis.com/${resolvedBucketName}/${normalizedPath}`;
+  } catch (error) {
+    console.error('GCS fixed-path buffer upload error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    throw new Error(`Failed to upload buffer to Google Cloud Storage path: ${errorMsg}`);
+  }
+}
+
 export async function uploadAudio(
   audioBuffer: Buffer,
   episodeId: string,
@@ -192,9 +227,22 @@ export async function deleteFromGCS(url: string): Promise<void> {
   }
 }
 
+export async function deleteFromGCSPath(filePath: string): Promise<void> {
+  try {
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
+    await bucket.file(filePath.replace(/^\/+/, '')).delete({ ignoreNotFound: true });
+  } catch (error) {
+    console.error('GCS delete-by-path error:', error);
+    throw new Error('Failed to delete file from Google Cloud Storage path');
+  }
+}
+
 export interface SignedReadUrlOptions {
   filePath: string;
   expiresInSeconds: number;
+  responseDisposition?: string;
+  responseType?: string;
 }
 
 export interface SignedReadUrlResult {
@@ -213,7 +261,7 @@ export async function gcsFileExists(filePath: string): Promise<boolean> {
 export async function getSignedReadUrl(
   options: SignedReadUrlOptions
 ): Promise<SignedReadUrlResult> {
-  const { filePath, expiresInSeconds } = options;
+  const { filePath, expiresInSeconds, responseDisposition, responseType } = options;
   const resolvedBucketName = requireBucketName();
   const bucket = storage.bucket(resolvedBucketName);
   const file = bucket.file(filePath);
@@ -223,6 +271,8 @@ export async function getSignedReadUrl(
     version: 'v4',
     action: 'read',
     expires: expiresAtMs,
+    ...(responseDisposition ? { responseDisposition } : {}),
+    ...(responseType ? { responseType } : {}),
   });
 
   return {

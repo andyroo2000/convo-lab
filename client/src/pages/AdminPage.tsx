@@ -88,6 +88,7 @@ interface FeatureFlags {
   id: string;
   dialoguesEnabled: boolean;
   audioCourseEnabled: boolean;
+  flashcardsEnabled: boolean;
   updatedAt: string;
 }
 
@@ -1391,6 +1392,29 @@ const AdminPage = () => {
                           }
                           className="sr-only peer"
                           aria-label="Toggle Guided Audio Course"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+                      </label>
+                    </div>
+
+                    <div className="flex items-center justify-between py-4">
+                      <div>
+                        <h3 className="text-base font-semibold text-navy">Study / Flashcards</h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Server-side Japanese SRS with import, review history, and study pages
+                        </p>
+                      </div>
+                      <label
+                        htmlFor="toggle-study"
+                        className="relative inline-flex items-center cursor-pointer"
+                      >
+                        <input
+                          id="toggle-study"
+                          type="checkbox"
+                          checked={featureFlags.flashcardsEnabled}
+                          onChange={(e) => updateFeatureFlag('flashcardsEnabled', e.target.checked)}
+                          className="sr-only peer"
+                          aria-label="Toggle Study and Flashcards"
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
                       </label>

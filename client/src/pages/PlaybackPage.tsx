@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';

@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import { installCsrfFetch } from './lib/csrf';
 import './styles/index.css';
 
 // Global error handler for chunk loading failures
@@ -55,6 +56,10 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Install the global fetch wrapper before mounting the app so first-party modules do not
+// capture an unwrapped fetch reference before CSRF headers are injected on mutations.
+installCsrfFetch();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

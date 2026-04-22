@@ -658,6 +658,7 @@ router.get('/feature-flags', async (_req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: true,
           audioCourseEnabled: true,
+          flashcardsEnabled: true,
         },
       });
     }
@@ -674,8 +675,9 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
     const payload = req.body as {
       dialoguesEnabled?: unknown;
       audioCourseEnabled?: unknown;
+      flashcardsEnabled?: unknown;
     };
-    const { dialoguesEnabled, audioCourseEnabled } = payload;
+    const { dialoguesEnabled, audioCourseEnabled, flashcardsEnabled } = payload;
 
     // Validate boolean values
     const validateBoolean = (val: unknown, name: string) => {
@@ -686,11 +688,14 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
 
     validateBoolean(dialoguesEnabled, 'dialoguesEnabled');
     validateBoolean(audioCourseEnabled, 'audioCourseEnabled');
+    validateBoolean(flashcardsEnabled, 'flashcardsEnabled');
 
     const dialoguesEnabledValue =
       typeof dialoguesEnabled === 'boolean' ? dialoguesEnabled : undefined;
     const audioCourseEnabledValue =
       typeof audioCourseEnabled === 'boolean' ? audioCourseEnabled : undefined;
+    const flashcardsEnabledValue =
+      typeof flashcardsEnabled === 'boolean' ? flashcardsEnabled : undefined;
 
     // Get or create feature flags
     let flags = await prisma.featureFlag.findFirst();
@@ -701,6 +706,7 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
         data: {
           dialoguesEnabled: dialoguesEnabledValue ?? true,
           audioCourseEnabled: audioCourseEnabledValue ?? true,
+          flashcardsEnabled: flashcardsEnabledValue ?? true,
         },
       });
     } else {
@@ -711,6 +717,9 @@ router.patch('/feature-flags', async (req: AuthRequest, res, next) => {
           ...(dialoguesEnabledValue !== undefined && { dialoguesEnabled: dialoguesEnabledValue }),
           ...(audioCourseEnabledValue !== undefined && {
             audioCourseEnabled: audioCourseEnabledValue,
+          }),
+          ...(flashcardsEnabledValue !== undefined && {
+            flashcardsEnabled: flashcardsEnabledValue,
           }),
         },
       });

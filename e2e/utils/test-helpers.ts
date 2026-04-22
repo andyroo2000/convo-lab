@@ -181,6 +181,20 @@ export async function wait(ms: number): Promise<void> {
 }
 
 /**
+ * Assert that the current page has no horizontal overflow.
+ */
+export async function expectNoHorizontalOverflow(page: Page): Promise<void> {
+  const widths = await page.evaluate(() => ({
+    bodyWidth: document.body.scrollWidth,
+    docWidth: document.documentElement.scrollWidth,
+    viewportWidth: window.innerWidth,
+  }));
+
+  const widestWidth = Math.max(widths.bodyWidth, widths.docWidth);
+  expect(widestWidth).toBeLessThanOrEqual(widths.viewportWidth + 1);
+}
+
+/**
  * Clear all generation logs for a user (via API)
  */
 export async function clearUserQuota(page: Page, userId: string): Promise<void> {

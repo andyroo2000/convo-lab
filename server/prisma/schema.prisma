@@ -11,48 +11,53 @@ datasource db {
 }
 
 model User {
-  id                       String    @id @default(uuid())
-  email                    String    @unique
-  password                 String?   // Optional for OAuth users
-  name                     String
-  displayName              String?
-  avatarColor              String?   @default("indigo")
-  avatarUrl                String?   // Custom profile avatar URL
-  role                     String    @default("user") // "user", "moderator", "admin"
-  preferredStudyLanguage   String    @default("ja") // Always 'ja' (Japanese only)
-  preferredNativeLanguage  String    @default("en")
-  proficiencyLevel         String    @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
-  onboardingCompleted      Boolean   @default(false)
-  seenSampleContentGuide   Boolean   @default(false) // Pulse point: Has user seen the sample content guide?
-  seenCustomContentGuide   Boolean   @default(false) // Pulse point: Has user seen the custom content creation guide?
-  emailVerified            Boolean   @default(false)
-  emailVerifiedAt          DateTime?
+  id                      String    @id @default(uuid())
+  email                   String    @unique
+  password                String? // Optional for OAuth users
+  name                    String
+  displayName             String?
+  avatarColor             String?   @default("indigo")
+  avatarUrl               String? // Custom profile avatar URL
+  role                    String    @default("user") // "user", "moderator", "admin"
+  preferredStudyLanguage  String    @default("ja") // Always 'ja' (Japanese only)
+  preferredNativeLanguage String    @default("en")
+  proficiencyLevel        String    @default("beginner") // 'beginner', 'intermediate', 'advanced', 'native'
+  onboardingCompleted     Boolean   @default(false)
+  seenSampleContentGuide  Boolean   @default(false) // Pulse point: Has user seen the sample content guide?
+  seenCustomContentGuide  Boolean   @default(false) // Pulse point: Has user seen the custom content creation guide?
+  emailVerified           Boolean   @default(false)
+  emailVerifiedAt         DateTime?
 
   // OAuth fields
-  googleId                 String?   @unique
+  googleId String? @unique
 
   // Subscription fields
   tier                     String    @default("free") // "free", "pro"
   stripeCustomerId         String?   @unique
   stripeSubscriptionId     String?   @unique
-  stripeSubscriptionStatus String?   // "active", "canceled", "past_due", "incomplete"
-  stripePriceId            String?   // Track which price they're on
+  stripeSubscriptionStatus String? // "active", "canceled", "past_due", "incomplete"
+  stripePriceId            String? // Track which price they're on
   subscriptionStartedAt    DateTime?
   subscriptionExpiresAt    DateTime?
   subscriptionCanceledAt   DateTime?
   isTestUser               Boolean   @default(false) // Test users can access $0.01/month test tier
 
-  createdAt                DateTime  @default(now())
-  updatedAt                DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  episodes                 Episode[]
-  courses                  Course[]
-  inviteCode               InviteCode?
-  generationLogs           GenerationLog[]
-  emailVerificationTokens  EmailVerificationToken[]
-  passwordResetTokens      PasswordResetToken[]
-  subscriptionEvents       SubscriptionEvent[]
-  oauthAccounts            OAuthAccount[]
+  episodes                Episode[]
+  courses                 Course[]
+  inviteCode              InviteCode?
+  generationLogs          GenerationLog[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+  subscriptionEvents      SubscriptionEvent[]
+  oauthAccounts           OAuthAccount[]
+  studyNotes              StudyNote[]
+  studyCards              StudyCard[]
+  studyReviewLogs         StudyReviewLog[]
+  studyMedia              StudyMedia[]
+  studyImportJobs         StudyImportJob[]
 
   @@index([email])
   @@index([role])
@@ -110,7 +115,7 @@ model PasswordResetToken {
 model SubscriptionEvent {
   id            String   @id @default(uuid())
   userId        String
-  eventType     String   // "subscribed", "upgraded", "downgraded", "canceled", "reactivated"
+  eventType     String // "subscribed", "upgraded", "downgraded", "canceled", "reactivated"
   fromTier      String?
   toTier        String
   stripeEventId String?  @unique
@@ -126,28 +131,28 @@ model SubscriptionEvent {
 }
 
 model Episode {
-  id             String   @id @default(uuid())
-  userId         String
-  title          String
-  sourceText     String   @db.Text
-  targetLanguage String   // Language code: 'ja'
-  nativeLanguage String   // User's native language
-  jlptLevel      String?  // Optional JLPT level (N5-N1) for dialogue generation
+  id                String  @id @default(uuid())
+  userId            String
+  title             String
+  sourceText        String  @db.Text
+  targetLanguage    String // Language code: 'ja'
+  nativeLanguage    String // User's native language
+  jlptLevel         String? // Optional JLPT level (N5-N1) for dialogue generation
   autoGenerateAudio Boolean @default(true)
-  status         String   @default("draft") // draft, generating, ready, error
-  isSampleContent Boolean @default(false) // Pre-generated sample content
+  status            String  @default("draft") // draft, generating, ready, error
+  isSampleContent   Boolean @default(false) // Pre-generated sample content
 
   // Legacy single-speed audio (for backward compatibility)
-  audioUrl       String?
-  audioSpeed     String?  @default("medium") // Legacy: very-slow, slow, medium, normal
+  audioUrl   String?
+  audioSpeed String? @default("medium") // Legacy: very-slow, slow, medium, normal
 
   // Multi-speed audio URLs
-  audioUrl_0_7   String?  // Slow (0.7x)
-  audioUrl_0_85  String?  // Medium (0.85x)
-  audioUrl_1_0   String?  // Normal (1.0x)
+  audioUrl_0_7  String? // Slow (0.7x)
+  audioUrl_0_85 String? // Medium (0.85x)
+  audioUrl_1_0  String? // Normal (1.0x)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   dialogue       Dialogue?
@@ -175,10 +180,10 @@ model Speaker {
   id            String  @id @default(uuid())
   dialogueId    String
   name          String
-  voiceId       String  // TTS voice ID (Google or Polly)
+  voiceId       String // TTS voice ID (Google or Polly)
   voiceProvider String? @default("google") // "google" | "polly"
-  proficiency   String  // beginner, intermediate, advanced, native
-  tone          String  // casual, polite, formal
+  proficiency   String // beginner, intermediate, advanced, native
+  tone          String // casual, polite, formal
   gender        String? // male or female (for avatar matching)
   color         String? // For UI differentiation
   avatarUrl     String? // URL to speaker avatar image
@@ -190,54 +195,54 @@ model Speaker {
 }
 
 model Sentence {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   dialogueId  String
   speakerId   String
   order       Int
-  text        String   @db.Text
-  translation String   @db.Text
+  text        String @db.Text
+  translation String @db.Text
 
   // Language-specific metadata stored as JSON
   // Structure: { japanese?: { kanji, kana, furigana } }
-  metadata    Json
+  metadata Json
 
   // Legacy single-speed timing (for backward compatibility)
-  audioUrl    String?
-  startTime   Int?     // milliseconds
-  endTime     Int?     // milliseconds
+  audioUrl  String?
+  startTime Int? // milliseconds
+  endTime   Int? // milliseconds
 
   // Multi-speed timings
-  startTime_0_7  Int?  // milliseconds at 0.7x speed
-  endTime_0_7    Int?  // milliseconds at 0.7x speed
-  startTime_0_85 Int?  // milliseconds at 0.85x speed
-  endTime_0_85   Int?  // milliseconds at 0.85x speed
-  startTime_1_0  Int?  // milliseconds at 1.0x speed
-  endTime_1_0    Int?  // milliseconds at 1.0x speed
+  startTime_0_7  Int? // milliseconds at 0.7x speed
+  endTime_0_7    Int? // milliseconds at 0.7x speed
+  startTime_0_85 Int? // milliseconds at 0.85x speed
+  endTime_0_85   Int? // milliseconds at 0.85x speed
+  startTime_1_0  Int? // milliseconds at 1.0x speed
+  endTime_1_0    Int? // milliseconds at 1.0x speed
 
-  variations  Json?    // Array of alternative phrasings
-  selected    Boolean  @default(false)
+  variations Json? // Array of alternative phrasings
+  selected   Boolean @default(false)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  dialogue    Dialogue @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
-  speaker     Speaker  @relation(fields: [speakerId], references: [id])
+  dialogue Dialogue @relation(fields: [dialogueId], references: [id], onDelete: Cascade)
+  speaker  Speaker  @relation(fields: [speakerId], references: [id])
 
   @@index([dialogueId])
   @@index([order])
 }
 
 model Image {
-  id               String   @id @default(uuid())
-  episodeId        String
-  url              String
-  prompt           String   @db.Text
-  order            Int
-  sentenceStartId  String?
-  sentenceEndId    String?
-  createdAt        DateTime @default(now())
+  id              String   @id @default(uuid())
+  episodeId       String
+  url             String
+  prompt          String   @db.Text
+  order           Int
+  sentenceStartId String?
+  sentenceEndId   String?
+  createdAt       DateTime @default(now())
 
-  episode          Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   @@index([episodeId])
   @@index([order])
@@ -253,30 +258,30 @@ model Course {
   status                   String   @default("draft") // draft, generating, ready, error
   isSampleContent          Boolean  @default(false) // Pre-generated sample content
   isTestCourse             Boolean  @default(false) // Admin test courses for Script Lab
-  nativeLanguage           String   // L1 (e.g., 'en')
-  targetLanguage           String   // L2 (always 'ja')
+  nativeLanguage           String // L1 (e.g., 'en')
+  targetLanguage           String // L2 (always 'ja')
   maxLessonDurationMinutes Int      @default(30)
-  l1VoiceId                String   // English narrator voice
+  l1VoiceId                String // English narrator voice
   l1VoiceProvider          String?  @default("google") // "google" | "polly"
-  jlptLevel                String?  // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
+  jlptLevel                String? // Target JLPT level: N5, N4, N3, N2, N1 (null = no specific level)
   speaker1Gender           String   @default("male") // Gender for first dialogue speaker: 'male' or 'female'
   speaker2Gender           String   @default("female") // Gender for second dialogue speaker: 'male' or 'female'
-  speaker1VoiceId          String?  // Specific TTS voice ID for speaker 1 (overrides gender default)
+  speaker1VoiceId          String? // Specific TTS voice ID for speaker 1 (overrides gender default)
   speaker1VoiceProvider    String?  @default("google") // "google" | "polly"
-  speaker2VoiceId          String?  // Specific TTS voice ID for speaker 2 (overrides gender default)
+  speaker2VoiceId          String? // Specific TTS voice ID for speaker 2 (overrides gender default)
   speaker2VoiceProvider    String?  @default("google") // "google" | "polly"
-  scriptJson               Json?    // Pipeline data: { _pipelineStage, _exchanges, _scriptUnits } or legacy flat array
-  scriptUnitsJson          Json?    // Flat LessonScriptUnit[] for audio assembly (separate from pipeline data)
-  approxDurationSeconds    Int?     // Flattened from Lesson
-  audioUrl                 String?  // Flattened from Lesson
-  timingData               Json?    // Timing data for each script unit: { unitIndex, startTime, endTime }[]
+  scriptJson               Json? // Pipeline data: { _pipelineStage, _exchanges, _scriptUnits } or legacy flat array
+  scriptUnitsJson          Json? // Flat LessonScriptUnit[] for audio assembly (separate from pipeline data)
+  approxDurationSeconds    Int? // Flattened from Lesson
+  audioUrl                 String? // Flattened from Lesson
+  timingData               Json? // Timing data for each script unit: { unitIndex, startTime, endTime }[]
   createdAt                DateTime @default(now())
   updatedAt                DateTime @updatedAt
 
-  user                     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coreItems                CourseCoreItem[]
-  courseEpisodes           CourseEpisode[]
-  lineAudioRenderings      LineAudioRendering[]
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coreItems           CourseCoreItem[]
+  courseEpisodes      CourseEpisode[]
+  lineAudioRenderings LineAudioRendering[]
 
   @@index([userId])
   @@index([status])
@@ -289,8 +294,8 @@ model CourseEpisode {
   episodeId String
   order     Int
 
-  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  episode   Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
 
   @@unique([courseId, episodeId])
   @@index([courseId])
@@ -298,18 +303,18 @@ model CourseEpisode {
 }
 
 model CourseCoreItem {
-  id                String  @id @default(uuid())
-  courseId          String
-  textL2            String
-  readingL2         String? // kana
-  translationL1     String
-  complexityScore   Float
-  sourceEpisodeId   String?
-  sourceSentenceId  String?
-  sourceUnitIndex   Int?    // Index in Course.scriptJson where this vocabulary appears
-  components        Json?   // Pimsleur backward-build components: PhraseComponent[]
+  id               String  @id @default(uuid())
+  courseId         String
+  textL2           String
+  readingL2        String? // kana
+  translationL1    String
+  complexityScore  Float
+  sourceEpisodeId  String?
+  sourceSentenceId String?
+  sourceUnitIndex  Int? // Index in Course.scriptJson where this vocabulary appears
+  components       Json? // Pimsleur backward-build components: PhraseComponent[]
 
-  course            Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId])
 }
@@ -319,11 +324,11 @@ model CourseCoreItem {
 model SpeakerAvatar {
   id          String   @id @default(uuid())
   filename    String   @unique // e.g., "ja-female-casual.jpg"
-  croppedUrl  String   // GCS public URL for cropped avatar
-  originalUrl String   // GCS public URL for original/uncropped version
-  language    String   // Language code: 'ja'
-  gender      String   // 'male' or 'female'
-  tone        String   // 'casual', 'polite', 'formal'
+  croppedUrl  String // GCS public URL for cropped avatar
+  originalUrl String // GCS public URL for original/uncropped version
+  language    String // Language code: 'ja'
+  gender      String // 'male' or 'female'
+  tone        String // 'casual', 'polite', 'formal'
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -334,22 +339,196 @@ model SpeakerAvatar {
 // Feature Flags - Control visibility of content types for non-admin users
 
 model FeatureFlag {
-  id                           String   @id @default(uuid())
-  dialoguesEnabled             Boolean  @default(true)
-  audioCourseEnabled           Boolean  @default(true)
-  updatedAt                    DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  dialoguesEnabled   Boolean  @default(true)
+  audioCourseEnabled Boolean  @default(true)
+  flashcardsEnabled  Boolean  @default(true)
+  updatedAt          DateTime @updatedAt
 
   @@map("feature_flags")
+}
+
+model StudyImportJob {
+  id             String    @id @default(uuid())
+  userId         String
+  status         String    @default("pending")
+  sourceType     String    @default("anki_colpkg")
+  sourceFilename String
+  deckName       String    @default("日本語")
+  previewJson    Json
+  summaryJson    Json?
+  errorMessage   String?   @db.Text
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notes      StudyNote[]
+  cards      StudyCard[]
+  reviewLogs StudyReviewLog[]
+  media      StudyMedia[]
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+  @@index([userId, updatedAt, id])
+  @@index([status])
+  @@map("study_import_jobs")
+}
+
+model StudyNote {
+  id                 String   @id @default(uuid())
+  userId             String
+  importJobId        String?
+  sourceKind         String   @default("anki_import")
+  sourceNoteId       BigInt?
+  sourceGuid         String?
+  sourceDeckId       BigInt?
+  sourceDeckName     String?
+  sourceNotetypeId   BigInt?
+  sourceNotetypeName String?
+  rawFieldsJson      Json
+  canonicalJson      Json
+  searchText         String   @default("") @db.Text
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importJob StudyImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  cards     StudyCard[]
+
+  @@unique([userId, sourceNoteId])
+  @@index([userId, sourceKind])
+  @@index([userId, updatedAt, id])
+  @@index([userId, sourceNotetypeName, updatedAt, id])
+  @@index([importJobId])
+  @@map("study_notes")
+}
+
+model StudyMedia {
+  id                 String   @id @default(uuid())
+  userId             String
+  importJobId        String?
+  sourceKind         String   @default("anki_import")
+  sourceMediaKey     String?
+  sourceFilename     String
+  normalizedFilename String
+  mediaKind          String
+  contentType        String?
+  storagePath        String?
+  publicUrl          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  importJob        StudyImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  promptAudioCards StudyCard[]     @relation("StudyPromptAudio")
+  answerAudioCards StudyCard[]     @relation("StudyAnswerAudio")
+  imageCards       StudyCard[]     @relation("StudyImageMedia")
+
+  @@index([userId, sourceKind])
+  @@index([userId, updatedAt, id])
+  @@index([importJobId])
+  @@index([normalizedFilename])
+  @@map("study_media")
+}
+
+model StudyCard {
+  id                   String    @id @default(uuid())
+  userId               String
+  noteId               String
+  importJobId          String?
+  sourceKind           String    @default("anki_import")
+  sourceCardId         BigInt?
+  sourceDeckId         BigInt?
+  sourceDeckName       String?
+  sourceTemplateOrd    Int?
+  sourceTemplateName   String?
+  sourceQueue          Int?
+  sourceCardType       Int?
+  sourceDue            Int? // Raw Anki due metadata; runtime ordering and scheduling use dueAt.
+  sourceInterval       Int?
+  sourceFactor         Int?
+  sourceReps           Int?
+  sourceLapses         Int?
+  sourceLeft           Int?
+  sourceOriginalDue    Int?
+  sourceOriginalDeckId BigInt?
+  sourceFsrsJson       Json?
+  cardType             String // recognition | production | cloze; DB check enforced in migration history.
+  queueState           String // Runtime queue state; DB check enforced in migration history.
+  dueAt                DateTime?
+  lastReviewedAt       DateTime?
+  promptJson           Json
+  answerJson           Json
+  searchText           String    @default("") @db.Text
+  schedulerStateJson   Json
+  answerAudioSource    String    @default("missing")
+  promptAudioMediaId   String?
+  answerAudioMediaId   String?
+  imageMediaId         String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note             StudyNote        @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  importJob        StudyImportJob?  @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+  promptAudioMedia StudyMedia?      @relation("StudyPromptAudio", fields: [promptAudioMediaId], references: [id], onDelete: SetNull)
+  answerAudioMedia StudyMedia?      @relation("StudyAnswerAudio", fields: [answerAudioMediaId], references: [id], onDelete: SetNull)
+  imageMedia       StudyMedia?      @relation("StudyImageMedia", fields: [imageMediaId], references: [id], onDelete: SetNull)
+  reviewLogs       StudyReviewLog[]
+
+  @@unique([userId, sourceCardId])
+  @@index([userId, queueState, dueAt])
+  @@index([userId, lastReviewedAt])
+  @@index([userId, noteId, cardType])
+  @@index([userId, noteId, queueState])
+  @@index([userId, updatedAt, id])
+  @@index([noteId])
+  @@index([importJobId])
+  @@map("study_cards")
+}
+
+model StudyReviewLog {
+  id                 String   @id @default(uuid())
+  userId             String
+  cardId             String
+  importJobId        String?
+  source             String
+  sourceReviewId     BigInt? // Nullable for ConvoLab-native logs; unique per user when imported review ids are present.
+  reviewedAt         DateTime
+  rating             Int
+  durationMs         Int?
+  sourceEase         Int?
+  sourceInterval     Int?
+  sourceLastInterval Int?
+  sourceFactor       Int?
+  sourceTimeMs       Int?
+  sourceReviewType   Int?
+  stateBeforeJson    Json?
+  stateAfterJson     Json?
+  rawPayloadJson     Json?
+  createdAt          DateTime @default(now())
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card      StudyCard       @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  importJob StudyImportJob? @relation(fields: [importJobId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, sourceReviewId])
+  @@index([cardId, reviewedAt])
+  @@index([userId, reviewedAt, id])
+  @@index([importJobId])
+  @@map("study_review_logs")
 }
 
 // Admin Audit Log - Track admin actions for compliance and security
 
 model AdminAuditLog {
   id           String   @id @default(uuid())
-  adminUserId  String   // Admin who performed action
-  action       String   // "impersonate_start", "impersonate_end", etc.
-  targetUserId String?  // User being impersonated (if applicable)
-  metadata     Json?    // Additional context (e.g., IP, user agent)
+  adminUserId  String // Admin who performed action
+  action       String // "impersonate_start", "impersonate_end", etc.
+  targetUserId String? // User being impersonated (if applicable)
+  metadata     Json? // Additional context (e.g., IP, user agent)
   ipAddress    String?
   userAgent    String?
   createdAt    DateTime @default(now())
@@ -366,11 +545,11 @@ model AdminAuditLog {
 model GenerationLog {
   id          String   @id @default(uuid())
   userId      String
-  contentType String   // "dialogue" or "course"
-  contentId   String?  // Optional reference to generated content
+  contentType String // "dialogue" or "course"
+  contentId   String? // Optional reference to generated content
   createdAt   DateTime @default(now())
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, createdAt])
@@ -390,7 +569,7 @@ model LineAudioRendering {
   audioUrl  String
   createdAt DateTime @default(now())
 
-  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([courseId, unitIndex])
   @@map("line_audio_renderings")
@@ -426,15 +605,15 @@ model SentenceScriptTest {
 model OAuthAccount {
   id           String    @id @default(uuid())
   userId       String
-  provider     String    // "google", "github", etc.
-  providerId   String    // Provider's unique ID for the user
+  provider     String // "google", "github", etc.
+  providerId   String // Provider's unique ID for the user
   accessToken  String?   @db.Text
   refreshToken String?   @db.Text
   expiresAt    DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerId])
   @@index([userId])

@@ -53,6 +53,7 @@ temp/
 # Audio/Image uploads (local development)
 uploads/
 storage/
+server/public/study-media/
 
 # Google Cloud
 .gcloudignore
