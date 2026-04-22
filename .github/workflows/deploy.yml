@@ -165,7 +165,8 @@ jobs:
             # remainder of the SSH heredoc before we restart the full stage stack.
             for failed_migration in \
               20260422113000_harden_study_card_state \
-              20260422193000_fix_study_search_text_backfill; do
+              20260422193000_fix_study_search_text_backfill \
+              20260422213000_add_study_card_type_check; do
               docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging run --rm -T server-stage \
                 npx prisma migrate resolve --rolled-back "$failed_migration" --schema prisma/schema.prisma \
                 </dev/null || true

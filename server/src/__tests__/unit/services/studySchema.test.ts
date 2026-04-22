@@ -67,6 +67,7 @@ describe('study schema verification', () => {
       'cardType             String // recognition | production | cloze; DB check enforced in migration history.'
     );
     expect(migration).toContain('ADD CONSTRAINT "study_cards_card_type_check"');
+    expect(migration).toContain('"cardType" IN (');
     expect(migration).toContain("'recognition'");
     expect(migration).toContain("'production'");
     expect(migration).toContain("'cloze'");
