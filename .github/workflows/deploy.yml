@@ -144,6 +144,26 @@ jobs:
               convolab-redis-stage \
               2>/dev/null || true
 
+            # Recover the known failed study migration from the initial PR #35 deploy attempt.
+            # This is safe to run repeatedly: if the failed record is absent, migrate resolve exits non-zero
+            # and we intentionally continue.
+            echo "🩹 Recovering known failed study migration state if present..."
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d postgres-stage redis-stage
+
+            echo "⏳ Waiting for staging postgres and redis to become healthy..."
+            for i in {1..30}; do
+              postgres_status=$(docker inspect -f '{{.State.Health.Status}}' convolab-postgres-stage 2>/dev/null || echo "missing")
+              redis_status=$(docker inspect -f '{{.State.Health.Status}}' convolab-redis-stage 2>/dev/null || echo "missing")
+              echo "Postgres health: $postgres_status | Redis health: $redis_status"
+              if [ "$postgres_status" = "healthy" ] && [ "$redis_status" = "healthy" ]; then
+                break
+              fi
+              sleep 2
+            done
+
+            docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging run --rm -T server-stage \
+              npx prisma migrate resolve --rolled-back 20260422113000_harden_study_card_state --schema prisma/schema.prisma || true
+
             # Start containers with environment file
             echo "♻️  Starting containers..."
             docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging up -d
