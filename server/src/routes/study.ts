@@ -42,6 +42,7 @@ const router = Router();
 const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
+const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
 const STUDY_BROWSER_PAGE_SIZE_DEFAULT = 100;
@@ -290,6 +291,14 @@ function parseStudyCardPayloads(
   };
 }
 
+function parseStudyReviewDurationMs(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+
+  return Math.max(0, Math.min(MAX_STUDY_REVIEW_DURATION_MS, Math.trunc(value)));
+}
+
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
@@ -416,7 +425,7 @@ router.post(
         userId: req.userId,
         cardId,
         grade: grade as 'again' | 'hard' | 'good' | 'easy',
-        durationMs: typeof durationMs === 'number' ? durationMs : undefined,
+        durationMs: parseStudyReviewDurationMs(durationMs),
       });
 
       res.json(reviewResult);

@@ -367,6 +367,10 @@ const STUDY_IMPORT_STATUSES: StudyImportResult['status'][] = [
 ];
 const STUDY_REVIEW_SOURCES: StudyReviewEvent['source'][] = ['anki_import', 'convolab'];
 const STUDY_MEDIA_KINDS: StudyMediaRef['mediaKind'][] = ['audio', 'image', 'other'];
+const GENERIC_STUDY_IMPORT_ERROR_MESSAGE =
+  'Study import failed. Please verify the .colpkg file and try again.';
+const STUDY_IMPORT_PATHLIKE_PATTERN =
+  /(^|[\s:(['"])(\/|[A-Za-z]:\\|\.{1,2}[\\/]|file:\/\/|https?:\/\/)[^\s)"']+/i;
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null;
@@ -456,6 +460,29 @@ function stripNullChars(value: string): string {
 function sanitizeText(value: string | null | undefined): string | null {
   if (value === null || typeof value === 'undefined') return null;
   return stripNullChars(value);
+}
+
+function sanitizeStudyImportErrorMessage(message: string | null | undefined): string | null {
+  const sanitized = sanitizeText(message)?.trim() ?? null;
+  if (!sanitized || STUDY_IMPORT_PATHLIKE_PATTERN.test(sanitized)) {
+    return null;
+  }
+
+  return sanitized;
+}
+
+function toSafeStudyImportError(error: unknown): AppError {
+  if (error instanceof AppError) {
+    const safeMessage =
+      sanitizeStudyImportErrorMessage(error.message) ?? GENERIC_STUDY_IMPORT_ERROR_MESSAGE;
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      return new AppError(safeMessage, error.statusCode, error.metadata);
+    }
+
+    return new AppError(GENERIC_STUDY_IMPORT_ERROR_MESSAGE, 500);
+  }
+
+  return new AppError(GENERIC_STUDY_IMPORT_ERROR_MESSAGE, 500);
 }
 
 function sanitizeJsonValue(value: unknown): unknown {
@@ -2883,13 +2910,13 @@ export async function importJapaneseStudyColpkg(params: {
       errorMessage: null,
     };
   } catch (error) {
-    const message = sanitizeText(error instanceof Error ? error.message : 'Study import failed.');
+    const safeImportError = toSafeStudyImportError(error);
     await prisma.studyImportJob
       .update({
         where: { id: importJob.id },
         data: {
           status: 'failed',
-          errorMessage: message ?? 'Study import failed.',
+          errorMessage: safeImportError.message,
           completedAt: new Date(),
         },
       })
@@ -2912,7 +2939,7 @@ export async function importJapaneseStudyColpkg(params: {
       );
     }
 
-    throw error;
+    throw safeImportError;
   }
 }
 

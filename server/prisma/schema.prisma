@@ -370,6 +370,7 @@ model StudyImportJob {
   media      StudyMedia[]
 
   @@index([userId, createdAt])
+  @@index([userId, status])
   @@index([userId, updatedAt, id])
   @@index([status])
   @@map("study_import_jobs")
@@ -479,6 +480,7 @@ model StudyCard {
 
   @@unique([userId, sourceCardId])
   @@index([userId, queueState, dueAt])
+  @@index([userId, lastReviewedAt])
   @@index([userId, noteId, cardType])
   @@index([userId, noteId, queueState])
   @@index([userId, updatedAt, id])

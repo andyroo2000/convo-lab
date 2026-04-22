@@ -22,11 +22,14 @@ function getSharedRedisClient() {
   return sharedRedisClient;
 }
 
-async function incrementWindowCount(rateKey: string, windowSeconds: number): Promise<number> {
+async function incrementWindowCount(
+  rateKey: string,
+  windowResetAtSeconds: number
+): Promise<number> {
   const redis = getSharedRedisClient();
   const pipeline = redis.multi();
   pipeline.incr(rateKey);
-  pipeline.expire(rateKey, windowSeconds, 'NX');
+  pipeline.expireat(rateKey, windowResetAtSeconds, 'NX');
 
   const results = await pipeline.exec();
   if (!results || results.length === 0) {
@@ -57,10 +60,13 @@ export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
         return;
       }
 
-      const windowSeconds = Math.max(1, Math.ceil(options.windowMs / 1000));
       const windowStart = Math.floor(Date.now() / options.windowMs);
+      const windowResetAtSeconds = Math.max(
+        1,
+        Math.ceil(((windowStart + 1) * options.windowMs) / 1000)
+      );
       const key = `rate-limit:study:${options.key}:${req.userId}:${windowStart}`;
-      const count = await incrementWindowCount(key, windowSeconds);
+      const count = await incrementWindowCount(key, windowResetAtSeconds);
 
       if (count > options.max) {
         throw new AppError('Too many study requests. Please try again shortly.', 429, {

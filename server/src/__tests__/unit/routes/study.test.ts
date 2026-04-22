@@ -19,7 +19,7 @@ const {
   createRedisConnectionMock,
   execMock,
   createStudyCardMock,
-  expireMock,
+  expireAtMock,
   exportStudyCardsSectionMock,
   exportStudyImportsSectionMock,
   exportStudyMediaSectionMock,
@@ -40,7 +40,7 @@ const {
   createRedisConnectionMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
-  expireMock: vi.fn(),
+  expireAtMock: vi.fn(),
   exportStudyCardsSectionMock: vi.fn(),
   exportStudyImportsSectionMock: vi.fn(),
   exportStudyMediaSectionMock: vi.fn(),
@@ -103,10 +103,11 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    expireMock.mockReset();
+    process.env.CLIENT_URL = 'http://localhost:5173';
+    expireAtMock.mockReset();
     execMock.mockReset();
     multiMock.mockReset();
-    expireMock.mockResolvedValue(1);
+    expireAtMock.mockResolvedValue(1);
     execMock.mockResolvedValue([
       [null, 1],
       [null, 1],
@@ -114,11 +115,12 @@ describe('Study Routes', () => {
     multiMock.mockImplementation(() => {
       const pipeline = {
         incr: vi.fn().mockReturnThis(),
-        expire: vi.fn().mockReturnThis(),
+        expireat: vi.fn().mockReturnThis(),
         exec: execMock,
       };
       return pipeline;
     });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
     createRedisConnectionMock.mockReset();
     createRedisConnectionMock.mockReturnValue({
       multi: multiMock,
@@ -193,6 +195,34 @@ describe('Study Routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('grade must be again, hard, good, or easy');
     expect(recordStudyReviewMock).not.toHaveBeenCalled();
+  });
+
+  it('clamps review durationMs to a safe upper bound before calling the service', async () => {
+    recordStudyReviewMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: { id: 'card-1' },
+      overview: {
+        dueCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    const response = await request(app)
+      .post('/study/reviews')
+      .set('Origin', 'http://localhost:5173')
+      .send({ cardId: 'card-1', grade: 'good', durationMs: Number.MAX_SAFE_INTEGER });
+
+    expect(response.status).toBe(200);
+    expect(recordStudyReviewMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      grade: 'good',
+      durationMs: 3_600_000,
+    });
   });
 
   it('rejects invalid edit payloads', async () => {

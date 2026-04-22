@@ -474,7 +474,7 @@ describe('studyService', () => {
         fileBuffer: await buildFixtureColpkg(),
         filename: 'japanese.colpkg',
       })
-    ).rejects.toThrow('transaction failed');
+    ).rejects.toThrow('Study import failed. Please verify the .colpkg file and try again.');
 
     expect(deleteFromGCSPathMock).toHaveBeenCalled();
   });
@@ -563,6 +563,32 @@ describe('studyService', () => {
     expect(result.status).toBe('completed');
     expect(result.preview.skippedMediaCount).toBe(1);
     expect(result.preview.warnings).toContain('company.png: Skipped unsafe archive entry.');
+  });
+
+  it('sanitizes unexpected import failures before persisting or surfacing them', async () => {
+    const colpkgBuffer = await buildFixtureColpkg();
+    mockPrisma.studyNote.createMany.mockRejectedValueOnce(
+      new Error('/private/tmp/anki/collection.anki21b.sqlite3: malformed database')
+    );
+
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: colpkgBuffer,
+        filename: 'japanese.colpkg',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 500,
+      message: 'Study import failed. Please verify the .colpkg file and try again.',
+    });
+
+    expect(mockPrisma.studyImportJob.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          errorMessage: 'Study import failed. Please verify the .colpkg file and try again.',
+        }),
+      })
+    );
   });
 
   it('continues FSRS scheduling on review and appends an immutable log entry', async () => {

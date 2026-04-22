@@ -9,7 +9,11 @@ const DEVELOPMENT_STUDY_ORIGINS = [
   'http://localhost:5174',
   'http://localhost:5175',
 ];
-let allowedStudyOriginsCache: Set<string> | null = null;
+let allowedStudyOriginsCache: {
+  cacheKey: string;
+  origins: Set<string>;
+} | null = null;
+const warnedStudyOriginCacheKeys = new Set<string>();
 
 function toOrigin(value: string | undefined): string | null {
   if (!value) {
@@ -24,8 +28,9 @@ function toOrigin(value: string | undefined): string | null {
 }
 
 function getAllowedStudyOrigins(): Set<string> {
-  if (allowedStudyOriginsCache) {
-    return allowedStudyOriginsCache;
+  const cacheKey = `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
+  if (allowedStudyOriginsCache?.cacheKey === cacheKey) {
+    return allowedStudyOriginsCache.origins;
   }
 
   const origins = new Set<string>();
@@ -39,7 +44,17 @@ function getAllowedStudyOrigins(): Set<string> {
     DEVELOPMENT_STUDY_ORIGINS.forEach((origin) => origins.add(origin));
   }
 
-  allowedStudyOriginsCache = origins;
+  if (!configuredClientOrigin && !warnedStudyOriginCacheKeys.has(cacheKey)) {
+    console.warn(
+      '[Study] CLIENT_URL is missing or invalid; study mutation CSRF checks are using only development origins.'
+    );
+    warnedStudyOriginCacheKeys.add(cacheKey);
+  }
+
+  allowedStudyOriginsCache = {
+    cacheKey,
+    origins,
+  };
   return origins;
 }
 

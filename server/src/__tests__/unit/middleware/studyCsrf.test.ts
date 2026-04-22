@@ -9,6 +9,7 @@ describe('studyCsrf middleware', () => {
   beforeEach(() => {
     next.mockReset();
     process.env.CLIENT_URL = 'https://app.convo-lab.com';
+    vi.restoreAllMocks();
   });
 
   it('allows same-origin mutation requests from the configured client origin', () => {
@@ -161,5 +162,58 @@ describe('studyCsrf middleware', () => {
     );
 
     expect(next).toHaveBeenCalledWith();
+  });
+
+  it('rebuilds cached origins when CLIENT_URL changes', () => {
+    requireSameOriginStudyMutation(
+      {
+        method: 'POST',
+        get: (header: string) =>
+          header.toLowerCase() === 'origin' ? 'https://app.convo-lab.com' : undefined,
+      } as never,
+      {} as Response,
+      next
+    );
+
+    expect(next).toHaveBeenCalledWith();
+    next.mockReset();
+
+    process.env.CLIENT_URL = 'https://preview.convo-lab.com';
+
+    requireSameOriginStudyMutation(
+      {
+        method: 'POST',
+        get: (header: string) =>
+          header.toLowerCase() === 'origin' ? 'https://preview.convo-lab.com' : undefined,
+      } as never,
+      {} as Response,
+      next
+    );
+
+    expect(next).toHaveBeenCalledWith();
+  });
+
+  it('warns when CLIENT_URL is missing or invalid', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    process.env.CLIENT_URL = 'not-a-url';
+
+    requireSameOriginStudyMutation(
+      {
+        method: 'POST',
+        get: (header: string) =>
+          header.toLowerCase() === 'origin' ? 'https://app.convo-lab.com' : undefined,
+      } as never,
+      {} as Response,
+      next
+    );
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('CLIENT_URL is missing or invalid')
+    );
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 403,
+      })
+    );
   });
 });

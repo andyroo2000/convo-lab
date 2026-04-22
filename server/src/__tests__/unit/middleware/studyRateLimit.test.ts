@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppError } from '../../../middleware/errorHandler.js';
 
-const { createRedisConnectionMock, disconnectMock, execMock, expireMock, incrMock, multiMock } =
+const { createRedisConnectionMock, disconnectMock, execMock, expireAtMock, incrMock, multiMock } =
   vi.hoisted(() => ({
     createRedisConnectionMock: vi.fn(),
     execMock: vi.fn(),
     incrMock: vi.fn(),
     multiMock: vi.fn(),
-    expireMock: vi.fn(),
+    expireAtMock: vi.fn(),
     disconnectMock: vi.fn(),
   }));
 
@@ -26,7 +26,7 @@ describe('studyRateLimit middleware', () => {
     execMock.mockReset();
     incrMock.mockReset();
     multiMock.mockReset();
-    expireMock.mockReset();
+    expireAtMock.mockReset();
     disconnectMock.mockReset();
     createRedisConnectionMock.mockReset();
 
@@ -36,8 +36,8 @@ describe('studyRateLimit middleware', () => {
           incrMock(...args);
           return pipeline;
         },
-        expire: (...args: unknown[]) => {
-          expireMock(...args);
+        expireat: (...args: unknown[]) => {
+          expireAtMock(...args);
           return pipeline;
         },
         exec: execMock,
@@ -48,7 +48,7 @@ describe('studyRateLimit middleware', () => {
 
     createRedisConnectionMock.mockReturnValue({
       incr: incrMock,
-      expire: expireMock,
+      expireat: expireAtMock,
       disconnect: disconnectMock,
       multi: multiMock,
     });
@@ -96,7 +96,7 @@ describe('studyRateLimit middleware', () => {
     expect(createRedisConnectionMock).toHaveBeenCalledTimes(1);
     expect(multiMock).toHaveBeenCalledTimes(2);
     expect(incrMock).toHaveBeenNthCalledWith(1, 'rate-limit:study:session-start:user-1:0');
-    expect(expireMock).toHaveBeenNthCalledWith(
+    expect(expireAtMock).toHaveBeenNthCalledWith(
       1,
       'rate-limit:study:session-start:user-1:0',
       60,
@@ -142,5 +142,26 @@ describe('studyRateLimit middleware', () => {
         statusCode: 503,
       })
     );
+  });
+
+  it('aligns expiration to the window boundary instead of request arrival time', async () => {
+    ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
+    vi.spyOn(Date, 'now').mockReturnValue(55_000);
+    execMock.mockResolvedValue([
+      [null, 1],
+      [null, 1],
+    ]);
+
+    const middleware = rateLimitStudyRoute({
+      key: 'reviews',
+      max: 2,
+      windowMs: 60_000,
+    });
+    const next = vi.fn();
+
+    await middleware({ userId: 'user-1', role: 'user' } as never, {} as Response, next as never);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(expireAtMock).toHaveBeenCalledWith('rate-limit:study:reviews:user-1:0', 60, 'NX');
   });
 });
