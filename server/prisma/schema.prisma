@@ -370,6 +370,7 @@ model StudyImportJob {
   media      StudyMedia[]
 
   @@index([userId, createdAt])
+  @@index([userId, updatedAt, id])
   @@index([status])
   @@map("study_import_jobs")
 }
@@ -387,6 +388,7 @@ model StudyNote {
   sourceNotetypeName String?
   rawFieldsJson      Json
   canonicalJson      Json
+  searchText         String   @default("") @db.Text
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
@@ -424,6 +426,7 @@ model StudyMedia {
   imageCards       StudyCard[]     @relation("StudyImageMedia")
 
   @@index([userId, sourceKind])
+  @@index([userId, updatedAt, id])
   @@index([importJobId])
   @@index([normalizedFilename])
   @@map("study_media")
@@ -457,6 +460,7 @@ model StudyCard {
   lastReviewedAt       DateTime?
   promptJson           Json
   answerJson           Json
+  searchText           String    @default("") @db.Text
   schedulerStateJson   Json?
   answerAudioSource    String    @default("missing")
   promptAudioMediaId   String?
@@ -477,6 +481,7 @@ model StudyCard {
   @@index([userId, queueState, dueAt])
   @@index([userId, noteId, cardType])
   @@index([userId, noteId, queueState])
+  @@index([userId, updatedAt, id])
   @@index([noteId])
   @@index([importJobId])
   @@map("study_cards")

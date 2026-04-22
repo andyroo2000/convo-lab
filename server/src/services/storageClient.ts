@@ -227,6 +227,17 @@ export async function deleteFromGCS(url: string): Promise<void> {
   }
 }
 
+export async function deleteFromGCSPath(filePath: string): Promise<void> {
+  try {
+    const resolvedBucketName = requireBucketName();
+    const bucket = storage.bucket(resolvedBucketName);
+    await bucket.file(filePath.replace(/^\/+/, '')).delete({ ignoreNotFound: true });
+  } catch (error) {
+    console.error('GCS delete-by-path error:', error);
+    throw new Error('Failed to delete file from Google Cloud Storage path');
+  }
+}
+
 export interface SignedReadUrlOptions {
   filePath: string;
   expiresInSeconds: number;

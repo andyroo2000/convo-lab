@@ -18,6 +18,10 @@ import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import {
   createStudyCard,
   exportStudyData,
+  exportStudyCardsSection,
+  exportStudyImportsSection,
+  exportStudyMediaSection,
+  exportStudyReviewLogsSection,
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
   getStudyCardOptions,
@@ -43,6 +47,8 @@ const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
 const STUDY_BROWSER_PAGE_SIZE_DEFAULT = 100;
 const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
+const STUDY_EXPORT_PAGE_SIZE_DEFAULT = 500;
+const STUDY_EXPORT_PAGE_SIZE_MAX = 1000;
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'new',
@@ -200,6 +206,23 @@ function parseStudyBrowserLimit(value: unknown): number {
 
   if (parsed > STUDY_BROWSER_PAGE_SIZE_MAX) {
     throw new AppError(`limit must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
+  }
+
+  return parsed;
+}
+
+function parseStudyExportLimit(value: unknown): number {
+  if (typeof value === 'undefined') {
+    return STUDY_EXPORT_PAGE_SIZE_DEFAULT;
+  }
+
+  const parsed = parsePositiveIntegerQueryParam('limit', value);
+  if (typeof parsed === 'undefined') {
+    return STUDY_EXPORT_PAGE_SIZE_DEFAULT;
+  }
+
+  if (parsed > STUDY_EXPORT_PAGE_SIZE_MAX) {
+    throw new AppError(`limit must be ${String(STUDY_EXPORT_PAGE_SIZE_MAX)} or fewer.`, 400);
   }
 
   return parsed;
@@ -723,6 +746,74 @@ router.get('/export', async (req: AuthRequest, res, next) => {
     }
     const manifest = await exportStudyData(req.userId);
     res.json(manifest);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/export/cards', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await exportStudyCardsSection({
+      userId: req.userId,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      limit: parseStudyExportLimit(req.query.limit),
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/export/review-logs', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await exportStudyReviewLogsSection({
+      userId: req.userId,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      limit: parseStudyExportLimit(req.query.limit),
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/export/media', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await exportStudyMediaSection({
+      userId: req.userId,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      limit: parseStudyExportLimit(req.query.limit),
+    });
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/export/imports', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await exportStudyImportsSection({
+      userId: req.userId,
+      cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
+      limit: parseStudyExportLimit(req.query.limit),
+    });
+    res.json(result);
   } catch (error) {
     next(error);
   }

@@ -251,8 +251,23 @@ export interface StudyImportResult {
 
 export interface StudyExportManifest {
   exportedAt: string;
-  cards: StudyCardSummary[];
-  reviewLogs: StudyReviewEvent[];
-  media: StudyMediaRef[];
-  imports: StudyImportResult[];
+  sections: {
+    cards: {
+      total: number;
+    };
+    reviewLogs: {
+      total: number;
+    };
+    media: {
+      total: number;
+    };
+    imports: {
+      total: number;
+    };
+  };
+}
+
+export interface StudyExportSectionResponse<T> {
+  items: T[];
+  nextCursor: string | null;
 }

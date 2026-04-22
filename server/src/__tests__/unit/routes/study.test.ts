@@ -20,6 +20,10 @@ const {
   execMock,
   createStudyCardMock,
   expireMock,
+  exportStudyCardsSectionMock,
+  exportStudyImportsSectionMock,
+  exportStudyMediaSectionMock,
+  exportStudyReviewLogsSectionMock,
   getStudyCardOptionsMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
@@ -37,6 +41,10 @@ const {
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
   expireMock: vi.fn(),
+  exportStudyCardsSectionMock: vi.fn(),
+  exportStudyImportsSectionMock: vi.fn(),
+  exportStudyMediaSectionMock: vi.fn(),
+  exportStudyReviewLogsSectionMock: vi.fn(),
   getStudyCardOptionsMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
@@ -62,6 +70,10 @@ vi.mock('../../../middleware/auth.js', () => ({
 vi.mock('../../../services/studyService.js', () => ({
   createStudyCard: createStudyCardMock,
   exportStudyData: vi.fn(),
+  exportStudyCardsSection: exportStudyCardsSectionMock,
+  exportStudyImportsSection: exportStudyImportsSectionMock,
+  exportStudyMediaSection: exportStudyMediaSectionMock,
+  exportStudyReviewLogsSection: exportStudyReviewLogsSectionMock,
   getStudyBrowserList: getStudyBrowserListMock,
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getStudyCardOptions: getStudyCardOptionsMock,
@@ -457,6 +469,57 @@ describe('Study Routes', () => {
     expect(response.status).toBe(302);
     expect(response.headers.location).toBe('https://example.com/study-audio.mp3');
     expect(getStudyMediaAccessMock).toHaveBeenCalledWith('user-1', 'media-1');
+  });
+
+  it('returns the lightweight study export manifest', async () => {
+    const { exportStudyData } = await import('../../../services/studyService.js');
+    vi.mocked(exportStudyData).mockResolvedValue({
+      exportedAt: '2026-04-21T12:00:00.000Z',
+      sections: {
+        cards: { total: 10 },
+        reviewLogs: { total: 20 },
+        media: { total: 5 },
+        imports: { total: 1 },
+      },
+    });
+
+    const response = await request(app).get('/study/export');
+
+    expect(response.status).toBe(200);
+    expect(response.body.sections.cards.total).toBe(10);
+    expect(exportStudyData).toHaveBeenCalledWith('user-1');
+  });
+
+  it('passes export cards pagination params through to the service', async () => {
+    exportStudyCardsSectionMock.mockResolvedValue({
+      items: [],
+      nextCursor: 'cursor-2',
+    });
+
+    const response = await request(app).get('/study/export/cards?cursor=cursor-1&limit=250');
+
+    expect(response.status).toBe(200);
+    expect(exportStudyCardsSectionMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cursor: 'cursor-1',
+      limit: 250,
+    });
+  });
+
+  it('defaults export section pagination when omitted', async () => {
+    exportStudyReviewLogsSectionMock.mockResolvedValue({
+      items: [],
+      nextCursor: null,
+    });
+
+    const response = await request(app).get('/study/export/review-logs');
+
+    expect(response.status).toBe(200);
+    expect(exportStudyReviewLogsSectionMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cursor: undefined,
+      limit: 500,
+    });
   });
 
   it('blocks study routes when the flashcards feature flag is disabled', async () => {

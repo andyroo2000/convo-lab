@@ -160,7 +160,9 @@ export const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     deleteMany: vi.fn(),
+    count: vi.fn(),
   },
   studyNote: {
     findUnique: vi.fn(),
@@ -179,6 +181,7 @@ export const mockPrisma = {
     create: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
   },

@@ -25,6 +25,7 @@ import type {
   StudyCardSummary,
   StudyCardType,
   StudyExportManifest,
+  StudyExportSectionResponse,
   StudyFsrsState,
   StudyHistoryResponse,
   StudyImportPreview,
@@ -48,7 +49,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { addFuriganaBrackets } from './furiganaService.js';
-import { getSignedReadUrl, uploadBufferToGCSPath } from './storageClient.js';
+import { deleteFromGCSPath, getSignedReadUrl, uploadBufferToGCSPath } from './storageClient.js';
 import { synthesizeSpeech } from './ttsClient.js';
 
 const require = createRequire(import.meta.url);
@@ -64,8 +65,12 @@ const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
 const STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS = 30 * 1000;
+const STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES = 1000;
 const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
 const STUDY_IMPORT_WARNING_LIMIT = 10;
+const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
+const STUDY_EXPORT_SECTION_LIMIT_DEFAULT = 500;
+const STUDY_EXPORT_SECTION_LIMIT_MAX = 1000;
 const generatedAnswerAudioInFlight = new Map<
   string,
   {
@@ -196,6 +201,7 @@ interface ParsedImportDataset {
   collectionCreatedAtSeconds: number;
   preview: StudyImportPreview;
   mediaByFilename: Map<string, ParsedAnkiMediaRecord>;
+  persistedMediaStoragePaths: string[];
   notes: Array<{
     createId: string;
     sourceNoteId: number;
@@ -256,6 +262,15 @@ interface StudyImportWarningAccumulator {
   skippedMediaCount: number;
   warnings: string[];
 }
+
+interface StudyExportCursor {
+  timestamp: string;
+  id: string;
+}
+
+type StudyImportErrorWithMedia = AppError & {
+  persistedMediaStoragePaths?: string[];
+};
 
 interface CreateStudyCardInput {
   userId: string;
@@ -628,6 +643,22 @@ function normalizeStoragePath(storagePath: string): string {
   return path.posix.normalize(storagePath).replace(/^\/+/, '');
 }
 
+function pruneStudyMediaRedirectCache(nowMs: number = Date.now()) {
+  for (const [cacheKey, cached] of studyMediaRedirectCache.entries()) {
+    if (cached.expiresAtMs <= nowMs) {
+      studyMediaRedirectCache.delete(cacheKey);
+    }
+  }
+
+  while (studyMediaRedirectCache.size > STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES) {
+    const oldestKey = studyMediaRedirectCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    studyMediaRedirectCache.delete(oldestKey);
+  }
+}
+
 function resolveStudyMediaAbsolutePath(baseDir: string, storagePath: string): string | null {
   const normalizedStoragePath = normalizeStoragePath(storagePath);
   if (
@@ -666,8 +697,40 @@ async function findAccessibleLocalStudyMediaPath(storagePath: string): Promise<s
   return null;
 }
 
-function isGcsStudyMediaUrl(url: string | null | undefined): boolean {
-  return typeof url === 'string' && /^https:\/\/storage\.googleapis\.com\//.test(url);
+function hasConfiguredStudyGcsStorage(): boolean {
+  return typeof process.env.GCS_BUCKET_NAME === 'string' && process.env.GCS_BUCKET_NAME.length > 0;
+}
+
+async function deletePersistedStudyMediaByStoragePath(storagePath: string): Promise<void> {
+  const normalizedStoragePath = normalizeStoragePath(storagePath);
+  if (!normalizedStoragePath) {
+    return;
+  }
+
+  if (hasConfiguredStudyGcsStorage()) {
+    try {
+      await deleteFromGCSPath(normalizedStoragePath);
+    } catch (error) {
+      console.warn('[Study] Failed to delete GCS study media:', error);
+    }
+  }
+
+  const localPath = resolveStudyMediaAbsolutePath(
+    getPrivateStudyMediaRoot(),
+    normalizedStoragePath
+  );
+  if (!localPath) {
+    return;
+  }
+
+  try {
+    await fs.unlink(localPath);
+  } catch (error) {
+    const code = error instanceof Error && 'code' in error ? String(error.code) : null;
+    if (code !== 'ENOENT') {
+      console.warn('[Study] Failed to delete local study media:', error);
+    }
+  }
 }
 
 interface ParsedHtmlNode {
@@ -737,6 +800,37 @@ function htmlToPlainText(raw: string): string {
 function stripHtml(raw: string | null | undefined): string | null {
   if (!raw) return null;
   return htmlToPlainText(raw);
+}
+
+function appendSearchTextFragments(value: unknown, fragments: string[]) {
+  if (typeof value === 'string') {
+    const normalized = stripHtml(value) ?? value;
+    if (normalized.trim()) {
+      fragments.push(normalized.trim());
+    }
+    return;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    fragments.push(String(value));
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry) => appendSearchTextFragments(entry, fragments));
+    return;
+  }
+
+  if (isRecord(value)) {
+    Object.values(value).forEach((entry) => appendSearchTextFragments(entry, fragments));
+  }
+}
+
+function toSearchText(...values: unknown[]): string {
+  const fragments: string[] = [];
+  values.forEach((value) => appendSearchTextFragments(value, fragments));
+
+  return fragments.join('\n').replace(/\s+/g, ' ').trim();
 }
 
 function parsePersistedStudyMediaRecord(value: unknown): PersistedStudyMediaRecord | null {
@@ -873,6 +967,31 @@ function decodeStudyBrowserCursor(cursor: string): StudyBrowserCursor {
 
     return {
       updatedAt: parsed.updatedAt,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
+  }
+}
+
+function encodeStudyExportCursor(cursor: StudyExportCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyExportCursor(cursor: string): StudyExportCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.timestamp !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.timestamp).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      timestamp: parsed.timestamp,
       id: parsed.id,
     };
   } catch {
@@ -1487,6 +1606,9 @@ async function getSqlJs() {
   if (!sqlJsPromise) {
     sqlJsPromise = initSqlJs({
       locateFile: () => sqlJsWasmPath,
+    }).catch((error) => {
+      sqlJsPromise = null;
+      throw error;
     });
   }
 
@@ -1543,6 +1665,7 @@ async function parseColpkgUpload(params: {
   importJobId: string;
 }): Promise<ParsedImportDataset> {
   const { fileBuffer, filename, userId, importJobId } = params;
+  const persistedMediaStoragePaths: string[] = [];
 
   if (!filename.toLowerCase().endsWith('.colpkg')) {
     throw new AppError('Study import requires a .colpkg Anki collection backup.', 400);
@@ -1806,6 +1929,7 @@ async function parseColpkgUpload(params: {
             });
             publicUrl = persisted.publicUrl;
             storagePath = persisted.storagePath;
+            persistedMediaStoragePaths.push(persisted.storagePath);
           }
         } else {
           recordStudyImportWarning(
@@ -1969,6 +2093,7 @@ async function parseColpkgUpload(params: {
         ),
       },
       mediaByFilename,
+      persistedMediaStoragePaths,
       notes,
       cards,
       reviewLogs,
@@ -1976,10 +2101,17 @@ async function parseColpkgUpload(params: {
     };
   } catch (error) {
     if (error instanceof AppError) {
+      (error as StudyImportErrorWithMedia).persistedMediaStoragePaths = [
+        ...persistedMediaStoragePaths,
+      ];
       throw error;
     }
 
-    throw new AppError('The uploaded .colpkg could not be parsed.', 400);
+    const parseError = new AppError('The uploaded .colpkg could not be parsed.', 400);
+    (parseError as StudyImportErrorWithMedia).persistedMediaStoragePaths = [
+      ...persistedMediaStoragePaths,
+    ];
+    throw parseError;
   }
 }
 
@@ -2140,6 +2272,17 @@ function getNoteDisplayText(
   }
 
   return typeof note.id === 'string' ? note.id : 'Untitled note';
+}
+
+function buildStudyNoteSearchText(note: { rawFields: JsonRecord; canonical: JsonRecord }): string {
+  return toSearchText(note.rawFields, note.canonical);
+}
+
+function buildStudyCardSearchText(card: {
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): string {
+  return toSearchText(card.prompt, card.answer);
 }
 
 function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): StudyImportPreview {
@@ -2483,30 +2626,73 @@ export async function importJapaneseStudyColpkg(params: {
     throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
   }
 
-  const importJob = await prisma.studyImportJob.create({
-    data: {
+  const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
+  await prisma.studyImportJob.updateMany({
+    where: {
       userId: params.userId,
       status: 'processing',
-      sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
-      deckName: ANKI_DECK_NAME,
-      previewJson: toPrismaJson({
-        deckName: ANKI_DECK_NAME,
-        cardCount: 0,
-        noteCount: 0,
-        reviewLogCount: 0,
-        mediaReferenceCount: 0,
-        skippedMediaCount: 0,
-        warnings: [],
-        noteTypeBreakdown: [],
-      }),
-      startedAt: new Date(),
+      startedAt: {
+        lt: staleThreshold,
+      },
+    },
+    data: {
+      status: 'failed',
+      errorMessage: 'Import timed out before completion.',
+      completedAt: new Date(),
     },
   });
 
+  const initialPreview: StudyImportPreview = {
+    deckName: ANKI_DECK_NAME,
+    cardCount: 0,
+    noteCount: 0,
+    reviewLogCount: 0,
+    mediaReferenceCount: 0,
+    skippedMediaCount: 0,
+    warnings: [],
+    noteTypeBreakdown: [],
+  };
+
+  let importJob: StudyImportJobRecord;
   try {
-    let parsed: ParsedImportDataset;
+    importJob = await prisma.studyImportJob.create({
+      data: {
+        userId: params.userId,
+        status: 'processing',
+        sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
+        deckName: ANKI_DECK_NAME,
+        previewJson: toPrismaJson(initialPreview),
+        startedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const activeImportJob = await prisma.studyImportJob.findFirst({
+        where: {
+          userId: params.userId,
+          status: 'processing',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      throw new AppError(
+        activeImportJob
+          ? `A study import is already running (${activeImportJob.id}).`
+          : 'A study import is already running.',
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  let parsedDataset: ParsedImportDataset | undefined;
+
+  try {
     try {
-      parsed = await parseColpkgUpload({
+      parsedDataset = await parseColpkgUpload({
         fileBuffer: params.fileBuffer,
         filename: params.filename,
         userId: params.userId,
@@ -2519,6 +2705,11 @@ export async function importJapaneseStudyColpkg(params: {
 
       throw new AppError('The uploaded .colpkg could not be parsed.', 400);
     }
+
+    if (!parsedDataset) {
+      throw new AppError('The uploaded .colpkg could not be parsed.', 400);
+    }
+    const parsed = parsedDataset;
 
     await prisma.$transaction(async (tx) => {
       await tx.studyReviewLog.deleteMany({
@@ -2567,6 +2758,7 @@ export async function importJapaneseStudyColpkg(params: {
           sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
           rawFieldsJson: toPrismaJson(note.rawFields),
           canonicalJson: toPrismaJson(note.canonical),
+          searchText: buildStudyNoteSearchText(note),
         })),
       });
 
@@ -2617,6 +2809,7 @@ export async function importJapaneseStudyColpkg(params: {
           lastReviewedAt: card.lastReviewedAt,
           promptJson: toPrismaJson(card.prompt),
           answerJson: toPrismaJson(card.answer),
+          searchText: buildStudyCardSearchText(card),
           schedulerStateJson: toNullablePrismaJson(card.schedulerState),
           answerAudioSource: card.answerAudioSource,
           promptAudioMediaId: mediaByFilenameToRecordId(
@@ -2691,14 +2884,34 @@ export async function importJapaneseStudyColpkg(params: {
     };
   } catch (error) {
     const message = sanitizeText(error instanceof Error ? error.message : 'Study import failed.');
-    await prisma.studyImportJob.update({
-      where: { id: importJob.id },
-      data: {
-        status: 'failed',
-        errorMessage: message ?? 'Study import failed.',
-        completedAt: new Date(),
-      },
-    });
+    await prisma.studyImportJob
+      .update({
+        where: { id: importJob.id },
+        data: {
+          status: 'failed',
+          errorMessage: message ?? 'Study import failed.',
+          completedAt: new Date(),
+        },
+      })
+      .catch((updateError) => {
+        console.warn('[Study] Failed to mark import job as failed:', updateError);
+      });
+
+    const importError = error as StudyImportErrorWithMedia;
+    const persistedMediaStoragePaths =
+      parsedDataset?.persistedMediaStoragePaths ??
+      (importError.persistedMediaStoragePaths ?? []).filter(
+        (value): value is string => typeof value === 'string' && value.length > 0
+      );
+
+    if (persistedMediaStoragePaths.length > 0) {
+      await Promise.allSettled(
+        persistedMediaStoragePaths.map((storagePath: string) =>
+          deletePersistedStudyMediaByStoragePath(storagePath)
+        )
+      );
+    }
+
     throw error;
   }
 }
@@ -3024,8 +3237,8 @@ export async function recordStudyReview(params: {
   const serializedNextState = serializeFsrsCard(nextState);
   const nextQueueState = toQueueStateFromFsrsState(nextState.state);
   const createdReviewLog = await prisma.$transaction(async (tx) => {
-    await tx.studyCard.update({
-      where: { id: params.cardId },
+    const updatedCard = await tx.studyCard.updateMany({
+      where: { id: params.cardId, userId: params.userId },
       data: {
         schedulerStateJson: toPrismaJson(serializedNextState),
         queueState: nextQueueState,
@@ -3033,6 +3246,10 @@ export async function recordStudyReview(params: {
         lastReviewedAt: now,
       },
     });
+
+    if (updatedCard.count !== 1) {
+      throw new AppError('Study card not found.', 404);
+    }
 
     return tx.studyReviewLog.create({
       data: {
@@ -3144,8 +3361,8 @@ export async function undoStudyReview(params: {
       : (previousState.last_review ?? null);
 
   await prisma.$transaction(async (tx) => {
-    await tx.studyCard.update({
-      where: { id: String(reviewLog.cardId) },
+    const updatedCard = await tx.studyCard.updateMany({
+      where: { id: String(reviewLog.cardId), userId: params.userId },
       data: {
         schedulerStateJson: toPrismaJson(serializeFsrsCard(previousState)),
         queueState: restoredQueueState,
@@ -3153,6 +3370,10 @@ export async function undoStudyReview(params: {
         lastReviewedAt: restoredLastReviewedAt,
       },
     });
+
+    if (updatedCard.count !== 1) {
+      throw new AppError('Study card not found.', 404);
+    }
 
     await tx.studyReviewLog.delete({
       where: { id: params.reviewLogId },
@@ -3231,8 +3452,8 @@ export async function performStudyCardAction(
     nextSchedulerState = getSetDueSchedulerState(existing, resolvedDueAt);
   }
 
-  await prisma.studyCard.update({
-    where: { id: input.cardId },
+  const updatedCard = await prisma.studyCard.updateMany({
+    where: { id: input.cardId, userId: input.userId },
     data: {
       queueState: nextQueueState,
       dueAt: nextDueAt,
@@ -3240,6 +3461,10 @@ export async function performStudyCardAction(
       lastReviewedAt: nextLastReviewedAt,
     },
   });
+
+  if (updatedCard.count !== 1) {
+    throw new AppError('Study card not found.', 404);
+  }
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
@@ -3316,15 +3541,23 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
       }
     : normalizedPayload.answer;
 
-  await prisma.studyCard.update({
-    where: { id: input.cardId },
+  const updatedCardResult = await prisma.studyCard.updateMany({
+    where: { id: input.cardId, userId: input.userId },
     data: {
       promptJson: toPrismaJson(normalizedPayload.prompt),
       answerJson: toPrismaJson(nextAnswer),
+      searchText: buildStudyCardSearchText({
+        prompt: normalizedPayload.prompt,
+        answer: nextAnswer,
+      }),
       answerAudioSource: shouldRegenerateAnswerAudio ? 'missing' : existing.answerAudioSource,
       answerAudioMediaId: shouldRegenerateAnswerAudio ? null : existing.answerAudioMediaId,
     },
   });
+
+  if (updatedCardResult.count !== 1) {
+    throw new AppError('Study card not found.', 404);
+  }
 
   if (shouldRegenerateAnswerAudio) {
     await ensureGeneratedAnswerAudio(input.userId, input.cardId);
@@ -3368,6 +3601,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       canonicalJson: toPrismaJson({
         createdInApp: true,
       }),
+      searchText: '',
     },
   });
 
@@ -3382,6 +3616,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       queueState: 'new',
       promptJson: toPrismaJson(normalizedPayload.prompt),
       answerJson: toPrismaJson(normalizedPayload.answer),
+      searchText: buildStudyCardSearchText(normalizedPayload),
       schedulerStateJson: toPrismaJson(initialState),
       answerAudioSource: 'missing',
     },
@@ -3523,17 +3758,13 @@ function buildStudyBrowserWhereSql(
     const searchPattern = `%${escapeLikePattern(searchNeedle)}%`;
     clauses.push(
       Prisma.sql`(
-        COALESCE(CAST(n."rawFieldsJson" AS TEXT), '') ILIKE ${searchPattern} ESCAPE '\'
-        OR COALESCE(CAST(n."canonicalJson" AS TEXT), '') ILIKE ${searchPattern} ESCAPE '\'
+        COALESCE(n."searchText", '') ILIKE ${searchPattern} ESCAPE '\'
         OR EXISTS (
           SELECT 1
           FROM "study_cards" sc_search
           WHERE sc_search."noteId" = n.id
             AND sc_search."userId" = ${params.userId}
-            AND (
-              COALESCE(CAST(sc_search."promptJson" AS TEXT), '') ILIKE ${searchPattern} ESCAPE '\'
-              OR COALESCE(CAST(sc_search."answerJson" AS TEXT), '') ILIKE ${searchPattern} ESCAPE '\'
-            )
+            AND COALESCE(sc_search."searchText", '') ILIKE ${searchPattern} ESCAPE '\'
         )
       )`
     );
@@ -3868,42 +4099,6 @@ export async function getStudyMediaAccess(
   const filename = media.sourceFilename;
   const contentType = media.contentType ?? getContentType(filename);
 
-  if (
-    typeof media.storagePath === 'string' &&
-    media.storagePath.length > 0 &&
-    isGcsStudyMediaUrl(media.publicUrl)
-  ) {
-    const cacheKey = `${media.id}:${media.storagePath}`;
-    const cached = studyMediaRedirectCache.get(cacheKey);
-    const nowMs = Date.now();
-    if (cached && cached.expiresAtMs - nowMs > STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS) {
-      return {
-        type: 'redirect',
-        redirectUrl: cached.url,
-        contentType,
-        filename,
-      };
-    }
-
-    const signed = await getSignedReadUrl({
-      filePath: media.storagePath,
-      expiresInSeconds: STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
-    });
-    studyMediaRedirectCache.set(cacheKey, {
-      url: signed.url,
-      expiresAtMs: Number.isNaN(Date.parse(signed.expiresAt))
-        ? nowMs + STUDY_MEDIA_SIGNED_URL_TTL_SECONDS * 1000
-        : Date.parse(signed.expiresAt),
-    });
-
-    return {
-      type: 'redirect',
-      redirectUrl: signed.url,
-      contentType,
-      filename,
-    };
-  }
-
   if (typeof media.storagePath === 'string' && media.storagePath.length > 0) {
     const absolutePath = await findAccessibleLocalStudyMediaPath(media.storagePath);
     if (absolutePath) {
@@ -3914,69 +4109,281 @@ export async function getStudyMediaAccess(
         filename,
       };
     }
+
+    if (hasConfiguredStudyGcsStorage()) {
+      const cacheKey = `${media.id}:${media.storagePath}`;
+      const nowMs = Date.now();
+      pruneStudyMediaRedirectCache(nowMs);
+      const cached = studyMediaRedirectCache.get(cacheKey);
+      if (cached && cached.expiresAtMs - nowMs > STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS) {
+        return {
+          type: 'redirect',
+          redirectUrl: cached.url,
+          contentType,
+          filename,
+        };
+      }
+
+      const signed = await getSignedReadUrl({
+        filePath: media.storagePath,
+        expiresInSeconds: STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
+      });
+      studyMediaRedirectCache.set(cacheKey, {
+        url: signed.url,
+        expiresAtMs: Number.isNaN(Date.parse(signed.expiresAt))
+          ? nowMs + STUDY_MEDIA_SIGNED_URL_TTL_SECONDS * 1000
+          : Date.parse(signed.expiresAt),
+      });
+      pruneStudyMediaRedirectCache(nowMs);
+
+      return {
+        type: 'redirect',
+        redirectUrl: signed.url,
+        contentType,
+        filename,
+      };
+    }
   }
 
   return null;
 }
 
+function parseStudyExportSectionLimit(limit?: number): number {
+  return Math.max(
+    1,
+    Math.min(STUDY_EXPORT_SECTION_LIMIT_MAX, limit ?? STUDY_EXPORT_SECTION_LIMIT_DEFAULT)
+  );
+}
+
+function toStudyReviewEvent(log: StudyReviewLogRecord): StudyReviewEvent {
+  return {
+    id: log.id,
+    cardId: log.cardId,
+    source: parseStudyReviewSource(log.source),
+    reviewedAt: log.reviewedAt.toISOString(),
+    rating: log.rating,
+    durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
+    sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
+    stateBefore: toStudyFsrsState(log.stateBeforeJson),
+    stateAfter: toStudyFsrsState(log.stateAfterJson),
+    rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
+  };
+}
+
+function toStudyExportMediaRef(item: StudyMediaRecord): StudyMediaRef {
+  return {
+    id: item.id,
+    filename: item.sourceFilename,
+    url: getStudyMediaApiPath(item.id),
+    mediaKind: parseStudyMediaKind(item.mediaKind),
+    source:
+      item.sourceKind === 'generated'
+        ? 'generated'
+        : item.mediaKind === 'image'
+          ? 'imported_image'
+          : item.mediaKind === 'audio'
+            ? 'imported'
+            : 'imported_other',
+  };
+}
+
+function toStudyExportImportResult(item: StudyImportJobRecord): StudyImportResult {
+  return {
+    id: item.id,
+    status: parseStudyImportStatus(item.status),
+    sourceFilename: item.sourceFilename,
+    deckName: item.deckName,
+    preview: toStudyImportPreview(item.previewJson),
+    importedAt: item.completedAt instanceof Date ? item.completedAt.toISOString() : null,
+    errorMessage: typeof item.errorMessage === 'string' ? item.errorMessage : null,
+  };
+}
+
 export async function exportStudyData(userId: string): Promise<StudyExportManifest> {
   const [cards, reviewLogs, media, imports] = await Promise.all([
-    prisma.studyCard.findMany({
-      where: { userId },
-      include: { note: true, promptAudioMedia: true, answerAudioMedia: true, imageMedia: true },
-      orderBy: { createdAt: 'asc' },
-    }),
-    prisma.studyReviewLog.findMany({
-      where: { userId },
-      orderBy: { reviewedAt: 'asc' },
-    }) as Promise<StudyReviewLogRecord[]>,
-    prisma.studyMedia.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    }) as Promise<StudyMediaRecord[]>,
-    prisma.studyImportJob.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'asc' },
-    }) as Promise<StudyImportJobRecord[]>,
+    prisma.studyCard.count({ where: { userId } }),
+    prisma.studyReviewLog.count({ where: { userId } }),
+    prisma.studyMedia.count({ where: { userId } }),
+    prisma.studyImportJob.count({ where: { userId } }),
   ]);
 
   return {
     exportedAt: new Date().toISOString(),
-    cards: await Promise.all(cards.map((card) => toStudyCardSummary(card))),
-    reviewLogs: reviewLogs.map((log) => ({
-      id: log.id,
-      cardId: log.cardId,
-      source: parseStudyReviewSource(log.source),
-      reviewedAt: log.reviewedAt.toISOString(),
-      rating: log.rating,
-      durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
-      sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
-      stateBefore: toStudyFsrsState(log.stateBeforeJson),
-      stateAfter: toStudyFsrsState(log.stateAfterJson),
-      rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
-    })),
-    media: media.map((item) => ({
-      id: item.id,
-      filename: item.sourceFilename,
-      url: getStudyMediaApiPath(item.id),
-      mediaKind: parseStudyMediaKind(item.mediaKind),
-      source:
-        item.sourceKind === 'generated'
-          ? 'generated'
-          : item.mediaKind === 'image'
-            ? 'imported_image'
-            : item.mediaKind === 'audio'
-              ? 'imported'
-              : 'imported_other',
-    })),
-    imports: imports.map((item) => ({
-      id: item.id,
-      status: parseStudyImportStatus(item.status),
-      sourceFilename: item.sourceFilename,
-      deckName: item.deckName,
-      preview: toStudyImportPreview(item.previewJson),
-      importedAt: item.completedAt instanceof Date ? item.completedAt.toISOString() : null,
-      errorMessage: typeof item.errorMessage === 'string' ? item.errorMessage : null,
-    })),
+    sections: {
+      cards: { total: cards },
+      reviewLogs: { total: reviewLogs },
+      media: { total: media },
+      imports: { total: imports },
+    },
+  };
+}
+
+export async function exportStudyCardsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyCardSummary>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const cards = await prisma.studyCard.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    include: { note: true, promptAudioMedia: true, answerAudioMedia: true, imageMedia: true },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = cards.length > limit;
+  const pageCards = hasMore ? cards.slice(0, limit) : cards;
+  const items = await Promise.all(pageCards.map((card) => toStudyCardSummary(card)));
+  const lastCard = pageCards.at(-1);
+
+  return {
+    items,
+    nextCursor:
+      hasMore && lastCard
+        ? encodeStudyExportCursor({
+            timestamp: lastCard.updatedAt.toISOString(),
+            id: lastCard.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyReviewLogsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyReviewEvent>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const logs = await prisma.studyReviewLog.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { reviewedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                reviewedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = logs.length > limit;
+  const pageLogs = hasMore ? logs.slice(0, limit) : logs;
+  const lastLog = pageLogs.at(-1);
+
+  return {
+    items: pageLogs.map(toStudyReviewEvent),
+    nextCursor:
+      hasMore && lastLog
+        ? encodeStudyExportCursor({
+            timestamp: lastLog.reviewedAt.toISOString(),
+            id: lastLog.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyMediaSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyMediaRef>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const media = await prisma.studyMedia.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = media.length > limit;
+  const pageMedia = hasMore ? media.slice(0, limit) : media;
+  const lastMedia = pageMedia.at(-1);
+
+  return {
+    items: pageMedia.map(toStudyExportMediaRef),
+    nextCursor:
+      hasMore && lastMedia
+        ? encodeStudyExportCursor({
+            timestamp: lastMedia.updatedAt.toISOString(),
+            id: lastMedia.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyImportsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyImportResult>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const imports = await prisma.studyImportJob.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = imports.length > limit;
+  const pageImports = hasMore ? imports.slice(0, limit) : imports;
+  const lastImport = pageImports.at(-1);
+
+  return {
+    items: pageImports.map(toStudyExportImportResult),
+    nextCursor:
+      hasMore && lastImport
+        ? encodeStudyExportCursor({
+            timestamp: lastImport.updatedAt.toISOString(),
+            id: lastImport.id,
+          })
+        : null,
   };
 }

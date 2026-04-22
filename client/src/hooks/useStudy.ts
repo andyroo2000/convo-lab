@@ -233,10 +233,10 @@ export function useSubmitStudyReview() {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      queryClient.setQueryData(['study', 'overview'], result.overview);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'history'] }),
       ]);
     },
@@ -269,7 +269,6 @@ export function useUpdateStudyCard() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
       ]);
     },
@@ -281,10 +280,10 @@ export function useStudyCardAction() {
 
   return useMutation({
     mutationFn: performStudyCardAction,
-    onSuccess: async () => {
+    onSuccess: async (result) => {
+      queryClient.setQueryData(['study', 'overview'], result.overview);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
       ]);
     },

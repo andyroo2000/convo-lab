@@ -2,12 +2,18 @@ import { promises as fs } from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
 
+import { Prisma } from '@prisma/client';
 import JSZip from 'jszip';
 import initSqlJs from 'sql.js';
 import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
 
 import {
   createStudyCard,
+  exportStudyCardsSection,
+  exportStudyData,
+  exportStudyImportsSection,
+  exportStudyMediaSection,
+  exportStudyReviewLogsSection,
   getStudyHistory,
   getStudyOverview,
   getStudyMediaAccess,
@@ -24,10 +30,13 @@ import {
 import { synthesizeSpeech } from '../../../services/ttsClient.js';
 import { mockPrisma } from '../../setup.js';
 
-const { getSignedReadUrlMock, uploadBufferToGCSPathMock } = vi.hoisted(() => ({
-  getSignedReadUrlMock: vi.fn(),
-  uploadBufferToGCSPathMock: vi.fn(),
-}));
+const { deleteFromGCSPathMock, getSignedReadUrlMock, uploadBufferToGCSPathMock } = vi.hoisted(
+  () => ({
+    deleteFromGCSPathMock: vi.fn(),
+    getSignedReadUrlMock: vi.fn(),
+    uploadBufferToGCSPathMock: vi.fn(),
+  })
+);
 
 vi.mock('../../../services/ttsClient.js', () => ({
   synthesizeSpeech: vi.fn(async () => Buffer.from('fake-audio')),
@@ -38,6 +47,7 @@ vi.mock('../../../services/furiganaService.js', () => ({
 }));
 
 vi.mock('../../../services/storageClient.js', () => ({
+  deleteFromGCSPath: deleteFromGCSPathMock,
   getSignedReadUrl: getSignedReadUrlMock,
   uploadBufferToGCSPath: uploadBufferToGCSPathMock,
 }));
@@ -305,12 +315,15 @@ describe('studyService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.GCS_BUCKET_NAME = '';
+    deleteFromGCSPathMock.mockResolvedValue(undefined);
     uploadBufferToGCSPathMock.mockResolvedValue('https://storage.googleapis.com/test/study-media');
     getSignedReadUrlMock.mockResolvedValue({
       url: 'https://signed.example.com/study-media',
       expiresAt: '2099-01-01T00:00:00.000Z',
     });
     mockPrisma.studyImportJob.create.mockResolvedValue({ id: 'import-job-1' });
+    mockPrisma.studyImportJob.updateMany.mockResolvedValue({ count: 0 });
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
     mockPrisma.studyImportJob.update.mockResolvedValue({ id: 'import-job-1' });
     mockPrisma.studyReviewLog.deleteMany.mockResolvedValue({ count: 0 });
     mockPrisma.studyCard.deleteMany.mockResolvedValue({ count: 0 });
@@ -319,6 +332,7 @@ describe('studyService', () => {
     mockPrisma.studyNote.createMany.mockResolvedValue({ count: 4 });
     mockPrisma.studyMedia.createMany.mockResolvedValue({ count: 8 });
     mockPrisma.studyCard.createMany.mockResolvedValue({ count: 6 });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studyCard.groupBy.mockResolvedValue([]);
     mockPrisma.studyReviewLog.createMany.mockResolvedValue({ count: 3 });
     mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
@@ -373,6 +387,8 @@ describe('studyService', () => {
       restoredTextReading: 'お風呂に虫がいる！ 助けて！[furigana]',
       meaning: 'There are bugs in the bath!',
     });
+    expect(typeof firstClozeCard?.searchText).toBe('string');
+    expect(String(firstClozeCard?.searchText)).toContain('お風呂に虫');
 
     const secondClozeCard = createdCards.find((card) => card.sourceCardId === BigInt(42));
     expect(secondClozeCard?.promptJson).toMatchObject({
@@ -386,6 +402,12 @@ describe('studyService', () => {
     >;
     expect(createdLogs).toHaveLength(3);
     expect(createdLogs[0].source).toBe('anki_import');
+
+    const createdNotes = mockPrisma.studyNote.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    expect(typeof createdNotes[0]?.searchText).toBe('string');
+    expect(String(createdNotes[0]?.searchText)).toContain('会社');
   });
 
   it('skips orphaned imported revlogs instead of crashing the import', async () => {
@@ -416,6 +438,45 @@ describe('studyService', () => {
     ).rejects.toMatchObject({
       statusCode: 400,
     });
+  });
+
+  it('returns 409 when another import is already processing for the user', async () => {
+    mockPrisma.studyImportJob.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('duplicate import', {
+        code: 'P2002',
+        clientVersion: 'test',
+      })
+    );
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue({
+      id: 'import-job-active',
+      userId: 'user-1',
+      status: 'processing',
+    });
+
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: await buildFixtureColpkg(),
+        filename: 'japanese.colpkg',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('cleans up persisted media when an import fails after upload', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyNote.createMany.mockRejectedValueOnce(new Error('transaction failed'));
+
+    await expect(
+      importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: await buildFixtureColpkg(),
+        filename: 'japanese.colpkg',
+      })
+    ).rejects.toThrow('transaction failed');
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalled();
   });
 
   it('sanitizes study media storage paths before persisting imported media', async () => {
@@ -562,7 +623,7 @@ describe('studyService', () => {
       grade: 'good',
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenCalled();
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalled();
     expect(mockPrisma.studyReviewLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -966,8 +1027,11 @@ describe('studyService', () => {
       reviewLogId: 'review-log-1',
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+        }),
         data: expect.objectContaining({
           queueState: 'review',
         }),
@@ -1086,7 +1150,7 @@ describe('studyService', () => {
         updatedAt: new Date('2026-04-12T00:00:00.000Z'),
         note: {},
       });
-    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studyCard.count.mockResolvedValue(1);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
@@ -1096,9 +1160,12 @@ describe('studyService', () => {
       action: 'suspend',
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenNthCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+        }),
         data: expect.objectContaining({
           queueState: 'suspended',
         }),
@@ -1112,9 +1179,12 @@ describe('studyService', () => {
       action: 'unsuspend',
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenNthCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+        }),
         data: expect.objectContaining({
           queueState: 'review',
         }),
@@ -1179,7 +1249,7 @@ describe('studyService', () => {
         updatedAt: new Date('2026-04-12T00:00:00.000Z'),
         note: {},
       });
-    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studyCard.count.mockResolvedValue(1);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
@@ -1189,8 +1259,11 @@ describe('studyService', () => {
       action: 'forget',
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+        }),
         data: expect.objectContaining({
           queueState: 'new',
           dueAt: null,
@@ -1258,7 +1331,7 @@ describe('studyService', () => {
         updatedAt: new Date('2026-04-12T00:00:00.000Z'),
         note: {},
       });
-    mockPrisma.studyCard.update.mockResolvedValue({});
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     mockPrisma.studyCard.count.mockResolvedValue(1);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
@@ -1270,8 +1343,11 @@ describe('studyService', () => {
       dueAt: customDueAt,
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+        }),
         data: expect.objectContaining({
           queueState: 'review',
           dueAt: new Date(customDueAt),
@@ -1656,9 +1732,9 @@ describe('studyService', () => {
       answer: { expression: '事業', expressionReading: '事業[じぎょう]', meaning: 'business' },
     });
 
-    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 'card-1' },
+        where: { id: 'card-1', userId: 'user-1' },
         data: expect.objectContaining({
           answerAudioSource: 'missing',
           answerAudioMediaId: null,
@@ -1815,5 +1891,182 @@ describe('studyService', () => {
     });
     expect(second).toEqual(first);
     expect(getSignedReadUrlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('signs GCS study media even when publicUrl is null', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-unique',
+      userId: 'user-1',
+      sourceFilename: 'audio.mp3',
+      storagePath: 'study-media/user-1/import/audio-unique.mp3',
+      publicUrl: null,
+      contentType: 'audio/mpeg',
+    });
+
+    const result = await getStudyMediaAccess('user-1', 'media-unique');
+
+    expect(result).toEqual({
+      type: 'redirect',
+      redirectUrl: 'https://signed.example.com/study-media',
+      contentType: 'audio/mpeg',
+      filename: 'audio.mp3',
+    });
+    expect(getSignedReadUrlMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns a lightweight study export manifest with section totals', async () => {
+    mockPrisma.studyCard.count.mockResolvedValue(10);
+    mockPrisma.studyReviewLog.count.mockResolvedValue(20);
+    mockPrisma.studyMedia.count.mockResolvedValue(5);
+    mockPrisma.studyImportJob.count.mockResolvedValue(2);
+
+    const result = await exportStudyData('user-1');
+
+    expect(result.sections).toEqual({
+      cards: { total: 10 },
+      reviewLogs: { total: 20 },
+      media: { total: 5 },
+      imports: { total: 2 },
+    });
+  });
+
+  it('paginates study export sections with stable cursors', async () => {
+    const cardRecord = {
+      id: 'card-2',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'review',
+      promptJson: { cueText: '会社' },
+      answerJson: { expression: '会社', meaning: 'company' },
+      schedulerStateJson: {
+        due: '2026-04-21T00:00:00.000Z',
+        stability: 10,
+        difficulty: 5,
+        elapsed_days: 2,
+        scheduled_days: 3,
+        reps: 1,
+        lapses: 0,
+        state: 2,
+      },
+      answerAudioSource: 'missing',
+      createdAt: new Date('2026-04-20T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-21T12:00:00.000Z'),
+      note: {
+        id: 'note-1',
+        userId: 'user-1',
+        rawFieldsJson: { Expression: '会社' },
+      },
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    };
+    mockPrisma.studyCard.findMany.mockResolvedValue([cardRecord, { ...cardRecord, id: 'card-1' }]);
+
+    const cardsSection = await exportStudyCardsSection({ userId: 'user-1', limit: 1 });
+
+    expect(cardsSection.items).toHaveLength(1);
+    expect(cardsSection.nextCursor).toBeTruthy();
+
+    mockPrisma.studyReviewLog.findMany.mockResolvedValue([
+      {
+        id: 'log-2',
+        userId: 'user-1',
+        cardId: 'card-2',
+        source: 'convolab',
+        reviewedAt: new Date('2026-04-21T12:00:00.000Z'),
+        rating: 3,
+        durationMs: 5000,
+        sourceReviewId: null,
+        stateBeforeJson: null,
+        stateAfterJson: null,
+        rawPayloadJson: null,
+      },
+      {
+        id: 'log-1',
+        userId: 'user-1',
+        cardId: 'card-1',
+        source: 'convolab',
+        reviewedAt: new Date('2026-04-20T12:00:00.000Z'),
+        rating: 4,
+        durationMs: 4000,
+        sourceReviewId: null,
+        stateBeforeJson: null,
+        stateAfterJson: null,
+        rawPayloadJson: null,
+      },
+    ]);
+    const reviewLogsSection = await exportStudyReviewLogsSection({ userId: 'user-1', limit: 1 });
+    expect(reviewLogsSection.items).toHaveLength(1);
+    expect(reviewLogsSection.nextCursor).toBeTruthy();
+
+    mockPrisma.studyMedia.findMany.mockResolvedValue([
+      {
+        id: 'media-2',
+        userId: 'user-1',
+        sourceFilename: 'audio.mp3',
+        mediaKind: 'audio',
+        sourceKind: 'anki_import',
+        updatedAt: new Date('2026-04-21T12:00:00.000Z'),
+      },
+      {
+        id: 'media-1',
+        userId: 'user-1',
+        sourceFilename: 'image.png',
+        mediaKind: 'image',
+        sourceKind: 'anki_import',
+        updatedAt: new Date('2026-04-20T12:00:00.000Z'),
+      },
+    ]);
+    const mediaSection = await exportStudyMediaSection({ userId: 'user-1', limit: 1 });
+    expect(mediaSection.items).toHaveLength(1);
+    expect(mediaSection.nextCursor).toBeTruthy();
+
+    mockPrisma.studyImportJob.findMany.mockResolvedValue([
+      {
+        id: 'import-2',
+        userId: 'user-1',
+        status: 'completed',
+        sourceFilename: 'japanese-2.colpkg',
+        deckName: '日本語',
+        previewJson: {
+          deckName: '日本語',
+          cardCount: 1,
+          noteCount: 1,
+          reviewLogCount: 1,
+          mediaReferenceCount: 1,
+          skippedMediaCount: 0,
+          warnings: [],
+          noteTypeBreakdown: [],
+        },
+        completedAt: new Date('2026-04-21T12:00:00.000Z'),
+        errorMessage: null,
+        updatedAt: new Date('2026-04-21T12:00:00.000Z'),
+      },
+      {
+        id: 'import-1',
+        userId: 'user-1',
+        status: 'completed',
+        sourceFilename: 'japanese-1.colpkg',
+        deckName: '日本語',
+        previewJson: {
+          deckName: '日本語',
+          cardCount: 1,
+          noteCount: 1,
+          reviewLogCount: 1,
+          mediaReferenceCount: 1,
+          skippedMediaCount: 0,
+          warnings: [],
+          noteTypeBreakdown: [],
+        },
+        completedAt: new Date('2026-04-20T12:00:00.000Z'),
+        errorMessage: null,
+        updatedAt: new Date('2026-04-20T12:00:00.000Z'),
+      },
+    ]);
+    const importsSection = await exportStudyImportsSection({ userId: 'user-1', limit: 1 });
+    expect(importsSection.items).toHaveLength(1);
+    expect(importsSection.nextCursor).toBeTruthy();
   });
 });

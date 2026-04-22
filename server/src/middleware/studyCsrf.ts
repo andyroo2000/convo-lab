@@ -9,6 +9,7 @@ const DEVELOPMENT_STUDY_ORIGINS = [
   'http://localhost:5174',
   'http://localhost:5175',
 ];
+let allowedStudyOriginsCache: Set<string> | null = null;
 
 function toOrigin(value: string | undefined): string | null {
   if (!value) {
@@ -23,6 +24,10 @@ function toOrigin(value: string | undefined): string | null {
 }
 
 function getAllowedStudyOrigins(): Set<string> {
+  if (allowedStudyOriginsCache) {
+    return allowedStudyOriginsCache;
+  }
+
   const origins = new Set<string>();
   const configuredClientOrigin = toOrigin(process.env.CLIENT_URL);
 
@@ -34,6 +39,7 @@ function getAllowedStudyOrigins(): Set<string> {
     DEVELOPMENT_STUDY_ORIGINS.forEach((origin) => origins.add(origin));
   }
 
+  allowedStudyOriginsCache = origins;
   return origins;
 }
 
