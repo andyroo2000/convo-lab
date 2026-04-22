@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { createRequire } from 'module';
 import path from 'path';
-import { zstdDecompressSync } from 'zlib';
+import * as zlib from 'zlib';
 
 import { serializeStudyFsrsCard as serializeFsrsCard } from '@languageflow/shared/src/studyFsrs.js';
 import type {
@@ -45,6 +45,11 @@ import type {
 const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+const zstdDecompressSync = (
+  zlib as typeof zlib & {
+    zstdDecompressSync?: (buffer: Buffer | Uint8Array) => Buffer | Uint8Array;
+  }
+).zstdDecompressSync;
 
 function isZstdCompressed(buffer: Buffer | Uint8Array): boolean {
   return (
@@ -57,7 +62,15 @@ function isZstdCompressed(buffer: Buffer | Uint8Array): boolean {
 }
 
 function maybeDecompressZstd(buffer: Buffer): Buffer {
-  return isZstdCompressed(buffer) ? zstdDecompressSync(buffer) : buffer;
+  if (!isZstdCompressed(buffer)) {
+    return buffer;
+  }
+
+  if (!zstdDecompressSync) {
+    throw new AppError('This server runtime does not support zstd-compressed Anki imports.', 400);
+  }
+
+  return Buffer.from(zstdDecompressSync(buffer));
 }
 
 function parseAudioFilenames(value: string): string[] {
