@@ -37,6 +37,8 @@ describe('study schema verification', () => {
     const migration = await readFile(searchTextFixMigrationPath, 'utf8');
 
     expect(migration).toContain('CREATE OR REPLACE FUNCTION study_json_scalar_text');
+    expect(migration).toContain('WITH RECURSIVE walk(value) AS (');
+    expect(migration).toContain('FROM walk;');
     expect(migration).toContain('study_json_scalar_text(COALESCE("rawFieldsJson"::jsonb');
     expect(migration).toContain('study_json_scalar_text(COALESCE("canonicalJson"::jsonb');
     expect(migration).toContain('study_json_scalar_text(COALESCE("promptJson"::jsonb');

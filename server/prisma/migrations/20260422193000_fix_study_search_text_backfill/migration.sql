@@ -36,6 +36,7 @@ AS $$
       'g'
     )
   );
+  FROM walk;
 $$;
 
 UPDATE "study_notes"
