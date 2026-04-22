@@ -6,6 +6,44 @@ import { AuthRequest } from './auth.js';
 import { AppError } from './errorHandler.js';
 
 type FeatureFlagKey = 'dialoguesEnabled' | 'audioCourseEnabled' | 'flashcardsEnabled';
+type FeatureFlagSnapshot = {
+  dialoguesEnabled: boolean;
+  audioCourseEnabled: boolean;
+  flashcardsEnabled: boolean;
+} | null;
+
+const FEATURE_FLAG_CACHE_TTL_MS = 30 * 1000;
+
+let cachedFeatureFlags: {
+  value: FeatureFlagSnapshot;
+  expiresAt: number;
+} | null = null;
+
+async function getFeatureFlags(): Promise<FeatureFlagSnapshot> {
+  const now = Date.now();
+  if (cachedFeatureFlags && cachedFeatureFlags.expiresAt > now) {
+    return cachedFeatureFlags.value;
+  }
+
+  const value = await prisma.featureFlag.findFirst({
+    select: {
+      dialoguesEnabled: true,
+      audioCourseEnabled: true,
+      flashcardsEnabled: true,
+    },
+  });
+
+  cachedFeatureFlags = {
+    value,
+    expiresAt: now + FEATURE_FLAG_CACHE_TTL_MS,
+  };
+
+  return value;
+}
+
+export function resetFeatureFlagCacheForTests() {
+  cachedFeatureFlags = null;
+}
 
 export function requireFeatureFlag(feature: FeatureFlagKey) {
   return async (req: AuthRequest, _res: Response, next: NextFunction) => {
@@ -19,13 +57,7 @@ export function requireFeatureFlag(feature: FeatureFlagKey) {
         return;
       }
 
-      const flags = await prisma.featureFlag.findFirst({
-        select: {
-          dialoguesEnabled: true,
-          audioCourseEnabled: true,
-          flashcardsEnabled: true,
-        },
-      });
+      const flags = await getFeatureFlags();
 
       if (flags?.[feature] === true) {
         next();

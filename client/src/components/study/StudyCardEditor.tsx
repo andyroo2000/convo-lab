@@ -1,4 +1,5 @@
-import type { StudyCardSummary } from '@shared/types';
+import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import { useTranslation } from 'react-i18next';
 
 import StudyCardFormFields from './StudyCardFormFields';
 import { useStudyCardForm } from './studyCardFormModel';
@@ -21,6 +22,7 @@ const StudyCardEditor = ({
   isSaving = false,
   error,
 }: StudyCardEditorProps) => {
+  const { t } = useTranslation('study');
   const { values, setField, buildPayload } = useStudyCardForm({ card });
 
   return (
@@ -35,10 +37,8 @@ const StudyCardEditor = ({
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-xl font-semibold text-navy">Edit card</h3>
-          <p className="text-sm text-gray-500">
-            Save returns you to the front of this card in review mode.
-          </p>
+          <h3 className="text-xl font-semibold text-navy">{t('editor.title')}</h3>
+          <p className="text-sm text-gray-500">{t('editor.description')}</p>
         </div>
         <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-gray-600">
           {card.cardType}
@@ -59,7 +59,7 @@ const StudyCardEditor = ({
           disabled={isSaving}
           className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSaving ? 'Saving…' : 'Save card'}
+          {isSaving ? t('editor.saving') : t('editor.save')}
         </button>
         <button
           type="button"
@@ -67,7 +67,7 @@ const StudyCardEditor = ({
           disabled={isSaving}
           className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Cancel
+          {t('editor.cancel')}
         </button>
       </div>
     </form>

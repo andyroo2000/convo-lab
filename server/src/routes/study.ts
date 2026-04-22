@@ -183,13 +183,13 @@ function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: numb
   return parsed;
 }
 
-function parseBrowserQueryString(value: unknown): string | undefined {
+function parseBoundedStringQueryParam(name: string, value: unknown): string | undefined {
   if (typeof value === 'undefined') {
     return undefined;
   }
 
   if (typeof value !== 'string') {
-    throw new AppError('q must be a string.', 400);
+    throw new AppError(`${name} must be a string.`, 400);
   }
 
   const trimmed = value.trim();
@@ -199,31 +199,7 @@ function parseBrowserQueryString(value: unknown): string | undefined {
 
   if (trimmed.length > STUDY_BROWSER_QUERY_MAX_LENGTH) {
     throw new AppError(
-      `q must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
-      400
-    );
-  }
-
-  return trimmed;
-}
-
-function parseBrowserNoteType(value: unknown): string | undefined {
-  if (typeof value === 'undefined') {
-    return undefined;
-  }
-
-  if (typeof value !== 'string') {
-    throw new AppError('noteType must be a string.', 400);
-  }
-
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return undefined;
-  }
-
-  if (trimmed.length > STUDY_BROWSER_QUERY_MAX_LENGTH) {
-    throw new AppError(
-      `noteType must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
+      `${name} must be ${String(STUDY_BROWSER_QUERY_MAX_LENGTH)} characters or fewer.`,
       400
     );
   }
@@ -916,8 +892,8 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       throw new AppError('Authenticated user is required.', 401);
     }
 
-    const q = parseBrowserQueryString(req.query.q);
-    const noteType = parseBrowserNoteType(req.query.noteType);
+    const q = parseBoundedStringQueryParam('q', req.query.q);
+    const noteType = parseBoundedStringQueryParam('noteType', req.query.noteType);
     const cursor = parseCursorQueryParam('cursor', req.query.cursor);
     const limit = parsePaginationLimit(
       req.query.limit,

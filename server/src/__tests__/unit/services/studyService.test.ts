@@ -38,6 +38,13 @@ const { deleteFromGCSPathMock, getSignedReadUrlMock, uploadBufferToGCSPathMock }
   })
 );
 
+const { createRedisConnectionMock, redisDelMock, redisGetMock, redisSetMock } = vi.hoisted(() => ({
+  createRedisConnectionMock: vi.fn(),
+  redisDelMock: vi.fn(),
+  redisGetMock: vi.fn(),
+  redisSetMock: vi.fn(),
+}));
+
 vi.mock('../../../services/ttsClient.js', () => ({
   synthesizeSpeech: vi.fn(async () => Buffer.from('fake-audio')),
 }));
@@ -50,6 +57,10 @@ vi.mock('../../../services/storageClient.js', () => ({
   deleteFromGCSPath: deleteFromGCSPathMock,
   getSignedReadUrl: getSignedReadUrlMock,
   uploadBufferToGCSPath: uploadBufferToGCSPathMock,
+}));
+
+vi.mock('../../../config/redis.js', () => ({
+  createRedisConnection: createRedisConnectionMock,
 }));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
@@ -316,6 +327,14 @@ async function buildFixtureColpkg(
 describe('studyService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    createRedisConnectionMock.mockReturnValue({
+      set: redisSetMock,
+      get: redisGetMock,
+      del: redisDelMock,
+    });
+    redisSetMock.mockResolvedValue('OK');
+    redisGetMock.mockResolvedValue(null);
+    redisDelMock.mockResolvedValue(1);
     process.env.GCS_BUCKET_NAME = '';
     deleteFromGCSPathMock.mockResolvedValue(undefined);
     uploadBufferToGCSPathMock.mockResolvedValue('https://storage.googleapis.com/test/study-media');
@@ -1057,6 +1076,7 @@ describe('studyService', () => {
   });
 
   it('deduplicates concurrent answer-audio generation for the same card', async () => {
+    redisSetMock.mockResolvedValueOnce('OK').mockResolvedValueOnce(null);
     let resolveAudio!: (buffer: Buffer) => void;
     vi.mocked(synthesizeSpeech).mockReturnValueOnce(
       new Promise<Buffer>((resolve) => {
@@ -1120,6 +1140,7 @@ describe('studyService', () => {
     expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalledTimes(1);
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(1);
     expect(mockPrisma.studyCard.update).toHaveBeenCalledTimes(1);
+    expect(redisSetMock).toHaveBeenCalledTimes(2);
     expect(firstCard.answerAudioSource).toBe('generated');
     expect(secondCard.answerAudioSource).toBe('generated');
   });

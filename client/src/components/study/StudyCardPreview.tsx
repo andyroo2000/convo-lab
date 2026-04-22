@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Ref } from 'react';
-import type { StudyCardSummary } from '@shared/types';
+import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import { useTranslation } from 'react-i18next';
 
 import StudyRubyText from './StudyRubyText';
 import {
@@ -25,6 +26,7 @@ const AudioPlayer = forwardRef<
     url: string;
   }
 >(({ label, showTimeline = false, testId, url }, ref) => {
+  const { t } = useTranslation('study');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,10 +50,10 @@ const AudioPlayer = forwardRef<
     } catch (error) {
       console.error(`Unable to play ${label}:`, error);
       setPlaying(false);
-      setErrorMessage('Audio playback failed. Try again.');
+      setErrorMessage(t('preview.audioFailed'));
       return false;
     }
-  }, [label]);
+  }, [label, t]);
 
   useImperativeHandle(
     ref,
@@ -75,7 +77,7 @@ const AudioPlayer = forwardRef<
     const handleCanPlay = () => setErrorMessage(null);
     const handleError = () => {
       setPlaying(false);
-      setErrorMessage('Audio playback failed. Try again.');
+      setErrorMessage(t('preview.audioFailed'));
     };
 
     audio.addEventListener('ended', handleEnded);
@@ -93,7 +95,7 @@ const AudioPlayer = forwardRef<
       audio.removeEventListener('canplay', handleCanPlay);
       audio.removeEventListener('error', handleError);
     };
-  }, [url]);
+  }, [t, url]);
 
   useEffect(() => {
     setErrorMessage(null);

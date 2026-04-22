@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { STUDY_BROWSER_PAGE_SIZE_DEFAULT } from '@languageflow/shared/src/studyConstants';
-import type { StudyBrowserField, StudyBrowserListResponse } from '@shared/types';
+import type { StudyBrowserField, StudyBrowserListResponse } from '@languageflow/shared/src/types';
 
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyFormField from '../components/study/StudyFormField';
@@ -20,6 +21,7 @@ import { StudyCardFace } from '../components/study/StudyCardPreview';
 import { getAudioMimeType, toAssetUrl } from '../components/study/studyCardUtils';
 
 const FieldValue = ({ field }: { field: StudyBrowserField }) => {
+  const { t } = useTranslation('study');
   const imageUrl = toAssetUrl(field.image?.url);
   const audioUrl = toAssetUrl(field.audio?.url);
 
@@ -37,13 +39,14 @@ const FieldValue = ({ field }: { field: StudyBrowserField }) => {
         </audio>
       ) : null}
       {!field.textValue && !imageUrl && !audioUrl ? (
-        <p className="text-sm text-gray-400">No previewable value</p>
+        <p className="text-sm text-gray-400">{t('browse.noPreview')}</p>
       ) : null}
     </div>
   );
 };
 
 const StudyBrowsePage = () => {
+  const { t } = useTranslation('study');
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const updateCardMutation = useUpdateStudyCard();
@@ -177,16 +180,14 @@ const StudyBrowsePage = () => {
       <section className="card retro-paper-panel">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-3xl font-bold text-navy">Browse cards</h1>
-            <p className="text-gray-600">
-              Search notes, inspect imported fields, and preview cards without changing scheduling.
-            </p>
+            <h1 className="text-3xl font-bold text-navy">{t('browse.title')}</h1>
+            <p className="text-gray-600">{t('browse.description')}</p>
           </div>
           <Link
             to="/app/study"
             className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
           >
-            Back to study
+            {t('browse.back')}
           </Link>
         </div>
       </section>
@@ -205,7 +206,7 @@ const StudyBrowsePage = () => {
         >
           <StudyFormField
             htmlFor="study-browser-search"
-            label="Search cards/notes"
+            label={t('browse.searchLabel')}
             className="min-w-[18rem] flex-1"
           >
             <input
@@ -213,14 +214,14 @@ const StudyBrowsePage = () => {
               type="text"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Type text, then press Enter"
+              placeholder={t('browse.searchPlaceholder')}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
           </StudyFormField>
 
           <StudyFormField
             htmlFor="study-browser-note-type"
-            label="Note type"
+            label={t('browse.noteType')}
             className="min-w-[12rem]"
           >
             <select
@@ -235,7 +236,7 @@ const StudyBrowsePage = () => {
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             >
-              <option value="">All note types</option>
+              <option value="">{t('browse.allNoteTypes')}</option>
               {(browserQuery.data?.filterOptions.noteTypes ?? []).map((noteType) => (
                 <option key={noteType} value={noteType}>
                   {noteType}
@@ -246,7 +247,7 @@ const StudyBrowsePage = () => {
 
           <StudyFormField
             htmlFor="study-browser-card-type"
-            label="Card type"
+            label={t('browse.cardType')}
             className="min-w-[10rem]"
           >
             <select
@@ -261,7 +262,7 @@ const StudyBrowsePage = () => {
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             >
-              <option value="">All card types</option>
+              <option value="">{t('browse.allCardTypes')}</option>
               {(browserQuery.data?.filterOptions.cardTypes ?? []).map((cardType) => (
                 <option key={cardType} value={cardType}>
                   {cardType}
@@ -272,7 +273,7 @@ const StudyBrowsePage = () => {
 
           <StudyFormField
             htmlFor="study-browser-queue"
-            label="Queue state"
+            label={t('browse.queueState')}
             className="min-w-[10rem]"
           >
             <select
@@ -287,7 +288,7 @@ const StudyBrowsePage = () => {
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             >
-              <option value="">All queue states</option>
+              <option value="">{t('browse.allQueueStates')}</option>
               {(browserQuery.data?.filterOptions.queueStates ?? []).map((queueState) => (
                 <option key={queueState} value={queueState}>
                   {queueState}
@@ -300,7 +301,7 @@ const StudyBrowsePage = () => {
             type="submit"
             className="w-full rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 sm:w-auto"
           >
-            Search
+            {t('browse.search')}
           </button>
         </form>
       </section>
@@ -312,22 +313,28 @@ const StudyBrowsePage = () => {
         >
           <div className="border-b border-gray-200 px-4 py-3">
             <p className="text-sm text-gray-600">
-              {browserQuery.data?.total ?? 0} notes
-              {query.q ? ` matching “${query.q}”` : ''}
+              {query.q
+                ? t('browse.notesMatching', {
+                    count: browserQuery.data?.total ?? 0,
+                    query: query.q,
+                  })
+                : t('browse.notesCount', { count: browserQuery.data?.total ?? 0 })}
             </p>
           </div>
 
-          {browserQuery.isLoading ? <p className="p-6 text-gray-500">Loading notes…</p> : null}
+          {browserQuery.isLoading ? (
+            <p className="p-6 text-gray-500">{t('browse.loadingNotes')}</p>
+          ) : null}
           {browserQuery.error ? (
             <p className="p-6 text-red-600">
               {browserQuery.error instanceof Error
                 ? browserQuery.error.message
-                : 'Failed to load notes.'}
+                : t('browse.failedNotes')}
             </p>
           ) : null}
 
           {!browserQuery.isLoading && !rows.length ? (
-            <div className="p-6 text-center text-gray-600">No notes match the current filters.</div>
+            <div className="p-6 text-center text-gray-600">{t('browse.noMatches')}</div>
           ) : null}
 
           {rows.length ? (
@@ -349,8 +356,9 @@ const StudyBrowsePage = () => {
                       {row.displayText}
                     </p>
                     <p className="mt-2 text-sm text-gray-600">
-                      {row.noteTypeName ?? 'Unknown'} · {row.cardCount} cards · {row.reviewCount}{' '}
-                      reviews
+                      {row.noteTypeName ?? t('browse.unknown')} ·{' '}
+                      {t('browse.cardsLabel', { count: row.cardCount })} ·{' '}
+                      {t('browse.reviewsLabel', { count: row.reviewCount })}
                     </p>
                   </button>
                 ))}
@@ -359,10 +367,10 @@ const StudyBrowsePage = () => {
                 <table className="min-w-full text-left text-sm">
                   <thead className="bg-cream/60 text-gray-600">
                     <tr>
-                      <th className="px-4 py-3 font-medium">Sort field</th>
-                      <th className="px-4 py-3 font-medium">Note type</th>
-                      <th className="px-4 py-3 font-medium">Cards</th>
-                      <th className="px-4 py-3 font-medium">Reviews</th>
+                      <th className="px-4 py-3 font-medium">{t('browse.sortField')}</th>
+                      <th className="px-4 py-3 font-medium">{t('browse.noteType')}</th>
+                      <th className="px-4 py-3 font-medium">{t('browse.cardsHeader')}</th>
+                      <th className="px-4 py-3 font-medium">{t('browse.reviewsHeader')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -380,7 +388,7 @@ const StudyBrowsePage = () => {
                           </p>
                         </td>
                         <td className="px-4 py-3 align-top text-gray-700">
-                          {row.noteTypeName ?? 'Unknown'}
+                          {row.noteTypeName ?? t('browse.unknown')}
                         </td>
                         <td className="px-4 py-3 align-top text-gray-700">{row.cardCount}</td>
                         <td className="px-4 py-3 align-top text-gray-700">{row.reviewCount}</td>
@@ -394,7 +402,10 @@ const StudyBrowsePage = () => {
 
           <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
-              Showing {rows.length} of {browserQuery.data?.total ?? 0}
+              {t('browse.showing', {
+                shown: rows.length,
+                total: browserQuery.data?.total ?? 0,
+              })}
             </p>
             <div className="grid grid-cols-1 gap-2 sm:flex">
               <button
@@ -408,7 +419,9 @@ const StudyBrowsePage = () => {
                 }
                 className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {browserQuery.isLoading && query.cursor ? 'Loading…' : 'Load more'}
+                {browserQuery.isLoading && query.cursor
+                  ? t('browse.loadingMore')
+                  : t('browse.loadMore')}
               </button>
             </div>
           </div>
@@ -416,12 +429,14 @@ const StudyBrowsePage = () => {
 
         <div className="min-w-0 space-y-6">
           <section data-testid="study-browser-detail" className="card retro-paper-panel min-w-0">
-            {detailQuery.isLoading ? <p className="text-gray-500">Loading note preview…</p> : null}
+            {detailQuery.isLoading ? (
+              <p className="text-gray-500">{t('browse.loadingDetail')}</p>
+            ) : null}
             {detailQuery.error ? (
               <p className="text-red-600">
                 {detailQuery.error instanceof Error
                   ? detailQuery.error.message
-                  : 'Failed to load note detail.'}
+                  : t('browse.failedDetail')}
               </p>
             ) : null}
 
@@ -433,8 +448,10 @@ const StudyBrowsePage = () => {
                       {selectedDetail.displayText}
                     </h2>
                     <p className="break-words text-sm text-gray-500">
-                      {selectedDetail.noteTypeName ?? 'Unknown note type'} · Updated{' '}
-                      {new Date(selectedDetail.updatedAt).toLocaleString()}
+                      {selectedDetail.noteTypeName ?? t('browse.unknownNoteType')} ·{' '}
+                      {t('browse.updated', {
+                        value: new Date(selectedDetail.updatedAt).toLocaleString(),
+                      })}
                     </p>
                   </div>
                   <div className="inline-flex w-full min-w-0 max-w-full rounded-full border border-gray-300 bg-white p-1 sm:w-auto">
@@ -445,7 +462,7 @@ const StudyBrowsePage = () => {
                         previewSide === 'front' ? 'bg-navy text-white' : 'text-navy'
                       }`}
                     >
-                      Front
+                      {t('browse.front')}
                     </button>
                     <button
                       type="button"
@@ -454,7 +471,7 @@ const StudyBrowsePage = () => {
                         previewSide === 'back' ? 'bg-navy text-white' : 'text-navy'
                       }`}
                     >
-                      Back
+                      {t('browse.backSide')}
                     </button>
                   </div>
                 </div>
@@ -488,12 +505,14 @@ const StudyBrowsePage = () => {
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="break-words text-sm text-gray-500">
-                        Queue:{' '}
+                        {t('browse.queue')}:{' '}
                         <span className="font-medium text-gray-700">
                           {selectedCard.state.queueState}
                         </span>
                         {selectedCard.state.dueAt
-                          ? ` · Due ${new Date(selectedCard.state.dueAt).toLocaleString()}`
+                          ? ` · ${t('browse.due', {
+                              value: new Date(selectedCard.state.dueAt).toLocaleString(),
+                            })}`
                           : ''}
                       </p>
                       <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
@@ -503,7 +522,7 @@ const StudyBrowsePage = () => {
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
                           className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Edit
+                          {t('browse.edit')}
                         </button>
                         <button
                           type="button"
@@ -523,7 +542,9 @@ const StudyBrowsePage = () => {
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
                           className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          {selectedCard.state.queueState === 'suspended' ? 'Unsuspend' : 'Suspend'}
+                          {selectedCard.state.queueState === 'suspended'
+                            ? t('reviewActions.unsuspend')
+                            : t('reviewActions.suspend')}
                         </button>
                         <button
                           type="button"
@@ -535,7 +556,7 @@ const StudyBrowsePage = () => {
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
                           className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Forget
+                          {t('browse.forget')}
                         </button>
                         <button
                           type="button"
@@ -543,7 +564,7 @@ const StudyBrowsePage = () => {
                           disabled={updateCardMutation.isPending || cardActionMutation.isPending}
                           className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          Set due
+                          {t('browse.setDue')}
                         </button>
                       </div>
                     </div>
@@ -597,7 +618,7 @@ const StudyBrowsePage = () => {
                 ) : null}
               </div>
             ) : (
-              <p className="text-gray-500">Select a note to preview it.</p>
+              <p className="text-gray-500">{t('browse.selectNote')}</p>
             )}
           </section>
 
@@ -606,7 +627,7 @@ const StudyBrowsePage = () => {
               <section className="card retro-paper-panel">
                 <details open>
                   <summary className="cursor-pointer text-lg font-semibold text-navy">
-                    Imported fields
+                    {t('browse.importedFields')}
                   </summary>
                   <div className="mt-4 space-y-4">
                     {selectedDetail.rawFields.map((field) => (
@@ -623,7 +644,7 @@ const StudyBrowsePage = () => {
                 <section className="card retro-paper-panel">
                   <details>
                     <summary className="cursor-pointer text-lg font-semibold text-navy">
-                      Canonical fields
+                      {t('browse.canonicalFields')}
                     </summary>
                     <div className="mt-4 space-y-4">
                       {selectedDetail.canonicalFields.map((field) => (

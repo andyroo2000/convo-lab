@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 interface StudyGradeButtonsProps {
   gradeIntervals: Record<'again' | 'hard' | 'good' | 'easy', string> | null;
   disabled?: boolean;
@@ -15,22 +17,28 @@ const StudyGradeButtons = ({
   gradeIntervals,
   disabled = false,
   onGrade,
-}: StudyGradeButtonsProps) => (
-  <div className="grid gap-3 md:grid-cols-4">
-    {(['again', 'hard', 'good', 'easy'] as const).map((grade, index) => (
-      <button
-        key={grade}
-        type="button"
-        onClick={() => onGrade(grade)}
-        disabled={disabled}
-        className={`rounded-[1.5rem] border px-4 py-4 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${gradeButtonStyles[grade]}`}
-      >
-        <p className="text-2xl font-semibold">{gradeIntervals?.[grade] ?? '...'}</p>
-        <p className="mt-2 text-xl font-semibold capitalize">{grade}</p>
-        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-current/70">Key {index + 1}</p>
-      </button>
-    ))}
-  </div>
-);
+}: StudyGradeButtonsProps) => {
+  const { t } = useTranslation('study');
+
+  return (
+    <div className="grid gap-3 md:grid-cols-4">
+      {(['again', 'hard', 'good', 'easy'] as const).map((grade, index) => (
+        <button
+          key={grade}
+          type="button"
+          onClick={() => onGrade(grade)}
+          disabled={disabled}
+          className={`rounded-[1.5rem] border px-4 py-4 text-center transition disabled:cursor-not-allowed disabled:opacity-60 ${gradeButtonStyles[grade]}`}
+        >
+          <p className="text-2xl font-semibold">{gradeIntervals?.[grade] ?? '...'}</p>
+          <p className="mt-2 text-xl font-semibold">{t(`gradeButtons.${grade}`)}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.18em] text-current/70">
+            {t('gradeButtons.key', { index: index + 1 })}
+          </p>
+        </button>
+      ))}
+    </div>
+  );
+};
 
 export default StudyGradeButtons;

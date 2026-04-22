@@ -16,7 +16,7 @@ import type {
   StudyPromptPayload,
   StudyReviewResult,
   StudyUndoReviewResult,
-} from '@shared/types';
+} from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
 

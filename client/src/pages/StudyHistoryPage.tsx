@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import type { StudyReviewEvent } from '@shared/types';
+import type { StudyReviewEvent } from '@languageflow/shared/src/types';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import StudyFormField from '../components/study/StudyFormField';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { useStudyCardOptions, useStudyHistoryPage } from '../hooks/useStudy';
 
 const StudyHistoryPage = () => {
+  const { t } = useTranslation('study');
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const [selectedCardId, setSelectedCardId] = useState<string>('');
@@ -41,18 +43,15 @@ const StudyHistoryPage = () => {
   return (
     <div className="space-y-6">
       <section className="card retro-paper-panel max-w-4xl">
-        <h1 className="text-3xl font-bold text-navy mb-3">Study history</h1>
-        <p className="text-gray-600">
-          Review events stay immutable so imported Anki history and future ConvoLab reviews can be
-          exported together later.
-        </p>
+        <h1 className="text-3xl font-bold text-navy mb-3">{t('history.title')}</h1>
+        <p className="text-gray-600">{t('history.description')}</p>
       </section>
 
       <section className="card retro-paper-panel max-w-4xl space-y-4">
         <div className="flex flex-wrap items-end gap-3">
           <StudyFormField
             htmlFor="study-history-card"
-            label="Filter by card"
+            label={t('history.filterByCard')}
             className="flex-1 min-w-[16rem]"
           >
             <select
@@ -61,7 +60,7 @@ const StudyHistoryPage = () => {
               onChange={(event) => setSelectedCardId(event.target.value)}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             >
-              <option value="">All cards</option>
+              <option value="">{t('history.allCards')}</option>
               {(cardOptionsQuery.data?.options ?? []).map((card) => (
                 <option key={card.id} value={card.id}>
                   {card.label}
@@ -73,26 +72,26 @@ const StudyHistoryPage = () => {
             to="/app/study"
             className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
           >
-            Back to study
+            {t('history.back')}
           </Link>
         </div>
 
         {cardOptionsQuery.data &&
         cardOptionsQuery.data.total > cardOptionsQuery.data.options.length ? (
           <p className="text-sm text-gray-500">
-            Showing first {cardOptionsQuery.data.options.length} of {cardOptionsQuery.data.total}{' '}
-            cards in the filter dropdown.
+            {t('history.showingOptions', {
+              shown: cardOptionsQuery.data.options.length,
+              total: cardOptionsQuery.data.total,
+            })}
           </p>
         ) : null}
 
         {historyQuery.isLoading && events.length === 0 ? (
-          <p className="text-gray-500">Loading review history…</p>
+          <p className="text-gray-500">{t('history.loading')}</p>
         ) : null}
         {historyQuery.error ? (
           <p className="text-red-600">
-            {historyQuery.error instanceof Error
-              ? historyQuery.error.message
-              : 'Failed to load history.'}
+            {historyQuery.error instanceof Error ? historyQuery.error.message : t('history.failed')}
           </p>
         ) : null}
 
@@ -106,9 +105,11 @@ const StudyHistoryPage = () => {
                 </p>
               </div>
               <p className="mt-2 text-sm text-gray-700">
-                Rating: <span className="font-semibold">{event.rating}</span>
+                {t('history.rating')} <span className="font-semibold">{event.rating}</span>
                 {event.sourceReviewId ? (
-                  <span className="ml-3 text-gray-500">Anki revlog id: {event.sourceReviewId}</span>
+                  <span className="ml-3 text-gray-500">
+                    {t('history.ankiRevlogId', { id: event.sourceReviewId })}
+                  </span>
                 ) : null}
               </p>
             </article>
@@ -116,7 +117,7 @@ const StudyHistoryPage = () => {
 
           {!historyQuery.isLoading && events.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-center text-gray-600">
-              No review history yet.
+              {t('history.empty')}
             </div>
           ) : null}
 
@@ -128,7 +129,7 @@ const StudyHistoryPage = () => {
                 disabled={historyQuery.isLoading}
                 className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {historyQuery.isLoading ? 'Loading…' : 'Load more'}
+                {historyQuery.isLoading ? t('history.loadingMore') : t('history.loadMore')}
               </button>
             </div>
           ) : null}

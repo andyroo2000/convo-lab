@@ -1,4 +1,4 @@
-import type { StudyCardSummary } from '@shared/types';
+import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../../config';
 

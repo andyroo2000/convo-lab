@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import type { StudyCardSummary } from '@shared/types';
+import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { AudioPlayerHandle } from '../components/study/StudyCardPreview';
 import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';

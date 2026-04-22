@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import type { StudyImportResult } from '@shared/types';
+import { Trans, useTranslation } from 'react-i18next';
+import type { StudyImportResult } from '@languageflow/shared/src/types';
 import { MAX_STUDY_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 
 import StudyFormField from '../components/study/StudyFormField';
 import { uploadStudyImport } from '../hooks/useStudy';
 
 const StudyImportPage = () => {
+  const { t } = useTranslation('study');
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,7 +17,7 @@ const StudyImportPage = () => {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!file) {
-      setError('Choose a .colpkg file first.');
+      setError(t('import.chooseFirst'));
       return;
     }
 
@@ -26,7 +28,7 @@ const StudyImportPage = () => {
       const result = await uploadStudyImport(file);
       setImportResult(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed.');
+      setError(err instanceof Error ? err.message : t('import.failed'));
     } finally {
       setIsUploading(false);
     }
@@ -35,17 +37,24 @@ const StudyImportPage = () => {
   return (
     <div className="space-y-6">
       <section className="card retro-paper-panel max-w-3xl">
-        <h1 className="text-3xl font-bold text-navy mb-3">Import Anki deck</h1>
+        <h1 className="text-3xl font-bold text-navy mb-3">{t('import.title')}</h1>
         <p className="text-gray-600">
-          V1 imports only the <span className="font-semibold">日本語</span> deck from a full
-          <code className="mx-1 rounded bg-gray-100 px-2 py-1">.colpkg</code>
-          backup so ConvoLab can preserve scheduler state, review history, and media references.
+          <Trans
+            i18nKey="import.description"
+            ns="study"
+            components={[
+              <span key="strong" className="font-semibold" />,
+              <span key="unused-1" />,
+              <span key="unused-2" />,
+              <code key="code" className="mx-1 rounded bg-gray-100 px-2 py-1" />,
+            ]}
+          />
         </p>
       </section>
 
       <section className="card retro-paper-panel max-w-3xl">
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <StudyFormField htmlFor="study-colpkg" label="Anki collection backup">
+          <StudyFormField htmlFor="study-colpkg" label={t('import.fieldLabel')}>
             <input
               id="study-colpkg"
               type="file"
@@ -61,14 +70,14 @@ const StudyImportPage = () => {
 
                 if (!nextFile.name.toLowerCase().endsWith('.colpkg')) {
                   setFile(null);
-                  setError('Please choose a .colpkg Anki collection backup.');
+                  setError(t('import.wrongExtension'));
                   setImportResult(null);
                   return;
                 }
 
                 if (nextFile.size > MAX_STUDY_IMPORT_BYTES) {
                   setFile(null);
-                  setError('Please choose a .colpkg file that is 200 MB or smaller.');
+                  setError(t('import.tooLarge'));
                   setImportResult(null);
                   return;
                 }
@@ -82,27 +91,27 @@ const StudyImportPage = () => {
           </StudyFormField>
 
           <div className="rounded-2xl bg-cream/70 p-4 text-sm text-gray-700">
-            <p className="font-semibold text-navy">Import behavior</p>
-            <p className="mt-1">Only cards from the `日本語` deck are ingested in this version.</p>
-            <p className="mt-1">
-              Imported media is preserved when present, and missing answer-side audio is backfilled
-              through ConvoLab TTS when cards are first used.
-            </p>
+            <p className="font-semibold text-navy">{t('import.behaviorTitle')}</p>
+            <p className="mt-1">{t('import.behaviorDeck')}</p>
+            <p className="mt-1">{t('import.behaviorMedia')}</p>
           </div>
 
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           {importResult ? (
             <div className="space-y-2 text-sm text-emerald-700">
               <p>
-                Imported {importResult.preview.cardCount} cards and{' '}
-                {importResult.preview.reviewLogCount} review logs from {importResult.deckName}.
+                {t('import.success', {
+                  cardCount: importResult.preview.cardCount,
+                  reviewLogCount: importResult.preview.reviewLogCount,
+                  deckName: importResult.deckName,
+                })}
               </p>
               {importResult.preview.skippedMediaCount > 0 ? (
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                   <p className="font-medium">
-                    Skipped {importResult.preview.skippedMediaCount} unsafe or missing media
-                    reference
-                    {importResult.preview.skippedMediaCount === 1 ? '' : 's'}.
+                    {t('import.skippedMedia', {
+                      count: importResult.preview.skippedMediaCount,
+                    })}
                   </p>
                   {importResult.preview.warnings.length ? (
                     <ul className="mt-2 list-disc space-y-1 pl-5">
@@ -122,13 +131,13 @@ const StudyImportPage = () => {
               disabled={isUploading}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isUploading ? 'Importing…' : 'Import .colpkg'}
+              {isUploading ? t('import.importing') : t('import.submit')}
             </button>
             <Link
               to="/app/study"
               className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
             >
-              Back to study
+              {t('import.back')}
             </Link>
           </div>
         </form>

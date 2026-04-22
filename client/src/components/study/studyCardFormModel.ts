@@ -4,7 +4,7 @@ import type {
   StudyCardSummary,
   StudyCardType,
   StudyPromptPayload,
-} from '@shared/types';
+} from '@languageflow/shared/src/types';
 
 export interface StudyCardFormValues {
   cardType: StudyCardType;

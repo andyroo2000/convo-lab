@@ -1,0 +1,4641 @@
+import { randomUUID } from 'crypto';
+import { promises as fs } from 'fs';
+import { createRequire } from 'module';
+import os from 'os';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { zstdDecompressSync } from 'zlib';
+
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import {
+  MAX_STUDY_IMPORT_BYTES,
+  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+  STUDY_EXPORT_PAGE_SIZE_MAX,
+  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
+  STUDY_HISTORY_PAGE_SIZE_MAX,
+} from '@languageflow/shared/src/studyConstants.js';
+import {
+  deserializeStudyFsrsCard as deserializeFsrsCard,
+  IMPORTED_STUDY_DIFFICULTY_DEFAULT,
+  IMPORTED_STUDY_STABILITY_MIN,
+  serializeStudyFsrsCard as serializeFsrsCard,
+} from '@languageflow/shared/src/studyFsrs.js';
+import type {
+  StudyAnswerPayload,
+  StudyCardActionName,
+  StudyCardActionResult,
+  StudyCardOption,
+  StudyCardOptionsResponse,
+  StudyCardSetDueMode,
+  StudyAudioSource,
+  StudyBrowserCardStats,
+  StudyBrowserField,
+  StudyBrowserFilterOptions,
+  StudyBrowserListResponse,
+  StudyBrowserNoteDetail,
+  StudyBrowserRow,
+  StudyCardState,
+  StudyCardSummary,
+  StudyCardType,
+  StudyExportManifest,
+  StudyExportSectionResponse,
+  StudyFsrsState,
+  StudyHistoryResponse,
+  StudyImportPreview,
+  StudyImportResult,
+  StudyMediaRef,
+  StudyOverview,
+  StudyPromptPayload,
+  StudyQueueState,
+  StudyReviewEvent,
+  StudyReviewResult,
+  StudyUndoReviewResult,
+} from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
+import { decode } from 'html-entities';
+import { parseDocument } from 'htmlparser2';
+import JSZip from 'jszip';
+import initSqlJs, { type Database, type QueryExecResult } from 'sql.js';
+import { fsrs, Rating, State, type Card, type Grade } from 'ts-fsrs';
+
+import { createRedisConnection } from '../config/redis.js';
+import { prisma } from '../db/client.js';
+import { AppError } from '../middleware/errorHandler.js';
+
+import { addFuriganaBrackets } from './furiganaService.js';
+import { deleteFromGCSPath, getSignedReadUrl, uploadBufferToGCSPath } from './storageClient.js';
+import { synthesizeSpeech } from './ttsClient.js';
+
+const require = createRequire(import.meta.url);
+const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const scheduler = fsrs();
+const ANKI_DECK_NAME = '日本語';
+const FIELD_SEPARATOR = String.fromCharCode(31);
+const DEFAULT_STUDY_LIMIT = 20;
+const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
+const STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS = 30 * 1000;
+const STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES = 1000;
+const STUDY_AUDIO_LOCK_TTL_MS = 15 * 1000;
+const STUDY_AUDIO_LOCK_POLL_INTERVAL_MS = 250;
+const STUDY_DAY_BOUNDARY_TOKYO_OFFSET_HOURS = 9;
+const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
+const STUDY_IMPORT_WARNING_LIMIT = 10;
+const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
+const STUDY_EXPORT_SECTION_LIMIT_DEFAULT = STUDY_EXPORT_PAGE_SIZE_DEFAULT;
+const STUDY_EXPORT_SECTION_LIMIT_MAX = STUDY_EXPORT_PAGE_SIZE_MAX;
+const generatedAnswerAudioInFlight = new Map<
+  string,
+  {
+    token: symbol;
+    promise: Promise<void>;
+  }
+>();
+// This only deduplicates answer-audio generation within the current server process.
+
+let studyAudioRedisClient: ReturnType<typeof createRedisConnection> | null = null;
+
+function getStudyAudioRedisClient() {
+  if (!studyAudioRedisClient) {
+    studyAudioRedisClient = createRedisConnection();
+  }
+
+  return studyAudioRedisClient;
+}
+
+function createUnsupportedDeckError(detectedDeckNames: string[]): AppError {
+  const sanitizedDeckNames = detectedDeckNames
+    .map((name) => sanitizeText(name))
+    .filter((name): name is string => Boolean(name));
+  const visibleDeckNames = sanitizedDeckNames.slice(0, 5);
+  const deckSummary = visibleDeckNames.length
+    ? ` Found: ${visibleDeckNames.map((name) => `"${name}"`).join(', ')}${
+        sanitizedDeckNames.length > visibleDeckNames.length ? ', …' : ''
+      }.`
+    : '';
+
+  return new AppError(
+    `Only the "${ANKI_DECK_NAME}" deck is supported in this version.${deckSummary}`,
+    400
+  );
+}
+
+type JsonRecord = Record<string, unknown>;
+type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
+type StudyImportJobRecord = Prisma.StudyImportJobGetPayload<Prisma.StudyImportJobDefaultArgs>;
+type StudyReviewLogRecord = Prisma.StudyReviewLogGetPayload<Prisma.StudyReviewLogDefaultArgs>;
+type StudyCardWithRelations = Prisma.StudyCardGetPayload<{
+  include: {
+    note: true;
+    promptAudioMedia: true;
+    answerAudioMedia: true;
+    imageMedia: true;
+  };
+}>;
+type StudyCardOptionRecord = Prisma.StudyCardGetPayload<{
+  select: {
+    id: true;
+    promptJson: true;
+    answerJson: true;
+    updatedAt: true;
+  };
+}>;
+type StudyBrowserListCardRecord = Prisma.StudyCardGetPayload<{
+  select: {
+    id: true;
+    cardType: true;
+    queueState: true;
+    promptJson: true;
+    answerJson: true;
+    updatedAt: true;
+  };
+}>;
+type StudyBrowserListNoteRecord = Prisma.StudyNoteGetPayload<{
+  include: {
+    cards: {
+      select: {
+        id: true;
+        cardType: true;
+        queueState: true;
+        promptJson: true;
+        answerJson: true;
+        updatedAt: true;
+      };
+    };
+  };
+}>;
+type StudyBrowserDetailNoteRecord = Prisma.StudyNoteGetPayload<{
+  include: {
+    cards: {
+      include: {
+        note: true;
+        promptAudioMedia: true;
+        answerAudioMedia: true;
+        imageMedia: true;
+      };
+    };
+  };
+}>;
+
+interface QueryRow {
+  [key: string]: string | number | Uint8Array | null;
+}
+
+interface ParsedAnkiMediaRecord {
+  id: string;
+  sourceMediaKey: string | null;
+  filename: string;
+  mediaKind: 'audio' | 'image' | 'other';
+  contentType: string;
+  publicUrl: string | null;
+  storagePath: string | null;
+}
+
+interface PersistedStudyMediaRecord {
+  id: string;
+  userId: string;
+  importJobId?: string | null;
+  sourceKind?: string | null;
+  normalizedFilename?: string | null;
+  sourceFilename?: string | null;
+  mediaKind?: string | null;
+  storagePath?: string | null;
+  publicUrl?: string | null;
+}
+
+interface ParsedCardRow {
+  cardId: number;
+  noteId: number;
+  deckId: number;
+  ord: number;
+  queue: number;
+  type: number;
+  due: number;
+  ivl: number;
+  factor: number;
+  reps: number;
+  lapses: number;
+  left: number;
+  odue: number;
+  odid: number;
+  data: string;
+  noteGuid: string;
+  noteTypeId: number;
+  noteFields: string;
+  noteTags: string;
+  notetypeName: string;
+  templateName: string | null;
+}
+
+interface ParsedReviewLogRow {
+  reviewId: number;
+  cardId: number;
+  ease: number;
+  ivl: number;
+  lastIvl: number;
+  factor: number;
+  time: number;
+  type: number;
+}
+
+interface ParsedImportDataset {
+  collectionCreatedAtSeconds: number;
+  preview: StudyImportPreview;
+  mediaByFilename: Map<string, ParsedAnkiMediaRecord>;
+  persistedMediaStoragePaths: string[];
+  notes: Array<{
+    createId: string;
+    sourceNoteId: number;
+    sourceGuid: string;
+    sourceDeckId: number;
+    sourceNotetypeId: number;
+    sourceNotetypeName: string;
+    rawFields: JsonRecord;
+    canonical: JsonRecord;
+  }>;
+  cards: Array<{
+    createId: string;
+    noteCreateId: string;
+    sourceCardId: number;
+    sourceDeckId: number;
+    sourceTemplateOrd: number;
+    sourceTemplateName: string | null;
+    sourceQueue: number;
+    sourceCardType: number;
+    sourceDue: number;
+    sourceInterval: number;
+    sourceFactor: number;
+    sourceReps: number;
+    sourceLapses: number;
+    sourceLeft: number;
+    sourceOriginalDue: number;
+    sourceOriginalDeckId: number;
+    sourceFsrs: JsonRecord | null;
+    cardType: StudyCardType;
+    queueState: StudyQueueState;
+    dueAt: Date | null;
+    lastReviewedAt: Date | null;
+    prompt: StudyPromptPayload;
+    answer: StudyAnswerPayload;
+    schedulerState: StudyFsrsState;
+    answerAudioSource: StudyAudioSource;
+    promptAudioMediaFilename: string | null;
+    answerAudioMediaFilename: string | null;
+    imageMediaFilename: string | null;
+  }>;
+  reviewLogs: Array<{
+    createId: string;
+    sourceReviewId: number;
+    sourceCardId: number;
+    reviewedAt: Date;
+    rating: number;
+    sourceEase: number;
+    sourceInterval: number;
+    sourceLastInterval: number;
+    sourceFactor: number;
+    sourceTimeMs: number;
+    sourceReviewType: number;
+  }>;
+  media: ParsedAnkiMediaRecord[];
+}
+
+interface StudyImportWarningAccumulator {
+  skippedMediaCount: number;
+  warnings: string[];
+}
+
+interface StudyExportCursor {
+  timestamp: string;
+  id: string;
+}
+
+type StudyImportErrorWithMedia = AppError & {
+  persistedMediaStoragePaths?: string[];
+};
+
+interface CreateStudyCardInput {
+  userId: string;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}
+
+interface UpdateStudyCardInput {
+  userId: string;
+  cardId: string;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}
+
+interface PerformStudyCardActionInput {
+  userId: string;
+  cardId: string;
+  action: StudyCardActionName;
+  mode?: StudyCardSetDueMode;
+  dueAt?: string;
+  currentOverview?: StudyOverview;
+}
+
+interface GetStudyHistoryInput {
+  userId: string;
+  cardId?: string;
+  cursor?: string;
+  limit?: number;
+}
+
+interface StudyHistoryCursor {
+  reviewedAt: string;
+  id: string;
+}
+
+interface StudyBrowserCursor {
+  updatedAt: string;
+  id: string;
+}
+
+interface CachedStudyMediaRedirect {
+  url: string;
+  expiresAtMs: number;
+}
+
+export interface StudyMediaAccessResult {
+  type: 'local' | 'redirect';
+  absolutePath?: string;
+  redirectUrl?: string;
+  contentType: string;
+  filename: string;
+}
+
+let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+const studyMediaRedirectCache = new Map<string, CachedStudyMediaRedirect>();
+
+interface LegacyDeckConfig {
+  id?: number;
+  name?: string;
+}
+
+interface LegacyFieldConfig {
+  ord?: number;
+  name?: string;
+}
+
+interface LegacyTemplateConfig {
+  ord?: number;
+  name?: string;
+}
+
+interface LegacyModelConfig {
+  id?: number;
+  name?: string;
+  flds?: LegacyFieldConfig[];
+  tmpls?: LegacyTemplateConfig[];
+}
+
+const STUDY_CARD_TYPES: StudyCardType[] = ['recognition', 'production', 'cloze'];
+const STUDY_QUEUE_STATES: StudyQueueState[] = [
+  'new',
+  'learning',
+  'review',
+  'relearning',
+  'suspended',
+  'buried',
+];
+const STUDY_AUDIO_SOURCES: StudyAudioSource[] = ['imported', 'generated', 'missing'];
+const STUDY_IMPORT_STATUSES: StudyImportResult['status'][] = [
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+];
+const STUDY_REVIEW_SOURCES: StudyReviewEvent['source'][] = ['anki_import', 'convolab'];
+const STUDY_MEDIA_KINDS: StudyMediaRef['mediaKind'][] = ['audio', 'image', 'other'];
+const GENERIC_STUDY_IMPORT_ERROR_MESSAGE =
+  'Study import failed. Please verify the .colpkg file and try again.';
+const STUDY_IMPORT_PATHLIKE_PATTERN =
+  /(^|[\s:(['"])(\/|[A-Za-z]:\\|\.{1,2}[\\/]|file:\/\/|https?:\/\/)[^\s)"']+/i;
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStudyCardType(value: unknown): value is StudyCardType {
+  return typeof value === 'string' && STUDY_CARD_TYPES.includes(value as StudyCardType);
+}
+
+function parseStudyCardType(
+  value: unknown,
+  fallback: StudyCardType = 'recognition'
+): StudyCardType {
+  return isStudyCardType(value) ? value : fallback;
+}
+
+function isStudyQueueState(value: unknown): value is StudyQueueState {
+  return typeof value === 'string' && STUDY_QUEUE_STATES.includes(value as StudyQueueState);
+}
+
+function parseStudyQueueState(
+  value: unknown,
+  fallback: StudyQueueState = 'review'
+): StudyQueueState {
+  return isStudyQueueState(value) ? value : fallback;
+}
+
+function isStudyAudioSource(value: unknown): value is StudyAudioSource {
+  return typeof value === 'string' && STUDY_AUDIO_SOURCES.includes(value as StudyAudioSource);
+}
+
+function parseStudyAudioSource(
+  value: unknown,
+  fallback: StudyAudioSource = 'missing'
+): StudyAudioSource {
+  return isStudyAudioSource(value) ? value : fallback;
+}
+
+function isStudyImportStatus(value: unknown): value is StudyImportResult['status'] {
+  return (
+    typeof value === 'string' &&
+    STUDY_IMPORT_STATUSES.includes(value as StudyImportResult['status'])
+  );
+}
+
+function parseStudyImportStatus(
+  value: unknown,
+  fallback: StudyImportResult['status'] = 'failed'
+): StudyImportResult['status'] {
+  return isStudyImportStatus(value) ? value : fallback;
+}
+
+function isStudyReviewSource(value: unknown): value is StudyReviewEvent['source'] {
+  return (
+    typeof value === 'string' && STUDY_REVIEW_SOURCES.includes(value as StudyReviewEvent['source'])
+  );
+}
+
+function parseStudyReviewSource(
+  value: unknown,
+  fallback: StudyReviewEvent['source'] = 'convolab'
+): StudyReviewEvent['source'] {
+  return isStudyReviewSource(value) ? value : fallback;
+}
+
+function isStudyMediaKind(value: unknown): value is StudyMediaRef['mediaKind'] {
+  return (
+    typeof value === 'string' && STUDY_MEDIA_KINDS.includes(value as StudyMediaRef['mediaKind'])
+  );
+}
+
+function parseStudyMediaKind(
+  value: unknown,
+  fallback: StudyMediaRef['mediaKind'] = 'other'
+): StudyMediaRef['mediaKind'] {
+  return isStudyMediaKind(value) ? value : fallback;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function stripNullChars(value: string): string {
+  return value.replaceAll('\0', '');
+}
+
+function sanitizeText(value: string | null | undefined): string | null {
+  if (value === null || typeof value === 'undefined') return null;
+  return stripNullChars(value);
+}
+
+function sanitizeStudyImportErrorMessage(message: string | null | undefined): string | null {
+  const sanitized = sanitizeText(message)?.trim() ?? null;
+  if (!sanitized || STUDY_IMPORT_PATHLIKE_PATTERN.test(sanitized)) {
+    return null;
+  }
+
+  return sanitized;
+}
+
+function toSafeStudyImportError(error: unknown): AppError {
+  if (error instanceof AppError) {
+    const safeMessage =
+      sanitizeStudyImportErrorMessage(error.message) ?? GENERIC_STUDY_IMPORT_ERROR_MESSAGE;
+    if (error.statusCode >= 400 && error.statusCode < 500) {
+      return new AppError(safeMessage, error.statusCode, error.metadata);
+    }
+
+    return new AppError(GENERIC_STUDY_IMPORT_ERROR_MESSAGE, 500);
+  }
+
+  return new AppError(GENERIC_STUDY_IMPORT_ERROR_MESSAGE, 500);
+}
+
+function sanitizeJsonValue(value: unknown): unknown {
+  if (typeof value === 'string') {
+    return stripNullChars(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeJsonValue(item));
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, sanitizeJsonValue(item)])
+    );
+  }
+
+  return value;
+}
+
+function isZstdCompressed(buffer: Buffer | Uint8Array): boolean {
+  return (
+    buffer.length >= 4 &&
+    buffer[0] === 0x28 &&
+    buffer[1] === 0xb5 &&
+    buffer[2] === 0x2f &&
+    buffer[3] === 0xfd
+  );
+}
+
+function maybeDecompressZstd(buffer: Buffer): Buffer {
+  return isZstdCompressed(buffer) ? zstdDecompressSync(buffer) : buffer;
+}
+
+function createFreshSchedulerState(
+  due: Date = new Date(),
+  state: State = State.New
+): StudyFsrsState {
+  return serializeFsrsCard({
+    due,
+    stability: IMPORTED_STUDY_STABILITY_MIN,
+    difficulty: IMPORTED_STUDY_DIFFICULTY_DEFAULT,
+    elapsed_days: 0,
+    scheduled_days: 0,
+    learning_steps: 0,
+    reps: 0,
+    lapses: 0,
+    state,
+    last_review: undefined,
+  });
+}
+
+function dateFromDayBoundary(daysFromToday: number): Date {
+  // Study scheduling is intentionally tied to Japan's 09:00 study boundary
+  // until we add a per-user study timezone.
+  const tokyoNow = new Date(Date.now() + STUDY_DAY_BOUNDARY_TOKYO_OFFSET_HOURS * 60 * 60 * 1000);
+  tokyoNow.setUTCHours(9, 0, 0, 0);
+  tokyoNow.setUTCDate(tokyoNow.getUTCDate() + daysFromToday);
+  return new Date(tokyoNow.getTime() - STUDY_DAY_BOUNDARY_TOKYO_OFFSET_HOURS * 60 * 60 * 1000);
+}
+
+function getScheduledDaysForDue(dueAt: Date, from: Date = new Date()): number {
+  return Math.max(0, Math.round((dueAt.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
+function normalizeFilename(filename: string): string {
+  const base = path.basename(stripNullChars(filename));
+  return base.replace(/[^a-zA-Z0-9._-]/g, '_');
+}
+
+function normalizeZipPath(value: string): string {
+  return stripNullChars(value).replaceAll('\\', '/').trim();
+}
+
+function isUnsafeZipPath(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  if (!normalized) return true;
+  if (normalized.startsWith('/')) return true;
+  if (/^[a-zA-Z]:/.test(normalized)) return true;
+
+  return normalized.split('/').some((segment) => segment === '.' || segment === '..');
+}
+
+function isSafeZipBasename(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  return !isUnsafeZipPath(normalized) && !normalized.includes('/');
+}
+
+function isAllowedStudyImportZipEntryName(value: string): boolean {
+  const normalized = normalizeZipPath(value);
+  return (
+    normalized === 'collection.anki21b' ||
+    normalized === 'collection.anki21' ||
+    normalized === 'collection.anki2' ||
+    normalized === 'media' ||
+    isSafeZipBasename(normalized)
+  );
+}
+
+function sanitizePathSegment(value: string): string {
+  const base = path.basename(stripNullChars(value));
+  const normalized = base.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return normalized.length > 0 ? normalized : 'unknown';
+}
+
+function getPrivateStudyMediaRoot(): string {
+  return path.join(__dirname, '../../storage');
+}
+
+function getLegacyPublicStudyMediaRoot(): string {
+  return path.join(__dirname, '../../public');
+}
+
+function normalizeStoragePath(storagePath: string): string {
+  return path.posix.normalize(storagePath).replace(/^\/+/, '');
+}
+
+function pruneStudyMediaRedirectCache(nowMs: number = Date.now()) {
+  for (const [cacheKey, cached] of studyMediaRedirectCache.entries()) {
+    if (cached.expiresAtMs <= nowMs) {
+      studyMediaRedirectCache.delete(cacheKey);
+    }
+  }
+
+  while (studyMediaRedirectCache.size > STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES) {
+    const oldestKey = studyMediaRedirectCache.keys().next().value;
+    if (!oldestKey) {
+      break;
+    }
+    studyMediaRedirectCache.delete(oldestKey);
+  }
+}
+
+function resolveStudyMediaAbsolutePath(baseDir: string, storagePath: string): string | null {
+  const normalizedStoragePath = normalizeStoragePath(storagePath);
+  if (
+    normalizedStoragePath.length === 0 ||
+    isUnsafeZipPath(normalizedStoragePath) ||
+    !normalizedStoragePath.startsWith('study-media/')
+  ) {
+    return null;
+  }
+
+  const candidate = path.resolve(baseDir, normalizedStoragePath);
+  const resolvedBase = path.resolve(baseDir);
+
+  if (!candidate.startsWith(`${resolvedBase}${path.sep}`) && candidate !== resolvedBase) {
+    return null;
+  }
+
+  return candidate;
+}
+
+async function findAccessibleLocalStudyMediaPath(storagePath: string): Promise<string | null> {
+  const candidatePaths = [
+    resolveStudyMediaAbsolutePath(getPrivateStudyMediaRoot(), storagePath),
+    resolveStudyMediaAbsolutePath(getLegacyPublicStudyMediaRoot(), storagePath),
+  ].filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidatePaths) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function hasConfiguredStudyGcsStorage(): boolean {
+  return typeof process.env.GCS_BUCKET_NAME === 'string' && process.env.GCS_BUCKET_NAME.length > 0;
+}
+
+async function deletePersistedStudyMediaByStoragePath(storagePath: string): Promise<void> {
+  const normalizedStoragePath = normalizeStoragePath(storagePath);
+  if (!normalizedStoragePath) {
+    return;
+  }
+
+  if (hasConfiguredStudyGcsStorage()) {
+    try {
+      await deleteFromGCSPath(normalizedStoragePath);
+    } catch (error) {
+      console.warn('[Study] Failed to delete GCS study media:', error);
+    }
+  }
+
+  const localPath = resolveStudyMediaAbsolutePath(
+    getPrivateStudyMediaRoot(),
+    normalizedStoragePath
+  );
+  if (!localPath) {
+    return;
+  }
+
+  try {
+    await fs.unlink(localPath);
+  } catch (error) {
+    const code = error instanceof Error && 'code' in error ? String(error.code) : null;
+    if (code !== 'ENOENT') {
+      console.warn('[Study] Failed to delete local study media:', error);
+    }
+  }
+}
+
+interface ParsedHtmlNode {
+  type?: string;
+  name?: string;
+  data?: string;
+  children?: ParsedHtmlNode[];
+}
+
+const BLOCK_LEVEL_TAGS = new Set([
+  'p',
+  'div',
+  'blockquote',
+  'section',
+  'article',
+  'header',
+  'footer',
+  'li',
+  'ul',
+  'ol',
+]);
+
+function collectHtmlText(node: ParsedHtmlNode, output: string[]) {
+  if (node.type === 'text' || node.type === 'cdata') {
+    output.push(node.data ?? '');
+    return;
+  }
+
+  if (node.type === 'comment') {
+    return;
+  }
+
+  const name = (node.name ?? '').toLowerCase();
+  if (name === 'br') {
+    output.push('\n');
+    return;
+  }
+
+  for (const child of node.children ?? []) {
+    collectHtmlText(child, output);
+  }
+
+  if (BLOCK_LEVEL_TAGS.has(name)) {
+    output.push('\n');
+  }
+}
+
+function collapsePlainText(value: string): string {
+  return value
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function htmlToPlainText(raw: string): string {
+  const document = parseDocument(stripNullChars(raw));
+  const output: string[] = [];
+
+  for (const child of document.children as ParsedHtmlNode[]) {
+    collectHtmlText(child, output);
+  }
+
+  return collapsePlainText(decode(output.join('')));
+}
+
+function stripHtml(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  return htmlToPlainText(raw);
+}
+
+function appendSearchTextFragments(value: unknown, fragments: string[]) {
+  if (typeof value === 'string') {
+    const normalized = stripHtml(value) ?? value;
+    if (normalized.trim()) {
+      fragments.push(normalized.trim());
+    }
+    return;
+  }
+
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    fragments.push(String(value));
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((entry) => appendSearchTextFragments(entry, fragments));
+    return;
+  }
+
+  if (isRecord(value)) {
+    Object.values(value).forEach((entry) => appendSearchTextFragments(entry, fragments));
+  }
+}
+
+function toSearchText(...values: unknown[]): string {
+  const fragments: string[] = [];
+  values.forEach((value) => appendSearchTextFragments(value, fragments));
+
+  return fragments.join('\n').replace(/\s+/g, ' ').trim();
+}
+
+function parsePersistedStudyMediaRecord(value: unknown): PersistedStudyMediaRecord | null {
+  if (!isRecord(value)) return null;
+  if (typeof value.id !== 'string' || typeof value.userId !== 'string') return null;
+
+  return {
+    id: value.id,
+    userId: value.userId,
+    importJobId: typeof value.importJobId === 'string' ? value.importJobId : null,
+    sourceKind: typeof value.sourceKind === 'string' ? value.sourceKind : null,
+    normalizedFilename:
+      typeof value.normalizedFilename === 'string' ? value.normalizedFilename : null,
+    sourceFilename: typeof value.sourceFilename === 'string' ? value.sourceFilename : null,
+    mediaKind: typeof value.mediaKind === 'string' ? value.mediaKind : null,
+    storagePath: typeof value.storagePath === 'string' ? value.storagePath : null,
+    publicUrl: typeof value.publicUrl === 'string' ? value.publicUrl : null,
+  };
+}
+
+function getStudyMediaApiPath(mediaId: string): string {
+  return `/api/study/media/${encodeURIComponent(mediaId)}`;
+}
+
+function hasPersistedMediaLocation(media: unknown): boolean {
+  if (!isRecord(media)) return false;
+  return (
+    (typeof media.publicUrl === 'string' && media.publicUrl.length > 0) ||
+    (typeof media.storagePath === 'string' && media.storagePath.length > 0)
+  );
+}
+
+function toBoundedReviewRawPayload(
+  payload: JsonRecord,
+  fallback: JsonRecord
+): Prisma.InputJsonValue {
+  const serialized = JSON.stringify(payload);
+  if (Buffer.byteLength(serialized, 'utf8') <= STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES) {
+    return toPrismaJson(payload);
+  }
+
+  return toPrismaJson({
+    ...fallback,
+    truncated: true,
+  });
+}
+
+function toImportReviewRawPayload(log: {
+  sourceReviewId: number;
+  sourceCardId: number;
+  sourceEase: number;
+  sourceInterval: number;
+  sourceLastInterval: number;
+  sourceFactor: number;
+  sourceTimeMs: number;
+  sourceReviewType: number;
+}): Prisma.InputJsonValue {
+  const payload = {
+    reviewId: log.sourceReviewId,
+    cardId: log.sourceCardId,
+    ease: log.sourceEase,
+    ivl: log.sourceInterval,
+    lastIvl: log.sourceLastInterval,
+    factor: log.sourceFactor,
+    time: log.sourceTimeMs,
+    type: log.sourceReviewType,
+  };
+
+  return toBoundedReviewRawPayload(payload, {
+    reviewId: log.sourceReviewId,
+    cardId: log.sourceCardId,
+  });
+}
+
+function toConvolabReviewRawPayload(params: {
+  grade: string;
+  beforeQueueState: string;
+  beforeDueAt: string | null;
+  beforeLastReviewedAt: string | null;
+}): Prisma.InputJsonValue {
+  const payload = {
+    grade: params.grade,
+    beforeQueueState: params.beforeQueueState,
+    beforeDueAt: params.beforeDueAt,
+    beforeLastReviewedAt: params.beforeLastReviewedAt,
+  };
+
+  return toBoundedReviewRawPayload(payload, {
+    grade: params.grade,
+    beforeQueueState: params.beforeQueueState,
+  });
+}
+
+function encodeStudyHistoryCursor(cursor: StudyHistoryCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyHistoryCursor(cursor: string): StudyHistoryCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.reviewedAt !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.reviewedAt).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      reviewedAt: parsed.reviewedAt,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
+  }
+}
+
+function encodeStudyBrowserCursor(cursor: StudyBrowserCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyBrowserCursor(cursor: string): StudyBrowserCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.updatedAt !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.updatedAt).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      updatedAt: parsed.updatedAt,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
+  }
+}
+
+function encodeStudyExportCursor(cursor: StudyExportCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyExportCursor(cursor: string): StudyExportCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.timestamp !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.timestamp).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      timestamp: parsed.timestamp,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
+  }
+}
+
+function hydrateMediaRef(
+  mediaRef: StudyMediaRef | null | undefined,
+  media: unknown
+): StudyMediaRef | null | undefined {
+  if (!mediaRef && !media) return mediaRef;
+
+  const mediaRecord = isRecord(media) ? media : null;
+  const mediaId =
+    typeof mediaRecord?.id === 'string'
+      ? mediaRecord.id
+      : typeof mediaRef?.id === 'string'
+        ? mediaRef.id
+        : null;
+  const resolvedUrl = mediaId ? getStudyMediaApiPath(mediaId) : (mediaRef?.url ?? null);
+  if (!resolvedUrl) return mediaRef;
+
+  return {
+    ...(mediaRef ?? {
+      filename:
+        typeof mediaRecord?.sourceFilename === 'string'
+          ? mediaRecord.sourceFilename
+          : typeof mediaRecord?.normalizedFilename === 'string'
+            ? mediaRecord.normalizedFilename
+            : 'media',
+      mediaKind: parseStudyMediaKind(mediaRecord?.mediaKind),
+      source:
+        typeof mediaRecord?.sourceKind === 'string' && mediaRecord.sourceKind === 'generated'
+          ? 'generated'
+          : typeof mediaRecord?.mediaKind === 'string' && mediaRecord.mediaKind === 'image'
+            ? 'imported_image'
+            : 'imported',
+    }),
+    url: resolvedUrl,
+  };
+}
+
+function getDefaultAnkiMediaDirectory(): string | null {
+  if (process.platform !== 'darwin') {
+    return null;
+  }
+
+  // This macOS Anki path is a local development convenience fallback only.
+  const defaultDir = path.join(
+    os.homedir(),
+    'Library',
+    'Application Support',
+    'Anki2',
+    'User 1',
+    'collection.media'
+  );
+  return defaultDir;
+}
+
+async function findLocalAnkiMediaFile(filename: string): Promise<string | null> {
+  const configuredDir = sanitizeText(process.env.ANKI_MEDIA_DIR ?? '');
+  const normalizedFilename = normalizeZipPath(filename);
+
+  if (!isSafeZipBasename(normalizedFilename)) {
+    return null;
+  }
+
+  const candidateDirs = [configuredDir, getDefaultAnkiMediaDirectory()].filter(
+    (value): value is string => Boolean(value)
+  );
+
+  for (const dir of candidateDirs) {
+    const resolvedDir = path.resolve(dir);
+    const absolutePath = path.resolve(resolvedDir, normalizedFilename);
+
+    if (!absolutePath.startsWith(`${resolvedDir}${path.sep}`) && absolutePath !== resolvedDir) {
+      continue;
+    }
+
+    try {
+      await fs.access(absolutePath);
+      return absolutePath;
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
+function getContentType(filename: string): string {
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.mp3')) return 'audio/mpeg';
+  if (lower.endsWith('.wav')) return 'audio/wav';
+  if (lower.endsWith('.ogg')) return 'audio/ogg';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'application/octet-stream';
+}
+
+function getMediaKind(filename: string): 'audio' | 'image' | 'other' {
+  const contentType = getContentType(filename);
+  if (contentType.startsWith('audio/')) return 'audio';
+  if (contentType.startsWith('image/')) return 'image';
+  return 'other';
+}
+
+function parseAudioFilenames(value: string): string[] {
+  return Array.from(stripNullChars(value).matchAll(/\[sound:([^\]]+)\]/g), (match) => match[1])
+    .map((filename) => stripNullChars(filename))
+    .filter(Boolean);
+}
+
+function parseImageFilenames(value: string): string[] {
+  return Array.from(stripNullChars(value).matchAll(/<img[^>]+src=["']([^"']+)["']/gi), (match) =>
+    stripNullChars(match[1])
+  ).filter(Boolean);
+}
+
+interface ParsedClozeToken {
+  clozeIndex: number;
+  content: string;
+  hint: string | null;
+}
+
+function parseClozeToken(rawToken: string): ParsedClozeToken | null {
+  if (!rawToken.startsWith('{{c') || !rawToken.endsWith('}}')) {
+    return null;
+  }
+
+  let cursor = 3;
+  let rawIndex = '';
+  while (cursor < rawToken.length && /\d/.test(rawToken[cursor] ?? '')) {
+    rawIndex += rawToken[cursor];
+    cursor += 1;
+  }
+
+  if (!rawIndex || rawToken.slice(cursor, cursor + 2) !== '::') {
+    return null;
+  }
+  cursor += 2;
+
+  const body = rawToken.slice(cursor, -2);
+  const separatorIndex = body.indexOf('::');
+  if (separatorIndex === -1) {
+    return {
+      clozeIndex: Number.parseInt(rawIndex, 10),
+      content: body,
+      hint: null,
+    };
+  }
+
+  return {
+    clozeIndex: Number.parseInt(rawIndex, 10),
+    content: body.slice(0, separatorIndex),
+    hint: body.slice(separatorIndex + 2),
+  };
+}
+
+function parseAnkiClozeText(
+  rawText: string,
+  activeOrdinal: number,
+  fallbackHint: string | null
+): {
+  displayText: string | null;
+  answerText: string | null;
+  restoredText: string | null;
+  resolvedHint: string | null;
+} {
+  const activeClozeIndex = activeOrdinal + 1;
+  let activeAnswerText: string | null = null;
+  let inlineHint: string | null = null;
+  const restoredParts: string[] = [];
+  const displayParts: string[] = [];
+  const source = stripNullChars(rawText);
+  let cursor = 0;
+
+  while (cursor < source.length) {
+    const tokenStart = source.indexOf('{{c', cursor);
+    if (tokenStart === -1) {
+      const trailing = source.slice(cursor);
+      restoredParts.push(trailing);
+      displayParts.push(trailing);
+      break;
+    }
+
+    const leading = source.slice(cursor, tokenStart);
+    restoredParts.push(leading);
+    displayParts.push(leading);
+
+    const tokenEnd = source.indexOf('}}', tokenStart);
+    if (tokenEnd === -1) {
+      const trailing = source.slice(tokenStart);
+      restoredParts.push(trailing);
+      displayParts.push(trailing);
+      break;
+    }
+
+    const rawToken = source.slice(tokenStart, tokenEnd + 2);
+    const token = parseClozeToken(rawToken);
+    if (!token) {
+      restoredParts.push(rawToken);
+      displayParts.push(rawToken);
+      cursor = tokenEnd + 2;
+      continue;
+    }
+
+    restoredParts.push(token.content);
+    if (token.clozeIndex === activeClozeIndex) {
+      activeAnswerText = stripHtml(token.content) ?? token.content;
+      inlineHint = stripHtml(token.hint) ?? null;
+      displayParts.push('[...]');
+    } else {
+      displayParts.push(token.content);
+    }
+
+    cursor = tokenEnd + 2;
+  }
+
+  return {
+    displayText: stripHtml(displayParts.join('')) ?? null,
+    answerText: activeAnswerText,
+    restoredText: stripHtml(restoredParts.join('')) ?? null,
+    resolvedHint: inlineHint ?? fallbackHint,
+  };
+}
+
+async function normalizeClozePayload(params: {
+  activeOrdinal: number;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): Promise<{
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}> {
+  const fallbackHint = stripHtml(params.prompt.clozeHint ?? params.prompt.clozeResolvedHint ?? '');
+  const rawClozeText = params.prompt.clozeText ?? '';
+  const hasAnkiClozeMarkup = /\{\{c\d+::/.test(rawClozeText);
+
+  let clozeDisplayText = params.prompt.clozeDisplayText ?? null;
+  let clozeAnswerText = params.prompt.clozeAnswerText ?? null;
+  let resolvedHint = params.prompt.clozeResolvedHint ?? fallbackHint;
+  let restoredText = params.answer.restoredText ?? null;
+
+  if (hasAnkiClozeMarkup) {
+    const parsed = parseAnkiClozeText(rawClozeText, params.activeOrdinal, fallbackHint);
+    clozeDisplayText = parsed.displayText;
+    clozeAnswerText = parsed.answerText;
+    resolvedHint = parsed.resolvedHint;
+    restoredText = parsed.restoredText ?? restoredText;
+  } else {
+    clozeDisplayText = clozeDisplayText ?? stripHtml(rawClozeText);
+    resolvedHint = resolvedHint ?? fallbackHint;
+  }
+
+  const restoredTextReading = restoredText ? await addFuriganaBrackets(restoredText) : null;
+
+  return {
+    prompt: {
+      ...params.prompt,
+      clozeText: rawClozeText || null,
+      clozeDisplayText,
+      clozeAnswerText,
+      clozeResolvedHint: resolvedHint,
+      clozeHint: params.prompt.clozeHint ?? fallbackHint,
+    },
+    answer: {
+      ...params.answer,
+      restoredText,
+      restoredTextReading,
+    },
+  };
+}
+
+function mapRows(result: QueryExecResult[]): QueryRow[] {
+  if (result.length === 0) return [];
+  const [{ columns, values }] = result;
+  return values.map((valueRow) =>
+    Object.fromEntries(columns.map((column, index) => [column, valueRow[index] ?? null]))
+  );
+}
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return sanitizeJsonValue(value) as Prisma.InputJsonValue;
+}
+
+function toNullablePrismaJson(
+  value: unknown
+): Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined {
+  if (typeof value === 'undefined') return undefined;
+  if (value === null) return Prisma.JsonNull;
+  return sanitizeJsonValue(value) as Prisma.InputJsonValue;
+}
+
+function toBigIntOrNull(value: number | null | undefined): bigint | null {
+  return typeof value === 'number' ? BigInt(value) : null;
+}
+
+function parseJsonRecord(raw: string): JsonRecord | null {
+  if (!raw || raw === '{}') return null;
+  try {
+    const parsed = JSON.parse(stripNullChars(raw)) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function hasTable(db: Database, tableName: string): boolean {
+  const rows = mapRows(
+    db.exec("SELECT name FROM sqlite_master WHERE type = 'table' AND name = $tableName LIMIT 1", {
+      $tableName: tableName,
+    })
+  );
+  return rows.length > 0;
+}
+
+function parseLegacyDeckAndModelMetadata(collectionRow: QueryRow): {
+  deckId: number;
+  fieldNamesByNoteType: Map<number, string[]>;
+  noteTypeNameById: Map<number, string>;
+  templateNameByNoteTypeAndOrd: Map<string, string>;
+} {
+  const decksRaw =
+    typeof collectionRow.decks === 'string' ? stripNullChars(collectionRow.decks) : '{}';
+  const modelsRaw =
+    typeof collectionRow.models === 'string' ? stripNullChars(collectionRow.models) : '{}';
+
+  const decks = JSON.parse(decksRaw) as Record<string, LegacyDeckConfig>;
+  const models = JSON.parse(modelsRaw) as Record<string, LegacyModelConfig>;
+  const detectedDeckNames = Object.values(decks)
+    .map((deck) => (typeof deck?.name === 'string' ? deck.name : ''))
+    .filter((name) => name.length > 0);
+
+  const targetDeck = Object.values(decks).find((deck) => deck?.name === ANKI_DECK_NAME);
+  if (!targetDeck || typeof targetDeck.id !== 'number') {
+    throw createUnsupportedDeckError(detectedDeckNames);
+  }
+
+  const fieldNamesByNoteType = new Map<number, string[]>();
+  const noteTypeNameById = new Map<number, string>();
+  const templateNameByNoteTypeAndOrd = new Map<string, string>();
+
+  for (const model of Object.values(models)) {
+    if (!model || typeof model.id !== 'number') continue;
+
+    noteTypeNameById.set(model.id, sanitizeText(model.name) ?? '');
+
+    const fields = [...(model.flds ?? [])]
+      .sort((left, right) => (left.ord ?? 0) - (right.ord ?? 0))
+      .map((field) => sanitizeText(field.name) ?? '');
+    fieldNamesByNoteType.set(model.id, fields);
+
+    for (const template of model.tmpls ?? []) {
+      if (typeof template.ord !== 'number') continue;
+      templateNameByNoteTypeAndOrd.set(
+        `${model.id}:${template.ord}`,
+        sanitizeText(template.name) ?? `ord:${template.ord}`
+      );
+    }
+  }
+
+  return {
+    deckId: targetDeck.id,
+    fieldNamesByNoteType,
+    noteTypeNameById,
+    templateNameByNoteTypeAndOrd,
+  };
+}
+
+function toQueueState(sourceQueue: number, sourceType: number): StudyQueueState {
+  if (sourceQueue === -1) {
+    return sourceType === 0 ? 'buried' : 'suspended';
+  }
+  if (sourceType === 0) return 'new';
+  if (sourceType === 1) return 'learning';
+  if (sourceType === 3) return 'relearning';
+  return 'review';
+}
+
+function toDueAt(
+  collectionCreatedAtSeconds: number,
+  sourceQueue: number,
+  sourceType: number,
+  due: number
+): Date | null {
+  if (sourceQueue === -1 || sourceType === 0) {
+    return null;
+  }
+
+  if (sourceType === 2) {
+    return new Date((collectionCreatedAtSeconds + due * 86400) * 1000);
+  }
+
+  if (due > 1_000_000_000) {
+    return new Date(due * 1000);
+  }
+
+  return new Date(Date.now() + due * 60_000);
+}
+
+function toLastReviewedAt(
+  sourceFsrs: JsonRecord | null,
+  dueAt: Date | null,
+  sourceInterval: number
+): Date | null {
+  const lastReviewTimestamp = sourceFsrs?.lrt;
+  if (typeof lastReviewTimestamp === 'number') {
+    return new Date(lastReviewTimestamp * 1000);
+  }
+
+  if (!dueAt || sourceInterval <= 0) {
+    return null;
+  }
+
+  const lastReviewedAt = new Date(dueAt);
+  lastReviewedAt.setUTCDate(lastReviewedAt.getUTCDate() - sourceInterval);
+  return lastReviewedAt;
+}
+
+function toSchedulerState(
+  sourceFsrs: JsonRecord | null,
+  dueAt: Date | null,
+  queueState: StudyQueueState,
+  sourceInterval: number,
+  sourceReps: number,
+  sourceLapses: number,
+  lastReviewedAt: Date | null
+): StudyFsrsState {
+  const state =
+    queueState === 'new'
+      ? State.New
+      : queueState === 'learning'
+        ? State.Learning
+        : queueState === 'relearning'
+          ? State.Relearning
+          : State.Review;
+
+  const card: Card = {
+    due: dueAt ?? new Date(),
+    // Imported SM-2 intervals do not map cleanly to FSRS stability, so we seed
+    // with the imported interval and keep a small non-zero floor for legacy rows.
+    stability: typeof sourceFsrs?.s === 'number' ? sourceFsrs.s : Math.max(sourceInterval, 0.1),
+    // Imported cards start from a neutral FSRS difficulty when no source FSRS value exists.
+    difficulty: clamp(typeof sourceFsrs?.d === 'number' ? sourceFsrs.d : 5, 1, 10),
+    elapsed_days:
+      lastReviewedAt === null
+        ? 0
+        : Math.max(0, Math.floor((Date.now() - lastReviewedAt.getTime()) / (1000 * 60 * 60 * 24))),
+    scheduled_days: Math.max(sourceInterval, 0),
+    learning_steps: 0,
+    reps: Math.max(sourceReps, 0),
+    lapses: Math.max(sourceLapses, 0),
+    state,
+    last_review: lastReviewedAt ?? undefined,
+  };
+
+  return serializeFsrsCard(card);
+}
+
+function getRequiredSchedulerState(record: {
+  schedulerStateJson: Prisma.JsonValue | null;
+  sourceFsrsJson?: Prisma.JsonValue | null;
+  dueAt: Date | null;
+  queueState: string;
+  sourceInterval?: number | null;
+  sourceReps?: number | null;
+  sourceLapses?: number | null;
+  lastReviewedAt: Date | null;
+}): StudyFsrsState {
+  const existingState = toStudyFsrsState(record.schedulerStateJson);
+  if (existingState) {
+    return existingState;
+  }
+
+  return toSchedulerState(
+    isRecord(record.sourceFsrsJson) ? record.sourceFsrsJson : null,
+    record.dueAt instanceof Date ? record.dueAt : null,
+    parseStudyQueueState(record.queueState, 'new'),
+    typeof record.sourceInterval === 'number' ? record.sourceInterval : 0,
+    typeof record.sourceReps === 'number' ? record.sourceReps : 0,
+    typeof record.sourceLapses === 'number' ? record.sourceLapses : 0,
+    record.lastReviewedAt instanceof Date ? record.lastReviewedAt : null
+  );
+}
+
+function toMediaRef(
+  filename: string | null,
+  mediaByFilename: Map<string, ParsedAnkiMediaRecord>,
+  source: StudyAudioSource | 'imported_image' | 'imported_other'
+): StudyMediaRef | null {
+  if (!filename) return null;
+  const media = mediaByFilename.get(filename);
+  if (!media) {
+    return {
+      filename,
+      mediaKind: getMediaKind(filename),
+      source,
+      url: null,
+    };
+  }
+
+  return {
+    id: media.id,
+    filename: media.filename,
+    mediaKind: media.mediaKind,
+    source,
+    url: getStudyMediaApiPath(media.id),
+  };
+}
+
+async function toPromptAndAnswerPayload(
+  noteTypeName: string,
+  templateName: string | null,
+  sourceTemplateOrd: number,
+  rawFields: JsonRecord,
+  mediaByFilename: Map<string, ParsedAnkiMediaRecord>
+): Promise<{
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  promptAudioFilename: string | null;
+  answerAudioFilename: string | null;
+  imageFilename: string | null;
+}> {
+  const expression = String(rawFields.Expression ?? rawFields.Text ?? '');
+  const expressionReading = String(rawFields.ExpressionReading ?? '');
+  const meaning = String(rawFields.Meaning ?? '');
+  const notes = String(rawFields.Notes ?? rawFields['Back Extra'] ?? '');
+  const photo = String(rawFields.Photo ?? '');
+  const audioWord =
+    parseAudioFilenames(String(rawFields.AudioWord ?? rawFields.Audio ?? ''))[0] ?? null;
+  const audioSentence = parseAudioFilenames(String(rawFields.AudioSentence ?? ''))[0] ?? null;
+  const imageFilename = parseImageFilenames(photo)[0] ?? null;
+
+  if (noteTypeName === 'Japanese - Kanji Reading') {
+    return {
+      cardType: 'recognition',
+      prompt: {
+        cueText: stripHtml(expression),
+        cueHtml: expression,
+        cueReading: stripHtml(expressionReading),
+      },
+      answer: {
+        expression: stripHtml(expression),
+        expressionReading: stripHtml(expressionReading),
+        meaning: stripHtml(meaning),
+        notes,
+        answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
+        answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
+      },
+      promptAudioFilename: null,
+      answerAudioFilename: audioWord,
+      imageFilename,
+    };
+  }
+
+  if (noteTypeName === 'Japanese - Vocab') {
+    const isProduction = templateName === 'Image -> Word';
+    return {
+      cardType: isProduction ? 'production' : 'recognition',
+      prompt: isProduction
+        ? {
+            cueImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
+            cueMeaning: stripHtml(meaning),
+          }
+        : {
+            cueText: stripHtml(expression),
+            cueHtml: expression,
+            cueReading: stripHtml(expressionReading),
+          },
+      answer: {
+        expression: stripHtml(expression),
+        expressionReading: stripHtml(expressionReading),
+        meaning: stripHtml(meaning),
+        notes,
+        sentenceJp: stripHtml(String(rawFields.SentenceJP ?? '')),
+        sentenceJpKana: stripHtml(String(rawFields.SentenceJPKana ?? '')),
+        sentenceEn: stripHtml(String(rawFields.SentenceEN ?? '')),
+        answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
+        answerAudio: toMediaRef(audioWord ?? audioSentence, mediaByFilename, 'imported'),
+      },
+      promptAudioFilename: null,
+      answerAudioFilename: audioWord ?? audioSentence,
+      imageFilename,
+    };
+  }
+
+  if (noteTypeName === 'Japanese - Listening') {
+    return {
+      cardType: 'recognition',
+      prompt: {
+        cueAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
+        cueImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
+      },
+      answer: {
+        expression: stripHtml(expression),
+        expressionReading: stripHtml(expressionReading),
+        meaning: stripHtml(meaning),
+        notes,
+        answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
+        answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
+      },
+      promptAudioFilename: audioWord,
+      answerAudioFilename: audioWord,
+      imageFilename,
+    };
+  }
+
+  if (noteTypeName === 'Cloze') {
+    const normalized = await normalizeClozePayload({
+      activeOrdinal: sourceTemplateOrd,
+      prompt: {
+        clozeText: String(rawFields.Text ?? ''),
+        clozeHint: stripHtml(String(rawFields.ClozeHint ?? '')),
+      },
+      answer: {
+        restoredText: stripHtml(String(rawFields.AnswerExpression ?? '')),
+        meaning: stripHtml(String(rawFields.Meaning ?? '')),
+        notes,
+        answerAudio: toMediaRef(audioSentence, mediaByFilename, 'imported'),
+      },
+    });
+
+    return {
+      cardType: 'cloze',
+      prompt: normalized.prompt,
+      answer: normalized.answer,
+      promptAudioFilename: null,
+      answerAudioFilename: audioSentence,
+      imageFilename: null,
+    };
+  }
+
+  throw new AppError(`Unsupported note type in ${ANKI_DECK_NAME}: ${noteTypeName}`, 400);
+}
+
+function getBestAnswerAudioText(answer: StudyAnswerPayload): string | null {
+  return answer.expression ?? answer.restoredText ?? answer.sentenceJp ?? answer.meaning ?? null;
+}
+
+async function getSqlJs() {
+  if (!sqlJsPromise) {
+    sqlJsPromise = initSqlJs({
+      locateFile: () => sqlJsWasmPath,
+    }).catch((error) => {
+      sqlJsPromise = null;
+      throw error;
+    });
+  }
+
+  return sqlJsPromise;
+}
+
+async function persistStudyMediaBuffer(params: {
+  userId: string;
+  importJobId: string;
+  filename: string;
+  buffer: Buffer;
+}): Promise<{ publicUrl: string | null; storagePath: string }> {
+  const { userId, importJobId, filename, buffer } = params;
+  const normalizedFilename = normalizeFilename(filename);
+  const storagePath = path.posix.join(
+    'study-media',
+    sanitizePathSegment(userId),
+    sanitizePathSegment(importJobId),
+    normalizedFilename
+  );
+
+  if (process.env.GCS_BUCKET_NAME) {
+    try {
+      await uploadBufferToGCSPath({
+        buffer,
+        destinationPath: storagePath,
+        contentType: getContentType(filename),
+        makePublic: false,
+      });
+
+      return {
+        publicUrl: null,
+        storagePath,
+      };
+    } catch (error) {
+      console.warn('[Study] Falling back to local media storage:', error);
+    }
+  }
+
+  const absolutePath = path.join(getPrivateStudyMediaRoot(), storagePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fs.writeFile(absolutePath, buffer);
+
+  return {
+    publicUrl: null,
+    storagePath,
+  };
+}
+
+async function parseColpkgUpload(params: {
+  fileBuffer: Buffer;
+  filename: string;
+  userId: string;
+  importJobId: string;
+}): Promise<ParsedImportDataset> {
+  const { fileBuffer, filename, userId, importJobId } = params;
+  const persistedMediaStoragePaths: string[] = [];
+
+  if (!filename.toLowerCase().endsWith('.colpkg')) {
+    throw new AppError('Study import requires a .colpkg Anki collection backup.', 400);
+  }
+
+  try {
+    const zip = await JSZip.loadAsync(fileBuffer);
+    const importWarnings = createStudyImportWarningAccumulator();
+    const unsafeManifestFilenames = new Set<string>();
+    const unsafeArchiveEntryIds = new Set<string>();
+
+    Object.values(zip.files).forEach((entry) => {
+      if (entry.dir || isAllowedStudyImportZipEntryName(entry.name)) {
+        return;
+      }
+
+      const basename = path.posix.basename(normalizeZipPath(entry.name));
+      if (isSafeZipBasename(basename)) {
+        unsafeArchiveEntryIds.add(basename);
+      }
+    });
+
+    const collectionEntry =
+      zip.file('collection.anki21b') ??
+      zip.file('collection.anki21') ??
+      zip.file('collection.anki2');
+    if (!collectionEntry) {
+      throw new AppError('The uploaded .colpkg does not contain a collection database.', 400);
+    }
+
+    const mediaManifestEntry = zip.file('media');
+    const mediaManifestBuffer = mediaManifestEntry
+      ? maybeDecompressZstd(await mediaManifestEntry.async('nodebuffer'))
+      : Buffer.from('{}');
+    const mediaManifestText = mediaManifestBuffer.length
+      ? mediaManifestBuffer.toString('utf8')
+      : '{}';
+    const parsedMediaManifest = JSON.parse(mediaManifestText);
+    const mediaIdByFilename = new Map<string, string>();
+    if (isRecord(parsedMediaManifest)) {
+      for (const [rawMediaId, rawMediaFilename] of Object.entries(parsedMediaManifest)) {
+        if (typeof rawMediaFilename !== 'string') {
+          continue;
+        }
+
+        const mediaId = normalizeZipPath(rawMediaId);
+        const mediaFilename = normalizeZipPath(rawMediaFilename);
+        if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
+          if (mediaFilename) {
+            unsafeManifestFilenames.add(mediaFilename);
+          }
+          recordStudyImportWarning(
+            importWarnings,
+            mediaFilename || rawMediaFilename || rawMediaId,
+            'Skipped unsafe media path.'
+          );
+          continue;
+        }
+
+        mediaIdByFilename.set(mediaFilename, mediaId);
+      }
+    }
+
+    const SQL = await getSqlJs();
+    const db = new SQL.Database(
+      maybeDecompressZstd(await collectionEntry.async('nodebuffer')) as Uint8Array
+    );
+
+    const collectionRow = mapRows(db.exec('SELECT crt, models, decks FROM col LIMIT 1'))[0] as
+      | QueryRow
+      | undefined;
+
+    if (!collectionRow || typeof collectionRow.crt !== 'number') {
+      throw new AppError('The uploaded collection is missing collection metadata.', 400);
+    }
+
+    const collectionCreatedAtSeconds = collectionRow.crt;
+
+    const usesNormalizedSchema =
+      hasTable(db, 'decks') &&
+      hasTable(db, 'notetypes') &&
+      hasTable(db, 'fields') &&
+      hasTable(db, 'templates');
+
+    let deckId: number;
+    let fieldNamesByNoteType: Map<number, string[]>;
+    let noteTypeNameById: Map<number, string>;
+    let templateNameByNoteTypeAndOrd: Map<string, string>;
+
+    if (usesNormalizedSchema) {
+      const deckRows = mapRows(db.exec('SELECT id, name FROM decks'));
+      const deckRow = deckRows.find(
+        (row) => sanitizeText(String(row.name ?? '')) === ANKI_DECK_NAME
+      ) as QueryRow | undefined;
+
+      if (!deckRow || typeof deckRow.id !== 'number') {
+        throw createUnsupportedDeckError(deckRows.map((row) => String(row.name ?? '')));
+      }
+
+      deckId = deckRow.id;
+
+      const fieldRows = mapRows(db.exec('SELECT ntid, ord, name FROM fields ORDER BY ntid, ord'));
+      fieldNamesByNoteType = fieldRows.reduce<Map<number, string[]>>((acc, row) => {
+        const noteTypeId = Number(row.ntid);
+        const fieldName = sanitizeText(String(row.name ?? '')) ?? '';
+        const current = acc.get(noteTypeId) ?? [];
+        current.push(fieldName);
+        acc.set(noteTypeId, current);
+        return acc;
+      }, new Map());
+
+      noteTypeNameById = new Map(
+        mapRows(db.exec('SELECT id, name FROM notetypes')).map((row) => [
+          Number(row.id),
+          sanitizeText(String(row.name ?? '')) ?? '',
+        ])
+      );
+
+      templateNameByNoteTypeAndOrd = new Map(
+        mapRows(db.exec('SELECT ntid, ord, name FROM templates')).map((row) => [
+          `${Number(row.ntid)}:${Number(row.ord)}`,
+          sanitizeText(String(row.name ?? '')) ?? `ord:${Number(row.ord)}`,
+        ])
+      );
+    } else {
+      ({ deckId, fieldNamesByNoteType, noteTypeNameById, templateNameByNoteTypeAndOrd } =
+        parseLegacyDeckAndModelMetadata(collectionRow));
+    }
+
+    const cardRows = mapRows(
+      db.exec(
+        `
+      SELECT
+        c.id AS card_id,
+        c.nid AS note_id,
+        c.did AS deck_id,
+        c.ord AS ord,
+        c.queue AS queue,
+        c.type AS type,
+        c.due AS due,
+        c.ivl AS ivl,
+        c.factor AS factor,
+        c.reps AS reps,
+        c.lapses AS lapses,
+        c.left AS left,
+        c.odue AS odue,
+        c.odid AS odid,
+        c.data AS data,
+        n.guid AS note_guid,
+        n.mid AS note_type_id,
+        n.flds AS note_fields,
+        n.tags AS note_tags
+      FROM cards c
+      JOIN notes n ON n.id = c.nid
+      WHERE c.did = $deckId
+      ORDER BY c.id ASC
+    `,
+        {
+          $deckId: deckId,
+        }
+      )
+    ).map<ParsedCardRow>((row) => ({
+      cardId: Number(row.card_id),
+      noteId: Number(row.note_id),
+      deckId: Number(row.deck_id),
+      ord: Number(row.ord),
+      queue: Number(row.queue),
+      type: Number(row.type),
+      due: Number(row.due),
+      ivl: Number(row.ivl),
+      factor: Number(row.factor),
+      reps: Number(row.reps),
+      lapses: Number(row.lapses),
+      left: Number(row.left),
+      odue: Number(row.odue),
+      odid: Number(row.odid),
+      data: sanitizeText(String(row.data ?? '')) ?? '',
+      noteGuid: sanitizeText(String(row.note_guid ?? '')) ?? '',
+      noteTypeId: Number(row.note_type_id),
+      noteFields: sanitizeText(String(row.note_fields ?? '')) ?? '',
+      noteTags: sanitizeText(String(row.note_tags ?? '')) ?? '',
+      notetypeName: noteTypeNameById.get(Number(row.note_type_id)) ?? '',
+      templateName:
+        templateNameByNoteTypeAndOrd.get(`${Number(row.note_type_id)}:${Number(row.ord)}`) ?? null,
+    }));
+
+    if (cardRows.length === 0) {
+      throw new AppError(`Deck "${ANKI_DECK_NAME}" has no cards to import.`, 400);
+    }
+
+    const reviewLogRows = mapRows(
+      db.exec(
+        `
+      SELECT
+        r.id AS review_id,
+        r.cid AS card_id,
+        r.ease AS ease,
+        r.ivl AS ivl,
+        r.lastIvl AS last_ivl,
+        r.factor AS factor,
+        r.time AS time,
+        r.type AS type
+      FROM revlog r
+      JOIN cards c ON c.id = r.cid
+      WHERE c.did = $deckId
+      ORDER BY r.id ASC
+    `,
+        {
+          $deckId: deckId,
+        }
+      )
+    ).map<ParsedReviewLogRow>((row) => ({
+      reviewId: Number(row.review_id),
+      cardId: Number(row.card_id),
+      ease: Number(row.ease),
+      ivl: Number(row.ivl),
+      lastIvl: Number(row.last_ivl),
+      factor: Number(row.factor),
+      time: Number(row.time),
+      type: Number(row.type),
+    }));
+
+    const cardsByNoteId = cardRows.reduce<Map<number, ParsedCardRow[]>>((acc, row) => {
+      const current = acc.get(row.noteId) ?? [];
+      current.push(row);
+      acc.set(row.noteId, current);
+      return acc;
+    }, new Map());
+
+    const mediaFilenames = new Set<string>();
+    for (const row of cardRows) {
+      for (const value of row.noteFields.split(FIELD_SEPARATOR)) {
+        parseAudioFilenames(value).forEach((media) => mediaFilenames.add(media));
+        parseImageFilenames(value).forEach((media) => mediaFilenames.add(media));
+      }
+    }
+
+    const media: ParsedAnkiMediaRecord[] = [];
+    for (const mediaFilename of mediaFilenames) {
+      const mediaId = mediaIdByFilename.get(mediaFilename);
+      let publicUrl: string | null = null;
+      let storagePath: string | null = null;
+
+      if (mediaId && isSafeZipBasename(mediaId) && isSafeZipBasename(mediaFilename)) {
+        const mediaEntry = zip.file(mediaId);
+        if (mediaEntry) {
+          if (!isAllowedStudyImportZipEntryName(mediaEntry.name)) {
+            recordStudyImportWarning(
+              importWarnings,
+              mediaFilename,
+              'Skipped unsafe archive entry.'
+            );
+          } else {
+            const persisted = await persistStudyMediaBuffer({
+              userId,
+              importJobId,
+              filename: mediaFilename,
+              buffer: await mediaEntry.async('nodebuffer'),
+            });
+            publicUrl = persisted.publicUrl;
+            storagePath = persisted.storagePath;
+            persistedMediaStoragePaths.push(persisted.storagePath);
+          }
+        } else {
+          recordStudyImportWarning(
+            importWarnings,
+            mediaFilename,
+            unsafeArchiveEntryIds.has(mediaId)
+              ? 'Skipped unsafe archive entry.'
+              : 'Referenced media was missing.'
+          );
+        }
+      } else if (mediaId || (mediaFilename && !unsafeManifestFilenames.has(mediaFilename))) {
+        recordStudyImportWarning(importWarnings, mediaFilename, 'Skipped unsafe media path.');
+      }
+
+      if (!mediaId && mediaFilename && !unsafeManifestFilenames.has(mediaFilename)) {
+        recordStudyImportWarning(
+          importWarnings,
+          mediaFilename,
+          'Referenced media was missing from the archive manifest.'
+        );
+      }
+
+      media.push({
+        id: randomUUID(),
+        sourceMediaKey: mediaId ?? null,
+        filename: mediaFilename,
+        mediaKind: getMediaKind(mediaFilename),
+        contentType: getContentType(mediaFilename),
+        publicUrl,
+        storagePath,
+      });
+    }
+
+    const mediaByFilename = new Map(media.map((item) => [item.filename, item]));
+
+    const notes: ParsedImportDataset['notes'] = [];
+    const cards: ParsedImportDataset['cards'] = [];
+    const noteTypeBreakdownMap = new Map<string, { noteCount: number; cardCount: number }>();
+
+    for (const [noteId, noteCards] of cardsByNoteId.entries()) {
+      const firstCard = noteCards[0];
+      const fieldNames = fieldNamesByNoteType.get(firstCard.noteTypeId) ?? [];
+      const rawFieldValues = firstCard.noteFields.split(FIELD_SEPARATOR);
+      const rawFields = Object.fromEntries(
+        fieldNames.map((fieldName, index) => [fieldName, rawFieldValues[index] ?? ''])
+      );
+
+      const noteCreateId = randomUUID();
+      notes.push({
+        createId: noteCreateId,
+        sourceNoteId: noteId,
+        sourceGuid: firstCard.noteGuid,
+        sourceDeckId: firstCard.deckId,
+        sourceNotetypeId: firstCard.noteTypeId,
+        sourceNotetypeName: firstCard.notetypeName,
+        rawFields,
+        canonical: {
+          tags: firstCard.noteTags,
+          availableCardTypes: noteCards.map((row) => row.templateName ?? `ord:${row.ord}`),
+        },
+      });
+
+      const breakdown = noteTypeBreakdownMap.get(firstCard.notetypeName) ?? {
+        noteCount: 0,
+        cardCount: 0,
+      };
+      breakdown.noteCount += 1;
+      breakdown.cardCount += noteCards.length;
+      noteTypeBreakdownMap.set(firstCard.notetypeName, breakdown);
+
+      for (const noteCard of noteCards) {
+        const promptAndAnswer = await toPromptAndAnswerPayload(
+          firstCard.notetypeName,
+          noteCard.templateName,
+          noteCard.ord,
+          rawFields,
+          mediaByFilename
+        );
+        const sourceFsrs = parseJsonRecord(noteCard.data);
+        const queueState = toQueueState(noteCard.queue, noteCard.type);
+        const dueAt = toDueAt(
+          collectionCreatedAtSeconds,
+          noteCard.queue,
+          noteCard.type,
+          noteCard.due
+        );
+        const lastReviewedAt = toLastReviewedAt(sourceFsrs, dueAt, noteCard.ivl);
+        const schedulerState = toSchedulerState(
+          sourceFsrs,
+          dueAt,
+          queueState,
+          noteCard.ivl,
+          noteCard.reps,
+          noteCard.lapses,
+          lastReviewedAt
+        );
+
+        cards.push({
+          createId: randomUUID(),
+          noteCreateId,
+          sourceCardId: noteCard.cardId,
+          sourceDeckId: noteCard.deckId,
+          sourceTemplateOrd: noteCard.ord,
+          sourceTemplateName: noteCard.templateName,
+          sourceQueue: noteCard.queue,
+          sourceCardType: noteCard.type,
+          sourceDue: noteCard.due,
+          sourceInterval: noteCard.ivl,
+          sourceFactor: noteCard.factor,
+          sourceReps: noteCard.reps,
+          sourceLapses: noteCard.lapses,
+          sourceLeft: noteCard.left,
+          sourceOriginalDue: noteCard.odue,
+          sourceOriginalDeckId: noteCard.odid,
+          sourceFsrs,
+          cardType: promptAndAnswer.cardType,
+          queueState,
+          dueAt,
+          lastReviewedAt,
+          prompt: promptAndAnswer.prompt,
+          answer: promptAndAnswer.answer,
+          schedulerState,
+          answerAudioSource: promptAndAnswer.answerAudioFilename ? 'imported' : 'missing',
+          promptAudioMediaFilename: promptAndAnswer.promptAudioFilename,
+          answerAudioMediaFilename: promptAndAnswer.answerAudioFilename,
+          imageMediaFilename: promptAndAnswer.imageFilename,
+        });
+      }
+    }
+
+    const reviewLogs: ParsedImportDataset['reviewLogs'] = reviewLogRows.map((row) => ({
+      createId: randomUUID(),
+      sourceReviewId: row.reviewId,
+      sourceCardId: row.cardId,
+      reviewedAt: new Date(row.reviewId),
+      rating: row.ease,
+      sourceEase: row.ease,
+      sourceInterval: row.ivl,
+      sourceLastInterval: row.lastIvl,
+      sourceFactor: row.factor,
+      sourceTimeMs: row.time,
+      sourceReviewType: row.type,
+    }));
+
+    return {
+      collectionCreatedAtSeconds,
+      preview: {
+        deckName: ANKI_DECK_NAME,
+        cardCount: cards.length,
+        noteCount: notes.length,
+        reviewLogCount: reviewLogs.length,
+        mediaReferenceCount: media.length,
+        skippedMediaCount: importWarnings.skippedMediaCount,
+        warnings: importWarnings.warnings,
+        noteTypeBreakdown: Array.from(noteTypeBreakdownMap.entries()).map(
+          ([notetypeName, stats]) => ({
+            notetypeName,
+            noteCount: stats.noteCount,
+            cardCount: stats.cardCount,
+          })
+        ),
+      },
+      mediaByFilename,
+      persistedMediaStoragePaths,
+      notes,
+      cards,
+      reviewLogs,
+      media,
+    };
+  } catch (error) {
+    if (error instanceof AppError) {
+      (error as StudyImportErrorWithMedia).persistedMediaStoragePaths = [
+        ...persistedMediaStoragePaths,
+      ];
+      throw error;
+    }
+
+    const parseError = new AppError('The uploaded .colpkg could not be parsed.', 400);
+    (parseError as StudyImportErrorWithMedia).persistedMediaStoragePaths = [
+      ...persistedMediaStoragePaths,
+    ];
+    throw parseError;
+  }
+}
+
+async function normalizeStudyCardPayload(record: StudyCardWithRelations): Promise<{
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}> {
+  let prompt: StudyPromptPayload = isRecord(record.promptJson) ? { ...record.promptJson } : {};
+  let answer: StudyAnswerPayload = isRecord(record.answerJson) ? { ...record.answerJson } : {};
+
+  prompt = {
+    ...prompt,
+    cueAudio: hydrateMediaRef(prompt.cueAudio, record.promptAudioMedia) ?? prompt.cueAudio,
+    cueImage: hydrateMediaRef(prompt.cueImage, record.imageMedia) ?? prompt.cueImage,
+  };
+  answer = {
+    ...answer,
+    answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
+    answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
+  };
+
+  if (record.cardType !== 'cloze') {
+    return { prompt, answer };
+  }
+
+  const rawFields = isRecord(record.note.rawFieldsJson) ? record.note.rawFieldsJson : {};
+  const activeOrdinal = typeof record.sourceTemplateOrd === 'number' ? record.sourceTemplateOrd : 0;
+  const rawClozeText =
+    typeof rawFields.Text === 'string' && rawFields.Text.length > 0
+      ? String(rawFields.Text)
+      : (prompt.clozeText ?? '');
+  const fallbackHint =
+    stripHtml(
+      typeof rawFields.ClozeHint === 'string' && rawFields.ClozeHint.length > 0
+        ? rawFields.ClozeHint
+        : (prompt.clozeHint ?? prompt.clozeResolvedHint ?? '')
+    ) ?? null;
+  const restoredText =
+    answer.restoredText ??
+    stripHtml(typeof rawFields.AnswerExpression === 'string' ? rawFields.AnswerExpression : '') ??
+    null;
+  const needsNormalization =
+    /\{\{c\d+::/.test(prompt.clozeDisplayText ?? '') ||
+    prompt.clozeDisplayText == null ||
+    prompt.clozeAnswerText == null ||
+    prompt.clozeResolvedHint == null ||
+    answer.restoredTextReading == null;
+
+  if (!needsNormalization) {
+    return { prompt, answer };
+  }
+
+  return normalizeClozePayload({
+    activeOrdinal,
+    prompt: {
+      ...prompt,
+      clozeText: rawClozeText,
+      clozeHint: prompt.clozeHint ?? fallbackHint,
+    },
+    answer: {
+      ...answer,
+      restoredText,
+    },
+  });
+}
+
+async function toStudyCardSummary(record: StudyCardWithRelations): Promise<StudyCardSummary> {
+  const noteRecord = record.note;
+  const normalized = await normalizeStudyCardPayload(record);
+
+  const state: StudyCardState = {
+    dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
+    queueState: parseStudyQueueState(record.queueState),
+    scheduler: toStudyFsrsState(record.schedulerStateJson),
+    source: {
+      noteId: typeof noteRecord.sourceNoteId === 'bigint' ? String(noteRecord.sourceNoteId) : null,
+      noteGuid: typeof noteRecord.sourceGuid === 'string' ? String(noteRecord.sourceGuid) : null,
+      cardId: typeof record.sourceCardId === 'bigint' ? String(record.sourceCardId) : null,
+      deckId: typeof record.sourceDeckId === 'bigint' ? String(record.sourceDeckId) : null,
+      deckName: typeof record.sourceDeckName === 'string' ? record.sourceDeckName : ANKI_DECK_NAME,
+      notetypeId:
+        typeof noteRecord.sourceNotetypeId === 'bigint'
+          ? String(noteRecord.sourceNotetypeId)
+          : null,
+      notetypeName:
+        typeof noteRecord.sourceNotetypeName === 'string'
+          ? String(noteRecord.sourceNotetypeName)
+          : null,
+      templateOrd: typeof record.sourceTemplateOrd === 'number' ? record.sourceTemplateOrd : null,
+      templateName:
+        typeof record.sourceTemplateName === 'string' ? record.sourceTemplateName : null,
+      queue: typeof record.sourceQueue === 'number' ? record.sourceQueue : null,
+      type: typeof record.sourceCardType === 'number' ? record.sourceCardType : null,
+      due: typeof record.sourceDue === 'number' ? record.sourceDue : null,
+      ivl: typeof record.sourceInterval === 'number' ? record.sourceInterval : null,
+      factor: typeof record.sourceFactor === 'number' ? record.sourceFactor : null,
+      reps: typeof record.sourceReps === 'number' ? record.sourceReps : null,
+      lapses: typeof record.sourceLapses === 'number' ? record.sourceLapses : null,
+      left: typeof record.sourceLeft === 'number' ? record.sourceLeft : null,
+      odue: typeof record.sourceOriginalDue === 'number' ? record.sourceOriginalDue : null,
+      odid:
+        typeof record.sourceOriginalDeckId === 'bigint'
+          ? String(record.sourceOriginalDeckId)
+          : null,
+    },
+    rawFsrs: isRecord(record.sourceFsrsJson) ? record.sourceFsrsJson : null,
+  };
+
+  return {
+    id: record.id,
+    noteId: record.noteId,
+    cardType: parseStudyCardType(record.cardType),
+    prompt: normalized.prompt,
+    answer: normalized.answer,
+    state,
+    answerAudioSource: parseStudyAudioSource(record.answerAudioSource),
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+function noteFieldValueToString(value: unknown): string | null {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value === null || typeof value === 'undefined') return null;
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function getNoteDisplayText(
+  note: Pick<StudyBrowserListNoteRecord, 'id' | 'rawFieldsJson'>,
+  cards: Array<Pick<StudyBrowserListCardRecord, 'promptJson' | 'answerJson'>>
+): string {
+  const rawFields = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
+  const candidates = [
+    noteFieldValueToString(rawFields.Expression),
+    noteFieldValueToString(rawFields.Text),
+    noteFieldValueToString(rawFields.AnswerExpression),
+  ];
+
+  for (const candidate of candidates) {
+    const stripped = stripHtml(candidate) ?? candidate;
+    if (stripped) return stripped;
+  }
+
+  for (const card of cards) {
+    const prompt = isRecord(card.promptJson) ? card.promptJson : {};
+    const answer = isRecord(card.answerJson) ? card.answerJson : {};
+    const next =
+      noteFieldValueToString(prompt.cueText) ??
+      noteFieldValueToString(prompt.clozeDisplayText) ??
+      noteFieldValueToString(answer.expression) ??
+      noteFieldValueToString(answer.restoredText);
+    if (next) return stripHtml(next) ?? next;
+  }
+
+  return typeof note.id === 'string' ? note.id : 'Untitled note';
+}
+
+function buildStudyNoteSearchText(note: { rawFields: JsonRecord; canonical: JsonRecord }): string {
+  return toSearchText(note.rawFields, note.canonical);
+}
+
+function buildStudyCardSearchText(card: {
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): string {
+  return toSearchText(card.prompt, card.answer);
+}
+
+function toStudyImportPreview(value: Prisma.JsonValue | null | undefined): StudyImportPreview {
+  const fallback: StudyImportPreview = {
+    deckName: ANKI_DECK_NAME,
+    cardCount: 0,
+    noteCount: 0,
+    reviewLogCount: 0,
+    mediaReferenceCount: 0,
+    skippedMediaCount: 0,
+    warnings: [],
+    noteTypeBreakdown: [],
+  };
+
+  if (!isRecord(value)) {
+    return fallback;
+  }
+
+  return {
+    deckName: typeof value.deckName === 'string' ? value.deckName : fallback.deckName,
+    cardCount: typeof value.cardCount === 'number' ? value.cardCount : fallback.cardCount,
+    noteCount: typeof value.noteCount === 'number' ? value.noteCount : fallback.noteCount,
+    reviewLogCount:
+      typeof value.reviewLogCount === 'number' ? value.reviewLogCount : fallback.reviewLogCount,
+    mediaReferenceCount:
+      typeof value.mediaReferenceCount === 'number'
+        ? value.mediaReferenceCount
+        : fallback.mediaReferenceCount,
+    skippedMediaCount:
+      typeof value.skippedMediaCount === 'number'
+        ? value.skippedMediaCount
+        : fallback.skippedMediaCount,
+    warnings: Array.isArray(value.warnings)
+      ? value.warnings.flatMap((item) => (typeof item === 'string' ? [item] : []))
+      : fallback.warnings,
+    noteTypeBreakdown: Array.isArray(value.noteTypeBreakdown)
+      ? value.noteTypeBreakdown.flatMap((item) => {
+          if (!isRecord(item) || typeof item.notetypeName !== 'string') {
+            return [];
+          }
+
+          return [
+            {
+              notetypeName: item.notetypeName,
+              noteCount: typeof item.noteCount === 'number' ? item.noteCount : 0,
+              cardCount: typeof item.cardCount === 'number' ? item.cardCount : 0,
+            },
+          ];
+        })
+      : fallback.noteTypeBreakdown,
+  };
+}
+
+function createStudyImportWarningAccumulator(): StudyImportWarningAccumulator {
+  return {
+    skippedMediaCount: 0,
+    warnings: [],
+  };
+}
+
+function recordStudyImportWarning(
+  accumulator: StudyImportWarningAccumulator,
+  filename: string,
+  reason: string
+) {
+  accumulator.skippedMediaCount += 1;
+  if (accumulator.warnings.length >= STUDY_IMPORT_WARNING_LIMIT) {
+    return;
+  }
+
+  accumulator.warnings.push(`${filename}: ${reason}`);
+}
+
+function toStudyFsrsState(value: Prisma.JsonValue | null | undefined): StudyFsrsState | null {
+  const state = deserializeFsrsCard(isRecord(value) ? value : null);
+  return state ? serializeFsrsCard(state) : null;
+}
+
+function mergeStudyMediaRecord(
+  current: StudyMediaRecord | null,
+  updated: PersistedStudyMediaRecord
+): StudyMediaRecord {
+  if (!current) {
+    throw new AppError('Study media relation is missing.', 500);
+  }
+
+  return {
+    ...current,
+    ...updated,
+    sourceKind: updated.sourceKind ?? current.sourceKind,
+    sourceFilename: updated.sourceFilename ?? current.sourceFilename,
+    normalizedFilename: updated.normalizedFilename ?? current.normalizedFilename,
+    mediaKind: updated.mediaKind ?? current.mediaKind,
+    storagePath: updated.storagePath ?? current.storagePath,
+    publicUrl: updated.publicUrl ?? current.publicUrl,
+    contentType: current.contentType,
+    sourceMediaKey: current.sourceMediaKey,
+    createdAt: current.createdAt,
+    updatedAt: current.updatedAt,
+  };
+}
+
+function buildMediaLookup(cards: StudyCardSummary[]): Map<string, StudyMediaRef> {
+  const media = new Map<string, StudyMediaRef>();
+
+  for (const card of cards) {
+    const refs = [
+      card.prompt.cueAudio,
+      card.prompt.cueImage,
+      card.answer.answerAudio,
+      card.answer.answerImage,
+    ];
+
+    for (const ref of refs) {
+      if (ref?.filename && !media.has(ref.filename)) {
+        media.set(ref.filename, ref);
+      }
+    }
+  }
+
+  return media;
+}
+
+function toStudyBrowserField(
+  name: string,
+  value: unknown,
+  mediaLookup: Map<string, StudyMediaRef>
+): StudyBrowserField {
+  const stringValue = noteFieldValueToString(value);
+  const audio = stringValue
+    ? (parseAudioFilenames(stringValue)
+        .map((filename) => mediaLookup.get(filename))
+        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
+    : null;
+  const image = stringValue
+    ? (parseImageFilenames(stringValue)
+        .map((filename) => mediaLookup.get(filename))
+        .find((entry): entry is StudyMediaRef => Boolean(entry)) ?? null)
+    : null;
+
+  return {
+    name,
+    value: stringValue,
+    textValue: stringValue ? (stripHtml(stringValue) ?? stringValue) : null,
+    audio,
+    image,
+  };
+}
+
+async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promise<void> {
+  const lockKey = `study:answer-audio:${cardId}`;
+  const lockToken = `${process.pid}:${randomUUID()}`;
+
+  try {
+    const redis = getStudyAudioRedisClient();
+    const acquired = await redis.set(lockKey, lockToken, 'PX', STUDY_AUDIO_LOCK_TTL_MS, 'NX');
+
+    if (acquired === 'OK') {
+      try {
+        await ensureGeneratedAnswerAudioLocally(userId, cardId);
+      } finally {
+        const currentToken = await redis.get(lockKey);
+        if (currentToken === lockToken) {
+          await redis.del(lockKey);
+        }
+      }
+
+      return;
+    }
+
+    const waitDeadline = Date.now() + STUDY_AUDIO_LOCK_TTL_MS;
+    while (Date.now() < waitDeadline) {
+      const card = await prisma.studyCard.findFirst({
+        where: {
+          id: cardId,
+          userId,
+        },
+        select: {
+          answerAudioSource: true,
+          answerAudioMediaId: true,
+          answerJson: true,
+        },
+      });
+
+      if (!card) {
+        return;
+      }
+
+      const answer = isRecord(card.answerJson) ? { ...card.answerJson } : {};
+      const existingAnswerAudio = isRecord(answer.answerAudio) ? answer.answerAudio : null;
+      const hasPlayableAudio =
+        existingAnswerAudio !== null &&
+        typeof existingAnswerAudio === 'object' &&
+        typeof existingAnswerAudio.url === 'string' &&
+        existingAnswerAudio.url.length > 0;
+
+      if (
+        (String(card.answerAudioSource) !== 'missing' && hasPlayableAudio) ||
+        card.answerAudioMediaId
+      ) {
+        return;
+      }
+
+      await new Promise((resolve) => {
+        setTimeout(resolve, STUDY_AUDIO_LOCK_POLL_INTERVAL_MS);
+      });
+    }
+  } catch (error) {
+    console.warn(
+      '[Study] Redis answer-audio dedupe unavailable; falling back to process-local lock.',
+      error
+    );
+  }
+
+  await ensureGeneratedAnswerAudioLocally(userId, cardId);
+}
+
+async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string): Promise<void> {
+  const existingRequest = generatedAnswerAudioInFlight.get(cardId);
+  if (existingRequest) {
+    await existingRequest.promise;
+    return;
+  }
+
+  const requestToken = Symbol(cardId);
+  const generationRequest = (async () => {
+    const card = await prisma.studyCard.findUnique({
+      where: { id: cardId },
+    });
+
+    if (!card || card.userId !== userId) {
+      return;
+    }
+
+    const answer: StudyAnswerPayload = isRecord(card.answerJson) ? { ...card.answerJson } : {};
+    const existingAnswerAudio = answer.answerAudio;
+    const hasPlayableImportedAudio =
+      existingAnswerAudio !== null &&
+      typeof existingAnswerAudio === 'object' &&
+      typeof existingAnswerAudio.url === 'string' &&
+      existingAnswerAudio.url.length > 0;
+
+    if (String(card.answerAudioSource) !== 'missing' && hasPlayableImportedAudio) {
+      return;
+    }
+
+    const text = getBestAnswerAudioText(answer);
+    if (!text) {
+      return;
+    }
+
+    const audioBuffer = await synthesizeSpeech({
+      text,
+      voiceId: DEFAULT_NARRATOR_VOICES.ja,
+      languageCode: 'ja-JP',
+      speed: 1.0,
+    });
+
+    const filename = `${normalizeFilename(cardId)}.mp3`;
+    const persisted = await persistStudyMediaBuffer({
+      userId,
+      importJobId: 'generated',
+      filename,
+      buffer: audioBuffer,
+    });
+
+    const mediaRecord = await prisma.studyMedia.create({
+      data: {
+        userId,
+        sourceKind: 'generated',
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: 'audio',
+        contentType: 'audio/mpeg',
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
+
+    const nextAnswer: StudyAnswerPayload = {
+      ...answer,
+      answerAudio: {
+        id: mediaRecord.id,
+        filename,
+        url: getStudyMediaApiPath(mediaRecord.id),
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+    };
+
+    await prisma.studyCard.update({
+      where: { id: cardId },
+      data: {
+        answerJson: toPrismaJson(nextAnswer),
+        answerAudioSource: 'generated',
+        answerAudioMediaId: mediaRecord.id,
+      },
+    });
+  })();
+
+  const trackedRequest = generationRequest.finally(() => {
+    const inFlight = generatedAnswerAudioInFlight.get(cardId);
+    if (inFlight?.token === requestToken) {
+      generatedAnswerAudioInFlight.delete(cardId);
+    }
+  });
+
+  generatedAnswerAudioInFlight.set(cardId, {
+    token: requestToken,
+    promise: trackedRequest,
+  });
+  await trackedRequest;
+}
+
+async function backfillImportedStudyMedia(
+  media: PersistedStudyMediaRecord
+): Promise<PersistedStudyMediaRecord | null> {
+  if (
+    media.sourceKind !== 'anki_import' ||
+    !media.id ||
+    !media.userId ||
+    !media.sourceFilename ||
+    hasPersistedMediaLocation(media)
+  ) {
+    return media;
+  }
+
+  const localMediaFile = await findLocalAnkiMediaFile(media.sourceFilename);
+  if (!localMediaFile) {
+    return media;
+  }
+
+  const persisted = await persistStudyMediaBuffer({
+    userId: media.userId,
+    importJobId: media.importJobId ?? 'anki-local-media',
+    filename: media.sourceFilename,
+    buffer: await fs.readFile(localMediaFile),
+  });
+
+  return parsePersistedStudyMediaRecord(
+    await prisma.studyMedia.update({
+      where: { id: media.id },
+      data: {
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    })
+  );
+}
+
+async function ensureStudyCardMediaAvailable(cards: StudyCardWithRelations[]): Promise<void> {
+  const mediaRecords = cards.flatMap((card) => {
+    const collected: PersistedStudyMediaRecord[] = [];
+    const promptAudioMedia = parsePersistedStudyMediaRecord(card.promptAudioMedia);
+    if (promptAudioMedia) {
+      collected.push(promptAudioMedia);
+    }
+    const answerAudioMedia = parsePersistedStudyMediaRecord(card.answerAudioMedia);
+    if (answerAudioMedia) {
+      collected.push(answerAudioMedia);
+    }
+    const imageMedia = parsePersistedStudyMediaRecord(card.imageMedia);
+    if (imageMedia) {
+      collected.push(imageMedia);
+    }
+    return collected;
+  });
+
+  const uniqueMedia = new Map<string, PersistedStudyMediaRecord>();
+  for (const media of mediaRecords) {
+    if (media.id && !uniqueMedia.has(media.id)) {
+      uniqueMedia.set(media.id, media);
+    }
+  }
+
+  await Promise.all(
+    Array.from(uniqueMedia.values()).map(async (media) => {
+      const updated = await backfillImportedStudyMedia(media);
+      if (!updated) return;
+
+      for (const card of cards) {
+        if (isRecord(card.promptAudioMedia) && card.promptAudioMedia.id === media.id) {
+          card.promptAudioMedia = mergeStudyMediaRecord(card.promptAudioMedia, updated);
+        }
+        if (isRecord(card.answerAudioMedia) && card.answerAudioMedia.id === media.id) {
+          card.answerAudioMedia = mergeStudyMediaRecord(card.answerAudioMedia, updated);
+        }
+        if (isRecord(card.imageMedia) && card.imageMedia.id === media.id) {
+          card.imageMedia = mergeStudyMediaRecord(card.imageMedia, updated);
+        }
+      }
+    })
+  );
+}
+
+export async function importJapaneseStudyColpkg(params: {
+  userId: string;
+  fileBuffer: Buffer;
+  filename: string;
+}): Promise<StudyImportResult> {
+  if (params.fileBuffer.length > MAX_STUDY_IMPORT_BYTES) {
+    throw new AppError(
+      `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
+      413
+    );
+  }
+
+  if (params.fileBuffer.length < 2 || params.fileBuffer.subarray(0, 2).toString('utf8') !== 'PK') {
+    throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
+  }
+
+  const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
+  await prisma.studyImportJob.updateMany({
+    where: {
+      userId: params.userId,
+      status: 'processing',
+      startedAt: {
+        lt: staleThreshold,
+      },
+    },
+    data: {
+      status: 'failed',
+      errorMessage: 'Import timed out before completion.',
+      completedAt: new Date(),
+    },
+  });
+
+  const initialPreview: StudyImportPreview = {
+    deckName: ANKI_DECK_NAME,
+    cardCount: 0,
+    noteCount: 0,
+    reviewLogCount: 0,
+    mediaReferenceCount: 0,
+    skippedMediaCount: 0,
+    warnings: [],
+    noteTypeBreakdown: [],
+  };
+
+  let importJob: StudyImportJobRecord;
+  try {
+    importJob = await prisma.studyImportJob.create({
+      data: {
+        userId: params.userId,
+        status: 'processing',
+        sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
+        deckName: ANKI_DECK_NAME,
+        previewJson: toPrismaJson(initialPreview),
+        startedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const activeImportJob = await prisma.studyImportJob.findFirst({
+        where: {
+          userId: params.userId,
+          status: 'processing',
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      throw new AppError(
+        activeImportJob
+          ? `A study import is already running (${activeImportJob.id}).`
+          : 'A study import is already running.',
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  let parsedDataset: ParsedImportDataset | undefined;
+
+  try {
+    try {
+      parsedDataset = await parseColpkgUpload({
+        fileBuffer: params.fileBuffer,
+        filename: params.filename,
+        userId: params.userId,
+        importJobId: importJob.id,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      throw new AppError('The uploaded .colpkg could not be parsed.', 400);
+    }
+
+    if (!parsedDataset) {
+      throw new AppError('The uploaded .colpkg could not be parsed.', 400);
+    }
+    const parsed = parsedDataset;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.studyReviewLog.deleteMany({
+        where: {
+          userId: params.userId,
+          source: 'anki_import',
+        },
+      });
+      await tx.studyCard.deleteMany({
+        where: {
+          userId: params.userId,
+          sourceKind: 'anki_import',
+        },
+      });
+      await tx.studyNote.deleteMany({
+        where: {
+          userId: params.userId,
+          sourceKind: 'anki_import',
+        },
+      });
+      await tx.studyMedia.deleteMany({
+        where: {
+          userId: params.userId,
+          sourceKind: 'anki_import',
+        },
+      });
+
+      await tx.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          previewJson: toPrismaJson(parsed.preview),
+        },
+      });
+
+      await tx.studyNote.createMany({
+        data: parsed.notes.map((note) => ({
+          id: note.createId,
+          userId: params.userId,
+          importJobId: importJob.id,
+          sourceKind: 'anki_import',
+          sourceNoteId: BigInt(note.sourceNoteId),
+          sourceGuid: sanitizeText(note.sourceGuid) ?? '',
+          sourceDeckId: BigInt(note.sourceDeckId),
+          sourceDeckName: ANKI_DECK_NAME,
+          sourceNotetypeId: BigInt(note.sourceNotetypeId),
+          sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
+          rawFieldsJson: toPrismaJson(note.rawFields),
+          canonicalJson: toPrismaJson(note.canonical),
+          searchText: buildStudyNoteSearchText(note),
+        })),
+      });
+
+      await tx.studyMedia.createMany({
+        data: parsed.media.map((media) => ({
+          id: media.id,
+          userId: params.userId,
+          importJobId: importJob.id,
+          sourceKind: 'anki_import',
+          sourceMediaKey: sanitizeText(
+            mediaByFilenameToSourceMediaKey(parsed.mediaByFilename, media.filename)
+          ),
+          sourceFilename: sanitizeText(media.filename) ?? '',
+          normalizedFilename: normalizeFilename(media.filename),
+          mediaKind: media.mediaKind,
+          contentType: media.contentType,
+          storagePath: media.storagePath,
+          publicUrl: media.publicUrl,
+        })),
+      });
+
+      await tx.studyCard.createMany({
+        data: parsed.cards.map((card) => ({
+          id: card.createId,
+          userId: params.userId,
+          noteId: card.noteCreateId,
+          importJobId: importJob.id,
+          sourceKind: 'anki_import',
+          sourceCardId: BigInt(card.sourceCardId),
+          sourceDeckId: BigInt(card.sourceDeckId),
+          sourceDeckName: ANKI_DECK_NAME,
+          sourceTemplateOrd: card.sourceTemplateOrd,
+          sourceTemplateName: sanitizeText(card.sourceTemplateName),
+          sourceQueue: card.sourceQueue,
+          sourceCardType: card.sourceCardType,
+          sourceDue: card.sourceDue,
+          sourceInterval: card.sourceInterval,
+          sourceFactor: card.sourceFactor,
+          sourceReps: card.sourceReps,
+          sourceLapses: card.sourceLapses,
+          sourceLeft: card.sourceLeft,
+          sourceOriginalDue: card.sourceOriginalDue,
+          sourceOriginalDeckId: toBigIntOrNull(card.sourceOriginalDeckId),
+          sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
+          cardType: card.cardType,
+          queueState: card.queueState,
+          dueAt: card.dueAt,
+          lastReviewedAt: card.lastReviewedAt,
+          promptJson: toPrismaJson(card.prompt),
+          answerJson: toPrismaJson(card.answer),
+          searchText: buildStudyCardSearchText(card),
+          schedulerStateJson: toPrismaJson(card.schedulerState),
+          answerAudioSource: card.answerAudioSource,
+          promptAudioMediaId: mediaByFilenameToRecordId(
+            parsed.mediaByFilename,
+            card.promptAudioMediaFilename
+          ),
+          answerAudioMediaId: mediaByFilenameToRecordId(
+            parsed.mediaByFilename,
+            card.answerAudioMediaFilename
+          ),
+          imageMediaId: mediaByFilenameToRecordId(parsed.mediaByFilename, card.imageMediaFilename),
+        })),
+      });
+
+      const createdCardIdBySourceCardId = new Map(
+        parsed.cards.map((card) => [card.sourceCardId, card.createId])
+      );
+      const reviewLogsToCreate = parsed.reviewLogs.flatMap((log) => {
+        const cardId = createdCardIdBySourceCardId.get(log.sourceCardId);
+        if (!cardId) {
+          return [];
+        }
+
+        return [
+          {
+            id: log.createId,
+            userId: params.userId,
+            cardId,
+            importJobId: importJob.id,
+            source: 'anki_import' as const,
+            sourceReviewId: BigInt(log.sourceReviewId),
+            reviewedAt: log.reviewedAt,
+            rating: log.rating,
+            sourceEase: log.sourceEase,
+            sourceInterval: log.sourceInterval,
+            sourceLastInterval: log.sourceLastInterval,
+            sourceFactor: log.sourceFactor,
+            sourceTimeMs: log.sourceTimeMs,
+            sourceReviewType: log.sourceReviewType,
+            rawPayloadJson: toImportReviewRawPayload(log),
+          },
+        ];
+      });
+      await tx.studyReviewLog.createMany({
+        data: reviewLogsToCreate,
+      });
+
+      await tx.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          status: 'completed',
+          previewJson: toPrismaJson(parsed.preview),
+          summaryJson: toPrismaJson({
+            cardCount: parsed.cards.length,
+            noteCount: parsed.notes.length,
+            reviewLogCount: parsed.reviewLogs.length,
+            mediaCount: parsed.media.length,
+          }),
+          completedAt: new Date(),
+        },
+      });
+    });
+
+    return {
+      id: importJob.id,
+      status: 'completed',
+      sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
+      deckName: ANKI_DECK_NAME,
+      preview: parsed.preview,
+      importedAt: new Date().toISOString(),
+      errorMessage: null,
+    };
+  } catch (error) {
+    const safeImportError = toSafeStudyImportError(error);
+    await prisma.studyImportJob
+      .update({
+        where: { id: importJob.id },
+        data: {
+          status: 'failed',
+          errorMessage: safeImportError.message,
+          completedAt: new Date(),
+        },
+      })
+      .catch((updateError) => {
+        console.warn('[Study] Failed to mark import job as failed:', updateError);
+      });
+
+    const importError = error as StudyImportErrorWithMedia;
+    const persistedMediaStoragePaths =
+      parsedDataset?.persistedMediaStoragePaths ??
+      (importError.persistedMediaStoragePaths ?? []).filter(
+        (value): value is string => typeof value === 'string' && value.length > 0
+      );
+
+    if (persistedMediaStoragePaths.length > 0) {
+      await Promise.allSettled(
+        persistedMediaStoragePaths.map((storagePath: string) =>
+          deletePersistedStudyMediaByStoragePath(storagePath)
+        )
+      );
+    }
+
+    throw safeImportError;
+  }
+}
+
+function mediaByFilenameToSourceMediaKey(
+  mediaByFilename: Map<string, ParsedAnkiMediaRecord>,
+  filename: string
+): string | null {
+  return mediaByFilename.get(filename)?.sourceMediaKey ?? null;
+}
+
+function mediaByFilenameToRecordId(
+  mediaByFilename: Map<string, ParsedAnkiMediaRecord>,
+  filename: string | null
+): string | null {
+  if (!filename) return null;
+  return mediaByFilename.get(filename)?.id ?? null;
+}
+
+export async function getStudyImportJob(
+  userId: string,
+  importJobId: string
+): Promise<StudyImportResult | null> {
+  const job: StudyImportJobRecord | null = await prisma.studyImportJob.findFirst({
+    where: {
+      id: importJobId,
+      userId,
+    },
+  });
+
+  if (!job) return null;
+
+  return {
+    id: job.id,
+    status: parseStudyImportStatus(job.status),
+    sourceFilename: job.sourceFilename,
+    deckName: job.deckName,
+    preview: toStudyImportPreview(job.previewJson),
+    importedAt: job.completedAt instanceof Date ? job.completedAt.toISOString() : null,
+    errorMessage: typeof job.errorMessage === 'string' ? job.errorMessage : null,
+  };
+}
+
+export async function getStudyOverview(userId: string): Promise<StudyOverview> {
+  const now = new Date();
+  const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
+    prisma.studyCard.count({
+      where: {
+        userId,
+        queueState: {
+          in: ['learning', 'review', 'relearning'],
+        },
+        dueAt: {
+          lte: now,
+        },
+      },
+    }),
+    prisma.studyCard.groupBy({
+      by: ['queueState'],
+      where: { userId },
+      _count: {
+        _all: true,
+      },
+    }),
+    prisma.studyCard.findFirst({
+      where: {
+        userId,
+        dueAt: {
+          not: null,
+        },
+      },
+      orderBy: {
+        dueAt: 'asc',
+      },
+    }),
+    prisma.studyImportJob.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    }) as Promise<StudyImportJobRecord | null>,
+  ]);
+
+  const countsByQueueState = queueStateCounts.reduce<Partial<Record<StudyQueueState, number>>>(
+    (counts, row) => {
+      const queueState = parseStudyQueueState(row.queueState, 'new');
+      counts[queueState] = row._count._all;
+      return counts;
+    },
+    {}
+  );
+
+  const newCount = countsByQueueState.new ?? 0;
+  const learningCount = (countsByQueueState.learning ?? 0) + (countsByQueueState.relearning ?? 0);
+  const reviewCount = countsByQueueState.review ?? 0;
+  const suspendedCount = (countsByQueueState.suspended ?? 0) + (countsByQueueState.buried ?? 0);
+  const totalCards = Object.values(countsByQueueState).reduce((total, count) => total + count, 0);
+
+  return {
+    dueCount,
+    newCount,
+    learningCount,
+    reviewCount,
+    suspendedCount,
+    totalCards,
+    latestImport: latestImport
+      ? {
+          id: latestImport.id,
+          status: parseStudyImportStatus(latestImport.status),
+          sourceFilename: latestImport.sourceFilename,
+          deckName: latestImport.deckName,
+          preview: toStudyImportPreview(latestImport.previewJson),
+          importedAt:
+            latestImport.completedAt instanceof Date
+              ? latestImport.completedAt.toISOString()
+              : null,
+          errorMessage:
+            typeof latestImport.errorMessage === 'string'
+              ? String(latestImport.errorMessage)
+              : null,
+        }
+      : null,
+    nextDueAt: nextDueCard?.dueAt instanceof Date ? nextDueCard.dueAt.toISOString() : null,
+  };
+}
+
+interface StudyOverviewMutationCardLike {
+  queueState: StudyQueueState;
+  dueAt: Date | null;
+}
+
+function getStudyOverviewBucket(
+  queueState: StudyQueueState
+): 'newCount' | 'learningCount' | 'reviewCount' | 'suspendedCount' {
+  if (queueState === 'new') {
+    return 'newCount';
+  }
+
+  if (queueState === 'learning' || queueState === 'relearning') {
+    return 'learningCount';
+  }
+
+  if (queueState === 'review') {
+    return 'reviewCount';
+  }
+
+  return 'suspendedCount';
+}
+
+function countsAsDue(card: StudyOverviewMutationCardLike, now: Date): boolean {
+  if (!card.dueAt) {
+    return false;
+  }
+
+  return (
+    (card.queueState === 'learning' ||
+      card.queueState === 'review' ||
+      card.queueState === 'relearning') &&
+    card.dueAt.getTime() <= now.getTime()
+  );
+}
+
+function getOverviewMutationCard(record: {
+  queueState: string;
+  dueAt: Date | null;
+}): StudyOverviewMutationCardLike {
+  return {
+    queueState: parseStudyQueueState(record.queueState),
+    dueAt: record.dueAt instanceof Date ? record.dueAt : null,
+  };
+}
+
+async function getNextDueAtForOverview(userId: string): Promise<string | null> {
+  const nextDueCard = await prisma.studyCard.findFirst({
+    where: {
+      userId,
+      dueAt: {
+        not: null,
+      },
+    },
+    orderBy: {
+      dueAt: 'asc',
+    },
+    select: {
+      dueAt: true,
+    },
+  });
+
+  return nextDueCard?.dueAt instanceof Date ? nextDueCard.dueAt.toISOString() : null;
+}
+
+async function getAdjustedStudyOverview(
+  userId: string,
+  currentOverview: StudyOverview,
+  previousCard: StudyOverviewMutationCardLike,
+  nextCard: StudyOverviewMutationCardLike
+): Promise<StudyOverview> {
+  const now = new Date();
+  const nextOverview: StudyOverview = {
+    ...currentOverview,
+    latestImport: currentOverview.latestImport ?? null,
+    nextDueAt: currentOverview.nextDueAt ?? null,
+  };
+
+  const previousBucket = getStudyOverviewBucket(previousCard.queueState);
+  const nextBucket = getStudyOverviewBucket(nextCard.queueState);
+
+  if (previousBucket !== nextBucket) {
+    nextOverview[previousBucket] = Math.max(0, nextOverview[previousBucket] - 1);
+    nextOverview[nextBucket] += 1;
+  }
+
+  const previousCountedAsDue = countsAsDue(previousCard, now);
+  const nextCountedAsDue = countsAsDue(nextCard, now);
+
+  if (previousCountedAsDue !== nextCountedAsDue) {
+    nextOverview.dueCount = Math.max(0, nextOverview.dueCount + (nextCountedAsDue ? 1 : -1));
+  }
+
+  const currentNextDueAt =
+    typeof currentOverview.nextDueAt === 'string' ? new Date(currentOverview.nextDueAt) : null;
+  const currentNextDueMs =
+    currentNextDueAt && !Number.isNaN(currentNextDueAt.getTime())
+      ? currentNextDueAt.getTime()
+      : null;
+  const previousDueMs = previousCard.dueAt?.getTime() ?? null;
+  const nextDueMs = nextCard.dueAt?.getTime() ?? null;
+
+  if (currentNextDueMs === null) {
+    nextOverview.nextDueAt = nextCard.dueAt ? nextCard.dueAt.toISOString() : null;
+    return nextOverview;
+  }
+
+  if (nextDueMs !== null && nextDueMs < currentNextDueMs) {
+    nextOverview.nextDueAt = nextCard.dueAt?.toISOString() ?? null;
+    return nextOverview;
+  }
+
+  if (previousDueMs === currentNextDueMs && nextDueMs !== currentNextDueMs) {
+    nextOverview.nextDueAt = await getNextDueAtForOverview(userId);
+    return nextOverview;
+  }
+
+  return nextOverview;
+}
+
+export async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
+  const now = new Date();
+  const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
+    where: {
+      userId,
+      OR: [
+        { queueState: 'new' },
+        {
+          queueState: {
+            in: ['learning', 'review', 'relearning'],
+          },
+          dueAt: {
+            lte: now,
+          },
+        },
+      ],
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+    orderBy: [{ dueAt: 'asc' }, { sourceDue: 'asc' }],
+    take: limit,
+  });
+
+  await ensureStudyCardMediaAvailable(cards);
+
+  return {
+    overview: await getStudyOverview(userId),
+    cards: await Promise.all(cards.map((card) => toStudyCardSummary(card))),
+  };
+}
+
+export async function prepareStudyCardAnswerAudio(
+  userId: string,
+  cardId: string
+): Promise<StudyCardSummary> {
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: cardId,
+      userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  await ensureGeneratedAnswerAudio(userId, cardId);
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: cardId,
+      userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  return await toStudyCardSummary(refreshed);
+}
+
+function toQueueStateFromFsrsState(state: number): StudyQueueState {
+  return state === State.New
+    ? 'new'
+    : state === State.Learning
+      ? 'learning'
+      : state === State.Relearning
+        ? 'relearning'
+        : 'review';
+}
+
+function getRestoredQueueState(record: StudyCardWithRelations): StudyQueueState {
+  const schedulerState = deserializeFsrsCard(getRequiredSchedulerState(record));
+  if (schedulerState) {
+    return toQueueStateFromFsrsState(schedulerState.state);
+  }
+
+  const currentQueueState = parseStudyQueueState(record.queueState);
+  return currentQueueState === 'suspended' || currentQueueState === 'buried'
+    ? 'review'
+    : currentQueueState;
+}
+
+function getRestoredDueAt(
+  record: StudyCardWithRelations,
+  queueState: StudyQueueState
+): Date | null {
+  if (queueState === 'new') return null;
+
+  const schedulerState = deserializeFsrsCard(getRequiredSchedulerState(record));
+  if (schedulerState) {
+    return schedulerState.due;
+  }
+
+  return record.dueAt instanceof Date ? record.dueAt : new Date();
+}
+
+function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
+  if (mode === 'now') {
+    return new Date();
+  }
+
+  if (mode === 'tomorrow') {
+    return dateFromDayBoundary(1);
+  }
+
+  const customDueAt = dueAt ? new Date(dueAt) : null;
+  if (!customDueAt || Number.isNaN(customDueAt.getTime())) {
+    throw new AppError('A valid due date is required for custom_date.', 400);
+  }
+
+  return customDueAt;
+}
+
+function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): StudyFsrsState {
+  const existingScheduler = deserializeFsrsCard(getRequiredSchedulerState(record));
+  const now = new Date();
+
+  if (existingScheduler && existingScheduler.state !== State.New) {
+    return serializeFsrsCard({
+      ...existingScheduler,
+      due: dueAt,
+      scheduled_days: getScheduledDaysForDue(dueAt, now),
+    });
+  }
+
+  const freshReviewState = deserializeFsrsCard(createFreshSchedulerState(dueAt, State.Review));
+  if (!freshReviewState) {
+    throw new AppError('Unable to create scheduler state for due override.', 500);
+  }
+
+  return serializeFsrsCard({
+    ...freshReviewState,
+    due: dueAt,
+    scheduled_days: getScheduledDaysForDue(dueAt, now),
+  });
+}
+
+export async function recordStudyReview(params: {
+  userId: string;
+  cardId: string;
+  grade: 'again' | 'hard' | 'good' | 'easy';
+  durationMs?: number;
+  currentOverview?: StudyOverview;
+}): Promise<StudyReviewResult> {
+  const gradeToRating: Record<typeof params.grade, Grade> = {
+    again: Rating.Again,
+    hard: Rating.Hard,
+    good: Rating.Good,
+    easy: Rating.Easy,
+  };
+
+  const card: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: params.cardId,
+      userId: params.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!card) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  const previousState = deserializeFsrsCard(getRequiredSchedulerState(card));
+  if (!previousState) {
+    throw new AppError('Study card is missing scheduler state.', 400);
+  }
+
+  const now = new Date();
+  const nextState = scheduler.next(previousState, now, gradeToRating[params.grade]).card;
+  const serializedNextState = serializeFsrsCard(nextState);
+  const nextQueueState = toQueueStateFromFsrsState(nextState.state);
+  const createdReviewLog = await prisma.$transaction(async (tx) => {
+    const updatedCard = await tx.studyCard.updateMany({
+      where: { id: params.cardId, userId: params.userId },
+      data: {
+        schedulerStateJson: toPrismaJson(serializedNextState),
+        queueState: nextQueueState,
+        dueAt: nextState.due,
+        lastReviewedAt: now,
+      },
+    });
+
+    if (updatedCard.count !== 1) {
+      throw new AppError('Study card not found.', 404);
+    }
+
+    return tx.studyReviewLog.create({
+      data: {
+        userId: params.userId,
+        cardId: params.cardId,
+        source: 'convolab',
+        reviewedAt: now,
+        rating: gradeToRating[params.grade],
+        durationMs: params.durationMs ?? null,
+        stateBeforeJson: toPrismaJson(serializeFsrsCard(previousState)),
+        stateAfterJson: toPrismaJson(serializedNextState),
+        rawPayloadJson: toConvolabReviewRawPayload({
+          grade: params.grade,
+          beforeQueueState: String(card.queueState),
+          beforeDueAt: card.dueAt instanceof Date ? card.dueAt.toISOString() : null,
+          beforeLastReviewedAt:
+            card.lastReviewedAt instanceof Date ? card.lastReviewedAt.toISOString() : null,
+        }),
+      },
+    });
+  });
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: params.cardId,
+      userId: params.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after review.', 404);
+  }
+
+  const overview = params.currentOverview
+    ? await getAdjustedStudyOverview(
+        params.userId,
+        params.currentOverview,
+        getOverviewMutationCard(card),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(params.userId);
+
+  return {
+    reviewLogId: createdReviewLog.id,
+    card: await toStudyCardSummary(refreshed),
+    overview,
+  };
+}
+
+export async function undoStudyReview(params: {
+  userId: string;
+  reviewLogId: string;
+  currentOverview?: StudyOverview;
+}): Promise<StudyUndoReviewResult> {
+  const reviewLog = await prisma.studyReviewLog.findFirst({
+    where: {
+      id: params.reviewLogId,
+      userId: params.userId,
+      source: 'convolab',
+    },
+    include: {
+      card: {
+        include: {
+          note: true,
+        },
+      },
+    },
+  });
+
+  if (!reviewLog) {
+    throw new AppError('Undo target not found.', 404);
+  }
+
+  const cardRecord = reviewLog.card;
+  if (!cardRecord) {
+    throw new AppError('Study card not found for undo.', 404);
+  }
+
+  const newerReview = await prisma.studyReviewLog.findFirst({
+    where: {
+      userId: params.userId,
+      cardId: String(reviewLog.cardId),
+      source: 'convolab',
+      OR: [
+        {
+          reviewedAt: {
+            gt: reviewLog.reviewedAt as Date,
+          },
+        },
+        {
+          reviewedAt: reviewLog.reviewedAt as Date,
+          id: {
+            gt: reviewLog.id,
+          },
+        },
+      ],
+    },
+  });
+
+  if (newerReview) {
+    throw new AppError('Only the latest review for this card can be undone.', 409);
+  }
+
+  const previousState = deserializeFsrsCard(toStudyFsrsState(reviewLog.stateBeforeJson));
+  if (!previousState) {
+    throw new AppError('Undo state is missing for this review.', 400);
+  }
+
+  const rawPayload = isRecord(reviewLog.rawPayloadJson) ? reviewLog.rawPayloadJson : {};
+  const restoredQueueState =
+    typeof rawPayload.beforeQueueState === 'string'
+      ? parseStudyQueueState(rawPayload.beforeQueueState)
+      : toQueueStateFromFsrsState(previousState.state);
+  const restoredDueAt =
+    typeof rawPayload.beforeDueAt === 'string'
+      ? new Date(rawPayload.beforeDueAt)
+      : restoredQueueState === 'new'
+        ? null
+        : previousState.due;
+  const restoredLastReviewedAt =
+    typeof rawPayload.beforeLastReviewedAt === 'string'
+      ? new Date(rawPayload.beforeLastReviewedAt)
+      : (previousState.last_review ?? null);
+
+  await prisma.$transaction(async (tx) => {
+    const updatedCard = await tx.studyCard.updateMany({
+      where: { id: String(reviewLog.cardId), userId: params.userId },
+      data: {
+        schedulerStateJson: toPrismaJson(serializeFsrsCard(previousState)),
+        queueState: restoredQueueState,
+        dueAt: restoredDueAt,
+        lastReviewedAt: restoredLastReviewedAt,
+      },
+    });
+
+    if (updatedCard.count !== 1) {
+      throw new AppError('Study card not found.', 404);
+    }
+
+    await tx.studyReviewLog.delete({
+      where: { id: params.reviewLogId },
+    });
+  });
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: reviewLog.cardId,
+      userId: params.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after undo.', 404);
+  }
+
+  const overview = params.currentOverview
+    ? await getAdjustedStudyOverview(
+        params.userId,
+        params.currentOverview,
+        getOverviewMutationCard(cardRecord),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(params.userId);
+
+  return {
+    reviewLogId: params.reviewLogId,
+    card: await toStudyCardSummary(refreshed),
+    overview,
+  };
+}
+
+export async function performStudyCardAction(
+  input: PerformStudyCardActionInput
+): Promise<StudyCardActionResult> {
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  let nextQueueState = parseStudyQueueState(existing.queueState);
+  let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
+  let nextSchedulerState = getRequiredSchedulerState(existing);
+  let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
+
+  if (input.action === 'suspend') {
+    nextQueueState = 'suspended';
+  } else if (input.action === 'unsuspend') {
+    nextQueueState = getRestoredQueueState(existing);
+    nextDueAt = getRestoredDueAt(existing, nextQueueState);
+  } else if (input.action === 'forget') {
+    nextQueueState = 'new';
+    nextDueAt = null;
+    nextSchedulerState = createFreshSchedulerState();
+    nextLastReviewedAt = null;
+  } else if (input.action === 'set_due') {
+    const mode = input.mode;
+    if (!mode) {
+      throw new AppError('A due mode is required for set_due.', 400);
+    }
+
+    const resolvedDueAt = resolveDueDate(mode, input.dueAt);
+    nextQueueState = getRestoredQueueState(existing);
+    nextQueueState = nextQueueState === 'new' ? 'review' : nextQueueState;
+    nextDueAt = resolvedDueAt;
+    nextSchedulerState = getSetDueSchedulerState(existing, resolvedDueAt);
+  }
+
+  const updatedCard = await prisma.studyCard.updateMany({
+    where: { id: input.cardId, userId: input.userId },
+    data: {
+      queueState: nextQueueState,
+      dueAt: nextDueAt,
+      schedulerStateJson: toPrismaJson(nextSchedulerState),
+      lastReviewedAt: nextLastReviewedAt,
+    },
+  });
+
+  if (updatedCard.count !== 1) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after update.', 404);
+  }
+
+  const overview = input.currentOverview
+    ? await getAdjustedStudyOverview(
+        input.userId,
+        input.currentOverview,
+        getOverviewMutationCard(existing),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(input.userId);
+
+  return {
+    card: await toStudyCardSummary(refreshed),
+    overview,
+  };
+}
+
+export async function updateStudyCard(input: UpdateStudyCardInput): Promise<StudyCardSummary> {
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  const currentNormalized = await normalizeStudyCardPayload(existing);
+  const mergedPrompt: StudyPromptPayload = {
+    ...currentNormalized.prompt,
+    ...input.prompt,
+  };
+  const mergedAnswer: StudyAnswerPayload = {
+    ...currentNormalized.answer,
+    ...input.answer,
+  };
+
+  const normalizedPayload =
+    existing.cardType === 'cloze'
+      ? await normalizeClozePayload({
+          activeOrdinal:
+            typeof existing.sourceTemplateOrd === 'number' ? existing.sourceTemplateOrd : 0,
+          prompt: mergedPrompt,
+          answer: mergedAnswer,
+        })
+      : {
+          prompt: mergedPrompt,
+          answer: mergedAnswer,
+        };
+
+  const previousAudioText = getBestAnswerAudioText(currentNormalized.answer);
+  const nextAudioText = getBestAnswerAudioText(normalizedPayload.answer);
+  const shouldRegenerateAnswerAudio = previousAudioText !== nextAudioText;
+
+  const nextAnswer: StudyAnswerPayload = shouldRegenerateAnswerAudio
+    ? {
+        ...normalizedPayload.answer,
+        answerAudio: null,
+      }
+    : normalizedPayload.answer;
+
+  const updatedCardResult = await prisma.studyCard.updateMany({
+    where: { id: input.cardId, userId: input.userId },
+    data: {
+      promptJson: toPrismaJson(normalizedPayload.prompt),
+      answerJson: toPrismaJson(nextAnswer),
+      searchText: buildStudyCardSearchText({
+        prompt: normalizedPayload.prompt,
+        answer: nextAnswer,
+      }),
+      answerAudioSource: shouldRegenerateAnswerAudio ? 'missing' : existing.answerAudioSource,
+      answerAudioMediaId: shouldRegenerateAnswerAudio ? null : existing.answerAudioMediaId,
+    },
+  });
+
+  if (updatedCardResult.count !== 1) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  if (shouldRegenerateAnswerAudio) {
+    await ensureGeneratedAnswerAudio(input.userId, input.cardId);
+  }
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after update.', 404);
+  }
+
+  return await toStudyCardSummary(refreshed);
+}
+
+export async function createStudyCard(input: CreateStudyCardInput): Promise<StudyCardSummary> {
+  const normalizedPayload =
+    input.cardType === 'cloze'
+      ? await normalizeClozePayload({
+          activeOrdinal: 0,
+          prompt: input.prompt,
+          answer: input.answer,
+        })
+      : { prompt: input.prompt, answer: input.answer };
+
+  const note = await prisma.studyNote.create({
+    data: {
+      userId: input.userId,
+      sourceKind: 'convolab',
+      rawFieldsJson: toPrismaJson({}),
+      canonicalJson: toPrismaJson({
+        createdInApp: true,
+      }),
+      searchText: '',
+    },
+  });
+
+  const initialState = createFreshSchedulerState();
+
+  const created: StudyCardWithRelations = await prisma.studyCard.create({
+    data: {
+      userId: input.userId,
+      noteId: note.id,
+      sourceKind: 'convolab',
+      cardType: input.cardType,
+      queueState: 'new',
+      promptJson: toPrismaJson(normalizedPayload.prompt),
+      answerJson: toPrismaJson(normalizedPayload.answer),
+      searchText: buildStudyCardSearchText(normalizedPayload),
+      schedulerStateJson: toPrismaJson(initialState),
+      answerAudioSource: 'missing',
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  await ensureGeneratedAnswerAudio(input.userId, created.id);
+
+  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: created.id,
+      userId: input.userId,
+    },
+    include: {
+      note: true,
+      promptAudioMedia: true,
+      answerAudioMedia: true,
+      imageMedia: true,
+    },
+  });
+
+  if (!refreshed) {
+    throw new AppError('Study card not found after creation.', 404);
+  }
+
+  return await toStudyCardSummary(refreshed);
+}
+
+export async function getStudyHistory(input: GetStudyHistoryInput): Promise<StudyHistoryResponse> {
+  const pageSize = Math.max(
+    1,
+    Math.min(STUDY_HISTORY_PAGE_SIZE_MAX, input.limit ?? STUDY_HISTORY_PAGE_SIZE_DEFAULT)
+  );
+  const cursor = input.cursor ? decodeStudyHistoryCursor(input.cursor) : null;
+  const logs: StudyReviewLogRecord[] = await prisma.studyReviewLog.findMany({
+    where: {
+      userId: input.userId,
+      ...(input.cardId ? { cardId: input.cardId } : {}),
+      ...(cursor
+        ? {
+            OR: [
+              { reviewedAt: { lt: new Date(cursor.reviewedAt) } },
+              {
+                reviewedAt: new Date(cursor.reviewedAt),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+    take: pageSize + 1,
+  });
+
+  const hasMore = logs.length > pageSize;
+  const pageLogs = hasMore ? logs.slice(0, pageSize) : logs;
+  const events = pageLogs.map((log) => ({
+    id: log.id,
+    cardId: log.cardId,
+    source: parseStudyReviewSource(log.source),
+    reviewedAt: log.reviewedAt.toISOString(),
+    rating: log.rating,
+    durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
+    sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
+    stateBefore: toStudyFsrsState(log.stateBeforeJson),
+    stateAfter: toStudyFsrsState(log.stateAfterJson),
+    rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
+  }));
+
+  const lastLog = pageLogs.at(-1);
+
+  return {
+    events,
+    nextCursor:
+      hasMore && lastLog
+        ? encodeStudyHistoryCursor({
+            reviewedAt: lastLog.reviewedAt.toISOString(),
+            id: lastLog.id,
+          })
+        : null,
+  };
+}
+
+function escapeLikePattern(value: string): string {
+  return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
+}
+
+function buildStudyBrowserWhereSql(
+  params: {
+    userId: string;
+    q?: string;
+    noteType?: string;
+    cardType?: StudyCardType;
+    queueState?: StudyQueueState;
+  },
+  options: {
+    omitNoteType?: boolean;
+    omitCardType?: boolean;
+    omitQueueState?: boolean;
+  } = {}
+) {
+  const clauses: Prisma.Sql[] = [Prisma.sql`n."userId" = ${params.userId}`];
+
+  if (params.noteType && !options.omitNoteType) {
+    clauses.push(Prisma.sql`n."sourceNotetypeName" = ${params.noteType}`);
+  }
+
+  if (params.cardType && !options.omitCardType) {
+    clauses.push(
+      Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "study_cards" sc_filter
+        WHERE sc_filter."noteId" = n.id
+          AND sc_filter."userId" = ${params.userId}
+          AND sc_filter."cardType" = ${params.cardType}
+      )`
+    );
+  }
+
+  if (params.queueState && !options.omitQueueState) {
+    clauses.push(
+      Prisma.sql`EXISTS (
+        SELECT 1
+        FROM "study_cards" sq_filter
+        WHERE sq_filter."noteId" = n.id
+          AND sq_filter."userId" = ${params.userId}
+          AND sq_filter."queueState" = ${params.queueState}
+      )`
+    );
+  }
+
+  const searchNeedle = sanitizeText(params.q)?.trim().toLowerCase() ?? '';
+  if (searchNeedle) {
+    const searchPattern = `%${escapeLikePattern(searchNeedle)}%`;
+    clauses.push(
+      Prisma.sql`(
+        COALESCE(n."searchText", '') ILIKE ${searchPattern} ESCAPE '\'
+        OR EXISTS (
+          SELECT 1
+          FROM "study_cards" sc_search
+          WHERE sc_search."noteId" = n.id
+            AND sc_search."userId" = ${params.userId}
+            AND COALESCE(sc_search."searchText", '') ILIKE ${searchPattern} ESCAPE '\'
+        )
+      )`
+    );
+  }
+
+  return Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}`;
+}
+
+function buildStudyCardOptionLabel(card: StudyCardOptionRecord): string {
+  const prompt = isRecord(card.promptJson) ? card.promptJson : {};
+  const answer = isRecord(card.answerJson) ? card.answerJson : {};
+  const label =
+    noteFieldValueToString(answer.expression) ??
+    noteFieldValueToString(answer.restoredText) ??
+    noteFieldValueToString(prompt.cueText) ??
+    noteFieldValueToString(prompt.clozeDisplayText) ??
+    noteFieldValueToString(answer.meaning) ??
+    String(card.id);
+
+  return stripHtml(label) ?? label;
+}
+
+export async function getStudyCardOptions(
+  userId: string,
+  limit: number
+): Promise<StudyCardOptionsResponse> {
+  const [total, cards] = await Promise.all([
+    prisma.studyCard.count({
+      where: { userId },
+    }),
+    prisma.studyCard.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        promptJson: true,
+        answerJson: true,
+        updatedAt: true,
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: limit,
+    }) as Promise<StudyCardOptionRecord[]>,
+  ]);
+
+  return {
+    total,
+    options: cards.map<StudyCardOption>((card) => ({
+      id: card.id,
+      label: buildStudyCardOptionLabel(card),
+    })),
+  };
+}
+
+export async function getStudyBrowserList(params: {
+  userId: string;
+  q?: string;
+  noteType?: string;
+  cardType?: StudyCardType;
+  queueState?: StudyQueueState;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyBrowserListResponse> {
+  const limit = Math.max(1, Math.min(100, params.limit ?? 100));
+  const cursor = params.cursor ? decodeStudyBrowserCursor(params.cursor) : null;
+  const whereSql = buildStudyBrowserWhereSql(params);
+  const cursorSql =
+    cursor === null
+      ? Prisma.empty
+      : Prisma.sql`
+          AND (
+            n."updatedAt" < ${new Date(cursor.updatedAt)}
+            OR (n."updatedAt" = ${new Date(cursor.updatedAt)} AND n.id < ${cursor.id})
+          )
+        `;
+
+  const [totalRows, pagedNoteRows, noteTypeRows, cardTypeRows, queueStateRows] = await Promise.all([
+    prisma.$queryRaw<Array<{ count: bigint | number }>>(Prisma.sql`
+      SELECT COUNT(*) AS count
+      FROM "study_notes" n
+      ${whereSql}
+    `),
+    prisma.$queryRaw<Array<{ id: string; updatedAt: Date }>>(Prisma.sql`
+      SELECT n.id, n."updatedAt"
+      FROM "study_notes" n
+      ${whereSql}
+      ${cursorSql}
+      ORDER BY n."updatedAt" DESC, n.id DESC
+      LIMIT ${limit + 1}
+    `),
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+      SELECT DISTINCT n."sourceNotetypeName" AS value
+      FROM "study_notes" n
+      ${buildStudyBrowserWhereSql(params, { omitNoteType: true })}
+      ORDER BY value ASC
+    `),
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+      SELECT DISTINCT c."cardType" AS value
+      FROM "study_cards" c
+      JOIN "study_notes" n ON n.id = c."noteId"
+      ${buildStudyBrowserWhereSql(params, { omitCardType: true })}
+      AND c."userId" = ${params.userId}
+      ORDER BY value ASC
+    `),
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+      SELECT DISTINCT c."queueState" AS value
+      FROM "study_cards" c
+      JOIN "study_notes" n ON n.id = c."noteId"
+      ${buildStudyBrowserWhereSql(params, { omitQueueState: true })}
+      AND c."userId" = ${params.userId}
+      ORDER BY value ASC
+    `),
+  ]);
+
+  const hasMore = pagedNoteRows.length > limit;
+  const pageNoteRows = hasMore ? pagedNoteRows.slice(0, limit) : pagedNoteRows;
+  const noteIds = pageNoteRows.map((row) => row.id);
+  const notes: StudyBrowserListNoteRecord[] =
+    noteIds.length > 0
+      ? await prisma.studyNote.findMany({
+          where: {
+            userId: params.userId,
+            id: {
+              in: noteIds,
+            },
+          },
+          include: {
+            cards: {
+              select: {
+                id: true,
+                cardType: true,
+                queueState: true,
+                promptJson: true,
+                answerJson: true,
+                updatedAt: true,
+              },
+            },
+          },
+          orderBy: { updatedAt: 'desc' },
+        })
+      : [];
+
+  const noteOrder = new Map(noteIds.map((noteId, index) => [noteId, index]));
+  notes.sort((left, right) => (noteOrder.get(left.id) ?? 0) - (noteOrder.get(right.id) ?? 0));
+
+  const cardIds = notes.flatMap((note) => note.cards.map((card) => card.id));
+  const reviewCounts =
+    cardIds.length > 0
+      ? await prisma.studyReviewLog.groupBy({
+          by: ['cardId'],
+          where: {
+            userId: params.userId,
+            cardId: {
+              in: cardIds,
+            },
+          },
+          _count: { _all: true },
+        })
+      : [];
+
+  const reviewCountsByCard = new Map(
+    reviewCounts.map((row) => [String(row.cardId), row._count._all])
+  );
+  const filterOptions: StudyBrowserFilterOptions = {
+    noteTypes: noteTypeRows
+      .map((row) => row.value)
+      .filter((value): value is string => Boolean(value)),
+    cardTypes: cardTypeRows
+      .map((row) => row.value)
+      .filter(
+        (value): value is StudyCardType =>
+          value === 'recognition' || value === 'production' || value === 'cloze'
+      ),
+    queueStates: queueStateRows
+      .map((row) => row.value)
+      .filter(
+        (value): value is StudyQueueState =>
+          value === 'new' ||
+          value === 'learning' ||
+          value === 'review' ||
+          value === 'relearning' ||
+          value === 'suspended' ||
+          value === 'buried'
+      ),
+  };
+  const totalValue = totalRows[0]?.count ?? 0;
+  const total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue);
+  const lastVisibleNote = pageNoteRows.at(-1);
+  const lastVisibleUpdatedAt =
+    lastVisibleNote?.updatedAt instanceof Date
+      ? lastVisibleNote.updatedAt.toISOString()
+      : lastVisibleNote?.updatedAt
+        ? new Date(lastVisibleNote.updatedAt).toISOString()
+        : null;
+
+  const rows: StudyBrowserRow[] = notes.map((note) => {
+    const cards: StudyBrowserListCardRecord[] = note.cards;
+    const queueSummary = cards.reduce<Partial<Record<StudyQueueState, number>>>((acc, card) => {
+      const state = parseStudyQueueState(card.queueState);
+      if (state) {
+        acc[state] = (acc[state] ?? 0) + 1;
+      }
+      return acc;
+    }, {});
+    const reviewCount = cards.reduce((totalForNote, card) => {
+      return totalForNote + (reviewCountsByCard.get(String(card.id)) ?? 0);
+    }, 0);
+
+    return {
+      noteId: note.id,
+      displayText: getNoteDisplayText(note, cards),
+      noteTypeName: typeof note.sourceNotetypeName === 'string' ? note.sourceNotetypeName : null,
+      cardCount: cards.length,
+      reviewCount,
+      queueSummary,
+      updatedAt: note.updatedAt.toISOString(),
+    };
+  });
+
+  return {
+    rows,
+    total,
+    limit,
+    nextCursor:
+      hasMore && lastVisibleNote && lastVisibleUpdatedAt
+        ? encodeStudyBrowserCursor({
+            updatedAt: lastVisibleUpdatedAt,
+            id: lastVisibleNote.id,
+          })
+        : null,
+    filterOptions,
+  };
+}
+
+export async function getStudyBrowserNoteDetail(
+  userId: string,
+  noteId: string
+): Promise<StudyBrowserNoteDetail | null> {
+  const note: StudyBrowserDetailNoteRecord | null = await prisma.studyNote.findFirst({
+    where: {
+      id: noteId,
+      userId,
+    },
+    include: {
+      cards: {
+        include: {
+          note: true,
+          promptAudioMedia: true,
+          answerAudioMedia: true,
+          imageMedia: true,
+        },
+        orderBy: [{ sourceTemplateOrd: 'asc' }, { createdAt: 'asc' }],
+      },
+    },
+  });
+
+  if (!note) {
+    return null;
+  }
+
+  const cards = note.cards.filter((card) => card.userId === userId);
+  await ensureStudyCardMediaAvailable(cards);
+  const cardSummaries = await Promise.all(cards.map((card) => toStudyCardSummary(card)));
+
+  const reviewCounts =
+    cards.length > 0
+      ? await prisma.studyReviewLog.groupBy({
+          by: ['cardId'],
+          where: {
+            userId,
+            cardId: {
+              in: cards.map((card) => card.id),
+            },
+          },
+          _count: { _all: true },
+          _max: { reviewedAt: true },
+        })
+      : [];
+
+  const cardStats: StudyBrowserCardStats[] = reviewCounts.map((row) => ({
+    cardId: String(row.cardId),
+    reviewCount: row._count._all,
+    lastReviewedAt: row._max.reviewedAt instanceof Date ? row._max.reviewedAt.toISOString() : null,
+  }));
+
+  const statsByCardId = new Map(cardStats.map((entry) => [entry.cardId, entry]));
+  for (const card of cardSummaries) {
+    if (!statsByCardId.has(card.id)) {
+      cardStats.push({
+        cardId: card.id,
+        reviewCount: 0,
+        lastReviewedAt: null,
+      });
+    }
+  }
+
+  const mediaLookup = buildMediaLookup(cardSummaries);
+  const rawFieldsRecord = isRecord(note.rawFieldsJson) ? note.rawFieldsJson : {};
+  const canonicalFieldsRecord = isRecord(note.canonicalJson) ? note.canonicalJson : {};
+
+  return {
+    noteId: note.id,
+    displayText: getNoteDisplayText(note, cards),
+    noteTypeName: typeof note.sourceNotetypeName === 'string' ? note.sourceNotetypeName : null,
+    sourceKind: typeof note.sourceKind === 'string' ? note.sourceKind : 'anki_import',
+    updatedAt: note.updatedAt.toISOString(),
+    rawFields: Object.entries(rawFieldsRecord).map(([name, value]) =>
+      toStudyBrowserField(name, value, mediaLookup)
+    ),
+    canonicalFields: Object.entries(canonicalFieldsRecord).map(([name, value]) =>
+      toStudyBrowserField(name, value, mediaLookup)
+    ),
+    cards: cardSummaries,
+    cardStats,
+    selectedCardId: cardSummaries[0]?.id ?? null,
+  };
+}
+
+export async function getStudyMediaAccess(
+  userId: string,
+  mediaId: string
+): Promise<StudyMediaAccessResult | null> {
+  const media = await prisma.studyMedia.findFirst({
+    where: {
+      id: mediaId,
+      userId,
+    },
+  });
+
+  if (!media) {
+    return null;
+  }
+
+  const filename = media.sourceFilename;
+  const contentType = media.contentType ?? getContentType(filename);
+
+  if (typeof media.storagePath === 'string' && media.storagePath.length > 0) {
+    const absolutePath = await findAccessibleLocalStudyMediaPath(media.storagePath);
+    if (absolutePath) {
+      return {
+        type: 'local',
+        absolutePath,
+        contentType,
+        filename,
+      };
+    }
+
+    if (hasConfiguredStudyGcsStorage()) {
+      const cacheKey = `${media.id}:${media.storagePath}`;
+      const nowMs = Date.now();
+      pruneStudyMediaRedirectCache(nowMs);
+      const cached = studyMediaRedirectCache.get(cacheKey);
+      if (cached && cached.expiresAtMs - nowMs > STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS) {
+        return {
+          type: 'redirect',
+          redirectUrl: cached.url,
+          contentType,
+          filename,
+        };
+      }
+
+      const signed = await getSignedReadUrl({
+        filePath: media.storagePath,
+        expiresInSeconds: STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
+      });
+      studyMediaRedirectCache.set(cacheKey, {
+        url: signed.url,
+        expiresAtMs: Number.isNaN(Date.parse(signed.expiresAt))
+          ? nowMs + STUDY_MEDIA_SIGNED_URL_TTL_SECONDS * 1000
+          : Date.parse(signed.expiresAt),
+      });
+      pruneStudyMediaRedirectCache(nowMs);
+
+      return {
+        type: 'redirect',
+        redirectUrl: signed.url,
+        contentType,
+        filename,
+      };
+    }
+  }
+
+  return null;
+}
+
+function parseStudyExportSectionLimit(limit?: number): number {
+  return Math.max(
+    1,
+    Math.min(STUDY_EXPORT_SECTION_LIMIT_MAX, limit ?? STUDY_EXPORT_SECTION_LIMIT_DEFAULT)
+  );
+}
+
+function toStudyReviewEvent(log: StudyReviewLogRecord): StudyReviewEvent {
+  return {
+    id: log.id,
+    cardId: log.cardId,
+    source: parseStudyReviewSource(log.source),
+    reviewedAt: log.reviewedAt.toISOString(),
+    rating: log.rating,
+    durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
+    sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
+    stateBefore: toStudyFsrsState(log.stateBeforeJson),
+    stateAfter: toStudyFsrsState(log.stateAfterJson),
+    rawPayload: isRecord(log.rawPayloadJson) ? log.rawPayloadJson : null,
+  };
+}
+
+function toStudyExportMediaRef(item: StudyMediaRecord): StudyMediaRef {
+  return {
+    id: item.id,
+    filename: item.sourceFilename,
+    url: getStudyMediaApiPath(item.id),
+    mediaKind: parseStudyMediaKind(item.mediaKind),
+    source:
+      item.sourceKind === 'generated'
+        ? 'generated'
+        : item.mediaKind === 'image'
+          ? 'imported_image'
+          : item.mediaKind === 'audio'
+            ? 'imported'
+            : 'imported_other',
+  };
+}
+
+function toStudyExportImportResult(item: StudyImportJobRecord): StudyImportResult {
+  return {
+    id: item.id,
+    status: parseStudyImportStatus(item.status),
+    sourceFilename: item.sourceFilename,
+    deckName: item.deckName,
+    preview: toStudyImportPreview(item.previewJson),
+    importedAt: item.completedAt instanceof Date ? item.completedAt.toISOString() : null,
+    errorMessage: typeof item.errorMessage === 'string' ? item.errorMessage : null,
+  };
+}
+
+export async function exportStudyData(userId: string): Promise<StudyExportManifest> {
+  const [cards, reviewLogs, media, imports] = await Promise.all([
+    prisma.studyCard.count({ where: { userId } }),
+    prisma.studyReviewLog.count({ where: { userId } }),
+    prisma.studyMedia.count({ where: { userId } }),
+    prisma.studyImportJob.count({ where: { userId } }),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    sections: {
+      cards: { total: cards },
+      reviewLogs: { total: reviewLogs },
+      media: { total: media },
+      imports: { total: imports },
+    },
+  };
+}
+
+export async function exportStudyCardsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyCardSummary>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const cards = await prisma.studyCard.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    include: { note: true, promptAudioMedia: true, answerAudioMedia: true, imageMedia: true },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = cards.length > limit;
+  const pageCards = hasMore ? cards.slice(0, limit) : cards;
+  const items = await Promise.all(pageCards.map((card) => toStudyCardSummary(card)));
+  const lastCard = pageCards.at(-1);
+
+  return {
+    items,
+    nextCursor:
+      hasMore && lastCard
+        ? encodeStudyExportCursor({
+            timestamp: lastCard.updatedAt.toISOString(),
+            id: lastCard.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyReviewLogsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyReviewEvent>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const logs = await prisma.studyReviewLog.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { reviewedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                reviewedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = logs.length > limit;
+  const pageLogs = hasMore ? logs.slice(0, limit) : logs;
+  const lastLog = pageLogs.at(-1);
+
+  return {
+    items: pageLogs.map(toStudyReviewEvent),
+    nextCursor:
+      hasMore && lastLog
+        ? encodeStudyExportCursor({
+            timestamp: lastLog.reviewedAt.toISOString(),
+            id: lastLog.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyMediaSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyMediaRef>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const media = await prisma.studyMedia.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = media.length > limit;
+  const pageMedia = hasMore ? media.slice(0, limit) : media;
+  const lastMedia = pageMedia.at(-1);
+
+  return {
+    items: pageMedia.map(toStudyExportMediaRef),
+    nextCursor:
+      hasMore && lastMedia
+        ? encodeStudyExportCursor({
+            timestamp: lastMedia.updatedAt.toISOString(),
+            id: lastMedia.id,
+          })
+        : null,
+  };
+}
+
+export async function exportStudyImportsSection(input: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+}): Promise<StudyExportSectionResponse<StudyImportResult>> {
+  const limit = parseStudyExportSectionLimit(input.limit);
+  const cursor = input.cursor ? decodeStudyExportCursor(input.cursor) : null;
+  const imports = await prisma.studyImportJob.findMany({
+    where: {
+      userId: input.userId,
+      ...(cursor
+        ? {
+            OR: [
+              { updatedAt: { lt: new Date(cursor.timestamp) } },
+              {
+                updatedAt: new Date(cursor.timestamp),
+                id: { lt: cursor.id },
+              },
+            ],
+          }
+        : {}),
+    },
+    orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  });
+
+  const hasMore = imports.length > limit;
+  const pageImports = hasMore ? imports.slice(0, limit) : imports;
+  const lastImport = pageImports.at(-1);
+
+  return {
+    items: pageImports.map(toStudyExportImportResult),
+    nextCursor:
+      hasMore && lastImport
+        ? encodeStudyExportCursor({
+            timestamp: lastImport.updatedAt.toISOString(),
+            id: lastImport.id,
+          })
+        : null,
+  };
+}

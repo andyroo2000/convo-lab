@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import toLocalNineAmIso from './studySetDueUtils';
 
@@ -18,6 +19,7 @@ const StudySetDueControls = ({
   onCancel,
   onSubmit,
 }: StudySetDueControlsProps) => {
+  const { t } = useTranslation('study');
   const [customDate, setCustomDate] = useState('');
   const customDateInputId = 'study-set-due-custom-date';
   const customDateIso = useMemo(() => {
@@ -30,7 +32,7 @@ const StudySetDueControls = ({
       data-testid="study-set-due-controls"
       className="space-y-3 rounded-2xl border border-gray-200 bg-cream/60 p-4"
     >
-      <p className="text-sm font-medium text-navy">Set due</p>
+      <p className="text-sm font-medium text-navy">{t('setDue.title')}</p>
       <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         <button
           type="button"
@@ -40,7 +42,7 @@ const StudySetDueControls = ({
           }}
           className="rounded-full border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Now
+          {t('setDue.now')}
         </button>
         <button
           type="button"
@@ -50,7 +52,7 @@ const StudySetDueControls = ({
           }}
           className="rounded-full border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Tomorrow
+          {t('setDue.tomorrow')}
         </button>
       </div>
       <div className="grid gap-2 sm:flex sm:flex-wrap sm:items-end">
@@ -58,7 +60,7 @@ const StudySetDueControls = ({
           htmlFor={customDateInputId}
           className="flex w-full flex-col gap-1 text-sm text-gray-600 sm:min-w-[12rem]"
         >
-          <span>Custom date</span>
+          <span>{t('setDue.customDate')}</span>
           <input
             id={customDateInputId}
             type="date"
@@ -77,7 +79,7 @@ const StudySetDueControls = ({
           }}
           className="rounded-full border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
-          Apply
+          {t('setDue.apply')}
         </button>
         {onCancel ? (
           <button
@@ -86,7 +88,7 @@ const StudySetDueControls = ({
             onClick={onCancel}
             className="rounded-full border border-transparent px-3 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            Cancel
+            {t('setDue.cancel')}
           </button>
         ) : null}
       </div>

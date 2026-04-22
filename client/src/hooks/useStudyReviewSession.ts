@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
 import { fsrs, Rating, type Card as FsrsCard } from 'ts-fsrs';
+import { deserializeStudyFsrsCard } from '@languageflow/shared/src/studyFsrs';
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
-  StudyFsrsState,
   StudyOverview,
   StudyPromptPayload,
   StudyAnswerPayload,
-} from '@shared/types';
+} from '@languageflow/shared/src/types';
 
 import {
   type StudySessionResponse,
@@ -52,34 +52,8 @@ type StudyUndoAction =
       reviewLogId: string;
     };
 
-const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot => {
-  if (typeof structuredClone === 'function') {
-    return structuredClone(snapshot);
-  }
-
-  return {
-    session: snapshot.session
-      ? {
-          overview: { ...snapshot.session.overview },
-          cards: snapshot.session.cards.map((card) => ({
-            ...card,
-            prompt: { ...card.prompt },
-            answer: { ...card.answer },
-            state: {
-              ...card.state,
-              source: { ...card.state.source },
-              scheduler: card.state.scheduler ? { ...card.state.scheduler } : null,
-            },
-          })),
-        }
-      : null,
-    overview: snapshot.overview ? { ...snapshot.overview } : null,
-    currentIndex: snapshot.currentIndex,
-    revealed: snapshot.revealed,
-    answeredCardIds: [...snapshot.answeredCardIds],
-    failedCardIds: [...snapshot.failedCardIds],
-  };
-};
+const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot =>
+  structuredClone(snapshot);
 
 const formatReviewInterval = (due: Date, now: Date) => {
   const diffMs = Math.max(0, due.getTime() - now.getTime());
@@ -95,30 +69,10 @@ const formatReviewInterval = (due: Date, now: Date) => {
   return `${Math.round(diffMs / (365 * 24 * 60 * 60_000))}y`;
 };
 
-const deserializeFsrsCard = (state: StudyFsrsState | null | undefined): FsrsCard | null => {
-  if (!state) return null;
-
-  const due = new Date(state.due);
-  if (Number.isNaN(due.getTime())) return null;
-
-  return {
-    due,
-    stability: state.stability,
-    difficulty: state.difficulty,
-    elapsed_days: state.elapsed_days,
-    scheduled_days: state.scheduled_days,
-    learning_steps: state.learning_steps,
-    reps: state.reps,
-    lapses: state.lapses,
-    state: state.state,
-    last_review: state.last_review ? new Date(state.last_review) : undefined,
-  };
-};
-
 const getGradeIntervals = (card: StudyCardSummary | null) => {
   if (!card?.state.scheduler) return null;
 
-  const fsrsCard = deserializeFsrsCard(card.state.scheduler);
+  const fsrsCard = deserializeStudyFsrsCard(card.state.scheduler) as FsrsCard | null;
   if (!fsrsCard) return null;
 
   const now = new Date();

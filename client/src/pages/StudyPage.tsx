@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import StudyCardEditor from '../components/study/StudyCardEditor';
@@ -14,6 +15,7 @@ import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import useStudyReviewSession from '../hooks/useStudyReviewSession';
 
 const StudyPage = () => {
+  const { t } = useTranslation('study');
   const navigate = useNavigate();
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
@@ -23,24 +25,27 @@ const StudyPage = () => {
   const runBackgroundTask = useStudyBackgroundTask();
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {
-      return 'Shake to undo is not available on this device.';
+      return t('motion.unsupported');
     }
     if (reviewSession.motionPermissionState === 'denied') {
-      return 'Shake to undo is off because motion access was denied.';
+      return t('motion.denied');
     }
-    return 'Shake to undo is available after motion access is granted.';
-  }, [reviewSession.motionPermissionState]);
+    return t('motion.prompt');
+  }, [reviewSession.motionPermissionState, t]);
 
   const headline = useMemo(() => {
-    if (!overviewQuery.data) return 'Study';
-    return `${overviewQuery.data.dueCount} due, ${overviewQuery.data.newCount} new`;
-  }, [overviewQuery.data]);
+    if (!overviewQuery.data) return t('title');
+    return t('headline', {
+      dueCount: overviewQuery.data.dueCount,
+      newCount: overviewQuery.data.newCount,
+    });
+  }, [overviewQuery.data, t]);
 
   if (!enabled) {
     return (
       <section className="card retro-paper-panel max-w-3xl">
-        <h1 className="mb-4 text-3xl font-bold text-navy">Study</h1>
-        <p className="text-gray-600">Study is currently disabled for this environment.</p>
+        <h1 className="mb-4 text-3xl font-bold text-navy">{t('title')}</h1>
+        <p className="text-gray-600">{t('disabled')}</p>
       </section>
     );
   }
@@ -73,15 +78,15 @@ const StudyPage = () => {
                     className="rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100"
                   >
                     {reviewSession.motionPermissionState === 'denied'
-                      ? 'Try again'
-                      : 'Enable motion'}
+                      ? t('motion.retryDenied')
+                      : t('motion.retryPrompt')}
                   </button>
                 ) : null}
               </div>
             ) : null}
 
             {reviewSession.sessionLoading ? (
-              <p className="py-16 text-center text-gray-500">Loading study session…</p>
+              <p className="py-16 text-center text-gray-500">{t('focus.loading')}</p>
             ) : null}
             {reviewSession.sessionError ? (
               <p className="py-16 text-center text-red-600">{reviewSession.sessionError}</p>
@@ -91,7 +96,7 @@ const StudyPage = () => {
             !reviewSession.sessionError &&
             !reviewSession.currentCard ? (
               <div className="flex min-h-[60vh] flex-1 items-center justify-center rounded-[2rem] border border-dashed border-gray-300 p-8 text-center text-gray-600">
-                No cards are ready right now. Import more cards or come back when something is due.
+                {t('focus.empty')}
               </div>
             ) : null}
 
@@ -101,7 +106,7 @@ const StudyPage = () => {
                   <div
                     role="button"
                     tabIndex={0}
-                    aria-label="Reveal answer"
+                    aria-label={t('focus.reveal')}
                     onClick={reviewSession.revealCurrentCard}
                     onKeyDown={(event) => {
                       if (event.key === 'Enter' || event.key === ' ') {
@@ -119,7 +124,7 @@ const StudyPage = () => {
                       />
                       {reviewSession.currentCard.cardType !== 'cloze' ? (
                         <p className="mt-10 text-center text-sm uppercase tracking-[0.2em] text-gray-400">
-                          Tap, click, or press space to reveal
+                          {t('focus.revealHint')}
                         </p>
                       ) : null}
                     </div>
