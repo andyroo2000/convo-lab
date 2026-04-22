@@ -462,7 +462,7 @@ model StudyCard {
   promptJson           Json
   answerJson           Json
   searchText           String    @default("") @db.Text
-  schedulerStateJson   Json?
+  schedulerStateJson   Json
   answerAudioSource    String    @default("missing")
   promptAudioMediaId   String?
   answerAudioMediaId   String?

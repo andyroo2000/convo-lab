@@ -7,6 +7,13 @@ import { fileURLToPath } from 'url';
 import { zstdDecompressSync } from 'zlib';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import {
+  MAX_STUDY_IMPORT_BYTES,
+  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+  STUDY_EXPORT_PAGE_SIZE_MAX,
+  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
+  STUDY_HISTORY_PAGE_SIZE_MAX,
+} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
@@ -60,17 +67,14 @@ const scheduler = fsrs();
 const ANKI_DECK_NAME = '日本語';
 const FIELD_SEPARATOR = String.fromCharCode(31);
 const DEFAULT_STUDY_LIMIT = 20;
-const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
-const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
-const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
 const STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS = 30 * 1000;
 const STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES = 1000;
 const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
 const STUDY_IMPORT_WARNING_LIMIT = 10;
 const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
-const STUDY_EXPORT_SECTION_LIMIT_DEFAULT = 500;
-const STUDY_EXPORT_SECTION_LIMIT_MAX = 1000;
+const STUDY_EXPORT_SECTION_LIMIT_DEFAULT = STUDY_EXPORT_PAGE_SIZE_DEFAULT;
+const STUDY_EXPORT_SECTION_LIMIT_MAX = STUDY_EXPORT_PAGE_SIZE_MAX;
 const generatedAnswerAudioInFlight = new Map<
   string,
   {
@@ -78,6 +82,7 @@ const generatedAnswerAudioInFlight = new Map<
     promise: Promise<void>;
   }
 >();
+// This only deduplicates answer-audio generation within the current server process.
 
 type JsonRecord = Record<string, unknown>;
 type StudyMediaRecord = Prisma.StudyMediaGetPayload<Prisma.StudyMediaDefaultArgs>;
@@ -236,7 +241,7 @@ interface ParsedImportDataset {
     lastReviewedAt: Date | null;
     prompt: StudyPromptPayload;
     answer: StudyAnswerPayload;
-    schedulerState: StudyFsrsState | null;
+    schedulerState: StudyFsrsState;
     answerAudioSource: StudyAudioSource;
     promptAudioMediaFilename: string | null;
     answerAudioMediaFilename: string | null;
@@ -292,6 +297,7 @@ interface PerformStudyCardActionInput {
   action: StudyCardActionName;
   mode?: StudyCardSetDueMode;
   dueAt?: string;
+  currentOverview?: StudyOverview;
 }
 
 interface GetStudyHistoryInput {
@@ -1441,11 +1447,7 @@ function toSchedulerState(
   sourceReps: number,
   sourceLapses: number,
   lastReviewedAt: Date | null
-): StudyFsrsState | null {
-  if (!dueAt && queueState !== 'new') {
-    return null;
-  }
-
+): StudyFsrsState {
   const state =
     queueState === 'new'
       ? State.New
@@ -1472,6 +1474,32 @@ function toSchedulerState(
   };
 
   return serializeFsrsCard(card);
+}
+
+function getRequiredSchedulerState(record: {
+  schedulerStateJson: Prisma.JsonValue | null;
+  sourceFsrsJson?: Prisma.JsonValue | null;
+  dueAt: Date | null;
+  queueState: string;
+  sourceInterval?: number | null;
+  sourceReps?: number | null;
+  sourceLapses?: number | null;
+  lastReviewedAt: Date | null;
+}): StudyFsrsState {
+  const existingState = toStudyFsrsState(record.schedulerStateJson);
+  if (existingState) {
+    return existingState;
+  }
+
+  return toSchedulerState(
+    isRecord(record.sourceFsrsJson) ? record.sourceFsrsJson : null,
+    record.dueAt instanceof Date ? record.dueAt : null,
+    parseStudyQueueState(record.queueState, 'new'),
+    typeof record.sourceInterval === 'number' ? record.sourceInterval : 0,
+    typeof record.sourceReps === 'number' ? record.sourceReps : 0,
+    typeof record.sourceLapses === 'number' ? record.sourceLapses : 0,
+    record.lastReviewedAt instanceof Date ? record.lastReviewedAt : null
+  );
 }
 
 function toMediaRef(
@@ -2837,7 +2865,7 @@ export async function importJapaneseStudyColpkg(params: {
           promptJson: toPrismaJson(card.prompt),
           answerJson: toPrismaJson(card.answer),
           searchText: buildStudyCardSearchText(card),
-          schedulerStateJson: toNullablePrismaJson(card.schedulerState),
+          schedulerStateJson: toPrismaJson(card.schedulerState),
           answerAudioSource: card.answerAudioSource,
           promptAudioMediaId: mediaByFilenameToRecordId(
             parsed.mediaByFilename,
@@ -3063,6 +3091,126 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
   };
 }
 
+interface StudyOverviewMutationCardLike {
+  queueState: StudyQueueState;
+  dueAt: Date | null;
+}
+
+function getStudyOverviewBucket(
+  queueState: StudyQueueState
+): 'newCount' | 'learningCount' | 'reviewCount' | 'suspendedCount' {
+  if (queueState === 'new') {
+    return 'newCount';
+  }
+
+  if (queueState === 'learning' || queueState === 'relearning') {
+    return 'learningCount';
+  }
+
+  if (queueState === 'review') {
+    return 'reviewCount';
+  }
+
+  return 'suspendedCount';
+}
+
+function countsAsDue(card: StudyOverviewMutationCardLike, now: Date): boolean {
+  if (!card.dueAt) {
+    return false;
+  }
+
+  return (
+    (card.queueState === 'learning' ||
+      card.queueState === 'review' ||
+      card.queueState === 'relearning') &&
+    card.dueAt.getTime() <= now.getTime()
+  );
+}
+
+function getOverviewMutationCard(record: {
+  queueState: string;
+  dueAt: Date | null;
+}): StudyOverviewMutationCardLike {
+  return {
+    queueState: parseStudyQueueState(record.queueState),
+    dueAt: record.dueAt instanceof Date ? record.dueAt : null,
+  };
+}
+
+async function getNextDueAtForOverview(userId: string): Promise<string | null> {
+  const nextDueCard = await prisma.studyCard.findFirst({
+    where: {
+      userId,
+      dueAt: {
+        not: null,
+      },
+    },
+    orderBy: {
+      dueAt: 'asc',
+    },
+    select: {
+      dueAt: true,
+    },
+  });
+
+  return nextDueCard?.dueAt instanceof Date ? nextDueCard.dueAt.toISOString() : null;
+}
+
+async function getAdjustedStudyOverview(
+  userId: string,
+  currentOverview: StudyOverview,
+  previousCard: StudyOverviewMutationCardLike,
+  nextCard: StudyOverviewMutationCardLike
+): Promise<StudyOverview> {
+  const now = new Date();
+  const nextOverview: StudyOverview = {
+    ...currentOverview,
+    latestImport: currentOverview.latestImport ?? null,
+    nextDueAt: currentOverview.nextDueAt ?? null,
+  };
+
+  const previousBucket = getStudyOverviewBucket(previousCard.queueState);
+  const nextBucket = getStudyOverviewBucket(nextCard.queueState);
+
+  if (previousBucket !== nextBucket) {
+    nextOverview[previousBucket] = Math.max(0, nextOverview[previousBucket] - 1);
+    nextOverview[nextBucket] += 1;
+  }
+
+  const previousCountedAsDue = countsAsDue(previousCard, now);
+  const nextCountedAsDue = countsAsDue(nextCard, now);
+
+  if (previousCountedAsDue !== nextCountedAsDue) {
+    nextOverview.dueCount = Math.max(0, nextOverview.dueCount + (nextCountedAsDue ? 1 : -1));
+  }
+
+  const currentNextDueAt =
+    typeof currentOverview.nextDueAt === 'string' ? new Date(currentOverview.nextDueAt) : null;
+  const currentNextDueMs =
+    currentNextDueAt && !Number.isNaN(currentNextDueAt.getTime())
+      ? currentNextDueAt.getTime()
+      : null;
+  const previousDueMs = previousCard.dueAt?.getTime() ?? null;
+  const nextDueMs = nextCard.dueAt?.getTime() ?? null;
+
+  if (currentNextDueMs === null) {
+    nextOverview.nextDueAt = nextCard.dueAt ? nextCard.dueAt.toISOString() : null;
+    return nextOverview;
+  }
+
+  if (nextDueMs !== null && nextDueMs < currentNextDueMs) {
+    nextOverview.nextDueAt = nextCard.dueAt?.toISOString() ?? null;
+    return nextOverview;
+  }
+
+  if (previousDueMs === currentNextDueMs && nextDueMs !== currentNextDueMs) {
+    nextOverview.nextDueAt = await getNextDueAtForOverview(userId);
+    return nextOverview;
+  }
+
+  return nextOverview;
+}
+
 export async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
   const now = new Date();
   const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
@@ -3152,9 +3300,7 @@ function toQueueStateFromFsrsState(state: number): StudyQueueState {
 }
 
 function getRestoredQueueState(record: StudyCardWithRelations): StudyQueueState {
-  const schedulerState = deserializeFsrsCard(
-    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
-  );
+  const schedulerState = deserializeFsrsCard(getRequiredSchedulerState(record));
   if (schedulerState) {
     return toQueueStateFromFsrsState(schedulerState.state);
   }
@@ -3171,9 +3317,7 @@ function getRestoredDueAt(
 ): Date | null {
   if (queueState === 'new') return null;
 
-  const schedulerState = deserializeFsrsCard(
-    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
-  );
+  const schedulerState = deserializeFsrsCard(getRequiredSchedulerState(record));
   if (schedulerState) {
     return schedulerState.due;
   }
@@ -3199,9 +3343,7 @@ function resolveDueDate(mode: StudyCardSetDueMode, dueAt?: string): Date {
 }
 
 function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): StudyFsrsState {
-  const existingScheduler = deserializeFsrsCard(
-    isRecord(record.schedulerStateJson) ? record.schedulerStateJson : null
-  );
+  const existingScheduler = deserializeFsrsCard(getRequiredSchedulerState(record));
   const now = new Date();
 
   if (existingScheduler && existingScheduler.state !== State.New) {
@@ -3229,6 +3371,7 @@ export async function recordStudyReview(params: {
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
   durationMs?: number;
+  currentOverview?: StudyOverview;
 }): Promise<StudyReviewResult> {
   const gradeToRating: Record<typeof params.grade, Grade> = {
     again: Rating.Again,
@@ -3254,7 +3397,7 @@ export async function recordStudyReview(params: {
     throw new AppError('Study card not found.', 404);
   }
 
-  const previousState = deserializeFsrsCard(toStudyFsrsState(card.schedulerStateJson));
+  const previousState = deserializeFsrsCard(getRequiredSchedulerState(card));
   if (!previousState) {
     throw new AppError('Study card is missing scheduler state.', 400);
   }
@@ -3316,16 +3459,26 @@ export async function recordStudyReview(params: {
     throw new AppError('Study card not found after review.', 404);
   }
 
+  const overview = params.currentOverview
+    ? await getAdjustedStudyOverview(
+        params.userId,
+        params.currentOverview,
+        getOverviewMutationCard(card),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(params.userId);
+
   return {
     reviewLogId: createdReviewLog.id,
     card: await toStudyCardSummary(refreshed),
-    overview: await getStudyOverview(params.userId),
+    overview,
   };
 }
 
 export async function undoStudyReview(params: {
   userId: string;
   reviewLogId: string;
+  currentOverview?: StudyOverview;
 }): Promise<StudyUndoReviewResult> {
   const reviewLog = await prisma.studyReviewLog.findFirst({
     where: {
@@ -3356,9 +3509,19 @@ export async function undoStudyReview(params: {
       userId: params.userId,
       cardId: String(reviewLog.cardId),
       source: 'convolab',
-      reviewedAt: {
-        gt: reviewLog.reviewedAt as Date,
-      },
+      OR: [
+        {
+          reviewedAt: {
+            gt: reviewLog.reviewedAt as Date,
+          },
+        },
+        {
+          reviewedAt: reviewLog.reviewedAt as Date,
+          id: {
+            gt: reviewLog.id,
+          },
+        },
+      ],
     },
   });
 
@@ -3424,10 +3587,19 @@ export async function undoStudyReview(params: {
     throw new AppError('Study card not found after undo.', 404);
   }
 
+  const overview = params.currentOverview
+    ? await getAdjustedStudyOverview(
+        params.userId,
+        params.currentOverview,
+        getOverviewMutationCard(cardRecord),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(params.userId);
+
   return {
     reviewLogId: params.reviewLogId,
     card: await toStudyCardSummary(refreshed),
-    overview: await getStudyOverview(params.userId),
+    overview,
   };
 }
 
@@ -3453,7 +3625,7 @@ export async function performStudyCardAction(
 
   let nextQueueState = parseStudyQueueState(existing.queueState);
   let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
-  let nextSchedulerState = toStudyFsrsState(existing.schedulerStateJson);
+  let nextSchedulerState = getRequiredSchedulerState(existing);
   let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
 
   if (input.action === 'suspend') {
@@ -3484,7 +3656,7 @@ export async function performStudyCardAction(
     data: {
       queueState: nextQueueState,
       dueAt: nextDueAt,
-      schedulerStateJson: toNullablePrismaJson(nextSchedulerState),
+      schedulerStateJson: toPrismaJson(nextSchedulerState),
       lastReviewedAt: nextLastReviewedAt,
     },
   });
@@ -3510,9 +3682,18 @@ export async function performStudyCardAction(
     throw new AppError('Study card not found after update.', 404);
   }
 
+  const overview = input.currentOverview
+    ? await getAdjustedStudyOverview(
+        input.userId,
+        input.currentOverview,
+        getOverviewMutationCard(existing),
+        getOverviewMutationCard(refreshed)
+      )
+    : await getStudyOverview(input.userId);
+
   return {
     card: await toStudyCardSummary(refreshed),
-    overview: await getStudyOverview(input.userId),
+    overview,
   };
 }
 

@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { StudyImportResult } from '@shared/types';
+import { MAX_STUDY_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 
 import StudyFormField from '../components/study/StudyFormField';
 import { uploadStudyImport } from '../hooks/useStudy';
-
-const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
 
 const StudyImportPage = () => {
   const [file, setFile] = useState<File | null>(null);

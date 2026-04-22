@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 
 import { API_URL } from '../../../config';

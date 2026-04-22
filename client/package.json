@@ -19,6 +19,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@languageflow/shared": "file:../shared",
     "@tanstack/react-query": "^5.56.2",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

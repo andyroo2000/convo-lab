@@ -30,6 +30,7 @@ const reviewScheduler = fsrs();
 
 interface StudyUndoSnapshot {
   session: StudySessionResponse | null;
+  overview: StudyOverview | null;
   currentIndex: number;
   revealed: boolean;
   answeredCardIds: string[];
@@ -72,6 +73,7 @@ const cloneStudySnapshot = (snapshot: StudyUndoSnapshot): StudyUndoSnapshot => {
           })),
         }
       : null,
+    overview: snapshot.overview ? { ...snapshot.overview } : null,
     currentIndex: snapshot.currentIndex,
     revealed: snapshot.revealed,
     answeredCardIds: [...snapshot.answeredCardIds],
@@ -200,6 +202,11 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
   const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
+  const getCachedOverview = useCallback(
+    () => queryClient.getQueryData<StudyOverview>(['study', 'overview']) ?? null,
+    [queryClient]
+  );
+
   const syncOverview = useCallback(
     (overview: StudyOverview) => {
       queryClient.setQueryData(['study', 'overview'], overview);
@@ -261,18 +268,20 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       session: session
         ? cloneStudySnapshot({
             session,
+            overview: getCachedOverview(),
             currentIndex,
             revealed,
             answeredCardIds,
             failedCardIds,
           }).session
         : null,
+      overview: getCachedOverview(),
       currentIndex,
       revealed,
       answeredCardIds: [...answeredCardIds],
       failedCardIds: [...failedCardIds],
     }),
-    [answeredCardIds, currentIndex, failedCardIds, revealed, session]
+    [answeredCardIds, currentIndex, failedCardIds, getCachedOverview, revealed, session]
   );
 
   const ensureAnswerAudioPrepared = useCallback(
@@ -318,6 +327,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       stopAllAudio();
       const restored = cloneStudySnapshot(snapshot);
       setSession(restored.session);
+      if (restored.overview) {
+        syncOverview(restored.overview);
+      }
       setCurrentIndex(restored.currentIndex);
       setRevealed(restored.revealed);
       setAnsweredCardIds(restored.answeredCardIds);
@@ -325,7 +337,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       setSessionError(null);
       setShowSetDueControls(false);
     },
-    [stopAllAudio]
+    [stopAllAudio, syncOverview]
   );
 
   const loadSession = useCallback(
@@ -394,7 +406,10 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     setUndoPending(false);
     setAnsweredCardIds([]);
     setFailedCardIds([]);
-  }, [resetUndo, stopAllAudio]);
+    runBackgroundTask(() => queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }), {
+      label: 'Study overview refresh',
+    });
+  }, [queryClient, resetUndo, runBackgroundTask, stopAllAudio]);
 
   const handleGrade = useCallback(
     async (grade: 'again' | 'hard' | 'good' | 'easy') => {
@@ -452,6 +467,8 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const handleBuryForSession = useCallback(() => {
     if (!currentCard || !revealed || editing) return;
 
+    // Bury is intentionally session-only: it removes the card from this in-memory
+    // review queue without persisting any scheduler change on the server.
     pushUndo({
       kind: 'bury',
       snapshot: captureUndoSnapshot(),
@@ -563,7 +580,10 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
 
     setUndoPending(true);
     try {
-      const undoResult = await undoStudyReview(action.reviewLogId);
+      const undoResult = await undoStudyReview(
+        action.reviewLogId,
+        action.snapshot.overview ?? undefined
+      );
       restoreUndoSnapshot(action.snapshot);
       syncOverview(undoResult.overview);
     } catch (error) {

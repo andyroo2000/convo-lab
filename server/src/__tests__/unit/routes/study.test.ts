@@ -465,11 +465,19 @@ describe('Study Routes', () => {
       options: [{ id: 'card-1', label: '会社' }],
     });
 
-    const response = await request(app).get('/study/cards/options?limit=500');
+    const response = await request(app).get('/study/cards/options?limit=100');
 
     expect(response.status).toBe(200);
     expect(getStudyCardOptionsMock).toHaveBeenCalledWith('user-1', 100);
     expect(response.body.total).toBe(125);
+  });
+
+  it('rejects card options limits above the route maximum', async () => {
+    const response = await request(app).get('/study/cards/options?limit=500');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('limit must be 100 or fewer');
+    expect(getStudyCardOptionsMock).not.toHaveBeenCalled();
   });
 
   it('passes history cursor pagination params through to the service', async () => {

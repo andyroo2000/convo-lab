@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 import VoicePreview from '../common/VoicePreview';

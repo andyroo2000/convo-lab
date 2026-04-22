@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
+import { STUDY_BROWSER_PAGE_SIZE_DEFAULT } from '@languageflow/shared/src/studyConstants';
 import type { StudyBrowserField, StudyBrowserListResponse } from '@shared/types';
 
 import StudyCardEditor from '../components/study/StudyCardEditor';
@@ -17,8 +18,6 @@ import {
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 import { StudyCardFace } from '../components/study/StudyCardPreview';
 import { getAudioMimeType, toAssetUrl } from '../components/study/studyCardUtils';
-
-const PAGE_SIZE = 100;
 
 const FieldValue = ({ field }: { field: StudyBrowserField }) => {
   const imageUrl = toAssetUrl(field.image?.url);
@@ -52,7 +51,7 @@ const StudyBrowsePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState<StudyBrowserQuery>({
-    limit: PAGE_SIZE,
+    limit: STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   });
   const browserQuery = useStudyBrowser(enabled, query);
   const [rows, setRows] = useState<StudyBrowserListResponse['rows']>([]);

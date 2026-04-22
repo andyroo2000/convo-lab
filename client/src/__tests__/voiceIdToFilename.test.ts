@@ -1,5 +1,4 @@
 import { describe, it, expect } from 'vitest';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { voiceIdToFilename } from '@languageflow/shared/src/voiceSelection';
 
 describe('voiceIdToFilename', () => {

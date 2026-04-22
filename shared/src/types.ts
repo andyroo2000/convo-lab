@@ -1,5 +1,15 @@
 // Shared type definitions used across client and server
 
+export {
+  MAX_STUDY_IMPORT_BYTES,
+  STUDY_BROWSER_PAGE_SIZE_DEFAULT,
+  STUDY_BROWSER_PAGE_SIZE_MAX,
+  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+  STUDY_EXPORT_PAGE_SIZE_MAX,
+  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
+  STUDY_HISTORY_PAGE_SIZE_MAX,
+} from './studyConstants';
+
 export type LanguageCode = 'ja' | 'en';
 
 export type ProficiencyLevel = 'beginner' | 'intermediate' | 'advanced' | 'native';

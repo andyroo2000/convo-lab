@@ -1,8 +1,19 @@
 import path from 'path';
 
+import {
+  MAX_STUDY_IMPORT_BYTES,
+  STUDY_BROWSER_PAGE_SIZE_DEFAULT,
+  STUDY_BROWSER_PAGE_SIZE_MAX,
+  STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+  STUDY_EXPORT_PAGE_SIZE_MAX,
+  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
+  STUDY_HISTORY_PAGE_SIZE_MAX,
+} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
   StudyCardType,
+  StudyImportResult,
+  StudyOverview,
   StudyPromptPayload,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
@@ -39,17 +50,10 @@ import {
 } from '../services/studyService.js';
 
 const router = Router();
-const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
-const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
-const STUDY_BROWSER_PAGE_SIZE_DEFAULT = 100;
-const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
-const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
-const STUDY_EXPORT_PAGE_SIZE_DEFAULT = 500;
-const STUDY_EXPORT_PAGE_SIZE_MAX = 1000;
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
 const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'new',
@@ -124,6 +128,23 @@ function parsePositiveIntegerQueryParam(name: string, value: unknown): number | 
   return parsed;
 }
 
+function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: number): number {
+  if (typeof value === 'undefined') {
+    return defaultSize;
+  }
+
+  const parsed = parsePositiveIntegerQueryParam('limit', value);
+  if (typeof parsed === 'undefined') {
+    return defaultSize;
+  }
+
+  if (parsed > maxSize) {
+    throw new AppError(`limit must be ${String(maxSize)} or fewer.`, 400);
+  }
+
+  return parsed;
+}
+
 function parseBrowserQueryString(value: unknown): string | undefined {
   if (typeof value === 'undefined') {
     return undefined;
@@ -172,61 +193,58 @@ function parseBrowserNoteType(value: unknown): string | undefined {
   return trimmed;
 }
 
+function parseOptionalStudyOverview(value: unknown): StudyOverview | undefined {
+  if (!isPlainObject(value)) {
+    return undefined;
+  }
+
+  const dueCount = typeof value.dueCount === 'number' ? value.dueCount : null;
+  const newCount = typeof value.newCount === 'number' ? value.newCount : null;
+  const learningCount = typeof value.learningCount === 'number' ? value.learningCount : null;
+  const reviewCount = typeof value.reviewCount === 'number' ? value.reviewCount : null;
+  const suspendedCount = typeof value.suspendedCount === 'number' ? value.suspendedCount : null;
+  const totalCards = typeof value.totalCards === 'number' ? value.totalCards : null;
+
+  if (
+    dueCount === null ||
+    newCount === null ||
+    learningCount === null ||
+    reviewCount === null ||
+    suspendedCount === null ||
+    totalCards === null
+  ) {
+    return undefined;
+  }
+
+  const rawLatestImport = value.latestImport;
+  const latestImport =
+    rawLatestImport === null || isPlainObject(rawLatestImport)
+      ? (rawLatestImport as StudyImportResult | null | undefined)
+      : undefined;
+  const rawNextDueAt = value.nextDueAt;
+  let nextDueAt: string | null | undefined;
+  if (typeof rawNextDueAt === 'string' || rawNextDueAt === null) {
+    nextDueAt = rawNextDueAt as string | null;
+  } else {
+    nextDueAt = undefined;
+  }
+
+  return {
+    dueCount,
+    newCount,
+    learningCount,
+    reviewCount,
+    suspendedCount,
+    totalCards,
+    latestImport: latestImport ?? null,
+    nextDueAt: nextDueAt ?? null,
+  };
+}
+
 function sanitizeDownloadFilename(filename: string): string {
   const basename = path.basename(filename);
   const sanitized = basename.replace(/[^A-Za-z0-9._-]/g, '_');
   return sanitized.length > 0 ? sanitized : 'study-media';
-}
-
-function parseStudyHistoryLimit(value: unknown): number {
-  if (typeof value === 'undefined') {
-    return STUDY_HISTORY_PAGE_SIZE_DEFAULT;
-  }
-
-  const parsed = parsePositiveIntegerQueryParam('limit', value);
-  if (typeof parsed === 'undefined') {
-    return STUDY_HISTORY_PAGE_SIZE_DEFAULT;
-  }
-
-  if (parsed > STUDY_HISTORY_PAGE_SIZE_MAX) {
-    throw new AppError(`limit must be ${String(STUDY_HISTORY_PAGE_SIZE_MAX)} or fewer.`, 400);
-  }
-
-  return parsed;
-}
-
-function parseStudyBrowserLimit(value: unknown): number {
-  if (typeof value === 'undefined') {
-    return STUDY_BROWSER_PAGE_SIZE_DEFAULT;
-  }
-
-  const parsed = parsePositiveIntegerQueryParam('limit', value);
-  if (typeof parsed === 'undefined') {
-    return STUDY_BROWSER_PAGE_SIZE_DEFAULT;
-  }
-
-  if (parsed > STUDY_BROWSER_PAGE_SIZE_MAX) {
-    throw new AppError(`limit must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
-  }
-
-  return parsed;
-}
-
-function parseStudyExportLimit(value: unknown): number {
-  if (typeof value === 'undefined') {
-    return STUDY_EXPORT_PAGE_SIZE_DEFAULT;
-  }
-
-  const parsed = parsePositiveIntegerQueryParam('limit', value);
-  if (typeof parsed === 'undefined') {
-    return STUDY_EXPORT_PAGE_SIZE_DEFAULT;
-  }
-
-  if (parsed > STUDY_EXPORT_PAGE_SIZE_MAX) {
-    throw new AppError(`limit must be ${String(STUDY_EXPORT_PAGE_SIZE_MAX)} or fewer.`, 400);
-  }
-
-  return parsed;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -426,6 +444,9 @@ router.post(
         cardId,
         grade: grade as 'again' | 'hard' | 'good' | 'easy',
         durationMs: parseStudyReviewDurationMs(durationMs),
+        currentOverview: parseOptionalStudyOverview(
+          (req.body as { currentOverview?: unknown }).currentOverview
+        ),
       });
 
       res.json(reviewResult);
@@ -457,6 +478,9 @@ router.post(
       const undoResult = await undoStudyReview({
         userId: req.userId,
         reviewLogId,
+        currentOverview: parseOptionalStudyOverview(
+          (req.body as { currentOverview?: unknown }).currentOverview
+        ),
       });
 
       res.json(undoResult);
@@ -588,6 +612,9 @@ router.post(
         action: action as 'suspend' | 'unsuspend' | 'forget' | 'set_due',
         mode: mode as 'now' | 'tomorrow' | 'custom_date' | undefined,
         dueAt: typeof dueAt === 'string' ? dueAt : undefined,
+        currentOverview: parseOptionalStudyOverview(
+          (req.body as { currentOverview?: unknown }).currentOverview
+        ),
       });
 
       res.json(result);
@@ -626,12 +653,11 @@ router.get('/cards/options', async (req: AuthRequest, res, next) => {
       throw new AppError('Authenticated user is required.', 401);
     }
 
-    const parsedLimit =
-      typeof req.query.limit === 'string' ? Number.parseInt(req.query.limit, 10) : undefined;
-    const limit =
-      typeof parsedLimit === 'number' && Number.isFinite(parsedLimit)
-        ? Math.max(1, Math.min(100, parsedLimit))
-        : 100;
+    const limit = parsePaginationLimit(
+      req.query.limit,
+      STUDY_BROWSER_PAGE_SIZE_DEFAULT,
+      STUDY_BROWSER_PAGE_SIZE_MAX
+    );
     const result = await getStudyCardOptions(req.userId, limit);
     res.json(result);
   } catch (error) {
@@ -649,7 +675,11 @@ router.get('/history', async (req: AuthRequest, res, next) => {
       userId: req.userId,
       cardId,
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
-      limit: parseStudyHistoryLimit(req.query.limit),
+      limit: parsePaginationLimit(
+        req.query.limit,
+        STUDY_HISTORY_PAGE_SIZE_DEFAULT,
+        STUDY_HISTORY_PAGE_SIZE_MAX
+      ),
     });
     res.json(history);
   } catch (error) {
@@ -666,7 +696,11 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
     const q = parseBrowserQueryString(req.query.q);
     const noteType = parseBrowserNoteType(req.query.noteType);
     const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
-    const limit = parseStudyBrowserLimit(req.query.limit);
+    const limit = parsePaginationLimit(
+      req.query.limit,
+      STUDY_BROWSER_PAGE_SIZE_DEFAULT,
+      STUDY_BROWSER_PAGE_SIZE_MAX
+    );
 
     const cardType =
       typeof req.query.cardType === 'undefined' ? undefined : String(req.query.cardType);
@@ -769,7 +803,11 @@ router.get('/export/cards', async (req: AuthRequest, res, next) => {
     const result = await exportStudyCardsSection({
       userId: req.userId,
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
-      limit: parseStudyExportLimit(req.query.limit),
+      limit: parsePaginationLimit(
+        req.query.limit,
+        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+        STUDY_EXPORT_PAGE_SIZE_MAX
+      ),
     });
     res.json(result);
   } catch (error) {
@@ -786,7 +824,11 @@ router.get('/export/review-logs', async (req: AuthRequest, res, next) => {
     const result = await exportStudyReviewLogsSection({
       userId: req.userId,
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
-      limit: parseStudyExportLimit(req.query.limit),
+      limit: parsePaginationLimit(
+        req.query.limit,
+        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+        STUDY_EXPORT_PAGE_SIZE_MAX
+      ),
     });
     res.json(result);
   } catch (error) {
@@ -803,7 +845,11 @@ router.get('/export/media', async (req: AuthRequest, res, next) => {
     const result = await exportStudyMediaSection({
       userId: req.userId,
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
-      limit: parseStudyExportLimit(req.query.limit),
+      limit: parsePaginationLimit(
+        req.query.limit,
+        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+        STUDY_EXPORT_PAGE_SIZE_MAX
+      ),
     });
     res.json(result);
   } catch (error) {
@@ -820,7 +866,11 @@ router.get('/export/imports', async (req: AuthRequest, res, next) => {
     const result = await exportStudyImportsSection({
       userId: req.userId,
       cursor: typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
-      limit: parseStudyExportLimit(req.query.limit),
+      limit: parsePaginationLimit(
+        req.query.limit,
+        STUDY_EXPORT_PAGE_SIZE_DEFAULT,
+        STUDY_EXPORT_PAGE_SIZE_MAX
+      ),
     });
     res.json(result);
   } catch (error) {

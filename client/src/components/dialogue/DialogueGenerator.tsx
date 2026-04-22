@@ -2,15 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   SUPPORTED_LANGUAGES,
   SPEAKER_COLORS,
   TTS_VOICES,
 } from '@languageflow/shared/src/constants-new';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { getRandomName } from '@languageflow/shared/src/nameConstants';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import {
   getCourseSpeakerVoices,
   getDialogueSpeakerVoices,

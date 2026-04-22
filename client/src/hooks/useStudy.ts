@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { STUDY_HISTORY_PAGE_SIZE_DEFAULT } from '@languageflow/shared/src/studyConstants';
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
@@ -41,6 +42,7 @@ interface StudyCardActionPayload {
   action: StudyCardActionName;
   mode?: StudyCardSetDueMode;
   dueAt?: string;
+  currentOverview?: StudyOverview;
 }
 
 export interface StudyBrowserQuery {
@@ -86,10 +88,13 @@ export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCard
   );
 }
 
-export async function undoStudyReview(reviewLogId: string): Promise<StudyUndoReviewResult> {
+export async function undoStudyReview(
+  reviewLogId: string,
+  currentOverview?: StudyOverview
+): Promise<StudyUndoReviewResult> {
   return apiRequest<StudyUndoReviewResult>('/api/study/reviews/undo', {
     method: 'POST',
-    body: JSON.stringify({ reviewLogId }),
+    body: JSON.stringify({ reviewLogId, currentOverview }),
   });
 }
 
@@ -139,6 +144,7 @@ export async function performStudyCardAction(
         action: payload.action,
         mode: payload.mode,
         dueAt: payload.dueAt,
+        currentOverview: payload.currentOverview,
       }),
     }
   );
@@ -184,7 +190,7 @@ export function useStudyOverview(enabled: boolean) {
 export function useStudyHistory(enabled: boolean, cardId?: string) {
   return useStudyHistoryPage(enabled, {
     cardId,
-    limit: 50,
+    limit: STUDY_HISTORY_PAGE_SIZE_DEFAULT,
   });
 }
 
@@ -231,10 +237,12 @@ export function useSubmitStudyReview() {
     }) =>
       apiRequest<StudyReviewResult>('/api/study/reviews', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
+        }),
       }),
-    onSuccess: async (result) => {
-      queryClient.setQueryData(['study', 'overview'], result.overview);
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'history'] }),
@@ -279,9 +287,12 @@ export function useStudyCardAction() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: performStudyCardAction,
-    onSuccess: async (result) => {
-      queryClient.setQueryData(['study', 'overview'], result.overview);
+    mutationFn: (payload: StudyCardActionPayload) =>
+      performStudyCardAction({
+        ...payload,
+        currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
+      }),
+    onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
