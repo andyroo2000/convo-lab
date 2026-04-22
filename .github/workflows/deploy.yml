@@ -161,8 +161,11 @@ jobs:
               sleep 2
             done
 
+            # Close stdin explicitly so this one-off container cannot consume the
+            # remainder of the SSH heredoc before we restart the full stage stack.
             docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging run --rm -T server-stage \
-              npx prisma migrate resolve --rolled-back 20260422113000_harden_study_card_state --schema prisma/schema.prisma || true
+              npx prisma migrate resolve --rolled-back 20260422113000_harden_study_card_state --schema prisma/schema.prisma \
+              </dev/null || true
 
             # Start containers with environment file
             echo "♻️  Starting containers..."
