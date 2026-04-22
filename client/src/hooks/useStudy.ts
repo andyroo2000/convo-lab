@@ -21,6 +21,9 @@ import type {
 
 import { API_URL } from '../config';
 
+const STUDY_CSRF_COOKIE_NAME = 'study_csrf';
+const STUDY_CSRF_HEADER_NAME = 'X-Study-CSRF-Token';
+
 export interface StudySessionResponse {
   overview: StudyOverview;
   cards: StudyCardSummary[];
@@ -56,14 +59,47 @@ export interface StudyBrowserQuery {
   limit?: number;
 }
 
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  const cookiePrefix = `${name}=`;
+  const match = document.cookie
+    .split(';')
+    .map((segment) => segment.trim())
+    .find((segment) => segment.startsWith(cookiePrefix));
+
+  if (!match) {
+    return null;
+  }
+
+  return decodeURIComponent(match.slice(cookiePrefix.length));
+}
+
+function withStudyMutationHeaders(init?: RequestInit): HeadersInit {
+  const headers = new Headers(init?.headers ?? {});
+  const method = (init?.method ?? 'GET').toUpperCase();
+
+  if (!headers.has('Content-Type') && method !== 'GET' && method !== 'HEAD') {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (method === 'POST' || method === 'PATCH') {
+    const csrfToken = readCookie(STUDY_CSRF_COOKIE_NAME);
+    if (csrfToken && !headers.has(STUDY_CSRF_HEADER_NAME)) {
+      headers.set(STUDY_CSRF_HEADER_NAME, csrfToken);
+    }
+  }
+
+  return headers;
+}
+
 async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${endpoint}`, {
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
     ...init,
+    credentials: 'include',
+    headers: withStudyMutationHeaders(init),
   });
 
   if (!response.ok) {
@@ -309,10 +345,16 @@ export function useStudyCardAction() {
 export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
   const formData = new FormData();
   formData.append('file', file);
+  const headers = new Headers();
+  const csrfToken = readCookie(STUDY_CSRF_COOKIE_NAME);
+  if (csrfToken) {
+    headers.set(STUDY_CSRF_HEADER_NAME, csrfToken);
+  }
 
   const response = await fetch(`${API_URL}/api/study/imports`, {
     method: 'POST',
     credentials: 'include',
+    headers,
     body: formData,
   });
 

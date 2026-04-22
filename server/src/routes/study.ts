@@ -920,36 +920,40 @@ router.get('/browser/:noteId', async (req: AuthRequest, res, next) => {
   }
 });
 
-router.get('/media/:mediaId', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
+router.get(
+  '/media/:mediaId',
+  rateLimitStudyRoute({ key: 'media-read', max: 240, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
 
-    const mediaAccess = await getStudyMediaAccess(req.userId, req.params.mediaId);
-    if (!mediaAccess) {
-      throw new AppError('Study media not found.', 404);
-    }
+      const mediaAccess = await getStudyMediaAccess(req.userId, req.params.mediaId);
+      if (!mediaAccess) {
+        throw new AppError('Study media not found.', 404);
+      }
 
-    if (mediaAccess.type === 'redirect') {
-      res.redirect(302, mediaAccess.redirectUrl as string);
-      return;
-    }
+      if (mediaAccess.type === 'redirect') {
+        res.redirect(302, mediaAccess.redirectUrl as string);
+        return;
+      }
 
-    res.type(mediaAccess.contentType);
-    res.sendFile(mediaAccess.absolutePath as string, {
-      headers: {
-        'Cache-Control': 'private, max-age=60',
-        'Content-Disposition': toSafeContentDisposition(
-          mediaAccess.contentDisposition,
-          mediaAccess.filename
-        ),
-      },
-    });
-  } catch (error) {
-    next(error);
+      res.type(mediaAccess.contentType);
+      res.sendFile(mediaAccess.absolutePath as string, {
+        headers: {
+          'Cache-Control': 'private, max-age=60',
+          'Content-Disposition': toSafeContentDisposition(
+            mediaAccess.contentDisposition,
+            mediaAccess.filename
+          ),
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.get('/export', async (req: AuthRequest, res, next) => {
   try {

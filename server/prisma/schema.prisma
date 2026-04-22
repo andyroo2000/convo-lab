@@ -446,7 +446,7 @@ model StudyCard {
   sourceTemplateName   String?
   sourceQueue          Int?
   sourceCardType       Int?
-  sourceDue            Int?
+  sourceDue            Int? // Raw Anki due metadata; runtime ordering and scheduling use dueAt.
   sourceInterval       Int?
   sourceFactor         Int?
   sourceReps           Int?

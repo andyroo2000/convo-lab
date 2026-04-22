@@ -117,6 +117,7 @@ function parseAnkiClozeText(rawText: string, activeOrdinal: number, fallbackHint
   const activeClozeIndex = activeOrdinal + 1;
   let activeAnswerText: string | null = null;
   let inlineHint: string | null = null;
+  let hadMalformedMarkup = false;
   const restoredParts: string[] = [];
   const displayParts: string[] = [];
   const source = rawText.replaceAll('\0', '');
@@ -140,6 +141,7 @@ function parseAnkiClozeText(rawText: string, activeOrdinal: number, fallbackHint
       const trailing = source.slice(tokenStart);
       restoredParts.push(trailing);
       displayParts.push(trailing);
+      hadMalformedMarkup = true;
       break;
     }
 
@@ -148,6 +150,7 @@ function parseAnkiClozeText(rawText: string, activeOrdinal: number, fallbackHint
     if (!token) {
       restoredParts.push(rawToken);
       displayParts.push(rawToken);
+      hadMalformedMarkup = true;
       cursor = tokenEnd + 2;
       continue;
     }
@@ -169,6 +172,7 @@ function parseAnkiClozeText(rawText: string, activeOrdinal: number, fallbackHint
     answerText: activeAnswerText,
     restoredText: stripHtml(restoredParts.join('')) ?? null,
     resolvedHint: inlineHint ?? fallbackHint,
+    hadMalformedMarkup,
   };
 }
 
@@ -192,6 +196,22 @@ export async function normalizeClozePayload(params: {
     clozeAnswerText = parsed.answerText;
     resolvedHint = parsed.resolvedHint;
     restoredText = parsed.restoredText ?? restoredText;
+    return {
+      malformedMarkup: parsed.hadMalformedMarkup,
+      prompt: {
+        ...params.prompt,
+        clozeText: rawClozeText || null,
+        clozeDisplayText,
+        clozeAnswerText,
+        clozeResolvedHint: resolvedHint,
+        clozeHint: params.prompt.clozeHint ?? fallbackHint,
+      },
+      answer: {
+        ...params.answer,
+        restoredText,
+        restoredTextReading: restoredText ? await addFuriganaBrackets(restoredText) : null,
+      },
+    };
   } else {
     clozeDisplayText = clozeDisplayText ?? stripHtml(rawClozeText);
     resolvedHint = resolvedHint ?? fallbackHint;
@@ -200,6 +220,7 @@ export async function normalizeClozePayload(params: {
   const restoredTextReading = restoredText ? await addFuriganaBrackets(restoredText) : null;
 
   return {
+    malformedMarkup: false,
     prompt: {
       ...params.prompt,
       clozeText: rawClozeText || null,
@@ -214,6 +235,20 @@ export async function normalizeClozePayload(params: {
       restoredTextReading,
     },
   };
+}
+
+function toUnsupportedDeckError(detectedDeckNames: string[]): AppError {
+  const visibleDeckNames = detectedDeckNames.slice(0, 5);
+  const deckSummary = visibleDeckNames.length
+    ? ` Found: ${visibleDeckNames.map((name) => `"${name}"`).join(', ')}${
+        detectedDeckNames.length > visibleDeckNames.length ? ', …' : ''
+      }.`
+    : '';
+
+  return new AppError(
+    `Only the "${ANKI_DECK_NAME}" deck is supported in this version.${deckSummary}`,
+    400
+  );
 }
 
 function mapRows(result: QueryExecResult[]): QueryRow[] {
@@ -247,16 +282,7 @@ function parseLegacyDeckAndModelMetadata(collectionRow: QueryRow) {
 
   const targetDeck = Object.values(decks).find((deck) => deck?.name === ANKI_DECK_NAME);
   if (!targetDeck || typeof targetDeck.id !== 'number') {
-    const visibleDeckNames = detectedDeckNames.slice(0, 5);
-    const deckSummary = visibleDeckNames.length
-      ? ` Found: ${visibleDeckNames.map((name) => `"${name}"`).join(', ')}${
-          detectedDeckNames.length > visibleDeckNames.length ? ', …' : ''
-        }.`
-      : '';
-    throw new AppError(
-      `Only the "${ANKI_DECK_NAME}" deck is supported in this version.${deckSummary}`,
-      400
-    );
+    throw toUnsupportedDeckError(detectedDeckNames);
   }
 
   const fieldNamesByNoteType = new Map<number, string[]>();
@@ -412,6 +438,7 @@ async function toPromptAndAnswerPayload(
   cardType: StudyCardType;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
+  malformedClozeMarkup: boolean;
   promptAudioFilename: string | null;
   answerAudioFilename: string | null;
   imageFilename: string | null;
@@ -441,6 +468,7 @@ async function toPromptAndAnswerPayload(
         answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
         answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
       },
+      malformedClozeMarkup: false,
       promptAudioFilename: null,
       answerAudioFilename: audioWord,
       imageFilename,
@@ -471,6 +499,7 @@ async function toPromptAndAnswerPayload(
         answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
         answerAudio: toMediaRef(audioWord ?? audioSentence, mediaByFilename, 'imported'),
       },
+      malformedClozeMarkup: false,
       promptAudioFilename: null,
       answerAudioFilename: audioWord ?? audioSentence,
       imageFilename,
@@ -492,6 +521,7 @@ async function toPromptAndAnswerPayload(
         answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
         answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
       },
+      malformedClozeMarkup: false,
       promptAudioFilename: audioWord,
       answerAudioFilename: audioWord,
       imageFilename,
@@ -517,6 +547,7 @@ async function toPromptAndAnswerPayload(
       cardType: 'cloze',
       prompt: normalized.prompt,
       answer: normalized.answer,
+      malformedClozeMarkup: normalized.malformedMarkup,
       promptAudioFilename: null,
       answerAudioFilename: audioSentence,
       imageFilename: null,
@@ -570,16 +601,19 @@ export async function parseColpkgUpload(params: {
     const zip = await JSZip.loadAsync(fileBuffer);
     const importWarnings = createStudyImportWarningAccumulator();
     const unsafeManifestFilenames = new Set<string>();
-    const unsafeArchiveEntryIds = new Set<string>();
+    const unsafeArchiveEntriesById = new Map<string, Set<string>>();
 
     Object.values(zip.files).forEach((entry) => {
       if (entry.dir || isAllowedStudyImportZipEntryName(entry.name)) {
         return;
       }
 
-      const basename = path.posix.basename(normalizeZipPath(entry.name));
+      const normalizedEntryName = normalizeZipPath(entry.name);
+      const basename = path.posix.basename(normalizedEntryName);
       if (isSafeZipBasename(basename)) {
-        unsafeArchiveEntryIds.add(basename);
+        const existing = unsafeArchiveEntriesById.get(basename) ?? new Set<string>();
+        existing.add(normalizedEntryName);
+        unsafeArchiveEntriesById.set(basename, existing);
       }
     });
 
@@ -648,11 +682,14 @@ export async function parseColpkgUpload(params: {
 
     if (usesNormalizedSchema) {
       const deckRows = mapRows(db.exec('SELECT id, name FROM decks'));
+      const detectedDeckNames = deckRows
+        .map((row) => sanitizeText(String(row.name ?? '')) ?? '')
+        .filter((name) => name.length > 0);
       const deckRow = deckRows.find(
         (row) => sanitizeText(String(row.name ?? '')) === ANKI_DECK_NAME
       );
       if (!deckRow || typeof deckRow.id !== 'number') {
-        throw new AppError(`Only the "${ANKI_DECK_NAME}" deck is supported in this version.`, 400);
+        throw toUnsupportedDeckError(detectedDeckNames);
       }
 
       deckId = deckRow.id;
@@ -818,7 +855,7 @@ export async function parseColpkgUpload(params: {
           recordStudyImportWarning(
             importWarnings,
             mediaFilename,
-            unsafeArchiveEntryIds.has(mediaId)
+            unsafeArchiveEntriesById.has(mediaId)
               ? 'Skipped unsafe archive entry.'
               : 'Referenced media was missing.'
           );
@@ -939,6 +976,15 @@ export async function parseColpkgUpload(params: {
           answerAudioMediaFilename: promptAndAnswer.answerAudioFilename,
           imageMediaFilename: promptAndAnswer.imageFilename,
         });
+
+        if (promptAndAnswer.cardType === 'cloze' && promptAndAnswer.malformedClozeMarkup) {
+          recordStudyImportWarning(
+            importWarnings,
+            `note ${String(noteId)} / card ${String(noteCard.cardId)}`,
+            'Recovered malformed cloze markup as plain text.',
+            { countsAsSkippedMedia: false }
+          );
+        }
       }
     }
 

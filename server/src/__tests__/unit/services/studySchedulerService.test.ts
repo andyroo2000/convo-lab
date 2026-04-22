@@ -349,10 +349,17 @@ describe('studySchedulerService', () => {
         note: {},
       },
     ]);
-    mockPrisma.studyCard.count.mockResolvedValue(1);
-    mockPrisma.studyCard.findFirst.mockResolvedValue({
-      dueAt: new Date('2026-04-12T00:00:00.000Z'),
-    });
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        due_count: 1,
+        new_count: 0,
+        learning_count: 0,
+        review_count: 1,
+        suspended_count: 0,
+        total_cards: 1,
+        next_due_at: new Date('2026-04-12T00:00:00.000Z'),
+      },
+    ]);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
     const session = await startStudySession('user-1', 20);
@@ -360,36 +367,85 @@ describe('studySchedulerService', () => {
 
     expect(session.cards).toHaveLength(1);
     expect(overview.totalCards).toBeGreaterThanOrEqual(0);
+    expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+      })
+    );
   });
 
   it('excludes suspended and buried cards from the nextDueAt overview lookup', async () => {
-    mockPrisma.studyCard.count.mockResolvedValue(1);
-    mockPrisma.studyCard.groupBy.mockResolvedValue([
-      { queueState: 'review', _count: { _all: 1 } },
-      { queueState: 'suspended', _count: { _all: 1 } },
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        due_count: 1,
+        new_count: 0,
+        learning_count: 0,
+        review_count: 1,
+        suspended_count: 1,
+        total_cards: 2,
+        next_due_at: new Date('2026-04-12T00:00:00.000Z'),
+      },
     ]);
-    mockPrisma.studyCard.findFirst.mockResolvedValue({
-      dueAt: new Date('2026-04-12T00:00:00.000Z'),
-    });
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
     const overview = await getStudyOverview('user-1');
 
-    expect(mockPrisma.studyCard.findFirst).toHaveBeenCalledWith({
-      where: {
-        userId: 'user-1',
-        queueState: {
-          in: ['learning', 'review', 'relearning'],
-        },
-        dueAt: {
-          not: null,
-        },
-      },
-      orderBy: {
-        dueAt: 'asc',
-      },
-    });
+    expect(mockPrisma.$queryRaw).toHaveBeenCalled();
     expect(overview.nextDueAt).toBe('2026-04-12T00:00:00.000Z');
+  });
+
+  it('returns a valid overview when scheduler state must be reconstructed for imported cards', async () => {
+    mockPrisma.studyCard.findMany.mockResolvedValue([
+      {
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        sourceDue: 42,
+        sourceInterval: 12,
+        sourceReps: 4,
+        sourceLapses: 1,
+        sourceFsrsJson: { s: 12.5, d: 4.2, lrt: 1769832848 },
+        lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        answerAudioSource: 'missing',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: null,
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {
+          rawFieldsJson: {},
+          sourceNoteId: 1n,
+          sourceGuid: 'guid-1',
+          sourceNotetypeId: 2n,
+          sourceNotetypeName: 'Japanese - Vocab',
+        },
+      },
+    ]);
+    mockPrisma.$queryRaw.mockResolvedValue([
+      {
+        due_count: 1,
+        new_count: 0,
+        learning_count: 0,
+        review_count: 1,
+        suspended_count: 0,
+        total_cards: 1,
+        next_due_at: new Date('2026-04-12T00:00:00.000Z'),
+      },
+    ]);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const session = await startStudySession('user-1', 20);
+
+    expect(session.cards[0]?.state.scheduler).toEqual(
+      expect.objectContaining({
+        difficulty: expect.any(Number),
+        stability: expect.any(Number),
+        due: expect.any(String),
+      })
+    );
   });
 
   it('keeps overview totalCards stable when an action moves a card between buckets', async () => {

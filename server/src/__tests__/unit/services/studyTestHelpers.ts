@@ -72,6 +72,7 @@ export async function buildFixtureColpkg(
     companyPhotoFilename?: string;
     companyPhotoMediaEntryId?: string;
     companyPhotoZipEntryName?: string;
+    clozeText?: string;
     vocabNotes?: string;
   } = {}
 ): Promise<Buffer> {
@@ -235,7 +236,7 @@ export async function buildFixtureColpkg(
       '',
       ${sqlLiteral(
         [
-          'お風呂に虫{{c1::がいる::are (existence verb)}}！ {{c2::助けて}}！',
+          options.clozeText ?? 'お風呂に虫{{c1::がいる::are (existence verb)}}！ {{c2::助けて}}！',
           'Travel sentence',
           'お風呂に虫がいる！ 助けて！',
           'There are bugs in the bath!',
@@ -337,6 +338,17 @@ export function resetStudyServiceMocks() {
   mockPrisma.studyCard.createMany.mockResolvedValue({ count: 6 });
   mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.studyCard.groupBy.mockResolvedValue([]);
+  mockPrisma.$queryRaw.mockResolvedValue([
+    {
+      due_count: 0,
+      new_count: 0,
+      learning_count: 0,
+      review_count: 0,
+      suspended_count: 0,
+      total_cards: 0,
+      next_due_at: null,
+    },
+  ]);
   mockPrisma.studyReviewLog.createMany.mockResolvedValue({ count: 3 });
   mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
 }

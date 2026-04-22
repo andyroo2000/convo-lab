@@ -14,6 +14,7 @@ import type {
   StudyReviewResult,
   StudyUndoReviewResult,
 } from '@languageflow/shared/src/types.js';
+import { Prisma } from '@prisma/client';
 import { State, Rating, type Grade } from 'ts-fsrs';
 
 import { prisma } from '../../db/client.js';
@@ -53,67 +54,59 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
 
 export async function getStudyOverview(userId: string): Promise<StudyOverview> {
   const now = new Date();
-  const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
-    prisma.studyCard.count({
-      where: {
-        userId,
-        queueState: {
-          in: ['learning', 'review', 'relearning'],
-        },
-        dueAt: {
-          lte: now,
-        },
-      },
-    }),
-    prisma.studyCard.groupBy({
-      by: ['queueState'],
-      where: { userId },
-      _count: {
-        _all: true,
-      },
-    }),
-    prisma.studyCard.findFirst({
-      where: {
-        userId,
-        queueState: {
-          in: ['learning', 'review', 'relearning'],
-        },
-        dueAt: {
-          not: null,
-        },
-      },
-      orderBy: {
-        dueAt: 'asc',
-      },
-    }),
+  const [cardOverviewRows, latestImport] = await Promise.all([
+    prisma.$queryRaw<
+      Array<{
+        due_count: bigint | number | null;
+        new_count: bigint | number | null;
+        learning_count: bigint | number | null;
+        review_count: bigint | number | null;
+        suspended_count: bigint | number | null;
+        total_cards: bigint | number | null;
+        next_due_at: Date | null;
+      }>
+    >(Prisma.sql`
+      SELECT
+        COALESCE(SUM(CASE
+          WHEN "queueState" IN ('learning', 'review', 'relearning') AND "dueAt" <= ${now} THEN 1
+          ELSE 0
+        END), 0) AS due_count,
+        COALESCE(SUM(CASE WHEN "queueState" = 'new' THEN 1 ELSE 0 END), 0) AS new_count,
+        COALESCE(SUM(CASE WHEN "queueState" IN ('learning', 'relearning') THEN 1 ELSE 0 END), 0) AS learning_count,
+        COALESCE(SUM(CASE WHEN "queueState" = 'review' THEN 1 ELSE 0 END), 0) AS review_count,
+        COALESCE(SUM(CASE WHEN "queueState" IN ('suspended', 'buried') THEN 1 ELSE 0 END), 0) AS suspended_count,
+        COUNT(*) AS total_cards,
+        MIN(CASE
+          WHEN "queueState" IN ('learning', 'review', 'relearning') THEN "dueAt"
+          ELSE NULL
+        END) AS next_due_at
+      FROM "study_cards"
+      WHERE "userId" = ${userId}
+    `),
     prisma.studyImportJob.findFirst({
       where: { userId },
       orderBy: { createdAt: 'desc' },
     }),
   ]);
 
-  const countsByQueueState = queueStateCounts.reduce<Partial<Record<StudyQueueState, number>>>(
-    (counts, row) => {
-      const queueState = parseStudyQueueState(row.queueState, 'new');
-      counts[queueState] = row._count._all;
-      return counts;
-    },
-    {}
-  );
-
-  const newCount = countsByQueueState.new ?? 0;
-  const learningCount = (countsByQueueState.learning ?? 0) + (countsByQueueState.relearning ?? 0);
-  const reviewCount = countsByQueueState.review ?? 0;
-  const suspendedCount = (countsByQueueState.suspended ?? 0) + (countsByQueueState.buried ?? 0);
-  const totalCards = Object.values(countsByQueueState).reduce((total, count) => total + count, 0);
+  const cardOverview = cardOverviewRows[0] ?? {
+    due_count: 0,
+    new_count: 0,
+    learning_count: 0,
+    review_count: 0,
+    suspended_count: 0,
+    total_cards: 0,
+    next_due_at: null,
+  };
+  const toCount = (value: bigint | number | null | undefined): number => Number(value ?? 0);
 
   return {
-    dueCount,
-    newCount,
-    learningCount,
-    reviewCount,
-    suspendedCount,
-    totalCards,
+    dueCount: toCount(cardOverview.due_count),
+    newCount: toCount(cardOverview.new_count),
+    learningCount: toCount(cardOverview.learning_count),
+    reviewCount: toCount(cardOverview.review_count),
+    suspendedCount: toCount(cardOverview.suspended_count),
+    totalCards: toCount(cardOverview.total_cards),
     latestImport: latestImport
       ? {
           id: latestImport.id,
@@ -131,7 +124,8 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
               : null,
         }
       : null,
-    nextDueAt: nextDueCard?.dueAt instanceof Date ? nextDueCard.dueAt.toISOString() : null,
+    nextDueAt:
+      cardOverview.next_due_at instanceof Date ? cardOverview.next_due_at.toISOString() : null,
   };
 }
 
@@ -373,7 +367,8 @@ export async function startStudySession(userId: string, limit: number = DEFAULT_
       answerAudioMedia: true,
       imageMedia: true,
     },
-    orderBy: [{ dueAt: 'asc' }, { sourceDue: 'asc' }],
+    // sourceDue is raw Anki integer metadata; runtime session ordering uses dueAt plus a stable ID tie-break.
+    orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
     take: limit,
   });
 

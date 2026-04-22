@@ -85,6 +85,49 @@ describe('studyImportService', () => {
     });
   });
 
+  it('records malformed cloze markup as an import warning instead of failing the import', async () => {
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({
+        clozeText: 'お風呂に虫{{c1::がいる::are (existence verb)!',
+      }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.warnings).toContain(
+      'note 4 / card 41: Recovered malformed cloze markup as plain text.'
+    );
+    expect(result.preview.skippedMediaCount).toBe(0);
+  });
+
+  it.each(['../../etc/passwd', '/tmp/evil.png', 'C:\\\\evil.png', 'nested/0'])(
+    'never persists media for unsafe archive entries like %s',
+    async (unsafeArchiveEntryName) => {
+      const result = await importJapaneseStudyColpkg({
+        userId: 'user-1',
+        fileBuffer: await buildFixtureColpkg({
+          companyPhotoZipEntryName: unsafeArchiveEntryName,
+        }),
+        filename: 'japanese.colpkg',
+      });
+
+      expect(result.status).toBe('completed');
+      expect(result.preview.warnings).toContainEqual(
+        expect.stringMatching(
+          /^company\.png: (Skipped unsafe archive entry\.|Referenced media was missing\.)$/
+        )
+      );
+
+      const createdMedia = mockPrisma.studyMedia.createMany.mock.calls.at(-1)?.[0].data as Array<
+        Record<string, unknown>
+      >;
+      const companyPhoto = createdMedia.find((media) => media.sourceFilename === 'company.png');
+      expect(companyPhoto?.storagePath).toBeNull();
+      expect(companyPhoto?.publicUrl).toBeNull();
+    }
+  );
+
   it('returns 409 when another import is already processing for the user', async () => {
     mockPrisma.studyImportJob.create.mockRejectedValue(
       new Prisma.PrismaClientKnownRequestError('duplicate import', {
@@ -160,5 +203,19 @@ describe('studyImportService', () => {
     expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', importJobId: 'import-job-1' },
     });
+  });
+
+  it('wraps the import write phase in a single transaction after parsing completes', async () => {
+    await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg(),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(mockPrisma.$transaction).toHaveBeenCalled();
+    expect(mockPrisma.studyNote.createMany).toHaveBeenCalled();
+    expect(mockPrisma.studyMedia.createMany).toHaveBeenCalled();
+    expect(mockPrisma.studyCard.createMany).toHaveBeenCalled();
+    expect(mockPrisma.studyReviewLog.createMany).toHaveBeenCalled();
   });
 });

@@ -160,6 +160,36 @@ export async function importJapaneseStudyColpkg(params: {
     }
     const parsed = parsedDataset;
 
+    const createdCardIdBySourceCardId = new Map(
+      parsed.cards.map((card) => [card.sourceCardId, card.createId])
+    );
+    const reviewLogsToCreate = parsed.reviewLogs.flatMap((log) => {
+      const cardId = createdCardIdBySourceCardId.get(log.sourceCardId);
+      if (!cardId) {
+        return [];
+      }
+
+      return [
+        {
+          id: log.createId,
+          userId: params.userId,
+          cardId,
+          importJobId: importJob.id,
+          source: 'anki_import' as const,
+          sourceReviewId: BigInt(log.sourceReviewId),
+          reviewedAt: log.reviewedAt,
+          rating: log.rating,
+          sourceEase: log.sourceEase,
+          sourceInterval: log.sourceInterval,
+          sourceLastInterval: log.sourceLastInterval,
+          sourceFactor: log.sourceFactor,
+          sourceTimeMs: log.sourceTimeMs,
+          sourceReviewType: log.sourceReviewType,
+          rawPayloadJson: toImportReviewRawPayload(log),
+        },
+      ];
+    });
+    const completedAt = new Date();
     await prisma.$transaction(async (tx) => {
       await tx.studyReviewLog.deleteMany({
         where: {
@@ -192,142 +222,117 @@ export async function importJapaneseStudyColpkg(params: {
           previewJson: toPrismaJson(parsed.preview),
         },
       });
-    });
 
-    await createManyInBatches(parsed.notes, async (batch) => {
-      await prisma.studyNote.createMany({
-        data: batch.map((note) => ({
-          id: note.createId,
-          userId: params.userId,
-          importJobId: importJob.id,
-          sourceKind: 'anki_import',
-          sourceNoteId: BigInt(note.sourceNoteId),
-          sourceGuid: sanitizeText(note.sourceGuid) ?? '',
-          sourceDeckId: BigInt(note.sourceDeckId),
-          sourceDeckName: ANKI_DECK_NAME,
-          sourceNotetypeId: BigInt(note.sourceNotetypeId),
-          sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
-          rawFieldsJson: toPrismaJson(note.rawFields),
-          canonicalJson: toPrismaJson(note.canonical),
-          searchText: buildStudyNoteSearchText(note),
-        })),
+      await createManyInBatches(parsed.notes, async (batch) => {
+        await tx.studyNote.createMany({
+          data: batch.map((note) => ({
+            id: note.createId,
+            userId: params.userId,
+            importJobId: importJob.id,
+            sourceKind: 'anki_import',
+            sourceNoteId: BigInt(note.sourceNoteId),
+            sourceGuid: sanitizeText(note.sourceGuid) ?? '',
+            sourceDeckId: BigInt(note.sourceDeckId),
+            sourceDeckName: ANKI_DECK_NAME,
+            sourceNotetypeId: BigInt(note.sourceNotetypeId),
+            sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
+            rawFieldsJson: toPrismaJson(note.rawFields),
+            canonicalJson: toPrismaJson(note.canonical),
+            searchText: buildStudyNoteSearchText(note),
+          })),
+        });
       });
-    });
 
-    await createManyInBatches(parsed.media, async (batch) => {
-      await prisma.studyMedia.createMany({
-        data: batch.map((media) => ({
-          id: media.id,
-          userId: params.userId,
-          importJobId: importJob.id,
-          sourceKind: 'anki_import',
-          sourceMediaKey: sanitizeText(
-            mediaByFilenameToSourceMediaKey(parsed.mediaByFilename, media.filename)
-          ),
-          sourceFilename: sanitizeText(media.filename) ?? '',
-          normalizedFilename: normalizeFilename(media.filename),
-          mediaKind: media.mediaKind,
-          contentType: media.contentType,
-          storagePath: media.storagePath,
-          publicUrl: media.publicUrl,
-        })),
+      await createManyInBatches(parsed.media, async (batch) => {
+        await tx.studyMedia.createMany({
+          data: batch.map((media) => ({
+            id: media.id,
+            userId: params.userId,
+            importJobId: importJob.id,
+            sourceKind: 'anki_import',
+            sourceMediaKey: sanitizeText(
+              mediaByFilenameToSourceMediaKey(parsed.mediaByFilename, media.filename)
+            ),
+            sourceFilename: sanitizeText(media.filename) ?? '',
+            normalizedFilename: normalizeFilename(media.filename),
+            mediaKind: media.mediaKind,
+            contentType: media.contentType,
+            storagePath: media.storagePath,
+            publicUrl: media.publicUrl,
+          })),
+        });
       });
-    });
 
-    await createManyInBatches(parsed.cards, async (batch) => {
-      await prisma.studyCard.createMany({
-        data: batch.map((card) => ({
-          id: card.createId,
-          userId: params.userId,
-          noteId: card.noteCreateId,
-          importJobId: importJob.id,
-          sourceKind: 'anki_import',
-          sourceCardId: BigInt(card.sourceCardId),
-          sourceDeckId: BigInt(card.sourceDeckId),
-          sourceDeckName: ANKI_DECK_NAME,
-          sourceTemplateOrd: card.sourceTemplateOrd,
-          sourceTemplateName: sanitizeText(card.sourceTemplateName),
-          sourceQueue: card.sourceQueue,
-          sourceCardType: card.sourceCardType,
-          sourceDue: card.sourceDue,
-          sourceInterval: card.sourceInterval,
-          sourceFactor: card.sourceFactor,
-          sourceReps: card.sourceReps,
-          sourceLapses: card.sourceLapses,
-          sourceLeft: card.sourceLeft,
-          sourceOriginalDue: card.sourceOriginalDue,
-          sourceOriginalDeckId: toBigIntOrNull(card.sourceOriginalDeckId),
-          sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
-          cardType: card.cardType,
-          queueState: card.queueState,
-          dueAt: card.dueAt,
-          lastReviewedAt: card.lastReviewedAt,
-          promptJson: toPrismaJson(card.prompt),
-          answerJson: toPrismaJson(card.answer),
-          searchText: buildStudyCardSearchText(card),
-          schedulerStateJson: toPrismaJson(card.schedulerState),
-          answerAudioSource: card.answerAudioSource,
-          promptAudioMediaId: mediaByFilenameToRecordId(
-            parsed.mediaByFilename,
-            card.promptAudioMediaFilename
-          ),
-          answerAudioMediaId: mediaByFilenameToRecordId(
-            parsed.mediaByFilename,
-            card.answerAudioMediaFilename
-          ),
-          imageMediaId: mediaByFilenameToRecordId(parsed.mediaByFilename, card.imageMediaFilename),
-        })),
+      await createManyInBatches(parsed.cards, async (batch) => {
+        await tx.studyCard.createMany({
+          data: batch.map((card) => ({
+            id: card.createId,
+            userId: params.userId,
+            noteId: card.noteCreateId,
+            importJobId: importJob.id,
+            sourceKind: 'anki_import',
+            sourceCardId: BigInt(card.sourceCardId),
+            sourceDeckId: BigInt(card.sourceDeckId),
+            sourceDeckName: ANKI_DECK_NAME,
+            sourceTemplateOrd: card.sourceTemplateOrd,
+            sourceTemplateName: sanitizeText(card.sourceTemplateName),
+            sourceQueue: card.sourceQueue,
+            sourceCardType: card.sourceCardType,
+            sourceDue: card.sourceDue,
+            // sourceDue is raw Anki integer metadata; runtime scheduling uses dueAt.
+            sourceInterval: card.sourceInterval,
+            sourceFactor: card.sourceFactor,
+            sourceReps: card.sourceReps,
+            sourceLapses: card.sourceLapses,
+            sourceLeft: card.sourceLeft,
+            sourceOriginalDue: card.sourceOriginalDue,
+            sourceOriginalDeckId: toBigIntOrNull(card.sourceOriginalDeckId),
+            sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
+            cardType: card.cardType,
+            queueState: card.queueState,
+            dueAt: card.dueAt,
+            lastReviewedAt: card.lastReviewedAt,
+            promptJson: toPrismaJson(card.prompt),
+            answerJson: toPrismaJson(card.answer),
+            searchText: buildStudyCardSearchText(card),
+            schedulerStateJson: toPrismaJson(card.schedulerState),
+            answerAudioSource: card.answerAudioSource,
+            promptAudioMediaId: mediaByFilenameToRecordId(
+              parsed.mediaByFilename,
+              card.promptAudioMediaFilename
+            ),
+            answerAudioMediaId: mediaByFilenameToRecordId(
+              parsed.mediaByFilename,
+              card.answerAudioMediaFilename
+            ),
+            imageMediaId: mediaByFilenameToRecordId(
+              parsed.mediaByFilename,
+              card.imageMediaFilename
+            ),
+          })),
+        });
       });
-    });
 
-    const createdCardIdBySourceCardId = new Map(
-      parsed.cards.map((card) => [card.sourceCardId, card.createId])
-    );
-    const reviewLogsToCreate = parsed.reviewLogs.flatMap((log) => {
-      const cardId = createdCardIdBySourceCardId.get(log.sourceCardId);
-      if (!cardId) {
-        return [];
-      }
+      await createManyInBatches(reviewLogsToCreate, async (batch) => {
+        await tx.studyReviewLog.createMany({
+          data: batch,
+        });
+      });
 
-      return [
-        {
-          id: log.createId,
-          userId: params.userId,
-          cardId,
-          importJobId: importJob.id,
-          source: 'anki_import' as const,
-          sourceReviewId: BigInt(log.sourceReviewId),
-          reviewedAt: log.reviewedAt,
-          rating: log.rating,
-          sourceEase: log.sourceEase,
-          sourceInterval: log.sourceInterval,
-          sourceLastInterval: log.sourceLastInterval,
-          sourceFactor: log.sourceFactor,
-          sourceTimeMs: log.sourceTimeMs,
-          sourceReviewType: log.sourceReviewType,
-          rawPayloadJson: toImportReviewRawPayload(log),
+      await tx.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          status: 'completed',
+          previewJson: toPrismaJson(parsed.preview),
+          summaryJson: toPrismaJson({
+            cardCount: parsed.cards.length,
+            noteCount: parsed.notes.length,
+            reviewLogCount: parsed.reviewLogs.length,
+            mediaCount: parsed.media.length,
+          }),
+          completedAt,
         },
-      ];
-    });
-    await createManyInBatches(reviewLogsToCreate, async (batch) => {
-      await prisma.studyReviewLog.createMany({
-        data: batch,
       });
-    });
-
-    await prisma.studyImportJob.update({
-      where: { id: importJob.id },
-      data: {
-        status: 'completed',
-        previewJson: toPrismaJson(parsed.preview),
-        summaryJson: toPrismaJson({
-          cardCount: parsed.cards.length,
-          noteCount: parsed.notes.length,
-          reviewLogCount: parsed.reviewLogs.length,
-          mediaCount: parsed.media.length,
-        }),
-        completedAt: new Date(),
-      },
     });
 
     return {
@@ -336,7 +341,7 @@ export async function importJapaneseStudyColpkg(params: {
       sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
       deckName: ANKI_DECK_NAME,
       preview: parsed.preview,
-      importedAt: new Date().toISOString(),
+      importedAt: completedAt.toISOString(),
       errorMessage: null,
     };
   } catch (error) {

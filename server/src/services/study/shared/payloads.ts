@@ -137,9 +137,15 @@ export function createStudyImportWarningAccumulator(): StudyImportWarningAccumul
 export function recordStudyImportWarning(
   accumulator: StudyImportWarningAccumulator,
   filename: string,
-  reason: string
+  reason: string,
+  options?: {
+    countsAsSkippedMedia?: boolean;
+  }
 ) {
-  accumulator.skippedMediaCount += 1;
+  if (options?.countsAsSkippedMedia ?? true) {
+    accumulator.skippedMediaCount += 1;
+  }
+
   if (accumulator.warnings.length >= STUDY_IMPORT_WARNING_LIMIT) {
     return;
   }

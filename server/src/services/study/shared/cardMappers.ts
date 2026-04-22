@@ -18,8 +18,8 @@ import {
 } from './guards.js';
 import { normalizeClozePayload } from './importHelpers.js';
 import { getStudyMediaApiPath } from './paths.js';
-import { toStudyFsrsState } from './payloads.js';
 import { noteFieldValueToString, stripHtml } from './text.js';
+import { getRequiredSchedulerState } from './time.js';
 import type {
   PersistedStudyMediaRecord,
   StudyBrowserListCardRecord,
@@ -157,7 +157,7 @@ export async function toStudyCardSummary(
     state: {
       dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
       queueState: parseStudyQueueState(record.queueState),
-      scheduler: toStudyFsrsState(record.schedulerStateJson),
+      scheduler: getRequiredSchedulerState(record),
       source: {
         noteId:
           typeof noteRecord.sourceNoteId === 'bigint' ? String(noteRecord.sourceNoteId) : null,
