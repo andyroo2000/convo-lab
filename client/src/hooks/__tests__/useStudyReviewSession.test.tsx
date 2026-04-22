@@ -356,4 +356,31 @@ describe('useStudyReviewSession', () => {
       expect(result.current.currentCard).toBeNull();
     });
   });
+
+  it('does not surface a stale audio preparation error after focus mode exits', async () => {
+    const deferredAudio = createDeferred<typeof baseCardOne>();
+    prepareStudyAnswerAudioMock.mockReturnValue(deferredAudio.promise);
+
+    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.revealCurrentCard();
+      result.current.exitFocusMode();
+    });
+
+    await act(async () => {
+      deferredAudio.reject(new Error('audio failed'));
+      await deferredAudio.promise.catch(() => undefined);
+    });
+
+    await waitFor(() => {
+      expect(result.current.focusMode).toBe(false);
+      expect(result.current.sessionError).toBeNull();
+    });
+  });
 });

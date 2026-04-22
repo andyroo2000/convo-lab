@@ -164,4 +164,24 @@ describe('studyRateLimit middleware', () => {
     expect(next).toHaveBeenCalledWith();
     expect(expireAtMock).toHaveBeenCalledWith('rate-limit:study:reviews:user-1:0', 60, 'NX');
   });
+
+  it('applies study rate limits to admins as well as regular users', async () => {
+    ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
+    execMock.mockResolvedValue([
+      [null, 1],
+      [null, 1],
+    ]);
+
+    const middleware = rateLimitStudyRoute({
+      key: 'media-read',
+      max: 240,
+      windowMs: 60_000,
+    });
+    const next = vi.fn();
+
+    await middleware({ userId: 'admin-1', role: 'admin' } as never, {} as Response, next as never);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(incrMock).toHaveBeenCalledWith('rate-limit:study:media-read:admin-1:0');
+  });
 });

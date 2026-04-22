@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  createStudyFsrsScheduler,
   deserializeStudyFsrsCard,
   serializeStudyFsrsCard,
 } from '@languageflow/shared/src/studyFsrs';
@@ -23,5 +24,12 @@ describe('studyFsrs shared helpers', () => {
     const deserialized = deserializeStudyFsrsCard(serialized);
 
     expect(deserialized).toEqual(original);
+  });
+
+  it('builds a reusable shared scheduler instance for client-side interval previews', () => {
+    const scheduler = createStudyFsrsScheduler();
+
+    expect(typeof scheduler.next).toBe('function');
+    expect(typeof scheduler.repeat).toBe('function');
   });
 });

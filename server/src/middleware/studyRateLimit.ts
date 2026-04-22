@@ -55,11 +55,6 @@ export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
         throw new AppError('Authentication required', 401);
       }
 
-      if (req.role === 'admin') {
-        next();
-        return;
-      }
-
       const windowStart = Math.floor(Date.now() / options.windowMs);
       const windowResetAtSeconds = Math.max(
         1,
@@ -93,6 +88,8 @@ export function rateLimitStudyRoute(options: StudyRateLimitOptions) {
         return;
       }
 
+      // Non-import study routes fail open so review/browse flows stay available during
+      // transient Redis outages. Sensitive routes opt into fail-closed explicitly.
       console.warn('[Study] Rate limit unavailable; allowing request:', error);
       next();
     }

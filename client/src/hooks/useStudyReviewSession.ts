@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { flushSync } from 'react-dom';
-import { fsrs, Rating, type Card as FsrsCard } from 'ts-fsrs';
-import { deserializeStudyFsrsCard } from '@languageflow/shared/src/studyFsrs';
+import { Rating, type Card as FsrsCard } from 'ts-fsrs';
+import {
+  createStudyFsrsScheduler,
+  deserializeStudyFsrsCard,
+} from '@languageflow/shared/src/studyFsrs';
 import type {
   StudyCardSetDueMode,
   StudyCardSummary,
@@ -13,7 +16,6 @@ import type {
 
 import {
   type StudySessionResponse,
-  prepareStudyAnswerAudio,
   startStudySession,
   undoStudyReview,
   useStudyCardAction,
@@ -21,15 +23,15 @@ import {
   useUpdateStudyCard,
 } from './useStudy';
 import useStudyAudioAutoplay from './useStudyAudioAutoplay';
+import useStudyAnswerAudioPrep from './useStudyAnswerAudioPrep';
+import useStudyKeyboardShortcuts from './useStudyKeyboardShortcuts';
 import { useStudyMotionUndo } from './useStudyMotionUndo';
 import useStudyUndoStack from './useStudyUndoStack';
 import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
-const reviewScheduler = fsrs();
-const ANSWER_AUDIO_PREP_MAX_ATTEMPTS = 4;
-const ANSWER_AUDIO_PREP_RETRY_DELAY_MS = 300;
+const reviewScheduler = createStudyFsrsScheduler();
 
 interface StudyUndoSnapshot {
   session: StudySessionResponse | null;
@@ -97,9 +99,6 @@ const isCardEligibleForSession = (card: StudyCardSummary) => {
   return new Date(card.state.dueAt).getTime() <= Date.now();
 };
 
-const hasReadyAnswerAudio = (card: StudyCardSummary) =>
-  Boolean(toAssetUrl(card.answer.answerAudio?.url));
-
 interface UseStudyReviewSessionOptions {
   availableCount: number;
 }
@@ -121,9 +120,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const [reviewSubmitPending, setReviewSubmitPending] = useState(false);
   const [answeredCardIds, setAnsweredCardIds] = useState<string[]>([]);
   const [failedCardIds, setFailedCardIds] = useState<string[]>([]);
-  const inFlightAudioPrep = useRef<Map<string, Promise<StudyCardSummary>>>(new Map());
   const reviewSubmitPendingRef = useRef(false);
   const sessionCardCountRef = useRef(0);
+  const canSurfaceAsyncSessionErrorRef = useRef(false);
   const runBackgroundTask = useStudyBackgroundTask();
 
   const cards = useMemo(() => session?.cards ?? [], [session?.cards]);
@@ -162,6 +161,16 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
   }, [session]);
+
+  useEffect(() => {
+    canSurfaceAsyncSessionErrorRef.current = focusMode;
+  }, [focusMode]);
+
+  const reportAsyncSessionError = useCallback((message: string) => {
+    if (canSurfaceAsyncSessionErrorRef.current) {
+      setSessionError(message);
+    }
+  }, []);
 
   const { popUndo, pushUndo, resetUndo } = useStudyUndoStack<StudyUndoAction>();
 
@@ -247,55 +256,11 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     [answeredCardIds, currentIndex, failedCardIds, getCachedOverview, revealed, session]
   );
 
-  const ensureAnswerAudioPrepared = useCallback(
-    async (cardId: string) => {
-      const existingPromise = inFlightAudioPrep.current.get(cardId);
-      if (existingPromise) {
-        return existingPromise;
-      }
-
-      const request = (async () => {
-        const attemptPrepare = async (attempt: number): Promise<StudyCardSummary> => {
-          const updatedCard = await prepareStudyAnswerAudio(cardId);
-          mergeCardIntoSession(updatedCard);
-
-          if (hasReadyAnswerAudio(updatedCard)) {
-            return updatedCard;
-          }
-
-          if (attempt >= ANSWER_AUDIO_PREP_MAX_ATTEMPTS - 1) {
-            return updatedCard;
-          }
-
-          await new Promise((resolve) => {
-            setTimeout(resolve, ANSWER_AUDIO_PREP_RETRY_DELAY_MS);
-          });
-
-          return attemptPrepare(attempt + 1);
-        };
-
-        const latestCard = await attemptPrepare(0);
-        if (!latestCard) {
-          throw new Error('Answer audio could not be prepared.');
-        }
-        return latestCard;
-      })()
-        .catch((error) => {
-          console.warn('Unable to prepare answer audio for study card:', cardId, error);
-          setSessionError(
-            error instanceof Error ? error.message : 'Answer audio could not be prepared.'
-          );
-          throw error;
-        })
-        .finally(() => {
-          inFlightAudioPrep.current.delete(cardId);
-        });
-
-      inFlightAudioPrep.current.set(cardId, request);
-      return request;
-    },
-    [mergeCardIntoSession]
-  );
+  const ensureAnswerAudioPrepared = useStudyAnswerAudioPrep({
+    enabled: focusMode,
+    mergeCardIntoSession,
+    onError: reportAsyncSessionError,
+  });
 
   const { answerAudioRef, promptAudioRef, stopAllAudio } = useStudyAudioAutoplay({
     cards,
@@ -366,7 +331,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     runBackgroundTask(() => ensureAnswerAudioPrepared(currentCard.id), {
       label: 'Study answer-audio preparation',
       errorMessage: 'Answer audio could not be prepared.',
-      onError: setSessionError,
+      onError: reportAsyncSessionError,
     });
   }, [
     captureUndoSnapshot,
@@ -375,6 +340,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     ensureAnswerAudioPrepared,
     pushUndo,
     revealed,
+    reportAsyncSessionError,
     runBackgroundTask,
     stopAllAudio,
   ]);
@@ -382,6 +348,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const exitFocusMode = useCallback(() => {
     stopAllAudio();
     resetUndo();
+    canSurfaceAsyncSessionErrorRef.current = false;
     setFocusMode(false);
     setSession(null);
     setSessionError(null);
@@ -623,6 +590,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
   const enterFocusMode = useCallback(async () => {
     stopAllAudio();
     resetUndo();
+    canSurfaceAsyncSessionErrorRef.current = true;
     setFocusMode(true);
     setCurrentIndex(0);
     setRevealed(false);
@@ -674,89 +642,21 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     };
   }, [focusMode]);
 
-  useEffect(() => {
-    if (!focusMode) return undefined;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z' && !event.shiftKey) {
-        event.preventDefault();
-        runBackgroundTask(() => handleUndo(), {
-          label: 'Study keyboard undo',
-          errorMessage: 'Undo failed.',
-          onError: setSessionError,
-        });
-        return;
-      }
-
-      if (editing && event.key === 'Escape') {
-        event.preventDefault();
-        setEditing(false);
-        return;
-      }
-
-      if (editing || cardActionMutation.isPending) return;
-
-      if (event.code === 'Space') {
-        event.preventDefault();
-        revealCurrentCard();
-        return;
-      }
-
-      if (!revealed || reviewSubmitPendingRef.current || reviewMutation.isPending) return;
-
-      if (event.key === '1') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('again'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError: setSessionError,
-        });
-      } else if (event.key === '2') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('hard'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError: setSessionError,
-        });
-      } else if (event.key === '3') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('good'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError: setSessionError,
-        });
-      } else if (event.key === '4') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('easy'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError: setSessionError,
-        });
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        exitFocusMode();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
+  useStudyKeyboardShortcuts({
+    cardActionPending: cardActionMutation.isPending,
     editing,
-    cardActionMutation.isPending,
     exitFocusMode,
     focusMode,
     handleGrade,
     handleUndo,
+    onError: reportAsyncSessionError,
     revealCurrentCard,
     revealed,
+    reviewPending: reviewMutation.isPending,
     reviewSubmitPending,
-    reviewMutation.isPending,
     runBackgroundTask,
-  ]);
+    setEditing,
+  });
 
   return {
     focusMode,

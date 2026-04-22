@@ -55,6 +55,8 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
 export async function getStudyOverview(userId: string): Promise<StudyOverview> {
   const now = new Date();
   const [cardOverviewRows, latestImport] = await Promise.all([
+    // Keep overview card work to one aggregate query; hot mutation paths update cached
+    // counts incrementally, and the initial load only needs this summary plus latest import.
     prisma.$queryRaw<
       Array<{
         due_count: bigint | number | null;

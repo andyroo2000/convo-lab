@@ -57,6 +57,8 @@ const queryClient = new QueryClient({
   },
 });
 
+// Install the global fetch wrapper before mounting the app so first-party modules do not
+// capture an unwrapped fetch reference before CSRF headers are injected on mutations.
 installCsrfFetch();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

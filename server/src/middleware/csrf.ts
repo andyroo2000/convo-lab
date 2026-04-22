@@ -1,4 +1,4 @@
-import csurf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
 import type {
   CookieOptions,
   ErrorRequestHandler,
@@ -18,7 +18,6 @@ const DEVELOPMENT_ALLOWED_ORIGINS = [
 ];
 const CSRF_EXEMPT_PATHS = new Set(['/webhooks/stripe', '/tools/analytics']);
 
-export const CSRF_SECRET_COOKIE_NAME = '_csrf';
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'x-csrf-token';
 
@@ -92,33 +91,33 @@ function getReadableCsrfCookieOptions(
   };
 }
 
-function getSecretCsrfCookieOptions(
-  sameSite: CookieOptions['sameSite'] = process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
-): CookieOptions & { key: string } {
-  return {
-    key: CSRF_SECRET_COOKIE_NAME,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: getCookieSameSite(sameSite),
-    path: '/',
-  };
+function getCsrfSecret(): string {
+  return (
+    process.env.CSRF_SECRET ??
+    process.env.COOKIE_SECRET ??
+    process.env.JWT_SECRET ??
+    'development-csrf-secret'
+  );
 }
 
-function getSecretCsrfClearCookieOptions(
-  sameSite: CookieOptions['sameSite'] = process.env.NODE_ENV === 'production' ? 'strict' : 'lax'
-): CookieOptions {
-  return {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: getCookieSameSite(sameSite),
-    path: '/',
-  };
-}
-
-export const apiCsrfProtection: RequestHandler = csurf({
-  cookie: getSecretCsrfCookieOptions(),
-  value: (req) => req.get(CSRF_TOKEN_HEADER_NAME) ?? '',
+const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
+  getSecret: () => getCsrfSecret(),
+  getSessionIdentifier: (req) =>
+    typeof req.cookies?.token === 'string' && req.cookies.token.length > 0
+      ? req.cookies.token
+      : 'anonymous',
+  cookieName: CSRF_TOKEN_COOKIE_NAME,
+  cookieOptions: getReadableCsrfCookieOptions(),
+  getCsrfTokenFromRequest: (req) => req.get(CSRF_TOKEN_HEADER_NAME) ?? '',
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  errorConfig: {
+    code: 'EBADCSRFTOKEN',
+    message: 'invalid csrf token',
+    statusCode: 403,
+  },
 });
+
+export const apiCsrfProtection: RequestHandler = doubleCsrfProtection;
 
 export function isCsrfExemptPath(pathname: string): boolean {
   return CSRF_EXEMPT_PATHS.has(pathname);
@@ -194,18 +193,21 @@ export function issueCsrfTokenCookie(
   sameSite?: CookieOptions['sameSite']
 ): string {
   const requestWithCsrf = req as Partial<CsrfRequest>;
-  if (typeof requestWithCsrf.csrfToken !== 'function') {
-    throw new AppError('CSRF middleware is not configured for this request.', 500);
+  if (typeof requestWithCsrf.csrfToken === 'function') {
+    return requestWithCsrf.csrfToken({
+      cookieOptions: getReadableCsrfCookieOptions(sameSite),
+      overwrite: true,
+    });
   }
 
-  const token = requestWithCsrf.csrfToken();
-  res.cookie(CSRF_TOKEN_COOKIE_NAME, token, getReadableCsrfCookieOptions(sameSite));
-  return token;
+  return generateCsrfToken(req, res, {
+    cookieOptions: getReadableCsrfCookieOptions(sameSite),
+    overwrite: true,
+  });
 }
 
 export function clearCsrfCookies(res: Response, sameSite?: CookieOptions['sameSite']) {
   res.clearCookie(CSRF_TOKEN_COOKIE_NAME, getReadableCsrfCookieOptions(sameSite));
-  res.clearCookie(CSRF_SECRET_COOKIE_NAME, getSecretCsrfClearCookieOptions(sameSite));
 }
 
 export function resetAllowedApiOriginsCacheForTests() {

@@ -1,6 +1,7 @@
 import {
   IMPORTED_STUDY_DIFFICULTY_DEFAULT,
   IMPORTED_STUDY_STABILITY_MIN,
+  createStudyFsrsScheduler,
   serializeStudyFsrsCard as serializeFsrsCard,
 } from '@languageflow/shared/src/studyFsrs.js';
 import type {
@@ -8,14 +9,14 @@ import type {
   StudyFsrsState,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
-import { fsrs, State, type Card } from 'ts-fsrs';
+import { State, type Card } from 'ts-fsrs';
 
 import { AppError } from '../../../middleware/errorHandler.js';
 
 import { parseStudyQueueState } from './guards.js';
 import { toStudyFsrsState } from './payloads.js';
 
-export const scheduler = fsrs();
+export const scheduler = createStudyFsrsScheduler();
 export const DEFAULT_STUDY_LIMIT = 20;
 
 export function createFreshSchedulerState(

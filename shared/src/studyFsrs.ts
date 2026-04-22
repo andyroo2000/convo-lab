@@ -1,7 +1,13 @@
+import { fsrs } from 'ts-fsrs';
+
 import type { StudyFsrsState } from './types.js';
 
 export const IMPORTED_STUDY_DIFFICULTY_DEFAULT = 5;
 export const IMPORTED_STUDY_STABILITY_MIN = 0.1;
+
+export function createStudyFsrsScheduler() {
+  return fsrs();
+}
 
 export interface StudyFsrsCardLike {
   due: Date;

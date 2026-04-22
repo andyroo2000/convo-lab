@@ -148,6 +148,8 @@ export function installCsrfFetch(): void {
     return;
   }
 
+  // This wrapper must be installed during bootstrap before app code starts issuing
+  // first-party mutation requests or caching its own fetch reference.
   const originalFetch = window.fetch.bind(window);
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     if (!shouldAttachCsrfToken(input, init)) {

@@ -455,8 +455,8 @@ model StudyCard {
   sourceOriginalDue    Int?
   sourceOriginalDeckId BigInt?
   sourceFsrsJson       Json?
-  cardType             String
-  queueState           String
+  cardType             String // recognition | production | cloze; DB check enforced in migration history.
+  queueState           String // Runtime queue state; DB check enforced in migration history.
   dueAt                DateTime?
   lastReviewedAt       DateTime?
   promptJson           Json
@@ -495,7 +495,7 @@ model StudyReviewLog {
   cardId             String
   importJobId        String?
   source             String
-  sourceReviewId     BigInt?
+  sourceReviewId     BigInt? // Nullable for ConvoLab-native logs; unique per user when imported review ids are present.
   reviewedAt         DateTime
   rating             Int
   durationMs         Int?

@@ -227,6 +227,13 @@ describe('studySchedulerService', () => {
 
     expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalled();
     expect(created.answerAudioSource).toBe('generated');
+    expect(created.state.scheduler).toEqual(
+      expect.objectContaining({
+        difficulty: expect.any(Number),
+        stability: expect.any(Number),
+        due: expect.any(String),
+      })
+    );
   });
 
   it('updates a study card without changing scheduling and regenerates answer audio when spoken answer text changes', async () => {
@@ -391,6 +398,7 @@ describe('studySchedulerService', () => {
     const overview = await getStudyOverview('user-1');
 
     expect(mockPrisma.$queryRaw).toHaveBeenCalled();
+    expect(mockPrisma.studyCard.findMany).not.toHaveBeenCalled();
     expect(overview.nextDueAt).toBe('2026-04-12T00:00:00.000Z');
   });
 

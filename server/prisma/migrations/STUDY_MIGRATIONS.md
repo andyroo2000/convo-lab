@@ -14,6 +14,8 @@ Corrective migrations worth calling out:
   Recomputes `searchText` from JSON scalar text instead of raw JSON casts.
 - `20260422113000_harden_study_card_state`
   Backfills and hardens scheduler state / queue-state invariants.
+- `20260422213000_add_study_card_type_check`
+  Adds the DB-level `cardType` discriminator check that matches route/service validation.
 
 Rollback expectations:
 
