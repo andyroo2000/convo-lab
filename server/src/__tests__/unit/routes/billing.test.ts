@@ -1,10 +1,26 @@
+import cookieParser from 'cookie-parser';
 import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
+import {
+  CSRF_TOKEN_COOKIE_NAME,
+  CSRF_TOKEN_HEADER_NAME,
+  issueCsrfTokenCookie,
+  requireApiCsrfProtection,
+  resetAllowedApiOriginsCacheForTests,
+} from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import billingRouter from '../../../routes/billing.js';
+
+function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
+  if (Array.isArray(setCookieHeader)) {
+    return setCookieHeader;
+  }
+
+  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
+}
 
 // Create hoisted mocks
 const mockStripeService = vi.hoisted(() => ({
@@ -47,21 +63,60 @@ describe('Billing Routes', () => {
   let app: express.Application;
   const originalStripePriceProMonthly = process.env.STRIPE_PRICE_PRO_MONTHLY;
   const originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  let csrfCookies: string[] = [];
+  let csrfToken = '';
 
-  beforeEach(() => {
+  function withCsrf(requestBuilder: request.Test, origin: string = 'http://localhost:5173') {
+    return requestBuilder
+      .set('Origin', origin)
+      .set('Cookie', csrfCookies)
+      .set(CSRF_TOKEN_HEADER_NAME, csrfToken);
+  }
+
+  beforeEach(async () => {
     vi.resetAllMocks();
+    process.env.CLIENT_URL = 'http://localhost:5173';
+    resetAllowedApiOriginsCacheForTests();
     app = express();
+    app.use(cookieParser());
     app.use(expressJson());
+    app.use('/api', requireApiCsrfProtection);
+    app.get('/api/auth/csrf', (req, res) => {
+      issueCsrfTokenCookie(req, res, 'lax');
+      res.status(204).end();
+    });
     app.use('/api', billingRouter);
     app.use(errorHandler);
+
+    const csrfResponse = await request(app)
+      .get('/api/auth/csrf')
+      .set('Origin', 'http://localhost:5173');
+    csrfCookies = getSetCookieArray(csrfResponse.headers['set-cookie']);
+    const tokenCookie = csrfCookies
+      .map((value) => value.split(';')[0])
+      .find((value) => value.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`));
+    csrfToken = tokenCookie
+      ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
+      : '';
   });
 
   afterEach(() => {
     process.env.STRIPE_PRICE_PRO_MONTHLY = originalStripePriceProMonthly;
     process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhookSecret;
+    resetAllowedApiOriginsCacheForTests();
   });
 
   describe('POST /api/billing/create-checkout-session', () => {
+    it('rejects checkout session creation without a CSRF token', async () => {
+      const response = await request(app)
+        .post('/api/billing/create-checkout-session')
+        .set('Origin', 'http://localhost:5173')
+        .send({ priceId: 'price_test_123' })
+        .expect(403);
+
+      expect(response.body.error.message).toBe('Invalid CSRF token.');
+    });
+
     it('should create checkout session with valid price ID', async () => {
       const originalEnv = process.env.STRIPE_PRICE_PRO_MONTHLY;
       process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_test_123';
@@ -70,8 +125,7 @@ describe('Billing Routes', () => {
         url: 'https://checkout.stripe.com/session-123',
       });
 
-      const response = await request(app)
-        .post('/api/billing/create-checkout-session')
+      const response = await withCsrf(request(app).post('/api/billing/create-checkout-session'))
         .send({ priceId: 'price_test_123' })
         .expect(200);
 
@@ -87,8 +141,7 @@ describe('Billing Routes', () => {
     });
 
     it('should reject request without price ID', async () => {
-      const response = await request(app)
-        .post('/api/billing/create-checkout-session')
+      const response = await withCsrf(request(app).post('/api/billing/create-checkout-session'))
         .send({})
         .expect(400);
 
@@ -100,8 +153,7 @@ describe('Billing Routes', () => {
       const originalEnv = process.env.STRIPE_PRICE_PRO_MONTHLY;
       process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_test_123';
 
-      const response = await request(app)
-        .post('/api/billing/create-checkout-session')
+      const response = await withCsrf(request(app).post('/api/billing/create-checkout-session'))
         .send({ priceId: 'price_invalid' })
         .expect(400);
 
@@ -117,8 +169,7 @@ describe('Billing Routes', () => {
 
       mockStripeService.createCheckoutSession.mockRejectedValue(new Error('Stripe API error'));
 
-      const response = await request(app)
-        .post('/api/billing/create-checkout-session')
+      const response = await withCsrf(request(app).post('/api/billing/create-checkout-session'))
         .send({ priceId: 'price_test_123' })
         .expect(500);
 
@@ -134,7 +185,9 @@ describe('Billing Routes', () => {
         url: 'https://billing.stripe.com/session-123',
       });
 
-      const response = await request(app).post('/api/billing/create-portal-session').expect(200);
+      const response = await withCsrf(
+        request(app).post('/api/billing/create-portal-session')
+      ).expect(200);
 
       expect(response.body).toEqual({
         url: 'https://billing.stripe.com/session-123',
@@ -147,7 +200,9 @@ describe('Billing Routes', () => {
         new Error('No Stripe customer found')
       );
 
-      const response = await request(app).post('/api/billing/create-portal-session').expect(500);
+      const response = await withCsrf(
+        request(app).post('/api/billing/create-portal-session')
+      ).expect(500);
 
       expect(response.body.error.message).toBe('No Stripe customer found');
     });

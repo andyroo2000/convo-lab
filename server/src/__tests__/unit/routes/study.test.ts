@@ -14,9 +14,23 @@ import express, {
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  CSRF_TOKEN_COOKIE_NAME,
+  CSRF_TOKEN_HEADER_NAME,
+  issueCsrfTokenCookie,
+  requireApiCsrfProtection,
+  resetAllowedApiOriginsCacheForTests,
+} from '../../../middleware/csrf.js';
 import { AppError } from '../../../middleware/errorHandler.js';
-import { STUDY_CSRF_COOKIE_NAME, STUDY_CSRF_HEADER_NAME } from '../../../middleware/studyCsrf.js';
 import { mockPrisma } from '../../setup.js';
+
+function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
+  if (Array.isArray(setCookieHeader)) {
+    return setCookieHeader;
+  }
+
+  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
+}
 
 const {
   createRedisConnectionMock,
@@ -102,22 +116,24 @@ describe('Study Routes', () => {
   let studyRouter: Router;
   let testClockOffset = 0;
   let temporaryDirectory: string;
-  const studyCsrfToken = 'study-csrf-token';
+  let csrfCookies: string[] = [];
+  let csrfToken = '';
 
-  function withStudyMutationCsrf(
+  function withMutationCsrf(
     requestBuilder: request.Test,
     origin: string = 'http://localhost:5173'
   ) {
     return requestBuilder
       .set('Origin', origin)
-      .set('Cookie', `${STUDY_CSRF_COOKIE_NAME}=${studyCsrfToken}`)
-      .set(STUDY_CSRF_HEADER_NAME, studyCsrfToken);
+      .set('Cookie', csrfCookies)
+      .set(CSRF_TOKEN_HEADER_NAME, csrfToken);
   }
 
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
     process.env.CLIENT_URL = 'http://localhost:5173';
+    resetAllowedApiOriginsCacheForTests();
     expireAtMock.mockReset();
     execMock.mockReset();
     multiMock.mockReset();
@@ -153,6 +169,12 @@ describe('Study Routes', () => {
     app = express();
     app.use(cookieParser());
     app.use(expressJson());
+    app.use('/api', requireApiCsrfProtection);
+    app.use('/study', requireApiCsrfProtection);
+    app.get('/api/auth/csrf', (req, res) => {
+      issueCsrfTokenCookie(req, res, 'lax');
+      res.status(204).end();
+    });
     mockPrisma.featureFlag.findFirst.mockResolvedValue({
       dialoguesEnabled: true,
       audioCourseEnabled: true,
@@ -173,6 +195,17 @@ describe('Study Routes', () => {
           : 500;
       res.status(statusCode).json({ message });
     }) as ErrorRequestHandler);
+
+    const csrfResponse = await request(app)
+      .get('/api/auth/csrf')
+      .set('Origin', 'http://localhost:5173');
+    csrfCookies = getSetCookieArray(csrfResponse.headers['set-cookie']);
+    const tokenCookie = csrfCookies
+      .map((value) => value.split(';')[0])
+      .find((value) => value.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`));
+    csrfToken = tokenCookie
+      ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
+      : '';
   });
 
   afterEach(() => {
@@ -192,7 +225,7 @@ describe('Study Routes', () => {
       cards: [],
     });
 
-    const response = await withStudyMutationCsrf(request(app).post('/study/session/start')).send({
+    const response = await withMutationCsrf(request(app).post('/study/session/start')).send({
       limit: 999,
     });
 
@@ -201,7 +234,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects invalid review grades', async () => {
-    const response = await withStudyMutationCsrf(request(app).post('/study/reviews')).send({
+    const response = await withMutationCsrf(request(app).post('/study/reviews')).send({
       cardId: 'card-1',
       grade: 'nope',
     });
@@ -225,7 +258,7 @@ describe('Study Routes', () => {
       },
     });
 
-    const response = await withStudyMutationCsrf(request(app).post('/study/reviews')).send({
+    const response = await withMutationCsrf(request(app).post('/study/reviews')).send({
       cardId: 'card-1',
       grade: 'good',
       durationMs: Number.MAX_SAFE_INTEGER,
@@ -241,7 +274,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects invalid edit payloads', async () => {
-    const response = await withStudyMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
       prompt: 'bad',
       answer: null,
     });
@@ -252,7 +285,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects create payloads with unsupported prompt fields', async () => {
-    const response = await withStudyMutationCsrf(request(app).post('/study/cards')).send({
+    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
       cardType: 'recognition',
       prompt: { cueText: '会社', unexpected: 'nope' },
       answer: { meaning: 'company' },
@@ -264,7 +297,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects update payloads with invalid media refs', async () => {
-    const response = await withStudyMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
       prompt: {
         cueAudio: {
           filename: 'audio.mp3',
@@ -283,7 +316,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects oversized create payloads before hitting the service', async () => {
-    const response = await withStudyMutationCsrf(request(app).post('/study/cards')).send({
+    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
       cardType: 'recognition',
       prompt: { cueText: 'a'.repeat(70 * 1024) },
       answer: { meaning: 'company' },
@@ -315,7 +348,7 @@ describe('Study Routes', () => {
       },
     };
 
-    const response = await withStudyMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
       prompt: tooDeepPrompt,
       answer: { meaning: 'company' },
     });
@@ -338,9 +371,11 @@ describe('Study Routes', () => {
       },
     });
 
-    const response = await withStudyMutationCsrf(
-      request(app).post('/study/cards/card-1/actions')
-    ).send({ action: 'set_due', mode: 'tomorrow', timeZone: 'America/New_York' });
+    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
+      action: 'set_due',
+      mode: 'tomorrow',
+      timeZone: 'America/New_York',
+    });
 
     expect(response.status).toBe(200);
     expect(performStudyCardActionMock).toHaveBeenCalledWith({
@@ -354,9 +389,10 @@ describe('Study Routes', () => {
   });
 
   it('rejects set_due tomorrow without a valid timezone', async () => {
-    const response = await withStudyMutationCsrf(
-      request(app).post('/study/cards/card-1/actions')
-    ).send({ action: 'set_due', mode: 'tomorrow' });
+    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
+      action: 'set_due',
+      mode: 'tomorrow',
+    });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
@@ -364,9 +400,11 @@ describe('Study Routes', () => {
   });
 
   it('rejects invalid set_due payloads', async () => {
-    const response = await withStudyMutationCsrf(
-      request(app).post('/study/cards/card-1/actions')
-    ).send({ action: 'set_due', mode: 'custom_date', dueAt: 'bad-date' });
+    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
+      action: 'set_due',
+      mode: 'custom_date',
+      dueAt: 'bad-date',
+    });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('dueAt must be a valid ISO-8601 datetime');
@@ -377,9 +415,11 @@ describe('Study Routes', () => {
     const farFuture = new Date();
     farFuture.setFullYear(farFuture.getFullYear() + 11);
 
-    const response = await withStudyMutationCsrf(
-      request(app).post('/study/cards/card-1/actions')
-    ).send({ action: 'set_due', mode: 'custom_date', dueAt: farFuture.toISOString() });
+    const response = await withMutationCsrf(request(app).post('/study/cards/card-1/actions')).send({
+      action: 'set_due',
+      mode: 'custom_date',
+      dueAt: farFuture.toISOString(),
+    });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('within 10 years');
@@ -473,7 +513,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects non-.colpkg uploads before import processing', async () => {
-    const response = await withStudyMutationCsrf(request(app).post('/study/imports')).attach(
+    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
       'file',
       Buffer.from('not-a-colpkg'),
       'anki-export.txt'
@@ -489,7 +529,7 @@ describe('Study Routes', () => {
       new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400)
     );
 
-    const response = await withStudyMutationCsrf(request(app).post('/study/imports')).attach(
+    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
       'file',
       Buffer.from('nope'),
       'anki-export.colpkg'
@@ -505,7 +545,7 @@ describe('Study Routes', () => {
       new AppError('The uploaded .colpkg could not be parsed.', 400)
     );
 
-    const response = await withStudyMutationCsrf(request(app).post('/study/imports')).attach(
+    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
       'file',
       Buffer.from('PKnot-a-real-zip'),
       'anki-export.colpkg'
@@ -519,7 +559,7 @@ describe('Study Routes', () => {
   it('returns 503 for imports when study rate limiting is unavailable', async () => {
     execMock.mockRejectedValueOnce(new Error('redis unavailable'));
 
-    const response = await withStudyMutationCsrf(request(app).post('/study/imports')).attach(
+    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
       'file',
       Buffer.from('PKnot-a-real-zip'),
       'anki-export.colpkg'
@@ -531,7 +571,7 @@ describe('Study Routes', () => {
   });
 
   it('rejects oversized .colpkg uploads with 413', async () => {
-    const response = await withStudyMutationCsrf(request(app).post('/study/imports')).attach(
+    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
       'file',
       Buffer.alloc(201 * 1024 * 1024, 0),
       'too-large.colpkg'
@@ -696,7 +736,7 @@ describe('Study Routes', () => {
   });
 
   it('blocks study mutation routes for cross-origin requests', async () => {
-    const response = await withStudyMutationCsrf(
+    const response = await withMutationCsrf(
       request(app).post('/study/session/start'),
       'https://evil.example.com'
     ).send({ limit: 10 });
@@ -765,11 +805,10 @@ describe('Study Routes', () => {
       cards: [],
     });
 
-    const response = await request(app)
-      .post('/study/session/start')
-      .set('Cookie', `${STUDY_CSRF_COOKIE_NAME}=${studyCsrfToken}`)
-      .set(STUDY_CSRF_HEADER_NAME, studyCsrfToken)
-      .send({ limit: 10 });
+    const response = await withMutationCsrf(
+      request(app).post('/study/session/start'),
+      'https://evil.example.com'
+    ).send({ limit: 10 });
 
     expect(response.status).toBe(403);
     expect(startStudySessionMock).not.toHaveBeenCalled();
@@ -779,11 +818,11 @@ describe('Study Routes', () => {
     const response = await request(app)
       .post('/study/session/start')
       .set('Origin', 'http://localhost:5173')
-      .set('Cookie', `${STUDY_CSRF_COOKIE_NAME}=${studyCsrfToken}`)
+      .set('Cookie', csrfCookies)
       .send({ limit: 10 });
 
     expect(response.status).toBe(403);
-    expect(response.body.message).toContain('Invalid study CSRF token');
+    expect(response.body.message).toContain('Invalid CSRF token');
     expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 

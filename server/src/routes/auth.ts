@@ -12,9 +12,9 @@ import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
 import { emailQueue } from '../jobs/emailQueue.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { clearCsrfCookies, issueCsrfTokenCookie } from '../middleware/csrf.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { isAdminEmail } from '../middleware/roleAuth.js';
-import { clearStudyCsrfCookie, setStudyCsrfCookie } from '../middleware/studyCsrf.js';
 import { revokeGoogleTokens } from '../services/oauth.js';
 import { copySampleContentToUser } from '../services/sampleContent.js';
 import { checkGenerationLimit, checkCooldown } from '../services/usageTracker.js';
@@ -30,16 +30,25 @@ function getSessionCookieOptions(sameSite: 'lax' | 'strict' = 'lax') {
   } as const;
 }
 
-function setSessionCookies(res: Response, token: string, sameSite: 'lax' | 'strict' = 'lax') {
+function setSessionCookies(
+  req: AuthRequest,
+  res: Response,
+  token: string,
+  sameSite: 'lax' | 'strict' = 'lax'
+) {
   const resolvedSameSite = process.env.NODE_ENV === 'production' ? sameSite : 'lax';
   res.cookie('token', token, getSessionCookieOptions(sameSite));
-  setStudyCsrfCookie(res, undefined, resolvedSameSite);
+  issueCsrfTokenCookie(req, res, resolvedSameSite);
 }
 
 function clearSessionCookies(res: Response, sameSite: 'lax' | 'strict' = 'lax') {
   const resolvedSameSite = process.env.NODE_ENV === 'production' ? sameSite : 'lax';
-  res.clearCookie('token', getSessionCookieOptions(sameSite));
-  clearStudyCsrfCookie(res, resolvedSameSite);
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: resolvedSameSite,
+  });
+  clearCsrfCookies(res, resolvedSameSite);
 }
 
 // Sign up
@@ -89,7 +98,7 @@ router.post('/signup', async (req, res, next) => {
           }
         );
 
-        setSessionCookies(res, token);
+        setSessionCookies(req as AuthRequest, res, token);
 
         // Queue verification email if not yet verified
         if (!existingUser.emailVerified) {
@@ -200,7 +209,7 @@ router.post('/signup', async (req, res, next) => {
     });
 
     // Set cookie
-    setSessionCookies(res, token);
+    setSessionCookies(req as AuthRequest, res, token);
 
     // Queue verification email (non-blocking with retries)
     await emailQueue.add(
@@ -275,7 +284,7 @@ router.post('/login', async (req, res, next) => {
     );
 
     // Set cookie
-    setSessionCookies(res, token);
+    setSessionCookies(req as AuthRequest, res, token);
 
     res.json({
       id: updatedUser.id,
@@ -304,6 +313,11 @@ router.post('/login', async (req, res, next) => {
 router.post('/logout', (_req, res) => {
   clearSessionCookies(res);
   res.json({ message: 'Logged out successfully' });
+});
+
+router.get('/csrf', (req, res) => {
+  issueCsrfTokenCookie(req as AuthRequest, res, 'lax');
+  res.status(204).end();
 });
 
 // Get current user
@@ -337,7 +351,7 @@ router.get('/me', requireAuth, async (req: AuthRequest, res, next) => {
       throw new AppError(i18next.t('server:auth.userNotFound'), 404);
     }
 
-    setStudyCsrfCookie(res, undefined, 'lax');
+    issueCsrfTokenCookie(req, res, 'lax');
     res.json(user);
   } catch (error) {
     next(error);
@@ -608,7 +622,7 @@ router.get(
           expiresIn: '7d',
         });
 
-        setSessionCookies(res, token, 'strict');
+        setSessionCookies(req as AuthRequest, res, token, 'strict');
 
         return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
       }
@@ -638,7 +652,7 @@ router.get(
       });
 
       // Set cookie
-      setSessionCookies(res, token, 'strict');
+      setSessionCookies(req as AuthRequest, res, token, 'strict');
 
       // Redirect to app
       res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
@@ -745,7 +759,7 @@ router.post('/claim-invite', async (req, res, next) => {
     );
 
     // Set cookie
-    setSessionCookies(res, sessionToken, 'strict');
+    setSessionCookies(req as AuthRequest, res, sessionToken, 'strict');
 
     res.json(user);
   } catch (error) {

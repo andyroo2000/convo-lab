@@ -11,6 +11,7 @@ import express from 'express';
 import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
+import { requireApiCsrfProtection } from './middleware/csrf.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import adminRoutes from './routes/admin.js';
@@ -209,6 +210,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(process.env.COOKIE_SECRET));
 app.use(passport.initialize());
 app.use(requestLogger);
+app.use('/api', requireApiCsrfProtection);
 
 app.use((req, res, next) => {
   if (req.path === '/study-media' || req.path.startsWith('/study-media/')) {

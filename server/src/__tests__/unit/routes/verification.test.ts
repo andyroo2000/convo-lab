@@ -1,10 +1,26 @@
+import cookieParser from 'cookie-parser';
 import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
+import {
+  CSRF_TOKEN_COOKIE_NAME,
+  CSRF_TOKEN_HEADER_NAME,
+  issueCsrfTokenCookie,
+  requireApiCsrfProtection,
+  resetAllowedApiOriginsCacheForTests,
+} from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import verificationRouter from '../../../routes/verification.js';
+
+function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
+  if (Array.isArray(setCookieHeader)) {
+    return setCookieHeader;
+  }
+
+  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
+}
 
 // Create hoisted mocks
 const mockPrisma = vi.hoisted(() => ({
@@ -54,16 +70,53 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 describe('Verification Routes', () => {
   let app: express.Application;
+  let csrfCookies: string[] = [];
+  let csrfToken = '';
 
-  beforeEach(() => {
+  function withCsrf(requestBuilder: request.Test, origin: string = 'http://localhost:5173') {
+    return requestBuilder
+      .set('Origin', origin)
+      .set('Cookie', csrfCookies)
+      .set(CSRF_TOKEN_HEADER_NAME, csrfToken);
+  }
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    process.env.CLIENT_URL = 'http://localhost:5173';
+    resetAllowedApiOriginsCacheForTests();
     app = express();
+    app.use(cookieParser());
     app.use(expressJson());
+    app.use('/api', requireApiCsrfProtection);
+    app.get('/api/auth/csrf', (req, res) => {
+      issueCsrfTokenCookie(req, res, 'lax');
+      res.status(204).end();
+    });
     app.use('/api', verificationRouter);
     app.use(errorHandler);
+
+    const csrfResponse = await request(app)
+      .get('/api/auth/csrf')
+      .set('Origin', 'http://localhost:5173');
+    csrfCookies = getSetCookieArray(csrfResponse.headers['set-cookie']);
+    const tokenCookie = csrfCookies
+      .map((value) => value.split(';')[0])
+      .find((value) => value.startsWith(`${CSRF_TOKEN_COOKIE_NAME}=`));
+    csrfToken = tokenCookie
+      ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
+      : '';
   });
 
   describe('POST /api/verification/send', () => {
+    it('rejects resend verification without a CSRF token', async () => {
+      const response = await request(app)
+        .post('/api/verification/send')
+        .set('Origin', 'http://localhost:5173')
+        .expect(403);
+
+      expect(response.body.error.message).toBe('Invalid CSRF token.');
+    });
+
     it('should send verification email for unverified user', async () => {
       const mockUser = {
         id: 'test-user-id',
@@ -75,7 +128,7 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendVerificationEmail.mockResolvedValue(undefined);
 
-      const response = await request(app).post('/api/verification/send').expect(200);
+      const response = await withCsrf(request(app).post('/api/verification/send')).expect(200);
 
       expect(response.body).toEqual({ message: 'Verification email sent' });
       expect(mockEmailService.sendVerificationEmail).toHaveBeenCalledWith(
@@ -88,7 +141,7 @@ describe('Verification Routes', () => {
     it('should reject if user not found', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const response = await request(app).post('/api/verification/send').expect(404);
+      const response = await withCsrf(request(app).post('/api/verification/send')).expect(404);
 
       expect(response.body.error.message).toBe('User not found');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
@@ -104,7 +157,7 @@ describe('Verification Routes', () => {
 
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
 
-      const response = await request(app).post('/api/verification/send').expect(400);
+      const response = await withCsrf(request(app).post('/api/verification/send')).expect(400);
 
       expect(response.body.error.message).toBe('Email already verified');
       expect(mockEmailService.sendVerificationEmail).not.toHaveBeenCalled();
@@ -166,8 +219,7 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendPasswordResetEmail.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .post('/api/password-reset/request')
+      const response = await withCsrf(request(app).post('/api/password-reset/request'))
         .send({ email: 'test@example.com' })
         .expect(200);
 
@@ -184,8 +236,7 @@ describe('Verification Routes', () => {
     it('should return success message even for non-existent user (prevent enumeration)', async () => {
       mockPrisma.user.findUnique.mockResolvedValue(null);
 
-      const response = await request(app)
-        .post('/api/password-reset/request')
+      const response = await withCsrf(request(app).post('/api/password-reset/request'))
         .send({ email: 'nonexistent@example.com' })
         .expect(200);
 
@@ -196,7 +247,9 @@ describe('Verification Routes', () => {
     });
 
     it('should reject request without email', async () => {
-      const response = await request(app).post('/api/password-reset/request').send({}).expect(400);
+      const response = await withCsrf(request(app).post('/api/password-reset/request'))
+        .send({})
+        .expect(400);
 
       expect(response.body.error.message).toBe('Email is required');
     });
@@ -247,8 +300,7 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendPasswordChangedEmail.mockResolvedValue(undefined);
 
-      const response = await request(app)
-        .post('/api/password-reset/verify')
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({
           token: 'valid-token',
           newPassword: 'newpassword123',
@@ -265,8 +317,7 @@ describe('Verification Routes', () => {
     });
 
     it('should reject password reset without token', async () => {
-      const response = await request(app)
-        .post('/api/password-reset/verify')
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({ newPassword: 'newpassword123' })
         .expect(400);
 
@@ -274,8 +325,7 @@ describe('Verification Routes', () => {
     });
 
     it('should reject password reset without new password', async () => {
-      const response = await request(app)
-        .post('/api/password-reset/verify')
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({ token: 'valid-token' })
         .expect(400);
 
@@ -283,8 +333,7 @@ describe('Verification Routes', () => {
     });
 
     it('should reject password shorter than 8 characters', async () => {
-      const response = await request(app)
-        .post('/api/password-reset/verify')
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({
           token: 'valid-token',
           newPassword: 'short',
@@ -297,8 +346,7 @@ describe('Verification Routes', () => {
     it('should reject invalid password reset token', async () => {
       mockEmailService.verifyPasswordResetToken.mockResolvedValue(null);
 
-      const response = await request(app)
-        .post('/api/password-reset/verify')
+      const response = await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({
           token: 'invalid-token',
           newPassword: 'newpassword123',
@@ -327,8 +375,7 @@ describe('Verification Routes', () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       mockEmailService.sendPasswordChangedEmail.mockResolvedValue(undefined);
 
-      await request(app)
-        .post('/api/password-reset/verify')
+      await withCsrf(request(app).post('/api/password-reset/verify'))
         .send({
           token: 'valid-token',
           newPassword: 'newpassword123',
