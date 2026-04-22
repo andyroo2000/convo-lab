@@ -182,8 +182,8 @@ export interface StudyBrowserFilterOptions {
 export interface StudyBrowserListResponse {
   rows: StudyBrowserRow[];
   total: number;
-  page: number;
-  pageSize: number;
+  limit: number;
+  nextCursor: string | null;
   filterOptions: StudyBrowserFilterOptions;
 }
 

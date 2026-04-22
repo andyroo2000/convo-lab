@@ -63,6 +63,7 @@ const MAX_STUDY_IMPORT_BYTES = 200 * 1024 * 1024;
 const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
+const STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS = 30 * 1000;
 const STUDY_REVIEW_RAW_PAYLOAD_MAX_BYTES = 4 * 1024;
 const STUDY_IMPORT_WARNING_LIMIT = 10;
 const generatedAnswerAudioInFlight = new Map<
@@ -290,6 +291,16 @@ interface StudyHistoryCursor {
   id: string;
 }
 
+interface StudyBrowserCursor {
+  updatedAt: string;
+  id: string;
+}
+
+interface CachedStudyMediaRedirect {
+  url: string;
+  expiresAtMs: number;
+}
+
 export interface StudyMediaAccessResult {
   type: 'local' | 'redirect';
   absolutePath?: string;
@@ -299,6 +310,7 @@ export interface StudyMediaAccessResult {
 }
 
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+const studyMediaRedirectCache = new Map<string, CachedStudyMediaRedirect>();
 
 interface LegacyDeckConfig {
   id?: number;
@@ -836,6 +848,31 @@ function decodeStudyHistoryCursor(cursor: string): StudyHistoryCursor {
 
     return {
       reviewedAt: parsed.reviewedAt,
+      id: parsed.id,
+    };
+  } catch {
+    throw new AppError('cursor is invalid.', 400);
+  }
+}
+
+function encodeStudyBrowserCursor(cursor: StudyBrowserCursor): string {
+  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
+}
+
+function decodeStudyBrowserCursor(cursor: string): StudyBrowserCursor {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.updatedAt !== 'string' ||
+      typeof parsed.id !== 'string' ||
+      Number.isNaN(new Date(parsed.updatedAt).getTime())
+    ) {
+      throw new Error('Invalid cursor');
+    }
+
+    return {
+      updatedAt: parsed.updatedAt,
       id: parsed.id,
     };
   } catch {
@@ -3437,20 +3474,27 @@ function escapeLikePattern(value: string): string {
   return value.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_');
 }
 
-function buildStudyBrowserWhereSql(params: {
-  userId: string;
-  q?: string;
-  noteType?: string;
-  cardType?: StudyCardType;
-  queueState?: StudyQueueState;
-}) {
+function buildStudyBrowserWhereSql(
+  params: {
+    userId: string;
+    q?: string;
+    noteType?: string;
+    cardType?: StudyCardType;
+    queueState?: StudyQueueState;
+  },
+  options: {
+    omitNoteType?: boolean;
+    omitCardType?: boolean;
+    omitQueueState?: boolean;
+  } = {}
+) {
   const clauses: Prisma.Sql[] = [Prisma.sql`n."userId" = ${params.userId}`];
 
-  if (params.noteType) {
+  if (params.noteType && !options.omitNoteType) {
     clauses.push(Prisma.sql`n."sourceNotetypeName" = ${params.noteType}`);
   }
 
-  if (params.cardType) {
+  if (params.cardType && !options.omitCardType) {
     clauses.push(
       Prisma.sql`EXISTS (
         SELECT 1
@@ -3462,7 +3506,7 @@ function buildStudyBrowserWhereSql(params: {
     );
   }
 
-  if (params.queueState) {
+  if (params.queueState && !options.omitQueueState) {
     clauses.push(
       Prisma.sql`EXISTS (
         SELECT 1
@@ -3548,59 +3592,63 @@ export async function getStudyBrowserList(params: {
   noteType?: string;
   cardType?: StudyCardType;
   queueState?: StudyQueueState;
-  page?: number;
-  pageSize?: number;
+  cursor?: string;
+  limit?: number;
 }): Promise<StudyBrowserListResponse> {
-  const page = Math.max(1, params.page ?? 1);
-  const pageSize = Math.max(1, Math.min(100, params.pageSize ?? 100));
-  const offset = (page - 1) * pageSize;
+  const limit = Math.max(1, Math.min(100, params.limit ?? 100));
+  const cursor = params.cursor ? decodeStudyBrowserCursor(params.cursor) : null;
   const whereSql = buildStudyBrowserWhereSql(params);
+  const cursorSql =
+    cursor === null
+      ? Prisma.empty
+      : Prisma.sql`
+          AND (
+            n."updatedAt" < ${new Date(cursor.updatedAt)}
+            OR (n."updatedAt" = ${new Date(cursor.updatedAt)} AND n.id < ${cursor.id})
+          )
+        `;
 
-  const [totalRows, noteIdRows, reviewCounts, noteTypeRows, cardTypeRows, queueStateRows] =
-    await Promise.all([
-      prisma.$queryRaw<Array<{ count: bigint | number }>>(Prisma.sql`
+  const [totalRows, pagedNoteRows, noteTypeRows, cardTypeRows, queueStateRows] = await Promise.all([
+    prisma.$queryRaw<Array<{ count: bigint | number }>>(Prisma.sql`
       SELECT COUNT(*) AS count
       FROM "study_notes" n
       ${whereSql}
     `),
-      prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      SELECT n.id
+    prisma.$queryRaw<Array<{ id: string; updatedAt: Date }>>(Prisma.sql`
+      SELECT n.id, n."updatedAt"
       FROM "study_notes" n
       ${whereSql}
-      ORDER BY n."updatedAt" DESC
-      OFFSET ${offset}
-      LIMIT ${pageSize}
+      ${cursorSql}
+      ORDER BY n."updatedAt" DESC, n.id DESC
+      LIMIT ${limit + 1}
     `),
-      prisma.studyReviewLog.groupBy({
-        by: ['cardId'],
-        where: { userId: params.userId },
-        _count: { _all: true },
-      }),
-      prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
       SELECT DISTINCT n."sourceNotetypeName" AS value
       FROM "study_notes" n
-      ${whereSql}
+      ${buildStudyBrowserWhereSql(params, { omitNoteType: true })}
       ORDER BY value ASC
     `),
-      prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
       SELECT DISTINCT c."cardType" AS value
       FROM "study_cards" c
       JOIN "study_notes" n ON n.id = c."noteId"
-      ${whereSql}
+      ${buildStudyBrowserWhereSql(params, { omitCardType: true })}
       AND c."userId" = ${params.userId}
       ORDER BY value ASC
     `),
-      prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
       SELECT DISTINCT c."queueState" AS value
       FROM "study_cards" c
       JOIN "study_notes" n ON n.id = c."noteId"
-      ${whereSql}
+      ${buildStudyBrowserWhereSql(params, { omitQueueState: true })}
       AND c."userId" = ${params.userId}
       ORDER BY value ASC
     `),
-    ]);
+  ]);
 
-  const noteIds = noteIdRows.map((row) => row.id);
+  const hasMore = pagedNoteRows.length > limit;
+  const pageNoteRows = hasMore ? pagedNoteRows.slice(0, limit) : pagedNoteRows;
+  const noteIds = pageNoteRows.map((row) => row.id);
   const notes: StudyBrowserListNoteRecord[] =
     noteIds.length > 0
       ? await prisma.studyNote.findMany({
@@ -3626,7 +3674,25 @@ export async function getStudyBrowserList(params: {
         })
       : [];
 
-  const reviewCountsByCard = new Map<string, number>(
+  const noteOrder = new Map(noteIds.map((noteId, index) => [noteId, index]));
+  notes.sort((left, right) => (noteOrder.get(left.id) ?? 0) - (noteOrder.get(right.id) ?? 0));
+
+  const cardIds = notes.flatMap((note) => note.cards.map((card) => card.id));
+  const reviewCounts =
+    cardIds.length > 0
+      ? await prisma.studyReviewLog.groupBy({
+          by: ['cardId'],
+          where: {
+            userId: params.userId,
+            cardId: {
+              in: cardIds,
+            },
+          },
+          _count: { _all: true },
+        })
+      : [];
+
+  const reviewCountsByCard = new Map(
     reviewCounts.map((row) => [String(row.cardId), row._count._all])
   );
   const filterOptions: StudyBrowserFilterOptions = {
@@ -3653,6 +3719,13 @@ export async function getStudyBrowserList(params: {
   };
   const totalValue = totalRows[0]?.count ?? 0;
   const total = typeof totalValue === 'bigint' ? Number(totalValue) : Number(totalValue);
+  const lastVisibleNote = pageNoteRows.at(-1);
+  const lastVisibleUpdatedAt =
+    lastVisibleNote?.updatedAt instanceof Date
+      ? lastVisibleNote.updatedAt.toISOString()
+      : lastVisibleNote?.updatedAt
+        ? new Date(lastVisibleNote.updatedAt).toISOString()
+        : null;
 
   const rows: StudyBrowserRow[] = notes.map((note) => {
     const cards: StudyBrowserListCardRecord[] = note.cards;
@@ -3681,8 +3754,14 @@ export async function getStudyBrowserList(params: {
   return {
     rows,
     total,
-    page,
-    pageSize,
+    limit,
+    nextCursor:
+      hasMore && lastVisibleNote && lastVisibleUpdatedAt
+        ? encodeStudyBrowserCursor({
+            updatedAt: lastVisibleUpdatedAt,
+            id: lastVisibleNote.id,
+          })
+        : null,
     filterOptions,
   };
 }
@@ -3794,9 +3873,27 @@ export async function getStudyMediaAccess(
     media.storagePath.length > 0 &&
     isGcsStudyMediaUrl(media.publicUrl)
   ) {
+    const cacheKey = `${media.id}:${media.storagePath}`;
+    const cached = studyMediaRedirectCache.get(cacheKey);
+    const nowMs = Date.now();
+    if (cached && cached.expiresAtMs - nowMs > STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS) {
+      return {
+        type: 'redirect',
+        redirectUrl: cached.url,
+        contentType,
+        filename,
+      };
+    }
+
     const signed = await getSignedReadUrl({
       filePath: media.storagePath,
       expiresInSeconds: STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
+    });
+    studyMediaRedirectCache.set(cacheKey, {
+      url: signed.url,
+      expiresAtMs: Number.isNaN(Date.parse(signed.expiresAt))
+        ? nowMs + STUDY_MEDIA_SIGNED_URL_TTL_SECONDS * 1000
+        : Date.parse(signed.expiresAt),
     });
 
     return {

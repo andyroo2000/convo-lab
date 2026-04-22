@@ -396,6 +396,8 @@ model StudyNote {
 
   @@unique([userId, sourceNoteId])
   @@index([userId, sourceKind])
+  @@index([userId, updatedAt, id])
+  @@index([userId, sourceNotetypeName, updatedAt, id])
   @@index([importJobId])
   @@map("study_notes")
 }
@@ -473,6 +475,8 @@ model StudyCard {
 
   @@unique([userId, sourceCardId])
   @@index([userId, queueState, dueAt])
+  @@index([userId, noteId, cardType])
+  @@index([userId, noteId, queueState])
   @@index([noteId])
   @@index([importJobId])
   @@map("study_cards")

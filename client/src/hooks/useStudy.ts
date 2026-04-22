@@ -48,8 +48,8 @@ export interface StudyBrowserQuery {
   noteType?: string;
   cardType?: 'recognition' | 'production' | 'cloze';
   queueState?: 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
-  page?: number;
-  pageSize?: number;
+  cursor?: string;
+  limit?: number;
 }
 
 async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
@@ -101,8 +101,8 @@ export async function getStudyBrowser(
   if (query.noteType) searchParams.set('noteType', query.noteType);
   if (query.cardType) searchParams.set('cardType', query.cardType);
   if (query.queueState) searchParams.set('queueState', query.queueState);
-  if (typeof query.page === 'number') searchParams.set('page', String(query.page));
-  if (typeof query.pageSize === 'number') searchParams.set('pageSize', String(query.pageSize));
+  if (query.cursor) searchParams.set('cursor', query.cursor);
+  if (typeof query.limit === 'number') searchParams.set('limit', String(query.limit));
 
   const suffix = searchParams.toString();
   return apiRequest<StudyBrowserListResponse>(`/api/study/browser${suffix ? `?${suffix}` : ''}`);

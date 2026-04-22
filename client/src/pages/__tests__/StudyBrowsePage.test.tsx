@@ -40,8 +40,8 @@ const browserData = {
     },
   ],
   total: 2,
-  page: 1,
-  pageSize: 100,
+  limit: 100,
+  nextCursor: null,
   filterOptions: {
     noteTypes: ['Cloze', 'Japanese - Vocab'],
     cardTypes: ['cloze', 'recognition'],
@@ -262,8 +262,8 @@ describe('StudyBrowsePage', () => {
           q: '会社',
           noteType: 'Japanese - Vocab',
           cardType: 'recognition',
-          page: 1,
-          pageSize: 100,
+          cursor: undefined,
+          limit: 100,
         })
       );
     });

@@ -40,6 +40,7 @@ const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_BROWSER_PAGE_SIZE_MAX = 100;
+const STUDY_BROWSER_PAGE_SIZE_DEFAULT = 100;
 const STUDY_HISTORY_PAGE_SIZE_DEFAULT = 50;
 const STUDY_HISTORY_PAGE_SIZE_MAX = 100;
 const STUDY_CARD_TYPES = new Set<StudyCardType>(['recognition', 'production', 'cloze']);
@@ -182,6 +183,23 @@ function parseStudyHistoryLimit(value: unknown): number {
 
   if (parsed > STUDY_HISTORY_PAGE_SIZE_MAX) {
     throw new AppError(`limit must be ${String(STUDY_HISTORY_PAGE_SIZE_MAX)} or fewer.`, 400);
+  }
+
+  return parsed;
+}
+
+function parseStudyBrowserLimit(value: unknown): number {
+  if (typeof value === 'undefined') {
+    return STUDY_BROWSER_PAGE_SIZE_DEFAULT;
+  }
+
+  const parsed = parsePositiveIntegerQueryParam('limit', value);
+  if (typeof parsed === 'undefined') {
+    return STUDY_BROWSER_PAGE_SIZE_DEFAULT;
+  }
+
+  if (parsed > STUDY_BROWSER_PAGE_SIZE_MAX) {
+    throw new AppError(`limit must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
   }
 
   return parsed;
@@ -615,11 +633,8 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
 
     const q = parseBrowserQueryString(req.query.q);
     const noteType = parseBrowserNoteType(req.query.noteType);
-    const page = parsePositiveIntegerQueryParam('page', req.query.page) ?? 1;
-    const pageSize = parsePositiveIntegerQueryParam('pageSize', req.query.pageSize) ?? 100;
-    if (typeof pageSize === 'number' && pageSize > STUDY_BROWSER_PAGE_SIZE_MAX) {
-      throw new AppError(`pageSize must be ${String(STUDY_BROWSER_PAGE_SIZE_MAX)} or fewer.`, 400);
-    }
+    const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : undefined;
+    const limit = parseStudyBrowserLimit(req.query.limit);
 
     const cardType =
       typeof req.query.cardType === 'undefined' ? undefined : String(req.query.cardType);
@@ -645,8 +660,8 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       noteType,
       cardType: cardType as StudyCardType | undefined,
       queueState: queueState as StudyQueueState | undefined,
-      page,
-      pageSize,
+      cursor,
+      limit,
     });
 
     res.json(result);

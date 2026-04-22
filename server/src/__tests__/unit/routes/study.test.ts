@@ -286,8 +286,8 @@ describe('Study Routes', () => {
     getStudyBrowserListMock.mockResolvedValue({
       rows: [],
       total: 0,
-      page: 2,
-      pageSize: 25,
+      limit: 25,
+      nextCursor: 'cursor-2',
       filterOptions: {
         noteTypes: [],
         cardTypes: [],
@@ -296,7 +296,7 @@ describe('Study Routes', () => {
     });
 
     const response = await request(app).get(
-      '/study/browser?q=%E4%BC%9A%E7%A4%BE&noteType=Japanese%20-%20Vocab&cardType=recognition&queueState=review&page=2&pageSize=25'
+      '/study/browser?q=%E4%BC%9A%E7%A4%BE&noteType=Japanese%20-%20Vocab&cardType=recognition&queueState=review&cursor=cursor-1&limit=25'
     );
 
     expect(response.status).toBe(200);
@@ -306,8 +306,8 @@ describe('Study Routes', () => {
       noteType: 'Japanese - Vocab',
       cardType: 'recognition',
       queueState: 'review',
-      page: 2,
-      pageSize: 25,
+      cursor: 'cursor-1',
+      limit: 25,
     });
   });
 
@@ -327,27 +327,27 @@ describe('Study Routes', () => {
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
-  it('rejects invalid browser page values', async () => {
-    const response = await request(app).get('/study/browser?page=0');
+  it('rejects invalid browser limit values', async () => {
+    const response = await request(app).get('/study/browser?limit=0');
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toContain('page must be a positive integer');
+    expect(response.body.message).toContain('limit must be a positive integer');
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
-  it('rejects invalid browser pageSize values', async () => {
-    const response = await request(app).get('/study/browser?pageSize=101');
+  it('rejects browser limits larger than 100', async () => {
+    const response = await request(app).get('/study/browser?limit=101');
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toContain('pageSize must be 100 or fewer');
+    expect(response.body.message).toContain('limit must be 100 or fewer');
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
-  it('rejects non-numeric browser page values', async () => {
-    const response = await request(app).get('/study/browser?page=abc');
+  it('rejects non-numeric browser limit values', async () => {
+    const response = await request(app).get('/study/browser?limit=abc');
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toContain('page must be a positive integer');
+    expect(response.body.message).toContain('limit must be a positive integer');
     expect(getStudyBrowserListMock).not.toHaveBeenCalled();
   });
 
@@ -496,8 +496,8 @@ describe('Study Routes', () => {
     getStudyBrowserListMock.mockResolvedValue({
       rows: [],
       total: 0,
-      page: 1,
-      pageSize: 100,
+      limit: 100,
+      nextCursor: null,
       filterOptions: {
         noteTypes: [],
         cardTypes: [],
@@ -511,12 +511,12 @@ describe('Study Routes', () => {
     expect(getStudyBrowserListMock).toHaveBeenCalled();
   });
 
-  it('defaults browser pagination when page and pageSize are omitted', async () => {
+  it('defaults browser cursor pagination when cursor and limit are omitted', async () => {
     getStudyBrowserListMock.mockResolvedValue({
       rows: [],
       total: 0,
-      page: 1,
-      pageSize: 100,
+      limit: 100,
+      nextCursor: null,
       filterOptions: {
         noteTypes: [],
         cardTypes: [],
@@ -533,8 +533,8 @@ describe('Study Routes', () => {
       noteType: undefined,
       cardType: undefined,
       queueState: undefined,
-      page: 1,
-      pageSize: 100,
+      cursor: undefined,
+      limit: 100,
     });
   });
 

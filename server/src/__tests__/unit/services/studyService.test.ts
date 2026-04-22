@@ -24,12 +24,22 @@ import {
 import { synthesizeSpeech } from '../../../services/ttsClient.js';
 import { mockPrisma } from '../../setup.js';
 
+const { getSignedReadUrlMock, uploadBufferToGCSPathMock } = vi.hoisted(() => ({
+  getSignedReadUrlMock: vi.fn(),
+  uploadBufferToGCSPathMock: vi.fn(),
+}));
+
 vi.mock('../../../services/ttsClient.js', () => ({
   synthesizeSpeech: vi.fn(async () => Buffer.from('fake-audio')),
 }));
 
 vi.mock('../../../services/furiganaService.js', () => ({
   addFuriganaBrackets: vi.fn(async (text: string) => `${text}[furigana]`),
+}));
+
+vi.mock('../../../services/storageClient.js', () => ({
+  getSignedReadUrl: getSignedReadUrlMock,
+  uploadBufferToGCSPath: uploadBufferToGCSPathMock,
 }));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
@@ -295,6 +305,11 @@ describe('studyService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.GCS_BUCKET_NAME = '';
+    uploadBufferToGCSPathMock.mockResolvedValue('https://storage.googleapis.com/test/study-media');
+    getSignedReadUrlMock.mockResolvedValue({
+      url: 'https://signed.example.com/study-media',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    });
     mockPrisma.studyImportJob.create.mockResolvedValue({ id: 'import-job-1' });
     mockPrisma.studyImportJob.update.mockResolvedValue({ id: 'import-job-1' });
     mockPrisma.studyReviewLog.deleteMany.mockResolvedValue({ count: 0 });
@@ -1272,7 +1287,7 @@ describe('studyService', () => {
   it('returns paginated browser rows with search and filters', async () => {
     mockPrisma.$queryRaw
       .mockResolvedValueOnce([{ count: 1 }])
-      .mockResolvedValueOnce([{ id: 'note-1' }])
+      .mockResolvedValueOnce([{ id: 'note-1', updatedAt: new Date('2026-04-12T00:00:00.000Z') }])
       .mockResolvedValueOnce([{ value: 'Cloze' }, { value: 'Japanese - Vocab' }])
       .mockResolvedValueOnce([{ value: 'cloze' }, { value: 'recognition' }])
       .mockResolvedValueOnce([{ value: 'new' }, { value: 'review' }]);
@@ -1323,11 +1338,12 @@ describe('studyService', () => {
       noteType: 'Japanese - Vocab',
       cardType: 'recognition',
       queueState: 'review',
-      page: 1,
-      pageSize: 100,
+      limit: 100,
     });
 
     expect(result.total).toBe(1);
+    expect(result.limit).toBe(100);
+    expect(result.nextCursor).toBeNull();
     expect(result.rows[0]).toMatchObject({
       noteId: 'note-1',
       displayText: '会社',
@@ -1338,6 +1354,49 @@ describe('studyService', () => {
     });
     expect(result.filterOptions.noteTypes).toContain('Cloze');
     expect(mockPrisma.$queryRaw).toHaveBeenCalledTimes(5);
+  });
+
+  it('returns a browser nextCursor when additional notes remain', async () => {
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ count: 2 }])
+      .mockResolvedValueOnce([
+        { id: 'note-2', updatedAt: new Date('2026-04-13T00:00:00.000Z') },
+        { id: 'note-1', updatedAt: new Date('2026-04-12T00:00:00.000Z') },
+      ])
+      .mockResolvedValueOnce([{ value: 'Japanese - Vocab' }])
+      .mockResolvedValueOnce([{ value: 'recognition' }])
+      .mockResolvedValueOnce([{ value: 'review' }]);
+    mockPrisma.studyNote.findMany.mockResolvedValue([
+      {
+        id: 'note-2',
+        sourceNotetypeName: 'Japanese - Vocab',
+        rawFieldsJson: { Expression: '銀行' },
+        canonicalJson: {},
+        updatedAt: new Date('2026-04-13T00:00:00.000Z'),
+        cards: [
+          {
+            id: 'card-2',
+            cardType: 'recognition',
+            queueState: 'review',
+            promptJson: { cueText: '銀行' },
+            answerJson: { meaning: 'bank' },
+            updatedAt: new Date('2026-04-13T00:00:00.000Z'),
+          },
+        ],
+      },
+    ]);
+    mockPrisma.studyReviewLog.groupBy.mockResolvedValue([
+      { cardId: 'card-2', _count: { _all: 1 } },
+    ]);
+
+    const result = await getStudyBrowserList({
+      userId: 'user-1',
+      limit: 1,
+    });
+
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]?.noteId).toBe('note-2');
+    expect(result.nextCursor).toBeTruthy();
   });
 
   it('returns note detail with inspector fields, cards, and review stats', async () => {
@@ -1728,5 +1787,33 @@ describe('studyService', () => {
       contentType: 'audio/mpeg',
       filename: 'audio.mp3',
     });
+  });
+
+  it('caches signed study media redirects for repeated GCS access', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    getSignedReadUrlMock.mockResolvedValue({
+      url: 'https://signed.example.com/audio.mp3',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+    });
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-1',
+      userId: 'user-1',
+      sourceFilename: 'audio.mp3',
+      storagePath: 'study-media/user-1/import/audio.mp3',
+      publicUrl: 'https://storage.googleapis.com/test-bucket/study-media/user-1/import/audio.mp3',
+      contentType: 'audio/mpeg',
+    });
+
+    const first = await getStudyMediaAccess('user-1', 'media-1');
+    const second = await getStudyMediaAccess('user-1', 'media-1');
+
+    expect(first).toEqual({
+      type: 'redirect',
+      redirectUrl: 'https://signed.example.com/audio.mp3',
+      contentType: 'audio/mpeg',
+      filename: 'audio.mp3',
+    });
+    expect(second).toEqual(first);
+    expect(getSignedReadUrlMock).toHaveBeenCalledTimes(1);
   });
 });

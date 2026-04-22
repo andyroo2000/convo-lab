@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
-import type { StudyBrowserField } from '@shared/types';
+import type { StudyBrowserField, StudyBrowserListResponse } from '@shared/types';
 
 import StudyCardEditor from '../components/study/StudyCardEditor';
 import StudyFormField from '../components/study/StudyFormField';
@@ -52,11 +52,10 @@ const StudyBrowsePage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
   const [query, setQuery] = useState<StudyBrowserQuery>({
-    page: 1,
-    pageSize: PAGE_SIZE,
+    limit: PAGE_SIZE,
   });
   const browserQuery = useStudyBrowser(enabled, query);
-  const rows = useMemo(() => browserQuery.data?.rows ?? [], [browserQuery.data?.rows]);
+  const [rows, setRows] = useState<StudyBrowserListResponse['rows']>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string>(
     () => searchParams.get('noteId') ?? ''
   );
@@ -69,6 +68,20 @@ const StudyBrowsePage = () => {
   const [editing, setEditing] = useState(false);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const runBackgroundTask = useStudyBackgroundTask();
+
+  useEffect(() => {
+    if (!browserQuery.data) return;
+
+    setRows((current) => {
+      if (!query.cursor) {
+        return browserQuery.data.rows;
+      }
+
+      const seen = new Set(current.map((row) => row.noteId));
+      const appended = browserQuery.data.rows.filter((row) => !seen.has(row.noteId));
+      return [...current, ...appended];
+    });
+  }, [browserQuery.data, query.cursor]);
 
   useEffect(() => {
     selectedCardIdRef.current = selectedCardId;
@@ -153,10 +166,6 @@ const StudyBrowsePage = () => {
     await browserQuery.refetch();
   };
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil((browserQuery.data?.total ?? 0) / (query.pageSize ?? PAGE_SIZE))
-  );
   let updateCardErrorMessage: string | null = null;
   if (updateCardMutation.error instanceof Error) {
     updateCardErrorMessage = updateCardMutation.error.message;
@@ -191,7 +200,7 @@ const StudyBrowsePage = () => {
             setQuery((current) => ({
               ...current,
               q: searchInput.trim() || undefined,
-              page: 1,
+              cursor: undefined,
             }));
           }}
         >
@@ -222,7 +231,7 @@ const StudyBrowsePage = () => {
                 setQuery((current) => ({
                   ...current,
                   noteType: event.target.value || undefined,
-                  page: 1,
+                  cursor: undefined,
                 }))
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
@@ -248,7 +257,7 @@ const StudyBrowsePage = () => {
                 setQuery((current) => ({
                   ...current,
                   cardType: (event.target.value || undefined) as StudyBrowserQuery['cardType'],
-                  page: 1,
+                  cursor: undefined,
                 }))
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
@@ -274,7 +283,7 @@ const StudyBrowsePage = () => {
                 setQuery((current) => ({
                   ...current,
                   queueState: (event.target.value || undefined) as StudyBrowserQuery['queueState'],
-                  page: 1,
+                  cursor: undefined,
                 }))
               }
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
@@ -386,34 +395,21 @@ const StudyBrowsePage = () => {
 
           <div className="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-gray-500">
-              Page {query.page ?? 1} of {totalPages}
+              Showing {rows.length} of {browserQuery.data?.total ?? 0}
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:flex">
+            <div className="grid grid-cols-1 gap-2 sm:flex">
               <button
                 type="button"
-                disabled={(query.page ?? 1) <= 1}
+                disabled={!browserQuery.data?.nextCursor || browserQuery.isLoading}
                 onClick={() =>
                   setQuery((current) => ({
                     ...current,
-                    page: Math.max(1, (current.page ?? 1) - 1),
+                    cursor: browserQuery.data?.nextCursor ?? undefined,
                   }))
                 }
                 className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Previous
-              </button>
-              <button
-                type="button"
-                disabled={(query.page ?? 1) >= totalPages}
-                onClick={() =>
-                  setQuery((current) => ({
-                    ...current,
-                    page: Math.min(totalPages, (current.page ?? 1) + 1),
-                  }))
-                }
-                className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
+                {browserQuery.isLoading && query.cursor ? 'Loading…' : 'Load more'}
               </button>
             </div>
           </div>
