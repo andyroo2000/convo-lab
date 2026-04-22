@@ -17,7 +17,6 @@ import type {
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
 import { Router, type Response } from 'express';
-import JSZip from 'jszip';
 import multer, { memoryStorage, MulterError } from 'multer';
 
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
@@ -218,6 +217,14 @@ function sanitizeDownloadFilename(filename: string): string {
   const basename = path.basename(filename);
   const sanitized = basename.replace(/[^A-Za-z0-9._-]/g, '_');
   return sanitized.length > 0 ? sanitized : 'study-media';
+}
+
+function toSafeContentDisposition(
+  contentDisposition: 'inline' | 'attachment',
+  filename: string
+): string {
+  const disposition = contentDisposition === 'attachment' ? 'attachment' : 'inline';
+  return `${disposition}; filename="${sanitizeDownloadFilename(filename)}"`;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -472,14 +479,6 @@ router.post(
       if (!req.file) {
         res.status(400).json({ message: 'Please choose a .colpkg file to import.' });
         return;
-      }
-      if (req.file.buffer.length < 2 || req.file.buffer.subarray(0, 2).toString('utf8') !== 'PK') {
-        throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
-      }
-      try {
-        await JSZip.loadAsync(req.file.buffer);
-      } catch {
-        throw new AppError('The uploaded .colpkg could not be parsed.', 400);
       }
 
       const result = await importJapaneseStudyColpkg({
@@ -941,7 +940,10 @@ router.get('/media/:mediaId', async (req: AuthRequest, res, next) => {
     res.sendFile(mediaAccess.absolutePath as string, {
       headers: {
         'Cache-Control': 'private, max-age=60',
-        'Content-Disposition': `${mediaAccess.contentDisposition}; filename="${sanitizeDownloadFilename(mediaAccess.filename)}"`,
+        'Content-Disposition': toSafeContentDisposition(
+          mediaAccess.contentDisposition,
+          mediaAccess.filename
+        ),
       },
     });
   } catch (error) {

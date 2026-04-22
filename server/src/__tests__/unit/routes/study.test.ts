@@ -13,6 +13,7 @@ import express, {
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { AppError } from '../../../middleware/errorHandler.js';
 import { mockPrisma } from '../../setup.js';
 
 const {
@@ -485,6 +486,10 @@ describe('Study Routes', () => {
   });
 
   it('rejects .colpkg uploads that are not ZIP archives', async () => {
+    importJapaneseStudyColpkgMock.mockRejectedValueOnce(
+      new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400)
+    );
+
     const response = await request(app)
       .post('/study/imports')
       .set('Origin', 'http://localhost:5173')
@@ -492,10 +497,14 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('valid ZIP-based .colpkg archive');
-    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+    expect(importJapaneseStudyColpkgMock).toHaveBeenCalledTimes(1);
   });
 
   it('rejects malformed .colpkg uploads that match the ZIP signature but cannot be opened', async () => {
+    importJapaneseStudyColpkgMock.mockRejectedValueOnce(
+      new AppError('The uploaded .colpkg could not be parsed.', 400)
+    );
+
     const response = await request(app)
       .post('/study/imports')
       .set('Origin', 'http://localhost:5173')
@@ -503,7 +512,7 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('could not be parsed');
-    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+    expect(importJapaneseStudyColpkgMock).toHaveBeenCalledTimes(1);
   });
 
   it('returns 503 for imports when study rate limiting is unavailable', async () => {

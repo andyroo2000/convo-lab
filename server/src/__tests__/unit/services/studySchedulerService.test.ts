@@ -6,6 +6,7 @@ import { mockPrisma } from '../../setup.js';
 import {
   createStudyCard,
   getStudyOverview,
+  performStudyCardAction,
   recordStudyReview,
   startStudySession,
   undoStudyReview,
@@ -389,5 +390,84 @@ describe('studySchedulerService', () => {
       },
     });
     expect(overview.nextDueAt).toBe('2026-04-12T00:00:00.000Z');
+  });
+
+  it('keeps overview totalCards stable when an action moves a card between buckets', async () => {
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-1',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'suspended',
+        dueAt: new Date('2026-04-12T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        note: {},
+      });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await performStudyCardAction({
+      userId: 'user-1',
+      cardId: 'card-1',
+      action: 'suspend',
+      currentOverview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+        latestImport: null,
+        nextDueAt: '2026-04-12T00:00:00.000Z',
+      },
+    });
+
+    expect(result.overview.reviewCount).toBe(0);
+    expect(result.overview.suspendedCount).toBe(1);
+    expect(result.overview.totalCards).toBe(1);
   });
 });

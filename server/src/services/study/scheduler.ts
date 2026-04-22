@@ -19,7 +19,6 @@ import { State, Rating, type Grade } from 'ts-fsrs';
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
 
-import { cleanupStaleStudyImportJobs } from './import.js';
 import { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './media.js';
 import type {
   CreateStudyCardInput,
@@ -53,7 +52,6 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
 }
 
 export async function getStudyOverview(userId: string): Promise<StudyOverview> {
-  await cleanupStaleStudyImportJobs(userId);
   const now = new Date();
   const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
     prisma.studyCard.count({
@@ -224,6 +222,12 @@ async function getAdjustedStudyOverview(
     nextOverview[previousBucket] = Math.max(0, nextOverview[previousBucket] - 1);
     nextOverview[nextBucket] += 1;
   }
+
+  nextOverview.totalCards =
+    nextOverview.newCount +
+    nextOverview.learningCount +
+    nextOverview.reviewCount +
+    nextOverview.suspendedCount;
 
   const previousCountedAsDue = countsAsDue(previousCard, now);
   const nextCountedAsDue = countsAsDue(nextCard, now);

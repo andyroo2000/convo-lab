@@ -2,13 +2,19 @@ import Kuroshiro from 'kuroshiro';
 import KuromojiAnalyzer from 'kuroshiro-analyzer-kuromoji';
 
 let kuroshiroInstance: Kuroshiro | null = null;
+const KuroshiroConstructor =
+  (
+    Kuroshiro as unknown as {
+      default?: new () => Kuroshiro;
+    }
+  ).default ?? (Kuroshiro as unknown as new () => Kuroshiro);
 
 /**
  * Initialize kuroshiro with kuromoji analyzer (lazy initialization)
  */
 async function initKuroshiro(): Promise<Kuroshiro> {
   if (!kuroshiroInstance) {
-    kuroshiroInstance = new Kuroshiro();
+    kuroshiroInstance = new KuroshiroConstructor();
     await kuroshiroInstance.init(new KuromojiAnalyzer());
     // eslint-disable-next-line no-console
     console.log('[Furigana] Kuroshiro initialized');
