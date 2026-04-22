@@ -4,4 +4,4 @@ export {
   exportStudyImportsSection,
   exportStudyMediaSection,
   exportStudyReviewLogsSection,
-} from './studyShared.js';
+} from './study/export.js';

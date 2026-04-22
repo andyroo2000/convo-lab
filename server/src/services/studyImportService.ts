@@ -1,1 +1,1 @@
-export { getStudyImportJob, importJapaneseStudyColpkg } from './studyShared.js';
+export { getStudyImportJob, importJapaneseStudyColpkg } from './study/import.js';

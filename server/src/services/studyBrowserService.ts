@@ -3,4 +3,4 @@ export {
   getStudyBrowserNoteDetail,
   getStudyCardOptions,
   getStudyHistory,
-} from './studyShared.js';
+} from './study/browser.js';

@@ -58,13 +58,12 @@ import JSZip from 'jszip';
 import initSqlJs, { type Database, type QueryExecResult } from 'sql.js';
 import { fsrs, Rating, State, type Card, type Grade } from 'ts-fsrs';
 
-import { createRedisConnection } from '../config/redis.js';
-import { prisma } from '../db/client.js';
-import { AppError } from '../middleware/errorHandler.js';
-
-import { addFuriganaBrackets } from './furiganaService.js';
-import { deleteFromGCSPath, getSignedReadUrl, uploadBufferToGCSPath } from './storageClient.js';
-import { synthesizeSpeech } from './ttsClient.js';
+import { createRedisConnection } from '../../config/redis.js';
+import { prisma } from '../../db/client.js';
+import { AppError } from '../../middleware/errorHandler.js';
+import { addFuriganaBrackets } from '../furiganaService.js';
+import { deleteFromGCSPath, getSignedReadUrl, uploadBufferToGCSPath } from '../storageClient.js';
+import { synthesizeSpeech } from '../ttsClient.js';
 
 const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
@@ -2709,7 +2708,7 @@ async function ensureStudyCardMediaAvailable(cards: StudyCardWithRelations[]): P
   );
 }
 
-export async function importJapaneseStudyColpkg(params: {
+async function importJapaneseStudyColpkg(params: {
   userId: string;
   fileBuffer: Buffer;
   filename: string;
@@ -3030,7 +3029,7 @@ function mediaByFilenameToRecordId(
   return mediaByFilename.get(filename)?.id ?? null;
 }
 
-export async function getStudyImportJob(
+async function getStudyImportJob(
   userId: string,
   importJobId: string
 ): Promise<StudyImportResult | null> {
@@ -3054,7 +3053,7 @@ export async function getStudyImportJob(
   };
 }
 
-export async function getStudyOverview(userId: string): Promise<StudyOverview> {
+async function getStudyOverview(userId: string): Promise<StudyOverview> {
   const now = new Date();
   const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
     prisma.studyCard.count({
@@ -3255,7 +3254,7 @@ async function getAdjustedStudyOverview(
   return nextOverview;
 }
 
-export async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
+async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
   const now = new Date();
   const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
     where: {
@@ -3290,7 +3289,7 @@ export async function startStudySession(userId: string, limit: number = DEFAULT_
   };
 }
 
-export async function prepareStudyCardAnswerAudio(
+async function prepareStudyCardAnswerAudio(
   userId: string,
   cardId: string
 ): Promise<StudyCardSummary> {
@@ -3410,7 +3409,7 @@ function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): S
   });
 }
 
-export async function recordStudyReview(params: {
+async function recordStudyReview(params: {
   userId: string;
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
@@ -3519,7 +3518,7 @@ export async function recordStudyReview(params: {
   };
 }
 
-export async function undoStudyReview(params: {
+async function undoStudyReview(params: {
   userId: string;
   reviewLogId: string;
   currentOverview?: StudyOverview;
@@ -3647,7 +3646,7 @@ export async function undoStudyReview(params: {
   };
 }
 
-export async function performStudyCardAction(
+async function performStudyCardAction(
   input: PerformStudyCardActionInput
 ): Promise<StudyCardActionResult> {
   const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
@@ -3741,7 +3740,7 @@ export async function performStudyCardAction(
   };
 }
 
-export async function updateStudyCard(input: UpdateStudyCardInput): Promise<StudyCardSummary> {
+async function updateStudyCard(input: UpdateStudyCardInput): Promise<StudyCardSummary> {
   const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {
       id: input.cardId,
@@ -3835,7 +3834,7 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   return await toStudyCardSummary(refreshed);
 }
 
-export async function createStudyCard(input: CreateStudyCardInput): Promise<StudyCardSummary> {
+async function createStudyCard(input: CreateStudyCardInput): Promise<StudyCardSummary> {
   const normalizedPayload =
     input.cardType === 'cloze'
       ? await normalizeClozePayload({
@@ -3902,7 +3901,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
   return await toStudyCardSummary(refreshed);
 }
 
-export async function getStudyHistory(input: GetStudyHistoryInput): Promise<StudyHistoryResponse> {
+async function getStudyHistory(input: GetStudyHistoryInput): Promise<StudyHistoryResponse> {
   const pageSize = Math.max(
     1,
     Math.min(STUDY_HISTORY_PAGE_SIZE_MAX, input.limit ?? STUDY_HISTORY_PAGE_SIZE_DEFAULT)
@@ -4039,7 +4038,7 @@ function buildStudyCardOptionLabel(card: StudyCardOptionRecord): string {
   return stripHtml(label) ?? label;
 }
 
-export async function getStudyCardOptions(
+async function getStudyCardOptions(
   userId: string,
   limit: number
 ): Promise<StudyCardOptionsResponse> {
@@ -4069,7 +4068,7 @@ export async function getStudyCardOptions(
   };
 }
 
-export async function getStudyBrowserList(params: {
+async function getStudyBrowserList(params: {
   userId: string;
   q?: string;
   noteType?: string;
@@ -4249,7 +4248,7 @@ export async function getStudyBrowserList(params: {
   };
 }
 
-export async function getStudyBrowserNoteDetail(
+async function getStudyBrowserNoteDetail(
   userId: string,
   noteId: string
 ): Promise<StudyBrowserNoteDetail | null> {
@@ -4333,7 +4332,7 @@ export async function getStudyBrowserNoteDetail(
   };
 }
 
-export async function getStudyMediaAccess(
+async function getStudyMediaAccess(
   userId: string,
   mediaId: string
 ): Promise<StudyMediaAccessResult | null> {
@@ -4451,7 +4450,7 @@ function toStudyExportImportResult(item: StudyImportJobRecord): StudyImportResul
   };
 }
 
-export async function exportStudyData(userId: string): Promise<StudyExportManifest> {
+async function exportStudyData(userId: string): Promise<StudyExportManifest> {
   const [cards, reviewLogs, media, imports] = await Promise.all([
     prisma.studyCard.count({ where: { userId } }),
     prisma.studyReviewLog.count({ where: { userId } }),
@@ -4470,7 +4469,7 @@ export async function exportStudyData(userId: string): Promise<StudyExportManife
   };
 }
 
-export async function exportStudyCardsSection(input: {
+async function exportStudyCardsSection(input: {
   userId: string;
   cursor?: string;
   limit?: number;
@@ -4514,7 +4513,7 @@ export async function exportStudyCardsSection(input: {
   };
 }
 
-export async function exportStudyReviewLogsSection(input: {
+async function exportStudyReviewLogsSection(input: {
   userId: string;
   cursor?: string;
   limit?: number;
@@ -4556,7 +4555,7 @@ export async function exportStudyReviewLogsSection(input: {
   };
 }
 
-export async function exportStudyMediaSection(input: {
+async function exportStudyMediaSection(input: {
   userId: string;
   cursor?: string;
   limit?: number;
@@ -4598,7 +4597,7 @@ export async function exportStudyMediaSection(input: {
   };
 }
 
-export async function exportStudyImportsSection(input: {
+async function exportStudyImportsSection(input: {
   userId: string;
   cursor?: string;
   limit?: number;
@@ -4639,3 +4638,173 @@ export async function exportStudyImportsSection(input: {
         : null,
   };
 }
+
+// Transitional parity sink: the concrete study domains now live in
+// `study/import.ts`, `study/scheduler.ts`, `study/browser.ts`,
+// `study/media.ts`, and `study/export.ts`. Keep these local references so the
+// remaining inline implementations can be removed incrementally without
+// tripping TypeScript's unused-local checks during the extraction.
+const legacyStudySharedImplementations = [
+  importJapaneseStudyColpkg,
+  getStudyImportJob,
+  getStudyOverview,
+  startStudySession,
+  prepareStudyCardAnswerAudio,
+  recordStudyReview,
+  undoStudyReview,
+  performStudyCardAction,
+  updateStudyCard,
+  createStudyCard,
+  getStudyHistory,
+  getStudyCardOptions,
+  getStudyBrowserList,
+  getStudyBrowserNoteDetail,
+  getStudyMediaAccess,
+  exportStudyData,
+  exportStudyCardsSection,
+  exportStudyReviewLogsSection,
+  exportStudyMediaSection,
+  exportStudyImportsSection,
+] as const;
+
+void legacyStudySharedImplementations;
+
+export type {
+  CreateStudyCardInput,
+  GetStudyHistoryInput,
+  JsonRecord,
+  ParsedAnkiMediaRecord,
+  ParsedImportDataset,
+  PersistedStudyMediaRecord,
+  PerformStudyCardActionInput,
+  StudyBrowserCursor,
+  StudyBrowserDetailNoteRecord,
+  StudyBrowserListCardRecord,
+  StudyBrowserListNoteRecord,
+  StudyCardOptionRecord,
+  StudyCardWithRelations,
+  StudyExportCursor,
+  StudyHistoryCursor,
+  StudyImportErrorWithMedia,
+  StudyImportJobRecord,
+  StudyImportWarningAccumulator,
+  StudyMediaRecord,
+  StudyReviewLogRecord,
+  UpdateStudyCardInput,
+};
+
+export {
+  ANKI_DECK_NAME,
+  DEFAULT_STUDY_LIMIT,
+  STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
+  STUDY_AUDIO_LOCK_TTL_MS,
+  STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS,
+  STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
+  STUDY_EXPORT_SECTION_LIMIT_DEFAULT,
+  STUDY_EXPORT_SECTION_LIMIT_MAX,
+  createFreshSchedulerState,
+  createStudyImportWarningAccumulator,
+  dateFromDayBoundary,
+  decodeStudyBrowserCursor,
+  decodeStudyExportCursor,
+  decodeStudyHistoryCursor,
+  deletePersistedStudyMediaByStoragePath,
+  findAccessibleLocalStudyMediaPath,
+  getBestAnswerAudioText,
+  getContentType,
+  getDefaultAnkiMediaDirectory,
+  getRequiredSchedulerState,
+  getScheduledDaysForDue,
+  getSqlJs,
+  getStudyMediaApiPath,
+  getStudyOverviewBucket,
+  getStudyAudioRedisClient,
+  getSetDueSchedulerState,
+  getNextDueAtForOverview,
+  getAdjustedStudyOverview,
+  getMediaKind,
+  getNoteDisplayText,
+  getRestoredDueAt,
+  getRestoredQueueState,
+  hasConfiguredStudyGcsStorage,
+  hasPersistedMediaLocation,
+  hasTable,
+  hydrateMediaRef,
+  isAllowedStudyImportZipEntryName,
+  isRecord,
+  isSafeZipBasename,
+  isUnsafeZipPath,
+  mapRows,
+  mediaByFilenameToRecordId,
+  mediaByFilenameToSourceMediaKey,
+  mergeStudyMediaRecord,
+  normalizeClozePayload,
+  normalizeFilename,
+  normalizeStoragePath,
+  normalizeStudyCardPayload,
+  normalizeZipPath,
+  noteFieldValueToString,
+  parseAudioFilenames,
+  parseImageFilenames,
+  parseJsonRecord,
+  parseLegacyDeckAndModelMetadata,
+  parsePersistedStudyMediaRecord,
+  parseColpkgUpload,
+  parseStudyAudioSource,
+  parseStudyCardType,
+  parseStudyImportStatus,
+  parseStudyMediaKind,
+  parseStudyQueueState,
+  parseStudyReviewSource,
+  persistStudyMediaBuffer,
+  pruneStudyMediaRedirectCache,
+  recordStudyImportWarning,
+  resolveDueDate,
+  resolveStudyMediaAbsolutePath,
+  sanitizePathSegment,
+  sanitizeText,
+  scheduler,
+  stripHtml,
+  studyMediaRedirectCache,
+  toBigIntOrNull,
+  toBoundedReviewRawPayload,
+  toConvolabReviewRawPayload,
+  toDueAt,
+  toImportReviewRawPayload,
+  toLastReviewedAt,
+  toMediaRef,
+  toNullablePrismaJson,
+  toPrismaJson,
+  toPromptAndAnswerPayload,
+  toQueueState,
+  toQueueStateFromFsrsState,
+  toSafeStudyImportError,
+  toSchedulerState,
+  toSearchText,
+  toStudyBrowserField,
+  toStudyCardSummary,
+  toStudyExportImportResult,
+  toStudyExportMediaRef,
+  toStudyFsrsState,
+  toStudyImportPreview,
+  toStudyReviewEvent,
+  buildMediaLookup,
+  buildStudyBrowserWhereSql,
+  buildStudyCardOptionLabel,
+  buildStudyCardSearchText,
+  buildStudyNoteSearchText,
+  countsAsDue,
+  encodeStudyBrowserCursor,
+  encodeStudyExportCursor,
+  encodeStudyHistoryCursor,
+  ensureGeneratedAnswerAudio,
+  ensureGeneratedAnswerAudioLocally,
+  ensureStudyCardMediaAvailable,
+  escapeLikePattern,
+  findLocalAnkiMediaFile,
+  getPrivateStudyMediaRoot,
+  getLegacyPublicStudyMediaRoot,
+  getOverviewMutationCard,
+  backfillImportedStudyMedia,
+  parseStudyExportSectionLimit,
+};

@@ -6,4 +6,4 @@ export {
   startStudySession,
   undoStudyReview,
   updateStudyCard,
-} from './studyShared.js';
+} from './study/scheduler.js';
