@@ -42,7 +42,6 @@ export interface StudyMediaRef {
 
 export interface StudyPromptPayload {
   cueText?: string | null;
-  cueHtml?: string | null;
   cueReading?: string | null;
   cueMeaning?: string | null;
   cueAudio?: StudyMediaRef | null;

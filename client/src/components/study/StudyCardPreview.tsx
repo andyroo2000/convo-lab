@@ -45,6 +45,8 @@ const AudioPlayer = forwardRef<
 
     try {
       setErrorMessage(null);
+      // Autoplay and manual replay intentionally share the same error surface because
+      // browsers like iOS Safari may reject play() until media is user-gesture eligible.
       await audio.play();
       return true;
     } catch (error) {

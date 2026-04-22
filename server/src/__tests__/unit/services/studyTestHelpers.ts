@@ -72,6 +72,7 @@ export async function buildFixtureColpkg(
     companyPhotoFilename?: string;
     companyPhotoMediaEntryId?: string;
     companyPhotoZipEntryName?: string;
+    vocabNotes?: string;
   } = {}
 ): Promise<Buffer> {
   const deckName = options.deckName ?? '日本語';
@@ -171,7 +172,7 @@ export async function buildFixtureColpkg(
           '会社[かいしゃ]で働[はたら]いています。',
           'I work at a company.',
           `<img src="${companyPhotoFilename}">`,
-          'Common workplace noun.',
+          options.vocabNotes ?? 'Common workplace noun.',
           '[sound:company-word.mp3]',
           '[sound:company-sentence.mp3]',
         ].join(FIELD_SEPARATOR)

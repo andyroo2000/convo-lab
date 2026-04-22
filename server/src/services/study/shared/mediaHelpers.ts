@@ -94,69 +94,93 @@ export async function persistStudyMediaBuffer(params: {
 export async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promise<void> {
   const lockKey = `study:answer-audio:${cardId}`;
   const lockToken = `${process.pid}:${randomUUID()}`;
+  const waitDeadline = Date.now() + STUDY_AUDIO_LOCK_TTL_MS;
 
-  try {
-    const redis = getStudyAudioRedisClient();
-    const acquired = await redis.set(lockKey, lockToken, 'PX', STUDY_AUDIO_LOCK_TTL_MS, 'NX');
-
-    if (acquired === 'OK') {
-      try {
-        await ensureGeneratedAnswerAudioLocally(userId, cardId);
-      } finally {
-        const currentToken = await redis.get(lockKey);
-        if (currentToken === lockToken) {
-          await redis.del(lockKey);
-        }
-      }
-
-      return;
-    }
-
-    const waitDeadline = Date.now() + STUDY_AUDIO_LOCK_TTL_MS;
+  const waitForGeneratedAudio = async () => {
     while (Date.now() < waitDeadline) {
-      const card = await prisma.studyCard.findFirst({
-        where: {
-          id: cardId,
-          userId,
-        },
-        select: {
-          answerAudioSource: true,
-          answerAudioMediaId: true,
-          answerJson: true,
-        },
-      });
-
-      if (!card) {
-        return;
-      }
-
-      const answer = isRecord(card.answerJson) ? { ...card.answerJson } : {};
-      const existingAnswerAudio = isRecord(answer.answerAudio) ? answer.answerAudio : null;
-      const hasPlayableAudio =
-        existingAnswerAudio !== null &&
-        typeof existingAnswerAudio === 'object' &&
-        typeof existingAnswerAudio.url === 'string' &&
-        existingAnswerAudio.url.length > 0;
-
-      if (
-        (String(card.answerAudioSource) !== 'missing' && hasPlayableAudio) ||
-        card.answerAudioMediaId
-      ) {
-        return;
+      if (await hasPreparedAnswerAudio(userId, cardId)) {
+        return true;
       }
 
       await new Promise((resolve) => {
         setTimeout(resolve, STUDY_AUDIO_LOCK_POLL_INTERVAL_MS);
       });
     }
+
+    return hasPreparedAnswerAudio(userId, cardId);
+  };
+
+  try {
+    const redis = getStudyAudioRedisClient();
+    const acquired = await redis.set(lockKey, lockToken, 'PX', STUDY_AUDIO_LOCK_TTL_MS, 'NX');
+
+    if (acquired === 'OK') {
+      let generatedLocally = false;
+      try {
+        await ensureGeneratedAnswerAudioLocally(userId, cardId);
+        generatedLocally = true;
+      } finally {
+        try {
+          const currentToken = await redis.get(lockKey);
+          if (currentToken === lockToken) {
+            await redis.del(lockKey);
+          }
+        } catch (releaseError) {
+          console.warn('[Study] Failed to release answer-audio Redis lock.', releaseError);
+        }
+      }
+
+      if (generatedLocally) {
+        return;
+      }
+    }
+
+    if (await waitForGeneratedAudio()) {
+      return;
+    }
   } catch (error) {
     console.warn(
       '[Study] Redis answer-audio dedupe unavailable; falling back to process-local lock.',
       error
     );
+
+    if (await waitForGeneratedAudio()) {
+      return;
+    }
   }
 
   await ensureGeneratedAnswerAudioLocally(userId, cardId);
+}
+
+async function hasPreparedAnswerAudio(userId: string, cardId: string): Promise<boolean> {
+  const card = await prisma.studyCard.findFirst({
+    where: {
+      id: cardId,
+      userId,
+    },
+    select: {
+      answerAudioSource: true,
+      answerAudioMediaId: true,
+      answerJson: true,
+    },
+  });
+
+  if (!card) {
+    return true;
+  }
+
+  const answer = isRecord(card.answerJson) ? { ...card.answerJson } : {};
+  const existingAnswerAudio = isRecord(answer.answerAudio) ? answer.answerAudio : null;
+  const hasPlayableAudio =
+    existingAnswerAudio !== null &&
+    typeof existingAnswerAudio === 'object' &&
+    typeof existingAnswerAudio.url === 'string' &&
+    existingAnswerAudio.url.length > 0;
+
+  return (
+    (String(card.answerAudioSource) !== 'missing' && hasPlayableAudio) ||
+    Boolean(card.answerAudioMediaId)
+  );
 }
 
 async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string): Promise<void> {

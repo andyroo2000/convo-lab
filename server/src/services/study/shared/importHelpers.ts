@@ -431,14 +431,13 @@ async function toPromptAndAnswerPayload(
       cardType: 'recognition',
       prompt: {
         cueText: stripHtml(expression),
-        cueHtml: expression,
         cueReading: stripHtml(expressionReading),
       },
       answer: {
         expression: stripHtml(expression),
         expressionReading: stripHtml(expressionReading),
         meaning: stripHtml(meaning),
-        notes,
+        notes: stripHtml(notes),
         answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
         answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
       },
@@ -459,14 +458,13 @@ async function toPromptAndAnswerPayload(
           }
         : {
             cueText: stripHtml(expression),
-            cueHtml: expression,
             cueReading: stripHtml(expressionReading),
           },
       answer: {
         expression: stripHtml(expression),
         expressionReading: stripHtml(expressionReading),
         meaning: stripHtml(meaning),
-        notes,
+        notes: stripHtml(notes),
         sentenceJp: stripHtml(String(rawFields.SentenceJP ?? '')),
         sentenceJpKana: stripHtml(String(rawFields.SentenceJPKana ?? '')),
         sentenceEn: stripHtml(String(rawFields.SentenceEN ?? '')),
@@ -490,7 +488,7 @@ async function toPromptAndAnswerPayload(
         expression: stripHtml(expression),
         expressionReading: stripHtml(expressionReading),
         meaning: stripHtml(meaning),
-        notes,
+        notes: stripHtml(notes),
         answerImage: toMediaRef(imageFilename, mediaByFilename, 'imported_image'),
         answerAudio: toMediaRef(audioWord, mediaByFilename, 'imported'),
       },
@@ -510,7 +508,7 @@ async function toPromptAndAnswerPayload(
       answer: {
         restoredText: stripHtml(String(rawFields.AnswerExpression ?? '')),
         meaning: stripHtml(String(rawFields.Meaning ?? '')),
-        notes,
+        notes: stripHtml(notes),
         answerAudio: toMediaRef(audioSentence, mediaByFilename, 'imported'),
       },
     });

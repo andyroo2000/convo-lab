@@ -28,6 +28,35 @@ import {
 } from './shared.js';
 
 const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
+const STUDY_IMPORT_WRITE_BATCH_SIZE = 250;
+
+export async function cleanupStaleStudyImportJobs(userId: string): Promise<void> {
+  const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
+  await prisma.studyImportJob.updateMany({
+    where: {
+      userId,
+      status: 'processing',
+      startedAt: {
+        lt: staleThreshold,
+      },
+    },
+    data: {
+      status: 'failed',
+      errorMessage: 'Import timed out before completion.',
+      completedAt: new Date(),
+    },
+  });
+}
+
+async function createManyInBatches<T>(
+  items: T[],
+  createMany: (batch: T[]) => Promise<unknown>,
+  batchSize: number = STUDY_IMPORT_WRITE_BATCH_SIZE
+): Promise<void> {
+  for (let start = 0; start < items.length; start += batchSize) {
+    await createMany(items.slice(start, start + batchSize));
+  }
+}
 
 function mediaByFilenameToSourceMediaKey(
   mediaByFilename: Map<string, { sourceMediaKey: string | null }>,
@@ -60,21 +89,7 @@ export async function importJapaneseStudyColpkg(params: {
     throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
   }
 
-  const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
-  await prisma.studyImportJob.updateMany({
-    where: {
-      userId: params.userId,
-      status: 'processing',
-      startedAt: {
-        lt: staleThreshold,
-      },
-    },
-    data: {
-      status: 'failed',
-      errorMessage: 'Import timed out before completion.',
-      completedAt: new Date(),
-    },
-  });
+  await cleanupStaleStudyImportJobs(params.userId);
 
   const initialPreview: StudyImportPreview = {
     deckName: ANKI_DECK_NAME,
@@ -177,9 +192,11 @@ export async function importJapaneseStudyColpkg(params: {
           previewJson: toPrismaJson(parsed.preview),
         },
       });
+    });
 
-      await tx.studyNote.createMany({
-        data: parsed.notes.map((note) => ({
+    await createManyInBatches(parsed.notes, async (batch) => {
+      await prisma.studyNote.createMany({
+        data: batch.map((note) => ({
           id: note.createId,
           userId: params.userId,
           importJobId: importJob.id,
@@ -195,9 +212,11 @@ export async function importJapaneseStudyColpkg(params: {
           searchText: buildStudyNoteSearchText(note),
         })),
       });
+    });
 
-      await tx.studyMedia.createMany({
-        data: parsed.media.map((media) => ({
+    await createManyInBatches(parsed.media, async (batch) => {
+      await prisma.studyMedia.createMany({
+        data: batch.map((media) => ({
           id: media.id,
           userId: params.userId,
           importJobId: importJob.id,
@@ -213,9 +232,11 @@ export async function importJapaneseStudyColpkg(params: {
           publicUrl: media.publicUrl,
         })),
       });
+    });
 
-      await tx.studyCard.createMany({
-        data: parsed.cards.map((card) => ({
+    await createManyInBatches(parsed.cards, async (batch) => {
+      await prisma.studyCard.createMany({
+        data: batch.map((card) => ({
           id: card.createId,
           userId: params.userId,
           noteId: card.noteCreateId,
@@ -257,54 +278,56 @@ export async function importJapaneseStudyColpkg(params: {
           imageMediaId: mediaByFilenameToRecordId(parsed.mediaByFilename, card.imageMediaFilename),
         })),
       });
+    });
 
-      const createdCardIdBySourceCardId = new Map(
-        parsed.cards.map((card) => [card.sourceCardId, card.createId])
-      );
-      const reviewLogsToCreate = parsed.reviewLogs.flatMap((log) => {
-        const cardId = createdCardIdBySourceCardId.get(log.sourceCardId);
-        if (!cardId) {
-          return [];
-        }
+    const createdCardIdBySourceCardId = new Map(
+      parsed.cards.map((card) => [card.sourceCardId, card.createId])
+    );
+    const reviewLogsToCreate = parsed.reviewLogs.flatMap((log) => {
+      const cardId = createdCardIdBySourceCardId.get(log.sourceCardId);
+      if (!cardId) {
+        return [];
+      }
 
-        return [
-          {
-            id: log.createId,
-            userId: params.userId,
-            cardId,
-            importJobId: importJob.id,
-            source: 'anki_import' as const,
-            sourceReviewId: BigInt(log.sourceReviewId),
-            reviewedAt: log.reviewedAt,
-            rating: log.rating,
-            sourceEase: log.sourceEase,
-            sourceInterval: log.sourceInterval,
-            sourceLastInterval: log.sourceLastInterval,
-            sourceFactor: log.sourceFactor,
-            sourceTimeMs: log.sourceTimeMs,
-            sourceReviewType: log.sourceReviewType,
-            rawPayloadJson: toImportReviewRawPayload(log),
-          },
-        ];
-      });
-      await tx.studyReviewLog.createMany({
-        data: reviewLogsToCreate,
-      });
-
-      await tx.studyImportJob.update({
-        where: { id: importJob.id },
-        data: {
-          status: 'completed',
-          previewJson: toPrismaJson(parsed.preview),
-          summaryJson: toPrismaJson({
-            cardCount: parsed.cards.length,
-            noteCount: parsed.notes.length,
-            reviewLogCount: parsed.reviewLogs.length,
-            mediaCount: parsed.media.length,
-          }),
-          completedAt: new Date(),
+      return [
+        {
+          id: log.createId,
+          userId: params.userId,
+          cardId,
+          importJobId: importJob.id,
+          source: 'anki_import' as const,
+          sourceReviewId: BigInt(log.sourceReviewId),
+          reviewedAt: log.reviewedAt,
+          rating: log.rating,
+          sourceEase: log.sourceEase,
+          sourceInterval: log.sourceInterval,
+          sourceLastInterval: log.sourceLastInterval,
+          sourceFactor: log.sourceFactor,
+          sourceTimeMs: log.sourceTimeMs,
+          sourceReviewType: log.sourceReviewType,
+          rawPayloadJson: toImportReviewRawPayload(log),
         },
+      ];
+    });
+    await createManyInBatches(reviewLogsToCreate, async (batch) => {
+      await prisma.studyReviewLog.createMany({
+        data: batch,
       });
+    });
+
+    await prisma.studyImportJob.update({
+      where: { id: importJob.id },
+      data: {
+        status: 'completed',
+        previewJson: toPrismaJson(parsed.preview),
+        summaryJson: toPrismaJson({
+          cardCount: parsed.cards.length,
+          noteCount: parsed.notes.length,
+          reviewLogCount: parsed.reviewLogs.length,
+          mediaCount: parsed.media.length,
+        }),
+        completedAt: new Date(),
+      },
     });
 
     return {
@@ -318,6 +341,25 @@ export async function importJapaneseStudyColpkg(params: {
     };
   } catch (error) {
     const safeImportError = toSafeStudyImportError(error);
+    await prisma
+      .$transaction(async (tx) => {
+        await tx.studyReviewLog.deleteMany({
+          where: { userId: params.userId, importJobId: importJob.id },
+        });
+        await tx.studyCard.deleteMany({
+          where: { userId: params.userId, importJobId: importJob.id },
+        });
+        await tx.studyNote.deleteMany({
+          where: { userId: params.userId, importJobId: importJob.id },
+        });
+        await tx.studyMedia.deleteMany({
+          where: { userId: params.userId, importJobId: importJob.id },
+        });
+      })
+      .catch((cleanupError) => {
+        console.warn('[Study] Failed to clean up partial import rows:', cleanupError);
+      });
+
     await prisma.studyImportJob
       .update({
         where: { id: importJob.id },
@@ -354,6 +396,8 @@ export async function getStudyImportJob(
   userId: string,
   importJobId: string
 ): Promise<StudyImportResult | null> {
+  await cleanupStaleStudyImportJobs(userId);
+
   const job: StudyImportJobRecord | null = await prisma.studyImportJob.findFirst({
     where: {
       id: importJobId,

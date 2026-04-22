@@ -71,6 +71,21 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
   let prompt: StudyPromptPayload = isRecord(record.promptJson) ? { ...record.promptJson } : {};
   let answer: StudyAnswerPayload = isRecord(record.answerJson) ? { ...record.answerJson } : {};
 
+  const safePrompt: StudyPromptPayload = {
+    cueText: typeof prompt.cueText === 'string' ? prompt.cueText : null,
+    cueReading: typeof prompt.cueReading === 'string' ? prompt.cueReading : null,
+    cueMeaning: typeof prompt.cueMeaning === 'string' ? prompt.cueMeaning : null,
+    cueAudio: prompt.cueAudio ?? null,
+    cueImage: prompt.cueImage ?? null,
+    clozeText: typeof prompt.clozeText === 'string' ? prompt.clozeText : null,
+    clozeDisplayText: typeof prompt.clozeDisplayText === 'string' ? prompt.clozeDisplayText : null,
+    clozeAnswerText: typeof prompt.clozeAnswerText === 'string' ? prompt.clozeAnswerText : null,
+    clozeHint: typeof prompt.clozeHint === 'string' ? prompt.clozeHint : null,
+    clozeResolvedHint:
+      typeof prompt.clozeResolvedHint === 'string' ? prompt.clozeResolvedHint : null,
+  };
+  prompt = safePrompt;
+
   prompt = {
     ...prompt,
     cueAudio: hydrateMediaRef(prompt.cueAudio, record.promptAudioMedia) ?? prompt.cueAudio,

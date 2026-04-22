@@ -360,4 +360,34 @@ describe('studySchedulerService', () => {
     expect(session.cards).toHaveLength(1);
     expect(overview.totalCards).toBeGreaterThanOrEqual(0);
   });
+
+  it('excludes suspended and buried cards from the nextDueAt overview lookup', async () => {
+    mockPrisma.studyCard.count.mockResolvedValue(1);
+    mockPrisma.studyCard.groupBy.mockResolvedValue([
+      { queueState: 'review', _count: { _all: 1 } },
+      { queueState: 'suspended', _count: { _all: 1 } },
+    ]);
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      dueAt: new Date('2026-04-12T00:00:00.000Z'),
+    });
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const overview = await getStudyOverview('user-1');
+
+    expect(mockPrisma.studyCard.findFirst).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        queueState: {
+          in: ['learning', 'review', 'relearning'],
+        },
+        dueAt: {
+          not: null,
+        },
+      },
+      orderBy: {
+        dueAt: 'asc',
+      },
+    });
+    expect(overview.nextDueAt).toBe('2026-04-12T00:00:00.000Z');
+  });
 });

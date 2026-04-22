@@ -241,6 +241,8 @@ export async function deleteFromGCSPath(filePath: string): Promise<void> {
 export interface SignedReadUrlOptions {
   filePath: string;
   expiresInSeconds: number;
+  responseDisposition?: string;
+  responseType?: string;
 }
 
 export interface SignedReadUrlResult {
@@ -259,7 +261,7 @@ export async function gcsFileExists(filePath: string): Promise<boolean> {
 export async function getSignedReadUrl(
   options: SignedReadUrlOptions
 ): Promise<SignedReadUrlResult> {
-  const { filePath, expiresInSeconds } = options;
+  const { filePath, expiresInSeconds, responseDisposition, responseType } = options;
   const resolvedBucketName = requireBucketName();
   const bucket = storage.bucket(resolvedBucketName);
   const file = bucket.file(filePath);
@@ -269,6 +271,8 @@ export async function getSignedReadUrl(
     version: 'v4',
     action: 'read',
     expires: expiresAtMs,
+    ...(responseDisposition ? { responseDisposition } : {}),
+    ...(responseType ? { responseType } : {}),
   });
 
   return {

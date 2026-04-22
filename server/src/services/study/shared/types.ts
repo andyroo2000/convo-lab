@@ -260,6 +260,7 @@ export interface StudyMediaAccessResult {
   absolutePath?: string;
   redirectUrl?: string;
   contentType: string;
+  contentDisposition: 'inline' | 'attachment';
   filename: string;
 }
 

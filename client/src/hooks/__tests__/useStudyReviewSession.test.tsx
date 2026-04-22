@@ -55,7 +55,6 @@ const baseCardOne = {
   cardType: 'recognition' as const,
   prompt: {
     cueText: '会社',
-    cueHtml: '会社',
     cueReading: 'かいしゃ',
   },
   answer: {
@@ -80,7 +79,6 @@ const baseCardTwo = {
   noteId: 'note-2',
   prompt: {
     cueText: '学校',
-    cueHtml: '学校',
     cueReading: 'がっこう',
   },
   answer: {
@@ -295,6 +293,41 @@ describe('useStudyReviewSession', () => {
 
     expect(result.current.currentCard?.id).toBe('card-2');
     expect(result.current.revealed).toBe(false);
+  });
+
+  it('retries answer-audio preparation until a generated URL becomes available', async () => {
+    prepareStudyAnswerAudioMock.mockResolvedValueOnce(baseCardOne).mockResolvedValueOnce({
+      ...baseCardOne,
+      answer: {
+        ...baseCardOne.answer,
+        answerAudio: {
+          filename: 'card-1.mp3',
+          url: 'https://example.com/card-1.mp3',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated',
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+
+    await waitFor(() => {
+      expect(prepareStudyAnswerAudioMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
+      'https://example.com/card-1.mp3'
+    );
   });
 
   it('exits focus mode cleanly while answer-audio preparation is still pending', async () => {

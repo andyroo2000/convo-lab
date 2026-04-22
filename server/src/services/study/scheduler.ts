@@ -19,6 +19,7 @@ import { State, Rating, type Grade } from 'ts-fsrs';
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
 
+import { cleanupStaleStudyImportJobs } from './import.js';
 import { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './media.js';
 import type {
   CreateStudyCardInput,
@@ -47,7 +48,12 @@ import {
   toStudyImportPreview,
 } from './shared.js';
 
+function isActiveDueQueueState(queueState: StudyQueueState): boolean {
+  return queueState === 'learning' || queueState === 'review' || queueState === 'relearning';
+}
+
 export async function getStudyOverview(userId: string): Promise<StudyOverview> {
+  await cleanupStaleStudyImportJobs(userId);
   const now = new Date();
   const [dueCount, queueStateCounts, nextDueCard, latestImport] = await Promise.all([
     prisma.studyCard.count({
@@ -71,6 +77,9 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
     prisma.studyCard.findFirst({
       where: {
         userId,
+        queueState: {
+          in: ['learning', 'review', 'relearning'],
+        },
         dueAt: {
           not: null,
         },
@@ -156,12 +165,11 @@ function countsAsDue(card: StudyOverviewMutationCardLike, now: Date): boolean {
     return false;
   }
 
-  return (
-    (card.queueState === 'learning' ||
-      card.queueState === 'review' ||
-      card.queueState === 'relearning') &&
-    card.dueAt.getTime() <= now.getTime()
-  );
+  return isActiveDueQueueState(card.queueState) && card.dueAt.getTime() <= now.getTime();
+}
+
+function countsAsNextDueCandidate(card: StudyOverviewMutationCardLike): boolean {
+  return isActiveDueQueueState(card.queueState) && Boolean(card.dueAt);
 }
 
 function getOverviewMutationCard(record: {
@@ -178,6 +186,9 @@ async function getNextDueAtForOverview(userId: string): Promise<string | null> {
   const nextDueCard = await prisma.studyCard.findFirst({
     where: {
       userId,
+      queueState: {
+        in: ['learning', 'review', 'relearning'],
+      },
       dueAt: {
         not: null,
       },
@@ -231,16 +242,22 @@ async function getAdjustedStudyOverview(
   const nextDueMs = nextCard.dueAt?.getTime() ?? null;
 
   if (currentNextDueMs === null) {
-    nextOverview.nextDueAt = nextCard.dueAt ? nextCard.dueAt.toISOString() : null;
+    nextOverview.nextDueAt = countsAsNextDueCandidate(nextCard)
+      ? (nextCard.dueAt?.toISOString() ?? null)
+      : null;
     return nextOverview;
   }
 
-  if (nextDueMs !== null && nextDueMs < currentNextDueMs) {
+  if (countsAsNextDueCandidate(nextCard) && nextDueMs !== null && nextDueMs < currentNextDueMs) {
     nextOverview.nextDueAt = nextCard.dueAt?.toISOString() ?? null;
     return nextOverview;
   }
 
-  if (previousDueMs === currentNextDueMs && nextDueMs !== currentNextDueMs) {
+  if (
+    countsAsNextDueCandidate(previousCard) &&
+    previousDueMs === currentNextDueMs &&
+    nextDueMs !== currentNextDueMs
+  ) {
     nextOverview.nextDueAt = await getNextDueAtForOverview(userId);
     return nextOverview;
   }

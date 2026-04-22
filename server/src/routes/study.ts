@@ -12,9 +12,7 @@ import {
 import type {
   StudyAnswerPayload,
   StudyCardType,
-  StudyImportResult,
   StudyMediaRef,
-  StudyOverview,
   StudyPromptPayload,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
@@ -27,6 +25,7 @@ import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { requireSameOriginStudyMutation } from '../middleware/studyCsrf.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
+import { parseOptionalStudyOverview } from '../services/study/shared.js';
 import {
   createStudyCard,
   exportStudyData,
@@ -93,7 +92,6 @@ const STUDY_MEDIA_SOURCES = new Set<StudyMediaRef['source']>([
 const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
 const STUDY_PROMPT_ALLOWED_KEYS = new Set([
   'cueText',
-  'cueHtml',
   'cueReading',
   'cueMeaning',
   'cueAudio',
@@ -216,54 +214,6 @@ function parseBoundedStringQueryParam(name: string, value: unknown): string | un
   return trimmed;
 }
 
-function parseOptionalStudyOverview(value: unknown): StudyOverview | undefined {
-  if (!isPlainObject(value)) {
-    return undefined;
-  }
-
-  const dueCount = typeof value.dueCount === 'number' ? value.dueCount : null;
-  const newCount = typeof value.newCount === 'number' ? value.newCount : null;
-  const learningCount = typeof value.learningCount === 'number' ? value.learningCount : null;
-  const reviewCount = typeof value.reviewCount === 'number' ? value.reviewCount : null;
-  const suspendedCount = typeof value.suspendedCount === 'number' ? value.suspendedCount : null;
-  const totalCards = typeof value.totalCards === 'number' ? value.totalCards : null;
-
-  if (
-    dueCount === null ||
-    newCount === null ||
-    learningCount === null ||
-    reviewCount === null ||
-    suspendedCount === null ||
-    totalCards === null
-  ) {
-    return undefined;
-  }
-
-  const rawLatestImport = value.latestImport;
-  const latestImport =
-    rawLatestImport === null || isPlainObject(rawLatestImport)
-      ? (rawLatestImport as StudyImportResult | null | undefined)
-      : undefined;
-  const rawNextDueAt = value.nextDueAt;
-  let nextDueAt: string | null | undefined;
-  if (typeof rawNextDueAt === 'string' || rawNextDueAt === null) {
-    nextDueAt = rawNextDueAt as string | null;
-  } else {
-    nextDueAt = undefined;
-  }
-
-  return {
-    dueCount,
-    newCount,
-    learningCount,
-    reviewCount,
-    suspendedCount,
-    totalCards,
-    latestImport: latestImport ?? null,
-    nextDueAt: nextDueAt ?? null,
-  };
-}
-
 function sanitizeDownloadFilename(filename: string): string {
   const basename = path.basename(filename);
   const sanitized = basename.replace(/[^A-Za-z0-9._-]/g, '_');
@@ -358,7 +308,6 @@ function parseStudyPromptPayload(value: Record<string, unknown>): StudyPromptPay
 
   return {
     cueText: parseOptionalNullableStringField('prompt', 'cueText', value.cueText),
-    cueHtml: parseOptionalNullableStringField('prompt', 'cueHtml', value.cueHtml),
     cueReading: parseOptionalNullableStringField('prompt', 'cueReading', value.cueReading),
     cueMeaning: parseOptionalNullableStringField('prompt', 'cueMeaning', value.cueMeaning),
     cueAudio: parseOptionalStudyMediaRef('prompt', 'cueAudio', value.cueAudio),
@@ -590,7 +539,7 @@ router.post(
           : 20;
       const session = await startStudySession(
         req.userId,
-        Math.max(1, Math.min(200, requestedLimit))
+        Math.max(1, Math.min(20, requestedLimit))
       );
       res.json(session);
     } catch (error) {
@@ -992,7 +941,7 @@ router.get('/media/:mediaId', async (req: AuthRequest, res, next) => {
     res.sendFile(mediaAccess.absolutePath as string, {
       headers: {
         'Cache-Control': 'private, max-age=60',
-        'Content-Disposition': `inline; filename="${sanitizeDownloadFilename(mediaAccess.filename)}"`,
+        'Content-Disposition': `${mediaAccess.contentDisposition}; filename="${sanitizeDownloadFilename(mediaAccess.filename)}"`,
       },
     });
   } catch (error) {

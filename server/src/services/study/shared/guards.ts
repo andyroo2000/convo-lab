@@ -192,15 +192,37 @@ export function parseJsonRecord(raw: string): JsonRecord | null {
 export function parseOptionalStudyOverview(value: unknown): StudyOverview | undefined {
   if (!isRecord(value)) return undefined;
 
-  const numberOrZero = (candidate: unknown) => (typeof candidate === 'number' ? candidate : 0);
+  const readRequiredNumber = (candidate: unknown): number | null =>
+    typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
+  const dueCount = readRequiredNumber(value.dueCount);
+  const newCount = readRequiredNumber(value.newCount);
+  const learningCount = readRequiredNumber(value.learningCount);
+  const reviewCount = readRequiredNumber(value.reviewCount);
+  const suspendedCount = readRequiredNumber(value.suspendedCount);
+  const totalCards = readRequiredNumber(value.totalCards);
+
+  if (
+    dueCount === null ||
+    newCount === null ||
+    learningCount === null ||
+    reviewCount === null ||
+    suspendedCount === null ||
+    totalCards === null
+  ) {
+    return undefined;
+  }
+
+  const nextDueAt: string | null =
+    typeof value.nextDueAt === 'string' ? value.nextDueAt : value.nextDueAt === null ? null : null;
+
   return {
-    dueCount: numberOrZero(value.dueCount),
-    newCount: numberOrZero(value.newCount),
-    learningCount: numberOrZero(value.learningCount),
-    reviewCount: numberOrZero(value.reviewCount),
-    suspendedCount: numberOrZero(value.suspendedCount),
-    totalCards: numberOrZero(value.totalCards),
+    dueCount,
+    newCount,
+    learningCount,
+    reviewCount,
+    suspendedCount,
+    totalCards,
     latestImport: null,
-    nextDueAt: typeof value.nextDueAt === 'string' ? value.nextDueAt : null,
+    nextDueAt,
   };
 }

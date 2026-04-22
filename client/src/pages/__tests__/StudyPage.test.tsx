@@ -88,7 +88,6 @@ const baseCard = {
   cardType: 'recognition' as const,
   prompt: {
     cueText: '会社',
-    cueHtml: '会社',
     cueReading: 'かいしゃ',
   },
   answer: {

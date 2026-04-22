@@ -95,9 +95,10 @@ describe('studyMediaService', () => {
     mockPrisma.studyCard.update.mockResolvedValue({});
 
     const card = await prepareStudyCardAnswerAudio('user-1', 'card-1');
+    await new Promise<void>((resolve) => setImmediate(resolve));
 
     expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalledTimes(1);
-    expect(card.answerAudioSource).toBe('generated');
+    expect(card.answerAudioSource).toBe('missing');
   });
 
   it('deduplicates concurrent answer-audio generation for the same card', async () => {
@@ -180,5 +181,45 @@ describe('studyMediaService', () => {
 
     expect(getSignedReadUrlMock).toHaveBeenCalled();
     expect(result?.type).toBe('redirect');
+    expect(result?.contentDisposition).toBe('inline');
+  });
+
+  it('forces attachment disposition for unsafe inline media like SVG', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-svg',
+      userId: 'user-1',
+      sourceFilename: 'diagram.svg',
+      contentType: 'image/svg+xml',
+      mediaKind: 'other',
+      storagePath: 'study-media/user-1/import/diagram.svg',
+    });
+
+    const result = await getStudyMediaAccess('user-1', 'media-svg');
+
+    expect(getSignedReadUrlMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        responseDisposition: 'attachment; filename="diagram.svg"',
+        responseType: 'image/svg+xml',
+      })
+    );
+    expect(result?.contentDisposition).toBe('attachment');
+  });
+
+  it('returns null when GCS signing is unavailable for private study media', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    getSignedReadUrlMock.mockRejectedValueOnce(new Error('missing signer'));
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({
+      id: 'media-gcs-failure',
+      userId: 'user-1',
+      sourceFilename: 'company.mp3',
+      contentType: 'audio/mpeg',
+      mediaKind: 'audio',
+      storagePath: 'study-media/user-1/import/company.mp3',
+    });
+
+    const result = await getStudyMediaAccess('user-1', 'media-gcs-failure');
+
+    expect(result).toBeNull();
   });
 });

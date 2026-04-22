@@ -164,7 +164,7 @@ describe('Study Routes', () => {
     vi.useRealTimers();
   });
 
-  it('clamps study session start limits to 200', async () => {
+  it('clamps study session start limits to 20', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 1,
@@ -183,7 +183,7 @@ describe('Study Routes', () => {
       .send({ limit: 999 });
 
     expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 200);
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 20);
   });
 
   it('rejects invalid review grades', async () => {
@@ -578,6 +578,7 @@ describe('Study Routes', () => {
       type: 'redirect',
       redirectUrl: 'https://example.com/study-audio.mp3',
       contentType: 'audio/mpeg',
+      contentDisposition: 'inline',
       filename: 'audio.mp3',
     });
 
@@ -752,6 +753,7 @@ describe('Study Routes', () => {
       type: 'local',
       absolutePath: audioPath,
       contentType: 'audio/mpeg',
+      contentDisposition: 'inline',
       filename: "evil\"; filename*=utf-8''oops.mp3",
     });
 
@@ -761,5 +763,22 @@ describe('Study Routes', () => {
     expect(response.headers['content-disposition']).toBe(
       'inline; filename="evil___filename__utf-8__oops.mp3"'
     );
+  });
+
+  it('forces attachment disposition for unsafe study media types', async () => {
+    const svgPath = path.join(temporaryDirectory, 'study-image.svg');
+    await writeFile(svgPath, Buffer.from('<svg />'));
+    getStudyMediaAccessMock.mockResolvedValue({
+      type: 'local',
+      absolutePath: svgPath,
+      contentType: 'image/svg+xml',
+      contentDisposition: 'attachment',
+      filename: 'diagram.svg',
+    });
+
+    const response = await request(app).get('/study/media/media-svg');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-disposition']).toBe('attachment; filename="diagram.svg"');
   });
 });

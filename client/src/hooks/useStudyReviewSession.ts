@@ -28,6 +28,8 @@ import { toAssetUrl } from '../components/study/studyCardUtils';
 import useStudyBackgroundTask from './useStudyBackgroundTask';
 
 const reviewScheduler = fsrs();
+const ANSWER_AUDIO_PREP_MAX_ATTEMPTS = 4;
+const ANSWER_AUDIO_PREP_RETRY_DELAY_MS = 300;
 
 interface StudyUndoSnapshot {
   session: StudySessionResponse | null;
@@ -94,6 +96,9 @@ const isCardEligibleForSession = (card: StudyCardSummary) => {
   if (!card.state.dueAt) return false;
   return new Date(card.state.dueAt).getTime() <= Date.now();
 };
+
+const hasReadyAnswerAudio = (card: StudyCardSummary) =>
+  Boolean(toAssetUrl(card.answer.answerAudio?.url));
 
 interface UseStudyReviewSessionOptions {
   availableCount: number;
@@ -249,11 +254,32 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
         return existingPromise;
       }
 
-      const request = prepareStudyAnswerAudio(cardId)
-        .then((updatedCard) => {
+      const request = (async () => {
+        const attemptPrepare = async (attempt: number): Promise<StudyCardSummary> => {
+          const updatedCard = await prepareStudyAnswerAudio(cardId);
           mergeCardIntoSession(updatedCard);
-          return updatedCard;
-        })
+
+          if (hasReadyAnswerAudio(updatedCard)) {
+            return updatedCard;
+          }
+
+          if (attempt >= ANSWER_AUDIO_PREP_MAX_ATTEMPTS - 1) {
+            return updatedCard;
+          }
+
+          await new Promise((resolve) => {
+            setTimeout(resolve, ANSWER_AUDIO_PREP_RETRY_DELAY_MS);
+          });
+
+          return attemptPrepare(attempt + 1);
+        };
+
+        const latestCard = await attemptPrepare(0);
+        if (!latestCard) {
+          throw new Error('Answer audio could not be prepared.');
+        }
+        return latestCard;
+      })()
         .catch((error) => {
           console.warn('Unable to prepare answer audio for study card:', cardId, error);
           setSessionError(
@@ -335,6 +361,8 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       return;
     }
 
+    // Mobile browsers such as iOS Safari may reject play() until a user gesture or
+    // until the generated audio asset has propagated, so we prewarm with bounded retries.
     runBackgroundTask(() => ensureAnswerAudioPrepared(currentCard.id), {
       label: 'Study answer-audio preparation',
       errorMessage: 'Answer audio could not be prepared.',
