@@ -2,7 +2,6 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import cookieParser from 'cookie-parser';
 import express, {
   json as expressJson,
   type ErrorRequestHandler,
@@ -24,15 +23,8 @@ import {
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 import { mockPrisma } from '../../setup.js';
-
-function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
-  if (Array.isArray(setCookieHeader)) {
-    return setCookieHeader;
-  }
-
-  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
-}
 
 const {
   createRedisConnectionMock,
@@ -169,7 +161,7 @@ describe('Study Routes', () => {
     );
     testClockOffset += 1;
     app = express();
-    app.use(cookieParser());
+    app.use(testCookieParser);
     app.use(expressJson());
     app.use('/api/auth', requireAllowedApiMutationOrigin);
     app.use('/api/auth', apiCsrfProtection);

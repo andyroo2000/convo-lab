@@ -1,4 +1,3 @@
-import cookieParser from 'cookie-parser';
 import express, { json as expressJson } from 'express';
 import request from 'supertest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -12,14 +11,7 @@ import {
   resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
-
-function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
-  if (Array.isArray(setCookieHeader)) {
-    return setCookieHeader;
-  }
-
-  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
-}
+import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 vi.mock('../../../config/passport.js', () => ({
   default: {
@@ -71,7 +63,7 @@ describe('Auth route CSRF', () => {
   it('issues the shared CSRF cookie via GET /api/auth/csrf', async () => {
     const authRouter = (await import('../../../routes/auth.js')).default;
     const app = express();
-    app.use(cookieParser());
+    app.use(testCookieParser);
     app.use(expressJson());
     app.use('/api/auth', requireAllowedApiMutationOrigin);
     app.use('/api/auth', apiCsrfProtection);
@@ -93,7 +85,7 @@ describe('Auth route CSRF', () => {
   it('rejects logout without a matching CSRF header', async () => {
     const authRouter = (await import('../../../routes/auth.js')).default;
     const app = express();
-    app.use(cookieParser());
+    app.use(testCookieParser);
     app.use(expressJson());
     app.use('/api/auth', requireAllowedApiMutationOrigin);
     app.use('/api/auth', apiCsrfProtection);
@@ -117,7 +109,7 @@ describe('Auth route CSRF', () => {
   it('allows logout with a matching CSRF header', async () => {
     const authRouter = (await import('../../../routes/auth.js')).default;
     const app = express();
-    app.use(cookieParser());
+    app.use(testCookieParser);
     app.use(expressJson());
     app.use('/api/auth', requireAllowedApiMutationOrigin);
     app.use('/api/auth', apiCsrfProtection);

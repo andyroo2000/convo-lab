@@ -1,4 +1,3 @@
-import cookieParser from 'cookie-parser';
 import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -15,14 +14,7 @@ import {
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import billingRouter from '../../../routes/billing.js';
-
-function getSetCookieArray(setCookieHeader: string | string[] | undefined): string[] {
-  if (Array.isArray(setCookieHeader)) {
-    return setCookieHeader;
-  }
-
-  return typeof setCookieHeader === 'string' ? [setCookieHeader] : [];
-}
+import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 // Create hoisted mocks
 const mockStripeService = vi.hoisted(() => ({
@@ -80,7 +72,7 @@ describe('Billing Routes', () => {
     process.env.CLIENT_URL = 'http://localhost:5173';
     resetAllowedApiOriginsCacheForTests();
     app = express();
-    app.use(cookieParser());
+    app.use(testCookieParser);
     app.use(expressJson());
     app.use('/api/auth', requireAllowedApiMutationOrigin);
     app.use('/api/auth', apiCsrfProtection);
