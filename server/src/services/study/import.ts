@@ -1,9 +1,25 @@
+import { mkdtemp, rm, writeFile } from 'fs/promises';
+import os from 'os';
+import path from 'path';
+
 import { MAX_STUDY_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants.js';
-import type { StudyImportPreview, StudyImportResult } from '@languageflow/shared/src/types.js';
+import type {
+  StudyImportPreview,
+  StudyImportResult,
+  StudyImportUploadSession,
+} from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
 
+import { getClientOrigin } from '../../config/browserRuntime.js';
 import { prisma } from '../../db/client.js';
+import { enqueueStudyImportJob } from '../../jobs/studyImportQueue.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import {
+  createResumableUploadSession,
+  deleteFromGCSPath,
+  downloadFromGCSPath,
+  getGcsObjectMetadata,
+} from '../storageClient.js';
 
 import type {
   ParsedImportDataset,
@@ -28,7 +44,137 @@ import {
 } from './shared.js';
 
 const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
+const STUDY_IMPORT_STALE_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const STUDY_IMPORT_WRITE_BATCH_SIZE = 250;
+const STUDY_IMPORT_UPLOAD_FOLDER = 'study/imports';
+const STUDY_IMPORT_CONTENT_TYPES = new Set([
+  '',
+  'application/zip',
+  'application/x-zip-compressed',
+  'application/octet-stream',
+  'multipart/x-zip',
+]);
+
+function createEmptyStudyImportPreview(): StudyImportPreview {
+  return {
+    deckName: ANKI_DECK_NAME,
+    cardCount: 0,
+    noteCount: 0,
+    reviewLogCount: 0,
+    mediaReferenceCount: 0,
+    skippedMediaCount: 0,
+    warnings: [],
+    noteTypeBreakdown: [],
+  };
+}
+
+function toStudyImportResult(job: StudyImportJobRecord): StudyImportResult {
+  const sourceSizeBytes =
+    typeof job.sourceSizeBytes === 'bigint' ? Number(job.sourceSizeBytes) : null;
+
+  return {
+    id: job.id,
+    status: parseStudyImportStatus(job.status),
+    sourceFilename: job.sourceFilename,
+    deckName: job.deckName,
+    preview: toStudyImportPreview(job.previewJson),
+    uploadedAt: job.uploadedAt instanceof Date ? job.uploadedAt.toISOString() : null,
+    sourceSizeBytes,
+    importedAt: job.completedAt instanceof Date ? job.completedAt.toISOString() : null,
+    errorMessage: typeof job.errorMessage === 'string' ? job.errorMessage : null,
+  };
+}
+
+function buildStudyImportObjectPath(userId: string, importJobId: string, filename: string): string {
+  const normalizedFilename = normalizeFilename(filename) || 'import.colpkg';
+  return `${STUDY_IMPORT_UPLOAD_FOLDER}/${userId}/${importJobId}/${normalizedFilename}`;
+}
+
+function assertValidStudyImportFilename(filename: string): string {
+  const sanitizedFilename = sanitizeText(filename)?.trim() ?? '';
+  if (!sanitizedFilename.toLowerCase().endsWith('.colpkg')) {
+    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
+  }
+
+  return sanitizedFilename;
+}
+
+function assertValidStudyImportContentType(contentType: string | undefined): string {
+  const normalized = (contentType ?? '').trim().toLowerCase();
+  if (!STUDY_IMPORT_CONTENT_TYPES.has(normalized)) {
+    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
+  }
+
+  return normalized || 'application/octet-stream';
+}
+
+async function ensureNoActiveStudyImport(
+  userId: string,
+  excludedImportJobId?: string
+): Promise<void> {
+  const activeImportJob = await prisma.studyImportJob.findFirst({
+    where: {
+      userId,
+      status: 'processing',
+      ...(excludedImportJobId
+        ? {
+            id: {
+              not: excludedImportJobId,
+            },
+          }
+        : {}),
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (activeImportJob) {
+    throw new AppError(`A study import is already running (${activeImportJob.id}).`, 409);
+  }
+}
+
+async function cleanupStalePendingStudyImportJobs(userId: string): Promise<void> {
+  const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_PENDING_MAX_AGE_MS);
+  const staleJobs = await prisma.studyImportJob.findMany({
+    where: {
+      userId,
+      status: 'pending',
+      createdAt: {
+        lt: staleThreshold,
+      },
+    },
+    select: {
+      id: true,
+      sourceObjectPath: true,
+    },
+  });
+
+  if (staleJobs.length === 0) {
+    return;
+  }
+
+  await Promise.allSettled(
+    staleJobs
+      .map((job) => job.sourceObjectPath)
+      .filter((value): value is string => typeof value === 'string' && value.length > 0)
+      .map((storagePath) => deleteFromGCSPath(storagePath))
+  );
+
+  await prisma.studyImportJob.updateMany({
+    where: {
+      id: {
+        in: staleJobs.map((job) => job.id),
+      },
+      status: 'pending',
+    },
+    data: {
+      status: 'failed',
+      errorMessage: 'Upload was abandoned before import started.',
+      completedAt: new Date(),
+    },
+  });
+}
 
 export async function cleanupStaleStudyImportJobs(userId: string): Promise<void> {
   const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
@@ -46,6 +192,8 @@ export async function cleanupStaleStudyImportJobs(userId: string): Promise<void>
       completedAt: new Date(),
     },
   });
+
+  await cleanupStalePendingStudyImportJobs(userId);
 }
 
 async function createManyInBatches<T>(
@@ -73,78 +221,21 @@ function mediaByFilenameToRecordId(
   return mediaByFilename.get(filename)?.id ?? null;
 }
 
-export async function importJapaneseStudyColpkg(params: {
+async function runStudyImportTransaction(params: {
   userId: string;
-  fileBuffer: Buffer;
-  filename: string;
+  importJob: StudyImportJobRecord;
+  sourceFilename: string;
+  archiveFilePath: string;
 }): Promise<StudyImportResult> {
-  if (params.fileBuffer.length > MAX_STUDY_IMPORT_BYTES) {
-    throw new AppError(
-      `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
-      413
-    );
-  }
-
-  if (params.fileBuffer.length < 2 || params.fileBuffer.subarray(0, 2).toString('utf8') !== 'PK') {
-    throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
-  }
-
-  await cleanupStaleStudyImportJobs(params.userId);
-
-  const initialPreview: StudyImportPreview = {
-    deckName: ANKI_DECK_NAME,
-    cardCount: 0,
-    noteCount: 0,
-    reviewLogCount: 0,
-    mediaReferenceCount: 0,
-    skippedMediaCount: 0,
-    warnings: [],
-    noteTypeBreakdown: [],
-  };
-
-  let importJob: StudyImportJobRecord;
-  try {
-    importJob = await prisma.studyImportJob.create({
-      data: {
-        userId: params.userId,
-        status: 'processing',
-        sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
-        deckName: ANKI_DECK_NAME,
-        previewJson: toPrismaJson(initialPreview),
-        startedAt: new Date(),
-      },
-    });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      const activeImportJob = await prisma.studyImportJob.findFirst({
-        where: {
-          userId: params.userId,
-          status: 'processing',
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-
-      throw new AppError(
-        activeImportJob
-          ? `A study import is already running (${activeImportJob.id}).`
-          : 'A study import is already running.',
-        409
-      );
-    }
-
-    throw error;
-  }
-
+  const { userId, importJob, sourceFilename, archiveFilePath } = params;
   let parsedDataset: ParsedImportDataset | undefined;
 
   try {
     try {
       parsedDataset = await parseColpkgUpload({
-        fileBuffer: params.fileBuffer,
-        filename: params.filename,
-        userId: params.userId,
+        archiveFilePath,
+        filename: sourceFilename,
+        userId,
         importJobId: importJob.id,
       });
     } catch (error) {
@@ -158,8 +249,8 @@ export async function importJapaneseStudyColpkg(params: {
     if (!parsedDataset) {
       throw new AppError('The uploaded .colpkg could not be parsed.', 400);
     }
-    const parsed = parsedDataset;
 
+    const parsed = parsedDataset;
     const createdCardIdBySourceCardId = new Map(
       parsed.cards.map((card) => [card.sourceCardId, card.createId])
     );
@@ -172,7 +263,7 @@ export async function importJapaneseStudyColpkg(params: {
       return [
         {
           id: log.createId,
-          userId: params.userId,
+          userId,
           cardId,
           importJobId: importJob.id,
           source: 'anki_import' as const,
@@ -190,28 +281,29 @@ export async function importJapaneseStudyColpkg(params: {
       ];
     });
     const completedAt = new Date();
+
     await prisma.$transaction(async (tx) => {
       await tx.studyReviewLog.deleteMany({
         where: {
-          userId: params.userId,
+          userId,
           source: 'anki_import',
         },
       });
       await tx.studyCard.deleteMany({
         where: {
-          userId: params.userId,
+          userId,
           sourceKind: 'anki_import',
         },
       });
       await tx.studyNote.deleteMany({
         where: {
-          userId: params.userId,
+          userId,
           sourceKind: 'anki_import',
         },
       });
       await tx.studyMedia.deleteMany({
         where: {
-          userId: params.userId,
+          userId,
           sourceKind: 'anki_import',
         },
       });
@@ -227,7 +319,7 @@ export async function importJapaneseStudyColpkg(params: {
         await tx.studyNote.createMany({
           data: batch.map((note) => ({
             id: note.createId,
-            userId: params.userId,
+            userId,
             importJobId: importJob.id,
             sourceKind: 'anki_import',
             sourceNoteId: BigInt(note.sourceNoteId),
@@ -247,7 +339,7 @@ export async function importJapaneseStudyColpkg(params: {
         await tx.studyMedia.createMany({
           data: batch.map((media) => ({
             id: media.id,
-            userId: params.userId,
+            userId,
             importJobId: importJob.id,
             sourceKind: 'anki_import',
             sourceMediaKey: sanitizeText(
@@ -267,7 +359,7 @@ export async function importJapaneseStudyColpkg(params: {
         await tx.studyCard.createMany({
           data: batch.map((card) => ({
             id: card.createId,
-            userId: params.userId,
+            userId,
             noteId: card.noteCreateId,
             importJobId: importJob.id,
             sourceKind: 'anki_import',
@@ -279,7 +371,6 @@ export async function importJapaneseStudyColpkg(params: {
             sourceQueue: card.sourceQueue,
             sourceCardType: card.sourceCardType,
             sourceDue: card.sourceDue,
-            // sourceDue is raw Anki integer metadata; runtime scheduling uses dueAt.
             sourceInterval: card.sourceInterval,
             sourceFactor: card.sourceFactor,
             sourceReps: card.sourceReps,
@@ -338,27 +429,31 @@ export async function importJapaneseStudyColpkg(params: {
     return {
       id: importJob.id,
       status: 'completed',
-      sourceFilename: sanitizeText(params.filename) ?? 'import.colpkg',
+      sourceFilename: sanitizeText(sourceFilename) ?? 'import.colpkg',
       deckName: ANKI_DECK_NAME,
       preview: parsed.preview,
+      uploadedAt: importJob.uploadedAt instanceof Date ? importJob.uploadedAt.toISOString() : null,
+      sourceSizeBytes:
+        typeof importJob.sourceSizeBytes === 'bigint' ? Number(importJob.sourceSizeBytes) : null,
       importedAt: completedAt.toISOString(),
       errorMessage: null,
     };
   } catch (error) {
     const safeImportError = toSafeStudyImportError(error);
+
     await prisma
       .$transaction(async (tx) => {
         await tx.studyReviewLog.deleteMany({
-          where: { userId: params.userId, importJobId: importJob.id },
+          where: { userId, importJobId: importJob.id },
         });
         await tx.studyCard.deleteMany({
-          where: { userId: params.userId, importJobId: importJob.id },
+          where: { userId, importJobId: importJob.id },
         });
         await tx.studyNote.deleteMany({
-          where: { userId: params.userId, importJobId: importJob.id },
+          where: { userId, importJobId: importJob.id },
         });
         await tx.studyMedia.deleteMany({
-          where: { userId: params.userId, importJobId: importJob.id },
+          where: { userId, importJobId: importJob.id },
         });
       })
       .catch((cleanupError) => {
@@ -397,6 +492,233 @@ export async function importJapaneseStudyColpkg(params: {
   }
 }
 
+export async function createStudyImportUploadSession(params: {
+  userId: string;
+  filename: string;
+  contentType?: string;
+}): Promise<StudyImportUploadSession> {
+  const sourceFilename = assertValidStudyImportFilename(params.filename);
+  const sourceContentType = assertValidStudyImportContentType(params.contentType);
+  await cleanupStaleStudyImportJobs(params.userId);
+  await ensureNoActiveStudyImport(params.userId);
+
+  const importJob = await prisma.studyImportJob.create({
+    data: {
+      userId: params.userId,
+      status: 'pending',
+      sourceFilename,
+      sourceContentType,
+      deckName: ANKI_DECK_NAME,
+      previewJson: toPrismaJson(createEmptyStudyImportPreview()),
+    },
+  });
+
+  const sourceObjectPath = buildStudyImportObjectPath(params.userId, importJob.id, sourceFilename);
+  const uploadSession = await createResumableUploadSession({
+    destinationPath: sourceObjectPath,
+    contentType: sourceContentType,
+    origin: getClientOrigin(),
+    metadata: {
+      importJobId: importJob.id,
+      userId: params.userId,
+    },
+  });
+
+  const updatedJob = await prisma.studyImportJob.update({
+    where: { id: importJob.id },
+    data: {
+      sourceObjectPath: uploadSession.filePath,
+      sourceContentType,
+    },
+  });
+
+  return {
+    importJob: toStudyImportResult(updatedJob),
+    upload: {
+      method: 'PUT',
+      url: uploadSession.url,
+      headers: {
+        'Content-Type': sourceContentType,
+      },
+      contentType: sourceContentType,
+    },
+  };
+}
+
+export async function completeStudyImportUpload(params: {
+  userId: string;
+  importJobId: string;
+}): Promise<StudyImportResult> {
+  await cleanupStaleStudyImportJobs(params.userId);
+  await ensureNoActiveStudyImport(params.userId, params.importJobId);
+
+  const importJob = await prisma.studyImportJob.findFirst({
+    where: {
+      id: params.importJobId,
+      userId: params.userId,
+    },
+  });
+
+  if (!importJob) {
+    throw new AppError('Study import not found.', 404);
+  }
+
+  if (importJob.status !== 'pending') {
+    return toStudyImportResult(importJob);
+  }
+
+  if (!importJob.sourceObjectPath) {
+    throw new AppError('Study import upload target is missing.', 400);
+  }
+
+  const objectMetadata = await getGcsObjectMetadata(importJob.sourceObjectPath);
+  if (!objectMetadata) {
+    throw new AppError(
+      'Upload has not finished yet. Please wait for the file upload to complete.',
+      409
+    );
+  }
+
+  const updatedJob = await prisma.studyImportJob.update({
+    where: { id: importJob.id },
+    data: {
+      sourceContentType: objectMetadata.contentType ?? importJob.sourceContentType,
+      sourceSizeBytes:
+        typeof objectMetadata.sizeBytes === 'number' && Number.isFinite(objectMetadata.sizeBytes)
+          ? BigInt(objectMetadata.sizeBytes)
+          : importJob.sourceSizeBytes,
+      uploadedAt: new Date(),
+      errorMessage: null,
+      completedAt: null,
+    },
+  });
+
+  await enqueueStudyImportJob(updatedJob.id);
+  return toStudyImportResult(updatedJob);
+}
+
+export async function processStudyImportJob(
+  importJobId: string
+): Promise<StudyImportResult | null> {
+  const existingJob = await prisma.studyImportJob.findUnique({
+    where: { id: importJobId },
+  });
+
+  if (!existingJob) {
+    return null;
+  }
+
+  if (existingJob.status === 'completed' || existingJob.status === 'failed') {
+    return toStudyImportResult(existingJob);
+  }
+
+  if (!existingJob.sourceObjectPath) {
+    throw new AppError('Study import upload target is missing.', 400);
+  }
+  const sourceObjectPath = existingJob.sourceObjectPath;
+
+  let processingJob: StudyImportJobRecord;
+  try {
+    processingJob = await prisma.studyImportJob.update({
+      where: { id: importJobId },
+      data: {
+        status: 'processing',
+        startedAt: new Date(),
+        errorMessage: null,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      const activeJob = await prisma.studyImportJob.findUnique({
+        where: { id: importJobId },
+      });
+      return activeJob ? toStudyImportResult(activeJob) : null;
+    }
+
+    throw error;
+  }
+
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'study-import-'));
+  const archiveFilePath = path.join(tempDir, normalizeFilename(processingJob.sourceFilename));
+
+  try {
+    await downloadFromGCSPath({
+      filePath: sourceObjectPath,
+      destinationPath: archiveFilePath,
+    });
+
+    const result = await runStudyImportTransaction({
+      userId: processingJob.userId,
+      importJob: processingJob,
+      sourceFilename: processingJob.sourceFilename,
+      archiveFilePath,
+    });
+
+    await deleteFromGCSPath(sourceObjectPath).catch((error) => {
+      console.warn('[Study] Failed to delete staged import archive after success:', error);
+    });
+
+    return result;
+  } catch (error) {
+    await deleteFromGCSPath(sourceObjectPath).catch((cleanupError) => {
+      console.warn('[Study] Failed to delete staged import archive after failure:', cleanupError);
+    });
+    throw error;
+  } finally {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+export async function importJapaneseStudyColpkg(params: {
+  userId: string;
+  fileBuffer: Buffer;
+  filename: string;
+}): Promise<StudyImportResult> {
+  if (params.fileBuffer.length > MAX_STUDY_IMPORT_BYTES) {
+    throw new AppError(
+      `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
+      413
+    );
+  }
+
+  if (params.fileBuffer.length < 2 || params.fileBuffer.subarray(0, 2).toString('utf8') !== 'PK') {
+    throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
+  }
+
+  const sourceFilename = assertValidStudyImportFilename(params.filename);
+  await cleanupStaleStudyImportJobs(params.userId);
+  await ensureNoActiveStudyImport(params.userId);
+
+  const importJob = await prisma.studyImportJob.create({
+    data: {
+      userId: params.userId,
+      status: 'processing',
+      sourceFilename,
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: BigInt(params.fileBuffer.length),
+      deckName: ANKI_DECK_NAME,
+      previewJson: toPrismaJson(createEmptyStudyImportPreview()),
+      uploadedAt: new Date(),
+      startedAt: new Date(),
+    },
+  });
+
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), 'study-import-legacy-'));
+  const archiveFilePath = path.join(tempDir, normalizeFilename(sourceFilename));
+
+  try {
+    await writeFile(archiveFilePath, params.fileBuffer);
+    return await runStudyImportTransaction({
+      userId: params.userId,
+      importJob,
+      sourceFilename,
+      archiveFilePath,
+    });
+  } finally {
+    await rm(tempDir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 export async function getStudyImportJob(
   userId: string,
   importJobId: string
@@ -412,13 +734,5 @@ export async function getStudyImportJob(
 
   if (!job) return null;
 
-  return {
-    id: job.id,
-    status: parseStudyImportStatus(job.status),
-    sourceFilename: job.sourceFilename,
-    deckName: job.deckName,
-    preview: toStudyImportPreview(job.previewJson),
-    importedAt: job.completedAt instanceof Date ? job.completedAt.toISOString() : null,
-    errorMessage: typeof job.errorMessage === 'string' ? job.errorMessage : null,
-  };
+  return toStudyImportResult(job);
 }

@@ -13,6 +13,7 @@ import type {
   StudyExportManifest,
   StudyHistoryResponse,
   StudyImportResult,
+  StudyImportUploadSession,
   StudyOverview,
   StudyPromptPayload,
   StudyReviewResult,
@@ -315,15 +316,75 @@ export function useStudyCardAction() {
   });
 }
 
-export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetchWithCsrf(`${API_URL}/api/study/imports`, {
+export async function createStudyImportUploadSession(
+  file: File
+): Promise<StudyImportUploadSession> {
+  return apiRequest<StudyImportUploadSession>('/api/study/imports', {
     method: 'POST',
-    credentials: 'include',
-    body: formData,
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+    }),
   });
+}
+
+export async function uploadStudyImportArchive(
+  session: StudyImportUploadSession,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(session.upload.method, session.upload.url);
+
+    Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
+      request.setRequestHeader(headerName, headerValue);
+    });
+
+    request.upload.onprogress = (event) => {
+      if (typeof onProgress === 'function' && event.lengthComputable && event.total > 0) {
+        onProgress(Math.min(1, event.loaded / event.total));
+      }
+    };
+
+    request.onerror = () => {
+      reject(new Error('Upload failed'));
+    };
+    request.onabort = () => {
+      reject(new Error('Upload cancelled'));
+    };
+    request.onload = () => {
+      if (request.status >= 200 && request.status < 300) {
+        onProgress?.(1);
+        resolve();
+        return;
+      }
+
+      reject(new Error(`Upload failed (${String(request.status)})`));
+    };
+
+    request.send(file);
+  });
+}
+
+export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}/complete`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function getStudyImportStatus(importJobId: string): Promise<StudyImportResult> {
+  const response = await fetchWithCsrf(
+    `${API_URL}/api/study/imports/${encodeURIComponent(importJobId)}`,
+    {
+      method: 'GET',
+      credentials: 'include',
+      headers: withMutationHeaders(),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Import failed' }));
@@ -331,4 +392,10 @@ export async function uploadStudyImport(file: File): Promise<StudyImportResult> 
   }
 
   return response.json() as Promise<StudyImportResult>;
+}
+
+export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
+  const session = await createStudyImportUploadSession(file);
+  await uploadStudyImportArchive(session, file);
+  return completeStudyImportUpload(session.importJob.id);
 }

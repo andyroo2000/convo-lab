@@ -354,11 +354,15 @@ model StudyImportJob {
   status         String    @default("pending")
   sourceType     String    @default("anki_colpkg")
   sourceFilename String
+  sourceObjectPath String?
+  sourceContentType String?
+  sourceSizeBytes BigInt?
   deckName       String    @default("日本語")
   previewJson    Json
   summaryJson    Json?
   errorMessage   String?   @db.Text
   startedAt      DateTime?
+  uploadedAt     DateTime?
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

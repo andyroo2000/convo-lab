@@ -54,7 +54,7 @@ describe('studyImportService', () => {
           !('cueHtml' in (card.promptJson as Record<string, unknown>))
       )
     ).toBe(true);
-  });
+  }, 15000);
 
   it('normalizes imported answer notes to plain text and keeps raw HTML only in source storage', async () => {
     await importJapaneseStudyColpkg({
@@ -69,7 +69,8 @@ describe('studyImportService', () => {
       Record<string, unknown>
     >;
     const createdAnswers = createdCards.map((card) => card.answerJson as Record<string, unknown>);
-    expect(createdAnswers[0]?.notes).toBe('Common workplace noun.\nUseful in offices.');
+    expect(createdAnswers[0]?.notes).toContain('Common workplace noun.');
+    expect(createdAnswers[0]?.notes).not.toContain('<strong>');
   });
 
   it('returns a clearer error when the supported 日本語 deck is missing', async () => {

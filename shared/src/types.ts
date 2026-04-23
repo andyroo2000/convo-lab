@@ -262,8 +262,20 @@ export interface StudyImportResult {
   sourceFilename: string;
   deckName: string;
   preview: StudyImportPreview;
+  uploadedAt?: string | null;
+  sourceSizeBytes?: number | null;
   importedAt?: string | null;
   errorMessage?: string | null;
+}
+
+export interface StudyImportUploadSession {
+  importJob: StudyImportResult;
+  upload: {
+    method: 'PUT';
+    url: string;
+    headers: Record<string, string>;
+    contentType: string;
+  };
 }
 
 export interface StudyExportManifest {

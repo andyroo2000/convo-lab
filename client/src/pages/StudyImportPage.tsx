@@ -2,17 +2,51 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import type { StudyImportResult } from '@languageflow/shared/src/types';
-import { MAX_STUDY_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 
 import StudyFormField from '../components/study/StudyFormField';
-import { uploadStudyImport } from '../hooks/useStudy';
+import {
+  completeStudyImportUpload,
+  createStudyImportUploadSession,
+  getStudyImportStatus,
+  uploadStudyImportArchive,
+} from '../hooks/useStudy';
+
+const STUDY_IMPORT_POLL_INTERVAL_MS = 2000;
+const STUDY_IMPORT_POLL_ATTEMPTS_MAX = 600;
+
+type ImportPhase = 'idle' | 'uploading' | 'queued' | 'processing' | 'completed' | 'failed';
 
 const StudyImportPage = () => {
   const { t } = useTranslation('study');
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [phase, setPhase] = useState<ImportPhase>('idle');
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<StudyImportResult | null>(null);
+
+  const isBusy = phase === 'uploading' || phase === 'queued' || phase === 'processing';
+
+  const pollImportResult = async (
+    importJobId: string,
+    attempts: number = 0
+  ): Promise<StudyImportResult> => {
+    const result = await getStudyImportStatus(importJobId);
+    setImportResult(result);
+
+    if (result.status === 'completed' || result.status === 'failed') {
+      return result;
+    }
+
+    if (attempts >= STUDY_IMPORT_POLL_ATTEMPTS_MAX) {
+      throw new Error(t('import.processingTimedOut'));
+    }
+
+    setPhase(result.status === 'pending' ? 'queued' : 'processing');
+    await new Promise((resolve) => {
+      window.setTimeout(resolve, STUDY_IMPORT_POLL_INTERVAL_MS);
+    });
+    return pollImportResult(importJobId, attempts + 1);
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -22,15 +56,26 @@ const StudyImportPage = () => {
     }
 
     try {
-      setIsUploading(true);
+      setPhase('uploading');
+      setUploadProgress(0);
       setError(null);
       setImportResult(null);
-      const result = await uploadStudyImport(file);
-      setImportResult(result);
+      const session = await createStudyImportUploadSession(file);
+      setImportResult(session.importJob);
+      await uploadStudyImportArchive(session, file, setUploadProgress);
+
+      setPhase('queued');
+      const queuedResult = await completeStudyImportUpload(session.importJob.id);
+      setImportResult(queuedResult);
+
+      const finalResult = await pollImportResult(session.importJob.id);
+      setPhase(finalResult.status === 'completed' ? 'completed' : 'failed');
+      if (finalResult.status === 'failed' && finalResult.errorMessage) {
+        setError(finalResult.errorMessage);
+      }
     } catch (err) {
+      setPhase('failed');
       setError(err instanceof Error ? err.message : t('import.failed'));
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -75,16 +120,11 @@ const StudyImportPage = () => {
                   return;
                 }
 
-                if (nextFile.size > MAX_STUDY_IMPORT_BYTES) {
-                  setFile(null);
-                  setError(t('import.tooLarge'));
-                  setImportResult(null);
-                  return;
-                }
-
                 setFile(nextFile);
                 setError(null);
                 setImportResult(null);
+                setPhase('idle');
+                setUploadProgress(0);
               }}
               className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
             />
@@ -96,8 +136,41 @@ const StudyImportPage = () => {
             <p className="mt-1">{t('import.behaviorMedia')}</p>
           </div>
 
+          {file ? (
+            <p className="text-sm text-gray-600">
+              {t('import.selectedFile', {
+                filename: file.name,
+                sizeMb: (file.size / (1024 * 1024)).toFixed(1),
+              })}
+            </p>
+          ) : null}
+
+          {phase === 'uploading' ? (
+            <div className="space-y-2 rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+              <p className="font-medium">
+                {t('import.uploading', {
+                  progressPercent: Math.round(uploadProgress * 100),
+                })}
+              </p>
+              <div className="h-2 overflow-hidden rounded-full bg-sky-100">
+                <div
+                  className="h-full rounded-full bg-sky-500 transition-[width]"
+                  style={{ width: `${String(Math.round(uploadProgress * 100))}%` }}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {phase === 'queued' || phase === 'processing' ? (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <p className="font-medium">
+                {phase === 'queued' ? t('import.queued') : t('import.processing')}
+              </p>
+            </div>
+          ) : null}
+
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {importResult ? (
+          {importResult && importResult.status === 'completed' ? (
             <div className="space-y-2 text-sm text-emerald-700">
               <p>
                 {t('import.success', {
@@ -128,10 +201,10 @@ const StudyImportPage = () => {
           <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isBusy}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isUploading ? t('import.importing') : t('import.submit')}
+              {isBusy ? t('import.importing') : t('import.submit')}
             </button>
             <Link
               to="/app/study"

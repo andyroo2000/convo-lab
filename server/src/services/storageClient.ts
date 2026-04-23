@@ -1,4 +1,6 @@
 import { createReadStream } from 'fs';
+import { mkdir } from 'fs/promises';
+import path from 'path';
 
 import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -250,12 +252,88 @@ export interface SignedReadUrlResult {
   expiresAt: string;
 }
 
+export interface ResumableUploadSessionOptions {
+  destinationPath: string;
+  contentType: string;
+  origin?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface ResumableUploadSessionResult {
+  url: string;
+  filePath: string;
+}
+
+export interface GcsObjectMetadata {
+  contentType: string | null;
+  sizeBytes: number | null;
+}
+
 export async function gcsFileExists(filePath: string): Promise<boolean> {
   const resolvedBucketName = requireBucketName();
   const bucket = storage.bucket(resolvedBucketName);
   const file = bucket.file(filePath);
   const [exists] = await file.exists();
   return exists;
+}
+
+export async function createResumableUploadSession(
+  options: ResumableUploadSessionOptions
+): Promise<ResumableUploadSessionResult> {
+  const resolvedBucketName = requireBucketName();
+  const normalizedPath = options.destinationPath.replace(/^\/+/, '');
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(normalizedPath);
+
+  const [url] = await file.createResumableUpload({
+    origin: options.origin,
+    metadata: {
+      contentType: options.contentType,
+      cacheControl: 'private, max-age=0, no-transform',
+      metadata: options.metadata,
+    },
+  });
+
+  return {
+    url,
+    filePath: normalizedPath,
+  };
+}
+
+export async function getGcsObjectMetadata(filePath: string): Promise<GcsObjectMetadata | null> {
+  const resolvedBucketName = requireBucketName();
+  const normalizedPath = filePath.replace(/^\/+/, '');
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(normalizedPath);
+  const [exists] = await file.exists();
+
+  if (!exists) {
+    return null;
+  }
+
+  const [metadata] = await file.getMetadata();
+  return {
+    contentType: metadata.contentType ?? null,
+    sizeBytes:
+      typeof metadata.size === 'string' && metadata.size.length > 0
+        ? Number.parseInt(metadata.size, 10)
+        : null,
+  };
+}
+
+export async function downloadFromGCSPath(options: {
+  filePath: string;
+  destinationPath: string;
+}): Promise<string> {
+  const resolvedBucketName = requireBucketName();
+  const normalizedPath = options.filePath.replace(/^\/+/, '');
+  const destinationPath = options.destinationPath;
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(normalizedPath);
+
+  await mkdir(path.dirname(destinationPath), { recursive: true });
+  await file.download({ destination: destinationPath });
+  return destinationPath;
 }
 
 export async function getSignedReadUrl(

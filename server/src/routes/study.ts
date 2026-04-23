@@ -1,7 +1,6 @@
 import path from 'path';
 
 import {
-  MAX_STUDY_IMPORT_BYTES,
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -16,8 +15,7 @@ import type {
   StudyPromptPayload,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
-import { Router, type Response } from 'express';
-import multer, { memoryStorage, MulterError } from 'multer';
+import { Router } from 'express';
 
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
@@ -25,7 +23,9 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import { parseOptionalStudyOverview } from '../services/study/shared.js';
 import {
+  completeStudyImportUpload,
   createStudyCard,
+  createStudyImportUploadSession,
   exportStudyData,
   exportStudyCardsSection,
   exportStudyImportsSection,
@@ -38,7 +38,6 @@ import {
   getStudyHistory,
   getStudyImportJob,
   getStudyOverview,
-  importJapaneseStudyColpkg,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   recordStudyReview,
@@ -113,47 +112,6 @@ const STUDY_ANSWER_ALLOWED_KEYS = new Set([
   'answerAudio',
   'answerImage',
 ]);
-const upload = multer({
-  storage: memoryStorage(),
-  limits: {
-    fileSize: MAX_STUDY_IMPORT_BYTES,
-  },
-  fileFilter: (_req, file, cb) => {
-    const hasColpkgExtension = file.originalname.toLowerCase().endsWith('.colpkg');
-    const hasAcceptedMimeType = STUDY_IMPORT_MIME_TYPES.has(file.mimetype ?? '');
-
-    if (hasColpkgExtension && hasAcceptedMimeType) {
-      cb(null, true);
-      return;
-    }
-
-    cb(new AppError('Only .colpkg Anki collection backups are accepted.', 400));
-  },
-});
-
-function runStudyUpload(req: AuthRequest, res: Response) {
-  return new Promise<void>((resolve, reject) => {
-    upload.single('file')(req, res, (error) => {
-      if (!error) {
-        resolve();
-        return;
-      }
-
-      if (error instanceof MulterError && error.code === 'LIMIT_FILE_SIZE') {
-        reject(
-          new AppError(
-            `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
-            413
-          )
-        );
-        return;
-      }
-
-      reject(error);
-    });
-  });
-}
-
 function parsePositiveIntegerQueryParam(name: string, value: unknown): number | undefined {
   if (typeof value === 'undefined') {
     return undefined;
@@ -169,6 +127,37 @@ function parsePositiveIntegerQueryParam(name: string, value: unknown): number | 
   }
 
   return parsed;
+}
+
+function parseStudyImportCreateRequest(body: unknown): {
+  filename: string;
+  contentType?: string;
+} {
+  if (!isPlainObject(body)) {
+    throw new AppError('Study import request body must be an object.', 400);
+  }
+
+  const { filename, contentType } = body;
+  if (typeof filename !== 'string' || filename.trim().length === 0) {
+    throw new AppError('filename is required.', 400);
+  }
+  if (!filename.trim().toLowerCase().endsWith('.colpkg')) {
+    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
+  }
+
+  if (typeof contentType !== 'undefined' && typeof contentType !== 'string') {
+    throw new AppError('contentType must be a string when provided.', 400);
+  }
+
+  const normalizedContentType = typeof contentType === 'string' ? contentType.toLowerCase() : '';
+  if (typeof contentType === 'string' && !STUDY_IMPORT_MIME_TYPES.has(normalizedContentType)) {
+    throw new AppError('Only .colpkg Anki collection backups are accepted.', 400);
+  }
+
+  return {
+    filename: filename.trim(),
+    contentType: typeof contentType === 'string' ? normalizedContentType : undefined,
+  };
 }
 
 function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: number): number {
@@ -470,22 +459,43 @@ router.post(
   }),
   async (req: AuthRequest, res, next) => {
     try {
-      await runStudyUpload(req, res);
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
-      if (!req.file) {
-        res.status(400).json({ message: 'Please choose a .colpkg file to import.' });
-        return;
-      }
-
-      const result = await importJapaneseStudyColpkg({
+      const request = parseStudyImportCreateRequest(req.body);
+      const result = await createStudyImportUploadSession({
         userId: req.userId,
-        fileBuffer: req.file.buffer,
-        filename: req.file.originalname,
+        filename: request.filename,
+        contentType: request.contentType,
       });
 
       res.status(201).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/imports/:id/complete',
+  rateLimitStudyRoute({
+    key: 'import-complete',
+    max: 10,
+    windowMs: 10 * 60 * 1000,
+    onBackendError: 'fail-closed',
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const result = await completeStudyImportUpload({
+        userId: req.userId,
+        importJobId: req.params.id,
+      });
+
+      res.json(result);
     } catch (error) {
       next(error);
     }
