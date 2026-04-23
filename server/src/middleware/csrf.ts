@@ -16,6 +16,11 @@ const DEVELOPMENT_ALLOWED_ORIGINS = [
   'http://localhost:5174',
   'http://localhost:5175',
 ];
+const PRODUCTION_ALLOWED_ORIGINS = [
+  'https://convo-lab.com',
+  'https://www.convo-lab.com',
+  'https://stage.convo-lab.com',
+];
 const CSRF_EXEMPT_PATHS = new Set(['/webhooks/stripe', '/tools/analytics']);
 
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
@@ -56,13 +61,15 @@ export function getAllowedApiOrigins(): Set<string> {
     origins.add(configuredClientOrigin);
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV === 'production') {
+    PRODUCTION_ALLOWED_ORIGINS.forEach((origin) => origins.add(origin));
+  } else {
     DEVELOPMENT_ALLOWED_ORIGINS.forEach((origin) => origins.add(origin));
   }
 
   if (!configuredClientOrigin && !warnedOriginCacheKeys.has(cacheKey)) {
     console.warn(
-      '[CSRF] CLIENT_URL is missing or invalid; cookie-auth mutation checks are using only development origins.'
+      '[CSRF] CLIENT_URL is missing or invalid; cookie-auth mutation checks are using built-in first-party origins.'
     );
     warnedOriginCacheKeys.add(cacheKey);
   }
