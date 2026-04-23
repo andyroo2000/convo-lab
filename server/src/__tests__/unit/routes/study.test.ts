@@ -212,7 +212,7 @@ describe('Study Routes', () => {
     csrfToken = tokenCookie
       ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
       : '';
-  }, 20000);
+  });
 
   afterEach(() => {
     vi.useRealTimers();
@@ -559,7 +559,6 @@ describe('Study Routes', () => {
         headers: {
           'Content-Type': 'application/zip',
         },
-        contentType: 'application/zip',
       },
     });
 

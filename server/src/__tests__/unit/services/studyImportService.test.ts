@@ -1,14 +1,18 @@
 /* eslint-disable import/order */
+import { MAX_STUDY_ASYNC_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 import { Prisma } from '@prisma/client';
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 
 import {
   buildFixtureColpkg,
   cleanupStudyServiceTestMedia,
+  deleteFromGCSPathMock,
+  getGcsObjectMetadataMock,
   resetStudyServiceMocks,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
 import {
+  completeStudyImportUpload,
   importJapaneseStudyColpkg,
   getStudyImportJob,
 } from '../../../services/studyImportService.js';
@@ -204,6 +208,57 @@ describe('studyImportService', () => {
     expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', importJobId: 'import-job-1' },
     });
+  });
+
+  it('rejects oversized staged uploads before enqueueing background import work', async () => {
+    const pendingImportJob = {
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: null,
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    };
+    mockPrisma.studyImportJob.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pendingImportJob);
+    getGcsObjectMetadataMock.mockResolvedValue({
+      contentType: 'application/zip',
+      sizeBytes: MAX_STUDY_ASYNC_IMPORT_BYTES + 1,
+    });
+
+    await expect(
+      completeStudyImportUpload({
+        userId: 'user-1',
+        importJobId: 'import-job-1',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 413,
+      message: expect.stringContaining('MB or smaller'),
+    });
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study/imports/user-1/import-job-1/japanese.colpkg'
+    );
+    expect(mockPrisma.studyImportJob.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-job-1' },
+        data: expect.objectContaining({
+          status: 'failed',
+        }),
+      })
+    );
   });
 
   it('wraps the import write phase in a single transaction after parsing completes', async () => {

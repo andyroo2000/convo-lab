@@ -1,6 +1,7 @@
 // Shared type definitions used across client and server
 
 export {
+  MAX_STUDY_ASYNC_IMPORT_BYTES,
   MAX_STUDY_IMPORT_BYTES,
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
@@ -274,7 +275,6 @@ export interface StudyImportUploadSession {
     method: 'PUT';
     url: string;
     headers: Record<string, string>;
-    contentType: string;
   };
 }
 

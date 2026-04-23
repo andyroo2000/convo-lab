@@ -377,14 +377,10 @@ export async function completeStudyImportUpload(importJobId: string): Promise<St
 }
 
 export async function getStudyImportStatus(importJobId: string): Promise<StudyImportResult> {
-  const response = await fetchWithCsrf(
-    `${API_URL}/api/study/imports/${encodeURIComponent(importJobId)}`,
-    {
-      method: 'GET',
-      credentials: 'include',
-      headers: withMutationHeaders(),
-    }
-  );
+  const response = await fetch(`${API_URL}/api/study/imports/${encodeURIComponent(importJobId)}`, {
+    method: 'GET',
+    credentials: 'include',
+  });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Import failed' }));

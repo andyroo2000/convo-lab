@@ -13,6 +13,11 @@ export async function enqueueStudyImportJob(importJobId: string) {
     'process-study-import',
     { importJobId },
     {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
       jobId: importJobId,
       removeOnComplete: 50,
       removeOnFail: 50,

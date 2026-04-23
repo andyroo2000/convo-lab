@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_URL } from '../../config';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
-import { startStudySession, uploadStudyImport } from '../useStudy';
+import { getStudyImportStatus, startStudySession, uploadStudyImport } from '../useStudy';
 
 describe('useStudy request helpers', () => {
   class MockXMLHttpRequest {
@@ -112,7 +112,6 @@ describe('useStudy request helpers', () => {
             headers: {
               'Content-Type': 'application/zip',
             },
-            contentType: 'application/zip',
           },
         }),
       } as Response)
@@ -153,5 +152,16 @@ describe('useStudy request helpers', () => {
     expect(MockXMLHttpRequest.lastInstance?.requestHeaders.get('Content-Type')).toBe(
       'application/zip'
     );
+  });
+
+  it('does not attach mutation-only headers to study import status reads', async () => {
+    await getStudyImportStatus('import-1');
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
+    expect(headers.has('Content-Type')).toBe(false);
   });
 });

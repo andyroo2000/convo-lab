@@ -26,26 +26,25 @@ const StudyImportPage = () => {
 
   const isBusy = phase === 'uploading' || phase === 'queued' || phase === 'processing';
 
-  const pollImportResult = async (
-    importJobId: string,
-    attempts: number = 0
-  ): Promise<StudyImportResult> => {
-    const result = await getStudyImportStatus(importJobId);
-    setImportResult(result);
+  const pollImportResult = async (importJobId: string): Promise<StudyImportResult> => {
+    // Poll sequentially so we never overlap status requests for the same import job.
+    /* eslint-disable no-await-in-loop */
+    for (let attempts = 0; attempts < STUDY_IMPORT_POLL_ATTEMPTS_MAX; attempts += 1) {
+      const result = await getStudyImportStatus(importJobId);
+      setImportResult(result);
 
-    if (result.status === 'completed' || result.status === 'failed') {
-      return result;
+      if (result.status === 'completed' || result.status === 'failed') {
+        return result;
+      }
+
+      setPhase(result.status === 'pending' ? 'queued' : 'processing');
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, STUDY_IMPORT_POLL_INTERVAL_MS);
+      });
     }
+    /* eslint-enable no-await-in-loop */
 
-    if (attempts >= STUDY_IMPORT_POLL_ATTEMPTS_MAX) {
-      throw new Error(t('import.processingTimedOut'));
-    }
-
-    setPhase(result.status === 'pending' ? 'queued' : 'processing');
-    await new Promise((resolve) => {
-      window.setTimeout(resolve, STUDY_IMPORT_POLL_INTERVAL_MS);
-    });
-    return pollImportResult(importJobId, attempts + 1);
+    throw new Error(t('import.processingTimedOut'));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

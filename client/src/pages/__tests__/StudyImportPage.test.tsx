@@ -76,7 +76,6 @@ describe('StudyImportPage', () => {
         method: 'PUT',
         url: 'https://uploads.example/import-1',
         headers: { 'Content-Type': 'application/zip' },
-        contentType: 'application/zip',
       },
     });
     uploadStudyImportArchiveMock.mockResolvedValue(undefined);

@@ -2,7 +2,10 @@ import { mkdtemp, rm, writeFile } from 'fs/promises';
 import os from 'os';
 import path from 'path';
 
-import { MAX_STUDY_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants.js';
+import {
+  MAX_STUDY_ASYNC_IMPORT_BYTES,
+  MAX_STUDY_IMPORT_BYTES,
+} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyImportPreview,
   StudyImportResult,
@@ -106,6 +109,10 @@ function assertValidStudyImportContentType(contentType: string | undefined): str
   }
 
   return normalized || 'application/octet-stream';
+}
+
+function buildStudyImportTooLargeMessage(limitBytes: number): string {
+  return `Study import files must be ${String(Math.floor(limitBytes / (1024 * 1024)))} MB or smaller.`;
 }
 
 async function ensureNoActiveStudyImport(
@@ -540,7 +547,6 @@ export async function createStudyImportUploadSession(params: {
       headers: {
         'Content-Type': sourceContentType,
       },
-      contentType: sourceContentType,
     },
   };
 }
@@ -577,6 +583,26 @@ export async function completeStudyImportUpload(params: {
       'Upload has not finished yet. Please wait for the file upload to complete.',
       409
     );
+  }
+
+  if (
+    typeof objectMetadata.sizeBytes === 'number' &&
+    Number.isFinite(objectMetadata.sizeBytes) &&
+    objectMetadata.sizeBytes > MAX_STUDY_ASYNC_IMPORT_BYTES
+  ) {
+    await Promise.allSettled([
+      prisma.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          status: 'failed',
+          errorMessage: buildStudyImportTooLargeMessage(MAX_STUDY_ASYNC_IMPORT_BYTES),
+          completedAt: new Date(),
+        },
+      }),
+      deleteFromGCSPath(importJob.sourceObjectPath),
+    ]);
+
+    throw new AppError(buildStudyImportTooLargeMessage(MAX_STUDY_ASYNC_IMPORT_BYTES), 413);
   }
 
   const updatedJob = await prisma.studyImportJob.update({
@@ -639,7 +665,10 @@ export async function processStudyImportJob(
   }
 
   const tempDir = await mkdtemp(path.join(os.tmpdir(), 'study-import-'));
-  const archiveFilePath = path.join(tempDir, normalizeFilename(processingJob.sourceFilename));
+  const archiveFilePath = path.join(
+    tempDir,
+    normalizeFilename(processingJob.sourceFilename) || 'import.colpkg'
+  );
 
   try {
     await downloadFromGCSPath({
@@ -674,11 +703,11 @@ export async function importJapaneseStudyColpkg(params: {
   fileBuffer: Buffer;
   filename: string;
 }): Promise<StudyImportResult> {
+  // Legacy sync entrypoint kept for tests and local-only callers that still pass an in-memory
+  // archive buffer directly. The user-facing route now stages uploads in GCS and processes them
+  // asynchronously via BullMQ.
   if (params.fileBuffer.length > MAX_STUDY_IMPORT_BYTES) {
-    throw new AppError(
-      `Study import files must be ${String(Math.floor(MAX_STUDY_IMPORT_BYTES / (1024 * 1024)))} MB or smaller.`,
-      413
-    );
+    throw new AppError(buildStudyImportTooLargeMessage(MAX_STUDY_IMPORT_BYTES), 413);
   }
 
   if (params.fileBuffer.length < 2 || params.fileBuffer.subarray(0, 2).toString('utf8') !== 'PK') {
