@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { User } from '../types';
 import { API_URL } from '../config';
+import { fetchWithCsrf } from '../lib/csrf';
 
 interface AuthContextType {
   user: User | null;
@@ -53,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [checkAuth]);
 
   const login = async (email: string, password: string) => {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
+    const response = await fetchWithCsrf(`${API_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -70,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const logout = async () => {
-    await fetch(`${API_URL}/api/auth/logout`, {
+    await fetchWithCsrf(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
     });
@@ -78,7 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signup = async (email: string, password: string, name: string, inviteCode: string) => {
-    const response = await fetch(`${API_URL}/api/auth/signup`, {
+    const response = await fetchWithCsrf(`${API_URL}/api/auth/signup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -105,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     seenSampleContentGuide?: boolean;
     seenCustomContentGuide?: boolean;
   }) => {
-    const response = await fetch(`${API_URL}/api/auth/me`, {
+    const response = await fetchWithCsrf(`${API_URL}/api/auth/me`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -122,7 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const deleteAccount = async () => {
-    const response = await fetch(`${API_URL}/api/auth/me`, {
+    const response = await fetchWithCsrf(`${API_URL}/api/auth/me`, {
       method: 'DELETE',
       credentials: 'include',
     });
@@ -136,7 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const changePassword = async (currentPassword: string, newPassword: string) => {
-    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+    const response = await fetchWithCsrf(`${API_URL}/api/auth/change-password`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',

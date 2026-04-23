@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { ReactNode } from 'react';
 import { AuthProvider, useAuth } from '../AuthContext';
+import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
@@ -13,6 +14,7 @@ const wrapper = ({ children }: { children: ReactNode }) => <AuthProvider>{childr
 describe('AuthContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=test-csrf-token`;
     // Default: no session
     mockFetch.mockResolvedValue({
       ok: false,
@@ -97,6 +99,16 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.user).toEqual(mockUser);
+      expect(mockFetch).toHaveBeenLastCalledWith(
+        expect.stringContaining('/api/auth/login'),
+        expect.objectContaining({
+          method: 'POST',
+          credentials: 'include',
+          headers: expect.any(Object),
+        })
+      );
+      const headers = new Headers(mockFetch.mock.calls.at(-1)?.[1]?.headers);
+      expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     });
 
     it('should throw error on failed login', async () => {
