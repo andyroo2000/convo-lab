@@ -20,9 +20,9 @@ import {
   apiCsrfErrorHandler,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 import { mockPrisma } from '../../setup.js';
 
@@ -106,6 +106,7 @@ vi.mock('../../../config/redis.js', () => ({
 }));
 
 describe('Study Routes', () => {
+  const originalEnv = process.env;
   let app: express.Application;
   let studyRouter: Router;
   let testClockOffset = 0;
@@ -126,8 +127,12 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
-    process.env.CLIENT_URL = 'http://localhost:5173';
-    resetAllowedApiOriginsCacheForTests();
+    process.env = {
+      ...originalEnv,
+      CLIENT_URL: 'http://localhost:5173',
+      NODE_ENV: 'test',
+    };
+    resetBrowserRuntimeTestState();
     expireAtMock.mockReset();
     execMock.mockReset();
     multiMock.mockReset();
@@ -207,6 +212,8 @@ describe('Study Routes', () => {
 
   afterEach(() => {
     vi.useRealTimers();
+    process.env = originalEnv;
+    resetBrowserRuntimeTestState();
   });
 
   it('clamps study session start limits to 20', async () => {

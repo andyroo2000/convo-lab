@@ -43,7 +43,8 @@ validateProductionBrowserRuntimeConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
-const SITE_URL = 'https://convo-lab.com';
+// SEO canonicals intentionally point at the public marketing site instead of env-specific CLIENT_URL.
+const PUBLIC_MARKETING_SITE_URL = 'https://convo-lab.com';
 
 interface SeoConfig {
   title: string;
@@ -58,62 +59,62 @@ const INDEXABLE_ROUTE_CONFIG: Record<string, SeoConfig> = {
     description:
       'Practice Japanese date, time, money, counter reading, and verb conjugation with free furigana-friendly tools from ConvoLab.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/`,
   },
   '/pricing': {
     title: 'Pricing | ConvoLab',
     description:
       'Compare ConvoLab plans for Japanese language practice, AI dialogue generation, and audio tools.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/pricing`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/pricing`,
   },
   '/tools': {
     title: 'Japanese Learning Tools | ConvoLab',
     description:
       'Use free ConvoLab tools to practice Japanese dates, time, money, counters, and verb conjugation with furigana-friendly quiz flows.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools`,
   },
   '/tools/japanese-date': {
     title: 'Japanese Date Practice Tool (Furigana + Audio) | ConvoLab',
     description:
       'Practice reading Japanese dates with furigana and audio playback. Convert Gregorian dates into natural Japanese quickly.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/japanese-date`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/japanese-date`,
   },
   '/tools/japanese-time': {
     title: 'Japanese Time Practice Tool (Furigana + Audio) | ConvoLab',
     description:
       'Train Japanese time reading with furigana, audio playback, and interactive practice for AM/PM and 24-hour formats.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/japanese-time`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/japanese-time`,
   },
   '/tools/japanese-counters': {
     title: 'Japanese Counter Practice Tool (Furigana Quiz) | ConvoLab',
     description:
       'Practice Japanese counters with random object drills, ruby furigana answers, and retro textbook-style quiz cards.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/japanese-counters`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/japanese-counters`,
   },
   '/tools/japanese-money': {
     title: 'Japanese Large Number Reading Tool | ConvoLab',
     description:
       'Practice reading large Japanese numbers with receipt-style visuals and furigana over Arabic numerals.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/japanese-money`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/japanese-money`,
   },
   '/tools/japanese-verbs': {
     title: 'Japanese Verb Conjugation Tool (N5/N4) | ConvoLab',
     description:
       'Practice Japanese verb conjugation with N5/N4 filters, verb group targeting, and textbook vs colloquial potential drills.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/japanese-verbs`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/japanese-verbs`,
   },
   '/tools/credits': {
     title: 'Credits | ConvoLab Tools',
     description: 'Review icon credits and source license information for ConvoLab tools.',
     robots: 'index,follow',
-    canonicalUrl: `${SITE_URL}/tools/credits`,
+    canonicalUrl: `${PUBLIC_MARKETING_SITE_URL}/tools/credits`,
   },
 };
 

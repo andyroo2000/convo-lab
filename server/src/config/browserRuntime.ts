@@ -1,3 +1,5 @@
+import { browserRuntimeState } from './browserRuntimeState.js';
+
 const CLIENT_URL_FALLBACK = 'http://localhost:5173';
 const DEVELOPMENT_CSRF_SECRET = 'development-csrf-secret';
 
@@ -25,19 +27,6 @@ type CsrfSecretConfig = {
   source: CsrfSecretSource;
 };
 
-let clientAppConfigCache: {
-  cacheKey: string;
-  config: ClientAppConfig;
-} | null = null;
-
-let csrfSecretConfigCache: {
-  cacheKey: string;
-  config: CsrfSecretConfig;
-} | null = null;
-
-const warnedClientUrlCacheKeys = new Set<string>();
-const warnedCsrfSecretCacheKeys = new Set<string>();
-
 function isProductionEnvironment(): boolean {
   return process.env.NODE_ENV === 'production';
 }
@@ -58,31 +47,31 @@ function toNormalizedAppUrl(value: string | undefined): string | null {
 }
 
 function warnClientUrlFallback(cacheKey: string) {
-  if (warnedClientUrlCacheKeys.has(cacheKey)) {
+  if (browserRuntimeState.warnedClientUrlCacheKeys.has(cacheKey)) {
     return;
   }
 
   console.warn(
     `[Config] CLIENT_URL is missing or invalid; falling back to ${CLIENT_URL_FALLBACK} for local development.`
   );
-  warnedClientUrlCacheKeys.add(cacheKey);
+  browserRuntimeState.warnedClientUrlCacheKeys.add(cacheKey);
 }
 
 function warnCsrfSecretFallback(cacheKey: string) {
-  if (warnedCsrfSecretCacheKeys.has(cacheKey)) {
+  if (browserRuntimeState.warnedCsrfSecretCacheKeys.has(cacheKey)) {
     return;
   }
 
   console.warn(
     '[Config] CSRF_SECRET, COOKIE_SECRET, and JWT_SECRET are unset; using the development CSRF secret.'
   );
-  warnedCsrfSecretCacheKeys.add(cacheKey);
+  browserRuntimeState.warnedCsrfSecretCacheKeys.add(cacheKey);
 }
 
 export function getClientAppConfig(): ClientAppConfig {
   const cacheKey = `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
-  if (clientAppConfigCache?.cacheKey === cacheKey) {
-    return clientAppConfigCache.config;
+  if (browserRuntimeState.clientAppConfigCache?.cacheKey === cacheKey) {
+    return browserRuntimeState.clientAppConfigCache.config;
   }
 
   const normalizedClientUrl = toNormalizedAppUrl(process.env.CLIENT_URL);
@@ -100,7 +89,7 @@ export function getClientAppConfig(): ClientAppConfig {
     clientOrigin: new URL(clientUrl).origin,
   };
 
-  clientAppConfigCache = {
+  browserRuntimeState.clientAppConfigCache = {
     cacheKey,
     config,
   };
@@ -121,24 +110,28 @@ export function buildClientAppUrl(pathname: string): string {
   return `${getClientAppUrl()}${normalizedPath}`;
 }
 
-export function getApiCorsOriginConfig(): string | string[] {
+export function getAllowedBrowserOrigins(): string[] {
   if (isProductionEnvironment()) {
-    return getClientOrigin();
+    return [...new Set([getClientOrigin(), ...FIRST_PARTY_PRODUCTION_ORIGINS])];
   }
 
   return DEVELOPMENT_ALLOWED_BROWSER_ORIGINS;
 }
 
+export function getApiCorsOriginConfig(): string[] {
+  return getAllowedBrowserOrigins();
+}
+
 export function getCsrfSecretConfig(): CsrfSecretConfig {
   const cacheKey = [
     process.env.NODE_ENV ?? '',
-    process.env.CSRF_SECRET ?? '',
-    process.env.COOKIE_SECRET ?? '',
-    process.env.JWT_SECRET ?? '',
+    `csrf:${process.env.CSRF_SECRET ? 'set' : 'unset'}`,
+    `cookie:${process.env.COOKIE_SECRET ? 'set' : 'unset'}`,
+    `jwt:${process.env.JWT_SECRET ? 'set' : 'unset'}`,
   ].join(':');
 
-  if (csrfSecretConfigCache?.cacheKey === cacheKey) {
-    return csrfSecretConfigCache.config;
+  if (browserRuntimeState.csrfSecretConfigCache?.cacheKey === cacheKey) {
+    return browserRuntimeState.csrfSecretConfigCache.config;
   }
 
   const candidates: Array<{ value: string | undefined; source: CsrfSecretSource }> = [
@@ -171,7 +164,7 @@ export function getCsrfSecretConfig(): CsrfSecretConfig {
         source: 'development-fallback' as const,
       };
 
-  csrfSecretConfigCache = {
+  browserRuntimeState.csrfSecretConfigCache = {
     cacheKey,
     config,
   };
@@ -190,11 +183,4 @@ export function validateProductionBrowserRuntimeConfig() {
 
   getClientAppConfig();
   getCsrfSecretConfig();
-}
-
-export function resetBrowserRuntimeConfigForTests() {
-  clientAppConfigCache = null;
-  csrfSecretConfigCache = null;
-  warnedClientUrlCacheKeys.clear();
-  warnedCsrfSecretCacheKeys.clear();
 }

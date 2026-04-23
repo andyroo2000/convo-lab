@@ -2,13 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   DEVELOPMENT_ALLOWED_BROWSER_ORIGINS,
+  FIRST_PARTY_PRODUCTION_ORIGINS,
   buildClientAppUrl,
+  getAllowedBrowserOrigins,
   getApiCorsOriginConfig,
   getClientAppConfig,
   getCsrfSecretConfig,
-  resetBrowserRuntimeConfigForTests,
   validateProductionBrowserRuntimeConfig,
 } from '../../../config/browserRuntime.js';
+import { browserRuntimeState } from '../../../config/browserRuntimeState.js';
+import { getAllowedApiOrigins } from '../../../middleware/csrf.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 
 describe('browser runtime config', () => {
   const originalEnv = process.env;
@@ -16,12 +20,12 @@ describe('browser runtime config', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     process.env = { ...originalEnv };
-    resetBrowserRuntimeConfigForTests();
+    resetBrowserRuntimeTestState();
   });
 
   afterEach(() => {
     process.env = originalEnv;
-    resetBrowserRuntimeConfigForTests();
+    resetBrowserRuntimeTestState();
   });
 
   it('fails fast in production when CLIENT_URL is missing', () => {
@@ -77,12 +81,30 @@ describe('browser runtime config', () => {
     expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('uses the configured production origin for CORS', () => {
+  it('does not use raw secret values in the CSRF config cache key', () => {
     process.env.NODE_ENV = 'production';
-    process.env.CLIENT_URL = 'https://convo-lab.com';
+    process.env.CLIENT_URL = 'https://app.example.com';
+    process.env.CSRF_SECRET = 'top-secret-value';
+
+    expect(getCsrfSecretConfig()).toEqual({
+      secret: 'top-secret-value',
+      source: 'CSRF_SECRET',
+    });
+    expect(browserRuntimeState.csrfSecretConfigCache?.cacheKey).not.toContain('top-secret-value');
+    expect(browserRuntimeState.csrfSecretConfigCache?.cacheKey).toContain('csrf:set');
+  });
+
+  it('uses the configured production origin set for CORS and keeps it aligned with CSRF', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CLIENT_URL = 'https://app.example.com';
     process.env.JWT_SECRET = 'jwt-secret';
 
-    expect(getApiCorsOriginConfig()).toBe('https://convo-lab.com');
-    expect(buildClientAppUrl('/app/library')).toBe('https://convo-lab.com/app/library');
+    expect(getAllowedBrowserOrigins()).toEqual([
+      'https://app.example.com',
+      ...FIRST_PARTY_PRODUCTION_ORIGINS,
+    ]);
+    expect(getApiCorsOriginConfig()).toEqual(getAllowedBrowserOrigins());
+    expect(Array.from(getAllowedApiOrigins())).toEqual(getAllowedBrowserOrigins());
+    expect(buildClientAppUrl('/app/library')).toBe('https://app.example.com/app/library');
   });
 });

@@ -10,21 +10,21 @@ import {
   getAllowedApiOrigins,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 describe('csrf middleware', () => {
   beforeEach(() => {
     process.env.CLIENT_URL = 'https://app.example.com';
     process.env.NODE_ENV = 'production';
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
   });
 
   it('allows safe methods without token validation', async () => {
@@ -108,13 +108,13 @@ describe('csrf middleware', () => {
   it('rebuilds allowed origins cache when CLIENT_URL changes', () => {
     expect(getAllowedApiOrigins().has('https://app.example.com')).toBe(true);
     process.env.CLIENT_URL = 'https://new.example.com';
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
     expect(getAllowedApiOrigins().has('https://new.example.com')).toBe(true);
   });
 
   it('allows supplemental first-party production origins with valid production config', async () => {
     process.env.CLIENT_URL = 'https://convo-lab.com';
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
     const { app, setCookie, token } = await bootstrapCsrf('https://www.convo-lab.com');
 
     const response = await request(app)

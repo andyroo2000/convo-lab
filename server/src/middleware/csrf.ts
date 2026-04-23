@@ -9,9 +9,7 @@ import type {
 } from 'express';
 
 import {
-  DEVELOPMENT_ALLOWED_BROWSER_ORIGINS,
-  FIRST_PARTY_PRODUCTION_ORIGINS,
-  getClientOrigin,
+  getAllowedBrowserOrigins,
   getCsrfSecret as getConfiguredCsrfSecret,
 } from '../config/browserRuntime.js';
 
@@ -50,15 +48,7 @@ export function getAllowedApiOrigins(): Set<string> {
     return allowedOriginsCache.origins;
   }
 
-  const origins = new Set<string>();
-  const configuredClientOrigin = getClientOrigin();
-  origins.add(configuredClientOrigin);
-
-  if (process.env.NODE_ENV === 'production') {
-    FIRST_PARTY_PRODUCTION_ORIGINS.forEach((origin) => origins.add(origin));
-  } else {
-    DEVELOPMENT_ALLOWED_BROWSER_ORIGINS.forEach((origin) => origins.add(origin));
-  }
+  const origins = new Set(getAllowedBrowserOrigins());
 
   allowedOriginsCache = {
     cacheKey,
