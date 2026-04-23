@@ -55,6 +55,12 @@ jobs:
               echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.production
             fi
 
+            if grep -q '^CLIENT_URL=' .env.production; then
+              sed -i.bak "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
+            else
+              echo "CLIENT_URL=https://convo-lab.com" >> .env.production
+            fi
+
             # Login to GitHub Container Registry
             echo "🔐 Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
