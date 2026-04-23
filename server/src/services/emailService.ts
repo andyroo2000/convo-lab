@@ -3,6 +3,7 @@ import crypto from 'crypto';
 
 import { Resend } from 'resend';
 
+import { buildClientAppUrl, getClientAppUrl } from '../config/browserRuntime.js';
 import { prisma } from '../db/client.js';
 import {
   generateVerificationEmail,
@@ -24,7 +25,6 @@ if (!resend) {
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'ConvoLab <noreply@convolab.app>';
 const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app>';
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Helper to get user's preferred language
 async function getUserLocale(userId: string): Promise<string> {
@@ -80,7 +80,7 @@ export async function sendVerificationEmail(
   const t = i18next.getFixedT(locale, 'email');
 
   // Send email
-  const verificationUrl = `${CLIENT_URL}/verify-email/${token}`;
+  const verificationUrl = buildClientAppUrl(`/verify-email/${token}`);
   const html = generateVerificationEmail({ locale, name, verificationUrl });
   const subject = t('verification.subject');
 
@@ -146,7 +146,7 @@ export async function sendPasswordResetEmail(
   const t = i18next.getFixedT(locale, 'email');
 
   // Send email
-  const resetUrl = `${CLIENT_URL}/reset-password/${token}`;
+  const resetUrl = buildClientAppUrl(`/reset-password/${token}`);
   const html = generatePasswordResetEmail({ locale, name, resetUrl });
   const subject = t('passwordReset.subject');
 
@@ -192,7 +192,7 @@ export async function sendWelcomeEmail(email: string, name: string): Promise<voi
     const locale = await getUserLocaleByEmail(email);
     const t = i18next.getFixedT(locale, 'email');
 
-    const html = generateWelcomeEmail({ locale, name, appUrl: CLIENT_URL });
+    const html = generateWelcomeEmail({ locale, name, appUrl: getClientAppUrl() });
     const subject = t('welcome.subject');
 
     await resend.emails.send({
@@ -343,7 +343,7 @@ export async function sendSubscriptionConfirmedEmail(
       name,
       tier: tierName,
       weeklyLimit,
-      appUrl: CLIENT_URL,
+      appUrl: getClientAppUrl(),
     });
     const subject = t('subscriptionConfirmed.subject', { tier: tierName });
 
@@ -376,7 +376,7 @@ export async function sendPaymentFailedEmail(email: string, name: string): Promi
     const html = generatePaymentFailedEmail({
       locale,
       name,
-      billingUrl: `${CLIENT_URL}/app/settings/billing`,
+      billingUrl: buildClientAppUrl('/app/settings/billing'),
       supportEmail: REPLY_TO_EMAIL,
     });
     const subject = t('paymentFailed.subject');
@@ -410,7 +410,7 @@ export async function sendSubscriptionCanceledEmail(email: string, name: string)
     const html = generateSubscriptionCanceledEmail({
       locale,
       name,
-      billingUrl: `${CLIENT_URL}/app/settings/billing`,
+      billingUrl: buildClientAppUrl('/app/settings/billing'),
     });
     const subject = t('subscriptionCanceled.subject');
 
@@ -455,7 +455,7 @@ export async function sendQuotaWarningEmail(
       limit,
       percentage,
       tier,
-      pricingUrl: `${CLIENT_URL}/pricing`,
+      pricingUrl: buildClientAppUrl('/pricing'),
     });
     const subject = t('quotaWarning.subject', { percentage });
 

@@ -112,14 +112,14 @@ describe('csrf middleware', () => {
     expect(getAllowedApiOrigins().has('https://new.example.com')).toBe(true);
   });
 
-  it('allows first-party production origins when CLIENT_URL is missing', async () => {
-    delete process.env.CLIENT_URL;
+  it('allows supplemental first-party production origins with valid production config', async () => {
+    process.env.CLIENT_URL = 'https://convo-lab.com';
     resetAllowedApiOriginsCacheForTests();
-    const { app, setCookie, token } = await bootstrapCsrf('https://convo-lab.com');
+    const { app, setCookie, token } = await bootstrapCsrf('https://www.convo-lab.com');
 
     const response = await request(app)
       .post('/api/protected')
-      .set('Origin', 'https://convo-lab.com')
+      .set('Origin', 'https://www.convo-lab.com')
       .set('Cookie', setCookie)
       .set(CSRF_TOKEN_HEADER_NAME, token);
 

@@ -8,6 +8,10 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 
+import {
+  getApiCorsOriginConfig,
+  validateProductionBrowserRuntimeConfig,
+} from './config/browserRuntime.js';
 import passport from './config/passport.js';
 import { createRedisConnection } from './config/redis.js';
 import { prisma } from './db/client.js';
@@ -34,6 +38,8 @@ import verificationRoutes from './routes/verification.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+validateProductionBrowserRuntimeConfig();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -193,10 +199,7 @@ const injectSeoMeta = (html: string, config: SeoConfig): string => {
 // Middleware
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? process.env.CLIENT_URL || true // Allow same-origin in production if CLIENT_URL not set
-        : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'], // Allow both common dev ports
+    origin: getApiCorsOriginConfig(),
     credentials: true,
   })
 );
