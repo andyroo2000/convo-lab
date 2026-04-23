@@ -8,19 +8,14 @@ import type {
   Response,
 } from 'express';
 
+import {
+  getAllowedBrowserOrigins,
+  getCsrfSecret as getConfiguredCsrfSecret,
+} from '../config/browserRuntime.js';
+
 import { AppError } from './errorHandler.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const DEVELOPMENT_ALLOWED_ORIGINS = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-];
-const PRODUCTION_ALLOWED_ORIGINS = [
-  'https://convo-lab.com',
-  'https://www.convo-lab.com',
-  'https://stage.convo-lab.com',
-];
 const CSRF_EXEMPT_PATHS = new Set(['/webhooks/stripe', '/tools/analytics']);
 
 export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
@@ -29,12 +24,6 @@ export const CSRF_TOKEN_HEADER_NAME = 'x-csrf-token';
 type CsrfRequest = Request & {
   csrfToken: () => string;
 };
-
-let allowedOriginsCache: {
-  cacheKey: string;
-  origins: Set<string>;
-} | null = null;
-const warnedOriginCacheKeys = new Set<string>();
 
 function toOrigin(value: string | undefined): string | null {
   if (!value) {
@@ -49,36 +38,7 @@ function toOrigin(value: string | undefined): string | null {
 }
 
 export function getAllowedApiOrigins(): Set<string> {
-  const cacheKey = `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
-  if (allowedOriginsCache?.cacheKey === cacheKey) {
-    return allowedOriginsCache.origins;
-  }
-
-  const origins = new Set<string>();
-  const configuredClientOrigin = toOrigin(process.env.CLIENT_URL);
-
-  if (configuredClientOrigin) {
-    origins.add(configuredClientOrigin);
-  }
-
-  if (process.env.NODE_ENV === 'production') {
-    PRODUCTION_ALLOWED_ORIGINS.forEach((origin) => origins.add(origin));
-  } else {
-    DEVELOPMENT_ALLOWED_ORIGINS.forEach((origin) => origins.add(origin));
-  }
-
-  if (!configuredClientOrigin && !warnedOriginCacheKeys.has(cacheKey)) {
-    console.warn(
-      '[CSRF] CLIENT_URL is missing or invalid; cookie-auth mutation checks are using built-in first-party origins.'
-    );
-    warnedOriginCacheKeys.add(cacheKey);
-  }
-
-  allowedOriginsCache = {
-    cacheKey,
-    origins,
-  };
-  return origins;
+  return new Set(getAllowedBrowserOrigins());
 }
 
 function getCookieSameSite(
@@ -98,17 +58,8 @@ function getReadableCsrfCookieOptions(
   };
 }
 
-function getCsrfSecret(): string {
-  return (
-    process.env.CSRF_SECRET ??
-    process.env.COOKIE_SECRET ??
-    process.env.JWT_SECRET ??
-    'development-csrf-secret'
-  );
-}
-
 const { doubleCsrfProtection, generateCsrfToken } = doubleCsrf({
-  getSecret: () => getCsrfSecret(),
+  getSecret: () => getConfiguredCsrfSecret(),
   getSessionIdentifier: (req) =>
     typeof req.cookies?.token === 'string' && req.cookies.token.length > 0
       ? req.cookies.token
@@ -215,9 +166,4 @@ export function issueCsrfTokenCookie(
 
 export function clearCsrfCookies(res: Response, sameSite?: CookieOptions['sameSite']) {
   res.clearCookie(CSRF_TOKEN_COOKIE_NAME, getReadableCsrfCookieOptions(sameSite));
-}
-
-export function resetAllowedApiOriginsCacheForTests() {
-  allowedOriginsCache = null;
-  warnedOriginCacheKeys.clear();
 }

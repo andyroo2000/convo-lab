@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import Stripe from 'stripe';
 
+import { buildClientAppUrl } from '../config/browserRuntime.js';
 import { prisma } from '../db/client.js';
 
 import {
@@ -18,8 +19,6 @@ const STRIPE_API_VERSION = '2024-12-18.acacia';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
   apiVersion: STRIPE_API_VERSION as Stripe.LatestApiVersion,
 });
-
-const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 type SubscriptionPeriodFields = {
   current_period_start: number;
@@ -82,8 +81,8 @@ export async function createCheckoutSession(
         quantity: 1,
       },
     ],
-    success_url: `${CLIENT_URL}/app/settings/billing?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${CLIENT_URL}/app/settings/billing`,
+    success_url: buildClientAppUrl('/app/settings/billing?session_id={CHECKOUT_SESSION_ID}'),
+    cancel_url: buildClientAppUrl('/app/settings/billing'),
     subscription_data: {
       metadata: {
         userId,
@@ -116,7 +115,7 @@ export async function createCustomerPortalSession(userId: string): Promise<{ url
 
   const session = await stripe.billingPortal.sessions.create({
     customer: user.stripeCustomerId,
-    return_url: `${CLIENT_URL}/app/settings/billing`,
+    return_url: buildClientAppUrl('/app/settings/billing'),
   });
 
   return { url: session.url };

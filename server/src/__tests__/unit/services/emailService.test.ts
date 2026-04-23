@@ -7,6 +7,7 @@ import * as emailService from '../../../services/emailService.js';
 vi.hoisted(() => {
   process.env.RESEND_API_KEY = 'test-resend-key';
   process.env.NODE_ENV = 'production';
+  process.env.CLIENT_URL = 'https://convo-lab.com';
 });
 
 // Create hoisted mocks

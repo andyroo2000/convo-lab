@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt';
 import { Router, type Response } from 'express';
 import jwt from 'jsonwebtoken';
 
+import { buildClientAppUrl } from '../config/browserRuntime.js';
 import passport from '../config/passport.js';
 import { prisma } from '../db/client.js';
 import i18next from '../i18n/index.js';
@@ -596,9 +597,7 @@ router.get(
       const user = req.user as { id: string; role?: string; isExistingUser?: boolean } | undefined;
 
       if (!user) {
-        return res.redirect(
-          `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`
-        );
+        return res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
       }
 
       let role = user.role;
@@ -608,9 +607,7 @@ router.get(
           select: { role: true },
         });
         if (!roleRecord) {
-          return res.redirect(
-            `${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`
-          );
+          return res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
         }
         role = roleRecord.role;
       }
@@ -624,7 +621,7 @@ router.get(
 
         setSessionCookies(req as AuthRequest, res, token, 'strict');
 
-        return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
+        return res.redirect(buildClientAppUrl('/app/library'));
       }
 
       // For new OAuth users, check if they have an invite code
@@ -641,9 +638,7 @@ router.get(
           { expiresIn: '15m' }
         );
 
-        return res.redirect(
-          `${process.env.CLIENT_URL || 'http://localhost:5173'}/claim-invite?token=${tempToken}`
-        );
+        return res.redirect(buildClientAppUrl(`/claim-invite?token=${tempToken}`));
       }
 
       // New user has invite code, create session
@@ -655,10 +650,10 @@ router.get(
       setSessionCookies(req as AuthRequest, res, token, 'strict');
 
       // Redirect to app
-      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/app/library`);
+      res.redirect(buildClientAppUrl('/app/library'));
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/login?error=oauth_failed`);
+      res.redirect(buildClientAppUrl('/login?error=oauth_failed'));
     }
   }
 );

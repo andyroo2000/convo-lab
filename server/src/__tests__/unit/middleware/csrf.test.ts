@@ -10,21 +10,21 @@ import {
   getAllowedApiOrigins,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 describe('csrf middleware', () => {
   beforeEach(() => {
     process.env.CLIENT_URL = 'https://app.example.com';
     process.env.NODE_ENV = 'production';
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
   });
 
   it('allows safe methods without token validation', async () => {
@@ -108,21 +108,36 @@ describe('csrf middleware', () => {
   it('rebuilds allowed origins cache when CLIENT_URL changes', () => {
     expect(getAllowedApiOrigins().has('https://app.example.com')).toBe(true);
     process.env.CLIENT_URL = 'https://new.example.com';
-    resetAllowedApiOriginsCacheForTests();
+    resetBrowserRuntimeTestState();
     expect(getAllowedApiOrigins().has('https://new.example.com')).toBe(true);
   });
 
-  it('allows first-party production origins when CLIENT_URL is missing', async () => {
-    delete process.env.CLIENT_URL;
-    resetAllowedApiOriginsCacheForTests();
-    const { app, setCookie, token } = await bootstrapCsrf('https://convo-lab.com');
+  it('allows the www frontend as a supplemental production origin', async () => {
+    process.env.CLIENT_URL = 'https://convo-lab.com';
+    resetBrowserRuntimeTestState();
+    const { app, setCookie, token } = await bootstrapCsrf('https://www.convo-lab.com');
 
     const response = await request(app)
       .post('/api/protected')
-      .set('Origin', 'https://convo-lab.com')
+      .set('Origin', 'https://www.convo-lab.com')
       .set('Cookie', setCookie)
       .set(CSRF_TOKEN_HEADER_NAME, token);
 
     expect(response.status).toBe(204);
+  });
+
+  it('rejects the staging frontend when production CLIENT_URL targets prod', async () => {
+    process.env.CLIENT_URL = 'https://convo-lab.com';
+    resetBrowserRuntimeTestState();
+    const { app, setCookie, token } = await bootstrapCsrf('https://stage.convo-lab.com');
+
+    const response = await request(app)
+      .post('/api/protected')
+      .set('Origin', 'https://stage.convo-lab.com')
+      .set('Cookie', setCookie)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Invalid request origin.');
   });
 });

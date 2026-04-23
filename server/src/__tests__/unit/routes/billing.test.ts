@@ -10,10 +10,10 @@ import {
   apiCsrfErrorHandler,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import billingRouter from '../../../routes/billing.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 // Create hoisted mocks
@@ -55,6 +55,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 describe('Billing Routes', () => {
   let app: express.Application;
+  const originalEnv = process.env;
   const originalStripePriceProMonthly = process.env.STRIPE_PRICE_PRO_MONTHLY;
   const originalStripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   let csrfCookies: string[] = [];
@@ -69,8 +70,12 @@ describe('Billing Routes', () => {
 
   beforeEach(async () => {
     vi.resetAllMocks();
-    process.env.CLIENT_URL = 'http://localhost:5173';
-    resetAllowedApiOriginsCacheForTests();
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'test',
+      CLIENT_URL: 'http://localhost:5173',
+    };
+    resetBrowserRuntimeTestState();
     app = express();
     app.use(testCookieParser);
     app.use(expressJson());
@@ -99,9 +104,12 @@ describe('Billing Routes', () => {
   });
 
   afterEach(() => {
-    process.env.STRIPE_PRICE_PRO_MONTHLY = originalStripePriceProMonthly;
-    process.env.STRIPE_WEBHOOK_SECRET = originalStripeWebhookSecret;
-    resetAllowedApiOriginsCacheForTests();
+    process.env = {
+      ...originalEnv,
+      STRIPE_PRICE_PRO_MONTHLY: originalStripePriceProMonthly,
+      STRIPE_WEBHOOK_SECRET: originalStripeWebhookSecret,
+    };
+    resetBrowserRuntimeTestState();
   });
 
   describe('POST /api/billing/create-checkout-session', () => {
