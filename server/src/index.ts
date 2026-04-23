@@ -9,7 +9,7 @@ import cors from 'cors';
 import express from 'express';
 
 import {
-  getApiCorsOriginConfig,
+  getAllowedBrowserOrigins,
   validateProductionBrowserRuntimeConfig,
 } from './config/browserRuntime.js';
 import passport from './config/passport.js';
@@ -200,7 +200,7 @@ const injectSeoMeta = (html: string, config: SeoConfig): string => {
 // Middleware
 app.use(
   cors({
-    origin: getApiCorsOriginConfig(),
+    origin: getAllowedBrowserOrigins(),
     credentials: true,
   })
 );

@@ -1,3 +1,5 @@
+import type { CsrfSecretSource } from './browserRuntime.js';
+
 type ClientAppConfigCacheEntry = {
   cacheKey: string;
   config: {
@@ -10,21 +12,27 @@ type CsrfSecretConfigCacheEntry = {
   cacheKey: string;
   config: {
     secret: string;
-    source: 'CSRF_SECRET' | 'COOKIE_SECRET' | 'JWT_SECRET' | 'development-fallback';
+    source: CsrfSecretSource;
   };
 };
 
-export const browserRuntimeState: {
+export type BrowserRuntimeState = {
   clientAppConfigCache: ClientAppConfigCacheEntry | null;
   csrfSecretConfigCache: CsrfSecretConfigCacheEntry | null;
   warnedClientUrlCacheKeys: Set<string>;
   warnedCsrfSecretCacheKeys: Set<string>;
-} = {
+};
+
+export const browserRuntimeState: BrowserRuntimeState = {
   clientAppConfigCache: null,
   csrfSecretConfigCache: null,
   warnedClientUrlCacheKeys: new Set<string>(),
   warnedCsrfSecretCacheKeys: new Set<string>(),
 };
+
+export function getBrowserRuntimeState(): Readonly<BrowserRuntimeState> {
+  return browserRuntimeState;
+}
 
 export function resetBrowserRuntimeState() {
   browserRuntimeState.clientAppConfigCache = null;

@@ -1,4 +1,4 @@
-import { browserRuntimeState } from './browserRuntimeState.js';
+import { browserRuntimeState, getBrowserRuntimeState } from './browserRuntimeState.js';
 
 const CLIENT_URL_FALLBACK = 'http://localhost:5173';
 const DEVELOPMENT_CSRF_SECRET = 'development-csrf-secret';
@@ -20,7 +20,11 @@ type ClientAppConfig = {
   clientOrigin: string;
 };
 
-type CsrfSecretSource = 'CSRF_SECRET' | 'COOKIE_SECRET' | 'JWT_SECRET' | 'development-fallback';
+export type CsrfSecretSource =
+  | 'CSRF_SECRET'
+  | 'COOKIE_SECRET'
+  | 'JWT_SECRET'
+  | 'development-fallback';
 
 type CsrfSecretConfig = {
   secret: string;
@@ -105,8 +109,12 @@ export function getClientOrigin(): string {
   return getClientAppConfig().clientOrigin;
 }
 
-export function buildClientAppUrl(pathname: string): string {
-  const normalizedPath = pathname.startsWith('/') ? pathname : `/${pathname}`;
+/**
+ * Builds a first-party app URL from a server-owned path, including any query string or fragment.
+ * Do not pass user-controlled redirect targets through this helper without separate validation.
+ */
+export function buildClientAppUrl(pathWithQuery: string): string {
+  const normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery : `/${pathWithQuery}`;
   return `${getClientAppUrl()}${normalizedPath}`;
 }
 
@@ -116,10 +124,6 @@ export function getAllowedBrowserOrigins(): string[] {
   }
 
   return DEVELOPMENT_ALLOWED_BROWSER_ORIGINS;
-}
-
-export function getApiCorsOriginConfig(): string[] {
-  return getAllowedBrowserOrigins();
 }
 
 export function getCsrfSecretConfig(): CsrfSecretConfig {
@@ -141,7 +145,12 @@ export function getCsrfSecretConfig(): CsrfSecretConfig {
   ];
 
   const configuredSecret = candidates.find(
-    (candidate) => typeof candidate.value === 'string' && candidate.value.length > 0
+    (
+      candidate
+    ): candidate is {
+      value: string;
+      source: CsrfSecretSource;
+    } => typeof candidate.value === 'string' && candidate.value.length > 0
   );
 
   if (!configuredSecret) {
@@ -156,7 +165,7 @@ export function getCsrfSecretConfig(): CsrfSecretConfig {
 
   const config = configuredSecret
     ? {
-        secret: configuredSecret.value as string,
+        secret: configuredSecret.value,
         source: configuredSecret.source,
       }
     : {
@@ -174,6 +183,10 @@ export function getCsrfSecretConfig(): CsrfSecretConfig {
 
 export function getCsrfSecret(): string {
   return getCsrfSecretConfig().secret;
+}
+
+export function getReadonlyBrowserRuntimeState() {
+  return getBrowserRuntimeState();
 }
 
 export function validateProductionBrowserRuntimeConfig() {

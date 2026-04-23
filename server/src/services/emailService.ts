@@ -24,7 +24,7 @@ if (!resend) {
 }
 
 const FROM_EMAIL = process.env.EMAIL_FROM || 'ConvoLab <noreply@convolab.app>';
-const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app>';
+const REPLY_TO_EMAIL = process.env.EMAIL_REPLY_TO || 'support@convolab.app';
 
 // Helper to get user's preferred language
 async function getUserLocale(userId: string): Promise<string> {

@@ -5,12 +5,11 @@ import {
   FIRST_PARTY_PRODUCTION_ORIGINS,
   buildClientAppUrl,
   getAllowedBrowserOrigins,
-  getApiCorsOriginConfig,
   getClientAppConfig,
   getCsrfSecretConfig,
+  getReadonlyBrowserRuntimeState,
   validateProductionBrowserRuntimeConfig,
 } from '../../../config/browserRuntime.js';
-import { browserRuntimeState } from '../../../config/browserRuntimeState.js';
 import { getAllowedApiOrigins } from '../../../middleware/csrf.js';
 import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 
@@ -76,7 +75,7 @@ describe('browser runtime config', () => {
       secret: 'development-csrf-secret',
       source: 'development-fallback',
     });
-    expect(getApiCorsOriginConfig()).toEqual(DEVELOPMENT_ALLOWED_BROWSER_ORIGINS);
+    expect(getAllowedBrowserOrigins()).toEqual(DEVELOPMENT_ALLOWED_BROWSER_ORIGINS);
     expect(buildClientAppUrl('/login')).toBe('http://localhost:5173/login');
     expect(warnSpy).toHaveBeenCalledTimes(2);
   });
@@ -90,8 +89,10 @@ describe('browser runtime config', () => {
       secret: 'top-secret-value',
       source: 'CSRF_SECRET',
     });
-    expect(browserRuntimeState.csrfSecretConfigCache?.cacheKey).not.toContain('top-secret-value');
-    expect(browserRuntimeState.csrfSecretConfigCache?.cacheKey).toContain('csrf:set');
+    expect(getReadonlyBrowserRuntimeState().csrfSecretConfigCache?.cacheKey).not.toContain(
+      'top-secret-value'
+    );
+    expect(getReadonlyBrowserRuntimeState().csrfSecretConfigCache?.cacheKey).toContain('csrf:set');
   });
 
   it('uses the configured production origin set for CORS and keeps it aligned with CSRF', () => {
@@ -103,8 +104,13 @@ describe('browser runtime config', () => {
       'https://app.example.com',
       ...FIRST_PARTY_PRODUCTION_ORIGINS,
     ]);
-    expect(getApiCorsOriginConfig()).toEqual(getAllowedBrowserOrigins());
     expect(Array.from(getAllowedApiOrigins())).toEqual(getAllowedBrowserOrigins());
     expect(buildClientAppUrl('/app/library')).toBe('https://app.example.com/app/library');
+  });
+
+  it('normalizes app URLs that omit a leading slash', () => {
+    process.env.NODE_ENV = 'development';
+
+    expect(buildClientAppUrl('pricing')).toBe('http://localhost:5173/pricing');
   });
 });
