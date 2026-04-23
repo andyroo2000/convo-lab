@@ -139,8 +139,14 @@ jobs:
 
             # Stop containers first to avoid metadata issues
             echo "🛑 Stopping existing containers..."
-            # Force-stop any lingering convolab containers that might block network removal
-            docker ps -q --filter "name=convolab-" | grep stage | xargs -r docker stop 2>/dev/null || true
+            # Force-stop any lingering staging containers that might block network removal.
+            # Use explicit names instead of grepping docker IDs so we only touch stage services.
+            docker stop \
+              convolab-server-stage \
+              convolab-worker-stage \
+              convolab-postgres-stage \
+              convolab-redis-stage \
+              2>/dev/null || true
             docker compose -p convolab-stage -f docker-compose.stage.yml --env-file .env.staging down --remove-orphans 2>/dev/null || true
             # Remove stale stopped containers to avoid name conflicts on recreate
             docker rm -f \
