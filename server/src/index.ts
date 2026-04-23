@@ -200,7 +200,14 @@ const injectSeoMeta = (html: string, config: SeoConfig): string => {
 // Middleware
 app.use(
   cors({
-    origin: getAllowedBrowserOrigins(),
+    origin(origin, callback) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      callback(null, getAllowedBrowserOrigins().includes(origin));
+    },
     credentials: true,
   })
 );

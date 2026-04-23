@@ -1,6 +1,6 @@
 import express, { json as expressJson, Response, NextFunction } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AuthRequest } from '../../../middleware/auth.js';
 import {
@@ -10,10 +10,10 @@ import {
   apiCsrfErrorHandler,
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
 import verificationRouter from '../../../routes/verification.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 // Create hoisted mocks
@@ -64,6 +64,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 
 describe('Verification Routes', () => {
   let app: express.Application;
+  const originalEnv = process.env;
   let csrfCookies: string[] = [];
   let csrfToken = '';
 
@@ -76,8 +77,12 @@ describe('Verification Routes', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    process.env.CLIENT_URL = 'http://localhost:5173';
-    resetAllowedApiOriginsCacheForTests();
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'test',
+      CLIENT_URL: 'http://localhost:5173',
+    };
+    resetBrowserRuntimeTestState();
     app = express();
     app.use(testCookieParser);
     app.use(expressJson());
@@ -105,6 +110,11 @@ describe('Verification Routes', () => {
     csrfToken = tokenCookie
       ? decodeURIComponent(tokenCookie.slice(`${CSRF_TOKEN_COOKIE_NAME}=`.length))
       : '';
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    resetBrowserRuntimeTestState();
   });
 
   describe('POST /api/verification/send', () => {

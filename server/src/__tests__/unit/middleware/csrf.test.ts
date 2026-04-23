@@ -112,7 +112,7 @@ describe('csrf middleware', () => {
     expect(getAllowedApiOrigins().has('https://new.example.com')).toBe(true);
   });
 
-  it('allows supplemental first-party production origins with valid production config', async () => {
+  it('allows the www frontend as a supplemental production origin', async () => {
     process.env.CLIENT_URL = 'https://convo-lab.com';
     resetBrowserRuntimeTestState();
     const { app, setCookie, token } = await bootstrapCsrf('https://www.convo-lab.com');
@@ -124,5 +124,20 @@ describe('csrf middleware', () => {
       .set(CSRF_TOKEN_HEADER_NAME, token);
 
     expect(response.status).toBe(204);
+  });
+
+  it('rejects the staging frontend when production CLIENT_URL targets prod', async () => {
+    process.env.CLIENT_URL = 'https://convo-lab.com';
+    resetBrowserRuntimeTestState();
+    const { app, setCookie, token } = await bootstrapCsrf('https://stage.convo-lab.com');
+
+    const response = await request(app)
+      .post('/api/protected')
+      .set('Origin', 'https://stage.convo-lab.com')
+      .set('Cookie', setCookie)
+      .set(CSRF_TOKEN_HEADER_NAME, token);
+
+    expect(response.status).toBe(403);
+    expect(response.body.error.message).toBe('Invalid request origin.');
   });
 });

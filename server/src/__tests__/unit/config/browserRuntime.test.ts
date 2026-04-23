@@ -108,9 +108,51 @@ describe('browser runtime config', () => {
     expect(buildClientAppUrl('/app/library')).toBe('https://app.example.com/app/library');
   });
 
+  it('normalizes CLIENT_URL values with a trailing slash', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CLIENT_URL = 'https://app.example.com/';
+    process.env.JWT_SECRET = 'jwt-secret';
+
+    expect(getClientAppConfig()).toEqual({
+      clientUrl: 'https://app.example.com',
+      clientOrigin: 'https://app.example.com',
+    });
+  });
+
   it('normalizes app URLs that omit a leading slash', () => {
     process.env.NODE_ENV = 'development';
 
     expect(buildClientAppUrl('pricing')).toBe('http://localhost:5173/pricing');
+  });
+
+  it('rejects absolute URLs passed to buildClientAppUrl', () => {
+    process.env.NODE_ENV = 'development';
+
+    expect(() => buildClientAppUrl('https://evil.com/path')).toThrow(
+      'buildClientAppUrl expects a path, not an absolute URL: https://evil.com/path'
+    );
+  });
+
+  it('does not implicitly allow the staging frontend against production CLIENT_URL', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CLIENT_URL = 'https://convo-lab.com';
+    process.env.JWT_SECRET = 'jwt-secret';
+
+    expect(getAllowedBrowserOrigins()).toEqual([
+      'https://convo-lab.com',
+      'https://www.convo-lab.com',
+    ]);
+  });
+
+  it('still allows the staging frontend when it is the configured production app origin', () => {
+    process.env.NODE_ENV = 'production';
+    process.env.CLIENT_URL = 'https://stage.convo-lab.com';
+    process.env.JWT_SECRET = 'jwt-secret';
+
+    expect(getAllowedBrowserOrigins()).toEqual([
+      'https://stage.convo-lab.com',
+      'https://convo-lab.com',
+      'https://www.convo-lab.com',
+    ]);
   });
 });

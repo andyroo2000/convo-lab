@@ -1,6 +1,6 @@
 import express, { json as expressJson } from 'express';
 import request from 'supertest';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CSRF_TOKEN_COOKIE_NAME,
@@ -8,9 +8,9 @@ import {
   apiCsrfProtection,
   apiCsrfErrorHandler,
   requireAllowedApiMutationOrigin,
-  resetAllowedApiOriginsCacheForTests,
 } from '../../../middleware/csrf.js';
 import { errorHandler } from '../../../middleware/errorHandler.js';
+import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 
 vi.mock('../../../config/passport.js', () => ({
@@ -55,9 +55,20 @@ vi.mock('../../../services/usageTracker.js', () => ({
 }));
 
 describe('Auth route CSRF', () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
-    process.env.CLIENT_URL = 'http://localhost:5173';
-    resetAllowedApiOriginsCacheForTests();
+    process.env = {
+      ...originalEnv,
+      NODE_ENV: 'test',
+      CLIENT_URL: 'http://localhost:5173',
+    };
+    resetBrowserRuntimeTestState();
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    resetBrowserRuntimeTestState();
   });
 
   it('issues the shared CSRF cookie via GET /api/auth/csrf', async () => {

@@ -25,11 +25,6 @@ type CsrfRequest = Request & {
   csrfToken: () => string;
 };
 
-let allowedOriginsCache: {
-  cacheKey: string;
-  origins: Set<string>;
-} | null = null;
-
 function toOrigin(value: string | undefined): string | null {
   if (!value) {
     return null;
@@ -43,18 +38,7 @@ function toOrigin(value: string | undefined): string | null {
 }
 
 export function getAllowedApiOrigins(): Set<string> {
-  const cacheKey = `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
-  if (allowedOriginsCache?.cacheKey === cacheKey) {
-    return allowedOriginsCache.origins;
-  }
-
-  const origins = new Set(getAllowedBrowserOrigins());
-
-  allowedOriginsCache = {
-    cacheKey,
-    origins,
-  };
-  return origins;
+  return new Set(getAllowedBrowserOrigins());
 }
 
 function getCookieSameSite(
@@ -182,8 +166,4 @@ export function issueCsrfTokenCookie(
 
 export function clearCsrfCookies(res: Response, sameSite?: CookieOptions['sameSite']) {
   res.clearCookie(CSRF_TOKEN_COOKIE_NAME, getReadableCsrfCookieOptions(sameSite));
-}
-
-export function resetAllowedApiOriginsCacheForTests() {
-  allowedOriginsCache = null;
 }

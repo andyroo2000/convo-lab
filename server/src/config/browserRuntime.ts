@@ -12,7 +12,6 @@ export const DEVELOPMENT_ALLOWED_BROWSER_ORIGINS = [
 export const FIRST_PARTY_PRODUCTION_ORIGINS = [
   'https://convo-lab.com',
   'https://www.convo-lab.com',
-  'https://stage.convo-lab.com',
 ];
 
 type ClientAppConfig = {
@@ -33,6 +32,10 @@ type CsrfSecretConfig = {
 
 function isProductionEnvironment(): boolean {
   return process.env.NODE_ENV === 'production';
+}
+
+function getBrowserOriginsCacheKey(): string {
+  return `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
 }
 
 function toNormalizedAppUrl(value: string | undefined): string | null {
@@ -73,7 +76,7 @@ function warnCsrfSecretFallback(cacheKey: string) {
 }
 
 export function getClientAppConfig(): ClientAppConfig {
-  const cacheKey = `${process.env.NODE_ENV ?? ''}:${process.env.CLIENT_URL ?? ''}`;
+  const cacheKey = getBrowserOriginsCacheKey();
   if (browserRuntimeState.clientAppConfigCache?.cacheKey === cacheKey) {
     return browserRuntimeState.clientAppConfigCache.config;
   }
@@ -114,16 +117,30 @@ export function getClientOrigin(): string {
  * Do not pass user-controlled redirect targets through this helper without separate validation.
  */
 export function buildClientAppUrl(pathWithQuery: string): string {
+  if (/^https?:\/\//i.test(pathWithQuery)) {
+    throw new Error(`buildClientAppUrl expects a path, not an absolute URL: ${pathWithQuery}`);
+  }
+
   const normalizedPath = pathWithQuery.startsWith('/') ? pathWithQuery : `/${pathWithQuery}`;
   return `${getClientAppUrl()}${normalizedPath}`;
 }
 
 export function getAllowedBrowserOrigins(): string[] {
-  if (isProductionEnvironment()) {
-    return [...new Set([getClientOrigin(), ...FIRST_PARTY_PRODUCTION_ORIGINS])];
+  const cacheKey = getBrowserOriginsCacheKey();
+  if (browserRuntimeState.allowedBrowserOriginsCache?.cacheKey === cacheKey) {
+    return browserRuntimeState.allowedBrowserOriginsCache.origins;
   }
 
-  return DEVELOPMENT_ALLOWED_BROWSER_ORIGINS;
+  const origins = isProductionEnvironment()
+    ? [...new Set([getClientOrigin(), ...FIRST_PARTY_PRODUCTION_ORIGINS])]
+    : DEVELOPMENT_ALLOWED_BROWSER_ORIGINS;
+
+  browserRuntimeState.allowedBrowserOriginsCache = {
+    cacheKey,
+    origins,
+  };
+
+  return origins;
 }
 
 export function getCsrfSecretConfig(): CsrfSecretConfig {
