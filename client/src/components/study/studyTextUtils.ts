@@ -99,8 +99,17 @@ export const toNotesList = (value?: string | null) => {
     .filter(Boolean);
 };
 
-export const getHeadlineClasses = (value?: string | null) => {
+export const getHeadlineClasses = (
+  value?: string | null,
+  options: { compactMobile?: boolean } = {}
+) => {
   const length = value?.length ?? 0;
+
+  if (options.compactMobile) {
+    if (length > 40) return 'text-xl sm:text-2xl md:text-4xl';
+    if (length > 20) return 'text-2xl sm:text-3xl md:text-5xl';
+    return 'text-[2rem] sm:text-4xl md:text-6xl';
+  }
 
   if (length > 40) return 'text-2xl sm:text-3xl md:text-4xl';
   if (length > 20) return 'text-3xl sm:text-4xl md:text-5xl';

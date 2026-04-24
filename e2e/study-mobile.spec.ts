@@ -16,6 +16,13 @@ test.describe('Study mobile experience', () => {
     await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Reveal answer' }).click();
+    const reviewHeader = page.getByTestId('study-review-header');
+    const reviewHeaderBox = await reviewHeader.boundingBox();
+    expect(reviewHeaderBox).not.toBeNull();
+    if (reviewHeaderBox) {
+      expect(reviewHeaderBox.height).toBeLessThanOrEqual(44);
+    }
+
     const gradeTray = page.getByTestId('study-grade-tray');
     await expect(gradeTray).toBeVisible();
     const gradeTrayBox = await gradeTray.boundingBox();
@@ -25,6 +32,7 @@ test.describe('Study mobile experience', () => {
     if (gradeTrayBox && viewport) {
       expect(gradeTrayBox.y + gradeTrayBox.height).toBeGreaterThanOrEqual(viewport.height - 2);
       expect(gradeTrayBox.y).toBeGreaterThan(viewport.height - 120);
+      expect(gradeTrayBox.height).toBeLessThanOrEqual(64);
     }
 
     const reviewActions = page.getByTestId('study-review-actions');
@@ -39,15 +47,17 @@ test.describe('Study mobile experience', () => {
     await expect(page.getByRole('button', { name: 'Set due' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
-    const answerAudio = page.getByTestId('study-answer-audio');
-    if ((await answerAudio.count()) > 0) {
-      await expect(answerAudio).toBeVisible();
-      const audioBox = await answerAudio.boundingBox();
+    const answerAudioButton = page.getByTestId('study-answer-audio-button');
+    if ((await answerAudioButton.count()) > 0) {
+      await expect(answerAudioButton).toBeVisible();
+      await expect(answerAudioButton).toHaveAccessibleName('Play answer audio');
+      const audioBox = await answerAudioButton.boundingBox();
       const viewport = page.viewportSize();
       expect(audioBox).not.toBeNull();
       expect(viewport).not.toBeNull();
       if (audioBox && viewport) {
         expect(audioBox.x + audioBox.width).toBeLessThanOrEqual(viewport.width + 1);
+        expect(audioBox.height).toBeLessThanOrEqual(64);
       }
     }
 

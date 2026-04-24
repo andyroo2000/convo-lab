@@ -312,7 +312,20 @@ describe('StudyPage', () => {
         suspendedCount: 0,
         totalCards: 20,
       },
-      cards: [baseCard],
+      cards: [
+        {
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: 'https://example.com/answer.mp3',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+        },
+      ],
     });
 
     renderStudyPage();
@@ -329,6 +342,9 @@ describe('StudyPage', () => {
     const reviewActions = screen.getByTestId('study-review-actions');
     expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
     expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
+    expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
+      'Play answer audio'
+    );
   });
 
   it('autoplays prompt audio for audio-led cards and prepares missing answer audio on reveal', async () => {
@@ -398,7 +414,9 @@ describe('StudyPage', () => {
       expect(prepareStudyAnswerAudioMock).toHaveBeenCalledWith('card-1');
     });
     await waitFor(() => {
-      expect(screen.getByLabelText('Play answer audio')).toBeInTheDocument();
+      expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
+        'Play answer audio'
+      );
     });
   });
 

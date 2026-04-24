@@ -106,11 +106,11 @@ const StudyPage = () => {
 
   if (reviewSession.focusMode) {
     return (
-      <div className="fixed inset-0 z-[60] overflow-y-auto bg-cream">
-        <section className="min-h-[100dvh] px-2 py-2 sm:px-6 sm:py-6">
+      <div className="fixed inset-0 z-[60] overflow-y-auto bg-[#fdfbf5] md:bg-cream">
+        <section className="min-h-[100dvh] md:px-6 md:py-6">
           <div
             data-testid="study-focus-shell"
-            className="mx-auto flex min-h-[calc(100dvh-1rem)] max-w-7xl flex-col bg-[#fdfbf5] p-3 shadow-sm ring-1 ring-gray-200 sm:min-h-[calc(100vh-3rem)] sm:rounded-[2rem] sm:p-6"
+            className="mx-auto flex min-h-[100dvh] max-w-7xl flex-col bg-[#fdfbf5] px-2 pt-2 md:min-h-[calc(100vh-3rem)] md:rounded-[2rem] md:p-6 md:shadow-sm md:ring-1 md:ring-gray-200"
           >
             <StudyReviewHeader
               newRemaining={reviewSession.sessionCounts.newRemaining}
@@ -119,7 +119,7 @@ const StudyPage = () => {
               onExit={reviewSession.exitFocusMode}
             />
             {reviewSession.motionPermissionState !== 'granted' ? (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 md:mt-4 md:gap-3 md:rounded-2xl md:px-4 md:py-3 md:text-sm">
                 <p>{motionBannerMessage}</p>
                 {reviewSession.motionPermissionState !== 'unsupported' ? (
                   <button
@@ -129,7 +129,7 @@ const StudyPage = () => {
                         label: 'Study motion-permission retry',
                       });
                     }}
-                    className="rounded-full border border-amber-300 px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100"
+                    className="rounded-full border border-amber-300 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-amber-900 hover:bg-amber-100 md:px-4 md:py-2 md:text-xs"
                   >
                     {reviewSession.motionPermissionState === 'denied'
                       ? t('motion.retryDenied')
@@ -155,7 +155,7 @@ const StudyPage = () => {
             ) : null}
 
             {reviewSession.currentCard ? (
-              <div className="mt-4 flex flex-1 flex-col justify-between space-y-5 pb-28 sm:mt-6 sm:space-y-6 md:pb-0">
+              <div className="mt-2 flex flex-1 flex-col justify-between space-y-4 pb-24 md:mt-6 md:space-y-6 md:pb-0">
                 {!reviewSession.revealed ? (
                   <div
                     role="button"
@@ -168,11 +168,12 @@ const StudyPage = () => {
                         reviewSession.revealCurrentCard();
                       }
                     }}
-                    className="flex min-h-[calc(100dvh-10rem)] w-full flex-1 items-center justify-center rounded-2xl bg-white px-4 py-8 text-left shadow-sm ring-1 ring-gray-200 transition hover:shadow-md sm:min-h-[60vh] sm:rounded-[2rem] sm:px-6 sm:py-12 md:px-12"
+                    className="flex min-h-[calc(100dvh-7.5rem)] w-full flex-1 items-center justify-center px-3 py-4 text-left transition md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-12 md:shadow-sm md:ring-1 md:ring-gray-200 md:hover:shadow-md"
                   >
                     <div className="w-full">
                       <StudyCardFace
                         card={reviewSession.currentCard}
+                        layout="mobile-focus"
                         side="front"
                         promptAudioRef={reviewSession.promptAudioRef}
                       />
@@ -184,7 +185,7 @@ const StudyPage = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="min-h-[calc(100dvh-10rem)] flex-1 rounded-2xl bg-white px-4 py-6 shadow-sm ring-1 ring-gray-200 sm:min-h-[60vh] sm:rounded-[2rem] sm:px-6 sm:py-10 md:px-12">
+                  <div className="min-h-[calc(100dvh-7.5rem)] flex-1 px-3 py-3 md:min-h-[60vh] md:rounded-[2rem] md:bg-white md:px-12 md:py-10 md:shadow-sm md:ring-1 md:ring-gray-200">
                     {reviewSession.editing ? (
                       <StudyCardEditor
                         card={reviewSession.currentCard}
@@ -196,13 +197,14 @@ const StudyPage = () => {
                         onSave={reviewSession.saveCurrentCard}
                       />
                     ) : (
-                      <div className="flex flex-col gap-5">
-                        <div className="order-2 border-t border-gray-200 pt-5 md:order-1 md:border-t-0 md:pt-0">
+                      <div className="flex flex-col gap-4 md:gap-5">
+                        <div className="order-2 border-t border-gray-200 pt-4 md:order-1 md:border-t-0 md:pt-0">
                           {renderReviewActions()}
                         </div>
-                        <div className="order-1 flex min-h-[calc(100dvh-9rem)] items-center justify-center md:order-2 md:block md:min-h-0">
+                        <div className="order-1 flex min-h-[calc(100dvh-9.5rem)] items-center justify-center md:order-2 md:block md:min-h-0">
                           <StudyCardFace
                             card={reviewSession.currentCard}
+                            layout="mobile-focus"
                             side="back"
                             answerAudioRef={reviewSession.answerAudioRef}
                           />
@@ -215,7 +217,7 @@ const StudyPage = () => {
                 {reviewSession.revealed && !reviewSession.editing ? (
                   <div
                     data-testid="study-grade-tray"
-                    className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:static md:border-t-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-0"
+                    className="fixed inset-x-0 bottom-0 z-[70] border-t border-gray-200 bg-[#fdfbf5]/95 px-1.5 pb-[calc(env(safe-area-inset-bottom)+0.35rem)] pt-1.5 shadow-[0_-8px_24px_rgba(17,51,92,0.12)] backdrop-blur md:static md:border-t-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-0"
                   >
                     <StudyGradeButtons
                       gradeIntervals={reviewSession.gradeIntervals}

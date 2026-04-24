@@ -22,10 +22,11 @@ const AudioPlayer = forwardRef<
   {
     label: string;
     showTimeline?: boolean;
+    timelineMode?: 'always' | 'desktop';
     testId?: string;
     url: string;
   }
->(({ label, showTimeline = false, testId, url }, ref) => {
+>(({ label, showTimeline = false, timelineMode = 'always', testId, url }, ref) => {
   const { t } = useTranslation('study');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -112,20 +113,29 @@ const AudioPlayer = forwardRef<
     play().catch(() => {});
   };
 
+  const showButton = !showTimeline || timelineMode === 'desktop';
+  const buttonClasses =
+    timelineMode === 'desktop' ? 'flex justify-center md:hidden' : 'flex justify-center';
+  const timelineClasses =
+    timelineMode === 'desktop'
+      ? 'mx-auto hidden w-full max-w-xl md:block'
+      : 'mx-auto w-full max-w-xl';
+
   return (
     <div className="space-y-3" data-testid={testId}>
-      {!showTimeline ? (
-        <div className="flex justify-center">
+      {showButton ? (
+        <div className={buttonClasses}>
           <button
             type="button"
             onClick={handleClick}
             aria-label={label}
-            className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md sm:h-20 sm:w-20"
+            data-testid={testId ? `${testId}-button` : undefined}
+            className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md sm:h-16 sm:w-16 md:h-20 md:w-20"
           >
             {playing ? (
               <svg
                 viewBox="0 0 24 24"
-                className="h-7 w-7 fill-current sm:h-9 sm:w-9"
+                className="h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
                 aria-hidden="true"
               >
                 <rect x="6" y="5" width="4" height="14" rx="1" />
@@ -134,7 +144,7 @@ const AudioPlayer = forwardRef<
             ) : (
               <svg
                 viewBox="0 0 24 24"
-                className="ml-1 h-7 w-7 fill-current sm:h-9 sm:w-9"
+                className="ml-1 h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
                 aria-hidden="true"
               >
                 <path d="M8 5v14l11-7z" />
@@ -150,7 +160,7 @@ const AudioPlayer = forwardRef<
         preload="metadata"
         controls={showTimeline}
         aria-label={label}
-        className={showTimeline ? 'mx-auto w-full max-w-xl' : 'hidden'}
+        className={showTimeline ? timelineClasses : 'hidden'}
       >
         <source
           src={url}
@@ -172,7 +182,9 @@ const AudioPlayer = forwardRef<
 
 AudioPlayer.displayName = 'AudioPlayer';
 
-const renderJapaneseHeading = (card: StudyCardSummary) => {
+type StudyCardLayout = 'default' | 'mobile-focus';
+
+const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
   const headlineText =
     card.answer.expressionReading ?? card.answer.expression ?? card.prompt.cueReading ?? '';
@@ -184,7 +196,8 @@ const renderJapaneseHeading = (card: StudyCardSummary) => {
         text={readingText}
         testId="study-japanese-heading"
         className={`study-card-reading text-center font-semibold leading-tight text-black ${getHeadlineClasses(
-          headlineText
+          headlineText,
+          { compactMobile }
         )}`}
         rtClassName="text-[0.34em] font-medium text-gray-500"
       />
@@ -195,7 +208,8 @@ const renderJapaneseHeading = (card: StudyCardSummary) => {
     return (
       <p
         className={`text-center font-semibold leading-tight text-black ${getHeadlineClasses(
-          card.answer.expression
+          card.answer.expression,
+          { compactMobile }
         )}`}
       >
         {toDisplayText(card.answer.expression)}
@@ -239,23 +253,45 @@ const renderNotes = (notes: string[], containerClasses: string, noteClasses: str
 export const StudyCardFace = ({
   answerAudioRef,
   card,
+  layout = 'default',
   promptAudioRef,
   side,
 }: {
   answerAudioRef?: Ref<AudioPlayerHandle>;
   card: StudyCardSummary;
+  layout?: StudyCardLayout;
   promptAudioRef?: Ref<AudioPlayerHandle>;
   side: 'front' | 'back';
 }) => {
+  const compactMobile = layout === 'mobile-focus';
+
   if (side === 'front') {
     if (card.cardType === 'cloze') {
       return (
-        <div className="space-y-4 text-center sm:space-y-6">
-          <p className="mx-auto max-w-5xl text-3xl leading-relaxed text-black sm:text-4xl md:text-6xl">
+        <div
+          className={
+            compactMobile
+              ? 'space-y-3 text-center md:space-y-6'
+              : 'space-y-4 text-center sm:space-y-6'
+          }
+        >
+          <p
+            className={`mx-auto max-w-5xl leading-relaxed text-black ${
+              compactMobile
+                ? 'text-2xl sm:text-4xl md:text-6xl'
+                : 'text-3xl sm:text-4xl md:text-6xl'
+            }`}
+          >
             {toDisplayText(card.prompt.clozeDisplayText ?? card.prompt.clozeText ?? '')}
           </p>
           {card.prompt.clozeResolvedHint ? (
-            <p className="text-xl text-gray-700 sm:text-2xl md:text-3xl">
+            <p
+              className={
+                compactMobile
+                  ? 'text-base text-gray-700 sm:text-2xl md:text-3xl'
+                  : 'text-xl text-gray-700 sm:text-2xl md:text-3xl'
+              }
+            >
               {toDisplayText(card.prompt.clozeResolvedHint)}
             </p>
           ) : null}
@@ -270,12 +306,18 @@ export const StudyCardFace = ({
 
     if (mediaLedPrompt) {
       return (
-        <div className="flex min-h-[calc(100dvh-14rem)] flex-col items-center justify-center gap-5 text-center sm:min-h-[58vh] sm:gap-8">
+        <div
+          className={`flex flex-col items-center justify-center text-center sm:min-h-[58vh] sm:gap-8 ${
+            compactMobile ? 'min-h-[calc(100dvh-12rem)] gap-4' : 'min-h-[calc(100dvh-14rem)] gap-5'
+          }`}
+        >
           {cueImageUrl ? (
             <img
               src={cueImageUrl}
               alt="Study prompt"
-              className="mx-auto max-h-[42dvh] w-auto max-w-full object-contain sm:max-h-[50vh]"
+              className={`mx-auto w-auto max-w-full object-contain sm:max-h-[50vh] ${
+                compactMobile ? 'max-h-[40dvh]' : 'max-h-[42dvh]'
+              }`}
             />
           ) : null}
           {cueAudioUrl ? (
@@ -293,12 +335,20 @@ export const StudyCardFace = ({
     }
 
     return (
-      <div className="space-y-5 text-center sm:space-y-8">
+      <div
+        className={
+          compactMobile
+            ? 'space-y-4 text-center md:space-y-8'
+            : 'space-y-5 text-center sm:space-y-8'
+        }
+      >
         {cueImageUrl ? (
           <img
             src={cueImageUrl}
             alt={card.prompt.cueMeaning ?? 'Study prompt'}
-            className="mx-auto max-h-[36dvh] rounded-xl object-contain sm:max-h-80"
+            className={`mx-auto object-contain sm:max-h-80 ${
+              compactMobile ? 'max-h-[32dvh] rounded-lg' : 'max-h-[36dvh] rounded-xl'
+            }`}
           />
         ) : null}
         {cueAudioUrl ? (
@@ -307,14 +357,19 @@ export const StudyCardFace = ({
         {card.prompt.cueText ? (
           <p
             className={`mx-auto max-w-4xl text-center font-semibold leading-tight text-black ${getHeadlineClasses(
-              card.prompt.cueText
+              card.prompt.cueText,
+              { compactMobile }
             )}`}
           >
             {toDisplayText(card.prompt.cueText)}
           </p>
         ) : null}
         {card.prompt.cueMeaning ? (
-          <p className="mx-auto max-w-3xl text-lg text-gray-700 sm:text-xl md:text-2xl">
+          <p
+            className={`mx-auto max-w-3xl text-gray-700 sm:text-xl md:text-2xl ${
+              compactMobile ? 'text-base' : 'text-lg'
+            }`}
+          >
             {toDisplayText(card.prompt.cueMeaning)}
           </p>
         ) : null}
@@ -328,14 +383,21 @@ export const StudyCardFace = ({
 
   if (card.cardType === 'cloze') {
     return (
-      <div className="space-y-5 text-center sm:space-y-8">
+      <div
+        className={
+          compactMobile
+            ? 'space-y-3 text-center md:space-y-8'
+            : 'space-y-5 text-center sm:space-y-8'
+        }
+      >
         {card.answer.restoredTextReading || card.answer.restoredText ? (
           <StudyRubyText
             as="div"
             text={card.answer.restoredTextReading ?? card.answer.restoredText}
             testId="study-cloze-heading"
             className={`study-card-reading mx-auto max-w-5xl text-center font-semibold leading-tight text-black ${getHeadlineClasses(
-              card.answer.restoredText
+              card.answer.restoredText,
+              { compactMobile }
             )}`}
             rtClassName="text-[0.34em] font-medium text-gray-500"
           />
@@ -346,18 +408,27 @@ export const StudyCardFace = ({
             url={answerAudioUrl}
             label="Play answer audio"
             showTimeline
+            timelineMode={compactMobile ? 'desktop' : 'always'}
             testId="study-answer-audio"
           />
         ) : null}
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {card.answer.meaning ? (
-          <p className="mx-auto max-w-4xl text-xl text-gray-800 sm:text-3xl md:text-4xl">
+          <p
+            className={`mx-auto max-w-4xl text-gray-800 ${
+              compactMobile
+                ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+                : 'text-xl sm:text-3xl md:text-4xl'
+            }`}
+          >
             {toDisplayText(card.answer.meaning)}
           </p>
         ) : null}
         {renderNotes(
           notes,
-          'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-500 sm:space-y-3 sm:text-xl',
+          compactMobile
+            ? 'mx-auto max-w-5xl space-y-1 text-xs leading-snug text-gray-500 sm:space-y-2 sm:text-lg md:space-y-3 md:text-xl'
+            : 'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-500 sm:space-y-3 sm:text-xl',
           'text-gray-500'
         )}
         {!answerAudioUrl ? (
@@ -370,48 +441,79 @@ export const StudyCardFace = ({
   }
 
   return (
-    <div className="space-y-5 text-center sm:space-y-8">
-      {renderJapaneseHeading(card)}
+    <div
+      className={
+        compactMobile ? 'space-y-3 text-center md:space-y-8' : 'space-y-5 text-center sm:space-y-8'
+      }
+    >
+      {renderJapaneseHeading(card, compactMobile)}
       {answerAudioUrl ? (
         <AudioPlayer
           ref={answerAudioRef}
           url={answerAudioUrl}
           label="Play answer audio"
           showTimeline
+          timelineMode={compactMobile ? 'desktop' : 'always'}
           testId="study-answer-audio"
         />
       ) : null}
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       {card.answer.restoredText ? (
-        <p className="mx-auto max-w-4xl text-xl leading-relaxed text-black sm:text-3xl md:text-4xl">
+        <p
+          className={`mx-auto max-w-4xl text-black ${
+            compactMobile
+              ? 'text-base leading-snug sm:text-2xl md:text-4xl'
+              : 'text-xl leading-relaxed sm:text-3xl md:text-4xl'
+          }`}
+        >
           {toDisplayText(card.answer.restoredText)}
         </p>
       ) : null}
       {card.answer.meaning ? (
-        <p className="mx-auto max-w-4xl text-lg text-gray-800 sm:text-2xl md:text-3xl">
+        <p
+          className={`mx-auto max-w-4xl text-gray-800 ${
+            compactMobile
+              ? 'text-base leading-snug sm:text-xl md:text-3xl'
+              : 'text-lg sm:text-2xl md:text-3xl'
+          }`}
+        >
           {toDisplayText(card.answer.meaning)}
         </p>
       ) : null}
       {card.answer.sentenceJp ? (
-        <p className="mx-auto max-w-4xl text-base leading-relaxed text-black sm:text-xl">
+        <p
+          className={`mx-auto max-w-4xl text-black ${
+            compactMobile
+              ? 'text-sm leading-snug sm:text-lg md:text-xl'
+              : 'text-base leading-relaxed sm:text-xl'
+          }`}
+        >
           {toDisplayText(card.answer.sentenceJp)}
         </p>
       ) : null}
       {card.answer.sentenceEn ? (
-        <p className="mx-auto max-w-3xl text-sm text-gray-600 sm:text-lg">
+        <p
+          className={`mx-auto max-w-3xl text-gray-600 ${
+            compactMobile ? 'text-xs leading-snug sm:text-base md:text-lg' : 'text-sm sm:text-lg'
+          }`}
+        >
           {toDisplayText(card.answer.sentenceEn)}
         </p>
       ) : null}
       {renderNotes(
         notes,
-        'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-600 sm:space-y-3 sm:text-lg',
+        compactMobile
+          ? 'mx-auto max-w-5xl space-y-1 text-xs leading-snug text-gray-600 sm:space-y-2 sm:text-base md:space-y-3 md:text-lg'
+          : 'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-600 sm:space-y-3 sm:text-lg',
         'text-gray-600'
       )}
       {answerImageUrl ? (
         <img
           src={answerImageUrl}
           alt="Answer visual"
-          className="mx-auto max-h-[34dvh] rounded-xl object-contain sm:max-h-72"
+          className={`mx-auto object-contain sm:max-h-72 ${
+            compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
+          }`}
         />
       ) : null}
       {!answerAudioUrl ? (

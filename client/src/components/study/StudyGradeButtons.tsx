@@ -21,19 +21,19 @@ const StudyGradeButtons = ({
   const { t } = useTranslation('study');
 
   return (
-    <div className="grid grid-cols-4 gap-2 md:gap-3">
+    <div className="grid grid-cols-4 gap-1.5 md:gap-3">
       {(['again', 'hard', 'good', 'easy'] as const).map((grade, index) => (
         <button
           key={grade}
           type="button"
           onClick={() => onGrade(grade)}
           disabled={disabled}
-          className={`min-h-[3.35rem] rounded-xl border px-1.5 py-2 text-center transition disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[8.25rem] md:rounded-[1.5rem] md:px-4 md:py-4 ${gradeButtonStyles[grade]}`}
+          className={`min-h-[3rem] rounded-lg border px-1 py-1.5 text-center transition disabled:cursor-not-allowed disabled:opacity-60 md:min-h-[8.25rem] md:rounded-[1.5rem] md:px-4 md:py-4 ${gradeButtonStyles[grade]}`}
         >
-          <p className="text-sm font-semibold leading-tight md:text-2xl">
+          <p className="text-xs font-semibold leading-tight md:text-2xl">
             {gradeIntervals?.[grade] ?? '...'}
           </p>
-          <p className="mt-0.5 text-sm font-semibold leading-tight md:mt-2 md:text-xl">
+          <p className="mt-0.5 text-xs font-semibold leading-tight md:mt-2 md:text-xl">
             {t(`gradeButtons.${grade}`)}
           </p>
           <p className="mt-1 hidden text-xs uppercase tracking-[0.18em] text-current/70 md:block">

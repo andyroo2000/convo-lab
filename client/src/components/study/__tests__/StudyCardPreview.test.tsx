@@ -172,6 +172,35 @@ describe('StudyCardPreview', () => {
     expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute('type', 'audio/ogg');
   });
 
+  it('renders a mobile-focus answer audio replay button while preserving the audio source', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: 'https://example.com/answer.mp3',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
+      'Play answer audio'
+    );
+    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
+      'src',
+      'https://example.com/answer.mp3'
+    );
+  });
+
   it('shows a visible audio playback error when playback fails', async () => {
     const playMock = vi.fn().mockRejectedValueOnce(new Error('blocked'));
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
