@@ -79,7 +79,12 @@ const FIELD_SEPARATOR = String.fromCharCode(31);
 export const generatedStudyMediaPath = path.join(process.cwd(), 'storage/study-media');
 const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
+const zstdWasm = require('@bokuweb/zstd-wasm') as {
+  init: () => Promise<void>;
+  compress: (buffer: Uint8Array, level?: number) => Uint8Array;
+};
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+let zstdWasmInitPromise: Promise<void> | null = null;
 
 async function getSqlJs() {
   if (!sqlJsPromise) {
@@ -95,6 +100,18 @@ function sqlLiteral(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+async function compressZstdBuffer(buffer: Buffer): Promise<Buffer> {
+  if (!zstdWasmInitPromise) {
+    zstdWasmInitPromise = zstdWasm.init().catch((error) => {
+      zstdWasmInitPromise = null;
+      throw error;
+    });
+  }
+
+  await zstdWasmInitPromise;
+  return Buffer.from(zstdWasm.compress(buffer, 3));
+}
+
 export async function buildFixtureColpkg(
   options: {
     deckName?: string;
@@ -103,6 +120,8 @@ export async function buildFixtureColpkg(
     companyPhotoMediaEntryId?: string;
     companyPhotoZipEntryName?: string;
     clozeText?: string;
+    compressCollectionDatabase?: boolean;
+    compressMediaManifest?: boolean;
     vocabNotes?: string;
   } = {}
 ): Promise<Buffer> {
@@ -302,9 +321,15 @@ export async function buildFixtureColpkg(
   db.run(sql);
 
   const zip = new JSZip();
-  zip.file('collection.anki2', Buffer.from(db.export()));
+  const collectionDatabase = Buffer.from(db.export());
   zip.file(
-    'media',
+    options.compressCollectionDatabase ? 'collection.anki21b' : 'collection.anki2',
+    options.compressCollectionDatabase
+      ? await compressZstdBuffer(collectionDatabase)
+      : collectionDatabase
+  );
+
+  const mediaManifest = Buffer.from(
     JSON.stringify({
       [companyPhotoMediaEntryId]: companyPhotoFilename,
       1: 'company-word.mp3',
@@ -315,6 +340,10 @@ export async function buildFixtureColpkg(
       6: 'entrance-word.mp3',
       7: 'bangkok-sentence.mp3',
     })
+  );
+  zip.file(
+    'media',
+    options.compressMediaManifest ? await compressZstdBuffer(mediaManifest) : mediaManifest
   );
 
   const mediaFiles = [

@@ -44,7 +44,12 @@ import type {
 
 const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
+const zstdWasm = require('@bokuweb/zstd-wasm') as {
+  init: () => Promise<void>;
+  decompress: (buffer: Uint8Array) => Uint8Array;
+};
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
+let zstdWasmInitPromise: Promise<void> | null = null;
 const zstdDecompressSync = (
   zlib as typeof zlib & {
     zstdDecompressSync?: (buffer: Buffer | Uint8Array) => Buffer | Uint8Array;
@@ -61,16 +66,36 @@ function isZstdCompressed(buffer: Buffer | Uint8Array): boolean {
   );
 }
 
-function maybeDecompressZstd(buffer: Buffer): Buffer {
+async function initZstdWasm(): Promise<void> {
+  if (!zstdWasmInitPromise) {
+    zstdWasmInitPromise = zstdWasm.init().catch((error) => {
+      zstdWasmInitPromise = null;
+      throw error;
+    });
+  }
+
+  await zstdWasmInitPromise;
+}
+
+async function maybeDecompressZstd(buffer: Buffer): Promise<Buffer> {
   if (!isZstdCompressed(buffer)) {
     return buffer;
   }
 
-  if (!zstdDecompressSync) {
-    throw new AppError('This server runtime does not support zstd-compressed Anki imports.', 400);
-  }
+  try {
+    if (zstdDecompressSync) {
+      return Buffer.from(zstdDecompressSync(buffer));
+    }
 
-  return Buffer.from(zstdDecompressSync(buffer));
+    await initZstdWasm();
+    return Buffer.from(zstdWasm.decompress(buffer));
+  } catch (error) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+
+    throw new AppError('The uploaded zstd-compressed Anki data could not be decompressed.', 400);
+  }
 }
 
 function parseAudioFilenames(value: string): string[] {
@@ -719,7 +744,7 @@ export async function parseColpkgUpload(params: {
 
     const mediaManifestEntry = await zip.readEntryBuffer('media');
     const mediaManifestBuffer = mediaManifestEntry
-      ? maybeDecompressZstd(mediaManifestEntry)
+      ? await maybeDecompressZstd(mediaManifestEntry)
       : Buffer.from('{}');
     const mediaManifestText = mediaManifestBuffer.length
       ? mediaManifestBuffer.toString('utf8')
@@ -751,7 +776,7 @@ export async function parseColpkgUpload(params: {
     }
 
     const SQL = await getSqlJs();
-    const db = new SQL.Database(maybeDecompressZstd(collectionBuffer) as Uint8Array);
+    const db = new SQL.Database((await maybeDecompressZstd(collectionBuffer)) as Uint8Array);
 
     const collectionRow = mapRows(db.exec('SELECT crt, models, decks FROM col LIMIT 1'))[0];
     if (!collectionRow || typeof collectionRow.crt !== 'number') {

@@ -71,6 +71,30 @@ describe('studyImportService', () => {
     ).toBe(true);
   }, 15000);
 
+  it('imports Anki collection databases compressed as zstd collection.anki21b', async () => {
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({ compressCollectionDatabase: true }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.cardCount).toBe(6);
+    expect(result.preview.noteCount).toBe(4);
+  }, 15000);
+
+  it('imports zstd-compressed Anki media manifests', async () => {
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({ compressMediaManifest: true }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.mediaReferenceCount).toBe(8);
+    expect(result.preview.skippedMediaCount).toBe(0);
+  }, 15000);
+
   it('normalizes imported answer notes to plain text and keeps raw HTML only in source storage', async () => {
     await importJapaneseStudyColpkg({
       userId: 'user-1',

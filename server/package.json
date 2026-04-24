@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-polly": "^3.940.0",
+    "@bokuweb/zstd-wasm": "^0.0.27",
     "@google-cloud/storage": "^7.13.0",
     "@google-cloud/text-to-speech": "^5.4.0",
     "@google-cloud/vertexai": "^1.10.0",
