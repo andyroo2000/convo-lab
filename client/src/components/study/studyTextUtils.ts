@@ -2,7 +2,7 @@ const KANJI_REGEX = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々]/u;
 const HIRAGANA_REGEX = /[\u3040-\u309f]/u;
 const KATAKANA_REGEX = /[\u30a0-\u30ff]/u;
 const RUBY_PATTERN =
-  /([\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々\u3040-\u309f\u30a0-\u30ff]+)\[([^\]]+)\]/gu;
+  /([\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff々\u3040-\u309f\u30a0-\u30ff]+)(?:\[([^\]]+)\]|\(([^)]+)\))/gu;
 const BLOCK_LEVEL_TAGS = new Set([
   'p',
   'div',
@@ -25,6 +25,11 @@ export interface StudyRubySegment {
 }
 
 const isKana = (char: string): boolean => HIRAGANA_REGEX.test(char) || KATAKANA_REGEX.test(char);
+
+const isKanaReading = (value: string): boolean => {
+  const normalized = value.replace(/\s+/g, '');
+  return normalized.length > 0 && /^[\u3040-\u309f\u30a0-\u30ffー・]+$/u.test(normalized);
+};
 
 const collapsePlainText = (value: string) =>
   value
@@ -157,7 +162,13 @@ export const parseRubySegments = (value?: string | null): StudyRubySegment[] => 
 
   Array.from(decoded.matchAll(RUBY_PATTERN)).forEach((match) => {
     const matchIndex = match.index ?? 0;
-    const [fullMatch, base, reading] = match;
+    const [fullMatch, base, bracketReading, parentheticalReading] = match;
+    const isParentheticalRuby = parentheticalReading !== undefined;
+    const reading = bracketReading ?? parentheticalReading ?? '';
+
+    if (isParentheticalRuby && (!isKanaReading(reading) || !KANJI_REGEX.test(base))) {
+      return;
+    }
 
     if (matchIndex > lastIndex) {
       segments.push({

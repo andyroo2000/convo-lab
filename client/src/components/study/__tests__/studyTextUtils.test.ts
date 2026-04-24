@@ -40,4 +40,67 @@ describe('studyTextUtils', () => {
       },
     ]);
   });
+
+  it('parses Anki-style parenthetical ruby while preserving particles and okurigana', () => {
+    expect(parseRubySegments('予定(よてい)が変(か)わった。')).toEqual([
+      {
+        kind: 'ruby',
+        key: 'ruby-0',
+        base: '予定',
+        reading: 'よてい',
+      },
+      {
+        kind: 'text',
+        key: 'prefix-7',
+        text: 'が',
+      },
+      {
+        kind: 'ruby',
+        key: 'ruby-7',
+        base: '変',
+        reading: 'か',
+      },
+      {
+        kind: 'text',
+        key: 'text-12',
+        text: 'わった。',
+      },
+    ]);
+  });
+
+  it('leaves non-reading parentheses as plain text', () => {
+    expect(parseRubySegments('予定(plan)が変(か)わった。')).toEqual([
+      {
+        kind: 'text',
+        key: 'text-0',
+        text: '予定(plan)',
+      },
+      {
+        kind: 'text',
+        key: 'prefix-8',
+        text: 'が',
+      },
+      {
+        kind: 'ruby',
+        key: 'ruby-8',
+        base: '変',
+        reading: 'か',
+      },
+      {
+        kind: 'text',
+        key: 'text-13',
+        text: 'わった。',
+      },
+    ]);
+  });
+
+  it('does not convert kana-only parentheticals to ruby', () => {
+    expect(parseRubySegments('かな(かな)だけ')).toEqual([
+      {
+        kind: 'text',
+        key: 'text-0',
+        text: 'かな(かな)だけ',
+      },
+    ]);
+  });
 });

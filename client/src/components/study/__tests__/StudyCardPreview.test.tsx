@@ -48,6 +48,29 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('company')).toBeInTheDocument();
   });
 
+  it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            expression: '予定が変わった。',
+            expressionReading: '予定(よてい)が変(か)わった。',
+            meaning: 'The plans changed.',
+          },
+        }}
+      />
+    );
+
+    const heading = screen.getByTestId('study-japanese-heading');
+    expect(within(heading).getByText('よてい', { selector: 'rt' })).toBeInTheDocument();
+    expect(within(heading).getByText('か', { selector: 'rt' })).toBeInTheDocument();
+    expect(screen.queryByText('予定(よてい)が変(か)わった。')).not.toBeInTheDocument();
+    expect(screen.getByText('The plans changed.')).toBeInTheDocument();
+  });
+
   it('renders cloze notes with ruby text instead of bracket notation', () => {
     render(
       <StudyCardFace
