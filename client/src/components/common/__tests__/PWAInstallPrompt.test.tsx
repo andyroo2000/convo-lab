@@ -55,6 +55,7 @@ describe('PWAInstallPrompt', () => {
     });
 
     expect(screen.getByText('Install ConvoLab')).toBeInTheDocument();
+    expect(screen.getByText('Open ConvoLab at /app in Safari')).toBeInTheDocument();
     expect(screen.getByText('Tap the Share button in Safari')).toBeInTheDocument();
     expect(screen.getByText('Scroll down and tap “Add to Home Screen”')).toBeInTheDocument();
   });

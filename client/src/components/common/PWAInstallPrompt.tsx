@@ -79,6 +79,7 @@ const PWAInstallPrompt = () => {
               Get the full app experience! Install ConvoLab on your home screen:
             </p>
             <ol className="text-sm text-gray-600 space-y-2 list-decimal list-inside">
+              <li>Open ConvoLab at /app in Safari</li>
               <li>Tap the Share button in Safari</li>
               <li>Scroll down and tap &ldquo;Add to Home Screen&rdquo;</li>
               <li>Tap &ldquo;Add&rdquo; to confirm</li>

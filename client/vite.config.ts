@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { VitePWA } from 'vite-plugin-pwa';
 
+import pwaManifest from './src/config/pwaManifest';
+
 export default defineConfig({
   plugins: [
     react(),
@@ -18,35 +20,7 @@ export default defineConfig({
         sourcemap: false,
       },
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
-      manifest: {
-        name: 'ConvoLab',
-        short_name: 'ConvoLab',
-        description: 'A creative language learning and dialogue generation tool',
-        theme_color: '#5E6AD8',
-        background_color: '#ffffff',
-        display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
-        icons: [
-          {
-            src: 'pwa-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-          {
-            src: 'pwa-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
-          },
-        ],
-      },
+      manifest: pwaManifest,
       devOptions: {
         enabled: true,
         type: 'module',
