@@ -26,6 +26,7 @@ import { getSetCookieArray, testCookieParser } from '../../helpers/testCookiePar
 import { mockPrisma } from '../../setup.js';
 
 const {
+  cancelStudyImportUploadMock,
   completeStudyImportUploadMock,
   createStudyImportUploadSessionMock,
   createRedisConnectionMock,
@@ -40,7 +41,9 @@ const {
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
   getStudyHistoryMock,
+  getCurrentStudyImportJobMock,
   getStudyMediaAccessMock,
+  getStudyImportUploadReadinessMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -48,6 +51,7 @@ const {
   startStudySessionMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
+  cancelStudyImportUploadMock: vi.fn(),
   completeStudyImportUploadMock: vi.fn(),
   createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
@@ -62,7 +66,9 @@ const {
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
   getStudyHistoryMock: vi.fn(),
+  getCurrentStudyImportJobMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
+  getStudyImportUploadReadinessMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -80,6 +86,7 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 
 vi.mock('../../../services/studyService.js', () => ({
+  cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
   createStudyCard: createStudyCardMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
@@ -92,8 +99,10 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getStudyCardOptions: getStudyCardOptionsMock,
   getStudyHistory: getStudyHistoryMock,
+  getCurrentStudyImportJob: getCurrentStudyImportJobMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
+  getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   getStudyOverview: vi.fn(),
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
@@ -129,8 +138,11 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    cancelStudyImportUploadMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    getCurrentStudyImportJobMock.mockReset();
+    getStudyImportUploadReadinessMock.mockReset();
     process.env = {
       ...originalEnv,
       CLIENT_URL: 'http://localhost:5173',
@@ -549,6 +561,7 @@ describe('Study Routes', () => {
           noteTypeBreakdown: [],
         },
         uploadedAt: null,
+        uploadExpiresAt: '2026-04-21T01:00:00.000Z',
         sourceSizeBytes: null,
         importedAt: null,
         errorMessage: null,
@@ -593,6 +606,7 @@ describe('Study Routes', () => {
         noteTypeBreakdown: [],
       },
       uploadedAt: new Date('2026-04-21T00:00:00.000Z').toISOString(),
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
       sourceSizeBytes: 1024,
       importedAt: null,
       errorMessage: null,
@@ -600,12 +614,88 @@ describe('Study Routes', () => {
 
     const response = await withMutationCsrf(request(app).post('/study/imports/import-1/complete'));
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(202);
     expect(completeStudyImportUploadMock).toHaveBeenCalledWith({
       userId: 'user-1',
       importJobId: 'import-1',
     });
     expect(response.body.id).toBe('import-1');
+  });
+
+  it('returns the current pending or processing study import', async () => {
+    getCurrentStudyImportJobMock.mockResolvedValueOnce({
+      id: 'import-1',
+      status: 'processing',
+      sourceFilename: 'anki-export.colpkg',
+      deckName: '日本語',
+      preview: {
+        deckName: '日本語',
+        cardCount: 0,
+        noteCount: 0,
+        reviewLogCount: 0,
+        mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
+        noteTypeBreakdown: [],
+      },
+      uploadedAt: '2026-04-21T00:00:00.000Z',
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+      sourceSizeBytes: 1024,
+      importedAt: null,
+      errorMessage: null,
+    });
+
+    const response = await request(app).get('/study/imports/current');
+
+    expect(response.status).toBe(200);
+    expect(getCurrentStudyImportJobMock).toHaveBeenCalledWith('user-1');
+    expect(response.body.id).toBe('import-1');
+  });
+
+  it('returns study import upload readiness', async () => {
+    getStudyImportUploadReadinessMock.mockResolvedValueOnce({
+      ready: false,
+      message: 'Configure the storage bucket CORS policy.',
+    });
+
+    const response = await request(app).get('/study/imports/readiness');
+
+    expect(response.status).toBe(200);
+    expect(response.body.ready).toBe(false);
+    expect(response.body.message).toContain('CORS');
+  });
+
+  it('cancels a pending study import upload', async () => {
+    cancelStudyImportUploadMock.mockResolvedValueOnce({
+      id: 'import-1',
+      status: 'failed',
+      sourceFilename: 'anki-export.colpkg',
+      deckName: '日本語',
+      preview: {
+        deckName: '日本語',
+        cardCount: 0,
+        noteCount: 0,
+        reviewLogCount: 0,
+        mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
+        noteTypeBreakdown: [],
+      },
+      uploadedAt: null,
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+      sourceSizeBytes: null,
+      importedAt: null,
+      errorMessage: 'Study import upload was cancelled.',
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
+
+    expect(response.status).toBe(200);
+    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      importJobId: 'import-1',
+    });
+    expect(response.body.status).toBe('failed');
   });
 
   it('returns 503 for imports when study rate limiting is unavailable', async () => {

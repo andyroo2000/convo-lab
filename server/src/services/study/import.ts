@@ -5,10 +5,12 @@ import path from 'path';
 import {
   MAX_STUDY_ASYNC_IMPORT_BYTES,
   MAX_STUDY_IMPORT_BYTES,
+  STUDY_IMPORT_UPLOAD_SESSION_TTL_MS,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyImportPreview,
   StudyImportResult,
+  StudyImportUploadReadiness,
   StudyImportUploadSession,
 } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
@@ -21,7 +23,10 @@ import {
   createResumableUploadSession,
   deleteFromGCSPath,
   downloadFromGCSPath,
+  getGcsBucketCorsConfiguration,
   getGcsObjectMetadata,
+  readGCSObjectPrefix,
+  type GcsBucketCorsRule,
 } from '../storageClient.js';
 
 import type {
@@ -50,6 +55,7 @@ const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
 const STUDY_IMPORT_STALE_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const STUDY_IMPORT_WRITE_BATCH_SIZE = 250;
 const STUDY_IMPORT_UPLOAD_FOLDER = 'study/imports';
+const STUDY_IMPORT_CORS_READINESS_CACHE_MS = 5 * 60 * 1000;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
   '',
   'application/zip',
@@ -57,6 +63,12 @@ const STUDY_IMPORT_CONTENT_TYPES = new Set([
   'application/octet-stream',
   'multipart/x-zip',
 ]);
+
+let uploadCorsReadinessCache: {
+  checkedAt: number;
+  clientOrigin: string;
+  result: StudyImportUploadReadiness;
+} | null = null;
 
 function createEmptyStudyImportPreview(): StudyImportPreview {
   return {
@@ -82,6 +94,7 @@ function toStudyImportResult(job: StudyImportJobRecord): StudyImportResult {
     deckName: job.deckName,
     preview: toStudyImportPreview(job.previewJson),
     uploadedAt: job.uploadedAt instanceof Date ? job.uploadedAt.toISOString() : null,
+    uploadExpiresAt: job.uploadExpiresAt instanceof Date ? job.uploadExpiresAt.toISOString() : null,
     sourceSizeBytes,
     importedAt: job.completedAt instanceof Date ? job.completedAt.toISOString() : null,
     errorMessage: typeof job.errorMessage === 'string' ? job.errorMessage : null,
@@ -113,6 +126,91 @@ function assertValidStudyImportContentType(contentType: string | undefined): str
 
 function buildStudyImportTooLargeMessage(limitBytes: number): string {
   return `Study import files must be ${String(Math.floor(limitBytes / (1024 * 1024)))} MB or smaller.`;
+}
+
+function buildUploadExpiredMessage(): string {
+  return 'This study import upload session expired. Please start the import again.';
+}
+
+function corsRuleContains(values: string[] | undefined, requiredValue: string): boolean {
+  if (!Array.isArray(values)) return false;
+  const normalizedRequired = requiredValue.toLowerCase();
+  return values.some((value) => value === '*' || value.toLowerCase() === normalizedRequired);
+}
+
+function corsRuleAllowsStudyImportUpload(rule: GcsBucketCorsRule, clientOrigin: string): boolean {
+  return (
+    corsRuleContains(rule.origin, clientOrigin) &&
+    corsRuleContains(rule.method, 'PUT') &&
+    corsRuleContains(rule.method, 'OPTIONS') &&
+    corsRuleContains(rule.responseHeader, 'Content-Type')
+  );
+}
+
+export function evaluateStudyImportUploadCorsReadiness(params: {
+  clientOrigin: string;
+  corsRules: GcsBucketCorsRule[];
+}): StudyImportUploadReadiness {
+  const allowed = params.corsRules.some((rule) =>
+    corsRuleAllowsStudyImportUpload(rule, params.clientOrigin)
+  );
+
+  if (allowed) {
+    return { ready: true, message: null };
+  }
+
+  return {
+    ready: false,
+    message:
+      'Study import uploads are not configured for this app origin. Configure the storage bucket CORS policy to allow PUT and OPTIONS with the Content-Type header.',
+  };
+}
+
+export function resetStudyImportUploadReadinessCacheForTests(): void {
+  uploadCorsReadinessCache = null;
+}
+
+export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
+  const clientOrigin = getClientOrigin();
+  const now = Date.now();
+  if (
+    uploadCorsReadinessCache &&
+    uploadCorsReadinessCache.clientOrigin === clientOrigin &&
+    now - uploadCorsReadinessCache.checkedAt < STUDY_IMPORT_CORS_READINESS_CACHE_MS
+  ) {
+    return uploadCorsReadinessCache.result;
+  }
+
+  let result: StudyImportUploadReadiness;
+  try {
+    const corsRules = await getGcsBucketCorsConfiguration();
+    result = evaluateStudyImportUploadCorsReadiness({ clientOrigin, corsRules });
+  } catch (error) {
+    console.warn('[Study] Failed to verify study import upload CORS readiness:', error);
+    result = {
+      ready: false,
+      message:
+        'Study import uploads are temporarily unavailable because storage readiness could not be verified.',
+    };
+  }
+
+  uploadCorsReadinessCache = {
+    checkedAt: now,
+    clientOrigin,
+    result,
+  };
+  return result;
+}
+
+async function assertStudyImportUploadReadiness(): Promise<void> {
+  const readiness = await getStudyImportUploadReadiness();
+  if (!readiness.ready) {
+    throw new AppError(
+      readiness.message ??
+        'Study import uploads are temporarily unavailable because storage is not ready.',
+      503
+    );
+  }
 }
 
 async function ensureNoActiveStudyImport(
@@ -183,7 +281,7 @@ async function cleanupStalePendingStudyImportJobs(userId: string): Promise<void>
   });
 }
 
-export async function cleanupStaleStudyImportJobs(userId: string): Promise<void> {
+async function cleanupStaleProcessingStudyImportJobs(userId: string): Promise<void> {
   const staleThreshold = new Date(Date.now() - STUDY_IMPORT_STALE_JOB_MAX_AGE_MS);
   await prisma.studyImportJob.updateMany({
     where: {
@@ -199,7 +297,16 @@ export async function cleanupStaleStudyImportJobs(userId: string): Promise<void>
       completedAt: new Date(),
     },
   });
+}
 
+function scheduleStalePendingStudyImportCleanup(userId: string): void {
+  void cleanupStalePendingStudyImportJobs(userId).catch((error) => {
+    console.warn('[Study] Failed to clean up stale pending study imports:', error);
+  });
+}
+
+export async function cleanupStaleStudyImportJobs(userId: string): Promise<void> {
+  await cleanupStaleProcessingStudyImportJobs(userId);
   await cleanupStalePendingStudyImportJobs(userId);
 }
 
@@ -506,8 +613,11 @@ export async function createStudyImportUploadSession(params: {
 }): Promise<StudyImportUploadSession> {
   const sourceFilename = assertValidStudyImportFilename(params.filename);
   const sourceContentType = assertValidStudyImportContentType(params.contentType);
-  await cleanupStaleStudyImportJobs(params.userId);
+  await assertStudyImportUploadReadiness();
+  await cleanupStaleProcessingStudyImportJobs(params.userId);
+  scheduleStalePendingStudyImportCleanup(params.userId);
   await ensureNoActiveStudyImport(params.userId);
+  const uploadExpiresAt = new Date(Date.now() + STUDY_IMPORT_UPLOAD_SESSION_TTL_MS);
 
   const importJob = await prisma.studyImportJob.create({
     data: {
@@ -517,6 +627,7 @@ export async function createStudyImportUploadSession(params: {
       sourceContentType,
       deckName: ANKI_DECK_NAME,
       previewJson: toPrismaJson(createEmptyStudyImportPreview()),
+      uploadExpiresAt,
     },
   });
 
@@ -555,7 +666,8 @@ export async function completeStudyImportUpload(params: {
   userId: string;
   importJobId: string;
 }): Promise<StudyImportResult> {
-  await cleanupStaleStudyImportJobs(params.userId);
+  await cleanupStaleProcessingStudyImportJobs(params.userId);
+  scheduleStalePendingStudyImportCleanup(params.userId);
   await ensureNoActiveStudyImport(params.userId, params.importJobId);
 
   const importJob = await prisma.studyImportJob.findFirst({
@@ -575,6 +687,25 @@ export async function completeStudyImportUpload(params: {
 
   if (!importJob.sourceObjectPath) {
     throw new AppError('Study import upload target is missing.', 400);
+  }
+
+  if (
+    importJob.uploadExpiresAt instanceof Date &&
+    importJob.uploadExpiresAt.getTime() < Date.now()
+  ) {
+    await Promise.allSettled([
+      prisma.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          status: 'failed',
+          errorMessage: buildUploadExpiredMessage(),
+          completedAt: new Date(),
+        },
+      }),
+      deleteFromGCSPath(importJob.sourceObjectPath),
+    ]);
+
+    throw new AppError(buildUploadExpiredMessage(), 410);
   }
 
   const objectMetadata = await getGcsObjectMetadata(importJob.sourceObjectPath);
@@ -605,6 +736,27 @@ export async function completeStudyImportUpload(params: {
     throw new AppError(buildStudyImportTooLargeMessage(MAX_STUDY_ASYNC_IMPORT_BYTES), 413);
   }
 
+  const prefix = await readGCSObjectPrefix({
+    filePath: importJob.sourceObjectPath,
+    byteCount: 2,
+  });
+
+  if (prefix.length < 2 || prefix.toString('utf8') !== 'PK') {
+    await Promise.allSettled([
+      prisma.studyImportJob.update({
+        where: { id: importJob.id },
+        data: {
+          status: 'failed',
+          errorMessage: 'The uploaded file is not a valid ZIP-based .colpkg archive.',
+          completedAt: new Date(),
+        },
+      }),
+      deleteFromGCSPath(importJob.sourceObjectPath),
+    ]);
+
+    throw new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400);
+  }
+
   const updatedJob = await prisma.studyImportJob.update({
     where: { id: importJob.id },
     data: {
@@ -621,6 +773,65 @@ export async function completeStudyImportUpload(params: {
 
   await enqueueStudyImportJob(updatedJob.id);
   return toStudyImportResult(updatedJob);
+}
+
+export async function cancelStudyImportUpload(params: {
+  userId: string;
+  importJobId: string;
+}): Promise<StudyImportResult> {
+  const importJob = await prisma.studyImportJob.findFirst({
+    where: {
+      id: params.importJobId,
+      userId: params.userId,
+    },
+  });
+
+  if (!importJob) {
+    throw new AppError('Study import not found.', 404);
+  }
+
+  if (importJob.status === 'processing') {
+    throw new AppError('Study import is already processing and cannot be cancelled.', 409);
+  }
+
+  if (importJob.status !== 'pending') {
+    return toStudyImportResult(importJob);
+  }
+
+  const [updatedJob] = await Promise.all([
+    prisma.studyImportJob.update({
+      where: { id: importJob.id },
+      data: {
+        status: 'failed',
+        errorMessage: 'Study import upload was cancelled.',
+        completedAt: new Date(),
+      },
+    }),
+    importJob.sourceObjectPath
+      ? deleteFromGCSPath(importJob.sourceObjectPath).catch((error) => {
+          console.warn('[Study] Failed to delete cancelled import archive:', error);
+        })
+      : Promise.resolve(),
+  ]);
+
+  return toStudyImportResult(updatedJob);
+}
+
+function isActiveProcessingImportLockViolation(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return false;
+  }
+
+  const target = error.meta?.target;
+  if (typeof target === 'string') {
+    return target === 'study_import_jobs_userId_processing_unique';
+  }
+
+  if (Array.isArray(target)) {
+    return target.includes('userId');
+  }
+
+  return false;
 }
 
 export async function processStudyImportJob(
@@ -654,7 +865,7 @@ export async function processStudyImportJob(
       },
     });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isActiveProcessingImportLockViolation(error)) {
       const activeJob = await prisma.studyImportJob.findUnique({
         where: { id: importJobId },
       });
@@ -752,7 +963,8 @@ export async function getStudyImportJob(
   userId: string,
   importJobId: string
 ): Promise<StudyImportResult | null> {
-  await cleanupStaleStudyImportJobs(userId);
+  await cleanupStaleProcessingStudyImportJobs(userId);
+  scheduleStalePendingStudyImportCleanup(userId);
 
   const job: StudyImportJobRecord | null = await prisma.studyImportJob.findFirst({
     where: {
@@ -764,4 +976,23 @@ export async function getStudyImportJob(
   if (!job) return null;
 
   return toStudyImportResult(job);
+}
+
+export async function getCurrentStudyImportJob(userId: string): Promise<StudyImportResult | null> {
+  await cleanupStaleProcessingStudyImportJobs(userId);
+  scheduleStalePendingStudyImportCleanup(userId);
+
+  const job: StudyImportJobRecord | null = await prisma.studyImportJob.findFirst({
+    where: {
+      userId,
+      status: {
+        in: ['pending', 'processing'],
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  return job ? toStudyImportResult(job) : null;
 }

@@ -349,23 +349,24 @@ model FeatureFlag {
 }
 
 model StudyImportJob {
-  id             String    @id @default(uuid())
-  userId         String
-  status         String    @default("pending")
-  sourceType     String    @default("anki_colpkg")
-  sourceFilename String
-  sourceObjectPath String?
+  id                String    @id @default(uuid())
+  userId            String
+  status            String    @default("pending")
+  sourceType        String    @default("anki_colpkg")
+  sourceFilename    String
+  sourceObjectPath  String?
   sourceContentType String?
-  sourceSizeBytes BigInt?
-  deckName       String    @default("日本語")
-  previewJson    Json
-  summaryJson    Json?
-  errorMessage   String?   @db.Text
-  startedAt      DateTime?
-  uploadedAt     DateTime?
-  completedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  sourceSizeBytes   BigInt?
+  deckName          String    @default("日本語")
+  previewJson       Json
+  summaryJson       Json?
+  errorMessage      String?   @db.Text
+  startedAt         DateTime?
+  uploadedAt        DateTime?
+  uploadExpiresAt   DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   notes      StudyNote[]

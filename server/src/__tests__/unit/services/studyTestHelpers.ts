@@ -13,8 +13,10 @@ const storageMocks = vi.hoisted(() => ({
   createResumableUploadSessionMock: vi.fn(),
   deleteFromGCSPathMock: vi.fn(),
   downloadFromGCSPathMock: vi.fn(),
+  getGcsBucketCorsConfigurationMock: vi.fn(),
   getGcsObjectMetadataMock: vi.fn(),
   getSignedReadUrlMock: vi.fn(),
+  readGCSObjectPrefixMock: vi.fn(),
   uploadBufferToGCSPathMock: vi.fn(),
 }));
 
@@ -22,8 +24,10 @@ export const {
   createResumableUploadSessionMock,
   deleteFromGCSPathMock,
   downloadFromGCSPathMock,
+  getGcsBucketCorsConfigurationMock,
   getGcsObjectMetadataMock,
   getSignedReadUrlMock,
+  readGCSObjectPrefixMock,
   uploadBufferToGCSPathMock,
 } = storageMocks;
 
@@ -54,8 +58,10 @@ vi.mock('../../../services/storageClient.js', () => ({
   createResumableUploadSession: createResumableUploadSessionMock,
   deleteFromGCSPath: deleteFromGCSPathMock,
   downloadFromGCSPath: downloadFromGCSPathMock,
+  getGcsBucketCorsConfiguration: getGcsBucketCorsConfigurationMock,
   getGcsObjectMetadata: getGcsObjectMetadataMock,
   getSignedReadUrl: getSignedReadUrlMock,
+  readGCSObjectPrefix: readGCSObjectPrefixMock,
   uploadBufferToGCSPath: uploadBufferToGCSPathMock,
 }));
 
@@ -358,6 +364,7 @@ export function resetStudyServiceMocks() {
     errorMessage: null,
     startedAt: null,
     uploadedAt: null,
+    uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
     completedAt: null,
     createdAt: new Date('2026-04-23T00:00:00.000Z'),
     updatedAt: new Date('2026-04-23T00:00:00.000Z'),
@@ -377,6 +384,15 @@ export function resetStudyServiceMocks() {
     contentType: 'application/zip',
     sizeBytes: 1024,
   });
+  getGcsBucketCorsConfigurationMock.mockResolvedValue([
+    {
+      origin: ['http://localhost:5173'],
+      method: ['PUT', 'OPTIONS'],
+      responseHeader: ['Content-Type'],
+      maxAgeSeconds: 3600,
+    },
+  ]);
+  readGCSObjectPrefixMock.mockResolvedValue(Buffer.from('PK'));
   uploadBufferToGCSPathMock.mockResolvedValue('https://storage.googleapis.com/test/study-media');
   createResumableUploadSessionMock.mockResolvedValue({
     url: 'https://uploads.example/import-job-1',

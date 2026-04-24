@@ -1,6 +1,7 @@
 import { createReadStream } from 'fs';
 import { mkdir } from 'fs/promises';
 import path from 'path';
+import { buffer as streamToBuffer } from 'stream/consumers';
 
 import { Storage } from '@google-cloud/storage';
 import { v4 as uuidv4 } from 'uuid';
@@ -269,6 +270,13 @@ export interface GcsObjectMetadata {
   sizeBytes: number | null;
 }
 
+export interface GcsBucketCorsRule {
+  origin?: string[];
+  method?: string[];
+  responseHeader?: string[];
+  maxAgeSeconds?: number;
+}
+
 export async function gcsFileExists(filePath: string): Promise<boolean> {
   const resolvedBucketName = requireBucketName();
   const bucket = storage.bucket(resolvedBucketName);
@@ -319,6 +327,35 @@ export async function getGcsObjectMetadata(filePath: string): Promise<GcsObjectM
         ? Number.parseInt(metadata.size, 10)
         : null,
   };
+}
+
+export async function getGcsBucketCorsConfiguration(): Promise<GcsBucketCorsRule[]> {
+  const resolvedBucketName = requireBucketName();
+  const bucket = storage.bucket(resolvedBucketName);
+  const [metadata] = await bucket.getMetadata();
+  return Array.isArray(metadata.cors) ? (metadata.cors as GcsBucketCorsRule[]) : [];
+}
+
+export async function readGCSObjectPrefix(options: {
+  filePath: string;
+  byteCount: number;
+}): Promise<Buffer> {
+  const resolvedBucketName = requireBucketName();
+  const normalizedPath = options.filePath.replace(/^\/+/, '');
+  const bucket = storage.bucket(resolvedBucketName);
+  const file = bucket.file(normalizedPath);
+  const byteCount = Math.max(0, Math.floor(options.byteCount));
+
+  if (byteCount === 0) {
+    return Buffer.alloc(0);
+  }
+
+  const stream = file.createReadStream({
+    start: 0,
+    end: byteCount - 1,
+  });
+  const data = await streamToBuffer(stream);
+  return Buffer.isBuffer(data) ? data : Buffer.from(data);
 }
 
 export async function downloadFromGCSPath(options: {

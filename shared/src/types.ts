@@ -3,6 +3,7 @@
 export {
   MAX_STUDY_ASYNC_IMPORT_BYTES,
   MAX_STUDY_IMPORT_BYTES,
+  STUDY_IMPORT_UPLOAD_SESSION_TTL_MS,
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -264,9 +265,15 @@ export interface StudyImportResult {
   deckName: string;
   preview: StudyImportPreview;
   uploadedAt?: string | null;
+  uploadExpiresAt?: string | null;
   sourceSizeBytes?: number | null;
   importedAt?: string | null;
   errorMessage?: string | null;
+}
+
+export interface StudyImportUploadReadiness {
+  ready: boolean;
+  message: string | null;
 }
 
 export interface StudyImportUploadSession {

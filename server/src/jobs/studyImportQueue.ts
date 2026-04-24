@@ -3,10 +3,24 @@ import { Queue, Worker } from 'bullmq';
 
 import { createRedisConnection, defaultWorkerSettings } from '../config/redis.js';
 
-const connection = createRedisConnection();
+const queueConnection = createRedisConnection();
+const workerConnection = createRedisConnection();
 const STUDY_IMPORT_QUEUE_NAME = 'study-imports';
 
-export const studyImportQueue = new Queue(STUDY_IMPORT_QUEUE_NAME, { connection });
+export const studyImportQueue = new Queue(STUDY_IMPORT_QUEUE_NAME, { connection: queueConnection });
+
+function parseStudyImportJobData(data: unknown): { importJobId: string } {
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid study import job payload.');
+  }
+
+  const record = data as Record<string, unknown>;
+  if (typeof record.importJobId !== 'string' || record.importJobId.trim().length === 0) {
+    throw new Error('Invalid study import job payload.');
+  }
+
+  return { importJobId: record.importJobId };
+}
 
 export async function enqueueStudyImportJob(importJobId: string) {
   return studyImportQueue.add(
@@ -33,12 +47,13 @@ export const studyImportWorker = new Worker(
     }
 
     const { processStudyImportJob } = await import('../services/study/import.js');
-    const result = await processStudyImportJob(job.data.importJobId as string);
+    const { importJobId } = parseStudyImportJobData(job.data);
+    const result = await processStudyImportJob(importJobId);
     await job.updateProgress(100);
     return result;
   },
   {
-    connection,
+    connection: workerConnection,
     ...defaultWorkerSettings,
   }
 );

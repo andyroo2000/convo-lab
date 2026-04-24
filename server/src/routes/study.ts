@@ -23,6 +23,7 @@ import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import { parseOptionalStudyOverview } from '../services/study/shared.js';
 import {
+  cancelStudyImportUpload,
   completeStudyImportUpload,
   createStudyCard,
   createStudyImportUploadSession,
@@ -34,9 +35,11 @@ import {
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
   getStudyCardOptions,
+  getCurrentStudyImportJob,
   getStudyMediaAccess,
   getStudyHistory,
   getStudyImportJob,
+  getStudyImportUploadReadiness,
   getStudyOverview,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
@@ -476,6 +479,32 @@ router.post(
   }
 );
 
+router.get('/imports/readiness', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await getStudyImportUploadReadiness();
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/imports/current', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await getCurrentStudyImportJob(req.userId);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post(
   '/imports/:id/complete',
   rateLimitStudyRoute({
@@ -495,12 +524,31 @@ router.post(
         importJobId: req.params.id,
       });
 
-      res.json(result);
+      res
+        .status(result.status === 'pending' || result.status === 'processing' ? 202 : 200)
+        .json(result);
     } catch (error) {
       next(error);
     }
   }
 );
+
+router.post('/imports/:id/cancel', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    const result = await cancelStudyImportUpload({
+      userId: req.userId,
+      importJobId: req.params.id,
+    });
+
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get('/imports/:id', async (req: AuthRequest, res, next) => {
   try {

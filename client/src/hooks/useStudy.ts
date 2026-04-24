@@ -13,6 +13,7 @@ import type {
   StudyExportManifest,
   StudyHistoryResponse,
   StudyImportResult,
+  StudyImportUploadReadiness,
   StudyImportUploadSession,
   StudyOverview,
   StudyPromptPayload,
@@ -331,31 +332,52 @@ export async function createStudyImportUploadSession(
 export async function uploadStudyImportArchive(
   session: StudyImportUploadSession,
   file: File,
-  onProgress?: (progress: number) => void
+  options: {
+    onProgress?: (progress: number) => void;
+    signal?: AbortSignal;
+  } = {}
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const request = new XMLHttpRequest();
+    const abortHandler = () => {
+      request.abort();
+    };
+
+    if (options.signal?.aborted) {
+      reject(new Error('Upload cancelled'));
+      return;
+    }
+
     request.open(session.upload.method, session.upload.url);
 
     Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
       request.setRequestHeader(headerName, headerValue);
     });
 
+    options.signal?.addEventListener('abort', abortHandler, { once: true });
+
+    const cleanup = () => {
+      options.signal?.removeEventListener('abort', abortHandler);
+    };
+
     request.upload.onprogress = (event) => {
-      if (typeof onProgress === 'function' && event.lengthComputable && event.total > 0) {
-        onProgress(Math.min(1, event.loaded / event.total));
+      if (typeof options.onProgress === 'function' && event.lengthComputable && event.total > 0) {
+        options.onProgress(Math.min(1, event.loaded / event.total));
       }
     };
 
     request.onerror = () => {
+      cleanup();
       reject(new Error('Upload failed'));
     };
     request.onabort = () => {
+      cleanup();
       reject(new Error('Upload cancelled'));
     };
     request.onload = () => {
+      cleanup();
       if (request.status >= 200 && request.status < 300) {
-        onProgress?.(1);
+        options.onProgress?.(1);
         resolve();
         return;
       }
@@ -374,6 +396,23 @@ export async function completeStudyImportUpload(importJobId: string): Promise<St
       method: 'POST',
     }
   );
+}
+
+export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}/cancel`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function getCurrentStudyImport(): Promise<StudyImportResult | null> {
+  return apiRequest<StudyImportResult | null>('/api/study/imports/current');
+}
+
+export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
+  return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness');
 }
 
 export async function getStudyImportStatus(importJobId: string): Promise<StudyImportResult> {
