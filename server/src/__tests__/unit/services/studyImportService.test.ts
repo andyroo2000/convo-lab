@@ -84,6 +84,21 @@ describe('studyImportService', () => {
     expect(result.preview.noteCount).toBe(4);
   }, 15000);
 
+  it('imports large zstd collection databases without frame content sizes', async () => {
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({
+        compressCollectionDatabase: true,
+        vocabNotes: 'Large collection note. '.repeat(120_000),
+      }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.cardCount).toBe(6);
+    expect(result.preview.noteCount).toBe(4);
+  }, 30000);
+
   it('imports zstd-compressed Anki media manifests', async () => {
     const result = await importJapaneseStudyColpkg({
       userId: 'user-1',

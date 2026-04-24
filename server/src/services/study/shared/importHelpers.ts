@@ -55,6 +55,8 @@ const zstdDecompressSync = (
     zstdDecompressSync?: (buffer: Buffer | Uint8Array) => Buffer | Uint8Array;
   }
 ).zstdDecompressSync;
+const ZSTD_WASM_DEFAULT_HEAP_SIZE = 1024 * 1024;
+const ZSTD_WASM_MAX_UNKNOWN_HEAP_SIZE = 512 * 1024 * 1024;
 
 function isZstdCompressed(buffer: Buffer | Uint8Array): boolean {
   return (
@@ -77,6 +79,21 @@ async function initZstdWasm(): Promise<void> {
   await zstdWasmInitPromise;
 }
 
+function buildZstdWasmHeapSizes(expectedSize: number | null | undefined): number[] {
+  if (typeof expectedSize === 'number' && Number.isFinite(expectedSize) && expectedSize >= 0) {
+    return [Math.max(1, Math.ceil(expectedSize))];
+  }
+
+  const heapSizes: number[] = [];
+  let heapSize = ZSTD_WASM_DEFAULT_HEAP_SIZE;
+  while (heapSize <= ZSTD_WASM_MAX_UNKNOWN_HEAP_SIZE) {
+    heapSizes.push(heapSize);
+    heapSize *= 2;
+  }
+
+  return heapSizes;
+}
+
 async function maybeDecompressZstd(
   buffer: Buffer,
   options: {
@@ -94,14 +111,17 @@ async function maybeDecompressZstd(
     }
 
     await initZstdWasm();
-    return Buffer.from(
-      zstdWasm.decompress(
-        buffer,
-        typeof options.expectedSize === 'number' && options.expectedSize >= 0
-          ? { defaultHeapSize: options.expectedSize }
-          : undefined
-      )
-    );
+    const heapSizes = buildZstdWasmHeapSizes(options.expectedSize);
+    let lastError: unknown = null;
+    for (const heapSize of heapSizes) {
+      try {
+        return Buffer.from(zstdWasm.decompress(buffer, { defaultHeapSize: heapSize }));
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
