@@ -15,6 +15,10 @@ const searchTextFixMigrationPath = new URL(
   '../../../../prisma/migrations/20260422193000_fix_study_search_text_backfill/migration.sql',
   import.meta.url
 );
+const studySearchAndExportIndexesMigrationPath = new URL(
+  '../../../../prisma/migrations/20260421233000_add_study_search_text_and_export_indexes/migration.sql',
+  import.meta.url
+);
 const studyCardTypeCheckMigrationPath = new URL(
   '../../../../prisma/migrations/20260422213000_add_study_card_type_check/migration.sql',
   import.meta.url
@@ -45,6 +49,14 @@ describe('study schema verification', () => {
     expect(migration).toContain('study_json_scalar_text(COALESCE("promptJson"::jsonb');
     expect(migration).toContain('study_json_scalar_text(COALESCE("answerJson"::jsonb');
     expect(migration).toContain('WHERE "searchText" IS NOT NULL');
+  });
+
+  it('keeps the partial unique active-processing study import lock in migration history', async () => {
+    const migration = await readFile(studySearchAndExportIndexesMigrationPath, 'utf8');
+
+    expect(migration).toContain('CREATE UNIQUE INDEX "study_import_jobs_userId_processing_unique"');
+    expect(migration).toContain('ON "study_import_jobs"("userId")');
+    expect(migration).toContain('WHERE "status" = \'processing\'');
   });
 
   it('keeps the scheduler-state hardening migration that backfills legacy rows and enforces queue-state validity', async () => {

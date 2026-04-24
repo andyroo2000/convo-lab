@@ -1,1 +1,10 @@
-export { getStudyImportJob, importJapaneseStudyColpkg } from './study/import.js';
+export {
+  cancelStudyImportUpload,
+  completeStudyImportUpload,
+  createStudyImportUploadSession,
+  getCurrentStudyImportJob,
+  getStudyImportJob,
+  getStudyImportUploadReadiness,
+  importJapaneseStudyColpkg,
+  processStudyImportJob,
+} from './study/import.js';

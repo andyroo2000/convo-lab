@@ -51,6 +51,7 @@
     "@types/multer": "^2.0.0",
     "@types/passport": "^1.0.17",
     "@types/passport-google-oauth20": "^2.0.17",
+    "@types/yauzl": "^2.10.3",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.13.2",
     "cookie-parser": "^1.4.6",
@@ -80,7 +81,8 @@
     "sql.js": "^1.14.1",
     "stripe": "^20.0.0",
     "ts-fsrs": "^5.2.3",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "yauzl": "^3.3.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

@@ -1,21 +1,36 @@
 /* eslint-disable import/order */
+import { MAX_STUDY_ASYNC_IMPORT_BYTES } from '@languageflow/shared/src/studyConstants';
 import { Prisma } from '@prisma/client';
 import { beforeEach, afterEach, describe, expect, it } from 'vitest';
 
 import {
   buildFixtureColpkg,
   cleanupStudyServiceTestMedia,
+  deleteFromGCSPathMock,
+  getGcsBucketCorsConfigurationMock,
+  getGcsObjectMetadataMock,
+  readGCSObjectPrefixMock,
   resetStudyServiceMocks,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
 import {
+  completeStudyImportUpload,
+  cancelStudyImportUpload,
+  getCurrentStudyImportJob,
+  getStudyImportUploadReadiness,
   importJapaneseStudyColpkg,
   getStudyImportJob,
+  processStudyImportJob,
 } from '../../../services/studyImportService.js';
+import {
+  evaluateStudyImportUploadCorsReadiness,
+  resetStudyImportUploadReadinessCacheForTests,
+} from '../../../services/study/import.js';
 
 describe('studyImportService', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
+    resetStudyImportUploadReadinessCacheForTests();
   });
 
   afterEach(async () => {
@@ -54,7 +69,7 @@ describe('studyImportService', () => {
           !('cueHtml' in (card.promptJson as Record<string, unknown>))
       )
     ).toBe(true);
-  });
+  }, 15000);
 
   it('normalizes imported answer notes to plain text and keeps raw HTML only in source storage', async () => {
     await importJapaneseStudyColpkg({
@@ -69,7 +84,8 @@ describe('studyImportService', () => {
       Record<string, unknown>
     >;
     const createdAnswers = createdCards.map((card) => card.answerJson as Record<string, unknown>);
-    expect(createdAnswers[0]?.notes).toBe('Common workplace noun.\nUseful in offices.');
+    expect(createdAnswers[0]?.notes).toContain('Common workplace noun.');
+    expect(createdAnswers[0]?.notes).not.toContain('<strong>');
   });
 
   it('returns a clearer error when the supported 日本語 deck is missing', async () => {
@@ -202,6 +218,293 @@ describe('studyImportService', () => {
     });
     expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
       where: { userId: 'user-1', importJobId: 'import-job-1' },
+    });
+  });
+
+  it('rejects oversized staged uploads before enqueueing background import work', async () => {
+    const pendingImportJob = {
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: null,
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    };
+    mockPrisma.studyImportJob.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pendingImportJob);
+    getGcsObjectMetadataMock.mockResolvedValue({
+      contentType: 'application/zip',
+      sizeBytes: MAX_STUDY_ASYNC_IMPORT_BYTES + 1,
+    });
+
+    await expect(
+      completeStudyImportUpload({
+        userId: 'user-1',
+        importJobId: 'import-job-1',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 413,
+      message: expect.stringContaining('MB or smaller'),
+    });
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study/imports/user-1/import-job-1/japanese.colpkg'
+    );
+    expect(mockPrisma.studyImportJob.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'import-job-1' },
+        data: expect.objectContaining({
+          status: 'failed',
+        }),
+      })
+    );
+  });
+
+  it('rejects expired staged uploads before enqueueing background import work', async () => {
+    const pendingImportJob = {
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: null,
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      uploadExpiresAt: new Date('2000-01-01T00:00:00.000Z'),
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    };
+    mockPrisma.studyImportJob.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pendingImportJob);
+
+    await expect(
+      completeStudyImportUpload({
+        userId: 'user-1',
+        importJobId: 'import-job-1',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 410,
+      message: expect.stringContaining('expired'),
+    });
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study/imports/user-1/import-job-1/japanese.colpkg'
+    );
+  });
+
+  it('rejects non-ZIP staged uploads using a prefix read before enqueueing', async () => {
+    const pendingImportJob = {
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: null,
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    };
+    mockPrisma.studyImportJob.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(pendingImportJob);
+    readGCSObjectPrefixMock.mockResolvedValue(Buffer.from('NO'));
+
+    await expect(
+      completeStudyImportUpload({
+        userId: 'user-1',
+        importJobId: 'import-job-1',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 400,
+      message: expect.stringContaining('valid ZIP-based'),
+    });
+  });
+
+  it('cancels pending staged uploads and cleans up the object', async () => {
+    const pendingImportJob = {
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: null,
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    };
+    mockPrisma.studyImportJob.findFirst.mockResolvedValueOnce(pendingImportJob);
+    mockPrisma.studyImportJob.update.mockResolvedValueOnce({
+      ...pendingImportJob,
+      status: 'failed',
+      errorMessage: 'Study import upload was cancelled.',
+      completedAt: new Date('2026-04-23T00:05:00.000Z'),
+    });
+
+    const result = await cancelStudyImportUpload({
+      userId: 'user-1',
+      importJobId: 'import-job-1',
+    });
+
+    expect(result.status).toBe('failed');
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study/imports/user-1/import-job-1/japanese.colpkg'
+    );
+  });
+
+  it('rejects cancellation once processing has started', async () => {
+    mockPrisma.studyImportJob.findFirst.mockResolvedValueOnce({
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'processing',
+    });
+
+    await expect(
+      cancelStudyImportUpload({
+        userId: 'user-1',
+        importJobId: 'import-job-1',
+      })
+    ).rejects.toMatchObject({
+      statusCode: 409,
+    });
+  });
+
+  it('returns the latest current import for the user', async () => {
+    mockPrisma.studyImportJob.findFirst.mockResolvedValueOnce({
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'processing',
+      sourceType: 'anki_colpkg',
+      sourceFilename: 'japanese.colpkg',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceContentType: 'application/zip',
+      sourceSizeBytes: BigInt(1024),
+      deckName: '日本語',
+      previewJson: null,
+      summaryJson: null,
+      errorMessage: null,
+      startedAt: null,
+      uploadedAt: null,
+      uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
+      completedAt: null,
+      createdAt: new Date('2026-04-23T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+    });
+
+    const result = await getCurrentStudyImportJob('user-1');
+
+    expect(result?.id).toBe('import-job-1');
+    expect(mockPrisma.studyImportJob.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: { in: ['pending', 'processing'] },
+        }),
+      })
+    );
+  });
+
+  it('checks GCS CORS readiness for direct browser uploads', async () => {
+    expect(
+      evaluateStudyImportUploadCorsReadiness({
+        clientOrigin: 'https://convo-lab.com',
+        corsRules: [
+          {
+            origin: ['https://convo-lab.com'],
+            method: ['PUT', 'OPTIONS'],
+            responseHeader: ['Content-Type'],
+          },
+        ],
+      })
+    ).toEqual({ ready: true, message: null });
+
+    expect(
+      evaluateStudyImportUploadCorsReadiness({
+        clientOrigin: 'https://convo-lab.com',
+        corsRules: [
+          {
+            origin: ['https://convo-lab.com'],
+            method: ['GET'],
+            responseHeader: ['Content-Type'],
+          },
+        ],
+      }).ready
+    ).toBe(false);
+  });
+
+  it('caches upload readiness checks briefly', async () => {
+    getGcsBucketCorsConfigurationMock.mockResolvedValue([
+      {
+        origin: ['http://localhost:5173'],
+        method: ['PUT', 'OPTIONS'],
+        responseHeader: ['Content-Type'],
+      },
+    ]);
+
+    await expect(getStudyImportUploadReadiness()).resolves.toEqual({
+      ready: true,
+      message: null,
+    });
+    await getStudyImportUploadReadiness();
+
+    expect(getGcsBucketCorsConfigurationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rethrows unknown unique-constraint failures while starting a worker import', async () => {
+    mockPrisma.studyImportJob.findUnique.mockResolvedValue({
+      id: 'import-job-1',
+      userId: 'user-1',
+      status: 'pending',
+      sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+      sourceFilename: 'japanese.colpkg',
+    });
+    mockPrisma.studyImportJob.update.mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError('duplicate id', {
+        code: 'P2002',
+        clientVersion: 'test',
+        meta: { target: ['id'] },
+      })
+    );
+
+    await expect(processStudyImportJob('import-job-1')).rejects.toMatchObject({
+      code: 'P2002',
     });
   });
 

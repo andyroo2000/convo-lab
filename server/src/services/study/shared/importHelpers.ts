@@ -12,9 +12,9 @@ import type {
   StudyPromptPayload,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
-import JSZip from 'jszip';
 import initSqlJs, { type Database, type QueryExecResult } from 'sql.js';
 import { State, type Card } from 'ts-fsrs';
+import { open as openZipFile, type Entry, type ZipFile } from 'yauzl';
 
 import { AppError } from '../../../middleware/errorHandler.js';
 import { addFuriganaBrackets } from '../../furiganaService.js';
@@ -597,31 +597,110 @@ export async function getSqlJs() {
   return sqlJsPromise;
 }
 
+interface ZipArchiveReader {
+  entryNames: string[];
+  readEntryBuffer(entryName: string): Promise<Buffer | null>;
+  close(): void;
+}
+
+async function openZipArchive(archiveFilePath: string): Promise<ZipArchiveReader> {
+  const zipFile = await new Promise<ZipFile>((resolve, reject) => {
+    openZipFile(
+      archiveFilePath,
+      {
+        lazyEntries: true,
+        autoClose: false,
+        // We intentionally inspect and reject unsafe paths ourselves so malformed
+        // archive entries become warnings instead of hard parser failures.
+        decodeStrings: false,
+      },
+      (error, handle) => {
+        if (error || !handle) {
+          reject(error ?? new Error('Failed to open ZIP archive.'));
+          return;
+        }
+
+        resolve(handle);
+      }
+    );
+  });
+
+  const entriesByName = new Map<string, Entry>();
+  const entryNames: string[] = [];
+
+  await new Promise<void>((resolve, reject) => {
+    zipFile.on('entry', (entry) => {
+      const rawEntryName = Buffer.isBuffer(entry.fileName)
+        ? entry.fileName.toString('utf8')
+        : entry.fileName;
+      const normalizedName = normalizeZipPath(rawEntryName);
+      entryNames.push(normalizedName);
+      if (!rawEntryName.endsWith('/')) {
+        entriesByName.set(normalizedName, entry);
+      }
+      zipFile.readEntry();
+    });
+    zipFile.once('end', resolve);
+    zipFile.once('error', reject);
+    zipFile.readEntry();
+  });
+
+  return {
+    entryNames,
+    async readEntryBuffer(entryName: string) {
+      const normalizedName = normalizeZipPath(entryName);
+      const entry = entriesByName.get(normalizedName);
+      if (!entry) {
+        return null;
+      }
+
+      return new Promise<Buffer>((resolve, reject) => {
+        zipFile.openReadStream(entry, (error, stream) => {
+          if (error || !stream) {
+            reject(error ?? new Error(`Failed to read ZIP entry "${normalizedName}".`));
+            return;
+          }
+
+          const chunks: Buffer[] = [];
+          stream.on('data', (chunk) => {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          });
+          stream.once('end', () => resolve(Buffer.concat(chunks)));
+          stream.once('error', reject);
+        });
+      });
+    },
+    close() {
+      zipFile.close();
+    },
+  };
+}
+
 export async function parseColpkgUpload(params: {
-  fileBuffer: Buffer;
+  archiveFilePath: string;
   filename: string;
   userId: string;
   importJobId: string;
 }): Promise<ParsedImportDataset> {
-  const { fileBuffer, filename, userId, importJobId } = params;
+  const { archiveFilePath, filename, userId, importJobId } = params;
   const persistedMediaStoragePaths: string[] = [];
 
   if (!filename.toLowerCase().endsWith('.colpkg')) {
     throw new AppError('Study import requires a .colpkg Anki collection backup.', 400);
   }
 
+  const zip = await openZipArchive(archiveFilePath);
   try {
-    const zip = await JSZip.loadAsync(fileBuffer);
     const importWarnings = createStudyImportWarningAccumulator();
     const unsafeManifestFilenames = new Set<string>();
     const unsafeArchiveEntriesById = new Map<string, Set<string>>();
 
-    Object.values(zip.files).forEach((entry) => {
-      if (entry.dir || isAllowedStudyImportZipEntryName(entry.name)) {
+    zip.entryNames.forEach((entryName) => {
+      if (isAllowedStudyImportZipEntryName(entryName)) {
         return;
       }
 
-      const normalizedEntryName = normalizeZipPath(entry.name);
+      const normalizedEntryName = normalizeZipPath(entryName);
       const basename = path.posix.basename(normalizedEntryName);
       if (isSafeZipBasename(basename)) {
         const existing = unsafeArchiveEntriesById.get(basename) ?? new Set<string>();
@@ -630,17 +709,17 @@ export async function parseColpkgUpload(params: {
       }
     });
 
-    const collectionEntry =
-      zip.file('collection.anki21b') ??
-      zip.file('collection.anki21') ??
-      zip.file('collection.anki2');
-    if (!collectionEntry) {
+    const collectionBuffer =
+      (await zip.readEntryBuffer('collection.anki21b')) ??
+      (await zip.readEntryBuffer('collection.anki21')) ??
+      (await zip.readEntryBuffer('collection.anki2'));
+    if (!collectionBuffer) {
       throw new AppError('The uploaded .colpkg does not contain a collection database.', 400);
     }
 
-    const mediaManifestEntry = zip.file('media');
+    const mediaManifestEntry = await zip.readEntryBuffer('media');
     const mediaManifestBuffer = mediaManifestEntry
-      ? maybeDecompressZstd(await mediaManifestEntry.async('nodebuffer'))
+      ? maybeDecompressZstd(mediaManifestEntry)
       : Buffer.from('{}');
     const mediaManifestText = mediaManifestBuffer.length
       ? mediaManifestBuffer.toString('utf8')
@@ -672,9 +751,7 @@ export async function parseColpkgUpload(params: {
     }
 
     const SQL = await getSqlJs();
-    const db = new SQL.Database(
-      maybeDecompressZstd(await collectionEntry.async('nodebuffer')) as Uint8Array
-    );
+    const db = new SQL.Database(maybeDecompressZstd(collectionBuffer) as Uint8Array);
 
     const collectionRow = mapRows(db.exec('SELECT crt, models, decks FROM col LIMIT 1'))[0];
     if (!collectionRow || typeof collectionRow.crt !== 'number') {
@@ -845,9 +922,9 @@ export async function parseColpkgUpload(params: {
       let storagePath: string | null = null;
 
       if (mediaId && isSafeZipBasename(mediaId) && isSafeZipBasename(mediaFilename)) {
-        const mediaEntry = zip.file(mediaId);
-        if (mediaEntry) {
-          if (!isAllowedStudyImportZipEntryName(mediaEntry.name)) {
+        const mediaEntryBuffer = await zip.readEntryBuffer(mediaId);
+        if (mediaEntryBuffer) {
+          if (!isAllowedStudyImportZipEntryName(mediaId)) {
             recordStudyImportWarning(
               importWarnings,
               mediaFilename,
@@ -858,7 +935,7 @@ export async function parseColpkgUpload(params: {
               userId,
               importJobId,
               filename: mediaFilename,
-              buffer: await mediaEntry.async('nodebuffer'),
+              buffer: mediaEntryBuffer,
             });
             publicUrl = persisted.publicUrl;
             storagePath = persisted.storagePath;
@@ -1053,5 +1130,7 @@ export async function parseColpkgUpload(params: {
       ...persistedMediaStoragePaths,
     ];
     throw parseError;
+  } finally {
+    zip.close();
   }
 }

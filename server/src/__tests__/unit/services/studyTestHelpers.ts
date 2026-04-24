@@ -10,13 +10,32 @@ import { vi } from 'vitest';
 import { mockPrisma } from '../../setup.js';
 
 const storageMocks = vi.hoisted(() => ({
+  createResumableUploadSessionMock: vi.fn(),
   deleteFromGCSPathMock: vi.fn(),
+  downloadFromGCSPathMock: vi.fn(),
+  getGcsBucketCorsConfigurationMock: vi.fn(),
+  getGcsObjectMetadataMock: vi.fn(),
   getSignedReadUrlMock: vi.fn(),
+  readGCSObjectPrefixMock: vi.fn(),
   uploadBufferToGCSPathMock: vi.fn(),
 }));
 
-export const { deleteFromGCSPathMock, getSignedReadUrlMock, uploadBufferToGCSPathMock } =
-  storageMocks;
+export const {
+  createResumableUploadSessionMock,
+  deleteFromGCSPathMock,
+  downloadFromGCSPathMock,
+  getGcsBucketCorsConfigurationMock,
+  getGcsObjectMetadataMock,
+  getSignedReadUrlMock,
+  readGCSObjectPrefixMock,
+  uploadBufferToGCSPathMock,
+} = storageMocks;
+
+const queueMocks = vi.hoisted(() => ({
+  enqueueStudyImportJobMock: vi.fn(),
+}));
+
+export const { enqueueStudyImportJobMock } = queueMocks;
 
 const redisMocks = vi.hoisted(() => ({
   createRedisConnectionMock: vi.fn(),
@@ -36,13 +55,24 @@ vi.mock('../../../services/furiganaService.js', () => ({
 }));
 
 vi.mock('../../../services/storageClient.js', () => ({
+  createResumableUploadSession: createResumableUploadSessionMock,
   deleteFromGCSPath: deleteFromGCSPathMock,
+  downloadFromGCSPath: downloadFromGCSPathMock,
+  getGcsBucketCorsConfiguration: getGcsBucketCorsConfigurationMock,
+  getGcsObjectMetadata: getGcsObjectMetadataMock,
   getSignedReadUrl: getSignedReadUrlMock,
+  readGCSObjectPrefix: readGCSObjectPrefixMock,
   uploadBufferToGCSPath: uploadBufferToGCSPathMock,
 }));
 
 vi.mock('../../../config/redis.js', () => ({
   createRedisConnection: createRedisConnectionMock,
+}));
+
+vi.mock('../../../jobs/studyImportQueue.js', () => ({
+  enqueueStudyImportJob: enqueueStudyImportJobMock,
+  studyImportQueue: {},
+  studyImportWorker: {},
 }));
 
 const FIELD_SEPARATOR = String.fromCharCode(31);
@@ -310,6 +340,35 @@ export async function buildFixtureColpkg(
 
 export function resetStudyServiceMocks() {
   vi.clearAllMocks();
+  const defaultImportJob = {
+    id: 'import-job-1',
+    userId: 'user-1',
+    status: 'processing',
+    sourceType: 'anki_colpkg',
+    sourceFilename: 'japanese.colpkg',
+    sourceObjectPath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+    sourceContentType: 'application/zip',
+    sourceSizeBytes: BigInt(1024),
+    deckName: '日本語',
+    previewJson: {
+      deckName: '日本語',
+      cardCount: 0,
+      noteCount: 0,
+      reviewLogCount: 0,
+      mediaReferenceCount: 0,
+      skippedMediaCount: 0,
+      warnings: [],
+      noteTypeBreakdown: [],
+    },
+    summaryJson: null,
+    errorMessage: null,
+    startedAt: null,
+    uploadedAt: null,
+    uploadExpiresAt: new Date('2099-04-23T01:00:00.000Z'),
+    completedAt: null,
+    createdAt: new Date('2026-04-23T00:00:00.000Z'),
+    updatedAt: new Date('2026-04-23T00:00:00.000Z'),
+  };
   createRedisConnectionMock.mockReturnValue({
     set: redisSetMock,
     get: redisGetMock,
@@ -320,15 +379,36 @@ export function resetStudyServiceMocks() {
   redisDelMock.mockResolvedValue(1);
   process.env.GCS_BUCKET_NAME = '';
   deleteFromGCSPathMock.mockResolvedValue(undefined);
+  downloadFromGCSPathMock.mockImplementation(async ({ destinationPath }) => destinationPath);
+  getGcsObjectMetadataMock.mockResolvedValue({
+    contentType: 'application/zip',
+    sizeBytes: 1024,
+  });
+  getGcsBucketCorsConfigurationMock.mockResolvedValue([
+    {
+      origin: ['http://localhost:5173'],
+      method: ['PUT', 'OPTIONS'],
+      responseHeader: ['Content-Type'],
+      maxAgeSeconds: 3600,
+    },
+  ]);
+  readGCSObjectPrefixMock.mockResolvedValue(Buffer.from('PK'));
   uploadBufferToGCSPathMock.mockResolvedValue('https://storage.googleapis.com/test/study-media');
+  createResumableUploadSessionMock.mockResolvedValue({
+    url: 'https://uploads.example/import-job-1',
+    filePath: 'study/imports/user-1/import-job-1/japanese.colpkg',
+  });
+  enqueueStudyImportJobMock.mockResolvedValue({ id: 'import-job-1' });
   getSignedReadUrlMock.mockResolvedValue({
     url: 'https://signed.example.com/study-media',
     expiresAt: '2099-01-01T00:00:00.000Z',
   });
-  mockPrisma.studyImportJob.create.mockResolvedValue({ id: 'import-job-1' });
+  mockPrisma.studyImportJob.create.mockResolvedValue(defaultImportJob);
   mockPrisma.studyImportJob.updateMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
-  mockPrisma.studyImportJob.update.mockResolvedValue({ id: 'import-job-1' });
+  mockPrisma.studyImportJob.findUnique?.mockResolvedValue(defaultImportJob);
+  mockPrisma.studyImportJob.findMany?.mockResolvedValue([]);
+  mockPrisma.studyImportJob.update.mockResolvedValue(defaultImportJob);
   mockPrisma.studyReviewLog.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyCard.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyNote.deleteMany.mockResolvedValue({ count: 0 });

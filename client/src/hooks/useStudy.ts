@@ -13,6 +13,8 @@ import type {
   StudyExportManifest,
   StudyHistoryResponse,
   StudyImportResult,
+  StudyImportUploadReadiness,
+  StudyImportUploadSession,
   StudyOverview,
   StudyPromptPayload,
   StudyReviewResult,
@@ -315,20 +317,118 @@ export function useStudyCardAction() {
   });
 }
 
-export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetchWithCsrf(`${API_URL}/api/study/imports`, {
+export async function createStudyImportUploadSession(
+  file: File
+): Promise<StudyImportUploadSession> {
+  return apiRequest<StudyImportUploadSession>('/api/study/imports', {
     method: 'POST',
-    credentials: 'include',
-    body: formData,
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type || 'application/octet-stream',
+    }),
   });
+}
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Import failed' }));
-    throw new Error(error.message || 'Import failed');
-  }
+export async function uploadStudyImportArchive(
+  session: StudyImportUploadSession,
+  file: File,
+  options: {
+    onProgress?: (progress: number) => void;
+    signal?: AbortSignal;
+  } = {}
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    const abortHandler = () => {
+      request.abort();
+    };
 
-  return response.json() as Promise<StudyImportResult>;
+    if (options.signal?.aborted) {
+      reject(new Error('Upload cancelled'));
+      return;
+    }
+
+    request.open(session.upload.method, session.upload.url);
+
+    Object.entries(session.upload.headers).forEach(([headerName, headerValue]) => {
+      request.setRequestHeader(headerName, headerValue);
+    });
+
+    options.signal?.addEventListener('abort', abortHandler, { once: true });
+
+    const cleanup = () => {
+      options.signal?.removeEventListener('abort', abortHandler);
+    };
+
+    request.upload.onprogress = (event) => {
+      if (typeof options.onProgress === 'function' && event.lengthComputable && event.total > 0) {
+        options.onProgress(Math.min(1, event.loaded / event.total));
+      }
+    };
+
+    request.onerror = () => {
+      cleanup();
+      reject(new Error('Upload failed'));
+    };
+    request.onabort = () => {
+      cleanup();
+      reject(new Error('Upload cancelled'));
+    };
+    request.onload = () => {
+      cleanup();
+      if (request.status >= 200 && request.status < 300) {
+        options.onProgress?.(1);
+        resolve();
+        return;
+      }
+
+      reject(new Error(`Upload failed (${String(request.status)})`));
+    };
+
+    request.send(file);
+  });
+}
+
+export async function completeStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}/complete`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function cancelStudyImportUpload(importJobId: string): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}/cancel`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
+export async function getCurrentStudyImport(
+  init?: Pick<RequestInit, 'signal'>
+): Promise<StudyImportResult | null> {
+  return apiRequest<StudyImportResult | null>('/api/study/imports/current', init);
+}
+
+export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
+  return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness');
+}
+
+export async function getStudyImportStatus(
+  importJobId: string,
+  init?: Pick<RequestInit, 'signal'>
+): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}`,
+    init
+  );
+}
+
+export async function uploadStudyImport(file: File): Promise<StudyImportResult> {
+  const session = await createStudyImportUploadSession(file);
+  await uploadStudyImportArchive(session, file);
+  return completeStudyImportUpload(session.importJob.id);
 }

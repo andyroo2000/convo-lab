@@ -21,12 +21,14 @@ import {
   issueCsrfTokenCookie,
   requireAllowedApiMutationOrigin,
 } from '../../../middleware/csrf.js';
-import { AppError } from '../../../middleware/errorHandler.js';
 import { resetBrowserRuntimeTestState } from '../../helpers/browserRuntimeTestHelper.js';
 import { getSetCookieArray, testCookieParser } from '../../helpers/testCookieParser.js';
 import { mockPrisma } from '../../setup.js';
 
 const {
+  cancelStudyImportUploadMock,
+  completeStudyImportUploadMock,
+  createStudyImportUploadSessionMock,
   createRedisConnectionMock,
   execMock,
   createStudyCardMock,
@@ -39,8 +41,9 @@ const {
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
   getStudyHistoryMock,
+  getCurrentStudyImportJobMock,
   getStudyMediaAccessMock,
-  importJapaneseStudyColpkgMock,
+  getStudyImportUploadReadinessMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -48,6 +51,9 @@ const {
   startStudySessionMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
+  cancelStudyImportUploadMock: vi.fn(),
+  completeStudyImportUploadMock: vi.fn(),
+  createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
@@ -60,8 +66,9 @@ const {
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
   getStudyHistoryMock: vi.fn(),
+  getCurrentStudyImportJobMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
-  importJapaneseStudyColpkgMock: vi.fn(),
+  getStudyImportUploadReadinessMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -79,7 +86,10 @@ vi.mock('../../../middleware/auth.js', () => ({
 }));
 
 vi.mock('../../../services/studyService.js', () => ({
+  cancelStudyImportUpload: cancelStudyImportUploadMock,
+  completeStudyImportUpload: completeStudyImportUploadMock,
   createStudyCard: createStudyCardMock,
+  createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
   exportStudyCardsSection: exportStudyCardsSectionMock,
   exportStudyImportsSection: exportStudyImportsSectionMock,
@@ -89,10 +99,11 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
   getStudyCardOptions: getStudyCardOptionsMock,
   getStudyHistory: getStudyHistoryMock,
+  getCurrentStudyImportJob: getCurrentStudyImportJobMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
+  getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   getStudyOverview: vi.fn(),
-  importJapaneseStudyColpkg: importJapaneseStudyColpkgMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
@@ -127,6 +138,11 @@ describe('Study Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     vi.resetModules();
+    cancelStudyImportUploadMock.mockReset();
+    createStudyImportUploadSessionMock.mockReset();
+    completeStudyImportUploadMock.mockReset();
+    getCurrentStudyImportJobMock.mockReset();
+    getStudyImportUploadReadinessMock.mockReset();
     process.env = {
       ...originalEnv,
       CLIENT_URL: 'http://localhost:5173',
@@ -516,74 +532,193 @@ describe('Study Routes', () => {
     expect(response.body.message).toContain('Study note not found');
   });
 
-  it('rejects non-.colpkg uploads before import processing', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
-      'file',
-      Buffer.from('not-a-colpkg'),
-      'anki-export.txt'
-    );
+  it('rejects non-.colpkg upload session requests before creation', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
+      filename: 'anki-export.txt',
+      contentType: 'application/zip',
+    });
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('Only .colpkg Anki collection backups are accepted');
-    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
   });
 
-  it('rejects .colpkg uploads that are not ZIP archives', async () => {
-    importJapaneseStudyColpkgMock.mockRejectedValueOnce(
-      new AppError('The uploaded file is not a valid ZIP-based .colpkg archive.', 400)
-    );
+  it('creates a study import upload session', async () => {
+    createStudyImportUploadSessionMock.mockResolvedValueOnce({
+      importJob: {
+        id: 'import-1',
+        status: 'pending',
+        sourceFilename: 'anki-export.colpkg',
+        deckName: '日本語',
+        preview: {
+          deckName: '日本語',
+          cardCount: 0,
+          noteCount: 0,
+          reviewLogCount: 0,
+          mediaReferenceCount: 0,
+          skippedMediaCount: 0,
+          warnings: [],
+          noteTypeBreakdown: [],
+        },
+        uploadedAt: null,
+        uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+        sourceSizeBytes: null,
+        importedAt: null,
+        errorMessage: null,
+      },
+      upload: {
+        method: 'PUT',
+        url: 'https://uploads.example/import-1',
+        headers: {
+          'Content-Type': 'application/zip',
+        },
+      },
+    });
 
-    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
-      'file',
-      Buffer.from('nope'),
-      'anki-export.colpkg'
-    );
+    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
+      filename: 'anki-export.colpkg',
+      contentType: 'application/zip',
+    });
 
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('valid ZIP-based .colpkg archive');
-    expect(importJapaneseStudyColpkgMock).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(201);
+    expect(createStudyImportUploadSessionMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      filename: 'anki-export.colpkg',
+      contentType: 'application/zip',
+    });
+    expect(response.body.upload.url).toContain('uploads.example');
   });
 
-  it('rejects malformed .colpkg uploads that match the ZIP signature but cannot be opened', async () => {
-    importJapaneseStudyColpkgMock.mockRejectedValueOnce(
-      new AppError('The uploaded .colpkg could not be parsed.', 400)
-    );
+  it('completes a study import upload and enqueues processing', async () => {
+    completeStudyImportUploadMock.mockResolvedValueOnce({
+      id: 'import-1',
+      status: 'pending',
+      sourceFilename: 'anki-export.colpkg',
+      deckName: '日本語',
+      preview: {
+        deckName: '日本語',
+        cardCount: 0,
+        noteCount: 0,
+        reviewLogCount: 0,
+        mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
+        noteTypeBreakdown: [],
+      },
+      uploadedAt: new Date('2026-04-21T00:00:00.000Z').toISOString(),
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+      sourceSizeBytes: 1024,
+      importedAt: null,
+      errorMessage: null,
+    });
 
-    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
-      'file',
-      Buffer.from('PKnot-a-real-zip'),
-      'anki-export.colpkg'
-    );
+    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/complete'));
 
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('could not be parsed');
-    expect(importJapaneseStudyColpkgMock).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(202);
+    expect(completeStudyImportUploadMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      importJobId: 'import-1',
+    });
+    expect(response.body.id).toBe('import-1');
+  });
+
+  it('returns the current pending or processing study import', async () => {
+    getCurrentStudyImportJobMock.mockResolvedValueOnce({
+      id: 'import-1',
+      status: 'processing',
+      sourceFilename: 'anki-export.colpkg',
+      deckName: '日本語',
+      preview: {
+        deckName: '日本語',
+        cardCount: 0,
+        noteCount: 0,
+        reviewLogCount: 0,
+        mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
+        noteTypeBreakdown: [],
+      },
+      uploadedAt: '2026-04-21T00:00:00.000Z',
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+      sourceSizeBytes: 1024,
+      importedAt: null,
+      errorMessage: null,
+    });
+
+    const response = await request(app).get('/study/imports/current');
+
+    expect(response.status).toBe(200);
+    expect(getCurrentStudyImportJobMock).toHaveBeenCalledWith('user-1');
+    expect(response.body.id).toBe('import-1');
+  });
+
+  it('returns study import upload readiness', async () => {
+    getStudyImportUploadReadinessMock.mockResolvedValueOnce({
+      ready: false,
+      message: 'Configure the storage bucket CORS policy.',
+    });
+
+    const response = await request(app).get('/study/imports/readiness');
+
+    expect(response.status).toBe(200);
+    expect(response.body.ready).toBe(false);
+    expect(response.body.message).toContain('CORS');
+  });
+
+  it('cancels a pending study import upload', async () => {
+    cancelStudyImportUploadMock.mockResolvedValueOnce({
+      id: 'import-1',
+      status: 'failed',
+      sourceFilename: 'anki-export.colpkg',
+      deckName: '日本語',
+      preview: {
+        deckName: '日本語',
+        cardCount: 0,
+        noteCount: 0,
+        reviewLogCount: 0,
+        mediaReferenceCount: 0,
+        skippedMediaCount: 0,
+        warnings: [],
+        noteTypeBreakdown: [],
+      },
+      uploadedAt: null,
+      uploadExpiresAt: '2026-04-21T01:00:00.000Z',
+      sourceSizeBytes: null,
+      importedAt: null,
+      errorMessage: 'Study import upload was cancelled.',
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
+
+    expect(response.status).toBe(200);
+    expect(cancelStudyImportUploadMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      importJobId: 'import-1',
+    });
+    expect(response.body.status).toBe('failed');
+  });
+
+  it('returns 503 for import cancellation when study rate limiting is unavailable', async () => {
+    execMock.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toContain('rate limiting is temporarily unavailable');
+    expect(cancelStudyImportUploadMock).not.toHaveBeenCalled();
   });
 
   it('returns 503 for imports when study rate limiting is unavailable', async () => {
     execMock.mockRejectedValueOnce(new Error('redis unavailable'));
 
-    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
-      'file',
-      Buffer.from('PKnot-a-real-zip'),
-      'anki-export.colpkg'
-    );
+    const response = await withMutationCsrf(request(app).post('/study/imports')).send({
+      filename: 'anki-export.colpkg',
+      contentType: 'application/zip',
+    });
 
     expect(response.status).toBe(503);
     expect(response.body.message).toContain('rate limiting is temporarily unavailable');
-    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
-  });
-
-  it('rejects oversized .colpkg uploads with 413', async () => {
-    const response = await withMutationCsrf(request(app).post('/study/imports')).attach(
-      'file',
-      Buffer.alloc(201 * 1024 * 1024, 0),
-      'too-large.colpkg'
-    );
-
-    expect(response.status).toBe(413);
-    expect(response.body.message).toContain('200 MB or smaller');
-    expect(importJapaneseStudyColpkgMock).not.toHaveBeenCalled();
+    expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
   });
 
   it('returns lightweight card options for the history filter', async () => {
