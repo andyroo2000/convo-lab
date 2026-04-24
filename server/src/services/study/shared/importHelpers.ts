@@ -98,6 +98,204 @@ async function maybeDecompressZstd(buffer: Buffer): Promise<Buffer> {
   }
 }
 
+interface ParsedMediaManifest {
+  mediaIdByFilename: Map<string, string>;
+  unsafeManifestFilenames: Set<string>;
+  mediaFilesMayBeZstdCompressed: boolean;
+}
+
+interface DecodedMediaEntry {
+  name: string;
+  legacyZipFilename: number | null;
+}
+
+function readProtoVarint(buffer: Buffer, offset: number): { value: number; offset: number } {
+  let value = 0;
+  let shift = 0;
+  let cursor = offset;
+
+  while (cursor < buffer.length) {
+    const byte = buffer[cursor] ?? 0;
+    value += (byte & 0x7f) * 2 ** shift;
+    cursor += 1;
+
+    if ((byte & 0x80) === 0) {
+      return { value, offset: cursor };
+    }
+
+    shift += 7;
+    if (shift > 49) {
+      break;
+    }
+  }
+
+  throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+}
+
+function skipProtoField(buffer: Buffer, wireType: number, offset: number): number {
+  if (wireType === 0) {
+    return readProtoVarint(buffer, offset).offset;
+  }
+
+  if (wireType === 1) {
+    return offset + 8;
+  }
+
+  if (wireType === 2) {
+    const length = readProtoVarint(buffer, offset);
+    return length.offset + length.value;
+  }
+
+  if (wireType === 5) {
+    return offset + 4;
+  }
+
+  throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+}
+
+function decodeMediaEntry(buffer: Buffer): DecodedMediaEntry {
+  let offset = 0;
+  let name = '';
+  let legacyZipFilename: number | null = null;
+
+  while (offset < buffer.length) {
+    const tag = readProtoVarint(buffer, offset);
+    offset = tag.offset;
+    const fieldNumber = Math.floor(tag.value / 8);
+    const wireType = tag.value % 8;
+
+    if (fieldNumber === 1 && wireType === 2) {
+      const length = readProtoVarint(buffer, offset);
+      offset = length.offset;
+      name = buffer.subarray(offset, offset + length.value).toString('utf8');
+      offset += length.value;
+      continue;
+    }
+
+    if (fieldNumber === 255 && wireType === 0) {
+      const value = readProtoVarint(buffer, offset);
+      legacyZipFilename = value.value;
+      offset = value.offset;
+      continue;
+    }
+
+    offset = skipProtoField(buffer, wireType, offset);
+  }
+
+  return { name, legacyZipFilename };
+}
+
+function decodeMediaEntriesManifest(buffer: Buffer): DecodedMediaEntry[] {
+  const entries: DecodedMediaEntry[] = [];
+  let offset = 0;
+
+  while (offset < buffer.length) {
+    const tag = readProtoVarint(buffer, offset);
+    offset = tag.offset;
+    const fieldNumber = Math.floor(tag.value / 8);
+    const wireType = tag.value % 8;
+
+    if (fieldNumber === 1 && wireType === 2) {
+      const length = readProtoVarint(buffer, offset);
+      offset = length.offset;
+      const entryEnd = offset + length.value;
+      if (entryEnd > buffer.length) {
+        throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+      }
+      entries.push(decodeMediaEntry(buffer.subarray(offset, entryEnd)));
+      offset = entryEnd;
+      continue;
+    }
+
+    offset = skipProtoField(buffer, wireType, offset);
+    if (offset > buffer.length) {
+      throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+    }
+  }
+
+  return entries;
+}
+
+function parseMediaManifest(params: {
+  buffer: Buffer;
+  importWarnings: ReturnType<typeof createStudyImportWarningAccumulator>;
+}): ParsedMediaManifest {
+  const { buffer, importWarnings } = params;
+  const mediaIdByFilename = new Map<string, string>();
+  const unsafeManifestFilenames = new Set<string>();
+  const trimmed = buffer.toString('utf8').trimStart();
+
+  if (trimmed.startsWith('{')) {
+    const parsedMediaManifest = JSON.parse(trimmed);
+    if (isRecord(parsedMediaManifest)) {
+      for (const [rawMediaId, rawMediaFilename] of Object.entries(parsedMediaManifest)) {
+        if (typeof rawMediaFilename !== 'string') {
+          continue;
+        }
+
+        const mediaId = normalizeZipPath(rawMediaId);
+        const mediaFilename = normalizeZipPath(rawMediaFilename);
+        if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
+          if (mediaFilename) {
+            unsafeManifestFilenames.add(mediaFilename);
+          }
+          recordStudyImportWarning(
+            importWarnings,
+            mediaFilename || rawMediaFilename || rawMediaId,
+            'Skipped unsafe media path.'
+          );
+          continue;
+        }
+
+        mediaIdByFilename.set(mediaFilename, mediaId);
+      }
+    }
+
+    return {
+      mediaIdByFilename,
+      unsafeManifestFilenames,
+      mediaFilesMayBeZstdCompressed: false,
+    };
+  }
+
+  if (buffer.length === 0) {
+    return {
+      mediaIdByFilename,
+      unsafeManifestFilenames,
+      mediaFilesMayBeZstdCompressed: false,
+    };
+  }
+
+  const mediaEntries = decodeMediaEntriesManifest(buffer);
+  if (mediaEntries.length === 0) {
+    throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+  }
+
+  mediaEntries.forEach((entry, index) => {
+    const mediaFilename = normalizeZipPath(entry.name);
+    const mediaId = String(entry.legacyZipFilename ?? index);
+    if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
+      if (mediaFilename) {
+        unsafeManifestFilenames.add(mediaFilename);
+      }
+      recordStudyImportWarning(
+        importWarnings,
+        mediaFilename || entry.name || mediaId,
+        'Skipped unsafe media path.'
+      );
+      return;
+    }
+
+    mediaIdByFilename.set(mediaFilename, mediaId);
+  });
+
+  return {
+    mediaIdByFilename,
+    unsafeManifestFilenames,
+    mediaFilesMayBeZstdCompressed: true,
+  };
+}
+
 function parseAudioFilenames(value: string): string[] {
   return Array.from(value.replaceAll('\0', '').matchAll(/\[sound:([^\]]+)\]/g), (match) => match[1])
     .map((filename) => filename.replaceAll('\0', ''))
@@ -717,7 +915,7 @@ export async function parseColpkgUpload(params: {
   const zip = await openZipArchive(archiveFilePath);
   try {
     const importWarnings = createStudyImportWarningAccumulator();
-    const unsafeManifestFilenames = new Set<string>();
+    let unsafeManifestFilenames = new Set<string>();
     const unsafeArchiveEntriesById = new Map<string, Set<string>>();
 
     zip.entryNames.forEach((entryName) => {
@@ -746,34 +944,12 @@ export async function parseColpkgUpload(params: {
     const mediaManifestBuffer = mediaManifestEntry
       ? await maybeDecompressZstd(mediaManifestEntry)
       : Buffer.from('{}');
-    const mediaManifestText = mediaManifestBuffer.length
-      ? mediaManifestBuffer.toString('utf8')
-      : '{}';
-    const parsedMediaManifest = JSON.parse(mediaManifestText);
-    const mediaIdByFilename = new Map<string, string>();
-    if (isRecord(parsedMediaManifest)) {
-      for (const [rawMediaId, rawMediaFilename] of Object.entries(parsedMediaManifest)) {
-        if (typeof rawMediaFilename !== 'string') {
-          continue;
-        }
-
-        const mediaId = normalizeZipPath(rawMediaId);
-        const mediaFilename = normalizeZipPath(rawMediaFilename);
-        if (!isSafeZipBasename(mediaId) || !isSafeZipBasename(mediaFilename)) {
-          if (mediaFilename) {
-            unsafeManifestFilenames.add(mediaFilename);
-          }
-          recordStudyImportWarning(
-            importWarnings,
-            mediaFilename || rawMediaFilename || rawMediaId,
-            'Skipped unsafe media path.'
-          );
-          continue;
-        }
-
-        mediaIdByFilename.set(mediaFilename, mediaId);
-      }
-    }
+    const mediaManifest = parseMediaManifest({
+      buffer: mediaManifestBuffer,
+      importWarnings,
+    });
+    const mediaIdByFilename = mediaManifest.mediaIdByFilename;
+    unsafeManifestFilenames = mediaManifest.unsafeManifestFilenames;
 
     const SQL = await getSqlJs();
     const db = new SQL.Database((await maybeDecompressZstd(collectionBuffer)) as Uint8Array);
@@ -960,7 +1136,9 @@ export async function parseColpkgUpload(params: {
               userId,
               importJobId,
               filename: mediaFilename,
-              buffer: mediaEntryBuffer,
+              buffer: mediaManifest.mediaFilesMayBeZstdCompressed
+                ? await maybeDecompressZstd(mediaEntryBuffer)
+                : mediaEntryBuffer,
             });
             publicUrl = persisted.publicUrl;
             storagePath = persisted.storagePath;

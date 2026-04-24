@@ -112,6 +112,50 @@ async function compressZstdBuffer(buffer: Buffer): Promise<Buffer> {
   return Buffer.from(zstdWasm.compress(buffer, 3));
 }
 
+function encodeProtoVarint(value: number): Buffer {
+  const bytes: number[] = [];
+  let remaining = value;
+
+  do {
+    let byte = remaining & 0x7f;
+    remaining = Math.floor(remaining / 128);
+    if (remaining > 0) {
+      byte |= 0x80;
+    }
+    bytes.push(byte);
+  } while (remaining > 0);
+
+  return Buffer.from(bytes);
+}
+
+function encodeProtoField(fieldNumber: number, wireType: number): Buffer {
+  return encodeProtoVarint(fieldNumber * 8 + wireType);
+}
+
+function encodeProtoLengthDelimited(fieldNumber: number, value: Buffer): Buffer {
+  return Buffer.concat([encodeProtoField(fieldNumber, 2), encodeProtoVarint(value.length), value]);
+}
+
+function encodeProtoString(fieldNumber: number, value: string): Buffer {
+  return encodeProtoLengthDelimited(fieldNumber, Buffer.from(value, 'utf8'));
+}
+
+function encodeProtoUint32(fieldNumber: number, value: number): Buffer {
+  return Buffer.concat([encodeProtoField(fieldNumber, 0), encodeProtoVarint(value)]);
+}
+
+function encodeMediaEntriesManifest(mediaFiles: string[]): Buffer {
+  return Buffer.concat(
+    mediaFiles.map((filename) => {
+      const entry = Buffer.concat([
+        encodeProtoString(1, filename),
+        encodeProtoUint32(2, Buffer.byteLength(`fixture:${filename}`)),
+      ]);
+      return encodeProtoLengthDelimited(1, entry);
+    })
+  );
+}
+
 export async function buildFixtureColpkg(
   options: {
     deckName?: string;
@@ -121,7 +165,9 @@ export async function buildFixtureColpkg(
     companyPhotoZipEntryName?: string;
     clozeText?: string;
     compressCollectionDatabase?: boolean;
+    compressMediaFiles?: boolean;
     compressMediaManifest?: boolean;
+    useLatestMediaManifest?: boolean;
     vocabNotes?: string;
   } = {}
 ): Promise<Buffer> {
@@ -329,23 +375,6 @@ export async function buildFixtureColpkg(
       : collectionDatabase
   );
 
-  const mediaManifest = Buffer.from(
-    JSON.stringify({
-      [companyPhotoMediaEntryId]: companyPhotoFilename,
-      1: 'company-word.mp3',
-      2: 'company-sentence.mp3',
-      3: 'vase.png',
-      4: 'vase-word.mp3',
-      5: 'entrance.png',
-      6: 'entrance-word.mp3',
-      7: 'bangkok-sentence.mp3',
-    })
-  );
-  zip.file(
-    'media',
-    options.compressMediaManifest ? await compressZstdBuffer(mediaManifest) : mediaManifest
-  );
-
   const mediaFiles = [
     companyPhotoFilename,
     'company-word.mp3',
@@ -357,10 +386,33 @@ export async function buildFixtureColpkg(
     'bangkok-sentence.mp3',
   ];
 
-  mediaFiles.forEach((mediaFilename, index) => {
+  const mediaManifest = options.useLatestMediaManifest
+    ? encodeMediaEntriesManifest(mediaFiles)
+    : Buffer.from(
+        JSON.stringify({
+          [companyPhotoMediaEntryId]: companyPhotoFilename,
+          1: 'company-word.mp3',
+          2: 'company-sentence.mp3',
+          3: 'vase.png',
+          4: 'vase-word.mp3',
+          5: 'entrance.png',
+          6: 'entrance-word.mp3',
+          7: 'bangkok-sentence.mp3',
+        })
+      );
+  zip.file(
+    'media',
+    options.compressMediaManifest ? await compressZstdBuffer(mediaManifest) : mediaManifest
+  );
+
+  for (const [index, mediaFilename] of mediaFiles.entries()) {
     const entryName = index === 0 ? companyPhotoZipEntryName : String(index);
-    zip.file(entryName, Buffer.from(`fixture:${mediaFilename}`));
-  });
+    const mediaBuffer = Buffer.from(`fixture:${mediaFilename}`);
+    zip.file(
+      entryName,
+      options.compressMediaFiles ? await compressZstdBuffer(mediaBuffer) : mediaBuffer
+    );
+  }
 
   db.close();
 

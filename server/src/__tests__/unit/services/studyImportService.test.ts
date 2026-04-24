@@ -11,6 +11,7 @@ import {
   getGcsObjectMetadataMock,
   readGCSObjectPrefixMock,
   resetStudyServiceMocks,
+  uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
 import {
@@ -93,6 +94,31 @@ describe('studyImportService', () => {
     expect(result.status).toBe('completed');
     expect(result.preview.mediaReferenceCount).toBe(8);
     expect(result.preview.skippedMediaCount).toBe(0);
+  }, 15000);
+
+  it('imports latest-format protobuf media manifests with zstd-compressed media files', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({
+        compressCollectionDatabase: true,
+        compressMediaFiles: true,
+        compressMediaManifest: true,
+        useLatestMediaManifest: true,
+      }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.mediaReferenceCount).toBe(8);
+    expect(result.preview.skippedMediaCount).toBe(0);
+    expect(uploadBufferToGCSPathMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        buffer: Buffer.from('fixture:company.png'),
+        contentType: 'image/png',
+      })
+    );
   }, 15000);
 
   it('normalizes imported answer notes to plain text and keeps raw HTML only in source storage', async () => {
