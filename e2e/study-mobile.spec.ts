@@ -16,7 +16,25 @@ test.describe('Study mobile experience', () => {
     await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Reveal answer' }).click();
-    await expect(page.getByTestId('study-review-actions')).toBeVisible();
+    const gradeTray = page.getByTestId('study-grade-tray');
+    await expect(gradeTray).toBeVisible();
+    const gradeTrayBox = await gradeTray.boundingBox();
+    const viewport = page.viewportSize();
+    expect(gradeTrayBox).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    if (gradeTrayBox && viewport) {
+      expect(gradeTrayBox.y + gradeTrayBox.height).toBeGreaterThanOrEqual(viewport.height - 2);
+      expect(gradeTrayBox.y).toBeGreaterThan(viewport.height - 120);
+    }
+
+    const reviewActions = page.getByTestId('study-review-actions');
+    await expect(reviewActions).toBeAttached();
+    const reviewActionsBox = await reviewActions.boundingBox();
+    if (reviewActionsBox && gradeTrayBox) {
+      expect(reviewActionsBox.y).toBeGreaterThanOrEqual(gradeTrayBox.y - 4);
+    }
+    await reviewActions.scrollIntoViewIfNeeded();
+    await expect(reviewActions).toBeVisible();
     await expect(page.getByRole('button', { name: 'Edit card' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Set due' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
@@ -86,6 +104,10 @@ test.describe('Study mobile narrow overflow checks', () => {
 
     await page.goto('/app/study');
     await expect(page.getByRole('heading', { name: 'Study', exact: true })).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    await page.getByRole('button', { name: 'Begin Study' }).click();
+    await page.getByRole('button', { name: 'Reveal answer' }).click();
+    await expect(page.getByTestId('study-grade-tray')).toBeVisible();
     await expectNoHorizontalOverflow(page);
 
     await page.goto('/app/study/browse');

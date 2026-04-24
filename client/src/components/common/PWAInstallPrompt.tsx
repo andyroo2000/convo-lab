@@ -1,24 +1,33 @@
-import { useState, useEffect } from 'react';
-import { X, Download, Smartphone } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Download, Smartphone, X } from 'lucide-react';
+
 import usePWAInstall from '../../hooks/usePWAInstall';
 
 const PWA_PROMPT_DISMISSED_KEY = 'pwa-install-prompt-dismissed';
 const PROMPT_DELAY_MS = 3000; // Show prompt after 3 seconds
 
+const isIOSDevice = () => {
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  const platform = window.navigator.platform.toLowerCase();
+  const hasTouch = window.navigator.maxTouchPoints > 1;
+
+  return /iphone|ipad|ipod/.test(userAgent) || (platform === 'macintel' && hasTouch);
+};
+
 const PWAInstallPrompt = () => {
-  const { isInstallable, promptInstall } = usePWAInstall();
+  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Check if running on iOS
-    const userAgent = window.navigator.userAgent.toLowerCase();
-    const ios = /iphone|ipad|ipod/.test(userAgent);
+    const ios = isIOSDevice();
     setIsIOS(ios);
 
-    // Don't show if previously dismissed or not installable
+    // iOS Safari does not fire beforeinstallprompt, so iOS install instructions are gated by
+    // device/install state rather than by the browser install event.
     const wasDismissed = localStorage.getItem(PWA_PROMPT_DISMISSED_KEY);
-    if (wasDismissed || !isInstallable) {
+    const canShowPrompt = isInstallable || ios;
+    if (wasDismissed || isInstalled || !canShowPrompt) {
       return undefined;
     }
 
@@ -28,7 +37,7 @@ const PWAInstallPrompt = () => {
     }, PROMPT_DELAY_MS);
 
     return () => clearTimeout(timer);
-  }, [isInstallable]);
+  }, [isInstallable, isInstalled]);
 
   const handleInstall = async () => {
     const success = await promptInstall();
@@ -42,7 +51,7 @@ const PWAInstallPrompt = () => {
     localStorage.setItem(PWA_PROMPT_DISMISSED_KEY, 'true');
   };
 
-  if (!isVisible || (!isInstallable && !isIOS)) {
+  if (!isVisible || isInstalled || (!isInstallable && !isIOS)) {
     return null;
   }
 
@@ -51,7 +60,7 @@ const PWAInstallPrompt = () => {
     return (
       <div className="fixed bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-50">
         <div className="bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-periwinkle to-dark-periwinkle p-4 text-white">
+          <div className="relative bg-gradient-to-r from-periwinkle to-dark-periwinkle p-4 text-white">
             <button
               type="button"
               onClick={handleDismiss}

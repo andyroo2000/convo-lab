@@ -102,9 +102,9 @@ export const toNotesList = (value?: string | null) => {
 export const getHeadlineClasses = (value?: string | null) => {
   const length = value?.length ?? 0;
 
-  if (length > 40) return 'text-3xl md:text-4xl';
-  if (length > 20) return 'text-4xl md:text-5xl';
-  return 'text-5xl md:text-6xl';
+  if (length > 40) return 'text-2xl sm:text-3xl md:text-4xl';
+  if (length > 20) return 'text-3xl sm:text-4xl md:text-5xl';
+  return 'text-4xl sm:text-5xl md:text-6xl';
 };
 
 const normalizeRubyMatch = (base: string, reading: string) => {

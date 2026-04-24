@@ -34,7 +34,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onEdit}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
         >
           {t('reviewActions.edit')}
         </button>
@@ -42,7 +42,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onBury}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
         >
           {t('reviewActions.bury')}
         </button>
@@ -50,7 +50,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onToggleSuspend}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
         >
           {card.state.queueState === 'suspended'
             ? t('reviewActions.unsuspend')
@@ -60,7 +60,7 @@ const StudyReviewActions = ({
           type="button"
           onClick={onForget}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
         >
           {t('reviewActions.forget')}
         </button>
@@ -68,14 +68,14 @@ const StudyReviewActions = ({
           type="button"
           onClick={onToggleSetDue}
           disabled={disabled}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60 sm:px-4 sm:text-sm"
         >
           {t('reviewActions.setDue')}
         </button>
         <button
           type="button"
           onClick={onOpenBrowse}
-          className="rounded-full border border-gray-300 px-4 py-2 text-sm font-medium text-navy hover:bg-gray-50"
+          className="rounded-full border border-gray-300 px-2 py-2 text-xs font-medium text-navy hover:bg-gray-50 sm:px-4 sm:text-sm"
         >
           {t('reviewActions.openBrowse')}
         </button>

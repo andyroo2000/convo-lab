@@ -302,6 +302,35 @@ describe('StudyPage', () => {
     expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
   });
 
+  it('keeps grade controls accessible separately from revealed-card maintenance actions', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 4,
+        newCount: 6,
+        learningCount: 2,
+        reviewCount: 8,
+        suspendedCount: 0,
+        totalCards: 20,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+
+    const gradeTray = screen.getByTestId('study-grade-tray');
+    expect(within(gradeTray).getByRole('button', { name: /again/i })).toBeInTheDocument();
+    expect(within(gradeTray).getByRole('button', { name: /hard/i })).toBeInTheDocument();
+    expect(within(gradeTray).getByRole('button', { name: /good/i })).toBeInTheDocument();
+    expect(within(gradeTray).getByRole('button', { name: /easy/i })).toBeInTheDocument();
+    expect(within(gradeTray).queryByRole('button', { name: 'Edit card' })).not.toBeInTheDocument();
+
+    const reviewActions = screen.getByTestId('study-review-actions');
+    expect(within(reviewActions).getByRole('button', { name: 'Edit card' })).toBeInTheDocument();
+    expect(within(reviewActions).getByRole('button', { name: 'Set due' })).toBeInTheDocument();
+  });
+
   it('autoplays prompt audio for audio-led cards and prepares missing answer audio on reveal', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {

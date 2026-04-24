@@ -120,15 +120,23 @@ const AudioPlayer = forwardRef<
             type="button"
             onClick={handleClick}
             aria-label={label}
-            className="inline-flex h-20 w-20 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md"
+            className="inline-flex h-16 w-16 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md sm:h-20 sm:w-20"
           >
             {playing ? (
-              <svg viewBox="0 0 24 24" className="h-9 w-9 fill-current" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                className="h-7 w-7 fill-current sm:h-9 sm:w-9"
+                aria-hidden="true"
+              >
                 <rect x="6" y="5" width="4" height="14" rx="1" />
                 <rect x="14" y="5" width="4" height="14" rx="1" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" className="ml-1 h-9 w-9 fill-current" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                className="ml-1 h-7 w-7 fill-current sm:h-9 sm:w-9"
+                aria-hidden="true"
+              >
                 <path d="M8 5v14l11-7z" />
               </svg>
             )}
@@ -242,12 +250,12 @@ export const StudyCardFace = ({
   if (side === 'front') {
     if (card.cardType === 'cloze') {
       return (
-        <div className="space-y-6 text-center">
-          <p className="mx-auto max-w-5xl text-4xl leading-relaxed text-black md:text-6xl">
+        <div className="space-y-4 text-center sm:space-y-6">
+          <p className="mx-auto max-w-5xl text-3xl leading-relaxed text-black sm:text-4xl md:text-6xl">
             {toDisplayText(card.prompt.clozeDisplayText ?? card.prompt.clozeText ?? '')}
           </p>
           {card.prompt.clozeResolvedHint ? (
-            <p className="text-2xl text-gray-700 md:text-3xl">
+            <p className="text-xl text-gray-700 sm:text-2xl md:text-3xl">
               {toDisplayText(card.prompt.clozeResolvedHint)}
             </p>
           ) : null}
@@ -262,12 +270,12 @@ export const StudyCardFace = ({
 
     if (mediaLedPrompt) {
       return (
-        <div className="flex min-h-[58vh] flex-col items-center justify-center gap-8 text-center">
+        <div className="flex min-h-[calc(100dvh-14rem)] flex-col items-center justify-center gap-5 text-center sm:min-h-[58vh] sm:gap-8">
           {cueImageUrl ? (
             <img
               src={cueImageUrl}
               alt="Study prompt"
-              className="mx-auto max-h-[50vh] w-auto max-w-full object-contain"
+              className="mx-auto max-h-[42dvh] w-auto max-w-full object-contain sm:max-h-[50vh]"
             />
           ) : null}
           {cueAudioUrl ? (
@@ -285,12 +293,12 @@ export const StudyCardFace = ({
     }
 
     return (
-      <div className="space-y-8 text-center">
+      <div className="space-y-5 text-center sm:space-y-8">
         {cueImageUrl ? (
           <img
             src={cueImageUrl}
             alt={card.prompt.cueMeaning ?? 'Study prompt'}
-            className="mx-auto max-h-80 rounded-xl object-contain"
+            className="mx-auto max-h-[36dvh] rounded-xl object-contain sm:max-h-80"
           />
         ) : null}
         {cueAudioUrl ? (
@@ -306,7 +314,7 @@ export const StudyCardFace = ({
           </p>
         ) : null}
         {card.prompt.cueMeaning ? (
-          <p className="mx-auto max-w-3xl text-xl text-gray-700 md:text-2xl">
+          <p className="mx-auto max-w-3xl text-lg text-gray-700 sm:text-xl md:text-2xl">
             {toDisplayText(card.prompt.cueMeaning)}
           </p>
         ) : null}
@@ -320,7 +328,7 @@ export const StudyCardFace = ({
 
   if (card.cardType === 'cloze') {
     return (
-      <div className="space-y-8 text-center">
+      <div className="space-y-5 text-center sm:space-y-8">
         {card.answer.restoredTextReading || card.answer.restoredText ? (
           <StudyRubyText
             as="div"
@@ -343,13 +351,13 @@ export const StudyCardFace = ({
         ) : null}
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {card.answer.meaning ? (
-          <p className="mx-auto max-w-4xl text-3xl text-gray-800 md:text-4xl">
+          <p className="mx-auto max-w-4xl text-xl text-gray-800 sm:text-3xl md:text-4xl">
             {toDisplayText(card.answer.meaning)}
           </p>
         ) : null}
         {renderNotes(
           notes,
-          'mx-auto max-w-5xl space-y-3 text-xl leading-relaxed text-gray-500',
+          'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-500 sm:space-y-3 sm:text-xl',
           'text-gray-500'
         )}
         {!answerAudioUrl ? (
@@ -362,7 +370,7 @@ export const StudyCardFace = ({
   }
 
   return (
-    <div className="space-y-8 text-center">
+    <div className="space-y-5 text-center sm:space-y-8">
       {renderJapaneseHeading(card)}
       {answerAudioUrl ? (
         <AudioPlayer
@@ -375,35 +383,35 @@ export const StudyCardFace = ({
       ) : null}
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       {card.answer.restoredText ? (
-        <p className="mx-auto max-w-4xl text-3xl leading-relaxed text-black md:text-4xl">
+        <p className="mx-auto max-w-4xl text-xl leading-relaxed text-black sm:text-3xl md:text-4xl">
           {toDisplayText(card.answer.restoredText)}
         </p>
       ) : null}
       {card.answer.meaning ? (
-        <p className="mx-auto max-w-4xl text-2xl text-gray-800 md:text-3xl">
+        <p className="mx-auto max-w-4xl text-lg text-gray-800 sm:text-2xl md:text-3xl">
           {toDisplayText(card.answer.meaning)}
         </p>
       ) : null}
       {card.answer.sentenceJp ? (
-        <p className="mx-auto max-w-4xl text-xl leading-relaxed text-black">
+        <p className="mx-auto max-w-4xl text-base leading-relaxed text-black sm:text-xl">
           {toDisplayText(card.answer.sentenceJp)}
         </p>
       ) : null}
       {card.answer.sentenceEn ? (
-        <p className="mx-auto max-w-3xl text-lg text-gray-600">
+        <p className="mx-auto max-w-3xl text-sm text-gray-600 sm:text-lg">
           {toDisplayText(card.answer.sentenceEn)}
         </p>
       ) : null}
       {renderNotes(
         notes,
-        'mx-auto max-w-5xl space-y-3 text-lg leading-relaxed text-gray-600',
+        'mx-auto max-w-5xl space-y-2 text-sm leading-relaxed text-gray-600 sm:space-y-3 sm:text-lg',
         'text-gray-600'
       )}
       {answerImageUrl ? (
         <img
           src={answerImageUrl}
           alt="Answer visual"
-          className="mx-auto max-h-72 rounded-xl object-contain"
+          className="mx-auto max-h-[34dvh] rounded-xl object-contain sm:max-h-72"
         />
       ) : null}
       {!answerAudioUrl ? (
