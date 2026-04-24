@@ -54,6 +54,8 @@ import {
 const STUDY_IMPORT_STALE_JOB_MAX_AGE_MS = 60 * 60 * 1000;
 const STUDY_IMPORT_STALE_PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const STUDY_IMPORT_WRITE_BATCH_SIZE = 250;
+const STUDY_IMPORT_WRITE_TRANSACTION_MAX_WAIT_MS = 30 * 1000;
+const STUDY_IMPORT_WRITE_TRANSACTION_TIMEOUT_MS = 10 * 60 * 1000;
 const STUDY_IMPORT_UPLOAD_FOLDER = 'study/imports';
 const STUDY_IMPORT_CORS_READINESS_CACHE_MS = 5 * 60 * 1000;
 const STUDY_IMPORT_CONTENT_TYPES = new Set([
@@ -396,149 +398,155 @@ async function runStudyImportTransaction(params: {
     });
     const completedAt = new Date();
 
-    await prisma.$transaction(async (tx) => {
-      await tx.studyReviewLog.deleteMany({
-        where: {
-          userId,
-          source: 'anki_import',
-        },
-      });
-      await tx.studyCard.deleteMany({
-        where: {
-          userId,
-          sourceKind: 'anki_import',
-        },
-      });
-      await tx.studyNote.deleteMany({
-        where: {
-          userId,
-          sourceKind: 'anki_import',
-        },
-      });
-      await tx.studyMedia.deleteMany({
-        where: {
-          userId,
-          sourceKind: 'anki_import',
-        },
-      });
-
-      await tx.studyImportJob.update({
-        where: { id: importJob.id },
-        data: {
-          previewJson: toPrismaJson(parsed.preview),
-        },
-      });
-
-      await createManyInBatches(parsed.notes, async (batch) => {
-        await tx.studyNote.createMany({
-          data: batch.map((note) => ({
-            id: note.createId,
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.studyReviewLog.deleteMany({
+          where: {
             userId,
-            importJobId: importJob.id,
-            sourceKind: 'anki_import',
-            sourceNoteId: BigInt(note.sourceNoteId),
-            sourceGuid: sanitizeText(note.sourceGuid) ?? '',
-            sourceDeckId: BigInt(note.sourceDeckId),
-            sourceDeckName: ANKI_DECK_NAME,
-            sourceNotetypeId: BigInt(note.sourceNotetypeId),
-            sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
-            rawFieldsJson: toPrismaJson(note.rawFields),
-            canonicalJson: toPrismaJson(note.canonical),
-            searchText: buildStudyNoteSearchText(note),
-          })),
+            source: 'anki_import',
+          },
         });
-      });
-
-      await createManyInBatches(parsed.media, async (batch) => {
-        await tx.studyMedia.createMany({
-          data: batch.map((media) => ({
-            id: media.id,
+        await tx.studyCard.deleteMany({
+          where: {
             userId,
-            importJobId: importJob.id,
             sourceKind: 'anki_import',
-            sourceMediaKey: sanitizeText(
-              mediaByFilenameToSourceMediaKey(parsed.mediaByFilename, media.filename)
-            ),
-            sourceFilename: sanitizeText(media.filename) ?? '',
-            normalizedFilename: normalizeFilename(media.filename),
-            mediaKind: media.mediaKind,
-            contentType: media.contentType,
-            storagePath: media.storagePath,
-            publicUrl: media.publicUrl,
-          })),
+          },
         });
-      });
-
-      await createManyInBatches(parsed.cards, async (batch) => {
-        await tx.studyCard.createMany({
-          data: batch.map((card) => ({
-            id: card.createId,
+        await tx.studyNote.deleteMany({
+          where: {
             userId,
-            noteId: card.noteCreateId,
-            importJobId: importJob.id,
             sourceKind: 'anki_import',
-            sourceCardId: BigInt(card.sourceCardId),
-            sourceDeckId: BigInt(card.sourceDeckId),
-            sourceDeckName: ANKI_DECK_NAME,
-            sourceTemplateOrd: card.sourceTemplateOrd,
-            sourceTemplateName: sanitizeText(card.sourceTemplateName),
-            sourceQueue: card.sourceQueue,
-            sourceCardType: card.sourceCardType,
-            sourceDue: card.sourceDue,
-            sourceInterval: card.sourceInterval,
-            sourceFactor: card.sourceFactor,
-            sourceReps: card.sourceReps,
-            sourceLapses: card.sourceLapses,
-            sourceLeft: card.sourceLeft,
-            sourceOriginalDue: card.sourceOriginalDue,
-            sourceOriginalDeckId: toBigIntOrNull(card.sourceOriginalDeckId),
-            sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
-            cardType: card.cardType,
-            queueState: card.queueState,
-            dueAt: card.dueAt,
-            lastReviewedAt: card.lastReviewedAt,
-            promptJson: toPrismaJson(card.prompt),
-            answerJson: toPrismaJson(card.answer),
-            searchText: buildStudyCardSearchText(card),
-            schedulerStateJson: toPrismaJson(card.schedulerState),
-            answerAudioSource: card.answerAudioSource,
-            promptAudioMediaId: mediaByFilenameToRecordId(
-              parsed.mediaByFilename,
-              card.promptAudioMediaFilename
-            ),
-            answerAudioMediaId: mediaByFilenameToRecordId(
-              parsed.mediaByFilename,
-              card.answerAudioMediaFilename
-            ),
-            imageMediaId: mediaByFilenameToRecordId(
-              parsed.mediaByFilename,
-              card.imageMediaFilename
-            ),
-          })),
+          },
         });
-      });
-
-      await createManyInBatches(reviewLogsToCreate, async (batch) => {
-        await tx.studyReviewLog.createMany({
-          data: batch,
+        await tx.studyMedia.deleteMany({
+          where: {
+            userId,
+            sourceKind: 'anki_import',
+          },
         });
-      });
 
-      await tx.studyImportJob.update({
-        where: { id: importJob.id },
-        data: {
-          status: 'completed',
-          previewJson: toPrismaJson(parsed.preview),
-          summaryJson: toPrismaJson({
-            cardCount: parsed.cards.length,
-            noteCount: parsed.notes.length,
-            reviewLogCount: parsed.reviewLogs.length,
-            mediaCount: parsed.media.length,
-          }),
-          completedAt,
-        },
-      });
-    });
+        await tx.studyImportJob.update({
+          where: { id: importJob.id },
+          data: {
+            previewJson: toPrismaJson(parsed.preview),
+          },
+        });
+
+        await createManyInBatches(parsed.notes, async (batch) => {
+          await tx.studyNote.createMany({
+            data: batch.map((note) => ({
+              id: note.createId,
+              userId,
+              importJobId: importJob.id,
+              sourceKind: 'anki_import',
+              sourceNoteId: BigInt(note.sourceNoteId),
+              sourceGuid: sanitizeText(note.sourceGuid) ?? '',
+              sourceDeckId: BigInt(note.sourceDeckId),
+              sourceDeckName: ANKI_DECK_NAME,
+              sourceNotetypeId: BigInt(note.sourceNotetypeId),
+              sourceNotetypeName: sanitizeText(note.sourceNotetypeName) ?? '',
+              rawFieldsJson: toPrismaJson(note.rawFields),
+              canonicalJson: toPrismaJson(note.canonical),
+              searchText: buildStudyNoteSearchText(note),
+            })),
+          });
+        });
+
+        await createManyInBatches(parsed.media, async (batch) => {
+          await tx.studyMedia.createMany({
+            data: batch.map((media) => ({
+              id: media.id,
+              userId,
+              importJobId: importJob.id,
+              sourceKind: 'anki_import',
+              sourceMediaKey: sanitizeText(
+                mediaByFilenameToSourceMediaKey(parsed.mediaByFilename, media.filename)
+              ),
+              sourceFilename: sanitizeText(media.filename) ?? '',
+              normalizedFilename: normalizeFilename(media.filename),
+              mediaKind: media.mediaKind,
+              contentType: media.contentType,
+              storagePath: media.storagePath,
+              publicUrl: media.publicUrl,
+            })),
+          });
+        });
+
+        await createManyInBatches(parsed.cards, async (batch) => {
+          await tx.studyCard.createMany({
+            data: batch.map((card) => ({
+              id: card.createId,
+              userId,
+              noteId: card.noteCreateId,
+              importJobId: importJob.id,
+              sourceKind: 'anki_import',
+              sourceCardId: BigInt(card.sourceCardId),
+              sourceDeckId: BigInt(card.sourceDeckId),
+              sourceDeckName: ANKI_DECK_NAME,
+              sourceTemplateOrd: card.sourceTemplateOrd,
+              sourceTemplateName: sanitizeText(card.sourceTemplateName),
+              sourceQueue: card.sourceQueue,
+              sourceCardType: card.sourceCardType,
+              sourceDue: card.sourceDue,
+              sourceInterval: card.sourceInterval,
+              sourceFactor: card.sourceFactor,
+              sourceReps: card.sourceReps,
+              sourceLapses: card.sourceLapses,
+              sourceLeft: card.sourceLeft,
+              sourceOriginalDue: card.sourceOriginalDue,
+              sourceOriginalDeckId: toBigIntOrNull(card.sourceOriginalDeckId),
+              sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
+              cardType: card.cardType,
+              queueState: card.queueState,
+              dueAt: card.dueAt,
+              lastReviewedAt: card.lastReviewedAt,
+              promptJson: toPrismaJson(card.prompt),
+              answerJson: toPrismaJson(card.answer),
+              searchText: buildStudyCardSearchText(card),
+              schedulerStateJson: toPrismaJson(card.schedulerState),
+              answerAudioSource: card.answerAudioSource,
+              promptAudioMediaId: mediaByFilenameToRecordId(
+                parsed.mediaByFilename,
+                card.promptAudioMediaFilename
+              ),
+              answerAudioMediaId: mediaByFilenameToRecordId(
+                parsed.mediaByFilename,
+                card.answerAudioMediaFilename
+              ),
+              imageMediaId: mediaByFilenameToRecordId(
+                parsed.mediaByFilename,
+                card.imageMediaFilename
+              ),
+            })),
+          });
+        });
+
+        await createManyInBatches(reviewLogsToCreate, async (batch) => {
+          await tx.studyReviewLog.createMany({
+            data: batch,
+          });
+        });
+
+        await tx.studyImportJob.update({
+          where: { id: importJob.id },
+          data: {
+            status: 'completed',
+            previewJson: toPrismaJson(parsed.preview),
+            summaryJson: toPrismaJson({
+              cardCount: parsed.cards.length,
+              noteCount: parsed.notes.length,
+              reviewLogCount: parsed.reviewLogs.length,
+              mediaCount: parsed.media.length,
+            }),
+            completedAt,
+          },
+        });
+      },
+      {
+        maxWait: STUDY_IMPORT_WRITE_TRANSACTION_MAX_WAIT_MS,
+        timeout: STUDY_IMPORT_WRITE_TRANSACTION_TIMEOUT_MS,
+      }
+    );
 
     return {
       id: importJob.id,
