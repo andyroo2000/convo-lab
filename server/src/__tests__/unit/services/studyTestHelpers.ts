@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import { promises as fs } from 'fs';
 import { createRequire } from 'module';
 import path from 'path';
@@ -144,12 +145,23 @@ function encodeProtoUint32(fieldNumber: number, value: number): Buffer {
   return Buffer.concat([encodeProtoField(fieldNumber, 0), encodeProtoVarint(value)]);
 }
 
-function encodeMediaEntriesManifest(mediaFiles: string[]): Buffer {
+function encodeProtoBytes(fieldNumber: number, value: Buffer): Buffer {
+  return encodeProtoLengthDelimited(fieldNumber, value);
+}
+
+function encodeMediaEntriesManifest(
+  mediaFiles: Array<{
+    data: Buffer;
+    filename: string;
+    sha1?: Buffer;
+  }>
+): Buffer {
   return Buffer.concat(
-    mediaFiles.map((filename) => {
+    mediaFiles.map(({ data, filename, sha1 }) => {
       const entry = Buffer.concat([
         encodeProtoString(1, filename),
-        encodeProtoUint32(2, Buffer.byteLength(`fixture:${filename}`)),
+        encodeProtoUint32(2, data.length),
+        encodeProtoBytes(3, sha1 ?? createHash('sha1').update(data).digest()),
       ]);
       return encodeProtoLengthDelimited(1, entry);
     })
@@ -167,6 +179,8 @@ export async function buildFixtureColpkg(
     compressCollectionDatabase?: boolean;
     compressMediaFiles?: boolean;
     compressMediaManifest?: boolean;
+    corruptCompanyPhotoSha1?: boolean;
+    largeCompanyPhotoBytes?: number;
     useLatestMediaManifest?: boolean;
     vocabNotes?: string;
   } = {}
@@ -375,7 +389,7 @@ export async function buildFixtureColpkg(
       : collectionDatabase
   );
 
-  const mediaFiles = [
+  const mediaFilenames = [
     companyPhotoFilename,
     'company-word.mp3',
     'company-sentence.mp3',
@@ -385,6 +399,17 @@ export async function buildFixtureColpkg(
     'entrance-word.mp3',
     'bangkok-sentence.mp3',
   ];
+  const mediaFiles = mediaFilenames.map((filename) => ({
+    filename,
+    data:
+      filename === companyPhotoFilename && options.largeCompanyPhotoBytes
+        ? Buffer.alloc(options.largeCompanyPhotoBytes, 'a')
+        : Buffer.from(`fixture:${filename}`),
+    sha1:
+      filename === companyPhotoFilename && options.corruptCompanyPhotoSha1
+        ? Buffer.alloc(20, 0)
+        : undefined,
+  }));
 
   const mediaManifest = options.useLatestMediaManifest
     ? encodeMediaEntriesManifest(mediaFiles)
@@ -405,12 +430,11 @@ export async function buildFixtureColpkg(
     options.compressMediaManifest ? await compressZstdBuffer(mediaManifest) : mediaManifest
   );
 
-  for (const [index, mediaFilename] of mediaFiles.entries()) {
+  for (const [index, mediaFile] of mediaFiles.entries()) {
     const entryName = index === 0 ? companyPhotoZipEntryName : String(index);
-    const mediaBuffer = Buffer.from(`fixture:${mediaFilename}`);
     zip.file(
       entryName,
-      options.compressMediaFiles ? await compressZstdBuffer(mediaBuffer) : mediaBuffer
+      options.compressMediaFiles ? await compressZstdBuffer(mediaFile.data) : mediaFile.data
     );
   }
 

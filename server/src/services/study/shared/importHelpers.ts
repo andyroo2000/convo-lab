@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import { createRequire } from 'module';
 import path from 'path';
 import * as zlib from 'zlib';
@@ -46,7 +46,7 @@ const require = createRequire(import.meta.url);
 const sqlJsWasmPath = require.resolve('sql.js/dist/sql-wasm.wasm');
 const zstdWasm = require('@bokuweb/zstd-wasm') as {
   init: () => Promise<void>;
-  decompress: (buffer: Uint8Array) => Uint8Array;
+  decompress: (buffer: Uint8Array, opts?: { defaultHeapSize?: number }) => Uint8Array;
 };
 let sqlJsPromise: Promise<Awaited<ReturnType<typeof initSqlJs>>> | null = null;
 let zstdWasmInitPromise: Promise<void> | null = null;
@@ -77,7 +77,13 @@ async function initZstdWasm(): Promise<void> {
   await zstdWasmInitPromise;
 }
 
-async function maybeDecompressZstd(buffer: Buffer): Promise<Buffer> {
+async function maybeDecompressZstd(
+  buffer: Buffer,
+  options: {
+    context?: string;
+    expectedSize?: number | null;
+  } = {}
+): Promise<Buffer> {
   if (!isZstdCompressed(buffer)) {
     return buffer;
   }
@@ -88,18 +94,37 @@ async function maybeDecompressZstd(buffer: Buffer): Promise<Buffer> {
     }
 
     await initZstdWasm();
-    return Buffer.from(zstdWasm.decompress(buffer));
+    return Buffer.from(
+      zstdWasm.decompress(
+        buffer,
+        typeof options.expectedSize === 'number' && options.expectedSize >= 0
+          ? { defaultHeapSize: options.expectedSize }
+          : undefined
+      )
+    );
   } catch (error) {
     if (error instanceof AppError) {
       throw error;
     }
 
+    console.warn(
+      `[Study] Failed to decompress zstd-compressed Anki data${
+        options.context ? ` (${options.context})` : ''
+      }:`,
+      error
+    );
     throw new AppError('The uploaded zstd-compressed Anki data could not be decompressed.', 400);
   }
 }
 
+interface ParsedMediaManifestEntry {
+  id: string;
+  sha1: Buffer | null;
+  size: number | null;
+}
+
 interface ParsedMediaManifest {
-  mediaIdByFilename: Map<string, string>;
+  mediaByFilename: Map<string, ParsedMediaManifestEntry>;
   unsafeManifestFilenames: Set<string>;
   mediaFilesMayBeZstdCompressed: boolean;
 }
@@ -107,6 +132,8 @@ interface ParsedMediaManifest {
 interface DecodedMediaEntry {
   name: string;
   legacyZipFilename: number | null;
+  sha1: Buffer | null;
+  size: number | null;
 }
 
 function readProtoVarint(buffer: Buffer, offset: number): { value: number; offset: number } {
@@ -157,6 +184,8 @@ function decodeMediaEntry(buffer: Buffer): DecodedMediaEntry {
   let offset = 0;
   let name = '';
   let legacyZipFilename: number | null = null;
+  let sha1: Buffer | null = null;
+  let size: number | null = null;
 
   while (offset < buffer.length) {
     const tag = readProtoVarint(buffer, offset);
@@ -167,7 +196,28 @@ function decodeMediaEntry(buffer: Buffer): DecodedMediaEntry {
     if (fieldNumber === 1 && wireType === 2) {
       const length = readProtoVarint(buffer, offset);
       offset = length.offset;
+      if (offset + length.value > buffer.length) {
+        throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+      }
       name = buffer.subarray(offset, offset + length.value).toString('utf8');
+      offset += length.value;
+      continue;
+    }
+
+    if (fieldNumber === 2 && wireType === 0) {
+      const value = readProtoVarint(buffer, offset);
+      size = value.value;
+      offset = value.offset;
+      continue;
+    }
+
+    if (fieldNumber === 3 && wireType === 2) {
+      const length = readProtoVarint(buffer, offset);
+      offset = length.offset;
+      if (offset + length.value > buffer.length) {
+        throw new AppError('The uploaded Anki media manifest could not be parsed.', 400);
+      }
+      sha1 = Buffer.from(buffer.subarray(offset, offset + length.value));
       offset += length.value;
       continue;
     }
@@ -182,7 +232,7 @@ function decodeMediaEntry(buffer: Buffer): DecodedMediaEntry {
     offset = skipProtoField(buffer, wireType, offset);
   }
 
-  return { name, legacyZipFilename };
+  return { name, legacyZipFilename, sha1, size };
 }
 
 function decodeMediaEntriesManifest(buffer: Buffer): DecodedMediaEntry[] {
@@ -221,7 +271,7 @@ function parseMediaManifest(params: {
   importWarnings: ReturnType<typeof createStudyImportWarningAccumulator>;
 }): ParsedMediaManifest {
   const { buffer, importWarnings } = params;
-  const mediaIdByFilename = new Map<string, string>();
+  const mediaByFilename = new Map<string, ParsedMediaManifestEntry>();
   const unsafeManifestFilenames = new Set<string>();
   const trimmed = buffer.toString('utf8').trimStart();
 
@@ -247,12 +297,16 @@ function parseMediaManifest(params: {
           continue;
         }
 
-        mediaIdByFilename.set(mediaFilename, mediaId);
+        mediaByFilename.set(mediaFilename, {
+          id: mediaId,
+          sha1: null,
+          size: null,
+        });
       }
     }
 
     return {
-      mediaIdByFilename,
+      mediaByFilename,
       unsafeManifestFilenames,
       mediaFilesMayBeZstdCompressed: false,
     };
@@ -260,7 +314,7 @@ function parseMediaManifest(params: {
 
   if (buffer.length === 0) {
     return {
-      mediaIdByFilename,
+      mediaByFilename,
       unsafeManifestFilenames,
       mediaFilesMayBeZstdCompressed: false,
     };
@@ -286,14 +340,26 @@ function parseMediaManifest(params: {
       return;
     }
 
-    mediaIdByFilename.set(mediaFilename, mediaId);
+    mediaByFilename.set(mediaFilename, {
+      id: mediaId,
+      sha1: entry.sha1,
+      size: entry.size,
+    });
   });
 
   return {
-    mediaIdByFilename,
+    mediaByFilename,
     unsafeManifestFilenames,
     mediaFilesMayBeZstdCompressed: true,
   };
+}
+
+function hasMatchingSha1(buffer: Buffer, expectedSha1: Buffer | null): boolean {
+  if (!expectedSha1) {
+    return true;
+  }
+
+  return createHash('sha1').update(buffer).digest().equals(expectedSha1);
 }
 
 function parseAudioFilenames(value: string): string[] {
@@ -942,17 +1008,21 @@ export async function parseColpkgUpload(params: {
 
     const mediaManifestEntry = await zip.readEntryBuffer('media');
     const mediaManifestBuffer = mediaManifestEntry
-      ? await maybeDecompressZstd(mediaManifestEntry)
+      ? await maybeDecompressZstd(mediaManifestEntry, { context: 'media manifest' })
       : Buffer.from('{}');
     const mediaManifest = parseMediaManifest({
       buffer: mediaManifestBuffer,
       importWarnings,
     });
-    const mediaIdByFilename = mediaManifest.mediaIdByFilename;
+    const manifestMediaByFilename = mediaManifest.mediaByFilename;
     unsafeManifestFilenames = mediaManifest.unsafeManifestFilenames;
 
     const SQL = await getSqlJs();
-    const db = new SQL.Database((await maybeDecompressZstd(collectionBuffer)) as Uint8Array);
+    const db = new SQL.Database(
+      (await maybeDecompressZstd(collectionBuffer, {
+        context: 'collection database',
+      })) as Uint8Array
+    );
 
     const collectionRow = mapRows(db.exec('SELECT crt, models, decks FROM col LIMIT 1'))[0];
     if (!collectionRow || typeof collectionRow.crt !== 'number') {
@@ -1118,7 +1188,8 @@ export async function parseColpkgUpload(params: {
 
     const media: ParsedAnkiMediaRecord[] = [];
     for (const mediaFilename of mediaFilenames) {
-      const mediaId = mediaIdByFilename.get(mediaFilename);
+      const manifestMedia = manifestMediaByFilename.get(mediaFilename) ?? null;
+      const mediaId = manifestMedia?.id ?? null;
       let publicUrl: string | null = null;
       let storagePath: string | null = null;
 
@@ -1132,13 +1203,53 @@ export async function parseColpkgUpload(params: {
               'Skipped unsafe archive entry.'
             );
           } else {
+            let persistableMediaBuffer: Buffer | null = mediaEntryBuffer;
+            if (mediaManifest.mediaFilesMayBeZstdCompressed) {
+              try {
+                persistableMediaBuffer = await maybeDecompressZstd(mediaEntryBuffer, {
+                  context: `media ${mediaFilename} (${mediaId})`,
+                  expectedSize: manifestMedia?.size,
+                });
+              } catch {
+                persistableMediaBuffer = null;
+                recordStudyImportWarning(
+                  importWarnings,
+                  mediaFilename,
+                  'Skipped corrupt zstd-compressed media.'
+                );
+              }
+            }
+
+            if (
+              persistableMediaBuffer &&
+              !hasMatchingSha1(persistableMediaBuffer, manifestMedia?.sha1 ?? null)
+            ) {
+              persistableMediaBuffer = null;
+              recordStudyImportWarning(
+                importWarnings,
+                mediaFilename,
+                'Skipped media with an invalid checksum.'
+              );
+            }
+
+            if (!persistableMediaBuffer) {
+              media.push({
+                id: randomUUID(),
+                sourceMediaKey: mediaId,
+                filename: mediaFilename,
+                mediaKind: getMediaKind(mediaFilename),
+                contentType: getContentType(mediaFilename),
+                publicUrl,
+                storagePath,
+              });
+              continue;
+            }
+
             const persisted = await persistStudyMediaBuffer({
               userId,
               importJobId,
               filename: mediaFilename,
-              buffer: mediaManifest.mediaFilesMayBeZstdCompressed
-                ? await maybeDecompressZstd(mediaEntryBuffer)
-                : mediaEntryBuffer,
+              buffer: persistableMediaBuffer,
             });
             publicUrl = persisted.publicUrl;
             storagePath = persisted.storagePath;

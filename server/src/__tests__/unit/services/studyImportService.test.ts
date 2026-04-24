@@ -121,6 +121,63 @@ describe('studyImportService', () => {
     );
   }, 15000);
 
+  it('imports large latest-format zstd media using manifest sizes', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    const largeMediaSize = 2 * 1024 * 1024;
+
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({
+        compressCollectionDatabase: true,
+        compressMediaFiles: true,
+        compressMediaManifest: true,
+        largeCompanyPhotoBytes: largeMediaSize,
+        useLatestMediaManifest: true,
+      }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.mediaReferenceCount).toBe(8);
+    expect(result.preview.skippedMediaCount).toBe(0);
+    expect(uploadBufferToGCSPathMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        buffer: expect.objectContaining({
+          length: largeMediaSize,
+        }),
+        contentType: 'image/png',
+      })
+    );
+  }, 15000);
+
+  it('skips latest-format media with invalid checksums without failing the import', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg({
+        compressCollectionDatabase: true,
+        compressMediaFiles: true,
+        compressMediaManifest: true,
+        corruptCompanyPhotoSha1: true,
+        useLatestMediaManifest: true,
+      }),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    expect(result.preview.mediaReferenceCount).toBe(8);
+    expect(result.preview.skippedMediaCount).toBe(1);
+    expect(result.preview.warnings).toEqual(
+      expect.arrayContaining(['company.png: Skipped media with an invalid checksum.'])
+    );
+    expect(uploadBufferToGCSPathMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        buffer: Buffer.from('fixture:company.png'),
+      })
+    );
+  }, 15000);
+
   it('normalizes imported answer notes to plain text and keeps raw HTML only in source storage', async () => {
     await importJapaneseStudyColpkg({
       userId: 'user-1',
