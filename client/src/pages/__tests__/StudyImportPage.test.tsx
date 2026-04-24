@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -247,5 +247,50 @@ describe('StudyImportPage', () => {
 
     expect(cancelStudyImportUploadMock).toHaveBeenCalledWith('import-1');
     expect(await screen.findByText('Study import upload was cancelled.')).toBeInTheDocument();
+  });
+
+  it('aborts resumed status polling when the page unmounts', async () => {
+    const signals: AbortSignal[] = [];
+    window.localStorage.setItem('study.import.activeJobId', 'import-1');
+    getStudyImportStatusMock.mockImplementation(
+      (_importJobId: string, init?: { signal?: AbortSignal }) => {
+        if (init?.signal) {
+          signals.push(init.signal);
+        }
+
+        return Promise.resolve({
+          id: 'import-1',
+          status: 'processing',
+          sourceFilename: 'japanese.colpkg',
+          deckName: '日本語',
+          uploadedAt: new Date('2026-04-21T00:00:00.000Z').toISOString(),
+          uploadExpiresAt: '2099-04-21T01:00:00.000Z',
+          sourceSizeBytes: 1024,
+          importedAt: null,
+          errorMessage: null,
+          preview: {
+            deckName: '日本語',
+            noteCount: 0,
+            cardCount: 0,
+            reviewLogCount: 0,
+            mediaReferenceCount: 0,
+            skippedMediaCount: 0,
+            warnings: [],
+            noteTypeBreakdown: [],
+          },
+        });
+      }
+    );
+
+    const { unmount } = render(
+      <BrowserRouter>
+        <StudyImportPage />
+      </BrowserRouter>
+    );
+
+    await waitFor(() => expect(signals.length).toBeGreaterThan(0));
+    unmount();
+
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
   });
 });

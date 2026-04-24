@@ -698,6 +698,16 @@ describe('Study Routes', () => {
     expect(response.body.status).toBe('failed');
   });
 
+  it('returns 503 for import cancellation when study rate limiting is unavailable', async () => {
+    execMock.mockRejectedValueOnce(new Error('redis unavailable'));
+
+    const response = await withMutationCsrf(request(app).post('/study/imports/import-1/cancel'));
+
+    expect(response.status).toBe(503);
+    expect(response.body.message).toContain('rate limiting is temporarily unavailable');
+    expect(cancelStudyImportUploadMock).not.toHaveBeenCalled();
+  });
+
   it('returns 503 for imports when study rate limiting is unavailable', async () => {
     execMock.mockRejectedValueOnce(new Error('redis unavailable'));
 

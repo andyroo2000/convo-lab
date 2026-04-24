@@ -407,26 +407,24 @@ export async function cancelStudyImportUpload(importJobId: string): Promise<Stud
   );
 }
 
-export async function getCurrentStudyImport(): Promise<StudyImportResult | null> {
-  return apiRequest<StudyImportResult | null>('/api/study/imports/current');
+export async function getCurrentStudyImport(
+  init?: Pick<RequestInit, 'signal'>
+): Promise<StudyImportResult | null> {
+  return apiRequest<StudyImportResult | null>('/api/study/imports/current', init);
 }
 
 export async function getStudyImportUploadReadiness(): Promise<StudyImportUploadReadiness> {
   return apiRequest<StudyImportUploadReadiness>('/api/study/imports/readiness');
 }
 
-export async function getStudyImportStatus(importJobId: string): Promise<StudyImportResult> {
-  const response = await fetch(`${API_URL}/api/study/imports/${encodeURIComponent(importJobId)}`, {
-    method: 'GET',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Import failed' }));
-    throw new Error(error.message || 'Import failed');
-  }
-
-  return response.json() as Promise<StudyImportResult>;
+export async function getStudyImportStatus(
+  importJobId: string,
+  init?: Pick<RequestInit, 'signal'>
+): Promise<StudyImportResult> {
+  return apiRequest<StudyImportResult>(
+    `/api/study/imports/${encodeURIComponent(importJobId)}`,
+    init
+  );
 }
 
 export async function uploadStudyImport(file: File): Promise<StudyImportResult> {

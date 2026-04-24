@@ -822,6 +822,8 @@ function isActiveProcessingImportLockViolation(error: unknown): boolean {
     return false;
   }
 
+  // Prisma cannot represent this partial unique index in schema.prisma; migration
+  // 20260421233000_add_study_search_text_and_export_indexes creates it directly.
   const target = error.meta?.target;
   if (typeof target === 'string') {
     return target === 'study_import_jobs_userId_processing_unique';

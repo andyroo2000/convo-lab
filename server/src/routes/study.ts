@@ -533,22 +533,31 @@ router.post(
   }
 );
 
-router.post('/imports/:id/cancel', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
+router.post(
+  '/imports/:id/cancel',
+  rateLimitStudyRoute({
+    key: 'import-cancel',
+    max: 20,
+    windowMs: 60 * 1000,
+    onBackendError: 'fail-closed',
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const result = await cancelStudyImportUpload({
+        userId: req.userId,
+        importJobId: req.params.id,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
     }
-
-    const result = await cancelStudyImportUpload({
-      userId: req.userId,
-      importJobId: req.params.id,
-    });
-
-    res.json(result);
-  } catch (error) {
-    next(error);
   }
-});
+);
 
 router.get('/imports/:id', async (req: AuthRequest, res, next) => {
   try {

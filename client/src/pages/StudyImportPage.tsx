@@ -34,9 +34,33 @@ function getStudyImportPollDelayMs(attempt: number): number {
   return 15000;
 }
 
-function waitForStudyImportPoll(delayMs: number): Promise<void> {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, delayMs);
+function createImportPollingAbortError(): Error {
+  const error = new Error('Import polling cancelled');
+  error.name = 'AbortError';
+  return error;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
+function waitForStudyImportPoll(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(createImportPollingAbortError());
+  }
+
+  return new Promise((resolve, reject) => {
+    let timeoutId = 0;
+    const abortHandler = () => {
+      window.clearTimeout(timeoutId);
+      reject(createImportPollingAbortError());
+    };
+    timeoutId = window.setTimeout(() => {
+      signal?.removeEventListener('abort', abortHandler);
+      resolve();
+    }, delayMs);
+
+    signal?.addEventListener('abort', abortHandler, { once: true });
   });
 }
 
@@ -52,6 +76,7 @@ const StudyImportPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<StudyImportResult | null>(null);
   const uploadAbortControllerRef = useRef<AbortController | null>(null);
+  const pollAbortControllerRef = useRef<AbortController | null>(null);
   const activeImportJobIdRef = useRef<string | null>(null);
   const phaseRef = useRef<ImportPhase>('idle');
 
@@ -89,14 +114,18 @@ const StudyImportPage = () => {
   );
 
   const pollImportResult = useCallback(
-    async (importJobId: string): Promise<StudyImportResult> => {
+    async (importJobId: string, signal?: AbortSignal): Promise<StudyImportResult> => {
       const startedAt = Date.now();
       let attempts = 0;
 
       // Poll sequentially so we never overlap status requests for the same import job.
       /* eslint-disable no-await-in-loop */
       while (Date.now() - startedAt < STUDY_IMPORT_POLL_TIMEOUT_MS) {
-        const result = await getStudyImportStatus(importJobId);
+        if (signal?.aborted) {
+          throw createImportPollingAbortError();
+        }
+
+        const result = await getStudyImportStatus(importJobId, { signal });
         setImportResult(result);
 
         if (isTerminalImportResult(result)) {
@@ -105,7 +134,7 @@ const StudyImportPage = () => {
         }
 
         setPhase(result.status === 'pending' ? 'queued' : 'processing');
-        await waitForStudyImportPoll(getStudyImportPollDelayMs(attempts));
+        await waitForStudyImportPoll(getStudyImportPollDelayMs(attempts), signal);
         attempts += 1;
       }
       /* eslint-enable no-await-in-loop */
@@ -117,14 +146,17 @@ const StudyImportPage = () => {
 
   useEffect(() => {
     let cancelled = false;
+    const pollAbortController = new AbortController();
+    pollAbortControllerRef.current?.abort();
+    pollAbortControllerRef.current = pollAbortController;
 
     const resumeImport = async () => {
       try {
         setPhase('resuming');
         const storedImportJobId = window.localStorage.getItem(STUDY_IMPORT_ACTIVE_JOB_STORAGE_KEY);
         const result = storedImportJobId
-          ? await getStudyImportStatus(storedImportJobId)
-          : await getCurrentStudyImport();
+          ? await getStudyImportStatus(storedImportJobId, { signal: pollAbortController.signal })
+          : await getCurrentStudyImport({ signal: pollAbortController.signal });
 
         if (cancelled) return;
 
@@ -141,10 +173,14 @@ const StudyImportPage = () => {
 
         storeActiveImportJob(result.id);
         setPhase(result.status === 'pending' ? 'queued' : 'processing');
-        await pollImportResult(result.id);
-      } catch {
-        if (!cancelled) {
+        await pollImportResult(result.id, pollAbortController.signal);
+      } catch (err) {
+        if (!cancelled && !isAbortError(err)) {
           setPhase('idle');
+        }
+      } finally {
+        if (pollAbortControllerRef.current === pollAbortController) {
+          pollAbortControllerRef.current = null;
         }
       }
     };
@@ -153,11 +189,17 @@ const StudyImportPage = () => {
 
     return () => {
       cancelled = true;
+      pollAbortController.abort();
+      if (pollAbortControllerRef.current === pollAbortController) {
+        pollAbortControllerRef.current = null;
+      }
     };
   }, [applyTerminalResult, pollImportResult, storeActiveImportJob]);
 
   useEffect(
     () => () => {
+      pollAbortControllerRef.current?.abort();
+      pollAbortControllerRef.current = null;
       if (phaseRef.current !== 'uploading') return;
       uploadAbortControllerRef.current?.abort();
       const importJobId = activeImportJobIdRef.current;
@@ -224,7 +266,17 @@ const StudyImportPage = () => {
       const queuedResult = await completeStudyImportUpload(session.importJob.id);
       setImportResult(queuedResult);
 
-      const finalResult = await pollImportResult(session.importJob.id);
+      const pollAbortController = new AbortController();
+      pollAbortControllerRef.current?.abort();
+      pollAbortControllerRef.current = pollAbortController;
+      let finalResult: StudyImportResult;
+      try {
+        finalResult = await pollImportResult(session.importJob.id, pollAbortController.signal);
+      } finally {
+        if (pollAbortControllerRef.current === pollAbortController) {
+          pollAbortControllerRef.current = null;
+        }
+      }
       setPhase(finalResult.status === 'completed' ? 'completed' : 'failed');
       if (finalResult.status === 'failed' && finalResult.errorMessage) {
         setError(finalResult.errorMessage);
