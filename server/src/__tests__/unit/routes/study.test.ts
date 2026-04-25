@@ -232,7 +232,7 @@ describe('Study Routes', () => {
     resetBrowserRuntimeTestState();
   });
 
-  it('clamps study session start limits to 20', async () => {
+  it('starts study sessions without trusting client-provided batch sizes', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {
         dueCount: 1,
@@ -250,7 +250,7 @@ describe('Study Routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', 20);
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1');
   });
 
   it('rejects invalid review grades', async () => {

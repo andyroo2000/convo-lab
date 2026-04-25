@@ -25,9 +25,10 @@ export type {
 
 export {
   ANKI_DECK_NAME,
-  DEFAULT_STUDY_LIMIT,
   STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
   STUDY_AUDIO_LOCK_TTL_MS,
+  STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT,
+  STUDY_SESSION_READY_CARD_LIMIT,
   STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS,
   STUDY_MEDIA_SIGNED_URL_TTL_SECONDS,
   STUDY_EXPORT_SECTION_LIMIT_DEFAULT,
@@ -123,6 +124,7 @@ export {
 } from './shared/cardMappers.js';
 
 export {
+  backfillImportedStudyMedia,
   ensureGeneratedAnswerAudio,
   ensureStudyCardMediaAvailable,
   getStudyAudioRedisClient,

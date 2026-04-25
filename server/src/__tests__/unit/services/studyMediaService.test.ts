@@ -1,4 +1,7 @@
 /* eslint-disable import/order */
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -182,6 +185,66 @@ describe('studyMediaService', () => {
     expect(getSignedReadUrlMock).toHaveBeenCalled();
     expect(result?.type).toBe('redirect');
     expect(result?.contentDisposition).toBe('inline');
+  });
+
+  it('backfills imported Anki media lazily when requested', async () => {
+    const ankiMediaDir = await fs.mkdtemp(path.join(os.tmpdir(), 'study-media-access-'));
+    const previousAnkiMediaDir = process.env.ANKI_MEDIA_DIR;
+    const previousGcsBucketName = process.env.GCS_BUCKET_NAME;
+    process.env.ANKI_MEDIA_DIR = ankiMediaDir;
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+
+    try {
+      await fs.writeFile(path.join(ankiMediaDir, 'company.mp3'), 'fake-audio');
+      mockPrisma.studyMedia.findFirst.mockResolvedValue({
+        id: 'media-lazy',
+        userId: 'user-1',
+        importJobId: 'import-1',
+        sourceKind: 'anki_import',
+        sourceFilename: 'company.mp3',
+        normalizedFilename: 'company.mp3',
+        mediaKind: 'audio',
+        contentType: 'audio/mpeg',
+        storagePath: null,
+        publicUrl: null,
+      });
+      mockPrisma.studyMedia.update.mockResolvedValue({
+        id: 'media-lazy',
+        userId: 'user-1',
+        importJobId: 'import-1',
+        sourceKind: 'anki_import',
+        sourceFilename: 'company.mp3',
+        normalizedFilename: 'company.mp3',
+        mediaKind: 'audio',
+        storagePath: 'study-media/user-1/import-1/company.mp3',
+        publicUrl: null,
+      });
+
+      const result = await getStudyMediaAccess('user-1', 'media-lazy');
+
+      expect(mockPrisma.studyMedia.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'media-lazy' },
+          data: expect.objectContaining({
+            storagePath: expect.stringContaining('company.mp3'),
+          }),
+        })
+      );
+      expect(getSignedReadUrlMock).toHaveBeenCalled();
+      expect(result?.type).toBe('redirect');
+    } finally {
+      if (previousAnkiMediaDir === undefined) {
+        delete process.env.ANKI_MEDIA_DIR;
+      } else {
+        process.env.ANKI_MEDIA_DIR = previousAnkiMediaDir;
+      }
+      if (previousGcsBucketName === undefined) {
+        delete process.env.GCS_BUCKET_NAME;
+      } else {
+        process.env.GCS_BUCKET_NAME = previousGcsBucketName;
+      }
+      await fs.rm(ankiMediaDir, { recursive: true, force: true });
+    }
   });
 
   it('forces attachment disposition for unsafe inline media like SVG', async () => {

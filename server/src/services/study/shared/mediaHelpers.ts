@@ -280,7 +280,7 @@ async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string)
   await trackedRequest;
 }
 
-async function backfillImportedStudyMedia(
+export async function backfillImportedStudyMedia(
   media: PersistedStudyMediaRecord
 ): Promise<PersistedStudyMediaRecord | null> {
   if (

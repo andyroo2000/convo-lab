@@ -21,7 +21,7 @@ const StudyPage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
   const availableCount = (overviewQuery.data?.dueCount ?? 0) + (overviewQuery.data?.newCount ?? 0);
-  const reviewSession = useStudyReviewSession({ availableCount });
+  const reviewSession = useStudyReviewSession();
   const runBackgroundTask = useStudyBackgroundTask();
   const motionBannerMessage = useMemo(() => {
     if (reviewSession.motionPermissionState === 'unsupported') {

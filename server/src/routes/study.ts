@@ -596,14 +596,7 @@ router.post(
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
-      const requestedLimit =
-        typeof req.body?.limit === 'number' && Number.isFinite(req.body.limit)
-          ? req.body.limit
-          : 20;
-      const session = await startStudySession(
-        req.userId,
-        Math.max(1, Math.min(20, requestedLimit))
-      );
+      const session = await startStudySession(req.userId);
       res.json(session);
     } catch (error) {
       next(error);

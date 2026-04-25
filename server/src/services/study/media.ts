@@ -6,6 +6,7 @@ import { getSignedReadUrl } from '../storageClient.js';
 
 import type { StudyCardWithRelations, StudyMediaAccessResult } from './shared.js';
 import {
+  backfillImportedStudyMedia,
   ensureGeneratedAnswerAudio,
   findAccessibleLocalStudyMediaPath,
   getContentType,
@@ -82,7 +83,7 @@ export async function getStudyMediaAccess(
   userId: string,
   mediaId: string
 ): Promise<StudyMediaAccessResult | null> {
-  const media = await prisma.studyMedia.findFirst({
+  let media = await prisma.studyMedia.findFirst({
     where: {
       id: mediaId,
       userId,
@@ -91,6 +92,15 @@ export async function getStudyMediaAccess(
 
   if (!media) {
     return null;
+  }
+
+  const backfilledMedia = await backfillImportedStudyMedia(media);
+  if (backfilledMedia) {
+    media = {
+      ...media,
+      storagePath: backfilledMedia.storagePath ?? media.storagePath,
+      publicUrl: backfilledMedia.publicUrl ?? media.publicUrl,
+    };
   }
 
   const filename = media.sourceFilename;

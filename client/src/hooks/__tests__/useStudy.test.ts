@@ -64,7 +64,7 @@ describe('useStudy request helpers', () => {
     vi.unstubAllGlobals();
   });
 
-  it('attaches the shared CSRF token header to JSON study mutations', async () => {
+  it('starts study sessions without an empty JSON body', async () => {
     await startStudySession();
 
     const fetchMock = vi.mocked(global.fetch);
@@ -77,7 +77,8 @@ describe('useStudy request helpers', () => {
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = new Headers(requestInit.headers);
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(headers.get('Content-Type')).toBeNull();
+    expect(requestInit.body).toBeUndefined();
   });
 
   it('attaches the shared CSRF token header to import uploads', async () => {

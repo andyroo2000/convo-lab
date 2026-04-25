@@ -19,6 +19,25 @@ interface UseStudyKeyboardShortcutsOptions {
   setEditing: (editing: boolean) => void;
 }
 
+const getKeyboardGrade = (event: KeyboardEvent): 'again' | 'hard' | 'good' | 'easy' | null => {
+  const gradeByKey: Record<string, 'again' | 'hard' | 'good' | 'easy'> = {
+    '1': 'again',
+    '2': 'hard',
+    '3': 'good',
+    '4': 'easy',
+    Digit1: 'again',
+    Digit2: 'hard',
+    Digit3: 'good',
+    Digit4: 'easy',
+    Numpad1: 'again',
+    Numpad2: 'hard',
+    Numpad3: 'good',
+    Numpad4: 'easy',
+  };
+
+  return gradeByKey[event.key] ?? gradeByKey[event.code] ?? null;
+};
+
 export default function useStudyKeyboardShortcuts({
   cardActionPending,
   editing,
@@ -68,30 +87,10 @@ export default function useStudyKeyboardShortcuts({
 
       if (!revealed || reviewSubmitPending || reviewPending) return;
 
-      if (event.key === '1') {
+      const keyboardGrade = getKeyboardGrade(event);
+      if (keyboardGrade) {
         event.preventDefault();
-        runBackgroundTask(() => handleGrade('again'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError,
-        });
-      } else if (event.key === '2') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('hard'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError,
-        });
-      } else if (event.key === '3') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('good'), {
-          label: 'Study keyboard grade',
-          errorMessage: 'Review failed.',
-          onError,
-        });
-      } else if (event.key === '4') {
-        event.preventDefault();
-        runBackgroundTask(() => handleGrade('easy'), {
+        runBackgroundTask(() => handleGrade(keyboardGrade), {
           label: 'Study keyboard grade',
           errorMessage: 'Review failed.',
           onError,
@@ -102,8 +101,8 @@ export default function useStudyKeyboardShortcuts({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, [
     cardActionPending,
     editing,

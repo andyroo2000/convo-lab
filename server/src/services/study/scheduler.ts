@@ -32,7 +32,6 @@ import {
   buildStudyCardSearchText,
   createFreshSchedulerState,
   dateFromDayBoundary,
-  DEFAULT_STUDY_LIMIT,
   getBestAnswerAudioText,
   getRequiredSchedulerState,
   getScheduledDaysForDue,
@@ -41,6 +40,8 @@ import {
   parseStudyImportStatus,
   parseStudyQueueState,
   scheduler,
+  STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT,
+  STUDY_SESSION_READY_CARD_LIMIT,
   toConvolabReviewRawPayload,
   toPrismaJson,
   toStudyCardSummary,
@@ -346,7 +347,7 @@ function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): S
   });
 }
 
-export async function startStudySession(userId: string, limit: number = DEFAULT_STUDY_LIMIT) {
+export async function startStudySession(userId: string) {
   const now = new Date();
   const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
     where: {
@@ -371,10 +372,10 @@ export async function startStudySession(userId: string, limit: number = DEFAULT_
     },
     // sourceDue is raw Anki integer metadata; runtime session ordering uses dueAt plus a stable ID tie-break.
     orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
-    take: limit,
+    take: STUDY_SESSION_READY_CARD_LIMIT,
   });
 
-  await ensureStudyCardMediaAvailable(cards);
+  await ensureStudyCardMediaAvailable(cards.slice(0, STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT));
 
   return {
     overview: await getStudyOverview(userId),
