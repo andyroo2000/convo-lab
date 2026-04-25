@@ -298,7 +298,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(startStudySessionMock).toHaveBeenCalledTimes(1);
     });
-    expect(startStudySessionMock).toHaveBeenCalledWith(10);
+    expect(startStudySessionMock).toHaveBeenCalledWith();
     expect(screen.getByText('Tap, click, or press space to reveal')).toBeInTheDocument();
   });
 
@@ -417,6 +417,132 @@ describe('StudyPage', () => {
       expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
         'Play answer audio'
       );
+    });
+  });
+
+  it('replays audio and accepts keyboard grading when failed cards return', async () => {
+    const firstCard = {
+      ...baseCard,
+      prompt: {
+        cueAudio: {
+          filename: 'prompt-card-1.mp3',
+          url: 'https://example.com/prompt-card-1.mp3',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+      },
+      answer: {
+        ...baseCard.answer,
+        answerAudio: {
+          filename: 'answer-card-1.mp3',
+          url: 'https://example.com/answer-card-1.mp3',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+      },
+    };
+    const secondCard = {
+      ...baseCard,
+      id: 'card-2',
+      noteId: 'note-2',
+      prompt: {
+        cueText: '学校',
+        cueReading: 'がっこう',
+      },
+      answer: {
+        expression: '学校',
+        expressionReading: '学校[がっこう]',
+        meaning: 'school',
+        answerAudio: {
+          filename: 'answer-card-2.mp3',
+          url: 'https://example.com/answer-card-2.mp3',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+      },
+    };
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 2,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 2,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+      cards: [firstCard, secondCard],
+    });
+    mutateAsyncMock.mockImplementation(
+      async ({ cardId, grade }: { cardId: string; grade: 'again' | 'good' }) => ({
+        reviewLogId: `review-${cardId}-${grade}`,
+        card: cardId === 'card-1' ? firstCard : secondCard,
+        overview: {
+          dueCount: grade === 'again' ? 2 : 1,
+          newCount: 0,
+          learningCount: 0,
+          reviewCount: grade === 'again' ? 2 : 1,
+          suspendedCount: 0,
+          totalCards: 2,
+        },
+      })
+    );
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(2);
+    });
+
+    fireEvent.keyDown(window, { code: 'Digit1', key: '1' });
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        grade: 'again',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByText('学校')).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    fireEvent.keyDown(window, { code: 'Digit3', key: '3' });
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(3);
+    });
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith({
+        cardId: 'card-2',
+        grade: 'good',
+      });
+    });
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(4);
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(5);
+    });
+
+    const focusedAnswerAudio = screen
+      .getAllByLabelText('Play answer audio')
+      .find((element): element is HTMLAudioElement => element instanceof HTMLAudioElement);
+    expect(focusedAnswerAudio).not.toBeNull();
+    // Native audio controls can consume event.key; code-based fallback should still grade.
+    fireEvent.keyDown(focusedAnswerAudio!, { code: 'Digit3', key: '' });
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        grade: 'good',
+      });
     });
   });
 

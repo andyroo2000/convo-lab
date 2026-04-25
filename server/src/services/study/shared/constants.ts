@@ -5,7 +5,9 @@ import {
 
 export const ANKI_DECK_NAME = '日本語';
 export const FIELD_SEPARATOR = String.fromCharCode(31);
-export const DEFAULT_STUDY_LIMIT = 20;
+// Keep ready study sessions bounded while still covering a realistic full due-card sitting.
+export const STUDY_SESSION_READY_CARD_LIMIT = 300;
+export const STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT = 30;
 export const STUDY_MEDIA_SIGNED_URL_TTL_SECONDS = 5 * 60;
 export const STUDY_MEDIA_SIGNED_URL_REFRESH_WINDOW_MS = 30 * 1000;
 export const STUDY_MEDIA_REDIRECT_CACHE_MAX_ENTRIES = 1000;

@@ -191,7 +191,7 @@ describe('useStudyReviewSession', () => {
   });
 
   it('restores the previous revealed card after grade then undo', async () => {
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -217,7 +217,7 @@ describe('useStudyReviewSession', () => {
   });
 
   it('restores a buried card when undo is triggered', async () => {
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -247,7 +247,7 @@ describe('useStudyReviewSession', () => {
     }>();
     reviewMutateAsyncMock.mockReturnValue(deferredReview.promise);
 
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -276,7 +276,7 @@ describe('useStudyReviewSession', () => {
   });
 
   it('keeps session selection stable after a card action removes the current card', async () => {
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -310,7 +310,7 @@ describe('useStudyReviewSession', () => {
       answerAudioSource: 'generated',
     });
 
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -334,7 +334,7 @@ describe('useStudyReviewSession', () => {
     const deferredAudio = createDeferred<typeof baseCardOne>();
     prepareStudyAnswerAudioMock.mockReturnValue(deferredAudio.promise);
 
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 
@@ -361,7 +361,7 @@ describe('useStudyReviewSession', () => {
     const deferredAudio = createDeferred<typeof baseCardOne>();
     prepareStudyAnswerAudioMock.mockReturnValue(deferredAudio.promise);
 
-    const { result } = renderHook(() => useStudyReviewSession({ availableCount: 2 }), {
+    const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),
     });
 

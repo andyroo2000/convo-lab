@@ -36,6 +36,21 @@ export default function useStudyAudioAutoplay({
     answerAudioRef.current?.stop();
   }, []);
 
+  const resetAutoplayForCard = useCallback((cardId: string) => {
+    const keyPrefix = `${cardId}:`;
+
+    promptAutoplayKeys.current.forEach((key) => {
+      if (key.startsWith(keyPrefix)) {
+        promptAutoplayKeys.current.delete(key);
+      }
+    });
+    answerAutoplayKeys.current.forEach((key) => {
+      if (key.startsWith(keyPrefix)) {
+        answerAutoplayKeys.current.delete(key);
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (!focusMode || !cards.length) return;
 
@@ -83,6 +98,7 @@ export default function useStudyAudioAutoplay({
   return {
     promptAudioRef,
     answerAudioRef,
+    resetAutoplayForCard,
     stopAllAudio,
   };
 }

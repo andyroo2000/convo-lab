@@ -62,8 +62,9 @@ export interface StudyBrowserQuery {
 function withMutationHeaders(init?: RequestInit): HeadersInit {
   const headers = new Headers(init?.headers ?? {});
   const method = (init?.method ?? 'GET').toUpperCase();
+  const hasBody = typeof init?.body !== 'undefined' && init.body !== null;
 
-  if (!headers.has('Content-Type') && method !== 'GET' && method !== 'HEAD') {
+  if (hasBody && !headers.has('Content-Type') && method !== 'GET' && method !== 'HEAD') {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -85,10 +86,9 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function startStudySession(limit: number = 20): Promise<StudySessionResponse> {
+export async function startStudySession(): Promise<StudySessionResponse> {
   return apiRequest<StudySessionResponse>('/api/study/session/start', {
     method: 'POST',
-    body: JSON.stringify({ limit }),
   });
 }
 

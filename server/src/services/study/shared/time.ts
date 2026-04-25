@@ -17,7 +17,6 @@ import { parseStudyQueueState } from './guards.js';
 import { toStudyFsrsState } from './payloads.js';
 
 export const scheduler = createStudyFsrsScheduler();
-export const DEFAULT_STUDY_LIMIT = 20;
 
 export function createFreshSchedulerState(
   due: Date = new Date(),

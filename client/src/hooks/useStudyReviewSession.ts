@@ -99,11 +99,7 @@ const isCardEligibleForSession = (card: StudyCardSummary) => {
   return new Date(card.state.dueAt).getTime() <= Date.now();
 };
 
-interface UseStudyReviewSessionOptions {
-  availableCount: number;
-}
-
-const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions) => {
+const useStudyReviewSession = () => {
   const queryClient = useQueryClient();
   const reviewMutation = useSubmitStudyReview();
   const cardActionMutation = useStudyCardAction();
@@ -262,7 +258,12 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     onError: reportAsyncSessionError,
   });
 
-  const { answerAudioRef, promptAudioRef, stopAllAudio } = useStudyAudioAutoplay({
+  const {
+    answerAudioRef,
+    promptAudioRef,
+    resetAutoplayForCard: resetStudyAudioAutoplayForCard,
+    stopAllAudio,
+  } = useStudyAudioAutoplay({
     cards,
     currentCard,
     ensureAnswerAudioPrepared,
@@ -289,27 +290,24 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     [stopAllAudio, syncOverview]
   );
 
-  const loadSession = useCallback(
-    async (limit: number) => {
-      setSessionLoading(true);
-      setSessionError(null);
+  const loadSession = useCallback(async () => {
+    setSessionLoading(true);
+    setSessionError(null);
 
-      try {
-        const nextSession = await startStudySession(limit);
-        setSession(nextSession);
-        syncOverview(nextSession.overview);
-        return nextSession;
-      } catch (error) {
-        setSession(null);
-        const message = error instanceof Error ? error.message : 'Study session failed to load.';
-        setSessionError(message);
-        throw error;
-      } finally {
-        setSessionLoading(false);
-      }
-    },
-    [syncOverview]
-  );
+    try {
+      const nextSession = await startStudySession();
+      setSession(nextSession);
+      syncOverview(nextSession.overview);
+      return nextSession;
+    } catch (error) {
+      setSession(null);
+      const message = error instanceof Error ? error.message : 'Study session failed to load.';
+      setSessionError(message);
+      throw error;
+    } finally {
+      setSessionLoading(false);
+    }
+  }, [syncOverview]);
 
   const revealCurrentCard = useCallback(() => {
     if (!currentCard || revealed || editing) return;
@@ -399,6 +397,9 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
           snapshot: undoSnapshot,
           reviewLogId: reviewResult.reviewLogId,
         });
+        if (grade === 'again') {
+          resetStudyAudioAutoplayForCard(currentCard.id);
+        }
         applyReviewResultToSession(reviewResult.card, grade);
         syncOverview(reviewResult.overview);
         setCurrentIndex((current) => {
@@ -425,6 +426,7 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
       currentCard,
       editing,
       pushUndo,
+      resetStudyAudioAutoplayForCard,
       reviewMutation,
       stopAllAudio,
       syncOverview,
@@ -601,20 +603,12 @@ const useStudyReviewSession = ({ availableCount }: UseStudyReviewSessionOptions)
     runBackgroundTask(() => requestMotionPermission(), {
       label: 'Study motion-permission request',
     });
-    const sessionLimit = Math.max(availableCount, 1);
     try {
-      await loadSession(sessionLimit);
+      await loadSession();
     } catch {
       // loadSession already updates session error state for the dashboard.
     }
-  }, [
-    availableCount,
-    loadSession,
-    requestMotionPermission,
-    runBackgroundTask,
-    resetUndo,
-    stopAllAudio,
-  ]);
+  }, [loadSession, requestMotionPermission, runBackgroundTask, resetUndo, stopAllAudio]);
 
   useEffect(() => {
     stopAllAudio();

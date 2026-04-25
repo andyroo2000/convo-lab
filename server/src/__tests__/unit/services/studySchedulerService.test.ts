@@ -1,7 +1,14 @@
 /* eslint-disable import/order */
+import { promises as fs } from 'fs';
+import os from 'os';
+import path from 'path';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
-import { cleanupStudyServiceTestMedia, resetStudyServiceMocks } from './studyTestHelpers.js';
+import {
+  cleanupStudyServiceTestMedia,
+  resetStudyServiceMocks,
+  uploadBufferToGCSPathMock,
+} from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
 import {
   createStudyCard,
@@ -369,7 +376,7 @@ describe('studySchedulerService', () => {
     ]);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
-    const session = await startStudySession('user-1', 20);
+    const session = await startStudySession('user-1');
     const overview = await getStudyOverview('user-1');
 
     expect(session.cards).toHaveLength(1);
@@ -377,8 +384,121 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+        take: 300,
       })
     );
+  });
+
+  it('only eagerly prepares media for the first study-session cards', async () => {
+    const ankiMediaDir = await fs.mkdtemp(path.join(os.tmpdir(), 'study-session-media-'));
+    const previousAnkiMediaDir = process.env.ANKI_MEDIA_DIR;
+    const previousGcsBucketName = process.env.GCS_BUCKET_NAME;
+    process.env.ANKI_MEDIA_DIR = ankiMediaDir;
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+
+    try {
+      await Promise.all(
+        Array.from({ length: 31 }, (_, index) =>
+          fs.writeFile(path.join(ankiMediaDir, `card-${index + 1}.mp3`), 'fake-audio')
+        )
+      );
+
+      mockPrisma.studyCard.findMany.mockResolvedValue(
+        Array.from({ length: 31 }, (_, index) => {
+          const ordinal = index + 1;
+
+          return {
+            id: `card-${ordinal}`,
+            userId: 'user-1',
+            noteId: `note-${ordinal}`,
+            cardType: 'recognition',
+            queueState: 'review',
+            dueAt: new Date('2026-04-12T00:00:00.000Z'),
+            sourceDue: ordinal,
+            answerAudioSource: 'imported',
+            promptJson: {
+              cueText: `会社${ordinal}`,
+              cueAudio: {
+                filename: `card-${ordinal}.mp3`,
+                mediaKind: 'audio',
+                source: 'imported',
+              },
+            },
+            answerJson: { expression: `会社${ordinal}`, meaning: 'company' },
+            schedulerStateJson: {
+              due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+              stability: 10,
+              difficulty: 4,
+              elapsed_days: 4,
+              scheduled_days: 10,
+              learning_steps: 0,
+              reps: 6,
+              lapses: 1,
+              state: 2,
+              last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+            },
+            createdAt: new Date('2026-04-01T00:00:00.000Z'),
+            updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+            note: {},
+            promptAudioMedia: {
+              id: `media-${ordinal}`,
+              userId: 'user-1',
+              importJobId: 'import-1',
+              sourceKind: 'anki_import',
+              sourceFilename: `card-${ordinal}.mp3`,
+              normalizedFilename: `card-${ordinal}.mp3`,
+              mediaKind: 'audio',
+              storagePath: null,
+              publicUrl: null,
+            },
+          };
+        })
+      );
+      mockPrisma.studyMedia.update.mockImplementation(async ({ where, data }) => ({
+        id: where.id,
+        userId: 'user-1',
+        importJobId: 'import-1',
+        sourceKind: 'anki_import',
+        sourceFilename: `${where.id}.mp3`,
+        normalizedFilename: `${where.id}.mp3`,
+        mediaKind: 'audio',
+        storagePath: data.storagePath,
+        publicUrl: data.publicUrl,
+      }));
+      mockPrisma.$queryRaw.mockResolvedValue([
+        {
+          due_count: 31,
+          new_count: 0,
+          learning_count: 0,
+          review_count: 31,
+          suspended_count: 0,
+          total_cards: 31,
+          next_due_at: new Date('2026-04-12T00:00:00.000Z'),
+        },
+      ]);
+      mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+      const session = await startStudySession('user-1');
+
+      expect(session.cards).toHaveLength(31);
+      expect(mockPrisma.studyMedia.update).toHaveBeenCalledTimes(30);
+      expect(uploadBufferToGCSPathMock).toHaveBeenCalledTimes(30);
+      expect(mockPrisma.studyMedia.update).not.toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'media-31' } })
+      );
+    } finally {
+      if (previousAnkiMediaDir === undefined) {
+        delete process.env.ANKI_MEDIA_DIR;
+      } else {
+        process.env.ANKI_MEDIA_DIR = previousAnkiMediaDir;
+      }
+      if (previousGcsBucketName === undefined) {
+        delete process.env.GCS_BUCKET_NAME;
+      } else {
+        process.env.GCS_BUCKET_NAME = previousGcsBucketName;
+      }
+      await fs.rm(ankiMediaDir, { recursive: true, force: true });
+    }
   });
 
   it('excludes suspended and buried cards from the nextDueAt overview lookup', async () => {
@@ -445,7 +565,7 @@ describe('studySchedulerService', () => {
     ]);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
-    const session = await startStudySession('user-1', 20);
+    const session = await startStudySession('user-1');
 
     expect(session.cards[0]?.state.scheduler).toEqual(
       expect.objectContaining({
