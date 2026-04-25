@@ -20,7 +20,9 @@ const StudyPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const overviewQuery = useStudyOverview(enabled);
-  const availableCount = (overviewQuery.data?.dueCount ?? 0) + (overviewQuery.data?.newCount ?? 0);
+  const availableCount =
+    (overviewQuery.data?.dueCount ?? 0) +
+    (overviewQuery.data?.newCardsAvailableToday ?? overviewQuery.data?.newCount ?? 0);
   const reviewSession = useStudyReviewSession();
   const runBackgroundTask = useStudyBackgroundTask();
   const motionBannerMessage = useMemo(() => {

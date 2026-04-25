@@ -200,6 +200,9 @@ export function parseOptionalStudyOverview(value: unknown): StudyOverview | unde
   const reviewCount = readRequiredNumber(value.reviewCount);
   const suspendedCount = readRequiredNumber(value.suspendedCount);
   const totalCards = readRequiredNumber(value.totalCards);
+  const newCardsPerDay = readRequiredNumber(value.newCardsPerDay);
+  const newCardsIntroducedToday = readRequiredNumber(value.newCardsIntroducedToday);
+  const newCardsAvailableToday = readRequiredNumber(value.newCardsAvailableToday);
 
   if (
     dueCount === null ||
@@ -222,6 +225,9 @@ export function parseOptionalStudyOverview(value: unknown): StudyOverview | unde
     reviewCount,
     suspendedCount,
     totalCards,
+    newCardsPerDay: newCardsPerDay ?? undefined,
+    newCardsIntroducedToday: newCardsIntroducedToday ?? undefined,
+    newCardsAvailableToday: newCardsAvailableToday ?? undefined,
     latestImport: null,
     nextDueAt,
   };

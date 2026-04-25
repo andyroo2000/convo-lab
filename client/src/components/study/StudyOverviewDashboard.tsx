@@ -58,6 +58,12 @@ const StudyOverviewDashboard = ({
             >
               {t('overview.history')}
             </Link>
+            <Link
+              to="/app/study/settings"
+              className="retro-nav-tab inline-flex items-center justify-center text-white hover:bg-white/20"
+            >
+              {t('overview.settings')}
+            </Link>
           </div>
         </div>
       </section>
@@ -130,6 +136,15 @@ const StudyOverviewDashboard = ({
                 {t('overview.loadStrategy')}
               </p>
               <p className="mt-3 text-base text-navy">{t('overview.loadStrategyDescription')}</p>
+              {typeof overview?.newCardsAvailableToday === 'number' ? (
+                <p className="mt-2 text-sm text-gray-600">
+                  {t('overview.newCardsToday', {
+                    available: overview.newCardsAvailableToday,
+                    limit: overview.newCardsPerDay ?? 0,
+                    introduced: overview.newCardsIntroducedToday ?? 0,
+                  })}
+                </p>
+              ) : null}
             </div>
             <div className="rounded-2xl bg-cream/70 p-5">
               <p className="text-xs uppercase tracking-[0.18em] text-gray-500">

@@ -58,6 +58,7 @@ model User {
   studyReviewLogs         StudyReviewLog[]
   studyMedia              StudyMedia[]
   studyImportJobs         StudyImportJob[]
+  studySettings           StudySettings?
 
   @@index([email])
   @@index([role])
@@ -67,6 +68,17 @@ model User {
   @@index([stripeCustomerId])
   @@index([stripeSubscriptionId])
   @@index([isTestUser])
+}
+
+model StudySettings {
+  userId         String   @id
+  newCardsPerDay Int      @default(20)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("study_settings")
 }
 
 model InviteCode {
@@ -463,7 +475,9 @@ model StudyCard {
   cardType             String // recognition | production | cloze; DB check enforced in migration history.
   queueState           String // Runtime queue state; DB check enforced in migration history.
   dueAt                DateTime?
+  introducedAt         DateTime?
   lastReviewedAt       DateTime?
+  newQueuePosition     Int?
   promptJson           Json
   answerJson           Json
   searchText           String    @default("") @db.Text
@@ -485,6 +499,8 @@ model StudyCard {
 
   @@unique([userId, sourceCardId])
   @@index([userId, queueState, dueAt])
+  @@index([userId, queueState, newQueuePosition])
+  @@index([userId, introducedAt])
   @@index([userId, lastReviewedAt])
   @@index([userId, noteId, cardType])
   @@index([userId, noteId, queueState])

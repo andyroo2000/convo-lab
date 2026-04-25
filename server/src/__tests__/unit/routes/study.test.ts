@@ -42,13 +42,17 @@ const {
   getStudyBrowserNoteDetailMock,
   getStudyHistoryMock,
   getCurrentStudyImportJobMock,
+  getStudyNewCardQueueMock,
   getStudyMediaAccessMock,
   getStudyImportUploadReadinessMock,
+  getStudySettingsMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
+  reorderStudyNewCardQueueMock,
   startStudySessionMock,
+  updateStudySettingsMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   cancelStudyImportUploadMock: vi.fn(),
@@ -67,13 +71,17 @@ const {
   getStudyBrowserNoteDetailMock: vi.fn(),
   getStudyHistoryMock: vi.fn(),
   getCurrentStudyImportJobMock: vi.fn(),
+  getStudyNewCardQueueMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   getStudyImportUploadReadinessMock: vi.fn(),
+  getStudySettingsMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
+  reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
+  updateStudySettingsMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
 
@@ -100,15 +108,19 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyCardOptions: getStudyCardOptionsMock,
   getStudyHistory: getStudyHistoryMock,
   getCurrentStudyImportJob: getCurrentStudyImportJobMock,
+  getStudyNewCardQueue: getStudyNewCardQueueMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
   getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   getStudyOverview: vi.fn(),
+  getStudySettings: getStudySettingsMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
+  reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
   undoStudyReview: vi.fn(),
+  updateStudySettings: updateStudySettingsMock,
   updateStudyCard: updateStudyCardMock,
 }));
 
@@ -178,7 +190,7 @@ describe('Study Routes', () => {
     temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
     vi.useFakeTimers();
     vi.setSystemTime(
-      new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
+      new Date(`2026-04-21T${String(12 + (testClockOffset % 12)).padStart(2, '0')}:00:00.000Z`)
     );
     testClockOffset += 1;
     app = express();
@@ -250,7 +262,83 @@ describe('Study Routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1');
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', { timeZone: undefined });
+  });
+
+  it('passes a valid device timezone when starting study sessions', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 1,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+      cards: [],
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/session/start')).send({
+      timeZone: 'America/New_York',
+    });
+
+    expect(response.status).toBe(200);
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', {
+      timeZone: 'America/New_York',
+    });
+  });
+
+  it('reads and updates study settings', async () => {
+    getStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
+
+    const getResponse = await request(app).get('/study/settings');
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body).toEqual({ newCardsPerDay: 20 });
+
+    const patchResponse = await withMutationCsrf(request(app).patch('/study/settings')).send({
+      newCardsPerDay: 12,
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(updateStudySettingsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      newCardsPerDay: 12,
+    });
+  });
+
+  it('lists and reorders the new-card queue', async () => {
+    getStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+    reorderStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+
+    const listResponse = await request(app).get('/study/new-queue?q=会社');
+    expect(listResponse.status).toBe(200);
+    expect(getStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cursor: undefined,
+      limit: 100,
+      q: '会社',
+    });
+
+    const reorderResponse = await withMutationCsrf(
+      request(app).post('/study/new-queue/reorder')
+    ).send({
+      cardIds: ['card-2', 'card-1'],
+    });
+    expect(reorderResponse.status).toBe(200);
+    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardIds: ['card-2', 'card-1'],
+    });
   });
 
   it('rejects invalid review grades', async () => {
@@ -290,6 +378,8 @@ describe('Study Routes', () => {
       cardId: 'card-1',
       grade: 'good',
       durationMs: 3_600_000,
+      timeZone: undefined,
+      currentOverview: undefined,
     });
   });
 

@@ -7,6 +7,8 @@ import {
   STUDY_EXPORT_PAGE_SIZE_MAX,
   STUDY_HISTORY_PAGE_SIZE_DEFAULT,
   STUDY_HISTORY_PAGE_SIZE_MAX,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
@@ -36,16 +38,20 @@ import {
   getStudyBrowserNoteDetail,
   getStudyCardOptions,
   getCurrentStudyImportJob,
+  getStudyNewCardQueue,
   getStudyMediaAccess,
   getStudyHistory,
   getStudyImportJob,
   getStudyImportUploadReadiness,
   getStudyOverview,
+  getStudySettings,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   recordStudyReview,
+  reorderStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
+  updateStudySettings,
   updateStudyCard,
 } from '../services/studyService.js';
 
@@ -56,6 +62,7 @@ const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+const MAX_STUDY_REORDER_CARD_IDS = 500;
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -178,6 +185,31 @@ function parsePaginationLimit(value: unknown, defaultSize: number, maxSize: numb
   }
 
   return parsed;
+}
+
+function parseOptionalTimeZone(value: unknown): string | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    throw new AppError('timeZone must be a valid IANA timezone.', 400);
+  }
+
+  const trimmed = value.trim();
+  if (!isValidIanaTimeZone(trimmed)) {
+    throw new AppError('timeZone must be a valid IANA timezone.', 400);
+  }
+
+  return trimmed;
+}
+
+function parseNonNegativeSafeInteger(name: string, value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new AppError(`${name} must be a non-negative integer.`, 400);
+  }
+
+  return value;
 }
 
 function parseBoundedStringQueryParam(name: string, value: unknown): string | undefined {
@@ -581,12 +613,96 @@ router.get('/overview', async (req: AuthRequest, res, next) => {
     if (!req.userId) {
       throw new AppError('Authenticated user is required.', 401);
     }
-    const overview = await getStudyOverview(req.userId);
+    const overview = await getStudyOverview(req.userId, parseOptionalTimeZone(req.query.timeZone));
     res.json(overview);
   } catch (error) {
     next(error);
   }
 });
+
+router.get('/settings', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    res.json(await getStudySettings(req.userId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch(
+  '/settings',
+  rateLimitStudyRoute({ key: 'settings', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const { newCardsPerDay } = req.body as { newCardsPerDay?: unknown };
+      res.json(
+        await updateStudySettings({
+          userId: req.userId,
+          newCardsPerDay: parseNonNegativeSafeInteger('newCardsPerDay', newCardsPerDay),
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get('/new-queue', async (req: AuthRequest, res, next) => {
+  try {
+    if (!req.userId) {
+      throw new AppError('Authenticated user is required.', 401);
+    }
+
+    res.json(
+      await getStudyNewCardQueue({
+        userId: req.userId,
+        cursor: parseBoundedStringQueryParam('cursor', req.query.cursor),
+        limit: parsePaginationLimit(
+          req.query.limit,
+          STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+          STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX
+        ),
+        q: parseBoundedStringQueryParam('q', req.query.q),
+      })
+    );
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post(
+  '/new-queue/reorder',
+  rateLimitStudyRoute({ key: 'new-queue-reorder', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const { cardIds } = req.body as { cardIds?: unknown };
+      if (
+        !Array.isArray(cardIds) ||
+        cardIds.length === 0 ||
+        cardIds.length > MAX_STUDY_REORDER_CARD_IDS ||
+        cardIds.some((cardId) => typeof cardId !== 'string' || cardId.length === 0)
+      ) {
+        res.status(400).json({ message: 'cardIds must be a non-empty array of card ids.' });
+        return;
+      }
+
+      res.json(await reorderStudyNewCardQueue({ userId: req.userId, cardIds }));
+    } catch (error) {
+      next(error);
+    }
+  }
+);
 
 router.post(
   '/session/start',
@@ -596,7 +712,9 @@ router.post(
       if (!req.userId) {
         throw new AppError('Authenticated user is required.', 401);
       }
-      const session = await startStudySession(req.userId);
+      const session = await startStudySession(req.userId, {
+        timeZone: parseOptionalTimeZone((req.body as { timeZone?: unknown } | undefined)?.timeZone),
+      });
       res.json(session);
     } catch (error) {
       next(error);
@@ -613,10 +731,11 @@ router.post(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const { cardId, grade, durationMs } = req.body as {
+      const { cardId, grade, durationMs, timeZone } = req.body as {
         cardId?: unknown;
         grade?: unknown;
         durationMs?: unknown;
+        timeZone?: unknown;
       };
 
       if (typeof cardId !== 'string' || !cardId) {
@@ -633,6 +752,7 @@ router.post(
         cardId,
         grade: grade as 'again' | 'hard' | 'good' | 'easy',
         durationMs: parseStudyReviewDurationMs(durationMs),
+        timeZone: parseOptionalTimeZone(timeZone),
         currentOverview: parseOptionalStudyOverview(
           (req.body as { currentOverview?: unknown }).currentOverview
         ),

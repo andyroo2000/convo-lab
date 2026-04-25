@@ -100,6 +100,7 @@ export {
   assertValidStudyTimeZone,
   createFreshSchedulerState,
   dateFromDayBoundary,
+  dateFromLocalDayStart,
   getBestAnswerAudioText,
   getRequiredSchedulerState,
   getScheduledDaysForDue,

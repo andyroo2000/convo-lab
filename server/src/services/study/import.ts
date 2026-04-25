@@ -498,6 +498,7 @@ async function runStudyImportTransaction(params: {
               sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
               cardType: card.cardType,
               queueState: card.queueState,
+              newQueuePosition: card.queueState === 'new' ? card.sourceDue : null,
               dueAt: card.dueAt,
               lastReviewedAt: card.lastReviewedAt,
               promptJson: toPrismaJson(card.prompt),

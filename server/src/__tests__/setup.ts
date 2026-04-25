@@ -178,12 +178,20 @@ export const mockPrisma = {
     findFirst: vi.fn(),
     findMany: vi.fn(),
     groupBy: vi.fn(),
+    aggregate: vi.fn(),
     create: vi.fn(),
     createMany: vi.fn(),
     update: vi.fn(),
     updateMany: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
+  },
+  studySettings: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    upsert: vi.fn(),
   },
   studyReviewLog: {
     findUnique: vi.fn(),
@@ -289,7 +297,11 @@ export const mockPrisma = {
     count: vi.fn(),
   },
   $queryRaw: vi.fn(),
-  $transaction: vi.fn((callback) => callback(mockPrisma)),
+  $transaction: vi.fn((callbackOrOperations) =>
+    Array.isArray(callbackOrOperations)
+      ? Promise.all(callbackOrOperations)
+      : callbackOrOperations(mockPrisma)
+  ),
 };
 
 // Mock the prisma module - this must be before any imports that use prisma

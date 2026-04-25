@@ -59,12 +59,14 @@ export function toConvolabReviewRawPayload(params: {
   grade: string;
   beforeQueueState: string;
   beforeDueAt: string | null;
+  beforeIntroducedAt?: string | null;
   beforeLastReviewedAt: string | null;
 }): Prisma.InputJsonValue {
   const payload = {
     grade: params.grade,
     beforeQueueState: params.beforeQueueState,
     beforeDueAt: params.beforeDueAt,
+    beforeIntroducedAt: params.beforeIntroducedAt ?? null,
     beforeLastReviewedAt: params.beforeLastReviewedAt,
   };
 

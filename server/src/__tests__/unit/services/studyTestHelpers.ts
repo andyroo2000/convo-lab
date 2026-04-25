@@ -535,7 +535,11 @@ export function resetStudyServiceMocks() {
     },
   ]);
   mockPrisma.studyReviewLog.createMany.mockResolvedValue({ count: 3 });
-  mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+  mockPrisma.$transaction.mockImplementation(async (callbackOrOperations) =>
+    Array.isArray(callbackOrOperations)
+      ? Promise.all(callbackOrOperations)
+      : callbackOrOperations(mockPrisma)
+  );
 }
 
 export async function cleanupStudyServiceTestMedia() {
