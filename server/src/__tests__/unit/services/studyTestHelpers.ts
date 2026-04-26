@@ -528,6 +528,7 @@ export function resetStudyServiceMocks() {
       newQueuePosition: 0,
     },
   });
+  mockPrisma.$executeRaw.mockResolvedValue(0);
   mockPrisma.$queryRaw.mockResolvedValue([
     {
       due_count: 0,

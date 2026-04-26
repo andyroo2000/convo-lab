@@ -296,6 +296,7 @@ export const mockPrisma = {
     deleteMany: vi.fn(),
     count: vi.fn(),
   },
+  $executeRaw: vi.fn(),
   $queryRaw: vi.fn(),
   $transaction: vi.fn((callbackOrOperations) =>
     Array.isArray(callbackOrOperations)

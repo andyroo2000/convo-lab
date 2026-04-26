@@ -828,35 +828,58 @@ describe('studySchedulerService', () => {
       { id: 'card-1', newQueuePosition: 1 },
       { id: 'card-2', newQueuePosition: 2 },
     ]);
+    mockPrisma.$executeRaw.mockResolvedValueOnce(2);
     mockPrisma.studyCard.count.mockResolvedValueOnce(2);
     mockPrisma.studyCard.findMany.mockResolvedValueOnce([]);
 
     await reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-2', 'card-1'] });
 
     expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
-    expect(mockPrisma.studyCard.updateMany).toHaveBeenNthCalledWith(1, {
-      where: {
-        id: 'card-2',
-        userId: 'user-1',
-        queueState: 'new',
-      },
-      data: {
-        newQueuePosition: 1,
-      },
-    });
-    expect(mockPrisma.studyCard.updateMany).toHaveBeenNthCalledWith(2, {
-      where: {
-        id: 'card-1',
-        userId: 'user-1',
-        queueState: 'new',
-      },
-      data: {
-        newQueuePosition: 2,
-      },
-    });
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.studyCard.updateMany).not.toHaveBeenCalled();
     await expect(
       reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-1'] })
     ).rejects.toThrow('duplicates');
+  });
+
+  it('fills null reorder positions after the current queue maximum', async () => {
+    mockPrisma.studyCard.findMany.mockResolvedValueOnce([
+      { id: 'card-1', newQueuePosition: null },
+      { id: 'card-2', newQueuePosition: 2 },
+    ]);
+    mockPrisma.studyCard.aggregate.mockResolvedValueOnce({
+      _max: {
+        newQueuePosition: 8,
+      },
+    });
+    mockPrisma.$executeRaw.mockResolvedValueOnce(2);
+    mockPrisma.studyCard.count.mockResolvedValueOnce(2);
+    mockPrisma.studyCard.findMany.mockResolvedValueOnce([]);
+
+    await reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-2'] });
+
+    expect(mockPrisma.studyCard.aggregate).toHaveBeenCalledWith({
+      where: {
+        userId: 'user-1',
+        queueState: 'new',
+      },
+      _max: {
+        newQueuePosition: true,
+      },
+    });
+    expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects reorder when the bulk update does not update every requested card', async () => {
+    mockPrisma.studyCard.findMany.mockResolvedValueOnce([
+      { id: 'card-1', newQueuePosition: 1 },
+      { id: 'card-2', newQueuePosition: 2 },
+    ]);
+    mockPrisma.$executeRaw.mockResolvedValueOnce(1);
+
+    await expect(
+      reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-2'] })
+    ).rejects.toThrow('Every reordered card');
   });
 
   it('only eagerly prepares media for the first study-session cards', async () => {

@@ -611,17 +611,21 @@ router.get('/overview', async (req: AuthRequest, res, next) => {
   }
 });
 
-router.get('/settings', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
+router.get(
+  '/settings',
+  rateLimitStudyRoute({ key: 'settings-read', max: 120, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
 
-    res.json(await getStudySettings(req.userId));
-  } catch (error) {
-    next(error);
+      res.json(await getStudySettings(req.userId));
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.patch(
   '/settings',

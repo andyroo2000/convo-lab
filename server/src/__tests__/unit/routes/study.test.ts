@@ -298,11 +298,13 @@ describe('Study Routes', () => {
     const getResponse = await request(app).get('/study/settings');
     expect(getResponse.status).toBe(200);
     expect(getResponse.body).toEqual({ newCardsPerDay: 20 });
+    expect(multiMock).toHaveBeenCalledTimes(1);
 
     const patchResponse = await withMutationCsrf(request(app).patch('/study/settings')).send({
       newCardsPerDay: 12,
     });
     expect(patchResponse.status).toBe(200);
+    expect(multiMock).toHaveBeenCalledTimes(2);
     expect(updateStudySettingsMock).toHaveBeenCalledWith({
       userId: 'user-1',
       newCardsPerDay: 12,

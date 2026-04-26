@@ -178,7 +178,7 @@ describe('StudySettingsPage', () => {
     renderPage();
 
     expect(screen.getByText(/failed to load study settings/i)).toBeInTheDocument();
-    expect(screen.getByText(/settings endpoint failed/i)).toBeInTheDocument();
+    expect(screen.queryByText(/settings endpoint failed/i)).not.toBeInTheDocument();
     expect(screen.getByText('会社')).toBeInTheDocument();
   });
 
@@ -192,7 +192,7 @@ describe('StudySettingsPage', () => {
     renderPage();
 
     expect(screen.getByText(/failed to load the new-card queue/i)).toBeInTheDocument();
-    expect(screen.getByText(/queue endpoint failed/i)).toBeInTheDocument();
+    expect(screen.queryByText(/queue endpoint failed/i)).not.toBeInTheDocument();
   });
 
   it('saves the daily new-card limit', async () => {

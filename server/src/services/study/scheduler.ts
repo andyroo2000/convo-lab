@@ -271,6 +271,7 @@ export async function getStudyNewCardQueue(params: {
     items: items.map(toNewCardQueueItem),
     total,
     limit,
+    // Offset cursor is intentional for this settings-only queue view; it is not a durable snapshot cursor.
     nextCursor: nextOffset < total ? String(nextOffset) : null,
   };
 }
@@ -310,20 +311,48 @@ export async function reorderStudyNewCardQueue(params: {
     throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
   }
 
-  const positions = existingCards.map((card, index) => card.newQueuePosition ?? index + 1);
-  // Reorder input is capped to one settings-page batch, so the simple per-card update loop is acceptable here.
+  const maxQueuePosition = existingCards.some((card) => card.newQueuePosition === null)
+    ? ((
+        await prisma.studyCard.aggregate({
+          where: {
+            userId: params.userId,
+            queueState: 'new',
+          },
+          _max: {
+            newQueuePosition: true,
+          },
+        })
+      )._max.newQueuePosition ?? 0)
+    : 0;
+  let syntheticPositionOffset = 0;
+  const positionsByCardId = new Map(
+    existingCards.map((card) => {
+      if (card.newQueuePosition !== null) {
+        return [card.id, card.newQueuePosition] as const;
+      }
+
+      syntheticPositionOffset += 1;
+      return [card.id, maxQueuePosition + syntheticPositionOffset] as const;
+    })
+  );
+  const positions = params.cardIds.map((cardId) => positionsByCardId.get(cardId) ?? 0);
+  const positionCases = Prisma.join(
+    params.cardIds.map((cardId, index) => Prisma.sql`WHEN ${cardId} THEN ${positions[index]}`),
+    ' '
+  );
+  const cardIds = Prisma.join(params.cardIds);
+
   await prisma.$transaction(async (tx) => {
-    for (const [index, cardId] of params.cardIds.entries()) {
-      await tx.studyCard.updateMany({
-        where: {
-          id: cardId,
-          userId: params.userId,
-          queueState: 'new',
-        },
-        data: {
-          newQueuePosition: positions[index],
-        },
-      });
+    const updatedCount = await tx.$executeRaw`
+      UPDATE "study_cards"
+      SET "newQueuePosition" = CASE "id" ${positionCases} ELSE "newQueuePosition" END
+      WHERE "userId" = ${params.userId}
+        AND "queueState" = 'new'
+        AND "id" IN (${cardIds})
+    `;
+
+    if (updatedCount !== params.cardIds.length) {
+      throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
     }
   });
 
@@ -725,7 +754,7 @@ export async function startStudySession(userId: string, options: { timeZone?: st
   );
   const dueCards = await fetchDueStudyCards(
     userId,
-    now,
+    new Date(),
     getDueCardLimitForSession(newCards.length)
   );
   const cards = [...dueCards, ...newCards];

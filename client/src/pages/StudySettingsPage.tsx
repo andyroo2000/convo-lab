@@ -198,9 +198,9 @@ const StudySettingsPage = () => {
           <h2 className="text-2xl font-semibold text-navy">{t('settings.dailyLimitTitle')}</h2>
           <p className="text-sm text-gray-500">{t('settings.dailyLimitDescription')}</p>
         </div>
-        {settingsQuery.error instanceof Error ? (
+        {settingsQuery.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {t('settings.failedSettings')} {settingsQuery.error.message}
+            {t('settings.failedSettings')}
           </p>
         ) : null}
         <form
@@ -281,9 +281,9 @@ const StudySettingsPage = () => {
         {queueQuery.isLoading ? (
           <p className="text-gray-500">{t('settings.loadingQueue')}</p>
         ) : null}
-        {queueQuery.error instanceof Error ? (
+        {queueQuery.error ? (
           <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-            {t('settings.failedQueue')} {queueQuery.error.message}
+            {t('settings.failedQueue')}
           </p>
         ) : null}
 
