@@ -16,6 +16,8 @@ ALTER TABLE "study_cards"
 ADD COLUMN "introducedAt" TIMESTAMP(3),
 ADD COLUMN "newQueuePosition" INTEGER;
 
+-- Existing reviewed cards keep introducedAt = NULL. That can make the first post-migration
+-- daily new-card count look under-used once, but avoids inventing historical introduction dates.
 WITH ordered_new_cards AS (
     SELECT
         "id",

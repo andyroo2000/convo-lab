@@ -349,19 +349,17 @@ export async function reorderStudyNewCardQueue(params: {
   );
   const cardIds = Prisma.join(params.cardIds);
 
-  await prisma.$transaction(async (tx) => {
-    const updatedCount = await tx.$executeRaw`
-      UPDATE "study_cards"
-      SET "newQueuePosition" = CASE "id" ${positionCases} ELSE "newQueuePosition" END
-      WHERE "userId" = ${params.userId}
-        AND "queueState" = 'new'
-        AND "id" IN (${cardIds})
-    `;
+  const updatedCount = await prisma.$executeRaw`
+    UPDATE "study_cards"
+    SET "newQueuePosition" = CASE "id" ${positionCases} ELSE "newQueuePosition" END
+    WHERE "userId" = ${params.userId}
+      AND "queueState" = 'new'
+      AND "id" IN (${cardIds})
+  `;
 
-    if (updatedCount !== params.cardIds.length) {
-      throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
-    }
-  });
+  if (updatedCount !== params.cardIds.length) {
+    throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
+  }
 
   return getStudyNewCardQueue({
     userId: params.userId,
@@ -369,20 +367,29 @@ export async function reorderStudyNewCardQueue(params: {
   });
 }
 
-export async function getStudyOverview(userId: string, timeZone?: string): Promise<StudyOverview> {
-  const now = new Date();
+export async function getStudyOverview(
+  userId: string,
+  timeZone?: string,
+  prefetched?: {
+    now?: Date;
+    settings?: StudySettings;
+    introducedToday?: number;
+  }
+): Promise<StudyOverview> {
+  const now = prefetched?.now ?? new Date();
   const dayWindow = getStudyDayWindow(timeZone, now);
   const [settings, introducedToday, cardOverviewRows, latestImport] = await Promise.all([
-    getStudySettings(userId),
-    prisma.studyCard.count({
-      where: {
-        userId,
-        introducedAt: {
-          gte: dayWindow.start,
-          lt: dayWindow.end,
+    prefetched?.settings ?? getStudySettings(userId),
+    prefetched?.introducedToday ??
+      prisma.studyCard.count({
+        where: {
+          userId,
+          introducedAt: {
+            gte: dayWindow.start,
+            lt: dayWindow.end,
+          },
         },
-      },
-    }),
+      }),
     // Keep overview card work to one aggregate query; hot mutation paths update cached
     // counts incrementally, and the initial load only needs this summary plus latest import.
     prisma.$queryRaw<
@@ -755,13 +762,14 @@ export async function startStudySession(userId: string, options: { timeZone?: st
   ]);
 
   const remainingNewAllowance = getRemainingNewCardAllowance(settings, introducedToday);
+  // New cards are fetched first to reserve their daily slots, but the returned session keeps due cards first.
   const newCards = await fetchQueuedNewStudyCards(
     userId,
     getNewCardLimitForSession(remainingNewAllowance)
   );
   const dueCards = await fetchDueStudyCards(
     userId,
-    new Date(),
+    now,
     getDueCardLimitForSession(newCards.length)
   );
   const cards = [...dueCards, ...newCards];
@@ -769,7 +777,11 @@ export async function startStudySession(userId: string, options: { timeZone?: st
   await ensureStudyCardMediaAvailable(cards.slice(0, STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT));
 
   return {
-    overview: await getStudyOverview(userId, options.timeZone),
+    overview: await getStudyOverview(userId, options.timeZone, {
+      now,
+      settings,
+      introducedToday,
+    }),
     cards: await Promise.all(cards.map((card) => toStudyCardSummary(card))),
   };
 }
