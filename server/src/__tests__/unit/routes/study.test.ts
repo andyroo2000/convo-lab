@@ -322,6 +322,7 @@ describe('Study Routes', () => {
 
     const listResponse = await request(app).get('/study/new-queue?q=会社');
     expect(listResponse.status).toBe(200);
+    expect(multiMock).toHaveBeenCalledTimes(1);
     expect(getStudyNewCardQueueMock).toHaveBeenCalledWith({
       userId: 'user-1',
       cursor: undefined,

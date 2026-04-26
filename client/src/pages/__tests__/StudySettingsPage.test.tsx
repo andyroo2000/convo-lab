@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { DragEndEvent } from '@dnd-kit/core';
+import type { ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -11,11 +13,57 @@ const {
   reorderStudyNewCardQueueMock,
   useStudySettingsMock,
   useStudyNewCardQueueMock,
+  dndContextProps,
 } = vi.hoisted(() => ({
   updateStudySettingsMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   useStudySettingsMock: vi.fn(),
   useStudyNewCardQueueMock: vi.fn(),
+  dndContextProps: {
+    current: null as null | { onDragEnd?: (event: DragEndEvent) => void },
+  },
+}));
+
+vi.mock('@dnd-kit/core', () => ({
+  closestCenter: vi.fn(),
+  DndContext: ({
+    children,
+    onDragEnd,
+  }: {
+    children: ReactNode;
+    onDragEnd?: (event: DragEndEvent) => void;
+  }) => {
+    dndContextProps.current = { onDragEnd };
+    return <div data-testid="dnd-context">{children}</div>;
+  },
+  KeyboardSensor: vi.fn(),
+  PointerSensor: vi.fn(),
+  useSensor: vi.fn((sensor, options) => ({ sensor, options })),
+  useSensors: vi.fn((...sensors) => sensors),
+}));
+
+vi.mock('@dnd-kit/sortable', () => ({
+  arrayMove: <T,>(array: T[], from: number, to: number) => {
+    const next = [...array];
+    const [item] = next.splice(from, 1);
+    if (item !== undefined) {
+      next.splice(to, 0, item);
+    }
+    return next;
+  },
+  SortableContext: ({ children }: { children: ReactNode }) => (
+    <div data-testid="sortable-context">{children}</div>
+  ),
+  sortableKeyboardCoordinates: vi.fn(),
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    transition: undefined,
+    isDragging: false,
+  }),
+  verticalListSortingStrategy: {},
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -71,6 +119,7 @@ describe('StudySettingsPage', () => {
   beforeEach(() => {
     updateStudySettingsMock.mockReset();
     reorderStudyNewCardQueueMock.mockReset();
+    dndContextProps.current = null;
     useStudySettingsMock.mockReturnValue({
       data: { newCardsPerDay: 20 },
       isLoading: false,
@@ -119,6 +168,20 @@ describe('StudySettingsPage', () => {
     expect(screen.getByRole('button', { name: /reorder 会社/i })).toBeInTheDocument();
   });
 
+  it('shows a settings load error without blocking the queue', () => {
+    useStudySettingsMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Settings endpoint failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/failed to load study settings/i)).toBeInTheDocument();
+    expect(screen.getByText(/settings endpoint failed/i)).toBeInTheDocument();
+    expect(screen.getByText('会社')).toBeInTheDocument();
+  });
+
   it('saves the daily new-card limit', async () => {
     const user = userEvent.setup();
     updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
@@ -132,5 +195,26 @@ describe('StudySettingsPage', () => {
     await waitFor(() =>
       expect(updateStudySettingsMock).toHaveBeenCalledWith({ newCardsPerDay: 12 })
     );
+  });
+
+  it('persists one reorder request for a single drag', async () => {
+    reorderStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+
+    renderPage();
+
+    await act(async () => {
+      dndContextProps.current?.onDragEnd?.({
+        active: { id: 'card-1' },
+        over: { id: 'card-2' },
+      } as DragEndEvent);
+    });
+
+    await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
+    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith(['card-2', 'card-1']);
   });
 });

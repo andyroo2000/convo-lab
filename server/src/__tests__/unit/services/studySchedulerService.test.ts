@@ -114,7 +114,17 @@ describe('studySchedulerService', () => {
     mockPrisma.studyCard.findMany.mockReset();
     mockPrisma.studyCard.count.mockReset();
     mockPrisma.studyCard.aggregate.mockReset();
+    mockPrisma.studySettings.findUnique.mockReset();
+    mockPrisma.studySettings.create.mockReset();
     mockPrisma.studySettings.upsert.mockReset();
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
+    mockPrisma.studySettings.create.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
@@ -443,7 +453,8 @@ describe('studySchedulerService', () => {
   });
 
   it('creates default study settings and validates updates', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValueOnce({
+    mockPrisma.studySettings.findUnique.mockResolvedValueOnce(null);
+    mockPrisma.studySettings.create.mockResolvedValueOnce({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -451,14 +462,25 @@ describe('studySchedulerService', () => {
     await expect(getStudySettings('user-1')).resolves.toEqual({
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
-    expect(mockPrisma.studySettings.upsert).toHaveBeenCalledWith({
+    expect(mockPrisma.studySettings.findUnique).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
-      update: {},
-      create: {
+    });
+    expect(mockPrisma.studySettings.create).toHaveBeenCalledWith({
+      data: {
         userId: 'user-1',
         newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
       },
     });
+
+    mockPrisma.studySettings.findUnique.mockResolvedValueOnce({
+      userId: 'user-1',
+      newCardsPerDay: 8,
+    });
+
+    await expect(getStudySettings('user-1')).resolves.toEqual({
+      newCardsPerDay: 8,
+    });
+    expect(mockPrisma.studySettings.create).toHaveBeenCalledTimes(1);
 
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
@@ -564,7 +586,7 @@ describe('studySchedulerService', () => {
   });
 
   it('starts a study session and returns overview plus visible cards', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });
@@ -628,7 +650,7 @@ describe('studySchedulerService', () => {
     const introducedToday = STUDY_NEW_CARDS_PER_DAY_DEFAULT - 2;
     const expectedNewCardCount = STUDY_NEW_CARDS_PER_DAY_DEFAULT - introducedToday;
     const expectedDueCardLimit = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -687,7 +709,7 @@ describe('studySchedulerService', () => {
     const expectedDueCardCount = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
     const extraDueCardCount = 324;
     const extraNewCardCount = 30;
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -741,7 +763,7 @@ describe('studySchedulerService', () => {
   });
 
   it('does not add new cards when the daily allowance is exhausted', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -849,7 +871,7 @@ describe('studySchedulerService', () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
 
     try {
-      mockPrisma.studySettings.upsert.mockResolvedValue({
+      mockPrisma.studySettings.findUnique.mockResolvedValue({
         userId: 'user-1',
         newCardsPerDay: 0,
       });
@@ -980,7 +1002,7 @@ describe('studySchedulerService', () => {
   });
 
   it('returns a valid overview when scheduler state must be reconstructed for imported cards', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });
@@ -1115,5 +1137,53 @@ describe('studySchedulerService', () => {
     expect(result.overview.reviewCount).toBe(0);
     expect(result.overview.suspendedCount).toBe(1);
     expect(result.overview.totalCards).toBe(1);
+  });
+
+  it('forwards the device timezone to fallback overviews after card actions', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-12T02:00:00.000Z'));
+
+    try {
+      mockPrisma.studyCard.findFirst
+        .mockResolvedValueOnce({
+          ...buildStudySessionCard({ id: 'card-1', queueState: 'review' }),
+          lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        })
+        .mockResolvedValueOnce({
+          ...buildStudySessionCard({ id: 'card-1', queueState: 'review' }),
+          queueState: 'suspended',
+          lastReviewedAt: new Date('2026-04-08T00:00:00.000Z'),
+        });
+      mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.$queryRaw.mockResolvedValue([
+        buildStudyOverviewRow({
+          dueCount: 0,
+          reviewCount: 0,
+          suspendedCount: 1,
+          totalCards: 1,
+          nextDueAt: null,
+        }),
+      ]);
+      mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+      await performStudyCardAction({
+        userId: 'user-1',
+        cardId: 'card-1',
+        action: 'suspend',
+        timeZone: 'America/New_York',
+      });
+
+      expect(mockPrisma.studyCard.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          introducedAt: {
+            gte: new Date('2026-04-11T04:00:00.000Z'),
+            lt: new Date('2026-04-12T04:00:00.000Z'),
+          },
+        },
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

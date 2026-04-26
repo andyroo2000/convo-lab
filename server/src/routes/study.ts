@@ -654,28 +654,32 @@ router.patch(
   }
 );
 
-router.get('/new-queue', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
+router.get(
+  '/new-queue',
+  rateLimitStudyRoute({ key: 'new-queue', max: 120, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
 
-    res.json(
-      await getStudyNewCardQueue({
-        userId: req.userId,
-        cursor: parseBoundedStringQueryParam('cursor', req.query.cursor),
-        limit: parsePaginationLimit(
-          req.query.limit,
-          STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
-          STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX
-        ),
-        q: parseBoundedStringQueryParam('q', req.query.q),
-      })
-    );
-  } catch (error) {
-    next(error);
+      res.json(
+        await getStudyNewCardQueue({
+          userId: req.userId,
+          cursor: parseBoundedStringQueryParam('cursor', req.query.cursor),
+          limit: parsePaginationLimit(
+            req.query.limit,
+            STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+            STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX
+          ),
+          q: parseBoundedStringQueryParam('q', req.query.q),
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.post(
   '/new-queue/reorder',

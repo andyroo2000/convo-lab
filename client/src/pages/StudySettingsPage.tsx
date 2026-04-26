@@ -17,6 +17,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyConstants';
 import type { StudyNewCardQueueItem } from '@languageflow/shared/src/types';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -89,7 +90,7 @@ const StudySettingsPage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const runBackgroundTask = useStudyBackgroundTask();
-  const [newCardsPerDay, setNewCardsPerDay] = useState(20);
+  const [newCardsPerDay, setNewCardsPerDay] = useState(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
   const [searchDraft, setSearchDraft] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
@@ -126,16 +127,14 @@ const StudySettingsPage = () => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    setQueueItems((currentItems) => {
-      const oldIndex = currentItems.findIndex((item) => item.id === active.id);
-      const newIndex = currentItems.findIndex((item) => item.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return currentItems;
+    const oldIndex = queueItems.findIndex((item) => item.id === active.id);
+    const newIndex = queueItems.findIndex((item) => item.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
 
-      const nextItems = arrayMove(currentItems, oldIndex, newIndex);
-      runBackgroundTask(() => reorderMutation.mutateAsync(nextItems.map((item) => item.id)), {
-        label: 'Study new-card reorder',
-      });
-      return nextItems;
+    const nextItems = arrayMove(queueItems, oldIndex, newIndex);
+    setQueueItems(nextItems);
+    runBackgroundTask(() => reorderMutation.mutateAsync(nextItems.map((item) => item.id)), {
+      label: 'Study new-card reorder',
     });
   };
 
@@ -170,6 +169,11 @@ const StudySettingsPage = () => {
           <h2 className="text-2xl font-semibold text-navy">{t('settings.dailyLimitTitle')}</h2>
           <p className="text-sm text-gray-500">{t('settings.dailyLimitDescription')}</p>
         </div>
+        {settingsQuery.error instanceof Error ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {t('settings.failedSettings')} {settingsQuery.error.message}
+          </p>
+        ) : null}
         <form
           className="flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
