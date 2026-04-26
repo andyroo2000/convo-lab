@@ -9,7 +9,7 @@ CREATE TABLE "study_settings" (
 
 ALTER TABLE "study_settings"
 ADD CONSTRAINT "study_settings_userId_fkey"
-FOREIGN KEY ("userId") REFERENCES "users"("id")
+FOREIGN KEY ("userId") REFERENCES "User"("id")
 ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE "study_cards"

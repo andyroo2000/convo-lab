@@ -60,8 +60,25 @@ import {
   toStudyImportPreview,
 } from './shared.js';
 
+const ACTIVE_DUE_QUEUE_STATES = ['learning', 'review', 'relearning'] as const;
+const STUDY_CARD_SUMMARY_INCLUDE = {
+  note: true,
+  promptAudioMedia: true,
+  answerAudioMedia: true,
+  imageMedia: true,
+} satisfies Prisma.StudyCardInclude;
+const NEW_CARD_QUEUE_ORDER = [
+  { newQueuePosition: 'asc' },
+  { createdAt: 'asc' },
+  { id: 'asc' },
+] satisfies Prisma.StudyCardOrderByWithRelationInput[];
+const DUE_CARD_ORDER = [
+  { dueAt: 'asc' },
+  { id: 'asc' },
+] satisfies Prisma.StudyCardOrderByWithRelationInput[];
+
 function isActiveDueQueueState(queueState: StudyQueueState): boolean {
-  return queueState === 'learning' || queueState === 'review' || queueState === 'relearning';
+  return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
 }
 
 function getStudyDayWindow(timeZone?: string, now: Date = new Date()) {
@@ -622,6 +639,62 @@ function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): S
   });
 }
 
+function getRemainingNewCardAllowance(settings: StudySettings, introducedToday: number): number {
+  return Math.max(0, settings.newCardsPerDay - introducedToday);
+}
+
+function getNewCardLimitForSession(remainingNewAllowance: number): number {
+  return Math.min(STUDY_SESSION_READY_CARD_LIMIT, remainingNewAllowance);
+}
+
+function getDueCardLimitForSession(newCardCount: number): number {
+  return Math.max(0, STUDY_SESSION_READY_CARD_LIMIT - newCardCount);
+}
+
+async function fetchQueuedNewStudyCards(
+  userId: string,
+  limit: number
+): Promise<StudyCardWithRelations[]> {
+  if (limit <= 0) {
+    return [];
+  }
+
+  return prisma.studyCard.findMany({
+    where: {
+      userId,
+      queueState: 'new',
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+    orderBy: NEW_CARD_QUEUE_ORDER,
+    take: limit,
+  });
+}
+
+async function fetchDueStudyCards(
+  userId: string,
+  now: Date,
+  limit: number
+): Promise<StudyCardWithRelations[]> {
+  if (limit <= 0) {
+    return [];
+  }
+
+  return prisma.studyCard.findMany({
+    where: {
+      userId,
+      queueState: {
+        in: [...ACTIVE_DUE_QUEUE_STATES],
+      },
+      dueAt: {
+        lte: now,
+      },
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+    orderBy: DUE_CARD_ORDER,
+    take: limit,
+  });
+}
+
 export async function startStudySession(userId: string, options: { timeZone?: string } = {}) {
   const now = new Date();
   const dayWindow = getStudyDayWindow(options.timeZone, now);
@@ -638,46 +711,16 @@ export async function startStudySession(userId: string, options: { timeZone?: st
     }),
   ]);
 
-  const dueCards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
-    where: {
-      userId,
-      queueState: {
-        in: ['learning', 'review', 'relearning'],
-      },
-      dueAt: {
-        lte: now,
-      },
-    },
-    include: {
-      note: true,
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
-    },
-    orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
-    take: STUDY_SESSION_READY_CARD_LIMIT,
-  });
-
-  const remainingSessionSlots = Math.max(0, STUDY_SESSION_READY_CARD_LIMIT - dueCards.length);
-  const remainingNewAllowance = Math.max(0, settings.newCardsPerDay - introducedToday);
-  const newCardLimit = Math.min(remainingSessionSlots, remainingNewAllowance);
-  const newCards: StudyCardWithRelations[] =
-    newCardLimit > 0
-      ? await prisma.studyCard.findMany({
-          where: {
-            userId,
-            queueState: 'new',
-          },
-          include: {
-            note: true,
-            promptAudioMedia: true,
-            answerAudioMedia: true,
-            imageMedia: true,
-          },
-          orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-          take: newCardLimit,
-        })
-      : [];
+  const remainingNewAllowance = getRemainingNewCardAllowance(settings, introducedToday);
+  const newCards = await fetchQueuedNewStudyCards(
+    userId,
+    getNewCardLimitForSession(remainingNewAllowance)
+  );
+  const dueCards = await fetchDueStudyCards(
+    userId,
+    now,
+    getDueCardLimitForSession(newCards.length)
+  );
   const cards = [...dueCards, ...newCards];
 
   await ensureStudyCardMediaAvailable(cards.slice(0, STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT));

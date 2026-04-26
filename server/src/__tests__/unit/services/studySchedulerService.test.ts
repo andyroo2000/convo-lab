@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
+import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyConstants';
 
 import {
   cleanupStudyServiceTestMedia,
@@ -23,7 +24,89 @@ import {
   updateStudySettings,
   updateStudyCard,
 } from '../../../services/studySchedulerService.js';
+import { STUDY_SESSION_READY_CARD_LIMIT } from '../../../services/study/shared.js';
 import { synthesizeSpeech } from '../../../services/ttsClient.js';
+
+const SESSION_TEST_DUE_AT = new Date('2026-04-12T00:00:00.000Z');
+const SESSION_TEST_CREATED_AT = new Date('2026-04-01T00:00:00.000Z');
+const SESSION_TEST_UPDATED_AT = new Date('2026-04-12T00:00:00.000Z');
+
+type SessionTestQueueState = 'new' | 'learning' | 'review' | 'relearning';
+
+function buildStudySessionSchedulerState(
+  queueState: SessionTestQueueState,
+  dueAt = SESSION_TEST_DUE_AT
+) {
+  return {
+    due: dueAt.toISOString(),
+    stability: 10,
+    difficulty: 4,
+    elapsed_days: 4,
+    scheduled_days: 10,
+    learning_steps: 0,
+    reps: 6,
+    lapses: 1,
+    state: queueState === 'new' ? 0 : 2,
+    last_review: null,
+  };
+}
+
+function buildStudySessionCard({
+  id,
+  queueState,
+  label = id,
+  newQueuePosition = null,
+}: {
+  id: string;
+  queueState: SessionTestQueueState;
+  label?: string;
+  newQueuePosition?: number | null;
+}) {
+  return {
+    id,
+    userId: 'user-1',
+    noteId: `note-${id}`,
+    cardType: 'recognition',
+    queueState,
+    dueAt: queueState === 'new' ? null : SESSION_TEST_DUE_AT,
+    newQueuePosition,
+    answerAudioSource: 'missing',
+    promptJson: { cueText: label },
+    answerJson: { expression: label, meaning: 'meaning' },
+    schedulerStateJson: buildStudySessionSchedulerState(queueState),
+    createdAt: SESSION_TEST_CREATED_AT,
+    updatedAt: SESSION_TEST_UPDATED_AT,
+    note: {},
+  };
+}
+
+function buildStudyOverviewRow({
+  dueCount = 0,
+  newCount = 0,
+  learningCount = 0,
+  reviewCount = dueCount,
+  suspendedCount = 0,
+  totalCards = dueCount + newCount + suspendedCount,
+  nextDueAt = dueCount > 0 ? SESSION_TEST_DUE_AT : null,
+}: {
+  dueCount?: number;
+  newCount?: number;
+  learningCount?: number;
+  reviewCount?: number;
+  suspendedCount?: number;
+  totalCards?: number;
+  nextDueAt?: Date | null;
+} = {}) {
+  return {
+    due_count: dueCount,
+    new_count: newCount,
+    learning_count: learningCount,
+    review_count: reviewCount,
+    suspended_count: suspendedCount,
+    total_cards: totalCards,
+    next_due_at: nextDueAt,
+  };
+}
 
 describe('studySchedulerService', () => {
   beforeEach(() => {
@@ -34,7 +117,7 @@ describe('studySchedulerService', () => {
     mockPrisma.studySettings.upsert.mockReset();
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
-      newCardsPerDay: 20,
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
     mockPrisma.studyCard.count.mockResolvedValue(0);
     mockPrisma.studyCard.aggregate.mockResolvedValue({
@@ -362,16 +445,18 @@ describe('studySchedulerService', () => {
   it('creates default study settings and validates updates', async () => {
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
-      newCardsPerDay: 20,
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
 
-    await expect(getStudySettings('user-1')).resolves.toEqual({ newCardsPerDay: 20 });
+    await expect(getStudySettings('user-1')).resolves.toEqual({
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
     expect(mockPrisma.studySettings.upsert).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
       update: {},
       create: {
         userId: 'user-1',
-        newCardsPerDay: 20,
+        newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
       },
     });
 
@@ -534,72 +619,123 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
-        take: 300,
+        take: STUDY_SESSION_READY_CARD_LIMIT,
       })
     );
   });
 
   it('adds due cards first and then the remaining daily new-card allowance in queue order', async () => {
-    const makeCard = (id: string, queueState: 'review' | 'new', label: string) => ({
-      id,
-      userId: 'user-1',
-      noteId: `note-${id}`,
-      cardType: 'recognition',
-      queueState,
-      dueAt: queueState === 'review' ? new Date('2026-04-12T00:00:00.000Z') : null,
-      newQueuePosition: queueState === 'new' ? Number(id.replace('new-', '')) : null,
-      answerAudioSource: 'missing',
-      promptJson: { cueText: label },
-      answerJson: { expression: label, meaning: 'meaning' },
-      schedulerStateJson: {
-        due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
-        stability: 10,
-        difficulty: 4,
-        elapsed_days: 4,
-        scheduled_days: 10,
-        learning_steps: 0,
-        reps: 6,
-        lapses: 1,
-        state: queueState === 'new' ? 0 : 2,
-        last_review: null,
-      },
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      note: {},
-    });
+    const introducedToday = STUDY_NEW_CARDS_PER_DAY_DEFAULT - 2;
+    const expectedNewCardCount = STUDY_NEW_CARDS_PER_DAY_DEFAULT - introducedToday;
+    const expectedDueCardLimit = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
-      newCardsPerDay: 20,
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
-    mockPrisma.studyCard.count.mockResolvedValue(18);
+    mockPrisma.studyCard.count.mockResolvedValue(introducedToday);
     mockPrisma.studyCard.findMany
-      .mockResolvedValueOnce([makeCard('review-1', 'review', 'review one')])
       .mockResolvedValueOnce([
-        makeCard('new-1', 'new', 'new one'),
-        makeCard('new-2', 'new', 'new two'),
+        buildStudySessionCard({
+          id: 'new-1',
+          queueState: 'new',
+          label: 'new one',
+          newQueuePosition: 1,
+        }),
+        buildStudySessionCard({
+          id: 'new-2',
+          queueState: 'new',
+          label: 'new two',
+          newQueuePosition: 2,
+        }),
+      ])
+      .mockResolvedValueOnce([
+        buildStudySessionCard({
+          id: 'review-1',
+          queueState: 'review',
+          label: 'review one',
+        }),
       ]);
-    mockPrisma.$queryRaw.mockResolvedValue([
-      {
-        due_count: 1,
-        new_count: 10,
-        learning_count: 0,
-        review_count: 1,
-        suspended_count: 0,
-        total_cards: 11,
-        next_due_at: new Date('2026-04-12T00:00:00.000Z'),
-      },
-    ]);
+    mockPrisma.$queryRaw.mockResolvedValue([buildStudyOverviewRow({ dueCount: 1, newCount: 10 })]);
     mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
 
     const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
 
     expect(session.cards.map((card) => card.id)).toEqual(['review-1', 'new-1', 'new-2']);
     expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
-      2,
+      1,
       expect.objectContaining({
         where: { userId: 'user-1', queueState: 'new' },
         orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
-        take: 2,
+        take: expectedNewCardCount,
+      })
+    );
+    expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          queueState: { in: ['learning', 'review', 'relearning'] },
+        }),
+        orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+        take: expectedDueCardLimit,
+      })
+    );
+  });
+
+  it('reserves daily new-card slots when due cards exceed the session cap', async () => {
+    const expectedNewCardCount = STUDY_NEW_CARDS_PER_DAY_DEFAULT;
+    const expectedDueCardCount = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
+    const extraDueCardCount = 324;
+    const extraNewCardCount = 30;
+    mockPrisma.studySettings.upsert.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
+    mockPrisma.studyCard.count.mockResolvedValue(0);
+    mockPrisma.studyCard.findMany
+      .mockResolvedValueOnce(
+        Array.from({ length: expectedNewCardCount }, (_, index) =>
+          buildStudySessionCard({
+            id: `new-${index + 1}`,
+            queueState: 'new',
+            newQueuePosition: index + 1,
+          })
+        )
+      )
+      .mockResolvedValueOnce(
+        Array.from({ length: expectedDueCardCount }, (_, index) =>
+          buildStudySessionCard({ id: `review-${index + 1}`, queueState: 'review' })
+        )
+      );
+    mockPrisma.$queryRaw.mockResolvedValue([
+      buildStudyOverviewRow({
+        dueCount: STUDY_SESSION_READY_CARD_LIMIT + extraDueCardCount,
+        newCount: STUDY_NEW_CARDS_PER_DAY_DEFAULT + extraNewCardCount,
+        totalCards: STUDY_SESSION_READY_CARD_LIMIT + extraDueCardCount + extraNewCardCount,
+      }),
+    ]);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    const session = await startStudySession('user-1', { timeZone: 'America/New_York' });
+
+    expect(session.cards).toHaveLength(STUDY_SESSION_READY_CARD_LIMIT);
+    expect(session.cards.slice(0, 2).map((card) => card.id)).toEqual(['review-1', 'review-2']);
+    expect(session.cards.slice(-2).map((card) => card.id)).toEqual([
+      `new-${expectedNewCardCount - 1}`,
+      `new-${expectedNewCardCount}`,
+    ]);
+    expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: { userId: 'user-1', queueState: 'new' },
+        take: expectedNewCardCount,
+      })
+    );
+    expect(mockPrisma.studyCard.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+        take: expectedDueCardCount,
       })
     );
   });
@@ -607,9 +743,9 @@ describe('studySchedulerService', () => {
   it('does not add new cards when the daily allowance is exhausted', async () => {
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
-      newCardsPerDay: 20,
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
-    mockPrisma.studyCard.count.mockResolvedValue(20);
+    mockPrisma.studyCard.count.mockResolvedValue(STUDY_NEW_CARDS_PER_DAY_DEFAULT);
     mockPrisma.studyCard.findMany.mockResolvedValueOnce([]);
     mockPrisma.$queryRaw.mockResolvedValue([
       {
@@ -628,6 +764,12 @@ describe('studySchedulerService', () => {
 
     expect(session.cards).toHaveLength(0);
     expect(mockPrisma.studyCard.findMany).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.studyCard.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+        take: STUDY_SESSION_READY_CARD_LIMIT,
+      })
+    );
   });
 
   it('lists and reorders only owned active new cards', async () => {
