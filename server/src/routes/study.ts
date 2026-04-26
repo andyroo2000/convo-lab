@@ -204,14 +204,6 @@ function parseOptionalTimeZone(value: unknown): string | undefined {
   return trimmed;
 }
 
-function parseNonNegativeSafeInteger(name: string, value: unknown): number {
-  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
-    throw new AppError(`${name} must be a non-negative integer.`, 400);
-  }
-
-  return value;
-}
-
 function parseBoundedStringQueryParam(name: string, value: unknown): string | undefined {
   if (typeof value === 'undefined') {
     return undefined;
@@ -645,7 +637,7 @@ router.patch(
       res.json(
         await updateStudySettings({
           userId: req.userId,
-          newCardsPerDay: parseNonNegativeSafeInteger('newCardsPerDay', newCardsPerDay),
+          newCardsPerDay,
         })
       );
     } catch (error) {

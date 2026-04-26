@@ -71,6 +71,7 @@
     "saving": "保存中…",
     "saved": "保存しました",
     "failedSettings": "学習設定の読み込みに失敗しました。",
+    "failedQueue": "新規カードキューの読み込みに失敗しました。",
     "queueTitle": "新規カードキュー",
     "queueDescription": "カードをドラッグして、導入される順番に並べます。",
     "searchPlaceholder": "新規カードを検索",

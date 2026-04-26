@@ -182,6 +182,19 @@ describe('StudySettingsPage', () => {
     expect(screen.getByText('会社')).toBeInTheDocument();
   });
 
+  it('shows a localized queue load error', () => {
+    useStudyNewCardQueueMock.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Queue endpoint failed'),
+    });
+
+    renderPage();
+
+    expect(screen.getByText(/failed to load the new-card queue/i)).toBeInTheDocument();
+    expect(screen.getByText(/queue endpoint failed/i)).toBeInTheDocument();
+  });
+
   it('saves the daily new-card limit', async () => {
     const user = userEvent.setup();
     updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });

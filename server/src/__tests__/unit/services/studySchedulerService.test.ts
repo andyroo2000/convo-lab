@@ -833,6 +833,7 @@ describe('studySchedulerService', () => {
 
     await reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-2', 'card-1'] });
 
+    expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
     expect(mockPrisma.studyCard.updateMany).toHaveBeenNthCalledWith(1, {
       where: {
         id: 'card-2',

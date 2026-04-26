@@ -71,6 +71,7 @@
     "saving": "Saving…",
     "saved": "Saved",
     "failedSettings": "Failed to load study settings.",
+    "failedQueue": "Failed to load the new-card queue.",
     "queueTitle": "New-card queue",
     "queueDescription": "Drag cards into the order they should be introduced.",
     "searchPlaceholder": "Search new cards",

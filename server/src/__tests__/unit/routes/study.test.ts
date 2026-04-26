@@ -309,6 +309,25 @@ describe('Study Routes', () => {
     });
   });
 
+  it('lets the study settings service own daily-limit validation', async () => {
+    const validationError = Object.assign(
+      new Error('newCardsPerDay must be an integer between 0 and 1000.'),
+      { statusCode: 400 }
+    );
+    updateStudySettingsMock.mockRejectedValue(validationError);
+
+    const response = await withMutationCsrf(request(app).patch('/study/settings')).send({
+      newCardsPerDay: 1001,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('newCardsPerDay must be an integer');
+    expect(updateStudySettingsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      newCardsPerDay: 1001,
+    });
+  });
+
   it('lists and reorders the new-card queue', async () => {
     getStudyNewCardQueueMock.mockResolvedValue({
       items: [],

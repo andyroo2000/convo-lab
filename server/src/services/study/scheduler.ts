@@ -91,8 +91,13 @@ function getStudyDayWindow(timeZone?: string, now: Date = new Date()) {
   };
 }
 
-function assertValidNewCardsPerDay(value: number): number {
-  if (!Number.isSafeInteger(value) || value < 0 || value > STUDY_NEW_CARDS_PER_DAY_MAX) {
+function assertValidNewCardsPerDay(value: unknown): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > STUDY_NEW_CARDS_PER_DAY_MAX
+  ) {
     throw new AppError(
       `newCardsPerDay must be an integer between 0 and ${String(STUDY_NEW_CARDS_PER_DAY_MAX)}.`,
       400
@@ -103,6 +108,7 @@ function assertValidNewCardsPerDay(value: number): number {
 }
 
 export async function getStudySettings(userId: string): Promise<StudySettings> {
+  // This read path intentionally uses upsert so concurrent first reads cannot race on create.
   const settings = await prisma.studySettings.upsert({
     where: { userId },
     update: {},
@@ -119,7 +125,7 @@ export async function getStudySettings(userId: string): Promise<StudySettings> {
 
 export async function updateStudySettings(params: {
   userId: string;
-  newCardsPerDay: number;
+  newCardsPerDay: unknown;
 }): Promise<StudySettings> {
   const newCardsPerDay = assertValidNewCardsPerDay(params.newCardsPerDay);
   const settings = await prisma.studySettings.upsert({
@@ -305,9 +311,9 @@ export async function reorderStudyNewCardQueue(params: {
   }
 
   const positions = existingCards.map((card, index) => card.newQueuePosition ?? index + 1);
-  await prisma.$transaction(
-    params.cardIds.map((cardId, index) =>
-      prisma.studyCard.updateMany({
+  await prisma.$transaction(async (tx) => {
+    for (const [index, cardId] of params.cardIds.entries()) {
+      await tx.studyCard.updateMany({
         where: {
           id: cardId,
           userId: params.userId,
@@ -316,9 +322,9 @@ export async function reorderStudyNewCardQueue(params: {
         data: {
           newQueuePosition: positions[index],
         },
-      })
-    )
-  );
+      });
+    }
+  });
 
   return getStudyNewCardQueue({
     userId: params.userId,

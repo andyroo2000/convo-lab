@@ -117,6 +117,7 @@ const StudySettingsPage = () => {
 
   useEffect(() => {
     if (queueQuery.data) {
+      // Refetches reset loaded extra pages to the canonical first page for the current search.
       setQueueItems(queueQuery.data.items);
       setNextCursor(queueQuery.data.nextCursor);
     }
@@ -271,7 +272,9 @@ const StudySettingsPage = () => {
           <p className="text-gray-500">{t('settings.loadingQueue')}</p>
         ) : null}
         {queueQuery.error instanceof Error ? (
-          <p className="text-red-600">{queueQuery.error.message}</p>
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {t('settings.failedQueue')} {queueQuery.error.message}
+          </p>
         ) : null}
 
         {!queueQuery.isLoading && queueItems.length === 0 ? (
