@@ -114,6 +114,11 @@ describe('studySchedulerService', () => {
     mockPrisma.studyCard.findMany.mockReset();
     mockPrisma.studyCard.count.mockReset();
     mockPrisma.studyCard.aggregate.mockReset();
+    mockPrisma.studySettings.findUnique.mockReset();
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
+      userId: 'user-1',
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
     mockPrisma.studySettings.upsert.mockReset();
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
@@ -460,6 +465,7 @@ describe('studySchedulerService', () => {
   });
 
   it('creates default study settings and validates updates', async () => {
+    mockPrisma.studySettings.findUnique.mockResolvedValueOnce(null);
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
@@ -467,6 +473,9 @@ describe('studySchedulerService', () => {
 
     await expect(getStudySettings('user-1')).resolves.toEqual({
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    });
+    expect(mockPrisma.studySettings.findUnique).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
     });
     expect(mockPrisma.studySettings.upsert).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
@@ -476,6 +485,16 @@ describe('studySchedulerService', () => {
         newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
       },
     });
+
+    mockPrisma.studySettings.findUnique.mockResolvedValueOnce({
+      userId: 'user-1',
+      newCardsPerDay: 8,
+    });
+    mockPrisma.studySettings.upsert.mockClear();
+    await expect(getStudySettings('user-1')).resolves.toEqual({
+      newCardsPerDay: 8,
+    });
+    expect(mockPrisma.studySettings.upsert).not.toHaveBeenCalled();
 
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
@@ -581,7 +600,7 @@ describe('studySchedulerService', () => {
   });
 
   it('starts a study session and returns overview plus visible cards', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });
@@ -645,7 +664,7 @@ describe('studySchedulerService', () => {
     const introducedToday = STUDY_NEW_CARDS_PER_DAY_DEFAULT - 2;
     const expectedNewCardCount = STUDY_NEW_CARDS_PER_DAY_DEFAULT - introducedToday;
     const expectedDueCardLimit = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -704,7 +723,7 @@ describe('studySchedulerService', () => {
     const expectedDueCardCount = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
     const extraDueCardCount = 324;
     const extraNewCardCount = 30;
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -758,7 +777,7 @@ describe('studySchedulerService', () => {
   });
 
   it('does not add new cards when the daily allowance is exhausted', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -836,6 +855,9 @@ describe('studySchedulerService', () => {
 
     expect(mockPrisma.$transaction).toHaveBeenCalledWith(expect.any(Function));
     expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.$executeRaw.mock.calls[0]?.[1]).toMatchObject({
+      values: ['card-2', 1, 'card-1', 2],
+    });
     expect(mockPrisma.studyCard.updateMany).not.toHaveBeenCalled();
     await expect(
       reorderStudyNewCardQueue({ userId: 'user-1', cardIds: ['card-1', 'card-1'] })
@@ -868,6 +890,9 @@ describe('studySchedulerService', () => {
       },
     });
     expect(mockPrisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.$executeRaw.mock.calls[0]?.[1]).toMatchObject({
+      values: ['card-1', 2, 'card-2', 9],
+    });
   });
 
   it('rejects reorder when the bulk update does not update every requested card', async () => {
@@ -890,7 +915,7 @@ describe('studySchedulerService', () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
 
     try {
-      mockPrisma.studySettings.upsert.mockResolvedValue({
+      mockPrisma.studySettings.findUnique.mockResolvedValue({
         userId: 'user-1',
         newCardsPerDay: 0,
       });
@@ -1021,7 +1046,7 @@ describe('studySchedulerService', () => {
   });
 
   it('returns a valid overview when scheduler state must be reconstructed for imported cards', async () => {
-    mockPrisma.studySettings.upsert.mockResolvedValue({
+    mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });

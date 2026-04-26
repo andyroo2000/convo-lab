@@ -97,6 +97,7 @@ const StudySettingsPage = () => {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadMorePending, setLoadMorePending] = useState(false);
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
+  const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
 
   const settingsQuery = useStudySettings(enabled);
   const updateSettingsMutation = useUpdateStudySettings();
@@ -209,8 +210,15 @@ const StudySettingsPage = () => {
             event.preventDefault();
             runBackgroundTask(
               async () => {
-                await updateSettingsMutation.mutateAsync({ newCardsPerDay });
-                setSettingsSavedVisible(true);
+                try {
+                  await updateSettingsMutation.mutateAsync({ newCardsPerDay });
+                  setSettingsSaveFailedVisible(false);
+                  setSettingsSavedVisible(true);
+                } catch (error) {
+                  setSettingsSavedVisible(false);
+                  setSettingsSaveFailedVisible(true);
+                  throw error;
+                }
               },
               {
                 label: 'Study settings save',
@@ -231,6 +239,7 @@ const StudySettingsPage = () => {
               value={newCardsPerDay}
               onChange={(event) => {
                 setSettingsSavedVisible(false);
+                setSettingsSaveFailedVisible(false);
                 setNewCardsPerDay(Number(event.target.value));
               }}
               className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
@@ -247,6 +256,11 @@ const StudySettingsPage = () => {
             <span className="text-sm font-medium text-green-700">{t('settings.saved')}</span>
           ) : null}
         </form>
+        {settingsSaveFailedVisible ? (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {t('settings.failedSave')}
+          </p>
+        ) : null}
       </section>
 
       <section className="card retro-paper-panel space-y-4">

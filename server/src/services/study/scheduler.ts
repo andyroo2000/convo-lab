@@ -108,15 +108,20 @@ function assertValidNewCardsPerDay(value: unknown): number {
 }
 
 export async function getStudySettings(userId: string): Promise<StudySettings> {
-  // This read path intentionally uses upsert so concurrent first reads cannot race on create.
-  const settings = await prisma.studySettings.upsert({
+  const existingSettings = await prisma.studySettings.findUnique({
     where: { userId },
-    update: {},
-    create: {
-      userId,
-      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-    },
   });
+  // Avoid a write on normal reads, but keep first-read creation atomic under concurrent requests.
+  const settings =
+    existingSettings ??
+    (await prisma.studySettings.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+      },
+    }));
 
   return {
     newCardsPerDay: settings.newCardsPerDay,
@@ -335,9 +340,11 @@ export async function reorderStudyNewCardQueue(params: {
       return [card.id, maxQueuePosition + syntheticPositionOffset] as const;
     })
   );
-  const positions = params.cardIds.map((cardId) => positionsByCardId.get(cardId) ?? 0);
+  const availablePositions = Array.from(positionsByCardId.values()).sort((a, b) => a - b);
   const positionCases = Prisma.join(
-    params.cardIds.map((cardId, index) => Prisma.sql`WHEN ${cardId} THEN ${positions[index]}`),
+    params.cardIds.map(
+      (cardId, index) => Prisma.sql`WHEN ${cardId} THEN ${availablePositions[index]}`
+    ),
     ' '
   );
   const cardIds = Prisma.join(params.cardIds);

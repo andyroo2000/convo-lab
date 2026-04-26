@@ -210,6 +210,19 @@ describe('StudySettingsPage', () => {
     );
   });
 
+  it('shows localized feedback when saving the daily limit fails', async () => {
+    updateStudySettingsMock.mockRejectedValue(new Error('Save endpoint failed'));
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    expect(await screen.findByText(/failed to save study settings/i)).toBeInTheDocument();
+    expect(screen.queryByText(/save endpoint failed/i)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/new cards per day/i), { target: { value: '12' } });
+    expect(screen.queryByText(/failed to save study settings/i)).not.toBeInTheDocument();
+  });
+
   it('clears and auto-dismisses the saved settings confirmation', async () => {
     vi.useFakeTimers();
     updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
