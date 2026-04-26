@@ -144,9 +144,10 @@ export async function undoStudyReview(
   reviewLogId: string,
   currentOverview?: StudyOverview
 ): Promise<StudyUndoReviewResult> {
+  const timeZone = getDeviceStudyTimeZone();
   return apiRequest<StudyUndoReviewResult>('/api/study/reviews/undo', {
     method: 'POST',
-    body: JSON.stringify({ reviewLogId, currentOverview }),
+    body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
   });
 }
 

@@ -114,17 +114,7 @@ describe('studySchedulerService', () => {
     mockPrisma.studyCard.findMany.mockReset();
     mockPrisma.studyCard.count.mockReset();
     mockPrisma.studyCard.aggregate.mockReset();
-    mockPrisma.studySettings.findUnique.mockReset();
-    mockPrisma.studySettings.create.mockReset();
     mockPrisma.studySettings.upsert.mockReset();
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
-      userId: 'user-1',
-      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-    });
-    mockPrisma.studySettings.create.mockResolvedValue({
-      userId: 'user-1',
-      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-    });
     mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
@@ -300,14 +290,55 @@ describe('studySchedulerService', () => {
   });
 
   it('undoes a review and restores the previous scheduler state', async () => {
-    mockPrisma.studyReviewLog.findFirst
-      .mockResolvedValueOnce({
-        id: 'review-log-1',
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-12T02:00:00.000Z'));
+
+    try {
+      mockPrisma.studyReviewLog.findFirst
+        .mockResolvedValueOnce({
+          id: 'review-log-1',
+          userId: 'user-1',
+          cardId: 'card-1',
+          source: 'convolab',
+          reviewedAt: new Date('2026-04-12T00:00:00.000Z'),
+          stateBeforeJson: {
+            due: new Date('2026-04-10T00:00:00.000Z').toISOString(),
+            stability: 10,
+            difficulty: 4,
+            elapsed_days: 2,
+            scheduled_days: 10,
+            learning_steps: 0,
+            reps: 6,
+            lapses: 1,
+            state: 2,
+            last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+          },
+          rawPayloadJson: {
+            beforeQueueState: 'review',
+            beforeDueAt: new Date('2026-04-10T00:00:00.000Z').toISOString(),
+            beforeLastReviewedAt: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+          },
+          card: {
+            id: 'card-1',
+            userId: 'user-1',
+            noteId: 'note-1',
+            note: {},
+          },
+        })
+        .mockResolvedValueOnce(null);
+      mockPrisma.studyReviewLog.delete.mockResolvedValue({});
+      mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+      mockPrisma.studyCard.findFirst.mockResolvedValue({
+        id: 'card-1',
         userId: 'user-1',
-        cardId: 'card-1',
-        source: 'convolab',
-        reviewedAt: new Date('2026-04-12T00:00:00.000Z'),
-        stateBeforeJson: {
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        dueAt: new Date('2026-04-10T00:00:00.000Z'),
+        answerAudioSource: 'imported',
+        promptJson: { cueText: '会社' },
+        answerJson: { expression: '会社', meaning: 'company' },
+        schedulerStateJson: {
           due: new Date('2026-04-10T00:00:00.000Z').toISOString(),
           stability: 10,
           difficulty: 4,
@@ -319,55 +350,31 @@ describe('studySchedulerService', () => {
           state: 2,
           last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
         },
-        rawPayloadJson: {
-          beforeQueueState: 'review',
-          beforeDueAt: new Date('2026-04-10T00:00:00.000Z').toISOString(),
-          beforeLastReviewedAt: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-        },
-        card: {
-          id: 'card-1',
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      });
+
+      const undoResult = await undoStudyReview({
+        userId: 'user-1',
+        reviewLogId: 'review-log-1',
+        timeZone: 'America/New_York',
+      });
+
+      expect(undoResult.reviewLogId).toBe('review-log-1');
+      expect(mockPrisma.studyCard.updateMany).toHaveBeenCalled();
+      expect(mockPrisma.studyCard.count).toHaveBeenCalledWith({
+        where: {
           userId: 'user-1',
-          noteId: 'note-1',
-          note: {},
+          introducedAt: {
+            gte: new Date('2026-04-11T04:00:00.000Z'),
+            lt: new Date('2026-04-12T04:00:00.000Z'),
+          },
         },
-      })
-      .mockResolvedValueOnce(null);
-    mockPrisma.studyReviewLog.delete.mockResolvedValue({});
-    mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
-    mockPrisma.studyCard.findFirst.mockResolvedValue({
-      id: 'card-1',
-      userId: 'user-1',
-      noteId: 'note-1',
-      cardType: 'recognition',
-      queueState: 'review',
-      dueAt: new Date('2026-04-10T00:00:00.000Z'),
-      answerAudioSource: 'imported',
-      promptJson: { cueText: '会社' },
-      answerJson: { expression: '会社', meaning: 'company' },
-      schedulerStateJson: {
-        due: new Date('2026-04-10T00:00:00.000Z').toISOString(),
-        stability: 10,
-        difficulty: 4,
-        elapsed_days: 2,
-        scheduled_days: 10,
-        learning_steps: 0,
-        reps: 6,
-        lapses: 1,
-        state: 2,
-        last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
-      },
-      createdAt: new Date('2026-04-01T00:00:00.000Z'),
-      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      note: {},
-    });
-
-    const undoResult = await undoStudyReview({
-      userId: 'user-1',
-      reviewLogId: 'review-log-1',
-    });
-
-    expect(undoResult.reviewLogId).toBe('review-log-1');
-    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalled();
+      });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('creates in-app cards and seeds answer-side audio generation', async () => {
@@ -453,8 +460,7 @@ describe('studySchedulerService', () => {
   });
 
   it('creates default study settings and validates updates', async () => {
-    mockPrisma.studySettings.findUnique.mockResolvedValueOnce(null);
-    mockPrisma.studySettings.create.mockResolvedValueOnce({
+    mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -462,25 +468,14 @@ describe('studySchedulerService', () => {
     await expect(getStudySettings('user-1')).resolves.toEqual({
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
-    expect(mockPrisma.studySettings.findUnique).toHaveBeenCalledWith({
+    expect(mockPrisma.studySettings.upsert).toHaveBeenCalledWith({
       where: { userId: 'user-1' },
-    });
-    expect(mockPrisma.studySettings.create).toHaveBeenCalledWith({
-      data: {
+      update: {},
+      create: {
         userId: 'user-1',
         newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
       },
     });
-
-    mockPrisma.studySettings.findUnique.mockResolvedValueOnce({
-      userId: 'user-1',
-      newCardsPerDay: 8,
-    });
-
-    await expect(getStudySettings('user-1')).resolves.toEqual({
-      newCardsPerDay: 8,
-    });
-    expect(mockPrisma.studySettings.create).toHaveBeenCalledTimes(1);
 
     mockPrisma.studySettings.upsert.mockResolvedValueOnce({
       userId: 'user-1',
@@ -586,7 +581,7 @@ describe('studySchedulerService', () => {
   });
 
   it('starts a study session and returns overview plus visible cards', async () => {
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
+    mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });
@@ -650,7 +645,7 @@ describe('studySchedulerService', () => {
     const introducedToday = STUDY_NEW_CARDS_PER_DAY_DEFAULT - 2;
     const expectedNewCardCount = STUDY_NEW_CARDS_PER_DAY_DEFAULT - introducedToday;
     const expectedDueCardLimit = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
+    mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -709,7 +704,7 @@ describe('studySchedulerService', () => {
     const expectedDueCardCount = STUDY_SESSION_READY_CARD_LIMIT - expectedNewCardCount;
     const extraDueCardCount = 324;
     const extraNewCardCount = 30;
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
+    mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -763,7 +758,7 @@ describe('studySchedulerService', () => {
   });
 
   it('does not add new cards when the daily allowance is exhausted', async () => {
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
+    mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
     });
@@ -871,7 +866,7 @@ describe('studySchedulerService', () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
 
     try {
-      mockPrisma.studySettings.findUnique.mockResolvedValue({
+      mockPrisma.studySettings.upsert.mockResolvedValue({
         userId: 'user-1',
         newCardsPerDay: 0,
       });
@@ -1002,7 +997,7 @@ describe('studySchedulerService', () => {
   });
 
   it('returns a valid overview when scheduler state must be reconstructed for imported cards', async () => {
-    mockPrisma.studySettings.findUnique.mockResolvedValue({
+    mockPrisma.studySettings.upsert.mockResolvedValue({
       userId: 'user-1',
       newCardsPerDay: 0,
     });

@@ -523,6 +523,11 @@ export function resetStudyServiceMocks() {
   mockPrisma.studyCard.createMany.mockResolvedValue({ count: 6 });
   mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.studyCard.groupBy.mockResolvedValue([]);
+  mockPrisma.studyCard.aggregate.mockResolvedValue({
+    _max: {
+      newQueuePosition: 0,
+    },
+  });
   mockPrisma.$queryRaw.mockResolvedValue([
     {
       due_count: 0,

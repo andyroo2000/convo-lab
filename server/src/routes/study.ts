@@ -778,8 +778,9 @@ router.post(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      const { reviewLogId } = req.body as {
+      const { reviewLogId, timeZone } = req.body as {
         reviewLogId?: unknown;
+        timeZone?: unknown;
       };
 
       if (typeof reviewLogId !== 'string' || !reviewLogId) {
@@ -790,6 +791,7 @@ router.post(
       const undoResult = await undoStudyReview({
         userId: req.userId,
         reviewLogId,
+        timeZone: parseOptionalTimeZone(timeZone),
         currentOverview: parseOptionalStudyOverview(
           (req.body as { currentOverview?: unknown }).currentOverview
         ),

@@ -52,6 +52,7 @@ const {
   recordStudyReviewMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
+  undoStudyReviewMock,
   updateStudySettingsMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
@@ -81,6 +82,7 @@ const {
   recordStudyReviewMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
+  undoStudyReviewMock: vi.fn(),
   updateStudySettingsMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
@@ -119,7 +121,7 @@ vi.mock('../../../services/studyService.js', () => ({
   recordStudyReview: recordStudyReviewMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
-  undoStudyReview: vi.fn(),
+  undoStudyReview: undoStudyReviewMock,
   updateStudySettings: updateStudySettingsMock,
   updateStudyCard: updateStudyCardMock,
 }));
@@ -153,6 +155,7 @@ describe('Study Routes', () => {
     cancelStudyImportUploadMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
     process.env = {
@@ -382,6 +385,45 @@ describe('Study Routes', () => {
       timeZone: undefined,
       currentOverview: undefined,
     });
+  });
+
+  it('passes timezone through when undoing a study review', async () => {
+    undoStudyReviewMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: { id: 'card-1' },
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
+      reviewLogId: 'review-log-1',
+      timeZone: 'America/New_York',
+    });
+
+    expect(response.status).toBe(200);
+    expect(undoStudyReviewMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      reviewLogId: 'review-log-1',
+      timeZone: 'America/New_York',
+      currentOverview: undefined,
+    });
+  });
+
+  it('rejects invalid undo timezones before calling the service', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
+      reviewLogId: 'review-log-1',
+      timeZone: 'Not/AZone',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
+    expect(undoStudyReviewMock).not.toHaveBeenCalled();
   });
 
   it('rejects invalid edit payloads', async () => {

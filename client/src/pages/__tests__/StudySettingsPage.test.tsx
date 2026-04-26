@@ -197,12 +197,59 @@ describe('StudySettingsPage', () => {
     );
   });
 
-  it('persists one reorder request for a single drag', async () => {
+  it('clears and auto-dismisses the saved settings confirmation', async () => {
+    vi.useFakeTimers();
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
+
+    try {
+      renderPage();
+
+      const input = screen.getByLabelText(/new cards per day/i);
+      fireEvent.change(input, { target: { value: '12' } });
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText(/saved/i)).toBeInTheDocument();
+
+      fireEvent.change(input, { target: { value: '13' } });
+      expect(screen.queryByText(/saved/i)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+      await act(async () => {
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+      expect(screen.getByText(/saved/i)).toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(2000);
+      });
+      expect(screen.queryByText(/saved/i)).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('persists one reorder request and resets pagination from the returned first page', async () => {
     reorderStudyNewCardQueueMock.mockResolvedValue({
-      items: [],
-      total: 0,
+      items: [
+        {
+          id: 'card-3',
+          noteId: 'note-3',
+          cardType: 'recognition',
+          displayText: '新しい',
+          meaning: 'new',
+          queuePosition: 1,
+          createdAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
+          updatedAt: new Date('2026-04-02T00:00:00.000Z').toISOString(),
+        },
+      ],
+      total: 101,
       limit: 100,
-      nextCursor: null,
+      nextCursor: '100',
     });
 
     renderPage();
@@ -216,5 +263,8 @@ describe('StudySettingsPage', () => {
 
     await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
     expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith(['card-2', 'card-1']);
+    expect(screen.getByText('新しい')).toBeInTheDocument();
+    expect(screen.queryByText('会社')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
   });
 });

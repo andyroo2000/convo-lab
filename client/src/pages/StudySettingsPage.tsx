@@ -96,6 +96,7 @@ const StudySettingsPage = () => {
   const [queueItems, setQueueItems] = useState<StudyNewCardQueueItem[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadMorePending, setLoadMorePending] = useState(false);
+  const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
 
   const settingsQuery = useStudySettings(enabled);
   const updateSettingsMutation = useUpdateStudySettings();
@@ -121,6 +122,16 @@ const StudySettingsPage = () => {
     }
   }, [queueQuery.data]);
 
+  useEffect(() => {
+    if (!settingsSavedVisible) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setSettingsSavedVisible(false);
+    }, 2000);
+
+    return () => window.clearTimeout(timer);
+  }, [settingsSavedVisible]);
+
   const queueIds = useMemo(() => queueItems.map((item) => item.id), [queueItems]);
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -133,9 +144,16 @@ const StudySettingsPage = () => {
 
     const nextItems = arrayMove(queueItems, oldIndex, newIndex);
     setQueueItems(nextItems);
-    runBackgroundTask(() => reorderMutation.mutateAsync(nextItems.map((item) => item.id)), {
-      label: 'Study new-card reorder',
-    });
+    runBackgroundTask(
+      async () => {
+        const reorderedQueue = await reorderMutation.mutateAsync(nextItems.map((item) => item.id));
+        setQueueItems(reorderedQueue.items);
+        setNextCursor(reorderedQueue.nextCursor);
+      },
+      {
+        label: 'Study new-card reorder',
+      }
+    );
   };
 
   if (!enabled) {
@@ -178,9 +196,15 @@ const StudySettingsPage = () => {
           className="flex flex-wrap items-end gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            runBackgroundTask(() => updateSettingsMutation.mutateAsync({ newCardsPerDay }), {
-              label: 'Study settings save',
-            });
+            runBackgroundTask(
+              async () => {
+                await updateSettingsMutation.mutateAsync({ newCardsPerDay });
+                setSettingsSavedVisible(true);
+              },
+              {
+                label: 'Study settings save',
+              }
+            );
           }}
         >
           <label className="block" htmlFor="study-new-cards-per-day">
@@ -194,7 +218,10 @@ const StudySettingsPage = () => {
               max={1000}
               step={1}
               value={newCardsPerDay}
-              onChange={(event) => setNewCardsPerDay(Number(event.target.value))}
+              onChange={(event) => {
+                setSettingsSavedVisible(false);
+                setNewCardsPerDay(Number(event.target.value));
+              }}
               className="mt-2 w-36 rounded-xl border border-gray-300 px-3 py-2 text-navy focus:border-navy focus:outline-none focus:ring-2 focus:ring-navy/20"
             />
           </label>
@@ -205,7 +232,7 @@ const StudySettingsPage = () => {
           >
             {updateSettingsMutation.isPending ? t('settings.saving') : t('settings.save')}
           </button>
-          {updateSettingsMutation.isSuccess ? (
+          {settingsSavedVisible ? (
             <span className="text-sm font-medium text-green-700">{t('settings.saved')}</span>
           ) : null}
         </form>

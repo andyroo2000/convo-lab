@@ -103,17 +103,14 @@ function assertValidNewCardsPerDay(value: number): number {
 }
 
 export async function getStudySettings(userId: string): Promise<StudySettings> {
-  const existingSettings = await prisma.studySettings.findUnique({
+  const settings = await prisma.studySettings.upsert({
     where: { userId },
+    update: {},
+    create: {
+      userId,
+      newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+    },
   });
-  const settings =
-    existingSettings ??
-    (await prisma.studySettings.create({
-      data: {
-        userId,
-        newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
-      },
-    }));
 
   return {
     newCardsPerDay: settings.newCardsPerDay,
@@ -853,6 +850,7 @@ export async function recordStudyReview(params: {
 export async function undoStudyReview(params: {
   userId: string;
   reviewLogId: string;
+  timeZone?: string;
   currentOverview?: StudyOverview;
 }): Promise<StudyUndoReviewResult> {
   const reviewLog = await prisma.studyReviewLog.findFirst({
@@ -980,7 +978,7 @@ export async function undoStudyReview(params: {
           getOverviewMutationCard(cardRecord),
           getOverviewMutationCard(refreshed)
         )
-      : await getStudyOverview(params.userId);
+      : await getStudyOverview(params.userId, params.timeZone);
 
   return {
     reviewLogId: params.reviewLogId,

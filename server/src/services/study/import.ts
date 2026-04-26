@@ -432,6 +432,27 @@ async function runStudyImportTransaction(params: {
           },
         });
 
+        const newQueuePositionMax = await tx.studyCard.aggregate({
+          where: {
+            userId,
+            queueState: 'new',
+          },
+          _max: {
+            newQueuePosition: true,
+          },
+        });
+        let nextNewQueuePosition = (newQueuePositionMax._max.newQueuePosition ?? 0) + 1;
+        const newQueuePositionBySourceCardId = new Map<number, number>();
+        for (const card of parsed.cards
+          .filter((card) => card.queueState === 'new')
+          .sort(
+            (left, right) =>
+              left.sourceDue - right.sourceDue || left.sourceCardId - right.sourceCardId
+          )) {
+          newQueuePositionBySourceCardId.set(card.sourceCardId, nextNewQueuePosition);
+          nextNewQueuePosition += 1;
+        }
+
         await createManyInBatches(parsed.notes, async (batch) => {
           await tx.studyNote.createMany({
             data: batch.map((note) => ({
@@ -498,7 +519,10 @@ async function runStudyImportTransaction(params: {
               sourceFsrsJson: toNullablePrismaJson(card.sourceFsrs),
               cardType: card.cardType,
               queueState: card.queueState,
-              newQueuePosition: card.queueState === 'new' ? card.sourceDue : null,
+              newQueuePosition:
+                card.queueState === 'new'
+                  ? (newQueuePositionBySourceCardId.get(card.sourceCardId) ?? null)
+                  : null,
               dueAt: card.dueAt,
               lastReviewedAt: card.lastReviewedAt,
               promptJson: toPrismaJson(card.prompt),
