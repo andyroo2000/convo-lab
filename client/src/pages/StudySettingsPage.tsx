@@ -143,13 +143,23 @@ const StudySettingsPage = () => {
     const newIndex = queueItems.findIndex((item) => item.id === over.id);
     if (oldIndex === -1 || newIndex === -1) return;
 
+    const previousItems = queueItems;
+    const previousCursor = nextCursor;
     const nextItems = arrayMove(queueItems, oldIndex, newIndex);
     setQueueItems(nextItems);
     runBackgroundTask(
       async () => {
-        const reorderedQueue = await reorderMutation.mutateAsync(nextItems.map((item) => item.id));
-        setQueueItems(reorderedQueue.items);
-        setNextCursor(reorderedQueue.nextCursor);
+        try {
+          const reorderedQueue = await reorderMutation.mutateAsync(
+            nextItems.map((item) => item.id)
+          );
+          setQueueItems(reorderedQueue.items);
+          setNextCursor(reorderedQueue.nextCursor);
+        } catch (error) {
+          setQueueItems(previousItems);
+          setNextCursor(previousCursor);
+          throw error;
+        }
       },
       {
         label: 'Study new-card reorder',

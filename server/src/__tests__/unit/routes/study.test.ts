@@ -364,6 +364,37 @@ describe('Study Routes', () => {
     });
   });
 
+  it('rejects malformed reorder card ids before calling the service', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
+      cardIds: ['card-1', ''],
+    });
+
+    expect(response.status).toBe(400);
+    expect(reorderStudyNewCardQueueMock).not.toHaveBeenCalled();
+  });
+
+  it('lets the study scheduler service own reorder length validation', async () => {
+    const validationError = Object.assign(
+      new Error('cardIds must include between 1 and 500 cards.'),
+      {
+        statusCode: 400,
+      }
+    );
+    reorderStudyNewCardQueueMock.mockRejectedValue(validationError);
+    const cardIds = Array.from({ length: 501 }, (_, index) => `card-${index + 1}`);
+
+    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
+      cardIds,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cardIds must include');
+    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardIds,
+    });
+  });
+
   it('rejects invalid review grades', async () => {
     const response = await withMutationCsrf(request(app).post('/study/reviews')).send({
       cardId: 'card-1',

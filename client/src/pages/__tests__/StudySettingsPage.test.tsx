@@ -280,4 +280,56 @@ describe('StudySettingsPage', () => {
     expect(screen.queryByText('会社')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
   });
+
+  it('rolls back optimistic reorder state when the reorder request fails', async () => {
+    useStudyNewCardQueueMock.mockReturnValue({
+      data: {
+        items: [
+          {
+            id: 'card-1',
+            noteId: 'note-1',
+            cardType: 'recognition',
+            displayText: '会社',
+            meaning: 'company',
+            queuePosition: 1,
+            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+          },
+          {
+            id: 'card-2',
+            noteId: 'note-2',
+            cardType: 'production',
+            displayText: '学校',
+            meaning: 'school',
+            queuePosition: 2,
+            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+          },
+        ],
+        total: 101,
+        limit: 100,
+        nextCursor: '100',
+      },
+      isLoading: false,
+      error: null,
+    });
+    reorderStudyNewCardQueueMock.mockRejectedValue(new Error('Reorder failed'));
+
+    renderPage();
+
+    await act(async () => {
+      dndContextProps.current?.onDragEnd?.({
+        active: { id: 'card-1' },
+        over: { id: 'card-2' },
+      } as DragEndEvent);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(reorderStudyNewCardQueueMock).toHaveBeenCalledTimes(1));
+    const rows = screen.getAllByTestId('study-new-queue-row');
+    expect(rows[0]).toHaveTextContent('会社');
+    expect(rows[1]).toHaveTextContent('学校');
+    expect(screen.getByRole('button', { name: /load more/i })).toBeInTheDocument();
+  });
 });

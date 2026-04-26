@@ -62,7 +62,6 @@ const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
-const MAX_STUDY_REORDER_CARD_IDS = 500;
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -685,8 +684,6 @@ router.post(
       const { cardIds } = req.body as { cardIds?: unknown };
       if (
         !Array.isArray(cardIds) ||
-        cardIds.length === 0 ||
-        cardIds.length > MAX_STUDY_REORDER_CARD_IDS ||
         cardIds.some((cardId) => typeof cardId !== 'string' || cardId.length === 0)
       ) {
         res.status(400).json({ message: 'cardIds must be a non-empty array of card ids.' });

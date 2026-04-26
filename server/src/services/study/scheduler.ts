@@ -311,6 +311,7 @@ export async function reorderStudyNewCardQueue(params: {
   }
 
   const positions = existingCards.map((card, index) => card.newQueuePosition ?? index + 1);
+  // Reorder input is capped to one settings-page batch, so the simple per-card update loop is acceptable here.
   await prisma.$transaction(async (tx) => {
     for (const [index, cardId] of params.cardIds.entries()) {
       await tx.studyCard.updateMany({
