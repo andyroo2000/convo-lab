@@ -382,6 +382,102 @@ describe('studySchedulerService', () => {
     }
   });
 
+  it('undoes a first review of a new card and restores introducedAt to null', async () => {
+    const reviewedIntroducedAt = new Date('2026-04-12T00:00:00.000Z');
+
+    mockPrisma.studyReviewLog.findFirst
+      .mockResolvedValueOnce({
+        id: 'review-log-new',
+        userId: 'user-1',
+        cardId: 'card-new',
+        source: 'convolab',
+        reviewedAt: reviewedIntroducedAt,
+        stateBeforeJson: {
+          due: reviewedIntroducedAt.toISOString(),
+          stability: 0.1,
+          difficulty: 5,
+          elapsed_days: 0,
+          scheduled_days: 0,
+          learning_steps: 0,
+          reps: 0,
+          lapses: 0,
+          state: 0,
+          last_review: null,
+        },
+        rawPayloadJson: {
+          beforeQueueState: 'new',
+          beforeDueAt: null,
+          beforeIntroducedAt: null,
+          beforeLastReviewedAt: null,
+        },
+        card: {
+          id: 'card-new',
+          userId: 'user-1',
+          noteId: 'note-1',
+          introducedAt: reviewedIntroducedAt,
+          note: {},
+        },
+      })
+      .mockResolvedValueOnce(null);
+    mockPrisma.studyReviewLog.delete.mockResolvedValue({});
+    mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-new',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'missing',
+      promptJson: { cueText: '会社' },
+      answerJson: { expression: '会社', meaning: 'company' },
+      schedulerStateJson: {
+        due: reviewedIntroducedAt.toISOString(),
+        stability: 0.1,
+        difficulty: 5,
+        elapsed_days: 0,
+        scheduled_days: 0,
+        learning_steps: 0,
+        reps: 0,
+        lapses: 0,
+        state: 0,
+        last_review: null,
+      },
+      createdAt: new Date('2026-04-01T00:00:00.000Z'),
+      updatedAt: reviewedIntroducedAt,
+      note: {},
+    });
+    mockPrisma.$queryRaw.mockResolvedValue([
+      buildStudyOverviewRow({
+        dueCount: 0,
+        newCount: 1,
+        reviewCount: 0,
+        totalCards: 1,
+        nextDueAt: null,
+      }),
+    ]);
+    mockPrisma.studyImportJob.findFirst.mockResolvedValue(null);
+
+    await undoStudyReview({
+      userId: 'user-1',
+      reviewLogId: 'review-log-new',
+      timeZone: 'America/New_York',
+    });
+
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          queueState: 'new',
+          dueAt: null,
+          introducedAt: null,
+          lastReviewedAt: null,
+        }),
+      })
+    );
+    expect(mockPrisma.studyCard.count).toHaveBeenCalled();
+  });
+
   it('creates in-app cards and seeds answer-side audio generation', async () => {
     mockPrisma.studyNote.create.mockResolvedValue({ id: 'note-created' });
     mockPrisma.studyCard.create.mockResolvedValue({

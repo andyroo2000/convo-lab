@@ -316,7 +316,9 @@ export async function reorderStudyNewCardQueue(params: {
     throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
   }
 
-  const maxQueuePosition = existingCards.some((card) => card.newQueuePosition === null)
+  const needsSyntheticQueuePositions = existingCards.some((card) => card.newQueuePosition === null);
+  // Only needed for legacy/null rows; normal reorder reuses the selected cards' existing positions.
+  const syntheticQueuePositionBase = needsSyntheticQueuePositions
     ? ((
         await prisma.studyCard.aggregate({
           where: {
@@ -337,7 +339,7 @@ export async function reorderStudyNewCardQueue(params: {
       }
 
       syntheticPositionOffset += 1;
-      return [card.id, maxQueuePosition + syntheticPositionOffset] as const;
+      return [card.id, syntheticQueuePositionBase + syntheticPositionOffset] as const;
     })
   );
   const availablePositions = Array.from(positionsByCardId.values()).sort((a, b) => a - b);
@@ -885,6 +887,7 @@ export async function recordStudyReview(params: {
     throw new AppError('Study card not found after review.', 404);
   }
 
+  // New-card reviews change introduced-today allowance fields, so they need a fresh overview.
   const overview =
     params.currentOverview && parseStudyQueueState(card.queueState) !== 'new'
       ? await getAdjustedStudyOverview(
