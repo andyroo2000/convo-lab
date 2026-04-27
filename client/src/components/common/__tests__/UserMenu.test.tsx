@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { Circle } from 'lucide-react';
 import UserMenu from '../UserMenu';
 
 // Mock useNavigate
@@ -118,10 +119,22 @@ describe('UserMenu', () => {
               label: 'Library',
               path: '/app/library',
               isActive: false,
-              icon: <span />,
+              icon: Circle,
             },
-            { id: 'create', label: 'Create', path: '/app/create', isActive: false, icon: <span /> },
-            { id: 'study', label: 'Study', path: '/app/study', isActive: true, icon: <span /> },
+            {
+              id: 'create',
+              label: 'Create',
+              path: '/app/create',
+              isActive: false,
+              icon: Circle,
+            },
+            {
+              id: 'study',
+              label: 'Study',
+              path: '/app/study',
+              isActive: true,
+              icon: Circle,
+            },
           ]}
         />
       );
@@ -143,7 +156,7 @@ describe('UserMenu', () => {
               label: 'Create Card',
               path: '/app/create',
               isActive: false,
-              icon: <span />,
+              icon: Circle,
             },
           ]}
         />
@@ -165,7 +178,7 @@ describe('UserMenu', () => {
               label: 'Library',
               path: '/app/library?viewAs=user-1',
               isActive: false,
-              icon: <span />,
+              icon: Circle,
             },
           ]}
         />

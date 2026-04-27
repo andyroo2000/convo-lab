@@ -1,14 +1,14 @@
-import { type ReactNode, useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
+import { Settings, LogOut, Shield, BookMarked, type LucideIcon } from 'lucide-react';
 
 export interface UserMenuMobileNavItem {
   id: string;
   label: string;
   path: string;
   isActive: boolean;
-  icon: ReactNode;
+  icon: LucideIcon;
 }
 
 interface UserMenuProps {
@@ -111,20 +111,24 @@ const UserMenu = ({
           <div className="py-1">
             {mobileNavItems.length > 0 ? (
               <div className="border-b border-[#bcc8c7] pb-1 sm:hidden">
-                {mobileNavItems.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={item.path}
-                    onClick={() => setIsOpen(false)}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                      item.isActive ? MOBILE_NAV_ACTIVE_CLASS : MOBILE_NAV_INACTIVE_CLASS
-                    }`}
-                    data-testid={`user-menu-mobile-nav-${item.id}`}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
+                {mobileNavItems.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.id}
+                      to={item.path}
+                      onClick={() => setIsOpen(false)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                        item.isActive ? MOBILE_NAV_ACTIVE_CLASS : MOBILE_NAV_INACTIVE_CLASS
+                      }`}
+                      data-testid={`user-menu-mobile-nav-${item.id}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
               </div>
             ) : null}
 

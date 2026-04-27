@@ -209,6 +209,7 @@ export function useStudyOverview(enabled: boolean) {
         `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
       ),
     enabled,
+    refetchOnWindowFocus: true,
   });
 }
 

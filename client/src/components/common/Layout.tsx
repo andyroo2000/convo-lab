@@ -32,7 +32,7 @@ const Layout = () => {
   const isLibraryActive = location.pathname === '/app/library';
   const isCreateActive = location.pathname.startsWith('/app/create');
   const isStudyActive = location.pathname.startsWith('/app/study');
-  const studyEnabled = isFeatureEnabled('flashcardsEnabled');
+  const flashcardsEnabled = isFeatureEnabled('flashcardsEnabled');
   const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
     () => [
       {
@@ -40,28 +40,28 @@ const Layout = () => {
         label: t('common:nav.library'),
         path: viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library',
         isActive: isLibraryActive,
-        icon: <Library className="w-4 h-4" />,
+        icon: Library,
       },
       {
         id: 'create',
         label: t('common:nav.create'),
         path: viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create',
         isActive: isCreateActive,
-        icon: <Mic className="w-4 h-4" />,
+        icon: Mic,
       },
-      ...(studyEnabled
+      ...(flashcardsEnabled
         ? [
             {
               id: 'study',
               label: t('common:nav.study'),
               path: viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study',
               isActive: isStudyActive,
-              icon: <BookOpen className="w-4 h-4" />,
+              icon: BookOpen,
             },
           ]
         : []),
     ],
-    [isCreateActive, isLibraryActive, isStudyActive, studyEnabled, t, viewAsUserId]
+    [flashcardsEnabled, isCreateActive, isLibraryActive, isStudyActive, t, viewAsUserId]
   );
 
   // Show loading spinner while checking authentication
@@ -139,7 +139,7 @@ const Layout = () => {
                   <Mic className="w-5 h-5 mr-2.5 flex-shrink-0" />
                   {t('common:nav.create')}
                 </Link>
-                {studyEnabled ? (
+                {flashcardsEnabled ? (
                   <Link
                     to={viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study'}
                     className={`retro-nav-tab relative inline-flex items-center justify-center transition-all ${

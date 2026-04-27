@@ -3,7 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 import Layout from '../Layout';
 
 const mockAuthState = vi.hoisted(() => ({
@@ -53,7 +53,7 @@ vi.mock('../UserMenu', () => ({
       label: string;
       path: string;
       isActive: boolean;
-      icon: ReactNode;
+      icon: LucideIcon;
     }>;
   }) => (
     <div data-testid="user-menu">
