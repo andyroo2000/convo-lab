@@ -15,14 +15,17 @@ import type {
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
+  StudyNewCardQueueResponse,
   StudyOverview,
   StudyPromptPayload,
   StudyReviewResult,
+  StudySettings,
   StudyUndoReviewResult,
 } from '@languageflow/shared/src/types';
 
 import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
+import getDeviceStudyTimeZone from '../components/study/studyTimeZoneUtils';
 
 export interface StudySessionResponse {
   overview: StudyOverview;
@@ -87,8 +90,44 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
 }
 
 export async function startStudySession(): Promise<StudySessionResponse> {
+  const timeZone = getDeviceStudyTimeZone();
   return apiRequest<StudySessionResponse>('/api/study/session/start', {
     method: 'POST',
+    body: JSON.stringify({ timeZone }),
+  });
+}
+
+export async function getStudySettings(): Promise<StudySettings> {
+  return apiRequest<StudySettings>('/api/study/settings');
+}
+
+export async function updateStudySettings(payload: StudySettings): Promise<StudySettings> {
+  return apiRequest<StudySettings>('/api/study/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getStudyNewCardQueue(
+  params: {
+    cursor?: string | null;
+    limit?: number;
+    q?: string;
+  } = {}
+): Promise<StudyNewCardQueueResponse> {
+  const searchParams = new URLSearchParams();
+  if (params.cursor) searchParams.set('cursor', params.cursor);
+  if (typeof params.limit === 'number') searchParams.set('limit', String(params.limit));
+  if (params.q?.trim()) searchParams.set('q', params.q.trim());
+
+  const suffix = searchParams.toString();
+  return apiRequest<StudyNewCardQueueResponse>(`/api/study/new-queue${suffix ? `?${suffix}` : ''}`);
+}
+
+export async function reorderStudyNewCardQueue(cardIds: string[]) {
+  return apiRequest<StudyNewCardQueueResponse>('/api/study/new-queue/reorder', {
+    method: 'POST',
+    body: JSON.stringify({ cardIds }),
   });
 }
 
@@ -105,9 +144,10 @@ export async function undoStudyReview(
   reviewLogId: string,
   currentOverview?: StudyOverview
 ): Promise<StudyUndoReviewResult> {
+  const timeZone = getDeviceStudyTimeZone();
   return apiRequest<StudyUndoReviewResult>('/api/study/reviews/undo', {
     method: 'POST',
-    body: JSON.stringify({ reviewLogId, currentOverview }),
+    body: JSON.stringify({ reviewLogId, currentOverview, timeZone }),
   });
 }
 
@@ -196,10 +236,64 @@ export function useStudyHistoryPage(
 }
 
 export function useStudyOverview(enabled: boolean) {
+  const timeZone = getDeviceStudyTimeZone();
+  const searchParams = new URLSearchParams();
+  if (timeZone) searchParams.set('timeZone', timeZone);
+
   return useQuery({
     queryKey: ['study', 'overview'],
-    queryFn: () => apiRequest<StudyOverview>('/api/study/overview'),
+    queryFn: () =>
+      apiRequest<StudyOverview>(
+        `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
+      ),
     enabled,
+  });
+}
+
+export function useStudySettings(enabled: boolean) {
+  return useQuery({
+    queryKey: ['study', 'settings'],
+    queryFn: getStudySettings,
+    enabled,
+  });
+}
+
+export function useStudyNewCardQueue(
+  enabled: boolean,
+  params: { cursor?: string | null; limit?: number; q?: string } = {}
+) {
+  return useQuery({
+    queryKey: ['study', 'new-queue', params.cursor ?? 'start', params.limit ?? 100, params.q ?? ''],
+    queryFn: () => getStudyNewCardQueue(params),
+    enabled,
+  });
+}
+
+export function useUpdateStudySettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateStudySettings,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'settings'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
+    },
+  });
+}
+
+export function useReorderStudyNewCardQueue() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: reorderStudyNewCardQueue,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'new-queue'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+      ]);
+    },
   });
 }
 
@@ -255,6 +349,7 @@ export function useSubmitStudyReview() {
         method: 'POST',
         body: JSON.stringify({
           ...payload,
+          timeZone: getDeviceStudyTimeZone(),
           currentOverview: queryClient.getQueryData<StudyOverview>(['study', 'overview']),
         }),
       }),

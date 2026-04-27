@@ -523,6 +523,12 @@ export function resetStudyServiceMocks() {
   mockPrisma.studyCard.createMany.mockResolvedValue({ count: 6 });
   mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
   mockPrisma.studyCard.groupBy.mockResolvedValue([]);
+  mockPrisma.studyCard.aggregate.mockResolvedValue({
+    _max: {
+      newQueuePosition: 0,
+    },
+  });
+  mockPrisma.$executeRaw.mockResolvedValue(0);
   mockPrisma.$queryRaw.mockResolvedValue([
     {
       due_count: 0,
@@ -535,7 +541,11 @@ export function resetStudyServiceMocks() {
     },
   ]);
   mockPrisma.studyReviewLog.createMany.mockResolvedValue({ count: 3 });
-  mockPrisma.$transaction.mockImplementation(async (callback) => callback(mockPrisma));
+  mockPrisma.$transaction.mockImplementation(async (callbackOrOperations) =>
+    Array.isArray(callbackOrOperations)
+      ? Promise.all(callbackOrOperations)
+      : callbackOrOperations(mockPrisma)
+  );
 }
 
 export async function cleanupStudyServiceTestMedia() {

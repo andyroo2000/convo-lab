@@ -10,6 +10,10 @@ export {
   STUDY_EXPORT_PAGE_SIZE_MAX,
   STUDY_HISTORY_PAGE_SIZE_DEFAULT,
   STUDY_HISTORY_PAGE_SIZE_MAX,
+  STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+  STUDY_NEW_CARDS_PER_DAY_MAX,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
 } from './studyConstants';
 
 export type LanguageCode = 'ja' | 'en';
@@ -106,6 +110,7 @@ export interface StudyFsrsState {
 
 export interface StudyCardState {
   dueAt: string | null;
+  introducedAt?: string | null;
   queueState: StudyQueueState;
   scheduler: StudyFsrsState | null;
   source: StudySourceSnapshot;
@@ -127,12 +132,37 @@ export interface StudyCardSummary {
 export interface StudyOverview {
   dueCount: number;
   newCount: number;
+  newCardsPerDay?: number;
+  newCardsIntroducedToday?: number;
+  newCardsAvailableToday?: number;
   learningCount: number;
   reviewCount: number;
   suspendedCount: number;
   totalCards: number;
   latestImport?: StudyImportResult | null;
   nextDueAt?: string | null;
+}
+
+export interface StudySettings {
+  newCardsPerDay: number;
+}
+
+export interface StudyNewCardQueueItem {
+  id: string;
+  noteId: string;
+  cardType: StudyCardType;
+  displayText: string;
+  meaning: string | null;
+  queuePosition: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StudyNewCardQueueResponse {
+  items: StudyNewCardQueueItem[];
+  total: number;
+  limit: number;
+  nextCursor: string | null;
 }
 
 export interface StudyReviewEvent {

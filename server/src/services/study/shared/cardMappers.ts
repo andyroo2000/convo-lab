@@ -156,6 +156,7 @@ export async function toStudyCardSummary(
     answer: normalized.answer,
     state: {
       dueAt: record.dueAt instanceof Date ? record.dueAt.toISOString() : null,
+      introducedAt: record.introducedAt instanceof Date ? record.introducedAt.toISOString() : null,
       queueState: parseStudyQueueState(record.queueState),
       scheduler: getRequiredSchedulerState(record),
       source: {

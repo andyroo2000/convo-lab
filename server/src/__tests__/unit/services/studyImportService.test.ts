@@ -62,6 +62,9 @@ describe('studyImportService', () => {
       'cloze',
       'cloze',
     ]);
+    const createdNewCards = createdCards.filter((card) => card.queueState === 'new');
+    expect(createdNewCards.map((card) => card.sourceDue)).toEqual([5]);
+    expect(createdNewCards.map((card) => card.newQueuePosition)).toEqual([1]);
     expect(
       createdCards.every(
         (card) =>
@@ -70,6 +73,27 @@ describe('studyImportService', () => {
           !('cueHtml' in (card.promptJson as Record<string, unknown>))
       )
     ).toBe(true);
+  }, 15000);
+
+  it('appends imported new-card queue positions after existing new cards', async () => {
+    mockPrisma.studyCard.aggregate.mockResolvedValueOnce({
+      _max: {
+        newQueuePosition: 10,
+      },
+    });
+
+    const result = await importJapaneseStudyColpkg({
+      userId: 'user-1',
+      fileBuffer: await buildFixtureColpkg(),
+      filename: 'japanese.colpkg',
+    });
+
+    expect(result.status).toBe('completed');
+    const createdCards = mockPrisma.studyCard.createMany.mock.calls[0][0].data as Array<
+      Record<string, unknown>
+    >;
+    const createdNewCards = createdCards.filter((card) => card.queueState === 'new');
+    expect(createdNewCards.map((card) => card.newQueuePosition)).toEqual([11]);
   }, 15000);
 
   it('imports Anki collection databases compressed as zstd collection.anki21b', async () => {

@@ -42,13 +42,18 @@ const {
   getStudyBrowserNoteDetailMock,
   getStudyHistoryMock,
   getCurrentStudyImportJobMock,
+  getStudyNewCardQueueMock,
   getStudyMediaAccessMock,
   getStudyImportUploadReadinessMock,
+  getStudySettingsMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
+  reorderStudyNewCardQueueMock,
   startStudySessionMock,
+  undoStudyReviewMock,
+  updateStudySettingsMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   cancelStudyImportUploadMock: vi.fn(),
@@ -67,13 +72,18 @@ const {
   getStudyBrowserNoteDetailMock: vi.fn(),
   getStudyHistoryMock: vi.fn(),
   getCurrentStudyImportJobMock: vi.fn(),
+  getStudyNewCardQueueMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
   getStudyImportUploadReadinessMock: vi.fn(),
+  getStudySettingsMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
+  reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
+  undoStudyReviewMock: vi.fn(),
+  updateStudySettingsMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
 
@@ -100,15 +110,19 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyCardOptions: getStudyCardOptionsMock,
   getStudyHistory: getStudyHistoryMock,
   getCurrentStudyImportJob: getCurrentStudyImportJobMock,
+  getStudyNewCardQueue: getStudyNewCardQueueMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
   getStudyImportJob: vi.fn(),
   getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   getStudyOverview: vi.fn(),
+  getStudySettings: getStudySettingsMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
+  reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
-  undoStudyReview: vi.fn(),
+  undoStudyReview: undoStudyReviewMock,
+  updateStudySettings: updateStudySettingsMock,
   updateStudyCard: updateStudyCardMock,
 }));
 
@@ -141,6 +155,7 @@ describe('Study Routes', () => {
     cancelStudyImportUploadMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
     process.env = {
@@ -178,7 +193,7 @@ describe('Study Routes', () => {
     temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
     vi.useFakeTimers();
     vi.setSystemTime(
-      new Date(`2026-04-21T${String(12 + testClockOffset).padStart(2, '0')}:00:00.000Z`)
+      new Date(`2026-04-21T${String(12 + (testClockOffset % 12)).padStart(2, '0')}:00:00.000Z`)
     );
     testClockOffset += 1;
     app = express();
@@ -250,7 +265,136 @@ describe('Study Routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(startStudySessionMock).toHaveBeenCalledWith('user-1');
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', { timeZone: undefined });
+  });
+
+  it('passes a valid device timezone when starting study sessions', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 1,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 2,
+      },
+      cards: [],
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/session/start')).send({
+      timeZone: 'America/New_York',
+    });
+
+    expect(response.status).toBe(200);
+    expect(startStudySessionMock).toHaveBeenCalledWith('user-1', {
+      timeZone: 'America/New_York',
+    });
+  });
+
+  it('reads and updates study settings', async () => {
+    getStudySettingsMock.mockResolvedValue({ newCardsPerDay: 20 });
+    updateStudySettingsMock.mockResolvedValue({ newCardsPerDay: 12 });
+
+    const getResponse = await request(app).get('/study/settings');
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body).toEqual({ newCardsPerDay: 20 });
+    expect(multiMock).toHaveBeenCalledTimes(1);
+
+    const patchResponse = await withMutationCsrf(request(app).patch('/study/settings')).send({
+      newCardsPerDay: 12,
+    });
+    expect(patchResponse.status).toBe(200);
+    expect(multiMock).toHaveBeenCalledTimes(2);
+    expect(updateStudySettingsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      newCardsPerDay: 12,
+    });
+  });
+
+  it('lets the study settings service own daily-limit validation', async () => {
+    const validationError = Object.assign(
+      new Error('newCardsPerDay must be an integer between 0 and 1000.'),
+      { statusCode: 400 }
+    );
+    updateStudySettingsMock.mockRejectedValue(validationError);
+
+    const response = await withMutationCsrf(request(app).patch('/study/settings')).send({
+      newCardsPerDay: 1001,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('newCardsPerDay must be an integer');
+    expect(updateStudySettingsMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      newCardsPerDay: 1001,
+    });
+  });
+
+  it('lists and reorders the new-card queue', async () => {
+    getStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+    reorderStudyNewCardQueueMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      limit: 100,
+      nextCursor: null,
+    });
+
+    const listResponse = await request(app).get('/study/new-queue?q=会社');
+    expect(listResponse.status).toBe(200);
+    expect(multiMock).toHaveBeenCalledTimes(1);
+    expect(getStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cursor: undefined,
+      limit: 100,
+      q: '会社',
+    });
+
+    const reorderResponse = await withMutationCsrf(
+      request(app).post('/study/new-queue/reorder')
+    ).send({
+      cardIds: ['card-2', 'card-1'],
+    });
+    expect(reorderResponse.status).toBe(200);
+    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardIds: ['card-2', 'card-1'],
+    });
+  });
+
+  it('rejects malformed reorder card ids before calling the service', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
+      cardIds: ['card-1', ''],
+    });
+
+    expect(response.status).toBe(400);
+    expect(reorderStudyNewCardQueueMock).not.toHaveBeenCalled();
+  });
+
+  it('lets the study scheduler service own reorder length validation', async () => {
+    const validationError = Object.assign(
+      new Error('cardIds must include between 1 and 500 cards.'),
+      {
+        statusCode: 400,
+      }
+    );
+    reorderStudyNewCardQueueMock.mockRejectedValue(validationError);
+    const cardIds = Array.from({ length: 501 }, (_, index) => `card-${index + 1}`);
+
+    const response = await withMutationCsrf(request(app).post('/study/new-queue/reorder')).send({
+      cardIds,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cardIds must include');
+    expect(reorderStudyNewCardQueueMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardIds,
+    });
   });
 
   it('rejects invalid review grades', async () => {
@@ -290,7 +434,48 @@ describe('Study Routes', () => {
       cardId: 'card-1',
       grade: 'good',
       durationMs: 3_600_000,
+      timeZone: undefined,
+      currentOverview: undefined,
     });
+  });
+
+  it('passes timezone through when undoing a study review', async () => {
+    undoStudyReviewMock.mockResolvedValue({
+      reviewLogId: 'review-log-1',
+      card: { id: 'card-1' },
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
+      reviewLogId: 'review-log-1',
+      timeZone: 'America/New_York',
+    });
+
+    expect(response.status).toBe(200);
+    expect(undoStudyReviewMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      reviewLogId: 'review-log-1',
+      timeZone: 'America/New_York',
+      currentOverview: undefined,
+    });
+  });
+
+  it('rejects invalid undo timezones before calling the service', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/reviews/undo')).send({
+      reviewLogId: 'review-log-1',
+      timeZone: 'Not/AZone',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('timeZone must be a valid IANA timezone');
+    expect(undoStudyReviewMock).not.toHaveBeenCalled();
   });
 
   it('rejects invalid edit payloads', async () => {

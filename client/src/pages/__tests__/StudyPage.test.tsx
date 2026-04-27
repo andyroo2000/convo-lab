@@ -33,6 +33,9 @@ vi.mock('../../hooks/useStudy', () => ({
     data: {
       dueCount: 4,
       newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 18,
+      newCardsAvailableToday: 2,
       learningCount: 2,
       reviewCount: 8,
       suspendedCount: 0,
@@ -276,6 +279,8 @@ describe('StudyPage', () => {
     expect(screen.getByText('Study')).toBeInTheDocument();
     expect(screen.getByText('4 due, 6 new')).toBeInTheDocument();
     expect(screen.getByText('Ready to study')).toBeInTheDocument();
+    expect(screen.getByText('6 cards ready')).toBeInTheDocument();
+    expect(screen.getByText('2 new available today (18/20 introduced).')).toBeInTheDocument();
     expect(startStudySessionMock).not.toHaveBeenCalled();
   });
 

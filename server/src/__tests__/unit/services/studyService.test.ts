@@ -29,6 +29,12 @@ describe('studyService barrel', () => {
     expect(studyService.performStudyCardAction).toBe(studySchedulerService.performStudyCardAction);
     expect(studyService.updateStudyCard).toBe(studySchedulerService.updateStudyCard);
     expect(studyService.createStudyCard).toBe(studySchedulerService.createStudyCard);
+    expect(studyService.getStudySettings).toBe(studySchedulerService.getStudySettings);
+    expect(studyService.updateStudySettings).toBe(studySchedulerService.updateStudySettings);
+    expect(studyService.getStudyNewCardQueue).toBe(studySchedulerService.getStudyNewCardQueue);
+    expect(studyService.reorderStudyNewCardQueue).toBe(
+      studySchedulerService.reorderStudyNewCardQueue
+    );
   });
 
   it('re-exports browser and export functions from their domain services', () => {

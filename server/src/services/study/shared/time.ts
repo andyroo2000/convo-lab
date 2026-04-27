@@ -128,6 +128,30 @@ export function dateFromDayBoundary(
   );
 }
 
+export function dateFromLocalDayStart(
+  daysFromToday: number,
+  timeZone: string,
+  now: Date = new Date()
+): Date {
+  const validTimeZone = assertValidStudyTimeZone(timeZone);
+  const localNow = getTimeZoneParts(now, validTimeZone);
+  const localDay = new Date(
+    Date.UTC(localNow.year, localNow.month - 1, localNow.day + daysFromToday)
+  );
+
+  return zonedDateTimeToUtcDate(
+    {
+      year: localDay.getUTCFullYear(),
+      month: localDay.getUTCMonth() + 1,
+      day: localDay.getUTCDate(),
+      hour: 0,
+      minute: 0,
+      second: 0,
+    },
+    validTimeZone
+  );
+}
+
 export function getScheduledDaysForDue(dueAt: Date, from: Date = new Date()): number {
   return Math.max(0, Math.round((dueAt.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)));
 }

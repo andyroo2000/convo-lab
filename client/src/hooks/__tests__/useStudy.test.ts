@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { API_URL } from '../../config';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
-import { getStudyImportStatus, startStudySession, uploadStudyImport } from '../useStudy';
+import {
+  getStudyImportStatus,
+  startStudySession,
+  undoStudyReview,
+  uploadStudyImport,
+} from '../useStudy';
 
 describe('useStudy request helpers', () => {
   class MockXMLHttpRequest {
@@ -64,7 +69,7 @@ describe('useStudy request helpers', () => {
     vi.unstubAllGlobals();
   });
 
-  it('starts study sessions without an empty JSON body', async () => {
+  it('starts study sessions with device timezone and CSRF headers', async () => {
     await startStudySession();
 
     const fetchMock = vi.mocked(global.fetch);
@@ -77,8 +82,38 @@ describe('useStudy request helpers', () => {
     const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
     const headers = new Headers(requestInit.headers);
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
-    expect(headers.get('Content-Type')).toBeNull();
-    expect(requestInit.body).toBeUndefined();
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      timeZone: expect.any(String),
+    });
+  });
+
+  it('undoes study reviews with device timezone and current overview', async () => {
+    await undoStudyReview('review-log-1', {
+      dueCount: 1,
+      newCount: 0,
+      learningCount: 0,
+      reviewCount: 1,
+      suspendedCount: 0,
+      totalCards: 1,
+    });
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/study/reviews/undo`, expect.any(Object));
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      reviewLogId: 'review-log-1',
+      currentOverview: expect.objectContaining({
+        dueCount: 1,
+        reviewCount: 1,
+      }),
+      timeZone: expect.any(String),
+    });
   });
 
   it('attaches the shared CSRF token header to import uploads', async () => {

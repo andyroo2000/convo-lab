@@ -192,14 +192,17 @@ export function parseJsonRecord(raw: string): JsonRecord | null {
 export function parseOptionalStudyOverview(value: unknown): StudyOverview | undefined {
   if (!isRecord(value)) return undefined;
 
-  const readRequiredNumber = (candidate: unknown): number | null =>
+  const readFiniteNumber = (candidate: unknown): number | null =>
     typeof candidate === 'number' && Number.isFinite(candidate) ? candidate : null;
-  const dueCount = readRequiredNumber(value.dueCount);
-  const newCount = readRequiredNumber(value.newCount);
-  const learningCount = readRequiredNumber(value.learningCount);
-  const reviewCount = readRequiredNumber(value.reviewCount);
-  const suspendedCount = readRequiredNumber(value.suspendedCount);
-  const totalCards = readRequiredNumber(value.totalCards);
+  const dueCount = readFiniteNumber(value.dueCount);
+  const newCount = readFiniteNumber(value.newCount);
+  const learningCount = readFiniteNumber(value.learningCount);
+  const reviewCount = readFiniteNumber(value.reviewCount);
+  const suspendedCount = readFiniteNumber(value.suspendedCount);
+  const totalCards = readFiniteNumber(value.totalCards);
+  const newCardsPerDay = readFiniteNumber(value.newCardsPerDay);
+  const newCardsIntroducedToday = readFiniteNumber(value.newCardsIntroducedToday);
+  const newCardsAvailableToday = readFiniteNumber(value.newCardsAvailableToday);
 
   if (
     dueCount === null ||
@@ -222,6 +225,9 @@ export function parseOptionalStudyOverview(value: unknown): StudyOverview | unde
     reviewCount,
     suspendedCount,
     totalCards,
+    newCardsPerDay: newCardsPerDay ?? undefined,
+    newCardsIntroducedToday: newCardsIntroducedToday ?? undefined,
+    newCardsAvailableToday: newCardsAvailableToday ?? undefined,
     latestImport: null,
     nextDueAt,
   };

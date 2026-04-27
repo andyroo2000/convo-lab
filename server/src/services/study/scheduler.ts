@@ -1,4 +1,10 @@
 import {
+  STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+  STUDY_NEW_CARDS_PER_DAY_MAX,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+  STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
+} from '@languageflow/shared/src/studyConstants.js';
+import {
   serializeStudyFsrsCard as serializeFsrsCard,
   deserializeStudyFsrsCard as deserializeFsrsCard,
 } from '@languageflow/shared/src/studyFsrs.js';
@@ -11,7 +17,10 @@ import type {
   StudyPromptPayload,
   StudyQueueState,
   StudyAnswerPayload,
+  StudyNewCardQueueItem,
+  StudyNewCardQueueResponse,
   StudyReviewResult,
+  StudySettings,
   StudyUndoReviewResult,
 } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
@@ -31,6 +40,7 @@ import {
   assertValidStudyTimeZone,
   buildStudyCardSearchText,
   createFreshSchedulerState,
+  dateFromLocalDayStart,
   dateFromDayBoundary,
   getBestAnswerAudioText,
   getRequiredSchedulerState,
@@ -38,6 +48,7 @@ import {
   normalizeClozePayload,
   normalizeStudyCardPayload,
   parseStudyImportStatus,
+  parseStudyCardType,
   parseStudyQueueState,
   scheduler,
   STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT,
@@ -49,13 +60,338 @@ import {
   toStudyImportPreview,
 } from './shared.js';
 
+const ACTIVE_DUE_QUEUE_STATES = ['learning', 'review', 'relearning'] as const;
+const STUDY_CARD_SUMMARY_INCLUDE = {
+  note: true,
+  promptAudioMedia: true,
+  answerAudioMedia: true,
+  imageMedia: true,
+} satisfies Prisma.StudyCardInclude;
+const NEW_CARD_QUEUE_ORDER = [
+  { newQueuePosition: 'asc' },
+  { createdAt: 'asc' },
+  { id: 'asc' },
+] satisfies Prisma.StudyCardOrderByWithRelationInput[];
+const DUE_CARD_ORDER = [
+  { dueAt: 'asc' },
+  { id: 'asc' },
+] satisfies Prisma.StudyCardOrderByWithRelationInput[];
+
 function isActiveDueQueueState(queueState: StudyQueueState): boolean {
-  return queueState === 'learning' || queueState === 'review' || queueState === 'relearning';
+  return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
 }
 
-export async function getStudyOverview(userId: string): Promise<StudyOverview> {
-  const now = new Date();
-  const [cardOverviewRows, latestImport] = await Promise.all([
+function getStudyDayWindow(timeZone?: string, now: Date = new Date()) {
+  const resolvedTimeZone = timeZone ? assertValidStudyTimeZone(timeZone) : 'UTC';
+
+  return {
+    start: dateFromLocalDayStart(0, resolvedTimeZone, now),
+    end: dateFromLocalDayStart(1, resolvedTimeZone, now),
+    timeZone: resolvedTimeZone,
+  };
+}
+
+function assertValidNewCardsPerDay(value: unknown): number {
+  if (
+    typeof value !== 'number' ||
+    !Number.isSafeInteger(value) ||
+    value < 0 ||
+    value > STUDY_NEW_CARDS_PER_DAY_MAX
+  ) {
+    throw new AppError(
+      `newCardsPerDay must be an integer between 0 and ${String(STUDY_NEW_CARDS_PER_DAY_MAX)}.`,
+      400
+    );
+  }
+
+  return value;
+}
+
+export async function getStudySettings(userId: string): Promise<StudySettings> {
+  const existingSettings = await prisma.studySettings.findUnique({
+    where: { userId },
+  });
+  // Avoid a write on normal reads, but keep first-read creation atomic under concurrent requests.
+  const settings =
+    existingSettings ??
+    (await prisma.studySettings.upsert({
+      where: { userId },
+      update: {},
+      create: {
+        userId,
+        newCardsPerDay: STUDY_NEW_CARDS_PER_DAY_DEFAULT,
+      },
+    }));
+
+  return {
+    newCardsPerDay: settings.newCardsPerDay,
+  };
+}
+
+export async function updateStudySettings(params: {
+  userId: string;
+  newCardsPerDay: unknown;
+}): Promise<StudySettings> {
+  const newCardsPerDay = assertValidNewCardsPerDay(params.newCardsPerDay);
+  const settings = await prisma.studySettings.upsert({
+    where: { userId: params.userId },
+    update: { newCardsPerDay },
+    create: {
+      userId: params.userId,
+      newCardsPerDay,
+    },
+  });
+
+  return {
+    newCardsPerDay: settings.newCardsPerDay,
+  };
+}
+
+async function getNextNewQueuePosition(userId: string): Promise<number> {
+  const aggregate = await prisma.studyCard.aggregate({
+    where: {
+      userId,
+      queueState: 'new',
+    },
+    _max: {
+      newQueuePosition: true,
+    },
+  });
+
+  return (aggregate._max.newQueuePosition ?? 0) + 1;
+}
+
+function parseQueueCursor(cursor?: string): number {
+  if (!cursor) return 0;
+  if (!/^\d+$/.test(cursor)) {
+    throw new AppError('cursor must be a non-negative integer.', 400);
+  }
+
+  const parsed = Number.parseInt(cursor, 10);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new AppError('cursor must be a non-negative integer.', 400);
+  }
+
+  return parsed;
+}
+
+function clampNewQueueLimit(limit?: number): number {
+  if (typeof limit === 'undefined') return STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT;
+  if (!Number.isSafeInteger(limit) || limit <= 0 || limit > STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX) {
+    throw new AppError(
+      `limit must be an integer between 1 and ${String(STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX)}.`,
+      400
+    );
+  }
+
+  return limit;
+}
+
+function getStringField(payload: Prisma.JsonValue, ...keys: string[]): string | null {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null;
+
+  for (const key of keys) {
+    const value = (payload as Record<string, unknown>)[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
+function toNewCardQueueItem(record: {
+  id: string;
+  noteId: string;
+  cardType: string;
+  promptJson: Prisma.JsonValue;
+  answerJson: Prisma.JsonValue;
+  newQueuePosition: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): StudyNewCardQueueItem {
+  const displayText =
+    getStringField(record.promptJson, 'cueText', 'clozeDisplayText', 'clozeText') ??
+    getStringField(record.answerJson, 'expression', 'restoredText', 'meaning') ??
+    'Untitled card';
+  const meaning =
+    getStringField(record.answerJson, 'meaning', 'sentenceEn') ??
+    getStringField(record.promptJson, 'cueMeaning');
+
+  return {
+    id: record.id,
+    noteId: record.noteId,
+    cardType: parseStudyCardType(record.cardType),
+    displayText,
+    meaning,
+    queuePosition: record.newQueuePosition,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+export async function getStudyNewCardQueue(params: {
+  userId: string;
+  cursor?: string;
+  limit?: number;
+  q?: string;
+}): Promise<StudyNewCardQueueResponse> {
+  const offset = parseQueueCursor(params.cursor);
+  const limit = clampNewQueueLimit(params.limit);
+  const query = params.q?.trim();
+  const where: Prisma.StudyCardWhereInput = {
+    userId: params.userId,
+    queueState: 'new',
+    ...(query
+      ? {
+          searchText: {
+            contains: query,
+            mode: 'insensitive',
+          },
+        }
+      : {}),
+  };
+  const [total, items] = await Promise.all([
+    prisma.studyCard.count({ where }),
+    prisma.studyCard.findMany({
+      where,
+      select: {
+        id: true,
+        noteId: true,
+        cardType: true,
+        promptJson: true,
+        answerJson: true,
+        newQueuePosition: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+      skip: offset,
+      take: limit,
+    }),
+  ]);
+  const nextOffset = offset + items.length;
+
+  return {
+    items: items.map(toNewCardQueueItem),
+    total,
+    limit,
+    // Offset cursor is intentional for this settings-only queue view; it is not a durable snapshot cursor.
+    nextCursor: nextOffset < total ? String(nextOffset) : null,
+  };
+}
+
+export async function reorderStudyNewCardQueue(params: {
+  userId: string;
+  cardIds: string[];
+}): Promise<StudyNewCardQueueResponse> {
+  if (params.cardIds.length === 0 || params.cardIds.length > STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX) {
+    throw new AppError(
+      `cardIds must include between 1 and ${String(STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX)} cards.`,
+      400
+    );
+  }
+
+  const uniqueIds = new Set(params.cardIds);
+  if (uniqueIds.size !== params.cardIds.length) {
+    throw new AppError('cardIds must not contain duplicates.', 400);
+  }
+
+  const existingCards = await prisma.studyCard.findMany({
+    where: {
+      userId: params.userId,
+      queueState: 'new',
+      id: {
+        in: params.cardIds,
+      },
+    },
+    select: {
+      id: true,
+      newQueuePosition: true,
+    },
+    orderBy: [{ newQueuePosition: 'asc' }, { createdAt: 'asc' }, { id: 'asc' }],
+  });
+
+  if (existingCards.length !== params.cardIds.length) {
+    throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
+  }
+
+  const needsSyntheticQueuePositions = existingCards.some((card) => card.newQueuePosition === null);
+  // Only needed for legacy/null rows; normal reorder reuses the selected cards' existing positions.
+  const syntheticQueuePositionBase = needsSyntheticQueuePositions
+    ? ((
+        await prisma.studyCard.aggregate({
+          where: {
+            userId: params.userId,
+            queueState: 'new',
+          },
+          _max: {
+            newQueuePosition: true,
+          },
+        })
+      )._max.newQueuePosition ?? 0)
+    : 0;
+  let syntheticPositionOffset = 0;
+  const positionsByCardId = new Map(
+    existingCards.map((card) => {
+      if (card.newQueuePosition !== null) {
+        return [card.id, card.newQueuePosition] as const;
+      }
+
+      syntheticPositionOffset += 1;
+      return [card.id, syntheticQueuePositionBase + syntheticPositionOffset] as const;
+    })
+  );
+  const availablePositions = Array.from(positionsByCardId.values()).sort((a, b) => a - b);
+  const positionCases = Prisma.join(
+    params.cardIds.map(
+      (cardId, index) => Prisma.sql`WHEN ${cardId} THEN ${availablePositions[index]}`
+    ),
+    ' '
+  );
+  const cardIds = Prisma.join(params.cardIds);
+
+  const updatedCount = await prisma.$executeRaw`
+    UPDATE "study_cards"
+    SET "newQueuePosition" = CASE "id" ${positionCases} ELSE "newQueuePosition" END
+    WHERE "userId" = ${params.userId}
+      AND "queueState" = 'new'
+      AND "id" IN (${cardIds})
+  `;
+
+  if (updatedCount !== params.cardIds.length) {
+    throw new AppError('Every reordered card must be an active new card owned by the user.', 400);
+  }
+
+  return getStudyNewCardQueue({
+    userId: params.userId,
+    limit: STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
+  });
+}
+
+export async function getStudyOverview(
+  userId: string,
+  timeZone?: string,
+  prefetched?: {
+    now?: Date;
+    settings?: StudySettings;
+    introducedToday?: number;
+  }
+): Promise<StudyOverview> {
+  const now = prefetched?.now ?? new Date();
+  const dayWindow = getStudyDayWindow(timeZone, now);
+  const [settings, introducedToday, cardOverviewRows, latestImport] = await Promise.all([
+    prefetched?.settings ?? getStudySettings(userId),
+    prefetched?.introducedToday ??
+      prisma.studyCard.count({
+        where: {
+          userId,
+          introducedAt: {
+            gte: dayWindow.start,
+            lt: dayWindow.end,
+          },
+        },
+      }),
     // Keep overview card work to one aggregate query; hot mutation paths update cached
     // counts incrementally, and the initial load only needs this summary plus latest import.
     prisma.$queryRaw<
@@ -102,10 +438,18 @@ export async function getStudyOverview(userId: string): Promise<StudyOverview> {
     next_due_at: null,
   };
   const toCount = (value: bigint | number | null | undefined): number => Number(value ?? 0);
+  const newCount = toCount(cardOverview.new_count);
+  const newCardsAvailableToday = Math.min(
+    newCount,
+    Math.max(0, settings.newCardsPerDay - introducedToday)
+  );
 
   return {
     dueCount: toCount(cardOverview.due_count),
-    newCount: toCount(cardOverview.new_count),
+    newCount,
+    newCardsPerDay: settings.newCardsPerDay,
+    newCardsIntroducedToday: introducedToday,
+    newCardsAvailableToday,
     learningCount: toCount(cardOverview.learning_count),
     reviewCount: toCount(cardOverview.review_count),
     suspendedCount: toCount(cardOverview.suspended_count),
@@ -347,38 +691,99 @@ function getSetDueSchedulerState(record: StudyCardWithRelations, dueAt: Date): S
   });
 }
 
-export async function startStudySession(userId: string) {
-  const now = new Date();
-  const cards: StudyCardWithRelations[] = await prisma.studyCard.findMany({
+function getRemainingNewCardAllowance(settings: StudySettings, introducedToday: number): number {
+  return Math.max(0, settings.newCardsPerDay - introducedToday);
+}
+
+function getNewCardLimitForSession(remainingNewAllowance: number): number {
+  return Math.min(STUDY_SESSION_READY_CARD_LIMIT, remainingNewAllowance);
+}
+
+function getDueCardLimitForSession(newCardCount: number): number {
+  return Math.max(0, STUDY_SESSION_READY_CARD_LIMIT - newCardCount);
+}
+
+async function fetchQueuedNewStudyCards(
+  userId: string,
+  limit: number
+): Promise<StudyCardWithRelations[]> {
+  if (limit <= 0) {
+    return [];
+  }
+
+  return prisma.studyCard.findMany({
     where: {
       userId,
-      OR: [
-        { queueState: 'new' },
-        {
-          queueState: {
-            in: ['learning', 'review', 'relearning'],
-          },
-          dueAt: {
-            lte: now,
-          },
-        },
-      ],
+      queueState: 'new',
     },
-    include: {
-      note: true,
-      promptAudioMedia: true,
-      answerAudioMedia: true,
-      imageMedia: true,
-    },
-    // sourceDue is raw Anki integer metadata; runtime session ordering uses dueAt plus a stable ID tie-break.
-    orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
-    take: STUDY_SESSION_READY_CARD_LIMIT,
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+    orderBy: NEW_CARD_QUEUE_ORDER,
+    take: limit,
   });
+}
+
+async function fetchDueStudyCards(
+  userId: string,
+  now: Date,
+  limit: number
+): Promise<StudyCardWithRelations[]> {
+  if (limit <= 0) {
+    return [];
+  }
+
+  return prisma.studyCard.findMany({
+    where: {
+      userId,
+      queueState: {
+        in: [...ACTIVE_DUE_QUEUE_STATES],
+      },
+      dueAt: {
+        lte: now,
+      },
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+    orderBy: DUE_CARD_ORDER,
+    take: limit,
+  });
+}
+
+export async function startStudySession(userId: string, options: { timeZone?: string } = {}) {
+  const now = new Date();
+  const dayWindow = getStudyDayWindow(options.timeZone, now);
+  const [settings, introducedToday] = await Promise.all([
+    getStudySettings(userId),
+    prisma.studyCard.count({
+      where: {
+        userId,
+        introducedAt: {
+          gte: dayWindow.start,
+          lt: dayWindow.end,
+        },
+      },
+    }),
+  ]);
+
+  const remainingNewAllowance = getRemainingNewCardAllowance(settings, introducedToday);
+  // New cards are fetched first to reserve their daily slots, but the returned session keeps due cards first.
+  const newCards = await fetchQueuedNewStudyCards(
+    userId,
+    getNewCardLimitForSession(remainingNewAllowance)
+  );
+  const dueCards = await fetchDueStudyCards(
+    userId,
+    now,
+    getDueCardLimitForSession(newCards.length)
+  );
+  const cards = [...dueCards, ...newCards];
 
   await ensureStudyCardMediaAvailable(cards.slice(0, STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT));
 
   return {
-    overview: await getStudyOverview(userId),
+    overview: await getStudyOverview(userId, options.timeZone, {
+      now,
+      settings,
+      introducedToday,
+    }),
     cards: await Promise.all(cards.map((card) => toStudyCardSummary(card))),
   };
 }
@@ -388,6 +793,7 @@ export async function recordStudyReview(params: {
   cardId: string;
   grade: 'again' | 'hard' | 'good' | 'easy';
   durationMs?: number;
+  timeZone?: string;
   currentOverview?: StudyOverview;
 }): Promise<StudyReviewResult> {
   const gradeToRating: Record<typeof params.grade, Grade> = {
@@ -423,6 +829,8 @@ export async function recordStudyReview(params: {
   const nextState = scheduler.next(previousState, now, gradeToRating[params.grade]).card;
   const serializedNextState = serializeFsrsCard(nextState);
   const nextQueueState = toQueueStateFromFsrsState(nextState.state);
+  const wasIntroducedNow =
+    parseStudyQueueState(card.queueState) === 'new' && !(card.introducedAt instanceof Date);
   const createdReviewLog = await prisma.$transaction(async (tx) => {
     const updatedCard = await tx.studyCard.updateMany({
       where: { id: params.cardId, userId: params.userId },
@@ -431,6 +839,7 @@ export async function recordStudyReview(params: {
         queueState: nextQueueState,
         dueAt: nextState.due,
         lastReviewedAt: now,
+        introducedAt: wasIntroducedNow ? now : undefined,
       },
     });
 
@@ -452,6 +861,8 @@ export async function recordStudyReview(params: {
           grade: params.grade,
           beforeQueueState: String(card.queueState),
           beforeDueAt: card.dueAt instanceof Date ? card.dueAt.toISOString() : null,
+          beforeIntroducedAt:
+            card.introducedAt instanceof Date ? card.introducedAt.toISOString() : null,
           beforeLastReviewedAt:
             card.lastReviewedAt instanceof Date ? card.lastReviewedAt.toISOString() : null,
         }),
@@ -476,14 +887,16 @@ export async function recordStudyReview(params: {
     throw new AppError('Study card not found after review.', 404);
   }
 
-  const overview = params.currentOverview
-    ? await getAdjustedStudyOverview(
-        params.userId,
-        params.currentOverview,
-        getOverviewMutationCard(card),
-        getOverviewMutationCard(refreshed)
-      )
-    : await getStudyOverview(params.userId);
+  // New-card reviews change introduced-today allowance fields, so they need a fresh overview.
+  const overview =
+    params.currentOverview && parseStudyQueueState(card.queueState) !== 'new'
+      ? await getAdjustedStudyOverview(
+          params.userId,
+          params.currentOverview,
+          getOverviewMutationCard(card),
+          getOverviewMutationCard(refreshed)
+        )
+      : await getStudyOverview(params.userId, params.timeZone);
 
   return {
     reviewLogId: createdReviewLog.id,
@@ -495,6 +908,7 @@ export async function recordStudyReview(params: {
 export async function undoStudyReview(params: {
   userId: string;
   reviewLogId: string;
+  timeZone?: string;
   currentOverview?: StudyOverview;
 }): Promise<StudyUndoReviewResult> {
   const reviewLog = await prisma.studyReviewLog.findFirst({
@@ -569,6 +983,12 @@ export async function undoStudyReview(params: {
     typeof rawPayload.beforeLastReviewedAt === 'string'
       ? new Date(rawPayload.beforeLastReviewedAt)
       : (previousState.last_review ?? null);
+  const restoredIntroducedAt =
+    typeof rawPayload.beforeIntroducedAt === 'string'
+      ? new Date(rawPayload.beforeIntroducedAt)
+      : restoredQueueState === 'new'
+        ? null
+        : cardRecord.introducedAt;
 
   await prisma.$transaction(async (tx) => {
     const updatedCard = await tx.studyCard.updateMany({
@@ -577,6 +997,7 @@ export async function undoStudyReview(params: {
         schedulerStateJson: toPrismaJson(serializeFsrsCard(previousState)),
         queueState: restoredQueueState,
         dueAt: restoredDueAt,
+        introducedAt: restoredIntroducedAt,
         lastReviewedAt: restoredLastReviewedAt,
       },
     });
@@ -607,14 +1028,15 @@ export async function undoStudyReview(params: {
     throw new AppError('Study card not found after undo.', 404);
   }
 
-  const overview = params.currentOverview
-    ? await getAdjustedStudyOverview(
-        params.userId,
-        params.currentOverview,
-        getOverviewMutationCard(cardRecord),
-        getOverviewMutationCard(refreshed)
-      )
-    : await getStudyOverview(params.userId);
+  const overview =
+    params.currentOverview && restoredQueueState !== 'new'
+      ? await getAdjustedStudyOverview(
+          params.userId,
+          params.currentOverview,
+          getOverviewMutationCard(cardRecord),
+          getOverviewMutationCard(refreshed)
+        )
+      : await getStudyOverview(params.userId, params.timeZone);
 
   return {
     reviewLogId: params.reviewLogId,
@@ -647,6 +1069,9 @@ export async function performStudyCardAction(
   let nextDueAt = existing.dueAt instanceof Date ? existing.dueAt : null;
   let nextSchedulerState = getRequiredSchedulerState(existing);
   let nextLastReviewedAt = existing.lastReviewedAt instanceof Date ? existing.lastReviewedAt : null;
+  let nextIntroducedAt = existing.introducedAt instanceof Date ? existing.introducedAt : null;
+  let nextNewQueuePosition =
+    typeof existing.newQueuePosition === 'number' ? existing.newQueuePosition : null;
 
   if (input.action === 'suspend') {
     nextQueueState = 'suspended';
@@ -658,6 +1083,8 @@ export async function performStudyCardAction(
     nextDueAt = null;
     nextSchedulerState = createFreshSchedulerState();
     nextLastReviewedAt = null;
+    nextIntroducedAt = null;
+    nextNewQueuePosition = await getNextNewQueuePosition(input.userId);
   } else if (input.action === 'set_due') {
     const mode = input.mode;
     if (!mode) {
@@ -678,6 +1105,8 @@ export async function performStudyCardAction(
       dueAt: nextDueAt,
       schedulerStateJson: toPrismaJson(nextSchedulerState),
       lastReviewedAt: nextLastReviewedAt,
+      introducedAt: nextIntroducedAt,
+      newQueuePosition: nextNewQueuePosition,
     },
   });
 
@@ -702,14 +1131,17 @@ export async function performStudyCardAction(
     throw new AppError('Study card not found after update.', 404);
   }
 
-  const overview = input.currentOverview
-    ? await getAdjustedStudyOverview(
-        input.userId,
-        input.currentOverview,
-        getOverviewMutationCard(existing),
-        getOverviewMutationCard(refreshed)
-      )
-    : await getStudyOverview(input.userId);
+  const overview =
+    input.currentOverview &&
+    parseStudyQueueState(existing.queueState) !== 'new' &&
+    parseStudyQueueState(refreshed.queueState) !== 'new'
+      ? await getAdjustedStudyOverview(
+          input.userId,
+          input.currentOverview,
+          getOverviewMutationCard(existing),
+          getOverviewMutationCard(refreshed)
+        )
+      : await getStudyOverview(input.userId, input.timeZone);
 
   return {
     card: await toStudyCardSummary(refreshed),
@@ -834,6 +1266,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
   });
 
   const initialState = createFreshSchedulerState();
+  const newQueuePosition = await getNextNewQueuePosition(input.userId);
 
   const created: StudyCardWithRelations = await prisma.studyCard.create({
     data: {
@@ -842,6 +1275,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       sourceKind: 'convolab',
       cardType: input.cardType,
       queueState: 'new',
+      newQueuePosition,
       promptJson: toPrismaJson(normalizedPayload.prompt),
       answerJson: toPrismaJson(normalizedPayload.answer),
       searchText: buildStudyCardSearchText(normalizedPayload),
