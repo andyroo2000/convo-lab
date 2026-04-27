@@ -342,7 +342,7 @@ describe('StudyPage', () => {
     const emptyState = screen.getByText(emptyMessage);
     expect(beginButton).toBeDisabled();
     expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
-    expect(beginButton).toHaveAttribute('title', emptyMessage);
+    expect(beginButton).not.toHaveAttribute('title');
   });
 
   it('keeps Begin Study enabled while overview counts are loading', () => {

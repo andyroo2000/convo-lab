@@ -22,6 +22,7 @@ interface UserMenuProps {
 
 const MENU_ITEM_CLASS =
   'w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors';
+// Mobile primary nav lives inside one menu, so active items share a single menu highlight.
 const MOBILE_NAV_ACTIVE_CLASS = 'bg-[#d4e5e6] font-semibold text-[#11335c]';
 const MOBILE_NAV_INACTIVE_CLASS = 'text-[#173b65] hover:bg-[#d4e5e6]';
 const LOGOUT_ITEM_CLASS =
