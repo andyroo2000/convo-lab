@@ -1,14 +1,36 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { expectNoHorizontalOverflow, loginAsUser } from './utils/test-helpers';
+
+async function expectMobilePrimaryNavInUserMenu(page: Page) {
+  await page.getByTestId('user-menu-button').click();
+  await expect(page.getByTestId('user-menu-mobile-nav-library')).toBeVisible();
+  await expect(page.getByTestId('user-menu-mobile-nav-create')).toBeVisible();
+  await expect(page.getByTestId('user-menu-mobile-nav-study')).toBeVisible();
+  await page.keyboard.press('Escape');
+}
+
+async function expectTopbarControlsDoNotOverlap(page: Page) {
+  const logo = page.locator('nav a[href*="/app/library"]').first();
+  const userMenu = page.getByTestId('user-menu-button');
+  const logoBox = await logo.boundingBox();
+  const userMenuBox = await userMenu.boundingBox();
+
+  expect(logoBox).not.toBeNull();
+  expect(userMenuBox).not.toBeNull();
+  if (logoBox && userMenuBox) {
+    expect(logoBox.x + logoBox.width).toBeLessThanOrEqual(userMenuBox.x);
+  }
+}
 
 test.describe('Study mobile experience', () => {
   test('dashboard and focused review work on iPhone 13', async ({ page }) => {
     await loginAsUser(page);
 
     await page.goto('/app/study');
-    await expect(page.getByRole('heading', { name: 'Study', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
+    await expectTopbarControlsDoNotOverlap(page);
+    await expectMobilePrimaryNavInUserMenu(page);
     await expectNoHorizontalOverflow(page);
 
     await page.getByRole('button', { name: 'Begin Study' }).click();
@@ -113,7 +135,9 @@ test.describe('Study mobile narrow overflow checks', () => {
     await page.setViewportSize({ width: 320, height: 844 });
 
     await page.goto('/app/study');
-    await expect(page.getByRole('heading', { name: 'Study', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Begin Study' })).toBeVisible();
+    await expectTopbarControlsDoNotOverlap(page);
+    await expectMobilePrimaryNavInUserMenu(page);
     await expectNoHorizontalOverflow(page);
     await page.getByRole('button', { name: 'Begin Study' }).click();
     await page.getByRole('button', { name: 'Reveal answer' }).click();

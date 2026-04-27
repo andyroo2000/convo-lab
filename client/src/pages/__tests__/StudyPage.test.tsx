@@ -12,6 +12,7 @@ const {
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
+  studyOverviewRefetchMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
+  studyOverviewRefetchMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
 
@@ -43,7 +45,7 @@ vi.mock('../../hooks/useStudy', () => ({
     },
     isLoading: false,
     error: null,
-    refetch: vi.fn(),
+    refetch: studyOverviewRefetchMock,
   }),
   useSubmitStudyReview: () => ({
     mutateAsync: mutateAsyncMock,
@@ -136,6 +138,7 @@ describe('StudyPage', () => {
     prepareStudyAnswerAudioMock.mockReset();
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
+    studyOverviewRefetchMock.mockReset();
     updateStudyCardMock.mockReset();
     vi.restoreAllMocks();
 
@@ -276,12 +279,41 @@ describe('StudyPage', () => {
   it('renders overview counts without eagerly starting a study session', () => {
     renderStudyPage();
 
-    expect(screen.getByText('Study')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Begin Study' })).toBeInTheDocument();
     expect(screen.getByText('4 due, 6 new')).toBeInTheDocument();
-    expect(screen.getByText('Ready to study')).toBeInTheDocument();
-    expect(screen.getByText('6 cards ready')).toBeInTheDocument();
-    expect(screen.getByText('2 new available today (18/20 introduced).')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
+      'href',
+      '/app/study/browse'
+    );
+    expect(screen.getByRole('link', { name: 'Import' })).toHaveAttribute(
+      'href',
+      '/app/study/import'
+    );
+    expect(screen.getByRole('link', { name: 'Create Card' })).toHaveAttribute(
+      'href',
+      '/app/study/create'
+    );
+    expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute(
+      'href',
+      '/app/study/history'
+    );
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/app/study/settings'
+    );
+    expect(screen.queryByText('Ready to study')).not.toBeInTheDocument();
+    expect(screen.queryByText('Available now')).not.toBeInTheDocument();
+    expect(screen.queryByText('Load strategy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Keyboard')).not.toBeInTheDocument();
     expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
+  it('refreshes overview counts from the top study panel', async () => {
+    renderStudyPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh counts' }));
+
+    expect(studyOverviewRefetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {

@@ -1,13 +1,21 @@
-import { useState, useRef, useEffect } from 'react';
+import { type ReactNode, useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
+
+export interface UserMenuMobileNavItem {
+  label: string;
+  path: string;
+  isActive: boolean;
+  icon: ReactNode;
+}
 
 interface UserMenuProps {
   userName: string;
   avatarColor?: string;
   avatarUrl?: string;
   userRole: 'user' | 'moderator' | 'admin' | 'demo';
+  mobileNavItems?: UserMenuMobileNavItem[];
   onLogout: () => void;
 }
 
@@ -28,6 +36,7 @@ const UserMenu = ({
   avatarColor: _avatarColor = 'indigo',
   avatarUrl,
   userRole,
+  mobileNavItems = [],
   onLogout,
 }: UserMenuProps) => {
   const { t } = useTranslation('common');
@@ -92,6 +101,30 @@ const UserMenu = ({
           style={{ top: '100%' }}
         >
           <div className="py-1">
+            {mobileNavItems.length > 0 ? (
+              <div className="border-b border-[#bcc8c7] pb-1 sm:hidden">
+                {mobileNavItems.map((item) => (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      navigate(item.path);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+                      item.isActive
+                        ? 'bg-[#d4e5e6] font-semibold text-[#11335c]'
+                        : 'text-[#173b65] hover:bg-[#d4e5e6]'
+                    }`}
+                    data-testid={`user-menu-mobile-nav-${item.label.toLowerCase()}`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
             {/* Admin (only for admins) */}
             {userRole === 'admin' && (
               <button

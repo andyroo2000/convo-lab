@@ -108,6 +108,47 @@ describe('UserMenu', () => {
   });
 
   describe('Navigation', () => {
+    it('renders mobile primary navigation when provided', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            { label: 'Library', path: '/app/library', isActive: false, icon: <span /> },
+            { label: 'Create', path: '/app/create', isActive: false, icon: <span /> },
+            { label: 'Study', path: '/app/study', isActive: true, icon: <span /> },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+
+      expect(screen.getByTestId('user-menu-mobile-nav-library')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-mobile-nav-create')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-mobile-nav-study')).toHaveClass('bg-[#d4e5e6]');
+    });
+
+    it('navigates with mobile primary navigation and closes the menu', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            {
+              label: 'Library',
+              path: '/app/library?viewAs=user-1',
+              isActive: false,
+              icon: <span />,
+            },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+      fireEvent.click(screen.getByTestId('user-menu-mobile-nav-library'));
+
+      expect(mockNavigate).toHaveBeenCalledWith('/app/library?viewAs=user-1');
+      expect(screen.queryByTestId('user-menu-mobile-nav-library')).not.toBeInTheDocument();
+    });
+
     it('should navigate to settings page', () => {
       renderWithRouter(<UserMenu {...defaultProps} />);
 

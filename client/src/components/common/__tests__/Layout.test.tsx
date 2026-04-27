@@ -1,7 +1,7 @@
 /* eslint-disable testing-library/no-node-access, testing-library/no-container */
 // Complex layout structure testing requires direct node access for navigation and content areas
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from '../Layout';
 
@@ -44,7 +44,26 @@ vi.mock('../../../hooks/useFeatureFlags', () => ({
 
 // Mock child components
 vi.mock('../UserMenu', () => ({
-  default: () => <div data-testid="user-menu">User Menu</div>,
+  default: ({
+    mobileNavItems = [],
+  }: {
+    mobileNavItems?: Array<{ label: string; path: string; isActive: boolean }>;
+  }) => (
+    <div data-testid="user-menu">
+      User Menu
+      <div data-testid="user-menu-mobile-nav-items">
+        {mobileNavItems.map((item) => (
+          <span
+            key={item.path}
+            data-active={item.isActive ? 'true' : 'false'}
+            data-path={item.path}
+          >
+            {item.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  ),
 }));
 
 vi.mock('../Logo', () => ({
@@ -76,6 +95,7 @@ describe('Layout', () => {
               element={<div data-testid="library-page">Library Page</div>}
             />
             <Route path="app/create" element={<div data-testid="create-page">Create Page</div>} />
+            <Route path="app/study" element={<div data-testid="study-page">Study Page</div>} />
             <Route path="app/other" element={<div data-testid="other-page">Other Page</div>} />
           </Route>
         </Routes>
@@ -126,6 +146,31 @@ describe('Layout', () => {
 
       expect(libraryLinks.length).toBeGreaterThan(0);
       expect(createLinks.length).toBeGreaterThan(0);
+    });
+
+    it('should render desktop navigation tabs and no separate mobile tab row', () => {
+      window.history.pushState({}, '', '/app/library');
+      const { container } = renderLayout('/app/library');
+
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/library"]')).toBeTruthy();
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/create"]')).toBeTruthy();
+      expect(container.querySelector('.hidden.sm\\:ml-6 a[href="/app/study"]')).toBeTruthy();
+      expect(container.querySelector('.sm\\:hidden .retro-nav-tab')).toBeNull();
+    });
+
+    it('passes mobile primary navigation into the user menu', () => {
+      window.history.pushState({}, '', '/app/study?viewAs=user-1');
+      renderLayout('/app/study?viewAs=user-1');
+
+      const mobileNav = screen.getByTestId('user-menu-mobile-nav-items');
+      expect(mobileNav).toHaveTextContent('Library');
+      expect(mobileNav).toHaveTextContent('Create');
+      expect(mobileNav).toHaveTextContent('Study');
+      expect(within(mobileNav).getByText('Study')).toHaveAttribute('data-active', 'true');
+      expect(within(mobileNav).getByText('Library')).toHaveAttribute(
+        'data-path',
+        '/app/library?viewAs=user-1'
+      );
     });
 
     it('should highlight active library navigation', () => {
