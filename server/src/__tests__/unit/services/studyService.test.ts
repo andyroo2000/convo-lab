@@ -38,8 +38,6 @@ describe('studyService barrel', () => {
   });
 
   it('re-exports browser and export functions from their domain services', () => {
-    expect(studyService.getStudyHistory).toBe(studyBrowserService.getStudyHistory);
-    expect(studyService.getStudyCardOptions).toBe(studyBrowserService.getStudyCardOptions);
     expect(studyService.getStudyBrowserList).toBe(studyBrowserService.getStudyBrowserList);
     expect(studyService.getStudyBrowserNoteDetail).toBe(
       studyBrowserService.getStudyBrowserNoteDetail

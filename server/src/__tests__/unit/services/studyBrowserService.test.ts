@@ -6,8 +6,6 @@ import { mockPrisma } from '../../setup.js';
 import {
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
-  getStudyCardOptions,
-  getStudyHistory,
 } from '../../../services/studyBrowserService.js';
 
 describe('studyBrowserService', () => {
@@ -17,65 +15,6 @@ describe('studyBrowserService', () => {
 
   afterEach(async () => {
     await cleanupStudyServiceTestMedia();
-  });
-
-  it('returns paginated study history with a cursor', async () => {
-    mockPrisma.studyReviewLog.findMany.mockResolvedValue([
-      {
-        id: 'log-2',
-        cardId: 'card-1',
-        source: 'convolab',
-        reviewedAt: new Date('2026-04-13T00:00:00.000Z'),
-        rating: 3,
-        durationMs: 1200,
-        sourceReviewId: null,
-        stateBeforeJson: null,
-        stateAfterJson: null,
-        rawPayloadJson: {},
-      },
-      {
-        id: 'log-1',
-        cardId: 'card-1',
-        source: 'anki_import',
-        reviewedAt: new Date('2026-04-12T00:00:00.000Z'),
-        rating: 2,
-        durationMs: null,
-        sourceReviewId: BigInt(123),
-        stateBeforeJson: null,
-        stateAfterJson: null,
-        rawPayloadJson: {},
-      },
-    ]);
-
-    const result = await getStudyHistory({
-      userId: 'user-1',
-      limit: 1,
-    });
-
-    expect(result.events).toHaveLength(1);
-    expect(result.nextCursor).toBeTruthy();
-  });
-
-  it('returns card options ordered by recency', async () => {
-    mockPrisma.studyCard.count.mockResolvedValue(2);
-    mockPrisma.studyCard.findMany.mockResolvedValue([
-      {
-        id: 'card-2',
-        promptJson: { cueText: '会社' },
-        answerJson: { meaning: 'company' },
-        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
-      },
-      {
-        id: 'card-1',
-        promptJson: { cueText: '入口' },
-        answerJson: { meaning: 'entrance' },
-        updatedAt: new Date('2026-04-11T00:00:00.000Z'),
-      },
-    ]);
-
-    const result = await getStudyCardOptions('user-1', 10);
-    expect(result.total).toBe(2);
-    expect(result.options[0]?.id).toBe('card-2');
   });
 
   it('returns note detail with inspector fields, cards, and review stats', async () => {

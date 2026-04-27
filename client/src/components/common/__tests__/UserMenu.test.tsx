@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
+import { Circle } from 'lucide-react';
 import UserMenu from '../UserMenu';
 
 // Mock useNavigate
@@ -108,6 +109,90 @@ describe('UserMenu', () => {
   });
 
   describe('Navigation', () => {
+    it('renders mobile primary navigation when provided', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            {
+              id: 'library',
+              label: 'Library',
+              path: '/app/library',
+              isActive: false,
+              icon: Circle,
+            },
+            {
+              id: 'create',
+              label: 'Create',
+              path: '/app/create',
+              isActive: false,
+              icon: Circle,
+            },
+            {
+              id: 'study',
+              label: 'Study',
+              path: '/app/study',
+              isActive: true,
+              icon: Circle,
+            },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+
+      expect(screen.getByTestId('user-menu-mobile-nav-library')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-mobile-nav-create')).toBeInTheDocument();
+      expect(screen.getByTestId('user-menu-mobile-nav-study')).toHaveClass('bg-[#d4e5e6]');
+    });
+
+    it('uses stable mobile navigation ids instead of labels for test ids', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            {
+              id: 'create',
+              label: 'Create Card',
+              path: '/app/create',
+              isActive: false,
+              icon: Circle,
+            },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+
+      expect(screen.getByTestId('user-menu-mobile-nav-create')).toHaveTextContent('Create Card');
+      expect(screen.queryByTestId('user-menu-mobile-nav-create card')).not.toBeInTheDocument();
+    });
+
+    it('renders mobile primary navigation as links and closes the menu', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            {
+              id: 'library',
+              label: 'Library',
+              path: '/app/library?viewAs=user-1',
+              isActive: false,
+              icon: Circle,
+            },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+      const libraryLink = screen.getByTestId('user-menu-mobile-nav-library');
+      expect(libraryLink).toHaveAttribute('href', '/app/library?viewAs=user-1');
+      fireEvent.click(libraryLink);
+
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(screen.queryByTestId('user-menu-mobile-nav-library')).not.toBeInTheDocument();
+    });
+
     it('should navigate to settings page', () => {
       renderWithRouter(<UserMenu {...defaultProps} />);
 

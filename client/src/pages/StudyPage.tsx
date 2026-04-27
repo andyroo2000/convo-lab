@@ -251,11 +251,6 @@ const StudyPage = () => {
       availableCount={availableCount}
       loading={overviewQuery.isLoading}
       error={overviewQuery.error instanceof Error ? overviewQuery.error : null}
-      onRefresh={() => {
-        runBackgroundTask(() => overviewQuery.refetch(), {
-          label: 'Study overview refresh',
-        });
-      }}
       onBeginStudy={() => {
         runBackgroundTask(() => reviewSession.enterFocusMode(), {
           label: 'Study session start',

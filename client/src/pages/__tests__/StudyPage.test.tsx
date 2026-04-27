@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { StudyOverview } from '@languageflow/shared/src/types';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -13,6 +14,8 @@ const {
   undoStudyReviewMock,
   mutateAsyncMock,
   updateStudyCardMock,
+  studyOverviewData,
+  studyOverviewLoading,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -20,6 +23,20 @@ const {
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  studyOverviewData: {
+    current: {
+      dueCount: 4,
+      newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 18,
+      newCardsAvailableToday: 2,
+      learningCount: 2,
+      reviewCount: 8,
+      suspendedCount: 0,
+      totalCards: 20,
+    } as StudyOverview | undefined,
+  },
+  studyOverviewLoading: { current: false },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -30,18 +47,8 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 
 vi.mock('../../hooks/useStudy', () => ({
   useStudyOverview: () => ({
-    data: {
-      dueCount: 4,
-      newCount: 6,
-      newCardsPerDay: 20,
-      newCardsIntroducedToday: 18,
-      newCardsAvailableToday: 2,
-      learningCount: 2,
-      reviewCount: 8,
-      suspendedCount: 0,
-      totalCards: 20,
-    },
-    isLoading: false,
+    data: studyOverviewData.current,
+    isLoading: studyOverviewLoading.current,
     error: null,
     refetch: vi.fn(),
   }),
@@ -271,17 +278,86 @@ describe('StudyPage', () => {
       value: 1,
     });
     MockDeviceMotionEvent.requestPermission.mockClear();
+    studyOverviewLoading.current = false;
+    studyOverviewData.current = {
+      dueCount: 4,
+      newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 18,
+      newCardsAvailableToday: 2,
+      learningCount: 2,
+      reviewCount: 8,
+      suspendedCount: 0,
+      totalCards: 20,
+    };
   });
 
   it('renders overview counts without eagerly starting a study session', () => {
     renderStudyPage();
 
-    expect(screen.getByText('Study')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Begin Study' })).toBeInTheDocument();
     expect(screen.getByText('4 due, 6 new')).toBeInTheDocument();
-    expect(screen.getByText('Ready to study')).toBeInTheDocument();
-    expect(screen.getByText('6 cards ready')).toBeInTheDocument();
-    expect(screen.getByText('2 new available today (18/20 introduced).')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Browse' })).toHaveAttribute(
+      'href',
+      '/app/study/browse'
+    );
+    expect(screen.getByRole('link', { name: 'Import' })).toHaveAttribute(
+      'href',
+      '/app/study/import'
+    );
+    expect(screen.getByRole('link', { name: 'Create Card' })).toHaveAttribute(
+      'href',
+      '/app/study/create'
+    );
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
+      'href',
+      '/app/study/settings'
+    );
+    expect(screen.queryByRole('link', { name: 'History' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Refresh counts' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Ready to study')).not.toBeInTheDocument();
+    expect(screen.queryByText('Available now')).not.toBeInTheDocument();
+    expect(screen.queryByText('Load strategy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Keyboard')).not.toBeInTheDocument();
     expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
+  it('associates the disabled Begin Study button with the empty-state message', () => {
+    studyOverviewData.current = {
+      dueCount: 0,
+      newCount: 0,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 20,
+      newCardsAvailableToday: 0,
+      learningCount: 0,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 20,
+    };
+
+    renderStudyPage();
+
+    const emptyMessage = 'Import your `日本語` deck or create a card to start studying here.';
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    const emptyState = screen.getByText(emptyMessage);
+    expect(beginButton).toBeDisabled();
+    expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
+    expect(beginButton).not.toHaveAttribute('title');
+  });
+
+  it('keeps Begin Study enabled while overview counts are loading', () => {
+    studyOverviewLoading.current = true;
+    studyOverviewData.current = undefined;
+
+    renderStudyPage();
+
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    expect(beginButton).toBeEnabled();
+    expect(beginButton).not.toHaveAttribute('aria-describedby');
+    expect(screen.getByText('Loading overview…')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Import your `日本語` deck or create a card to start studying here.')
+    ).not.toBeInTheDocument();
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {

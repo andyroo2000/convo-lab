@@ -49,7 +49,6 @@ const StudyPage = lazy(() => import('./pages/StudyPage'));
 const StudyBrowsePage = lazy(() => import('./pages/StudyBrowsePage'));
 const StudyImportPage = lazy(() => import('./pages/StudyImportPage'));
 const StudyCreatePage = lazy(() => import('./pages/StudyCreatePage'));
-const StudyHistoryPage = lazy(() => import('./pages/StudyHistoryPage'));
 const StudySettingsPage = lazy(() => import('./pages/StudySettingsPage'));
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'));
 
@@ -272,14 +271,6 @@ const App = () => (
                       element={
                         <StudyRouteWrapper>
                           <StudyCreatePage />
-                        </StudyRouteWrapper>
-                      }
-                    />
-                    <Route
-                      path="study/history"
-                      element={
-                        <StudyRouteWrapper>
-                          <StudyHistoryPage />
                         </StudyRouteWrapper>
                       }
                     />

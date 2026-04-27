@@ -5,8 +5,6 @@ import {
   STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
-  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
-  STUDY_HISTORY_PAGE_SIZE_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
 } from '@languageflow/shared/src/studyConstants.js';
@@ -36,11 +34,9 @@ import {
   exportStudyReviewLogsSection,
   getStudyBrowserList,
   getStudyBrowserNoteDetail,
-  getStudyCardOptions,
   getCurrentStudyImportJob,
   getStudyNewCardQueue,
   getStudyMediaAccess,
-  getStudyHistory,
   getStudyImportJob,
   getStudyImportUploadReadiness,
   getStudyOverview,
@@ -982,46 +978,6 @@ router.post(
     }
   }
 );
-
-router.get('/cards/options', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-
-    const limit = parsePaginationLimit(
-      req.query.limit,
-      STUDY_BROWSER_PAGE_SIZE_DEFAULT,
-      STUDY_BROWSER_PAGE_SIZE_MAX
-    );
-    const result = await getStudyCardOptions(req.userId, limit);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/history', async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) {
-      throw new AppError('Authenticated user is required.', 401);
-    }
-    const cardId = typeof req.query.cardId === 'string' ? req.query.cardId : undefined;
-    const history = await getStudyHistory({
-      userId: req.userId,
-      cardId,
-      cursor: parseCursorQueryParam('cursor', req.query.cursor),
-      limit: parsePaginationLimit(
-        req.query.limit,
-        STUDY_HISTORY_PAGE_SIZE_DEFAULT,
-        STUDY_HISTORY_PAGE_SIZE_MAX
-      ),
-    });
-    res.json(history);
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.get('/browser', async (req: AuthRequest, res, next) => {
   try {

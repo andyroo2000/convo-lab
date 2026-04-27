@@ -3,22 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   decodeStudyBrowserCursor,
   decodeStudyExportCursor,
-  decodeStudyHistoryCursor,
   encodeStudyBrowserCursor,
   encodeStudyExportCursor,
-  encodeStudyHistoryCursor,
 } from '../../../services/study/shared/cursors.js';
 
 describe('study shared cursors', () => {
-  it('round-trips history cursors', () => {
-    const cursor = {
-      reviewedAt: '2026-04-22T12:00:00.000Z',
-      id: 'review-1',
-    };
-
-    expect(decodeStudyHistoryCursor(encodeStudyHistoryCursor(cursor))).toEqual(cursor);
-  });
-
   it('round-trips browser and export cursors', () => {
     const browserCursor = {
       updatedAt: '2026-04-22T12:00:00.000Z',
