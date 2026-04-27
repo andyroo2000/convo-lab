@@ -209,6 +209,8 @@ export function useStudyOverview(enabled: boolean) {
         `/api/study/overview${searchParams.toString() ? `?${searchParams.toString()}` : ''}`
       ),
     enabled,
+    // The app-wide QueryClient disables focus refetches; study counts should refresh
+    // when returning to the dashboard now that the manual refresh control is gone.
     refetchOnWindowFocus: true,
   });
 }

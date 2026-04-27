@@ -110,6 +110,10 @@ const UserMenu = ({
         >
           <div className="py-1">
             {mobileNavItems.length > 0 ? (
+              /*
+               * `sm:hidden` applies display:none on desktop, so these mobile-only links
+               * stay out of the desktop tab order and accessibility tree.
+               */
               <div className="border-b border-[#bcc8c7] pb-1 sm:hidden">
                 {mobileNavItems.map((item) => {
                   const Icon = item.icon;
