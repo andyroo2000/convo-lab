@@ -20,6 +20,13 @@ interface UserMenuProps {
   onLogout: () => void;
 }
 
+const MENU_ITEM_CLASS =
+  'w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors';
+const MOBILE_NAV_ACTIVE_CLASS = 'bg-[#d4e5e6] font-semibold text-[#11335c]';
+const MOBILE_NAV_INACTIVE_CLASS = 'text-[#173b65] hover:bg-[#d4e5e6]';
+const LOGOUT_ITEM_CLASS =
+  'w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#f4d7cf] hover:text-[#9e3920] transition-colors';
+
 // Avatar color map for future use
 // const AVATAR_COLOR_MAP: Record<string, { bg: string; text: string }> = {
 //   indigo: { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -110,9 +117,7 @@ const UserMenu = ({
                     to={item.path}
                     onClick={() => setIsOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
-                      item.isActive
-                        ? 'bg-[#d4e5e6] font-semibold text-[#11335c]'
-                        : 'text-[#173b65] hover:bg-[#d4e5e6]'
+                      item.isActive ? MOBILE_NAV_ACTIVE_CLASS : MOBILE_NAV_INACTIVE_CLASS
                     }`}
                     data-testid={`user-menu-mobile-nav-${item.id}`}
                   >
@@ -131,7 +136,7 @@ const UserMenu = ({
                   setIsOpen(false);
                   navigate('/app/admin');
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
+                className={MENU_ITEM_CLASS}
                 data-testid="user-menu-item-admin"
               >
                 <Shield className="w-4 h-4" />
@@ -146,7 +151,7 @@ const UserMenu = ({
                 setIsOpen(false);
                 navigate('/app/settings');
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
+              className={MENU_ITEM_CLASS}
               data-testid="user-menu-item-settings"
             >
               <Settings className="w-4 h-4" />
@@ -160,7 +165,7 @@ const UserMenu = ({
                 setIsOpen(false);
                 navigate('/app/credits');
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#d4e5e6] transition-colors"
+              className={MENU_ITEM_CLASS}
               data-testid="user-menu-item-credits"
             >
               <BookMarked className="w-4 h-4" />
@@ -177,7 +182,7 @@ const UserMenu = ({
                 setIsOpen(false);
                 onLogout();
               }}
-              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-[#173b65] hover:bg-[#f4d7cf] hover:text-[#9e3920] transition-colors"
+              className={LOGOUT_ITEM_CLASS}
               data-testid="user-menu-item-logout"
             >
               <LogOut className="w-4 h-4" />
