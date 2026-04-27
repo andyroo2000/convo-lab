@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Outlet, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Library, Mic, Eye, BookOpen } from 'lucide-react';
@@ -26,6 +27,43 @@ const Layout = () => {
     navigate('/login');
   };
 
+  // Determine active navigation
+  // Library should only be highlighted on the library index itself.
+  const isLibraryActive = location.pathname === '/app/library';
+  const isCreateActive = location.pathname.startsWith('/app/create');
+  const isStudyActive = location.pathname.startsWith('/app/study');
+  const studyEnabled = isFeatureEnabled('flashcardsEnabled');
+  const mobileNavItems = useMemo<UserMenuMobileNavItem[]>(
+    () => [
+      {
+        id: 'library',
+        label: t('common:nav.library'),
+        path: viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library',
+        isActive: isLibraryActive,
+        icon: <Library className="w-4 h-4" />,
+      },
+      {
+        id: 'create',
+        label: t('common:nav.create'),
+        path: viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create',
+        isActive: isCreateActive,
+        icon: <Mic className="w-4 h-4" />,
+      },
+      ...(studyEnabled
+        ? [
+            {
+              id: 'study',
+              label: t('common:nav.study'),
+              path: viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study',
+              isActive: isStudyActive,
+              icon: <BookOpen className="w-4 h-4" />,
+            },
+          ]
+        : []),
+    ],
+    [isCreateActive, isLibraryActive, isStudyActive, studyEnabled, t, viewAsUserId]
+  );
+
   // Show loading spinner while checking authentication
   if (loading) {
     return (
@@ -49,40 +87,6 @@ const Layout = () => {
   if (SHOW_ONBOARDING_WELCOME && user.onboardingCompleted === false) {
     return <OnboardingModal />;
   }
-
-  // Determine active navigation
-  // Library should only be highlighted on the library index itself.
-  const isLibraryActive = location.pathname === '/app/library';
-  const isCreateActive = location.pathname.startsWith('/app/create');
-  const isStudyActive = location.pathname.startsWith('/app/study');
-  const studyEnabled = isFeatureEnabled('flashcardsEnabled');
-  const mobileNavItems: UserMenuMobileNavItem[] = [
-    {
-      id: 'library',
-      label: t('common:nav.library'),
-      path: viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library',
-      isActive: isLibraryActive,
-      icon: <Library className="w-4 h-4" />,
-    },
-    {
-      id: 'create',
-      label: t('common:nav.create'),
-      path: viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create',
-      isActive: isCreateActive,
-      icon: <Mic className="w-4 h-4" />,
-    },
-    ...(studyEnabled
-      ? [
-          {
-            id: 'study',
-            label: t('common:nav.study'),
-            path: viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study',
-            isActive: isStudyActive,
-            icon: <BookOpen className="w-4 h-4" />,
-          },
-        ]
-      : []),
-  ];
 
   // Pages that should have no horizontal padding on mobile for full-width cards
   const isFullWidthMobilePage =

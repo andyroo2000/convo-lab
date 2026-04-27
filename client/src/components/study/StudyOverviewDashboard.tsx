@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { Link } from 'react-router-dom';
 import type { StudyOverview } from '@languageflow/shared/src/types';
 import { useTranslation } from 'react-i18next';
@@ -25,8 +26,7 @@ const StudyOverviewDashboard = ({
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
   const { t } = useTranslation('study');
-  // StudyOverviewDashboard is rendered once per page, so this stable id is safe.
-  const emptyStateId = 'study-overview-empty-state';
+  const emptyStateId = useId();
   const showEmptyState = availableCount === 0 && !loading;
   const beginStudyDisabled = isStartingSession || showEmptyState;
 
