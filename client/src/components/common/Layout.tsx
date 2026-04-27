@@ -27,7 +27,6 @@ const Layout = () => {
     navigate('/login');
   };
 
-  // Determine active navigation
   // Library should only be highlighted on the library index itself.
   const isLibraryActive = location.pathname === '/app/library';
   const isCreateActive = location.pathname.startsWith('/app/create');

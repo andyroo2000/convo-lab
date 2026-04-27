@@ -306,7 +306,7 @@ export function useSubmitStudyReview() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
-        queryClient.invalidateQueries({ queryKey: ['study', 'history'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
       ]);
     },
   });

@@ -124,6 +124,16 @@ test.describe('Study mobile experience', () => {
     await expect(page.getByRole('heading', { name: 'Create study card' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
+
+  test('retired history route intentionally renders 404', async ({ page }) => {
+    await loginAsUser(page);
+
+    await page.goto('/app/study/history');
+    await expect(page.getByText('404')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Page Not Found' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Study history' })).toHaveCount(0);
+    await expectNoHorizontalOverflow(page);
+  });
 });
 
 test.describe('Study mobile narrow overflow checks', () => {
