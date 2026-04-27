@@ -1,5 +1,5 @@
 import { type ReactNode, useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
 
@@ -105,12 +105,11 @@ const UserMenu = ({
             {mobileNavItems.length > 0 ? (
               <div className="border-b border-[#bcc8c7] pb-1 sm:hidden">
                 {mobileNavItems.map((item) => (
-                  <button
-                    key={item.path}
-                    type="button"
+                  <Link
+                    key={item.id}
+                    to={item.path}
                     onClick={() => {
                       setIsOpen(false);
-                      navigate(item.path);
                     }}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                       item.isActive
@@ -121,7 +120,7 @@ const UserMenu = ({
                   >
                     {item.icon}
                     <span>{item.label}</span>
-                  </button>
+                  </Link>
                 ))}
               </div>
             ) : null}

@@ -155,7 +155,7 @@ describe('UserMenu', () => {
       expect(screen.queryByTestId('user-menu-mobile-nav-create card')).not.toBeInTheDocument();
     });
 
-    it('navigates with mobile primary navigation and closes the menu', () => {
+    it('renders mobile primary navigation as links and closes the menu', () => {
       renderWithRouter(
         <UserMenu
           {...defaultProps}
@@ -172,9 +172,11 @@ describe('UserMenu', () => {
       );
 
       fireEvent.click(screen.getByTestId('user-menu-button'));
-      fireEvent.click(screen.getByTestId('user-menu-mobile-nav-library'));
+      const libraryLink = screen.getByTestId('user-menu-mobile-nav-library');
+      expect(libraryLink).toHaveAttribute('href', '/app/library?viewAs=user-1');
+      fireEvent.click(libraryLink);
 
-      expect(mockNavigate).toHaveBeenCalledWith('/app/library?viewAs=user-1');
+      expect(mockNavigate).not.toHaveBeenCalled();
       expect(screen.queryByTestId('user-menu-mobile-nav-library')).not.toBeInTheDocument();
     });
 

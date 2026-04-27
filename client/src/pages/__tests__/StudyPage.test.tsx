@@ -13,6 +13,7 @@ const {
   undoStudyReviewMock,
   mutateAsyncMock,
   updateStudyCardMock,
+  studyOverviewData,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -20,17 +21,8 @@ const {
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
-}));
-
-vi.mock('../../hooks/useFeatureFlags', () => ({
-  useFeatureFlags: () => ({
-    isFeatureEnabled: () => true,
-  }),
-}));
-
-vi.mock('../../hooks/useStudy', () => ({
-  useStudyOverview: () => ({
-    data: {
+  studyOverviewData: {
+    current: {
       dueCount: 4,
       newCount: 6,
       newCardsPerDay: 20,
@@ -41,6 +33,18 @@ vi.mock('../../hooks/useStudy', () => ({
       suspendedCount: 0,
       totalCards: 20,
     },
+  },
+}));
+
+vi.mock('../../hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({
+    isFeatureEnabled: () => true,
+  }),
+}));
+
+vi.mock('../../hooks/useStudy', () => ({
+  useStudyOverview: () => ({
+    data: studyOverviewData.current,
     isLoading: false,
     error: null,
     refetch: vi.fn(),
@@ -271,6 +275,17 @@ describe('StudyPage', () => {
       value: 1,
     });
     MockDeviceMotionEvent.requestPermission.mockClear();
+    studyOverviewData.current = {
+      dueCount: 4,
+      newCount: 6,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 18,
+      newCardsAvailableToday: 2,
+      learningCount: 2,
+      reviewCount: 8,
+      suspendedCount: 0,
+      totalCards: 20,
+    };
   });
 
   it('renders overview counts without eagerly starting a study session', () => {
@@ -301,6 +316,29 @@ describe('StudyPage', () => {
     expect(screen.queryByText('Load strategy')).not.toBeInTheDocument();
     expect(screen.queryByText('Keyboard')).not.toBeInTheDocument();
     expect(startStudySessionMock).not.toHaveBeenCalled();
+  });
+
+  it('associates the disabled Begin Study button with the empty-state message', () => {
+    studyOverviewData.current = {
+      dueCount: 0,
+      newCount: 0,
+      newCardsPerDay: 20,
+      newCardsIntroducedToday: 20,
+      newCardsAvailableToday: 0,
+      learningCount: 0,
+      reviewCount: 0,
+      suspendedCount: 0,
+      totalCards: 20,
+    };
+
+    renderStudyPage();
+
+    const emptyMessage = 'Import your `日本語` deck or create a card to start studying here.';
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    const emptyState = screen.getByText(emptyMessage);
+    expect(beginButton).toBeDisabled();
+    expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
+    expect(beginButton).toHaveAttribute('title', emptyMessage);
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {
