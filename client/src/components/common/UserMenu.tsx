@@ -108,9 +108,7 @@ const UserMenu = ({
                   <Link
                     key={item.id}
                     to={item.path}
-                    onClick={() => {
-                      setIsOpen(false);
-                    }}
+                    onClick={() => setIsOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
                       item.isActive
                         ? 'bg-[#d4e5e6] font-semibold text-[#11335c]'

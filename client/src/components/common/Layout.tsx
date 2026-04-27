@@ -98,7 +98,7 @@ const Layout = () => {
                 to={viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library'}
                 className="flex items-center gap-2 px-2 text-white font-bold text-lg sm:text-xl drop-shadow-md flex-shrink-0"
               >
-                <Logo size="small" showKana showIcons={false} showTextOnMobile />
+                <Logo size="small" showKana showIcons={false} alwaysShowText />
               </Link>
               {isDemo && (
                 <span className="hidden sm:inline-flex ml-2 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 rounded-full retro-caps">

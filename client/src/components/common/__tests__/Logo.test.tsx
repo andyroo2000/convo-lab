@@ -98,8 +98,8 @@ describe('Logo', () => {
       expect(text.parentElement).toHaveClass('hidden', 'sm:flex');
     });
 
-    it('can show text on mobile for compact app navigation', () => {
-      render(<Logo showTextOnMobile />);
+    it('can always show text for compact app navigation', () => {
+      render(<Logo alwaysShowText />);
       const text = screen.getByText('CONVOLAB');
       expect(text.parentElement).toHaveClass('flex');
       expect(text.parentElement).not.toHaveClass('hidden');

@@ -6,7 +6,7 @@ interface LogoProps {
   className?: string;
   showKana?: boolean;
   showIcons?: boolean;
-  showTextOnMobile?: boolean;
+  alwaysShowText?: boolean;
   wordmarkText?: string;
   kanaText?: string;
 }
@@ -17,7 +17,7 @@ const Logo = ({
   className = '',
   showKana = false,
   showIcons = true,
-  showTextOnMobile = false,
+  alwaysShowText = false,
   wordmarkText = 'CONVOLAB',
   kanaText = 'コンボラボ',
 }: LogoProps) => {
@@ -51,7 +51,7 @@ const Logo = ({
           <FlaskConical className={`${iconSize} ${colorClass} stroke-[2.5]`} />
         </div>
       )}
-      <div className={`${showTextOnMobile ? 'flex' : 'hidden sm:flex'} flex-col leading-none`}>
+      <div className={`${alwaysShowText ? 'flex' : 'hidden sm:flex'} flex-col leading-none`}>
         <span className={`retro-logo-wordmark ${textSize} ${colorClass}`}>{wordmarkText}</span>
         {showKana && (
           <span className={`retro-logo-kana mt-0.5 ${kanaSize} ${colorClass}`}>{kanaText}</span>

@@ -25,8 +25,10 @@ const StudyOverviewDashboard = ({
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
   const { t } = useTranslation('study');
+  // StudyOverviewDashboard is rendered once per page, so this stable id is safe.
   const emptyStateId = 'study-overview-empty-state';
   const showEmptyState = availableCount === 0 && !loading;
+  const beginStudyDisabled = isStartingSession || showEmptyState;
 
   return (
     <div className="space-y-6">
@@ -37,9 +39,9 @@ const StudyOverviewDashboard = ({
             <button
               type="button"
               onClick={onBeginStudy}
-              disabled={isStartingSession || availableCount === 0}
+              disabled={beginStudyDisabled}
               aria-describedby={showEmptyState ? emptyStateId : undefined}
-              title={availableCount === 0 ? t('overview.empty') : undefined}
+              title={showEmptyState ? t('overview.empty') : undefined}
               className="inline-flex min-h-14 items-center justify-center border-2 border-navy/20 bg-navy px-6 py-3 font-black uppercase leading-none tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {t('overview.begin')}

@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { StudyOverview } from '@languageflow/shared/src/types';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
@@ -14,6 +15,7 @@ const {
   mutateAsyncMock,
   updateStudyCardMock,
   studyOverviewData,
+  studyOverviewLoading,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -32,8 +34,9 @@ const {
       reviewCount: 8,
       suspendedCount: 0,
       totalCards: 20,
-    },
+    } as StudyOverview | undefined,
   },
+  studyOverviewLoading: { current: false },
 }));
 
 vi.mock('../../hooks/useFeatureFlags', () => ({
@@ -45,7 +48,7 @@ vi.mock('../../hooks/useFeatureFlags', () => ({
 vi.mock('../../hooks/useStudy', () => ({
   useStudyOverview: () => ({
     data: studyOverviewData.current,
-    isLoading: false,
+    isLoading: studyOverviewLoading.current,
     error: null,
     refetch: vi.fn(),
   }),
@@ -275,6 +278,7 @@ describe('StudyPage', () => {
       value: 1,
     });
     MockDeviceMotionEvent.requestPermission.mockClear();
+    studyOverviewLoading.current = false;
     studyOverviewData.current = {
       dueCount: 4,
       newCount: 6,
@@ -339,6 +343,21 @@ describe('StudyPage', () => {
     expect(beginButton).toBeDisabled();
     expect(beginButton).toHaveAttribute('aria-describedby', emptyState.id);
     expect(beginButton).toHaveAttribute('title', emptyMessage);
+  });
+
+  it('keeps Begin Study enabled while overview counts are loading', () => {
+    studyOverviewLoading.current = true;
+    studyOverviewData.current = undefined;
+
+    renderStudyPage();
+
+    const beginButton = screen.getByRole('button', { name: 'Begin Study' });
+    expect(beginButton).toBeEnabled();
+    expect(beginButton).not.toHaveAttribute('aria-describedby');
+    expect(screen.getByText('Loading overview…')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Import your `日本語` deck or create a card to start studying here.')
+    ).not.toBeInTheDocument();
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {
