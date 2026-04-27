@@ -216,6 +216,135 @@ describe('useStudyReviewSession', () => {
     expect(result.current.revealed).toBe(true);
   });
 
+  it('counts only current new queue-state cards as new in the focus header', async () => {
+    const trueNewCards = Array.from({ length: 20 }, (_, index) => ({
+      ...baseCardOne,
+      id: `new-${index + 1}`,
+      noteId: `note-new-${index + 1}`,
+      state: {
+        ...baseCardOne.state,
+        dueAt: null,
+        queueState: 'new' as const,
+        source: { type: 0 },
+      },
+    }));
+    const ankiOriginDueCards = Array.from({ length: 11 }, (_, index) => ({
+      ...baseCardOne,
+      id: `review-${index + 1}`,
+      noteId: `note-review-${index + 1}`,
+      state: {
+        ...baseCardOne.state,
+        queueState: 'review' as const,
+        source: { type: 0 },
+      },
+    }));
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 11,
+        newCount: 31,
+        newCardsPerDay: 20,
+        newCardsIntroducedToday: 0,
+        newCardsAvailableToday: 20,
+        reviewCount: 11,
+        totalCards: 31,
+      },
+      cards: [...trueNewCards, ...ankiOriginDueCards],
+    });
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => {
+      const card = [...trueNewCards, ...ankiOriginDueCards].find((item) => item.id === cardId);
+      return card ?? baseCardOne;
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 20,
+      failedDue: 0,
+      reviewRemaining: 11,
+    });
+  });
+
+  it('moves a failed new card from the new count to the failed count', async () => {
+    const newCard = {
+      ...baseCardOne,
+      id: 'new-card-1',
+      state: {
+        ...baseCardOne.state,
+        dueAt: null,
+        queueState: 'new' as const,
+        source: { type: 0 },
+      },
+    };
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 0,
+        newCount: 1,
+        newCardsPerDay: 20,
+        newCardsIntroducedToday: 0,
+        newCardsAvailableToday: 1,
+        reviewCount: 0,
+        totalCards: 1,
+      },
+      cards: [newCard],
+    });
+    prepareStudyAnswerAudioMock.mockResolvedValue(newCard);
+    reviewMutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-log-new',
+      card: {
+        ...newCard,
+        state: {
+          ...newCard.state,
+          dueAt: new Date('2026-04-21T12:05:00.000Z').toISOString(),
+          queueState: 'learning' as const,
+        },
+      },
+      overview: {
+        ...baseOverview,
+        dueCount: 0,
+        newCount: 0,
+        newCardsPerDay: 20,
+        newCardsIntroducedToday: 1,
+        newCardsAvailableToday: 0,
+        learningCount: 1,
+        reviewCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 1,
+      failedDue: 0,
+      reviewRemaining: 0,
+    });
+
+    await act(async () => {
+      await result.current.handleGrade('again');
+    });
+
+    expect(result.current.sessionCounts).toEqual({
+      newRemaining: 0,
+      failedDue: 1,
+      reviewRemaining: 0,
+    });
+  });
+
   it('restores a buried card when undo is triggered', async () => {
     const { result } = renderHook(() => useStudyReviewSession(), {
       wrapper: createWrapper(),

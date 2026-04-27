@@ -131,12 +131,10 @@ const useStudyReviewSession = () => {
     const totals = { newRemaining: 0, failedDue: 0, reviewRemaining: 0 };
 
     cards.forEach((card) => {
-      const isNewCard = card.state.source.type === 0 || card.state.queueState === 'new';
-
       if (failedSet.has(card.id)) {
         totals.failedDue += 1;
       } else if (!answeredSet.has(card.id)) {
-        if (isNewCard) {
+        if (card.state.queueState === 'new') {
           totals.newRemaining += 1;
         } else {
           totals.reviewRemaining += 1;
