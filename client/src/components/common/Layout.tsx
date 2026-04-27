@@ -58,12 +58,14 @@ const Layout = () => {
   const studyEnabled = isFeatureEnabled('flashcardsEnabled');
   const mobileNavItems: UserMenuMobileNavItem[] = [
     {
+      id: 'library',
       label: t('common:nav.library'),
       path: viewAsUserId ? `/app/library?viewAs=${viewAsUserId}` : '/app/library',
       isActive: isLibraryActive,
       icon: <Library className="w-4 h-4" />,
     },
     {
+      id: 'create',
       label: t('common:nav.create'),
       path: viewAsUserId ? `/app/create?viewAs=${viewAsUserId}` : '/app/create',
       isActive: isCreateActive,
@@ -72,6 +74,7 @@ const Layout = () => {
     ...(studyEnabled
       ? [
           {
+            id: 'study',
             label: t('common:nav.study'),
             path: viewAsUserId ? `/app/study?viewAs=${viewAsUserId}` : '/app/study',
             isActive: isStudyActive,

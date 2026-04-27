@@ -12,6 +12,9 @@ interface StudyOverviewDashboardProps {
   isStartingSession: boolean;
 }
 
+const STUDY_ACTION_CLASS =
+  'inline-flex min-h-11 items-center justify-center border-2 border-[#8b756d] bg-[#bfa192] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.18)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-brown';
+
 const StudyOverviewDashboard = ({
   headline,
   overview,
@@ -22,8 +25,6 @@ const StudyOverviewDashboard = ({
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
   const { t } = useTranslation('study');
-  const studyActionClass =
-    'inline-flex min-h-11 items-center justify-center border-2 border-[#8b756d] bg-[#bfa192] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.18)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-brown';
 
   return (
     <div className="space-y-6">
@@ -34,23 +35,23 @@ const StudyOverviewDashboard = ({
               type="button"
               onClick={onBeginStudy}
               disabled={isStartingSession || availableCount === 0}
-              className="inline-flex min-h-14 items-center justify-center border-2 border-[#143256]/20 bg-navy px-6 py-3 font-black uppercase leading-none tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-14 items-center justify-center border-2 border-navy/20 bg-navy px-6 py-3 font-black uppercase leading-none tracking-[0.01em] text-[#fbf5e0] shadow-[0_5px_0_rgba(17,51,92,0.18)] transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {t('overview.begin')}
             </button>
             <p className="mt-2 text-gray-600">{headline}</p>
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
-            <Link to="/app/study/browse" className={studyActionClass}>
+            <Link to="/app/study/browse" className={STUDY_ACTION_CLASS}>
               {t('overview.browse')}
             </Link>
-            <Link to="/app/study/import" className={studyActionClass}>
+            <Link to="/app/study/import" className={STUDY_ACTION_CLASS}>
               {t('overview.import')}
             </Link>
-            <Link to="/app/study/create" className={studyActionClass}>
+            <Link to="/app/study/create" className={STUDY_ACTION_CLASS}>
               {t('overview.create')}
             </Link>
-            <Link to="/app/study/settings" className={studyActionClass}>
+            <Link to="/app/study/settings" className={STUDY_ACTION_CLASS}>
               {t('overview.settings')}
             </Link>
           </div>

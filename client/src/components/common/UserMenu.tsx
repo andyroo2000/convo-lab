@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Settings, LogOut, Shield, BookMarked } from 'lucide-react';
 
 export interface UserMenuMobileNavItem {
+  id: string;
   label: string;
   path: string;
   isActive: boolean;
@@ -116,7 +117,7 @@ const UserMenu = ({
                         ? 'bg-[#d4e5e6] font-semibold text-[#11335c]'
                         : 'text-[#173b65] hover:bg-[#d4e5e6]'
                     }`}
-                    data-testid={`user-menu-mobile-nav-${item.label.toLowerCase()}`}
+                    data-testid={`user-menu-mobile-nav-${item.id}`}
                   >
                     {item.icon}
                     <span>{item.label}</span>

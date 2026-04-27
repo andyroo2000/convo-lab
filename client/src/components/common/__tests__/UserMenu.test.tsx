@@ -113,9 +113,15 @@ describe('UserMenu', () => {
         <UserMenu
           {...defaultProps}
           mobileNavItems={[
-            { label: 'Library', path: '/app/library', isActive: false, icon: <span /> },
-            { label: 'Create', path: '/app/create', isActive: false, icon: <span /> },
-            { label: 'Study', path: '/app/study', isActive: true, icon: <span /> },
+            {
+              id: 'library',
+              label: 'Library',
+              path: '/app/library',
+              isActive: false,
+              icon: <span />,
+            },
+            { id: 'create', label: 'Create', path: '/app/create', isActive: false, icon: <span /> },
+            { id: 'study', label: 'Study', path: '/app/study', isActive: true, icon: <span /> },
           ]}
         />
       );
@@ -127,12 +133,35 @@ describe('UserMenu', () => {
       expect(screen.getByTestId('user-menu-mobile-nav-study')).toHaveClass('bg-[#d4e5e6]');
     });
 
+    it('uses stable mobile navigation ids instead of labels for test ids', () => {
+      renderWithRouter(
+        <UserMenu
+          {...defaultProps}
+          mobileNavItems={[
+            {
+              id: 'create',
+              label: 'Create Card',
+              path: '/app/create',
+              isActive: false,
+              icon: <span />,
+            },
+          ]}
+        />
+      );
+
+      fireEvent.click(screen.getByTestId('user-menu-button'));
+
+      expect(screen.getByTestId('user-menu-mobile-nav-create')).toHaveTextContent('Create Card');
+      expect(screen.queryByTestId('user-menu-mobile-nav-create card')).not.toBeInTheDocument();
+    });
+
     it('navigates with mobile primary navigation and closes the menu', () => {
       renderWithRouter(
         <UserMenu
           {...defaultProps}
           mobileNavItems={[
             {
+              id: 'library',
               label: 'Library',
               path: '/app/library?viewAs=user-1',
               isActive: false,

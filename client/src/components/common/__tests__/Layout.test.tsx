@@ -3,6 +3,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import Layout from '../Layout';
 
 const mockAuthState = vi.hoisted(() => ({
@@ -47,17 +48,19 @@ vi.mock('../UserMenu', () => ({
   default: ({
     mobileNavItems = [],
   }: {
-    mobileNavItems?: Array<{ label: string; path: string; isActive: boolean }>;
+    mobileNavItems?: Array<{
+      id: string;
+      label: string;
+      path: string;
+      isActive: boolean;
+      icon: ReactNode;
+    }>;
   }) => (
     <div data-testid="user-menu">
       User Menu
       <div data-testid="user-menu-mobile-nav-items">
         {mobileNavItems.map((item) => (
-          <span
-            key={item.path}
-            data-active={item.isActive ? 'true' : 'false'}
-            data-path={item.path}
-          >
+          <span key={item.id} data-active={item.isActive ? 'true' : 'false'} data-path={item.path}>
             {item.label}
           </span>
         ))}

@@ -6,6 +6,7 @@ async function expectMobilePrimaryNavInUserMenu(page: Page) {
   await page.getByTestId('user-menu-button').click();
   await expect(page.getByTestId('user-menu-mobile-nav-library')).toBeVisible();
   await expect(page.getByTestId('user-menu-mobile-nav-create')).toBeVisible();
+  // The e2e fixture enables flashcards, so Study should be present in mobile primary nav.
   await expect(page.getByTestId('user-menu-mobile-nav-study')).toBeVisible();
   await page.keyboard.press('Escape');
 }
