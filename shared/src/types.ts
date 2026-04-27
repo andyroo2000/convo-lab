@@ -8,8 +8,6 @@ export {
   STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
-  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
-  STUDY_HISTORY_PAGE_SIZE_MAX,
   STUDY_NEW_CARDS_PER_DAY_DEFAULT,
   STUDY_NEW_CARDS_PER_DAY_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
@@ -178,11 +176,6 @@ export interface StudyReviewEvent {
   rawPayload?: Record<string, unknown> | null;
 }
 
-export interface StudyHistoryResponse {
-  events: StudyReviewEvent[];
-  nextCursor: string | null;
-}
-
 export interface StudyReviewResult {
   reviewLogId: string;
   card: StudyCardSummary;
@@ -261,16 +254,6 @@ export interface StudyBrowserNoteDetail {
   cards: StudyCardSummary[];
   cardStats: StudyBrowserCardStats[];
   selectedCardId: string | null;
-}
-
-export interface StudyCardOption {
-  id: string;
-  label: string;
-}
-
-export interface StudyCardOptionsResponse {
-  total: number;
-  options: StudyCardOption[];
 }
 
 export interface StudyImportPreview {

@@ -1,17 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { STUDY_HISTORY_PAGE_SIZE_DEFAULT } from '@languageflow/shared/src/studyConstants';
 import type {
   StudyAnswerPayload,
   StudyCardActionName,
   StudyCardActionRequest,
   StudyCardActionResult,
-  StudyCardOptionsResponse,
   StudyCardSetDueMode,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
   StudyCardSummary,
   StudyExportManifest,
-  StudyHistoryResponse,
   StudyImportResult,
   StudyImportUploadReadiness,
   StudyImportUploadSession,
@@ -170,12 +167,6 @@ export async function getStudyBrowserNoteDetail(noteId: string): Promise<StudyBr
   return apiRequest<StudyBrowserNoteDetail>(`/api/study/browser/${encodeURIComponent(noteId)}`);
 }
 
-export async function getStudyCardOptions(limit: number = 100): Promise<StudyCardOptionsResponse> {
-  return apiRequest<StudyCardOptionsResponse>(
-    `/api/study/cards/options?limit=${encodeURIComponent(String(limit))}`
-  );
-}
-
 export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<StudyCardSummary> {
   return apiRequest<StudyCardSummary>(`/api/study/cards/${encodeURIComponent(payload.cardId)}`, {
     method: 'PATCH',
@@ -204,35 +195,6 @@ export async function performStudyCardAction(
       body: JSON.stringify(request),
     }
   );
-}
-
-export function useStudyHistoryPage(
-  enabled: boolean,
-  params: { cardId?: string; cursor?: string; limit?: number }
-) {
-  const searchParams = new URLSearchParams();
-  if (params.cardId) {
-    searchParams.set('cardId', params.cardId);
-  }
-  if (params.cursor) {
-    searchParams.set('cursor', params.cursor);
-  }
-  if (typeof params.limit === 'number') {
-    searchParams.set('limit', String(params.limit));
-  }
-
-  return useQuery({
-    queryKey: [
-      'study',
-      'history',
-      params.cardId ?? 'all',
-      params.cursor ?? 'start',
-      params.limit ?? 50,
-    ],
-    queryFn: () =>
-      apiRequest<StudyHistoryResponse>(`/api/study/history?${searchParams.toString()}`),
-    enabled,
-  });
 }
 
 export function useStudyOverview(enabled: boolean) {
@@ -297,13 +259,6 @@ export function useReorderStudyNewCardQueue() {
   });
 }
 
-export function useStudyHistory(enabled: boolean, cardId?: string) {
-  return useStudyHistoryPage(enabled, {
-    cardId,
-    limit: STUDY_HISTORY_PAGE_SIZE_DEFAULT,
-  });
-}
-
 export function useStudyBrowser(enabled: boolean, query: StudyBrowserQuery) {
   return useQuery({
     queryKey: ['study', 'browser', query],
@@ -324,14 +279,6 @@ export function useStudyExport(enabled: boolean) {
   return useQuery({
     queryKey: ['study', 'export'],
     queryFn: () => apiRequest<StudyExportManifest>('/api/study/export'),
-    enabled,
-  });
-}
-
-export function useStudyCardOptions(enabled: boolean, limit: number = 100) {
-  return useQuery({
-    queryKey: ['study', 'card-options', limit],
-    queryFn: () => getStudyCardOptions(limit),
     enabled,
   });
 }

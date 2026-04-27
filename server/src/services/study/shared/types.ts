@@ -28,14 +28,6 @@ export type StudyCardWithRelations = Prisma.StudyCardGetPayload<{
     imageMedia: true;
   };
 }>;
-export type StudyCardOptionRecord = Prisma.StudyCardGetPayload<{
-  select: {
-    id: true;
-    promptJson: true;
-    answerJson: true;
-    updatedAt: true;
-  };
-}>;
 export type StudyBrowserListCardRecord = Prisma.StudyCardGetPayload<{
   select: {
     id: true;
@@ -231,18 +223,6 @@ export interface PerformStudyCardActionInput {
   dueAt?: string;
   timeZone?: string;
   currentOverview?: StudyOverview;
-}
-
-export interface GetStudyHistoryInput {
-  userId: string;
-  cardId?: string;
-  cursor?: string;
-  limit?: number;
-}
-
-export interface StudyHistoryCursor {
-  reviewedAt: string;
-  id: string;
 }
 
 export interface StudyBrowserCursor {

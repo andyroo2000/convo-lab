@@ -1,12 +1,10 @@
 export type {
   CreateStudyCardInput,
-  GetStudyHistoryInput,
   JsonRecord,
   ParsedImportDataset,
   StudyBrowserDetailNoteRecord,
   StudyBrowserListCardRecord,
   StudyBrowserListNoteRecord,
-  StudyCardOptionRecord,
   StudyCardWithRelations,
   StudyImportErrorWithMedia,
   StudyImportJobRecord,
@@ -17,7 +15,6 @@ export type {
   PerformStudyCardActionInput,
   StudyBrowserCursor,
   StudyExportCursor,
-  StudyHistoryCursor,
   ParsedAnkiMediaRecord,
   PersistedStudyMediaRecord,
   StudyImportWarningAccumulator,
@@ -55,10 +52,8 @@ export {
 export {
   decodeStudyBrowserCursor,
   decodeStudyExportCursor,
-  decodeStudyHistoryCursor,
   encodeStudyBrowserCursor,
   encodeStudyExportCursor,
-  encodeStudyHistoryCursor,
 } from './shared/cursors.js';
 
 export { noteFieldValueToString, stripHtml, toSearchText } from './shared/text.js';

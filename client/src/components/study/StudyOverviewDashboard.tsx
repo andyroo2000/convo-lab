@@ -8,7 +8,6 @@ interface StudyOverviewDashboardProps {
   availableCount: number;
   loading: boolean;
   error: Error | null;
-  onRefresh: () => void;
   onBeginStudy: () => void;
   isStartingSession: boolean;
 }
@@ -19,13 +18,12 @@ const StudyOverviewDashboard = ({
   availableCount,
   loading,
   error,
-  onRefresh,
   onBeginStudy,
   isStartingSession,
 }: StudyOverviewDashboardProps) => {
   const { t } = useTranslation('study');
   const studyActionClass =
-    'inline-flex min-h-11 items-center justify-center border-2 border-[#143256]/20 bg-coral-dark px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.20)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-coral-dark';
+    'inline-flex min-h-11 items-center justify-center border-2 border-[#8b756d] bg-[#bfa192] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-[#fbf5e0] shadow-[0_4px_0_rgba(75,24,0,0.18)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-dark-brown';
 
   return (
     <div className="space-y-6">
@@ -52,19 +50,9 @@ const StudyOverviewDashboard = ({
             <Link to="/app/study/create" className={studyActionClass}>
               {t('overview.create')}
             </Link>
-            <Link to="/app/study/history" className={studyActionClass}>
-              {t('overview.history')}
-            </Link>
             <Link to="/app/study/settings" className={studyActionClass}>
               {t('overview.settings')}
             </Link>
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="inline-flex min-h-11 items-center justify-center border-2 border-[#143256]/20 bg-[#fbf5e0] px-4 py-2 text-center font-semibold uppercase tracking-[0.08em] text-navy shadow-[0_4px_0_rgba(17,51,92,0.12)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-navy"
-            >
-              {t('overview.refresh')}
-            </button>
           </div>
         </div>
         {loading ? <p className="text-gray-500">{t('overview.loading')}</p> : null}

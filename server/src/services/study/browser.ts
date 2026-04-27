@@ -1,17 +1,10 @@
-import {
-  STUDY_HISTORY_PAGE_SIZE_DEFAULT,
-  STUDY_HISTORY_PAGE_SIZE_MAX,
-} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyBrowserCardStats,
   StudyBrowserFilterOptions,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
   StudyBrowserRow,
-  StudyCardOption,
-  StudyCardOptionsResponse,
   StudyCardType,
-  StudyHistoryResponse,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
 import { Prisma } from '@prisma/client';
@@ -20,27 +13,18 @@ import { prisma } from '../../db/client.js';
 
 import { ensureStudyCardMediaAvailable } from './media.js';
 import type {
-  GetStudyHistoryInput,
   StudyBrowserDetailNoteRecord,
   StudyBrowserListCardRecord,
   StudyBrowserListNoteRecord,
-  StudyCardOptionRecord,
-  StudyReviewLogRecord,
 } from './shared.js';
 import {
   buildMediaLookup,
   decodeStudyBrowserCursor,
-  decodeStudyHistoryCursor,
   encodeStudyBrowserCursor,
-  encodeStudyHistoryCursor,
   getNoteDisplayText,
-  noteFieldValueToString,
   parseStudyQueueState,
-  parseStudyReviewSource,
-  stripHtml,
   toStudyBrowserField,
   toStudyCardSummary,
-  toStudyFsrsState,
 } from './shared.js';
 
 function escapeLikePattern(value: string): string {
@@ -109,114 +93,6 @@ function buildStudyBrowserWhereSql(
   }
 
   return Prisma.sql`WHERE ${Prisma.join(clauses, ' AND ')}`;
-}
-
-function buildStudyCardOptionLabel(card: StudyCardOptionRecord): string {
-  const prompt =
-    card.promptJson && typeof card.promptJson === 'object'
-      ? (card.promptJson as Record<string, unknown>)
-      : {};
-  const answer =
-    card.answerJson && typeof card.answerJson === 'object'
-      ? (card.answerJson as Record<string, unknown>)
-      : {};
-  const label =
-    noteFieldValueToString(answer.expression) ??
-    noteFieldValueToString(answer.restoredText) ??
-    noteFieldValueToString(prompt.cueText) ??
-    noteFieldValueToString(prompt.clozeDisplayText) ??
-    noteFieldValueToString(answer.meaning) ??
-    String(card.id);
-
-  return stripHtml(label) ?? label;
-}
-
-export async function getStudyHistory(input: GetStudyHistoryInput): Promise<StudyHistoryResponse> {
-  const pageSize = Math.max(
-    1,
-    Math.min(STUDY_HISTORY_PAGE_SIZE_MAX, input.limit ?? STUDY_HISTORY_PAGE_SIZE_DEFAULT)
-  );
-  const cursor = input.cursor ? decodeStudyHistoryCursor(input.cursor) : null;
-  const logs: StudyReviewLogRecord[] = await prisma.studyReviewLog.findMany({
-    where: {
-      userId: input.userId,
-      ...(input.cardId ? { cardId: input.cardId } : {}),
-      ...(cursor
-        ? {
-            OR: [
-              { reviewedAt: { lt: new Date(cursor.reviewedAt) } },
-              {
-                reviewedAt: new Date(cursor.reviewedAt),
-                id: { lt: cursor.id },
-              },
-            ],
-          }
-        : {}),
-    },
-    orderBy: [{ reviewedAt: 'desc' }, { id: 'desc' }],
-    take: pageSize + 1,
-  });
-
-  const hasMore = logs.length > pageSize;
-  const pageLogs = hasMore ? logs.slice(0, pageSize) : logs;
-  const events = pageLogs.map((log) => ({
-    id: log.id,
-    cardId: log.cardId,
-    source: parseStudyReviewSource(log.source),
-    reviewedAt: log.reviewedAt.toISOString(),
-    rating: log.rating,
-    durationMs: typeof log.durationMs === 'number' ? log.durationMs : null,
-    sourceReviewId: typeof log.sourceReviewId === 'bigint' ? String(log.sourceReviewId) : null,
-    stateBefore: toStudyFsrsState(log.stateBeforeJson),
-    stateAfter: toStudyFsrsState(log.stateAfterJson),
-    rawPayload:
-      log.rawPayloadJson && typeof log.rawPayloadJson === 'object'
-        ? (log.rawPayloadJson as Record<string, unknown>)
-        : null,
-  }));
-
-  const lastLog = pageLogs.at(-1);
-
-  return {
-    events,
-    nextCursor:
-      hasMore && lastLog
-        ? encodeStudyHistoryCursor({
-            reviewedAt: lastLog.reviewedAt.toISOString(),
-            id: lastLog.id,
-          })
-        : null,
-  };
-}
-
-export async function getStudyCardOptions(
-  userId: string,
-  limit: number
-): Promise<StudyCardOptionsResponse> {
-  const [total, cards] = await Promise.all([
-    prisma.studyCard.count({
-      where: { userId },
-    }),
-    prisma.studyCard.findMany({
-      where: { userId },
-      select: {
-        id: true,
-        promptJson: true,
-        answerJson: true,
-        updatedAt: true,
-      },
-      orderBy: { updatedAt: 'desc' },
-      take: limit,
-    }) as Promise<StudyCardOptionRecord[]>,
-  ]);
-
-  return {
-    total,
-    options: cards.map<StudyCardOption>((card) => ({
-      id: card.id,
-      label: buildStudyCardOptionLabel(card),
-    })),
-  };
 }
 
 export async function getStudyBrowserList(params: {

@@ -12,7 +12,6 @@ const {
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
-  studyOverviewRefetchMock,
   updateStudyCardMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
@@ -20,7 +19,6 @@ const {
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
-  studyOverviewRefetchMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
 }));
 
@@ -45,7 +43,7 @@ vi.mock('../../hooks/useStudy', () => ({
     },
     isLoading: false,
     error: null,
-    refetch: studyOverviewRefetchMock,
+    refetch: vi.fn(),
   }),
   useSubmitStudyReview: () => ({
     mutateAsync: mutateAsyncMock,
@@ -138,7 +136,6 @@ describe('StudyPage', () => {
     prepareStudyAnswerAudioMock.mockReset();
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
-    studyOverviewRefetchMock.mockReset();
     updateStudyCardMock.mockReset();
     vi.restoreAllMocks();
 
@@ -293,27 +290,17 @@ describe('StudyPage', () => {
       'href',
       '/app/study/create'
     );
-    expect(screen.getByRole('link', { name: 'History' })).toHaveAttribute(
-      'href',
-      '/app/study/history'
-    );
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute(
       'href',
       '/app/study/settings'
     );
+    expect(screen.queryByRole('link', { name: 'History' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Refresh counts' })).not.toBeInTheDocument();
     expect(screen.queryByText('Ready to study')).not.toBeInTheDocument();
     expect(screen.queryByText('Available now')).not.toBeInTheDocument();
     expect(screen.queryByText('Load strategy')).not.toBeInTheDocument();
     expect(screen.queryByText('Keyboard')).not.toBeInTheDocument();
     expect(startStudySessionMock).not.toHaveBeenCalled();
-  });
-
-  it('refreshes overview counts from the top study panel', async () => {
-    renderStudyPage();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Refresh counts' }));
-
-    expect(studyOverviewRefetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('starts the study session only when Begin Study is clicked', async () => {

@@ -1,6 +1,1 @@
-export {
-  getStudyBrowserList,
-  getStudyBrowserNoteDetail,
-  getStudyCardOptions,
-  getStudyHistory,
-} from './study/browser.js';
+export { getStudyBrowserList, getStudyBrowserNoteDetail } from './study/browser.js';

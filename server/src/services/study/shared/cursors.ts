@@ -1,32 +1,7 @@
 import { AppError } from '../../../middleware/errorHandler.js';
 
 import { isRecord } from './guards.js';
-import type { StudyBrowserCursor, StudyExportCursor, StudyHistoryCursor } from './types.js';
-
-export function encodeStudyHistoryCursor(cursor: StudyHistoryCursor): string {
-  return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');
-}
-
-export function decodeStudyHistoryCursor(cursor: string): StudyHistoryCursor {
-  try {
-    const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8')) as unknown;
-    if (
-      !isRecord(parsed) ||
-      typeof parsed.reviewedAt !== 'string' ||
-      typeof parsed.id !== 'string' ||
-      Number.isNaN(new Date(parsed.reviewedAt).getTime())
-    ) {
-      throw new Error('Invalid cursor');
-    }
-
-    return {
-      reviewedAt: parsed.reviewedAt,
-      id: parsed.id,
-    };
-  } catch {
-    throw new AppError('cursor is invalid.', 400);
-  }
-}
+import type { StudyBrowserCursor, StudyExportCursor } from './types.js';
 
 export function encodeStudyBrowserCursor(cursor: StudyBrowserCursor): string {
   return Buffer.from(JSON.stringify(cursor), 'utf8').toString('base64url');

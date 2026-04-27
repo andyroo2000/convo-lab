@@ -116,15 +116,11 @@ test.describe('Study mobile experience', () => {
     await expectNoHorizontalOverflow(page);
   });
 
-  test('create and history routes smoke cleanly on mobile', async ({ page }) => {
+  test('create route smokes cleanly on mobile', async ({ page }) => {
     await loginAsUser(page);
 
     await page.goto('/app/study/create');
     await expect(page.getByRole('heading', { name: 'Create study card' })).toBeVisible();
-    await expectNoHorizontalOverflow(page);
-
-    await page.goto('/app/study/history');
-    await expect(page.getByRole('heading', { name: 'Study history' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
   });
 });

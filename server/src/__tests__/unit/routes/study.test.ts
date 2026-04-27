@@ -37,10 +37,8 @@ const {
   exportStudyImportsSectionMock,
   exportStudyMediaSectionMock,
   exportStudyReviewLogsSectionMock,
-  getStudyCardOptionsMock,
   getStudyBrowserListMock,
   getStudyBrowserNoteDetailMock,
-  getStudyHistoryMock,
   getCurrentStudyImportJobMock,
   getStudyNewCardQueueMock,
   getStudyMediaAccessMock,
@@ -67,10 +65,8 @@ const {
   exportStudyImportsSectionMock: vi.fn(),
   exportStudyMediaSectionMock: vi.fn(),
   exportStudyReviewLogsSectionMock: vi.fn(),
-  getStudyCardOptionsMock: vi.fn(),
   getStudyBrowserListMock: vi.fn(),
   getStudyBrowserNoteDetailMock: vi.fn(),
-  getStudyHistoryMock: vi.fn(),
   getCurrentStudyImportJobMock: vi.fn(),
   getStudyNewCardQueueMock: vi.fn(),
   getStudyMediaAccessMock: vi.fn(),
@@ -107,8 +103,6 @@ vi.mock('../../../services/studyService.js', () => ({
   exportStudyReviewLogsSection: exportStudyReviewLogsSectionMock,
   getStudyBrowserList: getStudyBrowserListMock,
   getStudyBrowserNoteDetail: getStudyBrowserNoteDetailMock,
-  getStudyCardOptions: getStudyCardOptionsMock,
-  getStudyHistory: getStudyHistoryMock,
   getCurrentStudyImportJob: getCurrentStudyImportJobMock,
   getStudyNewCardQueue: getStudyNewCardQueueMock,
   getStudyMediaAccess: getStudyMediaAccessMock,
@@ -184,10 +178,6 @@ describe('Study Routes', () => {
     createRedisConnectionMock.mockReset();
     createRedisConnectionMock.mockReturnValue({
       multi: multiMock,
-    });
-    getStudyHistoryMock.mockResolvedValue({
-      events: [],
-      nextCursor: null,
     });
     getStudyMediaAccessMock.mockResolvedValue(null);
     temporaryDirectory = await mkdtemp(path.join(os.tmpdir(), 'study-route-test-'));
@@ -904,49 +894,6 @@ describe('Study Routes', () => {
     expect(response.status).toBe(503);
     expect(response.body.message).toContain('rate limiting is temporarily unavailable');
     expect(createStudyImportUploadSessionMock).not.toHaveBeenCalled();
-  });
-
-  it('returns lightweight card options for the history filter', async () => {
-    getStudyCardOptionsMock.mockResolvedValue({
-      total: 125,
-      options: [{ id: 'card-1', label: '会社' }],
-    });
-
-    const response = await request(app).get('/study/cards/options?limit=100');
-
-    expect(response.status).toBe(200);
-    expect(getStudyCardOptionsMock).toHaveBeenCalledWith('user-1', 100);
-    expect(response.body.total).toBe(125);
-  });
-
-  it('rejects card options limits above the route maximum', async () => {
-    const response = await request(app).get('/study/cards/options?limit=500');
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('limit must be 100 or fewer');
-    expect(getStudyCardOptionsMock).not.toHaveBeenCalled();
-  });
-
-  it('passes history cursor pagination params through to the service', async () => {
-    const response = await request(app).get(
-      '/study/history?cardId=card-1&cursor=cursor-1&limit=25'
-    );
-
-    expect(response.status).toBe(200);
-    expect(getStudyHistoryMock).toHaveBeenCalledWith({
-      userId: 'user-1',
-      cardId: 'card-1',
-      cursor: 'cursor-1',
-      limit: 25,
-    });
-  });
-
-  it('rejects history cursors longer than 1000 characters', async () => {
-    const response = await request(app).get(`/study/history?cursor=${'a'.repeat(1001)}`);
-
-    expect(response.status).toBe(400);
-    expect(response.body.message).toContain('cursor must be 1000 characters or fewer');
-    expect(getStudyHistoryMock).not.toHaveBeenCalled();
   });
 
   it('serves authenticated study media through the study media route', async () => {
