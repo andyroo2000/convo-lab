@@ -192,11 +192,13 @@ const StudyPage = () => {
                       <StudyCardEditor
                         card={reviewSession.currentCard}
                         isSaving={reviewSession.updateCardMutation.isPending}
+                        isRegeneratingAudio={reviewSession.regenerateAudioMutation.isPending}
                         error={reviewSession.updateCardErrorMessage}
                         onCancel={() => {
                           reviewSession.setEditing(false);
                         }}
                         onSave={reviewSession.saveCurrentCard}
+                        onRegenerateAudio={reviewSession.regenerateCurrentCardAudio}
                       />
                     ) : (
                       <div className="flex flex-col gap-4 md:gap-5">

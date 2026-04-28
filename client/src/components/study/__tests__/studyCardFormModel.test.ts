@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+
 import { buildStudyCardFormPayload, getStudyCardFormValues } from '../studyCardFormModel';
 
 describe('studyCardFormModel', () => {
@@ -12,6 +14,8 @@ describe('studyCardFormModel', () => {
       answerExpression: '会社',
       answerReading: '',
       answerMeaning: 'company',
+      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioTextOverride: '',
       notes: '',
       sentenceJp: '',
       sentenceEn: '',
@@ -28,6 +32,8 @@ describe('studyCardFormModel', () => {
         expression: '会社',
         expressionReading: null,
         meaning: 'company',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioTextOverride: null,
         sentenceJp: null,
         sentenceEn: null,
         notes: null,
@@ -44,6 +50,8 @@ describe('studyCardFormModel', () => {
       answerExpression: '会社',
       answerReading: '会社[かいしゃ]',
       answerMeaning: 'company',
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
       notes: 'Use in business contexts.',
       sentenceJp: '会社に行きます。',
       sentenceEn: 'I am going to the company.',
@@ -60,6 +68,8 @@ describe('studyCardFormModel', () => {
         expression: '会社',
         expressionReading: '会社[かいしゃ]',
         meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
         sentenceJp: '会社に行きます。',
         sentenceEn: 'I am going to the company.',
         notes: 'Use in business contexts.',
@@ -76,6 +86,8 @@ describe('studyCardFormModel', () => {
       answerExpression: 'お風呂に虫がいる！',
       answerReading: '',
       answerMeaning: 'There are bugs in the bath!',
+      answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioTextOverride: '',
       notes: '',
       sentenceJp: '',
       sentenceEn: '',
@@ -90,6 +102,8 @@ describe('studyCardFormModel', () => {
       answer: {
         restoredText: 'お風呂に虫がいる！',
         meaning: 'There are bugs in the bath!',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioTextOverride: null,
         notes: null,
       },
     });
@@ -108,6 +122,8 @@ describe('studyCardFormModel', () => {
         answer: {
           restoredText: 'お風呂に虫がいる！',
           meaning: 'There are bugs in the bath!',
+          answerAudioVoiceId: 'ja-JP-Neural2-D',
+          answerAudioTextOverride: 'おふろにむしがいる',
           notes: 'Keep calm.',
         },
         state: {
@@ -128,6 +144,8 @@ describe('studyCardFormModel', () => {
       cueMeaning: 'are',
       answerExpression: 'お風呂に虫がいる！',
       answerMeaning: 'There are bugs in the bath!',
+      answerAudioVoiceId: 'ja-JP-Neural2-D',
+      answerAudioTextOverride: 'おふろにむしがいる',
       notes: 'Keep calm.',
     });
   });

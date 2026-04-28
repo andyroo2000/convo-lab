@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
-import type { AudioPlayerHandle } from '../components/study/StudyCardPreview';
+import type { AudioPlayerHandle } from '../components/study/StudyAudioPlayer';
 import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
 
 const PREWARM_CARD_COUNT = 3;
@@ -51,6 +51,30 @@ export default function useStudyAudioAutoplay({
     });
   }, []);
 
+  const resetAllAutoplay = useCallback(() => {
+    promptAutoplayKeys.current.clear();
+    answerAutoplayKeys.current.clear();
+  }, []);
+
+  const autoplayAnswerAudioForCard = useCallback(
+    (card: StudyCardSummary) => {
+      const answerUrl = toAssetUrl(card.answer.answerAudio?.url);
+      if (!answerUrl) return;
+
+      const autoplayKey = `${card.id}:answer:${answerUrl}`;
+      if (answerAutoplayKeys.current.has(autoplayKey)) return;
+
+      const player = answerAudioRef.current;
+      if (!player) return;
+
+      answerAutoplayKeys.current.add(autoplayKey);
+      runBackgroundTask(() => player.play(), {
+        label: 'Study answer-audio autoplay',
+      });
+    },
+    [runBackgroundTask]
+  );
+
   useEffect(() => {
     if (!focusMode || !cards.length) return;
 
@@ -83,21 +107,14 @@ export default function useStudyAudioAutoplay({
   useEffect(() => {
     if (!focusMode || !currentCard || !revealed) return;
 
-    const answerUrl = toAssetUrl(currentCard.answer.answerAudio?.url);
-    if (!answerUrl) return;
-
-    const autoplayKey = `${currentCard.id}:answer:${answerUrl}`;
-    if (answerAutoplayKeys.current.has(autoplayKey)) return;
-
-    answerAutoplayKeys.current.add(autoplayKey);
-    runBackgroundTask(() => answerAudioRef.current?.play(), {
-      label: 'Study answer-audio autoplay',
-    });
-  }, [currentCard, focusMode, revealed, runBackgroundTask]);
+    autoplayAnswerAudioForCard(currentCard);
+  }, [autoplayAnswerAudioForCard, currentCard, focusMode, revealed]);
 
   return {
+    autoplayAnswerAudioForCard,
     promptAudioRef,
     answerAudioRef,
+    resetAllAutoplay,
     resetAutoplayForCard,
     stopAllAudio,
   };

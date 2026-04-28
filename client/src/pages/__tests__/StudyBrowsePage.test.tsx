@@ -10,16 +10,22 @@ const {
   useStudyBrowserMock,
   useStudyBrowserNoteDetailMock,
   updateStudyCardMock,
+  regenerateStudyAnswerAudioMock,
   cardActionMutateAsyncMock,
 } = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
   useStudyBrowserNoteDetailMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  regenerateStudyAnswerAudioMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
   default: () => 'America/New_York',
+}));
+
+vi.mock('../../components/common/VoicePreview', () => ({
+  default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
 
 const browserData = {
@@ -73,7 +79,12 @@ const noteDetailById = {
         noteId: 'note-1',
         cardType: 'recognition' as const,
         prompt: { cueText: '会社' },
-        answer: { expression: '会社', meaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: 'ja-JP-Neural2-D',
+          answerAudioTextOverride: 'かいしゃ',
+        },
         state: {
           dueAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
           queueState: 'review' as const,
@@ -142,6 +153,11 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  useRegenerateStudyAnswerAudio: () => ({
+    mutateAsync: regenerateStudyAnswerAudioMock,
+    isPending: false,
+    error: null,
+  }),
 }));
 
 const renderPage = () => {
@@ -174,6 +190,7 @@ describe('StudyBrowsePage', () => {
     useStudyBrowserMock.mockReset();
     useStudyBrowserNoteDetailMock.mockReset();
     updateStudyCardMock.mockReset();
+    regenerateStudyAnswerAudioMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
 
     useStudyBrowserMock.mockReturnValue({
@@ -198,6 +215,28 @@ describe('StudyBrowsePage', () => {
         id: payload.cardId,
         prompt: payload.prompt,
         answer: payload.answer,
+      })
+    );
+    regenerateStudyAnswerAudioMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        answerAudioVoiceId?: string | null;
+        answerAudioTextOverride?: string | null;
+      }) => ({
+        ...(noteDetailById['note-1'].cards[0] ?? {}),
+        id: payload.cardId,
+        answerAudioSource: 'generated' as const,
+        answer: {
+          ...(noteDetailById['note-1'].cards[0]?.answer ?? {}),
+          answerAudioVoiceId: payload.answerAudioVoiceId,
+          answerAudioTextOverride: payload.answerAudioTextOverride,
+          answerAudio: {
+            filename: `${payload.cardId}-regenerated.mp3`,
+            url: `https://example.com/${payload.cardId}-regenerated.mp3`,
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+        },
       })
     );
     cardActionMutateAsyncMock.mockImplementation(
@@ -230,6 +269,14 @@ describe('StudyBrowsePage', () => {
         },
       })
     );
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: vi.fn().mockResolvedValue(undefined),
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      value: vi.fn(),
+    });
   });
 
   it('renders note rows and selects the first note by default', async () => {
@@ -240,15 +287,16 @@ describe('StudyBrowsePage', () => {
     expect(await screen.findByText('Imported fields')).toBeInTheDocument();
   });
 
-  it('updates the preview pane when another note row is selected and flipped', async () => {
+  it('updates the reusable editor when another note row is selected', async () => {
     renderPage();
 
     const noteItems = await screen.findAllByTestId('study-browser-note-item');
     await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
-    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
 
-    expect(await screen.findByText('There are bugs in the bath!')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Front' })).toBeInTheDocument();
+    expect(await screen.findByTestId('study-card-editor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Restored answer')).toHaveValue('お風呂に虫がいる！');
+    expect(screen.getByLabelText('Answer meaning')).toHaveValue('There are bugs in the bath!');
+    expect(screen.queryByRole('button', { name: 'Front' })).not.toBeInTheDocument();
   });
 
   it('updates the browser query when search and filters are submitted', async () => {
@@ -314,11 +362,16 @@ describe('StudyBrowsePage', () => {
     });
   });
 
-  it('opens the inline editor for the selected card and saves changes', async () => {
+  it('shows the full editor for the selected card and saves changes', async () => {
     renderPage();
 
     await userEvent.click(getNoteRow('会社'));
-    await userEvent.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByTestId('study-card-editor')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
+    expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
+
     await userEvent.clear(screen.getByLabelText('Answer meaning'));
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'business');
     await userEvent.click(screen.getByRole('button', { name: 'Save card' }));
@@ -331,6 +384,31 @@ describe('StudyBrowsePage', () => {
             meaning: 'business',
           }),
         })
+      );
+    });
+  });
+
+  it('regenerates answer audio from the edit pane using saved voice settings', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    expect(screen.getByText('No card audio is available yet.')).toBeInTheDocument();
+    await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
+    await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
+    await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    await waitFor(() => {
+      expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かぶしきがいしゃ',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
+        'src',
+        'https://example.com/card-1-regenerated.mp3'
       );
     });
   });

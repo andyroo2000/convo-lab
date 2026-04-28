@@ -15,10 +15,10 @@ import {
   useStudyCardAction,
   useStudyBrowser,
   useStudyBrowserNoteDetail,
+  useRegenerateStudyAnswerAudio,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
-import { StudyCardFace } from '../components/study/StudyCardPreview';
 import { getAudioMimeType, toAssetUrl } from '../components/study/studyCardUtils';
 
 const FieldValue = ({ field }: { field: StudyBrowserField }) => {
@@ -51,6 +51,7 @@ const StudyBrowsePage = () => {
   const { isFeatureEnabled } = useFeatureFlags();
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const updateCardMutation = useUpdateStudyCard();
+  const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
   const cardActionMutation = useStudyCardAction();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
@@ -67,8 +68,8 @@ const StudyBrowsePage = () => {
     () => searchParams.get('cardId') ?? ''
   );
   const selectedCardIdRef = useRef(selectedCardId);
-  const [previewSide, setPreviewSide] = useState<'front' | 'back'>('front');
-  const [editing, setEditing] = useState(false);
+  // In the always-editor browse flow, Cancel means discard local edits by remounting the editor.
+  const [editorResetToken, setEditorResetToken] = useState(0);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const runBackgroundTask = useStudyBackgroundTask();
 
@@ -111,7 +112,6 @@ const StudyBrowsePage = () => {
       detail.cards[0]?.id ??
       '';
     setSelectedCardId(nextCardId);
-    setPreviewSide('front');
   }, [detailQuery.data]);
 
   useEffect(() => {
@@ -130,8 +130,8 @@ const StudyBrowsePage = () => {
   }, [searchParams, selectedCardId, selectedNoteId, setSearchParams]);
 
   useEffect(() => {
-    setEditing(false);
     setShowSetDueControls(false);
+    setEditorResetToken((current) => current + 1);
   }, [selectedCardId]);
 
   const selectedDetail = detailQuery.data;
@@ -163,9 +163,8 @@ const StudyBrowsePage = () => {
       dueAt: options?.dueAt,
       timeZone: options?.mode === 'tomorrow' ? getDeviceStudyTimeZone() : undefined,
     });
-    setPreviewSide('front');
-    setEditing(false);
     setShowSetDueControls(false);
+    setEditorResetToken((current) => current + 1);
     await detailQuery.refetch();
     await browserQuery.refetch();
   };
@@ -173,8 +172,12 @@ const StudyBrowsePage = () => {
   let updateCardErrorMessage: string | null = null;
   if (updateCardMutation.error instanceof Error) {
     updateCardErrorMessage = updateCardMutation.error.message;
+  } else if (regenerateAudioMutation.error instanceof Error) {
+    updateCardErrorMessage = regenerateAudioMutation.error.message;
   } else if (updateCardMutation.error) {
     updateCardErrorMessage = 'Card update failed.';
+  } else if (regenerateAudioMutation.error) {
+    updateCardErrorMessage = 'Audio regeneration failed.';
   }
 
   return (
@@ -456,26 +459,6 @@ const StudyBrowsePage = () => {
                       })}
                     </p>
                   </div>
-                  <div className="inline-flex w-full min-w-0 max-w-full rounded-full border border-gray-300 bg-white p-1 sm:w-auto">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewSide('front')}
-                      className={`min-w-0 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-initial ${
-                        previewSide === 'front' ? 'bg-navy text-white' : 'text-navy'
-                      }`}
-                    >
-                      {t('browse.front')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setPreviewSide('back')}
-                      className={`min-w-0 flex-1 rounded-full px-4 py-2 text-sm font-medium sm:flex-initial ${
-                        previewSide === 'back' ? 'bg-navy text-white' : 'text-navy'
-                      }`}
-                    >
-                      {t('browse.backSide')}
-                    </button>
-                  </div>
                 </div>
 
                 {selectedDetail.cards.length > 1 ? (
@@ -486,7 +469,6 @@ const StudyBrowsePage = () => {
                         type="button"
                         onClick={() => {
                           setSelectedCardId(card.id);
-                          setPreviewSide('front');
                         }}
                         className={`rounded-full border px-3 py-2 text-sm font-medium ${
                           selectedCardId === card.id
@@ -518,14 +500,6 @@ const StudyBrowsePage = () => {
                           : ''}
                       </p>
                       <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setEditing(true)}
-                          disabled={updateCardMutation.isPending || cardActionMutation.isPending}
-                          className="rounded-full border border-gray-300 px-3 py-2 text-sm font-medium text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {t('browse.edit')}
-                        </button>
                         <button
                           type="button"
                           onClick={() => {
@@ -586,27 +560,37 @@ const StudyBrowsePage = () => {
                       <p className="text-sm text-red-600">{actionErrorMessage}</p>
                     ) : null}
 
-                    {editing ? (
-                      <StudyCardEditor
-                        card={selectedCard}
-                        isSaving={updateCardMutation.isPending}
-                        error={updateCardErrorMessage}
-                        onCancel={() => setEditing(false)}
-                        onSave={async ({ prompt, answer }) => {
-                          await updateCardMutation.mutateAsync({
-                            cardId: selectedCard.id,
-                            prompt,
-                            answer,
-                          });
-                          setEditing(false);
-                          setPreviewSide('front');
-                          await detailQuery.refetch();
-                          await browserQuery.refetch();
-                        }}
-                      />
-                    ) : (
-                      <StudyCardFace card={selectedCard} side={previewSide} />
-                    )}
+                    <StudyCardEditor
+                      key={`${selectedCard.id}:${editorResetToken}`}
+                      card={selectedCard}
+                      isSaving={updateCardMutation.isPending}
+                      isRegeneratingAudio={regenerateAudioMutation.isPending}
+                      error={updateCardErrorMessage}
+                      onCancel={() => setEditorResetToken((current) => current + 1)}
+                      onSave={async ({ prompt, answer }) => {
+                        await updateCardMutation.mutateAsync({
+                          cardId: selectedCard.id,
+                          prompt,
+                          answer,
+                        });
+                        setEditorResetToken((current) => current + 1);
+                        await detailQuery.refetch();
+                        await browserQuery.refetch();
+                      }}
+                      onRegenerateAudio={async ({
+                        answerAudioVoiceId,
+                        answerAudioTextOverride,
+                      }) => {
+                        const updatedCard = await regenerateAudioMutation.mutateAsync({
+                          cardId: selectedCard.id,
+                          answerAudioVoiceId,
+                          answerAudioTextOverride,
+                        });
+                        await detailQuery.refetch();
+                        await browserQuery.refetch();
+                        return updatedCard;
+                      }}
+                    />
                   </div>
                 ) : null}
 

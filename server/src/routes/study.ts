@@ -1,5 +1,6 @@
 import path from 'path';
 
+import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
@@ -43,6 +44,7 @@ import {
   getStudySettings,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
+  regenerateStudyCardAnswerAudio,
   recordStudyReview,
   reorderStudyNewCardQueue,
   startStudySession,
@@ -55,6 +57,7 @@ const router = Router();
 const MAX_STUDY_CARD_PAYLOAD_BYTES = 64 * 1024;
 const MAX_STUDY_CARD_PAYLOAD_DEPTH = 8;
 const MAX_STUDY_REVIEW_DURATION_MS = 60 * 60 * 1000;
+const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
@@ -114,9 +117,15 @@ const STUDY_ANSWER_ALLOWED_KEYS = new Set([
   'sentenceEn',
   'restoredText',
   'restoredTextReading',
+  'answerAudioVoiceId',
+  'answerAudioTextOverride',
   'answerAudio',
   'answerImage',
 ]);
+// Study card TTS is Japanese-only until card language becomes a first-class setting.
+// Keep this route validation in sync with the form voice picker when multi-language cards arrive.
+// This module-load whitelist intentionally updates on deploy/server restart with shared constants.
+const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
 function parsePositiveIntegerQueryParam(name: string, value: unknown): number | undefined {
   if (typeof value === 'undefined') {
     return undefined;
@@ -268,6 +277,27 @@ function parseOptionalNullableStringField(
   throw new AppError(`${label}.${fieldName} must be a string or null.`, 400);
 }
 
+function parseOptionalAnswerAudioVoiceId(value: unknown): string | null | undefined {
+  const voiceId = parseOptionalNullableStringField('answer', 'answerAudioVoiceId', value);
+  if (typeof voiceId === 'string' && !STUDY_JA_TTS_VOICE_IDS.has(voiceId)) {
+    throw new AppError('answer.answerAudioVoiceId must be a known TTS voice ID.', 400);
+  }
+
+  return voiceId;
+}
+
+function parseOptionalAnswerAudioTextOverride(value: unknown): string | null | undefined {
+  const text = parseOptionalNullableStringField('answer', 'answerAudioTextOverride', value);
+  if (typeof text === 'string' && text.length > ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH) {
+    throw new AppError(
+      `answer.answerAudioTextOverride must be ${ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH} characters or fewer.`,
+      400
+    );
+  }
+
+  return text;
+}
+
 function parseOptionalStudyMediaRef(
   label: string,
   fieldName: string,
@@ -374,6 +404,8 @@ function parseStudyAnswerPayload(value: Record<string, unknown>): StudyAnswerPay
       'restoredTextReading',
       value.restoredTextReading
     ),
+    answerAudioVoiceId: parseOptionalAnswerAudioVoiceId(value.answerAudioVoiceId),
+    answerAudioTextOverride: parseOptionalAnswerAudioTextOverride(value.answerAudioTextOverride),
     answerAudio: parseOptionalStudyMediaRef('answer', 'answerAudio', value.answerAudio),
     answerImage: parseOptionalStudyMediaRef('answer', 'answerImage', value.answerImage),
   };
@@ -972,6 +1004,34 @@ router.post(
       }
 
       const card = await prepareStudyCardAnswerAudio(req.userId, req.params.cardId);
+      res.json(card);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/cards/:cardId/regenerate-answer-audio',
+  rateLimitStudyRoute({ key: 'regenerate-answer-audio', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = isPlainObject(req.body) ? req.body : {};
+      const answerAudioVoiceId = parseOptionalAnswerAudioVoiceId(body.answerAudioVoiceId);
+      const answerAudioTextOverride = parseOptionalAnswerAudioTextOverride(
+        body.answerAudioTextOverride
+      );
+
+      const card = await regenerateStudyCardAnswerAudio({
+        userId: req.userId,
+        cardId: req.params.cardId,
+        answerAudioVoiceId,
+        answerAudioTextOverride,
+      });
       res.json(card);
     } catch (error) {
       next(error);

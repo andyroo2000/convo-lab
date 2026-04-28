@@ -1,1 +1,5 @@
-export { getStudyMediaAccess, prepareStudyCardAnswerAudio } from './study/media.js';
+export {
+  getStudyMediaAccess,
+  prepareStudyCardAnswerAudio,
+  regenerateStudyCardAnswerAudio,
+} from './study/media.js';

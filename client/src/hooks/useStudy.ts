@@ -41,6 +41,12 @@ interface UpdateStudyCardPayload {
   answer: StudyAnswerPayload;
 }
 
+interface RegenerateStudyAnswerAudioPayload {
+  cardId: string;
+  answerAudioVoiceId?: string | null;
+  answerAudioTextOverride?: string | null;
+}
+
 interface StudyCardActionPayload {
   cardId: string;
   action: StudyCardActionName;
@@ -133,6 +139,21 @@ export async function prepareStudyAnswerAudio(cardId: string): Promise<StudyCard
     `/api/study/cards/${encodeURIComponent(cardId)}/prepare-answer-audio`,
     {
       method: 'POST',
+    }
+  );
+}
+
+export async function regenerateStudyAnswerAudio(
+  payload: RegenerateStudyAnswerAudioPayload
+): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(
+    `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-answer-audio`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        answerAudioVoiceId: payload.answerAudioVoiceId,
+        answerAudioTextOverride: payload.answerAudioTextOverride,
+      }),
     }
   );
 }
@@ -341,6 +362,12 @@ export function useUpdateStudyCard() {
         queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
       ]);
     },
+  });
+}
+
+export function useRegenerateStudyAnswerAudio() {
+  return useMutation({
+    mutationFn: regenerateStudyAnswerAudio,
   });
 }
 

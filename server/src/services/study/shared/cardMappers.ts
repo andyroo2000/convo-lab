@@ -93,6 +93,10 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
   };
   answer = {
     ...answer,
+    answerAudioVoiceId:
+      typeof answer.answerAudioVoiceId === 'string' ? answer.answerAudioVoiceId : null,
+    answerAudioTextOverride:
+      typeof answer.answerAudioTextOverride === 'string' ? answer.answerAudioTextOverride : null,
     answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
     answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
   };

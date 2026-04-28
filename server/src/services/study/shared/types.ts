@@ -215,6 +215,13 @@ export interface UpdateStudyCardInput {
   answer: StudyAnswerPayload;
 }
 
+export interface RegenerateStudyCardAnswerAudioInput {
+  userId: string;
+  cardId: string;
+  answerAudioVoiceId?: string | null;
+  answerAudioTextOverride?: string | null;
+}
+
 export interface PerformStudyCardActionInput {
   userId: string;
   cardId: string;

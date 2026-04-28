@@ -6,6 +6,7 @@ export type {
   StudyBrowserListCardRecord,
   StudyBrowserListNoteRecord,
   StudyCardWithRelations,
+  RegenerateStudyCardAnswerAudioInput,
   StudyImportErrorWithMedia,
   StudyImportJobRecord,
   StudyMediaAccessResult,
@@ -23,6 +24,7 @@ export type {
 export {
   ANKI_DECK_NAME,
   STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
+  STUDY_AUDIO_REPAIR_FAILURE_COOLDOWN_MS,
   STUDY_AUDIO_LOCK_TTL_MS,
   STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT,
   STUDY_SESSION_READY_CARD_LIMIT,
@@ -77,6 +79,7 @@ export {
   pruneStudyMediaRedirectCache,
   resolveStudyMediaAbsolutePath,
   sanitizePathSegment,
+  shouldMirrorStudyMediaLocally,
   studyMediaRedirectCache,
 } from './shared/paths.js';
 

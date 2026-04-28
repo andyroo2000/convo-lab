@@ -64,6 +64,27 @@ export function getLegacyPublicStudyMediaRoot(): string {
   return path.join(__dirname, '../../../public');
 }
 
+export function shouldMirrorStudyMediaLocally(): boolean {
+  if (process.env.STUDY_MEDIA_LOCAL_MIRROR === 'false') {
+    return false;
+  }
+
+  if (process.env.STUDY_MEDIA_LOCAL_MIRROR === 'true') {
+    return true;
+  }
+
+  // Local dev often leaves NODE_ENV unset; staging/prod should run with NODE_ENV=production.
+  return process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
+}
+
+function getWorkspacePrivateStudyMediaRoot(): string {
+  return path.join(process.cwd(), 'storage');
+}
+
+function getWorkspacePublicStudyMediaRoot(): string {
+  return path.join(process.cwd(), 'public');
+}
+
 function normalizeStoragePath(storagePath: string): string {
   return path.posix.normalize(storagePath).replace(/^\/+/, '');
 }
@@ -111,7 +132,9 @@ export async function findAccessibleLocalStudyMediaPath(
 ): Promise<string | null> {
   const candidatePaths = [
     resolveStudyMediaAbsolutePath(getPrivateStudyMediaRoot(), storagePath),
+    resolveStudyMediaAbsolutePath(getWorkspacePrivateStudyMediaRoot(), storagePath),
     resolveStudyMediaAbsolutePath(getLegacyPublicStudyMediaRoot(), storagePath),
+    resolveStudyMediaAbsolutePath(getWorkspacePublicStudyMediaRoot(), storagePath),
   ].filter((value): value is string => Boolean(value));
 
   for (const candidate of candidatePaths) {

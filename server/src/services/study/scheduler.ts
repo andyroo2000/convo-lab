@@ -1192,7 +1192,9 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
 
   const previousAudioText = getBestAnswerAudioText(currentNormalized.answer);
   const nextAudioText = getBestAnswerAudioText(normalizedPayload.answer);
-  const shouldRegenerateAnswerAudio = previousAudioText !== nextAudioText;
+  const shouldRegenerateAnswerAudio =
+    previousAudioText !== nextAudioText ||
+    currentNormalized.answer.answerAudioVoiceId !== normalizedPayload.answer.answerAudioVoiceId;
 
   const nextAnswer: StudyAnswerPayload = shouldRegenerateAnswerAudio
     ? {

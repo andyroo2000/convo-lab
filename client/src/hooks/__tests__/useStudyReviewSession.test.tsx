@@ -12,6 +12,7 @@ const {
   reviewMutateAsyncMock,
   undoStudyReviewMock,
   updateStudyCardMock,
+  regenerateStudyAnswerAudioMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -19,6 +20,7 @@ const {
   reviewMutateAsyncMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  regenerateStudyAnswerAudioMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -32,6 +34,11 @@ vi.mock('../useStudy', () => ({
   }),
   useUpdateStudyCard: () => ({
     mutateAsync: updateStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
+  useRegenerateStudyAnswerAudio: () => ({
+    mutateAsync: regenerateStudyAnswerAudioMock,
     isPending: false,
     error: null,
   }),
@@ -125,6 +132,7 @@ describe('useStudyReviewSession', () => {
     cardActionMutateAsyncMock.mockReset();
     undoStudyReviewMock.mockReset();
     updateStudyCardMock.mockReset();
+    regenerateStudyAnswerAudioMock.mockReset();
 
     startStudySessionMock.mockResolvedValue({
       overview: baseOverview,
@@ -159,6 +167,28 @@ describe('useStudyReviewSession', () => {
         reviewCount: 1,
       },
     });
+    regenerateStudyAnswerAudioMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        answerAudioVoiceId?: string | null;
+        answerAudioTextOverride?: string | null;
+      }) => ({
+        ...baseCardOne,
+        id: payload.cardId,
+        answerAudioSource: 'generated' as const,
+        answer: {
+          ...baseCardOne.answer,
+          answerAudioVoiceId: payload.answerAudioVoiceId,
+          answerAudioTextOverride: payload.answerAudioTextOverride,
+          answerAudio: {
+            filename: `${payload.cardId}.mp3`,
+            url: `https://example.com/${payload.cardId}.mp3`,
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+        },
+      })
+    );
     undoStudyReviewMock.mockResolvedValue({
       reviewLogId: 'review-log-1',
       card: baseCardOne,
@@ -269,6 +299,66 @@ describe('useStudyReviewSession', () => {
       newRemaining: 20,
       failedDue: 0,
       reviewRemaining: 11,
+    });
+  });
+
+  it('resets answer-audio autoplay memory for each new focus session', async () => {
+    const playMock = vi.fn().mockResolvedValue(true);
+    const cardWithAnswerAudio = {
+      ...baseCardOne,
+      answer: {
+        ...baseCardOne.answer,
+        answerAudio: {
+          filename: 'card-1.mp3',
+          url: 'https://example.com/card-1.mp3',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated' as const,
+    };
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        ...baseOverview,
+        dueCount: 1,
+        reviewCount: 1,
+        totalCards: 1,
+      },
+      cards: [cardWithAnswerAudio],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    result.current.answerAudioRef.current = {
+      play: playMock,
+      togglePlayPause: vi.fn(),
+      stop: vi.fn(),
+    };
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.exitFocusMode();
+    });
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+    act(() => {
+      result.current.revealCurrentCard();
+    });
+
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -454,6 +544,34 @@ describe('useStudyReviewSession', () => {
     await waitFor(() => {
       expect(prepareStudyAnswerAudioMock.mock.calls.length).toBeGreaterThanOrEqual(2);
     });
+    expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
+      'https://example.com/card-1.mp3'
+    );
+  });
+
+  it('regenerates current card answer audio and merges the refreshed card', async () => {
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    await act(async () => {
+      await result.current.regenerateCurrentCardAudio({
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      });
+    });
+
+    expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
+      cardId: 'card-1',
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
+    });
+    expect(result.current.currentCard?.answer.answerAudioVoiceId).toBe('ja-JP-Neural2-C');
+    expect(result.current.currentCard?.answer.answerAudioTextOverride).toBe('かいしゃ');
     expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
       'https://example.com/card-1.mp3'
     );

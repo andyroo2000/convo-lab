@@ -48,6 +48,7 @@ const {
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   recordStudyReviewMock,
+  regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
   undoStudyReviewMock,
@@ -76,6 +77,7 @@ const {
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
+  regenerateStudyCardAnswerAudioMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
@@ -113,6 +115,7 @@ vi.mock('../../../services/studyService.js', () => ({
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
+  regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
   undoStudyReview: undoStudyReviewMock,
@@ -551,6 +554,129 @@ describe('Study Routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('8 levels deep or fewer');
     expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('passes answer-audio settings through create and update payloads', async () => {
+    createStudyCardMock.mockResolvedValue({ id: 'created-card' });
+    updateStudyCardMock.mockResolvedValue({ id: 'card-1' });
+
+    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
+    });
+    expect(createResponse.status).toBe(201);
+    expect(createStudyCardMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
+    });
+
+    const updateResponse = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-D',
+        answerAudioTextOverride: 'かぶしきがいしゃ',
+      },
+    });
+    expect(updateResponse.status).toBe(200);
+    expect(updateStudyCardMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-D',
+        answerAudioTextOverride: 'かぶしきがいしゃ',
+      },
+    });
+  });
+
+  it('rejects unknown answer-audio voices before create or regenerate', async () => {
+    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'not-a-voice',
+      },
+    });
+
+    expect(createResponse.status).toBe(400);
+    expect(createResponse.body.message).toContain('known TTS voice ID');
+    expect(createStudyCardMock).not.toHaveBeenCalled();
+
+    const regenerateResponse = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-answer-audio')
+    ).send({
+      answerAudioVoiceId: 'not-a-voice',
+    });
+
+    expect(regenerateResponse.status).toBe(400);
+    expect(regenerateStudyCardAnswerAudioMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects oversized answer-audio text overrides before create or regenerate', async () => {
+    const oversizedOverride = 'あ'.repeat(501);
+    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioTextOverride: oversizedOverride,
+      },
+    });
+
+    expect(createResponse.status).toBe(400);
+    expect(createResponse.body.message).toContain('500 characters or fewer');
+    expect(createStudyCardMock).not.toHaveBeenCalled();
+
+    const regenerateResponse = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-answer-audio')
+    ).send({
+      answerAudioTextOverride: oversizedOverride,
+    });
+
+    expect(regenerateResponse.status).toBe(400);
+    expect(regenerateStudyCardAnswerAudioMock).not.toHaveBeenCalled();
+  });
+
+  it('regenerates answer audio for an owned study card', async () => {
+    regenerateStudyCardAnswerAudioMock.mockResolvedValue({
+      id: 'card-1',
+      answerAudioSource: 'generated',
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-answer-audio')
+    ).send({
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
+    });
+
+    expect(response.status).toBe(200);
+    expect(regenerateStudyCardAnswerAudioMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
+    });
   });
 
   it('passes card actions through to the service', async () => {

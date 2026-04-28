@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type {
   StudyAnswerPayload,
   StudyCardSummary,
@@ -14,6 +15,8 @@ export interface StudyCardFormValues {
   answerExpression: string;
   answerReading: string;
   answerMeaning: string;
+  answerAudioVoiceId: string;
+  answerAudioTextOverride: string;
   notes: string;
   sentenceJp: string;
   sentenceEn: string;
@@ -46,6 +49,8 @@ export const getStudyCardFormValues = ({
         answerExpression: card.answer.restoredText ?? '',
         answerReading: '',
         answerMeaning: card.answer.meaning ?? '',
+        answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioTextOverride: card.answer.answerAudioTextOverride ?? '',
         notes: card.answer.notes ?? '',
         sentenceJp: '',
         sentenceEn: '',
@@ -60,6 +65,8 @@ export const getStudyCardFormValues = ({
       answerExpression: card.answer.expression ?? '',
       answerReading: card.answer.expressionReading ?? '',
       answerMeaning: card.answer.meaning ?? '',
+      answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
+      answerAudioTextOverride: card.answer.answerAudioTextOverride ?? '',
       notes: card.answer.notes ?? '',
       sentenceJp: card.answer.sentenceJp ?? '',
       sentenceEn: card.answer.sentenceEn ?? '',
@@ -74,6 +81,8 @@ export const getStudyCardFormValues = ({
     answerExpression: '',
     answerReading: '',
     answerMeaning: '',
+    answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+    answerAudioTextOverride: '',
     notes: '',
     sentenceJp: '',
     sentenceEn: '',
@@ -96,6 +105,8 @@ export const buildStudyCardFormPayload = (
         ...(card?.answer ?? {}),
         restoredText: values.answerExpression,
         meaning: emptyToNull(values.answerMeaning),
+        answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
+        answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),
         notes: emptyToNull(values.notes),
       },
     };
@@ -114,6 +125,8 @@ export const buildStudyCardFormPayload = (
       expression: values.answerExpression,
       expressionReading: emptyToNull(values.answerReading),
       meaning: emptyToNull(values.answerMeaning),
+      answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
+      answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),
       sentenceJp: emptyToNull(values.sentenceJp),
       sentenceEn: emptyToNull(values.sentenceEn),
       notes: emptyToNull(values.notes),

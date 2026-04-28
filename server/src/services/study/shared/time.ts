@@ -185,7 +185,14 @@ export function getRequiredSchedulerState(record: {
 }
 
 export function getBestAnswerAudioText(answer: StudyAnswerPayload): string | null {
-  return answer.expression ?? answer.restoredText ?? answer.sentenceJp ?? answer.meaning ?? null;
+  return (
+    answer.answerAudioTextOverride ??
+    answer.expression ??
+    answer.restoredText ??
+    answer.sentenceJp ??
+    answer.meaning ??
+    null
+  );
 }
 
 function clamp(value: number, min: number, max: number): number {

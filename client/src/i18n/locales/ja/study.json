@@ -82,8 +82,12 @@
   "editor": {
     "title": "カードを編集",
     "description": "保存すると、レビュー画面ではこのカードの表面に戻ります。",
+    "currentAudio": "現在のカード音声",
+    "noCurrentAudio": "カード音声はまだありません。",
     "save": "カードを保存",
     "saving": "保存中…",
+    "regenerateAudio": "音声を再生成",
+    "regeneratingAudio": "再生成中…",
     "cancel": "キャンセル"
   },
   "form": {
@@ -100,6 +104,9 @@
     "answerExpression": "答えの表現",
     "answerReading": "答えの読み",
     "answerMeaning": "答えの意味",
+    "answerAudioVoice": "答えの音声",
+    "answerAudioTextOverride": "音声用の読み上げテキスト",
+    "answerAudioTextOverridePlaceholder": "任意のひらがな・かな読み",
     "sentenceJp": "例文（日本語）",
     "sentenceEn": "例文（英語）",
     "notes": "メモ"

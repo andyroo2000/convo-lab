@@ -1,186 +1,13 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Ref } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
-import { useTranslation } from 'react-i18next';
 
+import StudyAudioPlayer from './StudyAudioPlayer';
+import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyRubyText from './StudyRubyText';
-import {
-  getAudioMimeType,
-  isAudioLedPromptCard,
-  isMediaLedPromptCard,
-  toAssetUrl,
-} from './studyCardUtils';
+import { isAudioLedPromptCard, isMediaLedPromptCard, toAssetUrl } from './studyCardUtils';
 import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils';
 
-export interface AudioPlayerHandle {
-  play: () => Promise<boolean>;
-  stop: () => void;
-}
-
-const AudioPlayer = forwardRef<
-  AudioPlayerHandle,
-  {
-    label: string;
-    showTimeline?: boolean;
-    timelineMode?: 'always' | 'desktop';
-    testId?: string;
-    url: string;
-  }
->(({ label, showTimeline = false, timelineMode = 'always', testId, url }, ref) => {
-  const { t } = useTranslation('study');
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const stop = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.pause();
-    audio.currentTime = 0;
-    setPlaying(false);
-  }, []);
-
-  const play = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio) return false;
-
-    try {
-      setErrorMessage(null);
-      // Autoplay and manual replay intentionally share the same error surface because
-      // browsers like iOS Safari may reject play() until media is user-gesture eligible.
-      await audio.play();
-      return true;
-    } catch (error) {
-      console.error(`Unable to play ${label}:`, error);
-      setPlaying(false);
-      setErrorMessage(t('preview.audioFailed'));
-      return false;
-    }
-  }, [label, t]);
-
-  useImperativeHandle(
-    ref,
-    () => ({
-      play,
-      stop,
-    }),
-    [play, stop]
-  );
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return undefined;
-
-    const handleEnded = () => setPlaying(false);
-    const handlePause = () => setPlaying(false);
-    const handlePlay = () => {
-      setPlaying(true);
-      setErrorMessage(null);
-    };
-    const handleCanPlay = () => setErrorMessage(null);
-    const handleError = () => {
-      setPlaying(false);
-      setErrorMessage(t('preview.audioFailed'));
-    };
-
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('error', handleError);
-
-    return () => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('error', handleError);
-    };
-  }, [t, url]);
-
-  useEffect(() => {
-    setErrorMessage(null);
-  }, [url]);
-
-  const handleClick = () => {
-    if (playing) {
-      stop();
-      return;
-    }
-
-    play().catch(() => {});
-  };
-
-  const showButton = !showTimeline || timelineMode === 'desktop';
-  const buttonClasses =
-    timelineMode === 'desktop' ? 'flex justify-center md:hidden' : 'flex justify-center';
-  const timelineClasses =
-    timelineMode === 'desktop'
-      ? 'mx-auto hidden w-full max-w-xl md:block'
-      : 'mx-auto w-full max-w-xl';
-
-  return (
-    <div className="space-y-3" data-testid={testId}>
-      {showButton ? (
-        <div className={buttonClasses}>
-          <button
-            type="button"
-            onClick={handleClick}
-            aria-label={label}
-            data-testid={testId ? `${testId}-button` : undefined}
-            className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md sm:h-16 sm:w-16 md:h-20 md:w-20"
-          >
-            {playing ? (
-              <svg
-                viewBox="0 0 24 24"
-                className="h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
-                aria-hidden="true"
-              >
-                <rect x="6" y="5" width="4" height="14" rx="1" />
-                <rect x="14" y="5" width="4" height="14" rx="1" />
-              </svg>
-            ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className="ml-1 h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
-                aria-hidden="true"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            )}
-          </button>
-        </div>
-      ) : null}
-
-      <audio
-        key={url}
-        ref={audioRef}
-        preload="metadata"
-        controls={showTimeline}
-        aria-label={label}
-        className={showTimeline ? timelineClasses : 'hidden'}
-      >
-        <source
-          src={url}
-          type={getAudioMimeType(url)}
-          data-testid={testId ? `${testId}-source` : undefined}
-        />
-      </audio>
-      {errorMessage ? (
-        <p
-          className="text-center text-sm text-red-600"
-          data-testid={testId ? `${testId}-error` : undefined}
-        >
-          {errorMessage}
-        </p>
-      ) : null}
-    </div>
-  );
-});
-
-AudioPlayer.displayName = 'AudioPlayer';
+export type { AudioPlayerHandle };
 
 type StudyCardLayout = 'default' | 'mobile-focus';
 
@@ -322,7 +149,7 @@ export const StudyCardFace = ({
           ) : null}
           {cueAudioUrl ? (
             <div className={cueImageUrl ? 'pt-2' : ''}>
-              <AudioPlayer
+              <StudyAudioPlayer
                 ref={promptAudioRef}
                 url={cueAudioUrl}
                 label={audioLedPrompt ? 'Replay prompt audio' : 'Play prompt audio'}
@@ -352,7 +179,7 @@ export const StudyCardFace = ({
           />
         ) : null}
         {cueAudioUrl ? (
-          <AudioPlayer ref={promptAudioRef} url={cueAudioUrl} label="Play prompt audio" />
+          <StudyAudioPlayer ref={promptAudioRef} url={cueAudioUrl} label="Play prompt audio" />
         ) : null}
         {card.prompt.cueText ? (
           <p
@@ -403,7 +230,7 @@ export const StudyCardFace = ({
           />
         ) : null}
         {answerAudioUrl ? (
-          <AudioPlayer
+          <StudyAudioPlayer
             ref={answerAudioRef}
             url={answerAudioUrl}
             label="Play answer audio"
@@ -448,7 +275,7 @@ export const StudyCardFace = ({
     >
       {renderJapaneseHeading(card, compactMobile)}
       {answerAudioUrl ? (
-        <AudioPlayer
+        <StudyAudioPlayer
           ref={answerAudioRef}
           url={answerAudioUrl}
           label="Play answer audio"

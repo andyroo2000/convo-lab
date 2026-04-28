@@ -67,6 +67,8 @@ export interface StudyAnswerPayload {
   sentenceEn?: string | null;
   restoredText?: string | null;
   restoredTextReading?: string | null;
+  answerAudioVoiceId?: string | null;
+  answerAudioTextOverride?: string | null;
   answerAudio?: StudyMediaRef | null;
   answerImage?: StudyMediaRef | null;
 }

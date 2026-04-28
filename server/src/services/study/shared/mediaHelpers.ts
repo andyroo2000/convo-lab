@@ -4,11 +4,12 @@ import path from 'path';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import type { StudyAnswerPayload } from '@languageflow/shared/src/types.js';
+import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 
 import { createRedisConnection } from '../../../config/redis.js';
 import { prisma } from '../../../db/client.js';
+import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
 import { uploadBufferToGCSPath } from '../../storageClient.js';
-import { synthesizeSpeech } from '../../ttsClient.js';
 
 import { mergeStudyMediaRecord } from './cardMappers.js';
 import { STUDY_AUDIO_LOCK_POLL_INTERVAL_MS, STUDY_AUDIO_LOCK_TTL_MS } from './constants.js';
@@ -24,6 +25,7 @@ import {
   normalizeFilename,
   pruneStudyMediaRedirectCache,
   sanitizePathSegment,
+  shouldMirrorStudyMediaLocally,
   studyMediaRedirectCache,
 } from './paths.js';
 import { getBestAnswerAudioText } from './time.js';
@@ -48,6 +50,12 @@ export function getStudyAudioRedisClient() {
   return studyAudioRedisClient;
 }
 
+async function writeStudyMediaBufferLocally(storagePath: string, buffer: Buffer): Promise<void> {
+  const absolutePath = path.join(getPrivateStudyMediaRoot(), storagePath);
+  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
+  await fs.writeFile(absolutePath, buffer);
+}
+
 export async function persistStudyMediaBuffer(params: {
   userId: string;
   importJobId: string;
@@ -62,8 +70,18 @@ export async function persistStudyMediaBuffer(params: {
     sanitizePathSegment(importJobId),
     normalizedFilename,
   ].join('/');
+  let hasLocalMirror = false;
 
   if (process.env.GCS_BUCKET_NAME) {
+    if (shouldMirrorStudyMediaLocally()) {
+      try {
+        await writeStudyMediaBufferLocally(storagePath, buffer);
+        hasLocalMirror = true;
+      } catch (error) {
+        console.warn('[Study] Unable to mirror study media locally:', error);
+      }
+    }
+
     try {
       await uploadBufferToGCSPath({
         buffer,
@@ -81,9 +99,9 @@ export async function persistStudyMediaBuffer(params: {
     }
   }
 
-  const absolutePath = path.join(getPrivateStudyMediaRoot(), storagePath);
-  await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-  await fs.writeFile(absolutePath, buffer);
+  if (!hasLocalMirror) {
+    await writeStudyMediaBufferLocally(storagePath, buffer);
+  }
 
   return {
     publicUrl: null,
@@ -91,12 +109,21 @@ export async function persistStudyMediaBuffer(params: {
   };
 }
 
-export async function ensureGeneratedAnswerAudio(userId: string, cardId: string): Promise<void> {
+export async function ensureGeneratedAnswerAudio(
+  userId: string,
+  cardId: string,
+  options: { force?: boolean } = {}
+): Promise<void> {
   const lockKey = `study:answer-audio:${cardId}`;
   const lockToken = `${process.pid}:${randomUUID()}`;
   const waitDeadline = Date.now() + STUDY_AUDIO_LOCK_TTL_MS;
+  const force = options.force === true;
 
   const waitForGeneratedAudio = async () => {
+    if (force) {
+      return false;
+    }
+
     while (Date.now() < waitDeadline) {
       if (await hasPreparedAnswerAudio(userId, cardId)) {
         return true;
@@ -117,7 +144,7 @@ export async function ensureGeneratedAnswerAudio(userId: string, cardId: string)
     if (acquired === 'OK') {
       let generatedLocally = false;
       try {
-        await ensureGeneratedAnswerAudioLocally(userId, cardId);
+        await ensureGeneratedAnswerAudioLocally(userId, cardId, force);
         generatedLocally = true;
       } finally {
         try {
@@ -149,7 +176,7 @@ export async function ensureGeneratedAnswerAudio(userId: string, cardId: string)
     }
   }
 
-  await ensureGeneratedAnswerAudioLocally(userId, cardId);
+  await ensureGeneratedAnswerAudioLocally(userId, cardId, force);
 }
 
 async function hasPreparedAnswerAudio(userId: string, cardId: string): Promise<boolean> {
@@ -183,11 +210,19 @@ async function hasPreparedAnswerAudio(userId: string, cardId: string): Promise<b
   );
 }
 
-async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string): Promise<void> {
+async function ensureGeneratedAnswerAudioLocally(
+  userId: string,
+  cardId: string,
+  force: boolean = false
+): Promise<void> {
   const existingRequest = generatedAnswerAudioInFlight.get(cardId);
   if (existingRequest) {
     await existingRequest.promise;
-    return;
+    // A forced manual regeneration intentionally runs after any older in-flight request
+    // so the latest saved voice/override wins even if background preparation just finished.
+    if (!force) {
+      return;
+    }
   }
 
   const requestToken = Symbol(cardId);
@@ -208,7 +243,7 @@ async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string)
       typeof existingAnswerAudio.url === 'string' &&
       existingAnswerAudio.url.length > 0;
 
-    if (String(card.answerAudioSource) !== 'missing' && hasPlayableImportedAudio) {
+    if (!force && String(card.answerAudioSource) !== 'missing' && hasPlayableImportedAudio) {
       return;
     }
 
@@ -216,13 +251,16 @@ async function ensureGeneratedAnswerAudioLocally(userId: string, cardId: string)
     if (!text) {
       return;
     }
+    const voiceId = answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja;
 
-    const audioBuffer = await synthesizeSpeech({
-      text,
-      voiceId: DEFAULT_NARRATOR_VOICES.ja,
-      languageCode: 'ja-JP',
+    const [audioBuffer] = await synthesizeBatchedTexts([text], {
+      voiceId,
+      languageCode: getLanguageCodeFromVoiceId(voiceId),
       speed: 1.0,
     });
+    if (!audioBuffer) {
+      throw new Error('Answer-audio synthesis returned no audio.');
+    }
 
     const filename = `${normalizeFilename(cardId)}.mp3`;
     const persisted = await persistStudyMediaBuffer({
