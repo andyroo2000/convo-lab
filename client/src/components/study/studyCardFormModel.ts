@@ -102,7 +102,6 @@ export const buildStudyCardFormPayload = (
         clozeHint: emptyToNull(values.cueMeaning),
       },
       answer: {
-        ...(card?.answer ?? {}),
         restoredText: values.answerExpression,
         // Cloze cards display ruby from restoredTextReading; non-cloze cards use expressionReading.
         restoredTextReading: emptyToNull(values.answerReading),
@@ -123,7 +122,6 @@ export const buildStudyCardFormPayload = (
       cueMeaning: emptyToNull(values.cueMeaning),
     },
     answer: {
-      ...(card?.answer ?? {}),
       expression: values.answerExpression,
       expressionReading: emptyToNull(values.answerReading),
       meaning: emptyToNull(values.answerMeaning),

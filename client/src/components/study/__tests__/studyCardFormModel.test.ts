@@ -77,6 +77,52 @@ describe('studyCardFormModel', () => {
     });
   });
 
+  it('does not carry cloze-only answer fields into non-cloze payloads', () => {
+    const payload = buildStudyCardFormPayload(
+      {
+        cardType: 'recognition',
+        cueText: '会社',
+        cueReading: 'かいしゃ',
+        cueMeaning: 'company',
+        answerExpression: '会社',
+        answerReading: '会社[かいしゃ]',
+        answerMeaning: 'company',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        answerAudioTextOverride: '',
+        notes: '',
+        sentenceJp: '',
+        sentenceEn: '',
+      },
+      {
+        id: 'card-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        prompt: {
+          cueText: '会社',
+          cueReading: 'かいしゃ',
+        },
+        answer: {
+          expression: '会社',
+          expressionReading: '会社[かいしゃ]',
+          restoredText: '会社',
+          restoredTextReading: '会社[かいしゃ]',
+        },
+        state: {
+          dueAt: null,
+          queueState: 'new',
+          scheduler: null,
+          source: {},
+        },
+        answerAudioSource: 'missing',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    );
+
+    expect(payload.answer).not.toHaveProperty('restoredText');
+    expect(payload.answer).not.toHaveProperty('restoredTextReading');
+  });
+
   it('builds a cloze payload with null-normalized hint and notes', () => {
     const payload = buildStudyCardFormPayload({
       cardType: 'cloze',

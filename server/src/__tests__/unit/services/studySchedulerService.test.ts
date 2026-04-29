@@ -803,6 +803,7 @@ describe('studySchedulerService', () => {
   });
 
   it('auto-generates cloze restored-answer readings when the edit payload leaves them blank', async () => {
+    // The suffix marks the mocked furigana-service return value; it is not real bracket notation.
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce(
         buildClozeStudyCardRecord('明日[あした]から早[はや]く起[お]きることにします。')
