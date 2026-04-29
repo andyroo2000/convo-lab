@@ -103,6 +103,8 @@
     "restoredAnswer": "復元後の答え",
     "answerExpression": "答えの表現",
     "answerReading": "答えの読み",
+    "restoredAnswerReading": "復元後の答えの読み",
+    "restoredAnswerReadingPlaceholder": "例: 明日[あした]から",
     "answerMeaning": "答えの意味",
     "answerAudioVoice": "答えの音声",
     "answerAudioTextOverride": "音声用の読み上げテキスト",

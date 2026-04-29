@@ -511,6 +511,11 @@ export async function normalizeClozePayload(params: {
   let clozeAnswerText = params.prompt.clozeAnswerText ?? null;
   let resolvedHint = params.prompt.clozeResolvedHint ?? fallbackHint;
   let restoredText = params.answer.restoredText ?? null;
+  const providedRestoredTextReading =
+    typeof params.answer.restoredTextReading === 'string' &&
+    params.answer.restoredTextReading.trim().length > 0
+      ? params.answer.restoredTextReading
+      : null;
 
   if (hasAnkiClozeMarkup) {
     const parsed = parseAnkiClozeText(rawClozeText, params.activeOrdinal, fallbackHint);
@@ -531,7 +536,9 @@ export async function normalizeClozePayload(params: {
       answer: {
         ...params.answer,
         restoredText,
-        restoredTextReading: restoredText ? await addFuriganaBrackets(restoredText) : null,
+        restoredTextReading:
+          providedRestoredTextReading ??
+          (restoredText ? await addFuriganaBrackets(restoredText) : null),
       },
     };
   } else {
@@ -539,7 +546,8 @@ export async function normalizeClozePayload(params: {
     resolvedHint = resolvedHint ?? fallbackHint;
   }
 
-  const restoredTextReading = restoredText ? await addFuriganaBrackets(restoredText) : null;
+  const restoredTextReading =
+    providedRestoredTextReading ?? (restoredText ? await addFuriganaBrackets(restoredText) : null);
 
   return {
     malformedMarkup: false,

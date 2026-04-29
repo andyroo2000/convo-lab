@@ -11,6 +11,7 @@ import {
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
+import { addFuriganaBrackets } from '../../../services/furiganaService.js';
 import {
   createStudyCard,
   getStudyNewCardQueue,
@@ -77,6 +78,34 @@ function buildStudySessionCard({
     createdAt: SESSION_TEST_CREATED_AT,
     updatedAt: SESSION_TEST_UPDATED_AT,
     note: {},
+  };
+}
+
+function buildClozeStudyCardRecord(restoredTextReading: string | null) {
+  return {
+    id: 'card-1',
+    userId: 'user-1',
+    noteId: 'note-1',
+    cardType: 'cloze',
+    queueState: 'review',
+    dueAt: SESSION_TEST_DUE_AT,
+    answerAudioSource: 'imported',
+    promptJson: {
+      clozeText: '明日から{{c1::早く起きる}}ことにします。',
+      clozeHint: 'get up early',
+    },
+    answerJson: {
+      restoredText: '明日から早く起きることにします。',
+      restoredTextReading,
+      meaning: 'I will start getting up early from tomorrow.',
+    },
+    schedulerStateJson: buildStudySessionSchedulerState('review'),
+    createdAt: SESSION_TEST_CREATED_AT,
+    updatedAt: SESSION_TEST_UPDATED_AT,
+    sourceTemplateOrd: 0,
+    note: {
+      rawFieldsJson: {},
+    },
   };
 }
 
@@ -732,6 +761,81 @@ describe('studySchedulerService', () => {
       speed: 1,
     });
     expect(updated.answer.expression).toBe('事業');
+  });
+
+  it('preserves manually edited cloze restored-answer readings', async () => {
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce(
+        buildClozeStudyCardRecord('明日[あした]から早[はや]く起[お]きることにします。')
+      )
+      .mockResolvedValueOnce(
+        buildClozeStudyCardRecord('明日[あす]から早[はや]く起[お]きることにします。')
+      );
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+
+    const updated = await updateStudyCard({
+      userId: 'user-1',
+      cardId: 'card-1',
+      prompt: {
+        clozeText: '明日から{{c1::早く起きる}}ことにします。',
+        clozeHint: 'get up early',
+      },
+      answer: {
+        restoredText: '明日から早く起きることにします。',
+        restoredTextReading: '明日[あす]から早[はや]く起[お]きることにします。',
+        meaning: 'I will start getting up early from tomorrow.',
+      },
+    });
+
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          answerJson: expect.objectContaining({
+            restoredTextReading: '明日[あす]から早[はや]く起[お]きることにします。',
+          }),
+        }),
+      })
+    );
+    expect(updated.answer.restoredTextReading).toBe(
+      '明日[あす]から早[はや]く起[お]きることにします。'
+    );
+    expect(vi.mocked(addFuriganaBrackets)).not.toHaveBeenCalled();
+  });
+
+  it('auto-generates cloze restored-answer readings when the edit payload leaves them blank', async () => {
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce(
+        buildClozeStudyCardRecord('明日[あした]から早[はや]く起[お]きることにします。')
+      )
+      .mockResolvedValueOnce(
+        buildClozeStudyCardRecord('明日から早く起きることにします。[furigana]')
+      );
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+
+    await updateStudyCard({
+      userId: 'user-1',
+      cardId: 'card-1',
+      prompt: {
+        clozeText: '明日から{{c1::早く起きる}}ことにします。',
+        clozeHint: 'get up early',
+      },
+      answer: {
+        restoredText: '明日から早く起きることにします。',
+        restoredTextReading: null,
+        meaning: 'I will start getting up early from tomorrow.',
+      },
+    });
+
+    expect(vi.mocked(addFuriganaBrackets)).toHaveBeenCalledWith('明日から早く起きることにします。');
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          answerJson: expect.objectContaining({
+            restoredTextReading: '明日から早く起きることにします。[furigana]',
+          }),
+        }),
+      })
+    );
   });
 
   it('starts a study session and returns overview plus visible cards', async () => {
