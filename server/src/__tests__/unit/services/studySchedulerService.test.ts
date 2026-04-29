@@ -25,7 +25,7 @@ import {
   updateStudyCard,
 } from '../../../services/studySchedulerService.js';
 import { STUDY_SESSION_READY_CARD_LIMIT } from '../../../services/study/shared.js';
-import { synthesizeSpeech } from '../../../services/ttsClient.js';
+import { synthesizeBatchedTexts } from '../../../services/batchedTTSClient.js';
 
 const SESSION_TEST_DUE_AT = new Date('2026-04-12T00:00:00.000Z');
 const SESSION_TEST_CREATED_AT = new Date('2026-04-01T00:00:00.000Z');
@@ -487,7 +487,12 @@ describe('studySchedulerService', () => {
       cardType: 'recognition',
       queueState: 'new',
       answerAudioSource: 'missing',
-      answerJson: { expression: '会社', meaning: 'company' },
+      answerJson: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
       createdAt: new Date('2026-04-12T00:00:00.000Z'),
       updatedAt: new Date('2026-04-12T00:00:00.000Z'),
       note: {},
@@ -496,7 +501,12 @@ describe('studySchedulerService', () => {
       id: 'card-created',
       userId: 'user-1',
       answerAudioSource: 'missing',
-      answerJson: { expression: '会社', meaning: 'company' },
+      answerJson: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
     });
     mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
     mockPrisma.studyCard.update.mockResolvedValue({});
@@ -510,6 +520,8 @@ describe('studySchedulerService', () => {
       answerJson: {
         expression: '会社',
         meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
         answerAudio: {
           id: 'media-generated',
           filename: 'card-created.mp3',
@@ -539,10 +551,19 @@ describe('studySchedulerService', () => {
       userId: 'user-1',
       cardType: 'recognition',
       prompt: { cueText: 'company' },
-      answer: { expression: '会社', meaning: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かいしゃ',
+      },
     });
 
-    expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalled();
+    expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledWith(['かいしゃ'], {
+      voiceId: 'ja-JP-Neural2-C',
+      languageCode: 'ja-JP',
+      speed: 1,
+    });
     expect(created.answerAudioSource).toBe('generated');
     expect(created.state.scheduler).toEqual(
       expect.objectContaining({
@@ -622,6 +643,7 @@ describe('studySchedulerService', () => {
           expression: '会社',
           expressionReading: '会社[かいしゃ]',
           meaning: 'company',
+          answerAudioVoiceId: 'ja-JP-Wavenet-C',
           answerAudio: {
             filename: 'old.mp3',
             url: '/study-media/user-1/import/old.mp3',
@@ -658,6 +680,8 @@ describe('studySchedulerService', () => {
           expression: '事業',
           expressionReading: '事業[じぎょう]',
           meaning: 'business',
+          answerAudioVoiceId: 'ja-JP-Neural2-C',
+          answerAudioTextOverride: 'じぎょう',
         },
         schedulerStateJson: {
           due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
@@ -679,7 +703,12 @@ describe('studySchedulerService', () => {
       id: 'card-1',
       userId: 'user-1',
       answerAudioSource: 'missing',
-      answerJson: { expression: '事業', meaning: 'business' },
+      answerJson: {
+        expression: '事業',
+        meaning: 'business',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'じぎょう',
+      },
     });
     mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-generated' });
     mockPrisma.studyCard.update.mockResolvedValue({});
@@ -688,10 +717,20 @@ describe('studySchedulerService', () => {
       userId: 'user-1',
       cardId: 'card-1',
       prompt: { cueText: '会社', cueReading: 'かいしゃ' },
-      answer: { expression: '事業', expressionReading: '事業[じぎょう]', meaning: 'business' },
+      answer: {
+        expression: '事業',
+        expressionReading: '事業[じぎょう]',
+        meaning: 'business',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'じぎょう',
+      },
     });
 
-    expect(vi.mocked(synthesizeSpeech)).toHaveBeenCalled();
+    expect(vi.mocked(synthesizeBatchedTexts)).toHaveBeenCalledWith(['じぎょう'], {
+      voiceId: 'ja-JP-Neural2-C',
+      languageCode: 'ja-JP',
+      speed: 1,
+    });
     expect(updated.answer.expression).toBe('事業');
   });
 

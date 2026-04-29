@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface UseStudyKeyboardShortcutsOptions {
   cardActionPending: boolean;
@@ -10,6 +10,7 @@ interface UseStudyKeyboardShortcutsOptions {
   onError: (message: string) => void;
   revealCurrentCard: () => void;
   revealed: boolean;
+  toggleAnswerAudio: () => boolean;
   reviewSubmitPending: boolean;
   reviewPending: boolean;
   runBackgroundTask: (
@@ -48,11 +49,22 @@ export default function useStudyKeyboardShortcuts({
   onError,
   revealCurrentCard,
   revealed,
+  toggleAnswerAudio,
   reviewPending,
   reviewSubmitPending,
   runBackgroundTask,
   setEditing,
 }: UseStudyKeyboardShortcutsOptions) {
+  const revealedRef = useRef(revealed);
+  const revealCurrentCardRef = useRef(revealCurrentCard);
+  const toggleAnswerAudioRef = useRef(toggleAnswerAudio);
+
+  useEffect(() => {
+    revealedRef.current = revealed;
+    revealCurrentCardRef.current = revealCurrentCard;
+    toggleAnswerAudioRef.current = toggleAnswerAudio;
+  }, [revealCurrentCard, revealed, toggleAnswerAudio]);
+
   useEffect(() => {
     if (!focusMode) return undefined;
 
@@ -81,7 +93,13 @@ export default function useStudyKeyboardShortcuts({
 
       if (event.code === 'Space') {
         event.preventDefault();
-        revealCurrentCard();
+        if (revealedRef.current) {
+          if (!toggleAnswerAudioRef.current()) {
+            revealCurrentCardRef.current();
+          }
+          return;
+        }
+        revealCurrentCardRef.current();
         return;
       }
 
@@ -117,5 +135,6 @@ export default function useStudyKeyboardShortcuts({
     reviewSubmitPending,
     runBackgroundTask,
     setEditing,
+    toggleAnswerAudio,
   ]);
 }

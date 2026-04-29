@@ -4,6 +4,7 @@ import { API_URL } from '../../config';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   getStudyImportStatus,
+  regenerateStudyAnswerAudio,
   startStudySession,
   undoStudyReview,
   uploadStudyImport,
@@ -113,6 +114,30 @@ describe('useStudy request helpers', () => {
         reviewCount: 1,
       }),
       timeZone: expect.any(String),
+    });
+  });
+
+  it('requests answer-audio regeneration with selected voice settings', async () => {
+    await regenerateStudyAnswerAudio({
+      cardId: 'card-1',
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
+    });
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/study/cards/card-1/regenerate-answer-audio`,
+      expect.any(Object)
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioTextOverride: 'かいしゃ',
     });
   });
 

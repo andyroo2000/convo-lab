@@ -18,6 +18,7 @@ import {
   type StudySessionResponse,
   startStudySession,
   undoStudyReview,
+  useRegenerateStudyAnswerAudio,
   useStudyCardAction,
   useSubmitStudyReview,
   useUpdateStudyCard,
@@ -104,6 +105,7 @@ const useStudyReviewSession = () => {
   const reviewMutation = useSubmitStudyReview();
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
+  const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
   const [focusMode, setFocusMode] = useState(false);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
   const [sessionLoading, setSessionLoading] = useState(false);
@@ -145,12 +147,20 @@ const useStudyReviewSession = () => {
     return totals;
   }, [answeredCardIds, cards, failedCardIds]);
   const updateCardErrorMessage = useMemo(() => {
+    if (regenerateAudioMutation.error instanceof Error) {
+      return regenerateAudioMutation.error.message;
+    }
+
     if (updateCardMutation.error instanceof Error) {
       return updateCardMutation.error.message;
     }
 
+    if (regenerateAudioMutation.error) {
+      return 'Audio regeneration failed.';
+    }
+
     return updateCardMutation.error ? 'Card update failed.' : null;
-  }, [updateCardMutation.error]);
+  }, [regenerateAudioMutation.error, updateCardMutation.error]);
 
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
@@ -258,7 +268,9 @@ const useStudyReviewSession = () => {
 
   const {
     answerAudioRef,
+    autoplayAnswerAudioForCard,
     promptAudioRef,
+    resetAllAutoplay: resetStudyAudioAutoplay,
     resetAutoplayForCard: resetStudyAudioAutoplayForCard,
     stopAllAudio,
   } = useStudyAudioAutoplay({
@@ -319,6 +331,7 @@ const useStudyReviewSession = () => {
 
     const answerUrl = toAssetUrl(currentCard.answer.answerAudio?.url);
     if (answerUrl) {
+      autoplayAnswerAudioForCard(currentCard);
       return;
     }
 
@@ -333,6 +346,7 @@ const useStudyReviewSession = () => {
     captureUndoSnapshot,
     currentCard,
     editing,
+    autoplayAnswerAudioForCard,
     ensureAnswerAudioPrepared,
     pushUndo,
     revealed,
@@ -519,11 +533,45 @@ const useStudyReviewSession = () => {
         answer: payload.answer,
       });
       mergeCardIntoSession(updatedCard);
+      resetStudyAudioAutoplayForCard(currentCard.id);
       setEditing(false);
       setRevealed(false);
       setSessionError(null);
     },
-    [currentCard, mergeCardIntoSession, stopAllAudio, updateCardMutation]
+    [
+      currentCard,
+      mergeCardIntoSession,
+      resetStudyAudioAutoplayForCard,
+      stopAllAudio,
+      updateCardMutation,
+    ]
+  );
+
+  const regenerateCurrentCardAudio = useCallback(
+    async (payload: {
+      answerAudioVoiceId: string | null;
+      answerAudioTextOverride: string | null;
+    }) => {
+      if (!currentCard) return undefined;
+
+      stopAllAudio();
+      const updatedCard = await regenerateAudioMutation.mutateAsync({
+        cardId: currentCard.id,
+        answerAudioVoiceId: payload.answerAudioVoiceId,
+        answerAudioTextOverride: payload.answerAudioTextOverride,
+      });
+      mergeCardIntoSession(updatedCard);
+      resetStudyAudioAutoplayForCard(currentCard.id);
+      setSessionError(null);
+      return updatedCard;
+    },
+    [
+      currentCard,
+      mergeCardIntoSession,
+      regenerateAudioMutation,
+      resetStudyAudioAutoplayForCard,
+      stopAllAudio,
+    ]
   );
 
   const handleUndo = useCallback(async () => {
@@ -587,8 +635,20 @@ const useStudyReviewSession = () => {
     runBackgroundTask,
   });
 
+  const toggleAnswerAudio = useCallback(() => {
+    if (!revealed || editing || !answerAudioRef.current) {
+      return false;
+    }
+
+    runBackgroundTask(() => answerAudioRef.current?.togglePlayPause(), {
+      label: 'Study answer-audio keyboard toggle',
+    });
+    return true;
+  }, [answerAudioRef, editing, revealed, runBackgroundTask]);
+
   const enterFocusMode = useCallback(async () => {
     stopAllAudio();
+    resetStudyAudioAutoplay();
     resetUndo();
     canSurfaceAsyncSessionErrorRef.current = true;
     setFocusMode(true);
@@ -606,7 +666,14 @@ const useStudyReviewSession = () => {
     } catch {
       // loadSession already updates session error state for the dashboard.
     }
-  }, [loadSession, requestMotionPermission, runBackgroundTask, resetUndo, stopAllAudio]);
+  }, [
+    loadSession,
+    requestMotionPermission,
+    resetStudyAudioAutoplay,
+    runBackgroundTask,
+    resetUndo,
+    stopAllAudio,
+  ]);
 
   useEffect(() => {
     stopAllAudio();
@@ -648,6 +715,7 @@ const useStudyReviewSession = () => {
     reviewSubmitPending,
     runBackgroundTask,
     setEditing,
+    toggleAnswerAudio,
   });
 
   return {
@@ -668,6 +736,7 @@ const useStudyReviewSession = () => {
     reviewMutation,
     cardActionMutation,
     updateCardMutation,
+    regenerateAudioMutation,
     updateCardErrorMessage,
     setEditing,
     setShowSetDueControls,
@@ -679,6 +748,7 @@ const useStudyReviewSession = () => {
     handleUndo,
     requestMotionPermission,
     saveCurrentCard,
+    regenerateCurrentCardAudio,
     enterFocusMode,
   };
 };

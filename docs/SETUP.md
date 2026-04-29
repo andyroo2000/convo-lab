@@ -107,6 +107,8 @@ GEMINI_API_KEY=your-gemini-api-key
 
 # Google Cloud Storage
 GCS_BUCKET_NAME=languageflow-storage-your-project-id
+# Local-only study media fallback. Set false in staging/review apps.
+STUDY_MEDIA_LOCAL_MIRROR=true
 
 # TTS Voices (Neural2)
 TTS_VOICE_JA_FEMALE=ja-JP-Neural2-B

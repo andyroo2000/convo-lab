@@ -14,6 +14,7 @@ const {
   undoStudyReviewMock,
   mutateAsyncMock,
   updateStudyCardMock,
+  regenerateStudyAnswerAudioMock,
   studyOverviewData,
   studyOverviewLoading,
 } = vi.hoisted(() => ({
@@ -23,6 +24,7 @@ const {
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  regenerateStudyAnswerAudioMock: vi.fn(),
   studyOverviewData: {
     current: {
       dueCount: 4,
@@ -65,6 +67,11 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  useRegenerateStudyAnswerAudio: () => ({
+    mutateAsync: regenerateStudyAnswerAudioMock,
+    isPending: false,
+    error: null,
+  }),
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
@@ -72,6 +79,10 @@ vi.mock('../../hooks/useStudy', () => ({
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
   default: () => 'America/New_York',
+}));
+
+vi.mock('../../components/common/VoicePreview', () => ({
+  default: ({ voiceId }: { voiceId: string }) => <span data-testid="voice-preview">{voiceId}</span>,
 }));
 
 const renderStudyPage = () => {
@@ -144,6 +155,7 @@ describe('StudyPage', () => {
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
     updateStudyCardMock.mockReset();
+    regenerateStudyAnswerAudioMock.mockReset();
     vi.restoreAllMocks();
 
     prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
@@ -182,6 +194,28 @@ describe('StudyPage', () => {
         id: payload.cardId,
         prompt: payload.prompt,
         answer: payload.answer,
+      })
+    );
+    regenerateStudyAnswerAudioMock.mockImplementation(
+      async (payload: {
+        cardId: string;
+        answerAudioVoiceId?: string | null;
+        answerAudioTextOverride?: string | null;
+      }) => ({
+        ...baseCard,
+        id: payload.cardId,
+        answerAudioSource: 'generated' as const,
+        answer: {
+          ...baseCard.answer,
+          answerAudioVoiceId: payload.answerAudioVoiceId,
+          answerAudioTextOverride: payload.answerAudioTextOverride,
+          answerAudio: {
+            filename: `${payload.cardId}-regenerated.mp3`,
+            url: `https://example.com/${payload.cardId}-regenerated.mp3`,
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+        },
       })
     );
     cardActionMutateAsyncMock.mockImplementation(
@@ -498,6 +532,192 @@ describe('StudyPage', () => {
       expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
         'Play answer audio'
       );
+    });
+  });
+
+  it('autoplays existing answer audio immediately when revealing a card', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: 'https://example.com/answer.mp3',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+          answerAudioSource: 'generated',
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+
+    await waitFor(() => {
+      expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+    });
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+    expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
+  });
+
+  it('uses space to pause, resume, and replay answer audio after reveal', async () => {
+    let paused = true;
+    let ended = false;
+    const playMock = vi.fn().mockImplementation(() => {
+      paused = false;
+      ended = false;
+      return Promise.resolve();
+    });
+    const pauseMock = vi.fn().mockImplementation(() => {
+      paused = true;
+    });
+
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
+      configurable: true,
+      value: pauseMock,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'paused', {
+      configurable: true,
+      get: () => paused,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'ended', {
+      configurable: true,
+      get: () => ended,
+    });
+
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: 'https://example.com/answer.mp3',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+          answerAudioSource: 'generated',
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Good/ })).toBeInTheDocument();
+    });
+    const answerAudio = screen
+      .getAllByLabelText('Play answer audio')
+      .find((element): element is HTMLAudioElement => element instanceof HTMLAudioElement);
+    expect(answerAudio).not.toBeNull();
+    fireEvent.play(answerAudio!);
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(pauseMock).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(2);
+    });
+
+    paused = true;
+    ended = true;
+    fireEvent.keyDown(window, { code: 'Space' });
+    await waitFor(() => {
+      expect(playMock).toHaveBeenCalledTimes(3);
+    });
+  });
+
+  it('keeps Space benign after reveal when the card has no answer audio', async () => {
+    prepareStudyAnswerAudioMock.mockImplementation(async (cardId: string) => ({
+      ...baseCard,
+      id: cardId,
+      answerAudioSource: 'missing' as const,
+    }));
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+    mutateAsyncMock.mockResolvedValue({
+      reviewLogId: 'review-1',
+      card: {
+        ...baseCard,
+        state: {
+          ...baseCard.state,
+          queueState: 'review' as const,
+        },
+      },
+      overview: {
+        dueCount: 0,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 0,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Good/ })).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(window, { code: 'Space' });
+    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(window, { code: 'Digit3', key: '3' });
+    await waitFor(() => {
+      expect(mutateAsyncMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        grade: 'good',
+      });
     });
   });
 
@@ -1093,6 +1313,67 @@ describe('StudyPage', () => {
 
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save card' })).not.toBeInTheDocument();
+  });
+
+  it('regenerates answer audio from the in-place editor', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [
+        {
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudioVoiceId: 'ja-JP-Neural2-D',
+            answerAudioTextOverride: 'かいしゃ',
+            answerAudio: {
+              filename: 'card-1.mp3',
+              url: 'https://example.com/card-1.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        },
+      ],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
+
+    expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
+    expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
+    expect(screen.getByLabelText('Current card audio')).toBeInTheDocument();
+    expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
+      'src',
+      'https://example.com/card-1.mp3'
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
+    await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
+    await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    await waitFor(() => {
+      expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioTextOverride: 'かぶしきがいしゃ',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
+        'src',
+        'https://example.com/card-1-regenerated.mp3'
+      );
+    });
   });
 
   it('buries the current card for the session and restores it with Cmd+Z', async () => {

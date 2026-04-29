@@ -82,8 +82,12 @@
   "editor": {
     "title": "Edit card",
     "description": "Save returns you to the front of this card in review mode.",
+    "currentAudio": "Current card audio",
+    "noCurrentAudio": "No card audio is available yet.",
     "save": "Save card",
     "saving": "Saving…",
+    "regenerateAudio": "Regenerate audio",
+    "regeneratingAudio": "Regenerating…",
     "cancel": "Cancel"
   },
   "form": {
@@ -100,6 +104,9 @@
     "answerExpression": "Answer expression",
     "answerReading": "Answer reading",
     "answerMeaning": "Answer meaning",
+    "answerAudioVoice": "Answer audio voice",
+    "answerAudioTextOverride": "Phonetic audio override",
+    "answerAudioTextOverridePlaceholder": "Optional hiragana/kana reading for TTS",
     "sentenceJp": "Example sentence (JP)",
     "sentenceEn": "Example sentence (EN)",
     "notes": "Notes"
