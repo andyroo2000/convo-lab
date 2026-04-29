@@ -102,13 +102,17 @@ const StudyCardFormFields = ({
             required
           />
         </StudyFormField>
-        <StudyFormField htmlFor={`${idPrefix}-answer-reading`} label={t('form.answerReading')}>
+        <StudyFormField
+          htmlFor={`${idPrefix}-answer-reading`}
+          label={
+            values.cardType === 'cloze' ? t('form.restoredAnswerReading') : t('form.answerReading')
+          }
+        >
           <input
             id={`${idPrefix}-answer-reading`}
             value={values.answerReading}
             onChange={(event) => onFieldChange('answerReading', event.target.value)}
             className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-            disabled={values.cardType === 'cloze'}
           />
         </StudyFormField>
       </div>

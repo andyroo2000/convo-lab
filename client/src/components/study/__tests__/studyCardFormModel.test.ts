@@ -101,6 +101,7 @@ describe('studyCardFormModel', () => {
       },
       answer: {
         restoredText: 'お風呂に虫がいる！',
+        restoredTextReading: null,
         meaning: 'There are bugs in the bath!',
         answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
         answerAudioTextOverride: null,
@@ -121,6 +122,7 @@ describe('studyCardFormModel', () => {
         },
         answer: {
           restoredText: 'お風呂に虫がいる！',
+          restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
           meaning: 'There are bugs in the bath!',
           answerAudioVoiceId: 'ja-JP-Neural2-D',
           answerAudioTextOverride: 'おふろにむしがいる',
@@ -143,6 +145,7 @@ describe('studyCardFormModel', () => {
       cueText: 'お風呂に虫{{c1::がいる}}！',
       cueMeaning: 'are',
       answerExpression: 'お風呂に虫がいる！',
+      answerReading: 'お風呂[ふろ]に虫[むし]がいる！',
       answerMeaning: 'There are bugs in the bath!',
       answerAudioVoiceId: 'ja-JP-Neural2-D',
       answerAudioTextOverride: 'おふろにむしがいる',

@@ -119,7 +119,11 @@ const noteDetailById = {
         noteId: 'note-2',
         cardType: 'cloze' as const,
         prompt: { clozeDisplayText: 'お風呂に虫[...]！', clozeResolvedHint: 'are' },
-        answer: { restoredText: 'お風呂に虫がいる！', meaning: 'There are bugs in the bath!' },
+        answer: {
+          restoredText: 'お風呂に虫がいる！',
+          restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
+          meaning: 'There are bugs in the bath!',
+        },
         state: {
           dueAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
           queueState: 'review' as const,
@@ -295,6 +299,10 @@ describe('StudyBrowsePage', () => {
 
     expect(await screen.findByTestId('study-card-editor')).toBeInTheDocument();
     expect(screen.getByLabelText('Restored answer')).toHaveValue('お風呂に虫がいる！');
+    expect(screen.getByLabelText('Restored answer reading')).toHaveValue(
+      'お風呂[ふろ]に虫[むし]がいる！'
+    );
+    expect(screen.getByLabelText('Restored answer reading')).toBeEnabled();
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('There are bugs in the bath!');
     expect(screen.queryByRole('button', { name: 'Front' })).not.toBeInTheDocument();
   });

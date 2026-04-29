@@ -47,7 +47,7 @@ export const getStudyCardFormValues = ({
         cueReading: '',
         cueMeaning: card.prompt.clozeHint ?? card.prompt.clozeResolvedHint ?? '',
         answerExpression: card.answer.restoredText ?? '',
-        answerReading: '',
+        answerReading: card.answer.restoredTextReading ?? '',
         answerMeaning: card.answer.meaning ?? '',
         answerAudioVoiceId: card.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja,
         answerAudioTextOverride: card.answer.answerAudioTextOverride ?? '',
@@ -104,6 +104,7 @@ export const buildStudyCardFormPayload = (
       answer: {
         ...(card?.answer ?? {}),
         restoredText: values.answerExpression,
+        restoredTextReading: emptyToNull(values.answerReading),
         meaning: emptyToNull(values.answerMeaning),
         answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
         answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),

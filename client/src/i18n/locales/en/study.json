@@ -103,6 +103,7 @@
     "restoredAnswer": "Restored answer",
     "answerExpression": "Answer expression",
     "answerReading": "Answer reading",
+    "restoredAnswerReading": "Restored answer reading",
     "answerMeaning": "Answer meaning",
     "answerAudioVoice": "Answer audio voice",
     "answerAudioTextOverride": "Phonetic audio override",
