@@ -498,6 +498,21 @@ function parseAnkiClozeText(rawText: string, activeOrdinal: number, fallbackHint
   };
 }
 
+function getProvidedRestoredTextReading(answer: StudyAnswerPayload): string | null {
+  const reading = answer.restoredTextReading;
+  return typeof reading === 'string' && reading.trim().length > 0 ? reading : null;
+}
+
+async function resolveRestoredTextReading(
+  answer: StudyAnswerPayload,
+  restoredText: string | null
+): Promise<string | null> {
+  return (
+    getProvidedRestoredTextReading(answer) ??
+    (restoredText ? await addFuriganaBrackets(restoredText) : null)
+  );
+}
+
 export async function normalizeClozePayload(params: {
   activeOrdinal: number;
   prompt: StudyPromptPayload;
@@ -511,11 +526,7 @@ export async function normalizeClozePayload(params: {
   let clozeAnswerText = params.prompt.clozeAnswerText ?? null;
   let resolvedHint = params.prompt.clozeResolvedHint ?? fallbackHint;
   let restoredText = params.answer.restoredText ?? null;
-  const providedRestoredTextReading =
-    typeof params.answer.restoredTextReading === 'string' &&
-    params.answer.restoredTextReading.trim().length > 0
-      ? params.answer.restoredTextReading
-      : null;
+  let malformedMarkup = false;
 
   if (hasAnkiClozeMarkup) {
     const parsed = parseAnkiClozeText(rawClozeText, params.activeOrdinal, fallbackHint);
@@ -523,34 +534,16 @@ export async function normalizeClozePayload(params: {
     clozeAnswerText = parsed.answerText;
     resolvedHint = parsed.resolvedHint;
     restoredText = parsed.restoredText ?? restoredText;
-    return {
-      malformedMarkup: parsed.hadMalformedMarkup,
-      prompt: {
-        ...params.prompt,
-        clozeText: rawClozeText || null,
-        clozeDisplayText,
-        clozeAnswerText,
-        clozeResolvedHint: resolvedHint,
-        clozeHint: params.prompt.clozeHint ?? fallbackHint,
-      },
-      answer: {
-        ...params.answer,
-        restoredText,
-        restoredTextReading:
-          providedRestoredTextReading ??
-          (restoredText ? await addFuriganaBrackets(restoredText) : null),
-      },
-    };
+    malformedMarkup = parsed.hadMalformedMarkup;
   } else {
     clozeDisplayText = clozeDisplayText ?? stripHtml(rawClozeText);
     resolvedHint = resolvedHint ?? fallbackHint;
   }
 
-  const restoredTextReading =
-    providedRestoredTextReading ?? (restoredText ? await addFuriganaBrackets(restoredText) : null);
+  const restoredTextReading = await resolveRestoredTextReading(params.answer, restoredText);
 
   return {
-    malformedMarkup: false,
+    malformedMarkup,
     prompt: {
       ...params.prompt,
       clozeText: rawClozeText || null,
