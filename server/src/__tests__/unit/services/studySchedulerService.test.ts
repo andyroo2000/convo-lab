@@ -799,6 +799,7 @@ describe('studySchedulerService', () => {
     expect(updated.answer.restoredTextReading).toBe(
       '明日[あす]から早[はや]く起[お]きることにします。'
     );
+    expect(vi.mocked(addFuriganaBrackets)).not.toHaveBeenCalled();
   });
 
   it('auto-generates cloze restored-answer readings when the edit payload leaves them blank', async () => {
@@ -825,7 +826,7 @@ describe('studySchedulerService', () => {
       },
     });
 
-    expect(addFuriganaBrackets).toHaveBeenCalledWith('明日から早く起きることにします。');
+    expect(vi.mocked(addFuriganaBrackets)).toHaveBeenCalledWith('明日から早く起きることにします。');
     expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

@@ -113,6 +113,9 @@ const StudyCardFormFields = ({
             value={values.answerReading}
             onChange={(event) => onFieldChange('answerReading', event.target.value)}
             className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+            placeholder={
+              values.cardType === 'cloze' ? t('form.restoredAnswerReadingPlaceholder') : undefined
+            }
           />
         </StudyFormField>
       </div>

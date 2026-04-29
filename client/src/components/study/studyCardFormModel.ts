@@ -104,6 +104,7 @@ export const buildStudyCardFormPayload = (
       answer: {
         ...(card?.answer ?? {}),
         restoredText: values.answerExpression,
+        // Cloze cards display ruby from restoredTextReading; non-cloze cards use expressionReading.
         restoredTextReading: emptyToNull(values.answerReading),
         meaning: emptyToNull(values.answerMeaning),
         answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),

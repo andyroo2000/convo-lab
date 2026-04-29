@@ -33,6 +33,7 @@ describe('StudyCardFormFields', () => {
 
     const readingInput = screen.getByLabelText('Restored answer reading');
     expect(readingInput).toHaveValue('明日[あす]から早[はや]く起[お]きることにします。');
+    expect(readingInput).toHaveAttribute('placeholder', 'Example: 明日[あした]から');
     expect(readingInput).toBeEnabled();
   });
 });
