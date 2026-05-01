@@ -4,6 +4,7 @@ export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'X-CSRF-Token';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
 
 let csrfBootstrapPromise: Promise<string | null> | null = null;
 let csrfFetchInstalled = false;
@@ -134,7 +135,34 @@ async function buildCsrfHeaders(
   if (token && (options.forceRefresh || !headers.has(CSRF_TOKEN_HEADER_NAME))) {
     headers.set(CSRF_TOKEN_HEADER_NAME, token);
   }
+  // If a forced refresh fails, keep the request flow simple and let the
+  // server return the final CSRF rejection instead of fabricating a client error.
   return headers;
+}
+
+async function isCsrfRejection(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false;
+  }
+
+  try {
+    const body: unknown = await response.clone().json();
+    const message =
+      typeof body === 'object' &&
+      body !== null &&
+      'error' in body &&
+      typeof body.error === 'object' &&
+      body.error !== null &&
+      'message' in body.error &&
+      typeof body.error.message === 'string'
+        ? body.error.message
+        : '';
+
+    // Matches the server's CSRF rejection message in server/src/middleware/csrf.ts.
+    return CSRF_REJECTION_MESSAGE_PATTERN.test(message);
+  } catch {
+    return false;
+  }
 }
 
 async function fetchUnsafeApiWithCsrf(
@@ -148,13 +176,15 @@ async function fetchUnsafeApiWithCsrf(
     headers,
   });
 
-  if (response.status !== 403) {
+  if (!(await isCsrfRejection(response))) {
     return response;
   }
 
   const retryHeaders = await buildCsrfHeaders(originalFetch, input, init, {
     forceRefresh: true,
   });
+  // The retry resends init.body, so callers must use replayable body values
+  // like strings, Blob, FormData, or URLSearchParams rather than one-shot streams.
   return originalFetch(input, {
     ...init,
     headers: retryHeaders,
