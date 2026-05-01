@@ -92,9 +92,12 @@ function shouldAttachCsrfToken(input: RequestInfo | URL, init?: RequestInit): bo
   return url.origin === getApiOrigin();
 }
 
-async function bootstrapCsrfToken(originalFetch: typeof fetch): Promise<string | null> {
+async function bootstrapCsrfToken(
+  originalFetch: typeof fetch,
+  options: { forceRefresh?: boolean } = {}
+): Promise<string | null> {
   const existingToken = readCookieValue(CSRF_TOKEN_COOKIE_NAME);
-  if (existingToken) {
+  if (existingToken && !options.forceRefresh) {
     return existingToken;
   }
 
@@ -118,6 +121,46 @@ async function bootstrapCsrfToken(originalFetch: typeof fetch): Promise<string |
   return csrfBootstrapPromise;
 }
 
+async function buildCsrfHeaders(
+  originalFetch: typeof fetch,
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  options: { forceRefresh?: boolean } = {}
+): Promise<Headers> {
+  const headers = new Headers(
+    init?.headers ?? (input instanceof Request ? input.headers : undefined)
+  );
+  const token = await bootstrapCsrfToken(originalFetch, options);
+  if (token && (options.forceRefresh || !headers.has(CSRF_TOKEN_HEADER_NAME))) {
+    headers.set(CSRF_TOKEN_HEADER_NAME, token);
+  }
+  return headers;
+}
+
+async function fetchUnsafeApiWithCsrf(
+  originalFetch: typeof fetch,
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  const headers = await buildCsrfHeaders(originalFetch, input, init);
+  const response = await originalFetch(input, {
+    ...init,
+    headers,
+  });
+
+  if (response.status !== 403) {
+    return response;
+  }
+
+  const retryHeaders = await buildCsrfHeaders(originalFetch, input, init, {
+    forceRefresh: true,
+  });
+  return originalFetch(input, {
+    ...init,
+    headers: retryHeaders,
+  });
+}
+
 export async function fetchWithCsrf(
   input: RequestInfo | URL,
   init?: RequestInit
@@ -127,20 +170,7 @@ export async function fetchWithCsrf(
     return activeFetch(input, init);
   }
 
-  const headers = new Headers(
-    init?.headers ?? (input instanceof Request ? input.headers : undefined)
-  );
-  if (!headers.has(CSRF_TOKEN_HEADER_NAME)) {
-    const token = await bootstrapCsrfToken(activeFetch);
-    if (token) {
-      headers.set(CSRF_TOKEN_HEADER_NAME, token);
-    }
-  }
-
-  return activeFetch(input, {
-    ...init,
-    headers,
-  });
+  return fetchUnsafeApiWithCsrf(activeFetch, input, init);
 }
 
 export function installCsrfFetch(): void {
@@ -156,22 +186,7 @@ export function installCsrfFetch(): void {
       return originalFetch(input, init);
     }
 
-    return (async () => {
-      const headers = new Headers(
-        init?.headers ?? (input instanceof Request ? input.headers : undefined)
-      );
-      if (!headers.has(CSRF_TOKEN_HEADER_NAME)) {
-        const token = await bootstrapCsrfToken(originalFetch);
-        if (token) {
-          headers.set(CSRF_TOKEN_HEADER_NAME, token);
-        }
-      }
-
-      return originalFetch(input, {
-        ...init,
-        headers,
-      });
-    })();
+    return fetchUnsafeApiWithCsrf(originalFetch, input, init);
   }) as typeof window.fetch;
 
   csrfFetchInstalled = true;
