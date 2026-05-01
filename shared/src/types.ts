@@ -129,6 +129,53 @@ export interface StudyCardSummary {
   updatedAt: string;
 }
 
+export type StudyCardCandidateKind =
+  | 'text-recognition'
+  | 'audio-recognition'
+  | 'production'
+  | 'cloze';
+
+export interface StudyCardCandidate {
+  clientId: string;
+  candidateKind: StudyCardCandidateKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  rationale: string;
+  warnings?: string[];
+  previewAudio?: StudyMediaRef | null;
+  previewAudioRole?: 'prompt' | 'answer' | null;
+}
+
+export interface StudyCardCandidateGenerateRequest {
+  targetText: string;
+  context?: string | null;
+  includeLearnerContext?: boolean;
+}
+
+export interface StudyCardCandidateGenerateResponse {
+  candidates: StudyCardCandidate[];
+  learnerContextSummary?: string | null;
+}
+
+export interface StudyCardCandidateCommitItem {
+  clientId: string;
+  candidateKind: StudyCardCandidateKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  previewAudio?: StudyMediaRef | null;
+  previewAudioRole?: 'prompt' | 'answer' | null;
+}
+
+export interface StudyCardCandidateCommitRequest {
+  candidates: StudyCardCandidateCommitItem[];
+}
+
+export interface StudyCardCandidateCommitResponse {
+  cards: StudyCardSummary[];
+}
+
 export interface StudyOverview {
   dueCount: number;
   newCount: number;

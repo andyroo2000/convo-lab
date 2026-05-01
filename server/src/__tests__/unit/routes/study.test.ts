@@ -30,6 +30,7 @@ const {
   completeStudyImportUploadMock,
   createStudyImportUploadSessionMock,
   createRedisConnectionMock,
+  commitStudyCardCandidatesMock,
   execMock,
   createStudyCardMock,
   expireAtMock,
@@ -44,6 +45,7 @@ const {
   getStudyMediaAccessMock,
   getStudyImportUploadReadinessMock,
   getStudySettingsMock,
+  generateStudyCardCandidatesMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -59,6 +61,7 @@ const {
   completeStudyImportUploadMock: vi.fn(),
   createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
+  commitStudyCardCandidatesMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
   expireAtMock: vi.fn(),
@@ -73,6 +76,7 @@ const {
   getStudyMediaAccessMock: vi.fn(),
   getStudyImportUploadReadinessMock: vi.fn(),
   getStudySettingsMock: vi.fn(),
+  generateStudyCardCandidatesMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -97,6 +101,7 @@ vi.mock('../../../services/studyService.js', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
   createStudyCard: createStudyCardMock,
+  commitStudyCardCandidates: commitStudyCardCandidatesMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
   exportStudyCardsSection: exportStudyCardsSectionMock,
@@ -112,6 +117,7 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyImportUploadReadiness: getStudyImportUploadReadinessMock,
   getStudyOverview: vi.fn(),
   getStudySettings: getStudySettingsMock,
+  generateStudyCardCandidates: generateStudyCardCandidatesMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   recordStudyReview: recordStudyReviewMock,
@@ -150,8 +156,10 @@ describe('Study Routes', () => {
     vi.clearAllMocks();
     vi.resetModules();
     cancelStudyImportUploadMock.mockReset();
+    commitStudyCardCandidatesMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    generateStudyCardCandidatesMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -523,6 +531,108 @@ describe('Study Routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('64 KB or smaller');
     expect(createStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('generates study card candidates with learner context enabled by default', async () => {
+    generateStudyCardCandidatesMock.mockResolvedValue({
+      candidates: [],
+      learnerContextSummary: null,
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/generate')
+    ).send({
+      targetText: '会社',
+      context: 'Business vocabulary',
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateStudyCardCandidatesMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        context: 'Business vocabulary',
+        includeLearnerContext: true,
+      },
+    });
+  });
+
+  it('commits selected generated candidates after validating media refs', async () => {
+    commitStudyCardCandidatesMock.mockResolvedValue({
+      cards: [{ id: 'card-1', cardType: 'recognition' }],
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/commit')
+    ).send({
+      candidates: [
+        {
+          clientId: 'listen-company',
+          candidateKind: 'audio-recognition',
+          cardType: 'recognition',
+          prompt: {
+            cueAudio: {
+              id: 'media-1',
+              filename: 'listen-company.mp3',
+              url: '/api/study/media/media-1',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+          answer: {
+            expression: '会社',
+            meaning: 'company',
+            answerAudio: {
+              id: 'media-1',
+              filename: 'listen-company.mp3',
+              url: '/api/study/media/media-1',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+          previewAudio: {
+            id: 'media-1',
+            filename: 'listen-company.mp3',
+            url: '/api/study/media/media-1',
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+          previewAudioRole: 'prompt',
+        },
+      ],
+    });
+
+    expect(response.status).toBe(201);
+    expect(commitStudyCardCandidatesMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      candidates: [
+        expect.objectContaining({
+          candidateKind: 'audio-recognition',
+          cardType: 'recognition',
+          previewAudioRole: 'prompt',
+        }),
+      ],
+    });
+  });
+
+  it('rejects generated candidate commits with mismatched card type', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/commit')
+    ).send({
+      candidates: [
+        {
+          clientId: 'bad-kind',
+          candidateKind: 'audio-recognition',
+          cardType: 'production',
+          prompt: {},
+          answer: { expression: '会社' },
+        },
+      ],
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('cardType must match candidateKind');
+    expect(commitStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
   it('rejects overly deep update payloads before hitting the service', async () => {

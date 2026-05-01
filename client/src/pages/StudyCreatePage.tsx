@@ -1,20 +1,115 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import type { StudyCardCandidate, StudyMediaRef } from '@languageflow/shared/src/types';
 
+import StudyAudioPlayer from '../components/study/StudyAudioPlayer';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
-import { useStudyCardForm } from '../components/study/studyCardFormModel';
-import { useCreateStudyCard } from '../hooks/useStudy';
+import {
+  buildStudyCardFormPayload,
+  useStudyCardForm,
+  type StudyCardFormValues,
+} from '../components/study/studyCardFormModel';
+import { toAssetUrl } from '../components/study/studyCardUtils';
+import {
+  useCommitStudyCardCandidates,
+  useCreateStudyCard,
+  useGenerateStudyCardCandidates,
+} from '../hooks/useStudy';
+
+type CreateMode = 'generate' | 'manual';
+
+interface CandidateDraft {
+  candidate: StudyCardCandidate;
+  selected: boolean;
+  values: StudyCardFormValues;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
+}
+
+const candidateToFormValues = (candidate: StudyCardCandidate): StudyCardFormValues => {
+  if (candidate.cardType === 'cloze') {
+    return {
+      cardType: 'cloze',
+      cueText: candidate.prompt.clozeText ?? '',
+      cueReading: '',
+      cueMeaning: candidate.prompt.clozeHint ?? candidate.prompt.clozeResolvedHint ?? '',
+      answerExpression: candidate.answer.restoredText ?? '',
+      answerReading: candidate.answer.restoredTextReading ?? '',
+      answerMeaning: candidate.answer.meaning ?? '',
+      answerAudioVoiceId: candidate.answer.answerAudioVoiceId ?? '',
+      answerAudioTextOverride: candidate.answer.answerAudioTextOverride ?? '',
+      notes: candidate.answer.notes ?? '',
+      sentenceJp: '',
+      sentenceEn: '',
+    };
+  }
+
+  return {
+    cardType: candidate.cardType,
+    cueText: candidate.prompt.cueText ?? '',
+    cueReading: candidate.prompt.cueReading ?? '',
+    cueMeaning: candidate.prompt.cueMeaning ?? '',
+    answerExpression: candidate.answer.expression ?? '',
+    answerReading: candidate.answer.expressionReading ?? '',
+    answerMeaning: candidate.answer.meaning ?? '',
+    answerAudioVoiceId: candidate.answer.answerAudioVoiceId ?? '',
+    answerAudioTextOverride: candidate.answer.answerAudioTextOverride ?? '',
+    notes: candidate.answer.notes ?? '',
+    sentenceJp: candidate.answer.sentenceJp ?? '',
+    sentenceEn: candidate.answer.sentenceEn ?? '',
+  };
+};
+
+const audioAffectingFields = new Set<keyof StudyCardFormValues>([
+  'answerExpression',
+  'answerReading',
+  'answerAudioVoiceId',
+  'answerAudioTextOverride',
+]);
+
+const CandidatePreviewAudio = ({
+  label,
+  previewUrl,
+  staleLabel,
+  title,
+}: {
+  label: string;
+  previewUrl: string | null;
+  staleLabel: string;
+  title: string;
+}) => {
+  if (!previewUrl) {
+    return <p className="mb-4 text-sm text-amber-700">{staleLabel}</p>;
+  }
+
+  return (
+    <div className="mb-4 rounded-xl border border-gray-200 bg-white/70 p-4">
+      <p className="text-sm font-semibold text-gray-700">{title}</p>
+      <div className="mt-3">
+        <StudyAudioPlayer url={previewUrl} label={label} />
+      </div>
+    </div>
+  );
+};
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const createCard = useCreateStudyCard();
+  const generateCandidates = useGenerateStudyCardCandidates();
+  const commitCandidates = useCommitStudyCardCandidates();
+  const [mode, setMode] = useState<CreateMode>('generate');
   const [success, setSuccess] = useState<string | null>(null);
+  const [targetText, setTargetText] = useState('');
+  const [context, setContext] = useState('');
+  const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
+  const [learnerContextSummary, setLearnerContextSummary] = useState<string | null>(null);
+  const [candidateDrafts, setCandidateDrafts] = useState<CandidateDraft[]>([]);
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSuccess(null);
     const payload = buildPayload();
@@ -25,47 +120,322 @@ const StudyCreatePage = () => {
     reset();
   };
 
+  const handleGenerateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSuccess(null);
+    setLearnerContextSummary(null);
+
+    const result = await generateCandidates.mutateAsync({
+      targetText,
+      context,
+      includeLearnerContext,
+    });
+
+    setLearnerContextSummary(result.learnerContextSummary ?? null);
+    setCandidateDrafts(
+      result.candidates.map((candidate) => ({
+        candidate,
+        selected: true,
+        values: candidateToFormValues(candidate),
+        previewAudio: candidate.previewAudio ?? null,
+        previewAudioRole: candidate.previewAudioRole ?? null,
+      }))
+    );
+  };
+
+  const updateCandidateField = <K extends keyof StudyCardFormValues>(
+    index: number,
+    field: K,
+    value: StudyCardFormValues[K]
+  ) => {
+    setCandidateDrafts((current) =>
+      current.map((draft, draftIndex) => {
+        if (draftIndex !== index) return draft;
+        return {
+          ...draft,
+          values: {
+            ...draft.values,
+            [field]: value,
+          },
+          previewAudio: audioAffectingFields.has(field) ? null : draft.previewAudio,
+        };
+      })
+    );
+  };
+
+  const toggleCandidate = (index: number) => {
+    setCandidateDrafts((current) =>
+      current.map((draft, draftIndex) =>
+        draftIndex === index ? { ...draft, selected: !draft.selected } : draft
+      )
+    );
+  };
+
+  const selectedCount = candidateDrafts.filter((draft) => draft.selected).length;
+
+  const handleCommitCandidates = async () => {
+    setSuccess(null);
+    const selectedCandidates = candidateDrafts.filter((draft) => draft.selected);
+    const result = await commitCandidates.mutateAsync({
+      candidates: selectedCandidates.map((draft) => {
+        const payload = buildStudyCardFormPayload(draft.values);
+        const prompt =
+          draft.candidate.candidateKind === 'audio-recognition'
+            ? {
+                cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
+              }
+            : payload.prompt;
+        const answer =
+          draft.candidate.candidateKind === 'audio-recognition'
+            ? {
+                ...payload.answer,
+                answerAudio: draft.previewAudio ?? draft.candidate.answer.answerAudio ?? null,
+              }
+            : payload.answer;
+
+        return {
+          clientId: draft.candidate.clientId,
+          candidateKind: draft.candidate.candidateKind,
+          cardType: draft.candidate.cardType,
+          prompt,
+          answer,
+          previewAudio: draft.previewAudio,
+          previewAudioRole: draft.previewAudioRole,
+        };
+      }),
+    });
+
+    setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
+    setCandidateDrafts([]);
+  };
+
   return (
     <div className="space-y-6">
-      <section className="card retro-paper-panel max-w-3xl">
-        <h1 className="text-3xl font-bold text-navy mb-3">{t('create.title')}</h1>
+      <section className="card retro-paper-panel max-w-4xl">
+        <h1 className="mb-3 text-3xl font-bold text-navy">{t('create.title')}</h1>
         <p className="text-gray-600">{t('create.description')}</p>
+        <div className="mt-5 inline-flex rounded-full border border-gray-200 bg-white p-1">
+          {(['generate', 'manual'] as const).map((nextMode) => (
+            <button
+              key={nextMode}
+              type="button"
+              onClick={() => {
+                setMode(nextMode);
+                setSuccess(null);
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-semibold ${
+                mode === nextMode
+                  ? 'bg-navy text-white'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-navy'
+              }`}
+            >
+              {t(`create.${nextMode}`)}
+            </button>
+          ))}
+        </div>
       </section>
 
-      <section className="card retro-paper-panel max-w-3xl">
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <StudyCardFormFields
-            values={values}
-            idPrefix="study"
-            includeCardTypeSelect
-            onCardTypeChange={setCardType}
-            onFieldChange={setField}
-          />
+      {mode === 'generate' ? (
+        <section className="card retro-paper-panel max-w-4xl">
+          <form className="space-y-4" onSubmit={handleGenerateSubmit}>
+            <div className="block">
+              <label
+                htmlFor="study-generate-target"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                {t('create.targetText')}
+              </label>
+              <textarea
+                id="study-generate-target"
+                value={targetText}
+                onChange={(event) => setTargetText(event.target.value)}
+                className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+                required
+              />
+            </div>
+            <div className="block">
+              <label
+                htmlFor="study-generate-context"
+                className="mb-2 block text-sm font-medium text-gray-700"
+              >
+                {t('create.context')}
+              </label>
+              <textarea
+                id="study-generate-context"
+                value={context}
+                onChange={(event) => setContext(event.target.value)}
+                className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="study-generate-learner-context"
+                type="checkbox"
+                checked={includeLearnerContext}
+                onChange={(event) => setIncludeLearnerContext(event.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <label
+                htmlFor="study-generate-learner-context"
+                className="text-sm font-medium text-gray-700"
+              >
+                {t('create.useLearnerContext')}
+              </label>
+            </div>
 
-          {createCard.error ? (
-            <p className="text-sm text-red-600">
-              {createCard.error instanceof Error ? createCard.error.message : t('create.failed')}
-            </p>
-          ) : null}
-          {success ? <p className="text-sm text-emerald-700">{success}</p> : null}
+            {generateCandidates.error ? (
+              <p className="text-sm text-red-600">
+                {generateCandidates.error instanceof Error
+                  ? generateCandidates.error.message
+                  : t('create.generateFailed')}
+              </p>
+            ) : null}
 
-          <div className="flex flex-wrap gap-3">
             <button
               type="submit"
-              disabled={createCard.isPending}
+              disabled={generateCandidates.isPending}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {createCard.isPending ? t('create.creating') : t('create.submit')}
+              {generateCandidates.isPending ? t('create.generating') : t('create.generateSubmit')}
             </button>
-            <Link
-              to="/app/study"
-              className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
-            >
-              {t('create.back')}
-            </Link>
+          </form>
+        </section>
+      ) : (
+        <section className="card retro-paper-panel max-w-3xl">
+          <form className="space-y-4" onSubmit={handleManualSubmit}>
+            <StudyCardFormFields
+              values={values}
+              idPrefix="study"
+              includeCardTypeSelect
+              onCardTypeChange={setCardType}
+              onFieldChange={setField}
+            />
+
+            {createCard.error ? (
+              <p className="text-sm text-red-600">
+                {createCard.error instanceof Error ? createCard.error.message : t('create.failed')}
+              </p>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                disabled={createCard.isPending}
+                className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {createCard.isPending ? t('create.creating') : t('create.submit')}
+              </button>
+              <Link
+                to="/app/study"
+                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
+              >
+                {t('create.back')}
+              </Link>
+            </div>
+          </form>
+        </section>
+      )}
+
+      {candidateDrafts.length > 0 ? (
+        <section className="space-y-4">
+          <div className="card retro-paper-panel max-w-4xl">
+            <h2 className="text-2xl font-bold text-navy">{t('create.candidates')}</h2>
+            {learnerContextSummary ? (
+              <p className="mt-2 text-sm text-gray-600">{t('create.learnerContextUsed')}</p>
+            ) : null}
           </div>
-        </form>
-      </section>
+
+          {candidateDrafts.map((draft, index) => {
+            const previewUrl = toAssetUrl(draft.previewAudio?.url);
+            const candidateSelectId = `candidate-${index}-selected`;
+            const previewTitle =
+              draft.candidate.candidateKind === 'audio-recognition'
+                ? t('create.audioRecognitionPrompt')
+                : t('create.answerPreview');
+            return (
+              <article key={draft.candidate.clientId} className="card retro-paper-panel max-w-4xl">
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
+                      {t(`create.kinds.${draft.candidate.candidateKind}`)}
+                    </p>
+                    <p className="mt-1 text-sm text-gray-600">{draft.candidate.rationale}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={candidateSelectId}
+                      type="checkbox"
+                      checked={draft.selected}
+                      onChange={() => toggleCandidate(index)}
+                      className="h-4 w-4 rounded border-gray-300"
+                    />
+                    <label htmlFor={candidateSelectId} className="text-sm font-semibold text-navy">
+                      {t('create.addCandidate')}
+                    </label>
+                  </div>
+                </div>
+
+                {draft.candidate.warnings?.length ? (
+                  <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                    {draft.candidate.warnings.join(' ')}
+                  </div>
+                ) : null}
+
+                <CandidatePreviewAudio
+                  label={t('create.playPreview')}
+                  previewUrl={previewUrl}
+                  staleLabel={t('create.previewStale')}
+                  title={previewTitle}
+                />
+
+                <StudyCardFormFields
+                  values={draft.values}
+                  idPrefix={`candidate-${index}`}
+                  hidePromptFields={draft.candidate.candidateKind === 'audio-recognition'}
+                  includeAudioSettings
+                  includeSentenceFields
+                  onFieldChange={(field, value) => updateCandidateField(index, field, value)}
+                />
+              </article>
+            );
+          })}
+
+          <section className="card retro-paper-panel max-w-4xl">
+            {commitCandidates.error ? (
+              <p className="mb-3 text-sm text-red-600">
+                {commitCandidates.error instanceof Error
+                  ? commitCandidates.error.message
+                  : t('create.commitFailed')}
+              </p>
+            ) : null}
+            {success ? <p className="mb-3 text-sm text-emerald-700">{success}</p> : null}
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleCommitCandidates}
+                disabled={selectedCount === 0 || commitCandidates.isPending}
+                className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {commitCandidates.isPending
+                  ? t('create.addingSelected')
+                  : t('create.addSelected', { count: selectedCount })}
+              </button>
+              <Link
+                to="/app/study"
+                className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50"
+              >
+                {t('create.back')}
+              </Link>
+            </div>
+          </section>
+        </section>
+      ) : null}
+
+      {candidateDrafts.length === 0 && success ? (
+        <section className="card retro-paper-panel max-w-4xl">
+          <p className="text-sm text-emerald-700">{success}</p>
+        </section>
+      ) : null}
     </div>
   );
 };
