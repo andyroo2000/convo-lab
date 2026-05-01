@@ -1,8 +1,10 @@
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
+import type { AudioPlayerHandle } from './StudyAudioPlayer';
+import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
 import { useStudyCardForm } from './studyCardFormModel';
 import { toAssetUrl } from './studyCardUtils';
@@ -35,11 +37,32 @@ const StudyCardEditor = ({
   const { t } = useTranslation('study');
   const { values, setField, buildPayload } = useStudyCardForm({ card });
   const [currentAnswerAudio, setCurrentAnswerAudio] = useState(card.answer.answerAudio ?? null);
+  const [regeneratedAudioPlayRequest, setRegeneratedAudioPlayRequest] = useState(0);
+  const currentAudioPlayerRef = useRef<AudioPlayerHandle | null>(null);
   const answerAudioUrl = toAssetUrl(currentAnswerAudio?.url);
 
   useEffect(() => {
     setCurrentAnswerAudio(card.answer.answerAudio ?? null);
+    setRegeneratedAudioPlayRequest(0);
   }, [card.answer.answerAudio, card.id]);
+
+  useEffect(() => {
+    let animationFrame: number | undefined;
+
+    if (regeneratedAudioPlayRequest !== 0 && answerAudioUrl) {
+      animationFrame = window.requestAnimationFrame(() => {
+        const player = currentAudioPlayerRef.current;
+        player?.stop();
+        player?.play().catch(() => {});
+      });
+    }
+
+    return () => {
+      if (animationFrame !== undefined) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [answerAudioUrl, regeneratedAudioPlayRequest]);
 
   return (
     <form
@@ -65,6 +88,7 @@ const StudyCardEditor = ({
       <StudyCardFormFields
         values={values}
         idPrefix="study-edit"
+        includeAudioSettings={false}
         includeSentenceFields
         onFieldChange={setField}
       />
@@ -75,6 +99,7 @@ const StudyCardEditor = ({
         </p>
         {answerAudioUrl ? (
           <StudyAudioPlayer
+            ref={currentAudioPlayerRef}
             filename={currentAnswerAudio?.filename}
             label={t('editor.currentAudio')}
             showTimeline
@@ -85,6 +110,12 @@ const StudyCardEditor = ({
           <p className="text-sm text-gray-500">{t('editor.noCurrentAudio')}</p>
         )}
       </div>
+
+      <StudyCardAudioSettingsFields
+        values={values}
+        idPrefix="study-edit"
+        onFieldChange={setField}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
@@ -107,6 +138,7 @@ const StudyCardEditor = ({
                 });
                 if (updatedCard) {
                   setCurrentAnswerAudio(updatedCard.answer.answerAudio ?? null);
+                  setRegeneratedAudioPlayRequest((requestId) => requestId + 1);
                 }
               } catch {
                 // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.
