@@ -46,15 +46,21 @@ const StudyCardEditor = ({
   }, [card.answer.answerAudio, card.id]);
 
   useEffect(() => {
-    if (regeneratedAudioPlayRequest === 0 || !answerAudioUrl) return undefined;
+    let animationFrame: number | undefined;
 
-    const animationFrame = window.requestAnimationFrame(() => {
-      const player = currentAudioPlayerRef.current;
-      player?.stop();
-      player?.play().catch(() => {});
-    });
+    if (regeneratedAudioPlayRequest !== 0 && answerAudioUrl) {
+      animationFrame = window.requestAnimationFrame(() => {
+        const player = currentAudioPlayerRef.current;
+        player?.stop();
+        player?.play().catch(() => {});
+      });
+    }
 
-    return () => window.cancelAnimationFrame(animationFrame);
+    return () => {
+      if (animationFrame !== undefined) {
+        window.cancelAnimationFrame(animationFrame);
+      }
+    };
   }, [answerAudioUrl, regeneratedAudioPlayRequest]);
 
   return (
