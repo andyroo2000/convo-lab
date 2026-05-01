@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
-import StudyCardFormFields, { StudyCardAudioSettingsFields } from './StudyCardFormFields';
+import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
+import StudyCardFormFields from './StudyCardFormFields';
 import { useStudyCardForm } from './studyCardFormModel';
 import { toAssetUrl } from './studyCardUtils';
 
