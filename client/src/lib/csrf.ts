@@ -137,6 +137,30 @@ async function buildCsrfHeaders(
   return headers;
 }
 
+async function isCsrfRejection(response: Response): Promise<boolean> {
+  if (response.status !== 403) {
+    return false;
+  }
+
+  try {
+    const body: unknown = await response.clone().json();
+    const message =
+      typeof body === 'object' &&
+      body !== null &&
+      'error' in body &&
+      typeof body.error === 'object' &&
+      body.error !== null &&
+      'message' in body.error &&
+      typeof body.error.message === 'string'
+        ? body.error.message
+        : '';
+
+    return /csrf/i.test(message);
+  } catch {
+    return false;
+  }
+}
+
 async function fetchUnsafeApiWithCsrf(
   originalFetch: typeof fetch,
   input: RequestInfo | URL,
@@ -148,13 +172,15 @@ async function fetchUnsafeApiWithCsrf(
     headers,
   });
 
-  if (response.status !== 403) {
+  if (!(await isCsrfRejection(response))) {
     return response;
   }
 
   const retryHeaders = await buildCsrfHeaders(originalFetch, input, init, {
     forceRefresh: true,
   });
+  // The retry resends init.body, so callers must use replayable body values
+  // like strings, Blob, FormData, or URLSearchParams rather than one-shot streams.
   return originalFetch(input, {
     ...init,
     headers: retryHeaders,
