@@ -419,5 +419,8 @@ describe('StudyBrowsePage', () => {
         'https://example.com/card-1-regenerated.mp3'
       );
     });
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
   });
 });

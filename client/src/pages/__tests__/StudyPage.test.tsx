@@ -1359,6 +1359,7 @@ describe('StudyPage', () => {
       'https://example.com/card-1.mp3'
     );
 
+    vi.mocked(HTMLMediaElement.prototype.play).mockClear();
     await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
@@ -1376,6 +1377,9 @@ describe('StudyPage', () => {
         'src',
         'https://example.com/card-1-regenerated.mp3'
       );
+    });
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
     });
   });
 
