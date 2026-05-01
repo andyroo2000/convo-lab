@@ -131,8 +131,32 @@ describe('csrf helpers', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_URL}/api/admin/users`);
   });
 
+  it('does not retry a 403 with a non-JSON body', async () => {
+    document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=valid-token`;
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response('<html>Forbidden</html>', {
+        status: 403,
+        headers: { 'Content-Type': 'text/html' },
+      })
+    );
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await fetchWithCsrf(`${API_URL}/api/admin/users`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: 'user-1' }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_URL}/api/admin/users`);
+  });
+
   it('returns the retried rejection when CSRF refresh fails', async () => {
     document.cookie = `${CSRF_TOKEN_COOKIE_NAME}=stale-token`;
+    const mutationHeaders: Headers[] = [];
     const fetchMock = vi
       .fn()
       .mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -145,11 +169,7 @@ describe('csrf helpers', () => {
         }
 
         const headers = new Headers(init?.headers);
-        if (fetchMock.mock.calls.length === 1) {
-          expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('stale-token');
-        } else {
-          expect(headers.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
-        }
+        mutationHeaders.push(headers);
 
         return jsonResponse({ error: { message: 'Invalid CSRF token.' } }, { status: 403 });
       });
@@ -168,6 +188,8 @@ describe('csrf helpers', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`${API_URL}/api/auth/login`);
     expect(fetchMock.mock.calls[1]?.[0]).toBe(`${API_URL}/api/auth/csrf`);
     expect(fetchMock.mock.calls[2]?.[0]).toBe(`${API_URL}/api/auth/login`);
+    expect(mutationHeaders[0]?.get(CSRF_TOKEN_HEADER_NAME)).toBe('stale-token');
+    expect(mutationHeaders[1]?.has(CSRF_TOKEN_HEADER_NAME)).toBe(false);
   });
 
   it('installCsrfFetch wraps window.fetch for unsafe API requests', async () => {

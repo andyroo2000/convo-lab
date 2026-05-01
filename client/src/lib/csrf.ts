@@ -4,6 +4,7 @@ export const CSRF_TOKEN_COOKIE_NAME = 'XSRF-TOKEN';
 export const CSRF_TOKEN_HEADER_NAME = 'X-CSRF-Token';
 
 const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const CSRF_REJECTION_MESSAGE_PATTERN = /csrf/i;
 
 let csrfBootstrapPromise: Promise<string | null> | null = null;
 let csrfFetchInstalled = false;
@@ -134,6 +135,8 @@ async function buildCsrfHeaders(
   if (token && (options.forceRefresh || !headers.has(CSRF_TOKEN_HEADER_NAME))) {
     headers.set(CSRF_TOKEN_HEADER_NAME, token);
   }
+  // If a forced refresh fails, keep the request flow simple and let the
+  // server return the final CSRF rejection instead of fabricating a client error.
   return headers;
 }
 
@@ -155,7 +158,8 @@ async function isCsrfRejection(response: Response): Promise<boolean> {
         ? body.error.message
         : '';
 
-    return /csrf/i.test(message);
+    // Matches the server's CSRF rejection message in server/src/middleware/csrf.ts.
+    return CSRF_REJECTION_MESSAGE_PATTERN.test(message);
   } catch {
     return false;
   }
