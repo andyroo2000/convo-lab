@@ -43,6 +43,7 @@ const StudyCardEditor = ({
 
   useEffect(() => {
     setCurrentAnswerAudio(card.answer.answerAudio ?? null);
+    setRegeneratedAudioPlayRequest(0);
   }, [card.answer.answerAudio, card.id]);
 
   useEffect(() => {

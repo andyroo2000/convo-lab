@@ -123,6 +123,12 @@ const noteDetailById = {
           restoredText: 'お風呂に虫がいる！',
           restoredTextReading: 'お風呂[ふろ]に虫[むし]がいる！',
           meaning: 'There are bugs in the bath!',
+          answerAudio: {
+            filename: 'card-2.mp3',
+            url: 'https://example.com/card-2.mp3',
+            mediaKind: 'audio',
+            source: 'imported',
+          },
         },
         state: {
           dueAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
@@ -422,5 +428,28 @@ describe('StudyBrowsePage', () => {
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('does not autoplay another selected card after regenerating audio', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    await waitFor(() => {
+      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+
+    const noteItems = await screen.findAllByTestId('study-browser-note-item');
+    await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
+
+    expect(await screen.findByLabelText('Restored answer')).toHaveValue('お風呂に虫がいる！');
+    await waitFor(() => {
+      expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
+        'src',
+        'https://example.com/card-2.mp3'
+      );
+    });
+    expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
   });
 });
