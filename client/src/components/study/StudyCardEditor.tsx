@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
-import StudyCardFormFields from './StudyCardFormFields';
+import StudyCardFormFields, { StudyCardAudioSettingsFields } from './StudyCardFormFields';
 import { useStudyCardForm } from './studyCardFormModel';
 import { toAssetUrl } from './studyCardUtils';
 
@@ -65,6 +65,7 @@ const StudyCardEditor = ({
       <StudyCardFormFields
         values={values}
         idPrefix="study-edit"
+        includeAudioSettings={false}
         includeSentenceFields
         onFieldChange={setField}
       />
@@ -85,6 +86,12 @@ const StudyCardEditor = ({
           <p className="text-sm text-gray-500">{t('editor.noCurrentAudio')}</p>
         )}
       </div>
+
+      <StudyCardAudioSettingsFields
+        values={values}
+        idPrefix="study-edit"
+        onFieldChange={setField}
+      />
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

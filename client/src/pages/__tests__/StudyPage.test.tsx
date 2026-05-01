@@ -1350,7 +1350,10 @@ describe('StudyPage', () => {
 
     expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
     expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
-    expect(screen.getByLabelText('Current card audio')).toBeInTheDocument();
+    const currentAudio = screen.getByLabelText('Current card audio');
+    const answerAudioVoice = screen.getByLabelText('Answer audio voice');
+    expect(currentAudio).toBeInTheDocument();
+    expect(currentAudio).toAppearBefore(answerAudioVoice);
     expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
       'src',
       'https://example.com/card-1.mp3'

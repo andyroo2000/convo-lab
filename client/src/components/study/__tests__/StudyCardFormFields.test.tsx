@@ -36,4 +36,18 @@ describe('StudyCardFormFields', () => {
     expect(readingInput).toHaveAttribute('placeholder', 'Example: 明日[あした]から');
     expect(readingInput).toBeEnabled();
   });
+
+  it('can omit answer audio settings for editor-specific placement', () => {
+    render(
+      <StudyCardFormFields
+        values={baseValues}
+        idPrefix="test-study-card"
+        includeAudioSettings={false}
+        onFieldChange={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByLabelText('Answer audio voice')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Phonetic audio override')).not.toBeInTheDocument();
+  });
 });
