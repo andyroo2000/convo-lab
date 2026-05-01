@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+import { AppError } from '../middleware/errorHandler.js';
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export interface GeminiMessage {
@@ -26,6 +28,38 @@ async function waitForRateLimit() {
   lastRequestTime = Date.now();
 }
 
+function toGeminiServiceError(error: unknown, fallbackMessage: string): AppError {
+  const status =
+    typeof (error as { status?: unknown })?.status === 'number'
+      ? (error as { status: number }).status
+      : 500;
+  const message = error instanceof Error ? error.message : String(error);
+
+  if (status === 401 || status === 403) {
+    return new AppError(
+      process.env.NODE_ENV === 'production'
+        ? 'AI generation provider rejected the configured credentials.'
+        : 'Gemini API key was rejected. Update GEMINI_API_KEY and restart the dev server.',
+      503
+    );
+  }
+
+  if (status === 429) {
+    return new AppError('Gemini is rate limiting requests. Please try again shortly.', 429);
+  }
+
+  if (message.toLowerCase().includes('api key')) {
+    return new AppError(
+      process.env.NODE_ENV === 'production'
+        ? 'AI generation provider rejected the configured credentials.'
+        : 'Gemini API key was rejected. Update GEMINI_API_KEY and restart the dev server.',
+      503
+    );
+  }
+
+  return new AppError(fallbackMessage, 502);
+}
+
 export async function generateWithGemini(
   prompt: string,
   systemInstruction?: string,
@@ -46,7 +80,7 @@ export async function generateWithGemini(
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Gemini API error:', error);
-    throw new Error('Failed to generate content with Gemini');
+    throw toGeminiServiceError(error, 'Failed to generate content with Gemini');
   }
 }
 
@@ -73,7 +107,7 @@ export async function generateWithGeminiChat(
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error('Gemini chat error:', error);
-    throw new Error('Failed to generate chat response with Gemini');
+    throw toGeminiServiceError(error, 'Failed to generate chat response with Gemini');
   }
 }
 
