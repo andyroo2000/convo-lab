@@ -52,7 +52,7 @@ describe('llmClient', () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
     await expect(generateStudyCardCandidateJson('prompt', 'system')).rejects.toMatchObject({
-      message: 'OpenAI failed to generate study card candidates.',
+      message: 'OpenAI failed to generate content.',
       statusCode: 502,
     } satisfies Partial<AppError>);
     expect(consoleErrorSpy).toHaveBeenCalledWith('OpenAI request failed:', expect.any(Error));

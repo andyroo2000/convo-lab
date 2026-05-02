@@ -1,4 +1,5 @@
 import type { Ref } from 'react';
+import { STUDY_CANDIDATE_VISUAL_POS_LABELS_JA } from '@languageflow/shared/src/studyConstants';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
@@ -10,6 +11,11 @@ import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils
 export type { AudioPlayerHandle };
 
 type StudyCardLayout = 'default' | 'mobile-focus';
+
+const STUDY_CANDIDATE_VISUAL_POS_LABELS = new Set<string>(STUDY_CANDIDATE_VISUAL_POS_LABELS_JA);
+
+const isVisualProductionCueLabel = (value: string | null | undefined) =>
+  Boolean(value && STUDY_CANDIDATE_VISUAL_POS_LABELS.has(value));
 
 const renderJapaneseHeading = (card: StudyCardSummary, compactMobile: boolean) => {
   const readingText = card.answer.expressionReading ?? card.prompt.cueReading;
@@ -156,6 +162,15 @@ export const StudyCardFace = ({
                 testId="study-prompt-audio"
               />
             </div>
+          ) : null}
+          {isVisualProductionCueLabel(card.prompt.cueMeaning) && cueImageUrl && !cueAudioUrl ? (
+            <p
+              className={`font-semibold text-gray-700 ${
+                compactMobile ? 'text-base sm:text-xl' : 'text-lg sm:text-2xl'
+              }`}
+            >
+              {toDisplayText(card.prompt.cueMeaning)}
+            </p>
           ) : null}
         </div>
       );

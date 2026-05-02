@@ -47,8 +47,14 @@ const redisMocks = vi.hoisted(() => ({
 
 export const { createRedisConnectionMock, redisDelMock, redisGetMock, redisSetMock } = redisMocks;
 
+const ttsMocks = vi.hoisted(() => ({
+  synthesizeBatchedTextsMock: vi.fn(async () => [Buffer.from('fake-audio')]),
+}));
+
+export const { synthesizeBatchedTextsMock } = ttsMocks;
+
 vi.mock('../../../services/batchedTTSClient.js', () => ({
-  synthesizeBatchedTexts: vi.fn(async () => [Buffer.from('fake-audio')]),
+  synthesizeBatchedTexts: synthesizeBatchedTextsMock,
 }));
 
 vi.mock('../../../services/furiganaService.js', () => ({

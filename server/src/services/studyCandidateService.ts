@@ -1,7 +1,12 @@
 import { randomUUID } from 'crypto';
 
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
-import { STUDY_CANDIDATE_COMMIT_MAX_COUNT } from '@languageflow/shared/src/studyConstants.js';
+import {
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
+  STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
+  STUDY_CANDIDATE_VISUAL_POS_LABELS_JA,
+} from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
   StudyCardCandidate,
@@ -11,37 +16,33 @@ import type {
   StudyCardCandidateGenerateResponse,
   StudyCardCandidateKind,
   StudyCardCandidatePreviewAudioResponse,
-  StudyMediaRef,
+  StudyCardCandidatePreviewImageResponse,
   StudyPromptPayload,
 } from '@languageflow/shared/src/types.js';
-import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 
 import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
-import { synthesizeBatchedTexts } from './batchedTTSClient.js';
 import { addFuriganaBrackets } from './furiganaService.js';
 import { generateStudyCardCandidateJson } from './llmClient.js';
 import {
   STUDY_CANDIDATE_GENERATE_MAX_COUNT,
   STUDY_CANDIDATE_LEARNER_CONTEXT_LIMIT,
-  STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
-  STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
 } from './study/candidates/constants.js';
 import { scheduleStudyCandidatePreviewMediaCleanup } from './study/candidates/mediaCleanup.js';
+import {
+  addPreviewAudio,
+  addPreviewImage,
+  generateCandidatePreviewImage,
+  getCandidatePreviewAudioText,
+  getOwnedPreviewMediaIds,
+  synthesizeCandidatePreviewAudio,
+} from './study/candidates/previewMedia.js';
 import {
   buildCandidateSystemInstruction,
   buildCandidateUserPrompt,
 } from './study/candidates/promptBuilder.js';
-import { deletePersistedStudyMediaByStoragePath } from './study/shared/paths.js';
-import {
-  cardTypeForStudyCardCandidateKind,
-  getBestAnswerAudioText,
-  getStudyMediaApiPath,
-  normalizeFilename,
-  persistStudyMediaBuffer,
-  STUDY_CARD_CANDIDATE_KINDS,
-} from './study/shared.js';
+import { cardTypeForStudyCardCandidateKind, STUDY_CARD_CANDIDATE_KINDS } from './study/shared.js';
 import { createStudyCard } from './studySchedulerService.js';
 
 const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
@@ -56,6 +57,7 @@ const STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS = TTS_VOICES.ja.voices
       voice.provider === 'fishaudio' && STUDY_CANDIDATE_RANDOM_FISH_AUDIO_VOICE_IDS.has(voice.id)
   )
   .map((voice) => voice.id);
+const STUDY_CANDIDATE_VISUAL_POS_JA = new Set<string>(STUDY_CANDIDATE_VISUAL_POS_LABELS_JA);
 
 type JsonRecord = Record<string, unknown>;
 
@@ -95,6 +97,29 @@ function parseNullableString(value: unknown): string | null | undefined {
   }, trimmed);
 
   return unquoted || null;
+}
+
+function parseImagePrompt(raw: JsonRecord): string | null {
+  const promptFromTopLevel = parseNullableString(raw.imagePrompt);
+  const promptFromNested = isRecord(raw.prompt)
+    ? parseNullableString(raw.prompt.imagePrompt)
+    : undefined;
+  const prompt = promptFromTopLevel ?? promptFromNested ?? null;
+  if (!prompt) return null;
+
+  return prompt.slice(0, STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH);
+}
+
+function parseVisualPartOfSpeech(rawPrompt: StudyPromptPayload, raw: JsonRecord): string | null {
+  const explicitPartOfSpeech =
+    parseNullableString(raw.partOfSpeechJa) ??
+    (isRecord(raw.prompt) ? parseNullableString(raw.prompt.partOfSpeechJa) : undefined);
+  const candidate = explicitPartOfSpeech ?? rawPrompt.cueMeaning ?? null;
+  if (!candidate || !STUDY_CANDIDATE_VISUAL_POS_JA.has(candidate)) {
+    return null;
+  }
+
+  return candidate;
 }
 
 function sanitizePromptPayload(value: unknown): StudyPromptPayload {
@@ -291,6 +316,10 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
     throw new AppError('Generated candidate card type did not match its candidate kind.', 502);
   }
 
+  const sanitizedPrompt = sanitizePromptPayload(raw.prompt);
+  const imagePrompt = kind === 'production' ? parseImagePrompt(raw) : null;
+  const visualPartOfSpeech = imagePrompt ? parseVisualPartOfSpeech(sanitizedPrompt, raw) : null;
+  const candidateImagePrompt = visualPartOfSpeech ? imagePrompt : null;
   let candidate: StudyCardCandidate = {
     clientId:
       typeof raw.clientId === 'string' && raw.clientId.trim()
@@ -298,7 +327,10 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
         : `candidate-${index + 1}-${randomUUID()}`,
     candidateKind: kind,
     cardType,
-    prompt: sanitizePromptPayload(raw.prompt),
+    prompt: {
+      ...sanitizedPrompt,
+      ...(visualPartOfSpeech ? { cueMeaning: visualPartOfSpeech } : {}),
+    },
     answer: sanitizeAnswerPayload(raw.answer, getRandomStudyCandidateVoiceId()),
     rationale: parseNullableString(raw.rationale) ?? 'Generated from your prompt.',
     warnings: Array.isArray(raw.warnings)
@@ -306,6 +338,8 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
       : [],
     previewAudio: null,
     previewAudioRole: null,
+    previewImage: null,
+    imagePrompt: candidateImagePrompt,
   };
 
   if (candidate.candidateKind === 'audio-recognition') {
@@ -345,118 +379,6 @@ function parseCandidateResponse(response: string): StudyCardCandidate[] {
   return rawCandidates
     .slice(0, STUDY_CANDIDATE_GENERATE_MAX_COUNT)
     .map((candidate, index) => normalizeGeneratedCandidate(candidate, index));
-}
-
-function getPreviewAudioText(
-  candidate: StudyCardCandidate | StudyCardCandidateCommitItem
-): string | null {
-  if (candidate.candidateKind === 'audio-recognition') {
-    return (
-      candidate.answer.answerAudioTextOverride ??
-      candidate.answer.expressionReading ??
-      candidate.answer.expression ??
-      null
-    );
-  }
-
-  return getBestAnswerAudioText(candidate.answer);
-}
-
-async function synthesizeCandidatePreviewAudio(
-  userId: string,
-  candidate: StudyCardCandidate
-): Promise<StudyMediaRef | null> {
-  const text = getPreviewAudioText(candidate);
-  if (!text) return null;
-
-  const voiceId = candidate.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja;
-  const [audioBuffer] = await synthesizeBatchedTexts([text], {
-    voiceId,
-    languageCode: getLanguageCodeFromVoiceId(voiceId),
-    speed: 1.0,
-  });
-
-  if (!audioBuffer) {
-    throw new Error('TTS preview returned no audio.');
-  }
-
-  const filename = `${normalizeFilename(candidate.clientId)}.mp3`;
-  const persisted = await persistStudyMediaBuffer({
-    userId,
-    importJobId: STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
-    filename,
-    buffer: audioBuffer,
-  });
-
-  let media: Awaited<ReturnType<typeof prisma.studyMedia.create>>;
-  try {
-    media = await prisma.studyMedia.create({
-      data: {
-        userId,
-        sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
-        sourceFilename: filename,
-        normalizedFilename: normalizeFilename(filename),
-        mediaKind: 'audio',
-        contentType: 'audio/mpeg',
-        storagePath: persisted.storagePath,
-        publicUrl: persisted.publicUrl,
-      },
-    });
-  } catch (error) {
-    await deletePersistedStudyMediaByStoragePath(persisted.storagePath);
-    throw error;
-  }
-
-  return {
-    id: media.id,
-    filename,
-    url: getStudyMediaApiPath(media.id),
-    mediaKind: 'audio',
-    source: 'generated',
-  };
-}
-
-async function addPreviewAudio(
-  userId: string,
-  candidate: StudyCardCandidate
-): Promise<StudyCardCandidate> {
-  try {
-    const previewAudio = await synthesizeCandidatePreviewAudio(userId, candidate);
-    if (!previewAudio) {
-      return {
-        ...candidate,
-        warnings: [...(candidate.warnings ?? []), 'No audio text was available for preview.'],
-      };
-    }
-
-    if (candidate.candidateKind === 'audio-recognition') {
-      return {
-        ...candidate,
-        prompt: {
-          ...candidate.prompt,
-          cueAudio: previewAudio,
-        },
-        previewAudio,
-        previewAudioRole: 'prompt',
-      };
-    }
-
-    return {
-      ...candidate,
-      answer: {
-        ...candidate.answer,
-        answerAudio: previewAudio,
-      },
-      previewAudio,
-      previewAudioRole: 'answer',
-    };
-  } catch (error) {
-    console.warn('[Study candidates] Failed to generate preview audio.', error);
-    return {
-      ...candidate,
-      warnings: [...(candidate.warnings ?? []), 'Audio preview could not be generated.'],
-    };
-  }
 }
 
 function normalizeGenerateRequest(input: StudyCardCandidateGenerateRequest): {
@@ -544,8 +466,23 @@ export async function generateStudyCardCandidates(input: {
   const candidates = await Promise.all(
     parseCandidateResponse(rawResponse).map((candidate) => enrichCandidateReadings(candidate))
   );
+  let remainingImagePreviews = STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT;
+  const withPreviewImages = await Promise.all(
+    candidates.map((candidate) => {
+      if (
+        candidate.candidateKind !== 'production' ||
+        !candidate.imagePrompt ||
+        remainingImagePreviews <= 0
+      ) {
+        return candidate;
+      }
+
+      remainingImagePreviews -= 1;
+      return addPreviewImage(input.userId, candidate);
+    })
+  );
   const withPreviewAudio = await Promise.all(
-    candidates.map((candidate) => addPreviewAudio(input.userId, candidate))
+    withPreviewImages.map((candidate) => addPreviewAudio(input.userId, candidate))
   );
 
   return {
@@ -560,6 +497,7 @@ type ResolvedStudyCardCandidateCommitItem = {
   answer: StudyAnswerPayload;
   previewAudioId: string | null;
   previewAudioRole: 'prompt' | 'answer' | null;
+  previewImageId: string | null;
 };
 
 async function resolveStudyCardCandidateCommitItem(input: {
@@ -580,7 +518,7 @@ async function resolveStudyCardCandidateCommitItem(input: {
   let resolvedAnswer = item.answer;
   let resolvedPreviewAudio = item.previewAudio ?? null;
   let resolvedPreviewAudioRole = item.previewAudioRole;
-  if (!resolvedPreviewAudio && getPreviewAudioText(item)) {
+  if (!resolvedPreviewAudio && getCandidatePreviewAudioText(item)) {
     const regeneratedPreview = await synthesizeCandidatePreviewAudio(input.userId, {
       clientId: item.clientId,
       candidateKind: item.candidateKind,
@@ -609,31 +547,8 @@ async function resolveStudyCardCandidateCommitItem(input: {
     answer: resolvedAnswer,
     previewAudioId: resolvedPreviewAudio?.id ?? null,
     previewAudioRole: resolvedPreviewAudioRole ?? null,
+    previewImageId: item.previewImage?.id ?? item.prompt.cueImage?.id ?? null,
   };
-}
-
-async function getOwnedPreviewMediaIds(userId: string, mediaIds: string[]): Promise<Set<string>> {
-  const uniqueMediaIds = [...new Set(mediaIds)];
-  if (uniqueMediaIds.length === 0) return new Set();
-
-  const media = await prisma.studyMedia.findMany({
-    where: {
-      id: { in: uniqueMediaIds },
-      userId,
-      sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
-      mediaKind: 'audio',
-    },
-    select: {
-      id: true,
-    },
-  });
-  const ownedMediaIds = new Set(media.map((item) => item.id));
-
-  if (uniqueMediaIds.some((mediaId) => !ownedMediaIds.has(mediaId))) {
-    throw new AppError('Preview audio was not found for this user.', 400);
-  }
-
-  return ownedMediaIds;
 }
 
 export async function commitStudyCardCandidates(input: {
@@ -655,16 +570,28 @@ export async function commitStudyCardCandidates(input: {
     // Keep this sequential so a commit cannot fan out several missing-preview TTS calls at once.
     resolvedItems.push(await resolveStudyCardCandidateCommitItem({ userId: input.userId, item }));
   }
-  const ownedPreviewMediaIds = await getOwnedPreviewMediaIds(
-    input.userId,
-    resolvedItems.flatMap((item) => (item.previewAudioId ? [item.previewAudioId] : []))
-  );
+  const ownedPreviewAudioIds = await getOwnedPreviewMediaIds({
+    userId: input.userId,
+    mediaIds: resolvedItems.flatMap((item) => (item.previewAudioId ? [item.previewAudioId] : [])),
+    mediaKind: 'audio',
+    errorMessage: 'Preview audio was not found for this user.',
+  });
+  const ownedPreviewImageIds = await getOwnedPreviewMediaIds({
+    userId: input.userId,
+    mediaIds: resolvedItems.flatMap((item) => (item.previewImageId ? [item.previewImageId] : [])),
+    mediaKind: 'image',
+    errorMessage: 'Preview image was not found for this user.',
+  });
 
   const cards = [];
   for (const resolved of resolvedItems) {
     const previewMediaId =
-      resolved.previewAudioId && ownedPreviewMediaIds.has(resolved.previewAudioId)
+      resolved.previewAudioId && ownedPreviewAudioIds.has(resolved.previewAudioId)
         ? resolved.previewAudioId
+        : null;
+    const imageMediaId =
+      resolved.previewImageId && ownedPreviewImageIds.has(resolved.previewImageId)
+        ? resolved.previewImageId
         : null;
     const promptAudioMediaId =
       resolved.previewAudioRole === 'prompt' || resolved.item.candidateKind === 'audio-recognition'
@@ -683,6 +610,7 @@ export async function commitStudyCardCandidates(input: {
       answer: resolved.answer,
       promptAudioMediaId,
       answerAudioMediaId,
+      imageMediaId,
     });
     cards.push(card);
   }
@@ -731,5 +659,43 @@ export async function regenerateStudyCardCandidatePreviewAudio(input: {
     answer,
     previewAudio: generated,
     previewAudioRole,
+  };
+}
+
+export async function regenerateStudyCardCandidatePreviewImage(input: {
+  userId: string;
+  candidate: StudyCardCandidateCommitItem;
+  imagePrompt: string;
+}): Promise<StudyCardCandidatePreviewImageResponse> {
+  const item = input.candidate;
+  if (item.candidateKind !== 'production' || item.cardType !== 'production') {
+    throw new AppError('Only production candidates can regenerate prompt images.', 400);
+  }
+
+  const imagePrompt = input.imagePrompt.trim();
+  if (!imagePrompt) {
+    throw new AppError('imagePrompt is required.', 400);
+  }
+  if (imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
+    throw new AppError(
+      `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+      400
+    );
+  }
+
+  const previewImage = await generateCandidatePreviewImage({
+    userId: input.userId,
+    clientId: item.clientId,
+    imagePrompt,
+  });
+
+  return {
+    prompt: {
+      ...item.prompt,
+      cueText: null,
+      cueImage: previewImage,
+    },
+    previewImage,
+    imagePrompt,
   };
 }

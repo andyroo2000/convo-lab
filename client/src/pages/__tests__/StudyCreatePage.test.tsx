@@ -18,12 +18,14 @@ const {
   createStudyCardMock,
   generateCandidatesMock,
   regenerateCandidateAudioMock,
+  regenerateCandidateImageMock,
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
   createStudyCardMock: vi.fn(),
   generateCandidatesMock: vi.fn(),
   regenerateCandidateAudioMock: vi.fn(),
+  regenerateCandidateImageMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -44,6 +46,11 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useRegenerateStudyCardCandidatePreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
+    isPending: false,
+    error: null,
+  }),
+  useRegenerateStudyCardCandidatePreviewImage: () => ({
+    mutateAsync: regenerateCandidateImageMock,
     isPending: false,
     error: null,
   }),
@@ -102,6 +109,7 @@ describe('StudyCreatePage', () => {
     createStudyCardMock.mockReset();
     generateCandidatesMock.mockReset();
     regenerateCandidateAudioMock.mockReset();
+    regenerateCandidateImageMock.mockReset();
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
@@ -120,6 +128,26 @@ describe('StudyCreatePage', () => {
         source: 'generated',
       },
       previewAudioRole: 'answer',
+    });
+    regenerateCandidateImageMock.mockResolvedValue({
+      prompt: {
+        cueMeaning: '名詞',
+        cueImage: {
+          id: 'image-regenerated',
+          filename: 'candidate-regenerated.png',
+          url: '/api/study/media/image-regenerated',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: 'image-regenerated',
+        filename: 'candidate-regenerated.png',
+        url: '/api/study/media/image-regenerated',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A clear photo of a company office sign in Japan.',
     });
   });
 
@@ -333,6 +361,110 @@ describe('StudyCreatePage', () => {
           previewAudio: expect.objectContaining({ id: 'media-regenerated' }),
           previewAudioRole: 'answer',
         }),
+      ],
+    });
+  });
+
+  it('renders visual production candidates and commits the regenerated image', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: {
+            cueMeaning: '名詞',
+            cueImage: {
+              id: 'image-1',
+              filename: 'cloudy.png',
+              url: '/api/study/media/image-1',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+          answer: {
+            expression: '曇り',
+            expressionReading: '曇り[くもり]',
+            meaning: 'cloudy weather',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          previewImage: {
+            id: 'image-1',
+            filename: 'cloudy.png',
+            url: '/api/study/media/image-1',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+    regenerateCandidateImageMock.mockResolvedValueOnce({
+      prompt: {
+        cueMeaning: '名詞',
+        cueImage: {
+          id: 'image-2',
+          filename: 'cloudy-new.png',
+          url: '/api/study/media/image-2',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: 'image-2',
+        filename: 'cloudy-new.png',
+        url: '/api/study/media/image-2',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A clearer image of cloudy weather over Tokyo.',
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Prompt image preview')).toBeInTheDocument();
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/image-1'
+    );
+
+    await userEvent.clear(screen.getByLabelText('Image prompt'));
+    await userEvent.type(
+      screen.getByLabelText('Image prompt'),
+      'A clearer image of cloudy weather over Tokyo.'
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate image' }));
+
+    await waitFor(() => {
+      expect(regenerateCandidateImageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imagePrompt: 'A clearer image of cloudy weather over Tokyo.',
+          candidate: expect.objectContaining({
+            previewImage: null,
+          }),
+        })
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    expect(commitCandidatesMock.mock.calls[0]?.[0]).toMatchObject({
+      candidates: [
+        {
+          prompt: {
+            cueMeaning: '名詞',
+            cueImage: {
+              id: 'image-2',
+              mediaKind: 'image',
+            },
+          },
+          previewImage: {
+            id: 'image-2',
+            mediaKind: 'image',
+          },
+          imagePrompt: 'A clearer image of cloudy weather over Tokyo.',
+        },
       ],
     });
   });

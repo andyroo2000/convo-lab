@@ -13,6 +13,8 @@ export interface StudyCandidateDraft {
   values: StudyCardFormValues;
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
+  previewImage: StudyMediaRef | null;
+  imagePrompt: string;
 }
 
 export const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFormValues>([
@@ -63,6 +65,8 @@ export function createStudyCandidateDraft(candidate: StudyCardCandidate): StudyC
     values: studyCandidateToFormValues(candidate),
     previewAudio: candidate.previewAudio ?? null,
     previewAudioRole: candidate.previewAudioRole ?? null,
+    previewImage: candidate.previewImage ?? candidate.prompt.cueImage ?? null,
+    imagePrompt: candidate.imagePrompt ?? '',
   };
 }
 
@@ -75,7 +79,10 @@ export function buildStudyCandidateCommitItem(
       ? {
           cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
         }
-      : payload.prompt;
+      : {
+          ...payload.prompt,
+          ...(draft.previewImage ? { cueText: null, cueImage: draft.previewImage } : {}),
+        };
   return {
     clientId: draft.candidate.clientId,
     candidateKind: draft.candidate.candidateKind,
@@ -84,6 +91,8 @@ export function buildStudyCandidateCommitItem(
     answer: payload.answer,
     previewAudio: draft.previewAudio,
     previewAudioRole: draft.previewAudioRole,
+    previewImage: draft.previewImage,
+    imagePrompt: draft.imagePrompt || null,
   };
 }
 

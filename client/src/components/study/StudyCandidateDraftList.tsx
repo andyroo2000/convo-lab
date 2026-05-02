@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
 import StudyCandidatePreviewAudio from './StudyCandidatePreviewAudio';
+import StudyCandidatePreviewImage from './StudyCandidatePreviewImage';
 import StudyCandidateCardPreviewModal from './StudyCandidatePreview';
 import { toAssetUrl } from './studyCardUtils';
 import type { StudyCardFormValues } from './studyCardFormModel';
@@ -20,6 +21,8 @@ interface StudyCandidateDraftListProps {
   learnerContextSummary: string | null;
   onCommitCandidates: () => void;
   onRegenerateCandidateAudio: (index: number) => void;
+  onRegenerateCandidateImage: (index: number) => void;
+  onUpdateCandidateImagePrompt: (index: number, value: string) => void;
   onToggleCandidate: (index: number) => void;
   onUpdateCandidateField: <K extends keyof StudyCardFormValues>(
     index: number,
@@ -28,7 +31,9 @@ interface StudyCandidateDraftListProps {
   ) => void;
   previewDraftIndex: number | null;
   regenerateErrorByCandidateId: Record<string, string>;
+  regenerateImageErrorByCandidateId: Record<string, string>;
   regeneratingCandidateId: string | null;
+  regeneratingImageCandidateId: string | null;
   selectedCount: number;
   setPreviewDraftIndex: (index: number | null) => void;
   success: string | null;
@@ -41,17 +46,22 @@ const StudyCandidateDraftList = ({
   learnerContextSummary,
   onCommitCandidates,
   onRegenerateCandidateAudio,
+  onRegenerateCandidateImage,
+  onUpdateCandidateImagePrompt,
   onToggleCandidate,
   onUpdateCandidateField,
   previewDraftIndex,
   regenerateErrorByCandidateId,
+  regenerateImageErrorByCandidateId,
   regeneratingCandidateId,
+  regeneratingImageCandidateId,
   selectedCount,
   setPreviewDraftIndex,
   success,
 }: StudyCandidateDraftListProps) => {
   const { t } = useTranslation('study');
-  const isAnyCandidateRegenerating = regeneratingCandidateId !== null;
+  const isAnyCandidateRegenerating =
+    regeneratingCandidateId !== null || regeneratingImageCandidateId !== null;
 
   return (
     <section className="space-y-4">
@@ -71,10 +81,21 @@ const StudyCandidateDraftList = ({
 
       {candidateDrafts.map((draft, index) => {
         const previewUrl = toAssetUrl(draft.previewAudio?.url);
+        const previewImageUrl = toAssetUrl(draft.previewImage?.url);
+        const hasVisualProductionPreview =
+          draft.candidate.candidateKind === 'production' &&
+          Boolean(
+            draft.candidate.imagePrompt ||
+            draft.candidate.previewImage ||
+            draft.candidate.prompt.cueImage ||
+            draft.imagePrompt ||
+            draft.previewImage
+          );
         const candidateSelectId = `candidate-${index}-selected`;
         const commitItem = buildStudyCandidateCommitItem(draft);
         const previewCard = buildStudyCandidatePreviewCard(draft, commitItem);
         const isRegenerating = regeneratingCandidateId === draft.candidate.clientId;
+        const isImageRegenerating = regeneratingImageCandidateId === draft.candidate.clientId;
         const previewTitle =
           draft.candidate.candidateKind === 'audio-recognition'
             ? t('create.audioRecognitionPrompt')
@@ -131,6 +152,26 @@ const StudyCandidateDraftList = ({
               staleLabel={t('create.previewStale')}
               title={previewTitle}
             />
+
+            {hasVisualProductionPreview ? (
+              <StudyCandidatePreviewImage
+                imagePrompt={draft.imagePrompt}
+                imagePromptId={`candidate-${index}-image-prompt`}
+                imagePromptLabel={t('create.imagePrompt')}
+                isRegenerateDisabled={isAnyCandidateRegenerating && !isImageRegenerating}
+                isRegenerating={isImageRegenerating}
+                onImagePromptChange={(value) => onUpdateCandidateImagePrompt(index, value)}
+                onRegenerate={() => onRegenerateCandidateImage(index)}
+                previewUrl={previewImageUrl}
+                regenerateError={
+                  regenerateImageErrorByCandidateId[draft.candidate.clientId] ?? null
+                }
+                regenerateLabel={
+                  isImageRegenerating ? t('create.regeneratingImage') : t('create.regenerateImage')
+                }
+                title={t('create.imagePreview')}
+              />
+            ) : null}
 
             <StudyCardAudioSettingsFields
               values={draft.values}

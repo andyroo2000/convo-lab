@@ -133,6 +133,30 @@ describe('StudyCardPreview', () => {
     expect(screen.queryByText('hidden helper meaning')).not.toBeInTheDocument();
   });
 
+  it('shows the Japanese part-of-speech label under image-only production prompts', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'production',
+          prompt: {
+            cueImage: {
+              filename: 'cloudy.png',
+              url: 'https://example.com/cloudy.png',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+            cueMeaning: '名詞',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByAltText('Study prompt')).toBeInTheDocument();
+    expect(screen.getByText('名詞')).toBeInTheDocument();
+  });
+
   it('decodes HTML entities in plain study text fields', () => {
     render(
       <StudyCardFace

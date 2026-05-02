@@ -20,6 +20,7 @@ import {
   useCreateStudyCard,
   useGenerateStudyCardCandidates,
   useRegenerateStudyCardCandidatePreviewAudio,
+  useRegenerateStudyCardCandidatePreviewImage,
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
@@ -30,6 +31,7 @@ const StudyCreatePage = () => {
   const generateCandidates = useGenerateStudyCardCandidates();
   const commitCandidates = useCommitStudyCardCandidates();
   const regenerateCandidateAudio = useRegenerateStudyCardCandidatePreviewAudio();
+  const regenerateCandidateImage = useRegenerateStudyCardCandidatePreviewImage();
   const [mode, setMode] = useState<CreateMode>('generate');
   const [success, setSuccess] = useState<string | null>(null);
   const [targetText, setTargetText] = useState('');
@@ -41,12 +43,20 @@ const StudyCreatePage = () => {
   const [regenerateErrorByCandidateId, setRegenerateErrorByCandidateId] = useState<
     Record<string, string>
   >({});
+  const [regenerateImageErrorByCandidateId, setRegenerateImageErrorByCandidateId] = useState<
+    Record<string, string>
+  >({});
+  const [regeneratingImageCandidateId, setRegeneratingImageCandidateId] = useState<string | null>(
+    null
+  );
   const [previewDraftIndex, setPreviewDraftIndex] = useState<number | null>(null);
   const activeRegenerationCandidateIdRef = useRef<string | null>(null);
+  const activeImageRegenerationCandidateIdRef = useRef<string | null>(null);
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
   const isCandidateAudioRegenerating = regeneratingCandidateId !== null;
+  const isCandidateImageRegenerating = regeneratingImageCandidateId !== null;
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -69,6 +79,7 @@ const StudyCreatePage = () => {
     setLearnerContextSummary(null);
     setCandidateDrafts([]);
     setRegenerateErrorByCandidateId({});
+    setRegenerateImageErrorByCandidateId({});
     setPreviewDraftIndex(null);
 
     try {
@@ -107,6 +118,14 @@ const StudyCreatePage = () => {
     );
   };
 
+  const updateCandidateImagePrompt = (index: number, value: string) => {
+    setCandidateDrafts((current) =>
+      current.map((draft, draftIndex) =>
+        draftIndex === index ? { ...draft, imagePrompt: value, previewImage: null } : draft
+      )
+    );
+  };
+
   const toggleCandidate = (index: number) => {
     setCandidateDrafts((current) =>
       current.map((draft, draftIndex) =>
@@ -123,7 +142,12 @@ const StudyCreatePage = () => {
     if (!draft) return;
 
     const candidateId = draft.candidate.clientId;
-    if (activeRegenerationCandidateIdRef.current !== null) return;
+    if (
+      activeRegenerationCandidateIdRef.current !== null ||
+      activeImageRegenerationCandidateIdRef.current !== null
+    ) {
+      return;
+    }
 
     activeRegenerationCandidateIdRef.current = candidateId;
     setRegeneratingCandidateId(candidateId);
@@ -173,6 +197,67 @@ const StudyCreatePage = () => {
     }
   };
 
+  const handleRegenerateCandidateImage = async (index: number) => {
+    setSuccess(null);
+    const draft = candidateDrafts[index];
+    if (!draft) return;
+
+    const candidateId = draft.candidate.clientId;
+    if (
+      activeImageRegenerationCandidateIdRef.current !== null ||
+      activeRegenerationCandidateIdRef.current !== null
+    ) {
+      return;
+    }
+
+    activeImageRegenerationCandidateIdRef.current = candidateId;
+    setRegeneratingImageCandidateId(candidateId);
+    setRegenerateImageErrorByCandidateId((current) => {
+      const { [candidateId]: _removed, ...remaining } = current;
+      return remaining;
+    });
+
+    try {
+      const result = await regenerateCandidateImage.mutateAsync({
+        candidate: buildStudyCandidateCommitItem(draft),
+        imagePrompt: draft.imagePrompt,
+      });
+
+      setCandidateDrafts((current) =>
+        // If a newer generation replaced the draft list while this request was in flight,
+        // the old clientId will not match anything and the stale image result is dropped.
+        current.map((currentDraft) =>
+          currentDraft.candidate.clientId === candidateId
+            ? {
+                ...currentDraft,
+                candidate: {
+                  ...currentDraft.candidate,
+                  prompt: result.prompt,
+                  previewImage: result.previewImage,
+                  imagePrompt: result.imagePrompt,
+                },
+                previewImage: result.previewImage,
+                imagePrompt: result.imagePrompt ?? currentDraft.imagePrompt,
+              }
+            : currentDraft
+        )
+      );
+    } catch (error) {
+      setRegenerateImageErrorByCandidateId((current) => ({
+        ...current,
+        [candidateId]:
+          error instanceof Error && error.message
+            ? error.message
+            : t('create.regenerateImageFailed'),
+      }));
+    } finally {
+      if (activeImageRegenerationCandidateIdRef.current === candidateId) {
+        activeImageRegenerationCandidateIdRef.current = null;
+      }
+      setRegeneratingImageCandidateId((current) => (current === candidateId ? null : current));
+    }
+  };
+
   const handleCommitCandidates = async () => {
     setSuccess(null);
     const selectedCandidates = candidateDrafts.filter((draft) => draft.selected);
@@ -184,6 +269,7 @@ const StudyCreatePage = () => {
       setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
       setCandidateDrafts([]);
       setRegenerateErrorByCandidateId({});
+      setRegenerateImageErrorByCandidateId({});
       setPreviewDraftIndex(null);
     } catch {
       // React Query stores the mutation error for the visible form message.
@@ -204,6 +290,7 @@ const StudyCreatePage = () => {
                 setMode(nextMode);
                 setSuccess(null);
                 setRegenerateErrorByCandidateId({});
+                setRegenerateImageErrorByCandidateId({});
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 mode === nextMode
@@ -280,7 +367,11 @@ const StudyCreatePage = () => {
             ) : null}
             <button
               type="submit"
-              disabled={generateCandidates.isPending || isCandidateAudioRegenerating}
+              disabled={
+                generateCandidates.isPending ||
+                isCandidateAudioRegenerating ||
+                isCandidateImageRegenerating
+              }
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {generateCandidates.isPending ? t('create.generating') : t('create.generateSubmit')}
@@ -331,11 +422,15 @@ const StudyCreatePage = () => {
           learnerContextSummary={learnerContextSummary}
           onCommitCandidates={handleCommitCandidates}
           onRegenerateCandidateAudio={handleRegenerateCandidateAudio}
+          onRegenerateCandidateImage={handleRegenerateCandidateImage}
           onToggleCandidate={toggleCandidate}
+          onUpdateCandidateImagePrompt={updateCandidateImagePrompt}
           onUpdateCandidateField={updateCandidateField}
           previewDraftIndex={previewDraftIndex}
           regenerateErrorByCandidateId={regenerateErrorByCandidateId}
+          regenerateImageErrorByCandidateId={regenerateImageErrorByCandidateId}
           regeneratingCandidateId={regeneratingCandidateId}
+          regeneratingImageCandidateId={regeneratingImageCandidateId}
           selectedCount={selectedCount}
           setPreviewDraftIndex={setPreviewDraftIndex}
           success={success}

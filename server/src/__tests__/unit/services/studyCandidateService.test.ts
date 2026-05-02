@@ -2,6 +2,10 @@
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { generateOpenAIImageBufferMock } = vi.hoisted(() => ({
+  generateOpenAIImageBufferMock: vi.fn(),
+}));
+
 import { mockPrisma } from '../../setup.js';
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
 import {
@@ -9,11 +13,13 @@ import {
   deleteFromGCSPathMock,
   redisSetMock,
   resetStudyServiceMocks,
+  synthesizeBatchedTextsMock,
 } from './studyTestHelpers.js';
 import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
   regenerateStudyCardCandidatePreviewAudio,
+  regenerateStudyCardCandidatePreviewImage,
 } from '../../../services/studyCandidateService.js';
 import {
   cleanupStudyCandidatePreviewMedia,
@@ -23,6 +29,11 @@ import {
 
 vi.mock('../../../services/llmClient.js', () => ({
   generateStudyCardCandidateJson: vi.fn(),
+}));
+
+vi.mock('../../../services/openAIClient.js', () => ({
+  generateOpenAIImageBuffer: generateOpenAIImageBufferMock,
+  generateOpenAIResponseText: vi.fn(),
 }));
 
 const schedulerState = {
@@ -50,6 +61,12 @@ describe('studyCandidateService', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
     vi.mocked(generateStudyCardCandidateJson).mockReset();
+    generateOpenAIImageBufferMock.mockReset();
+    generateOpenAIImageBufferMock.mockResolvedValue({
+      buffer: Buffer.from('fake-png'),
+      contentType: 'image/png',
+    });
+    synthesizeBatchedTextsMock.mockClear();
     resetStudyCandidatePreviewMediaCleanupSchedule();
     mockPrisma.studyMedia.findMany.mockResolvedValue([]);
     mockPrisma.studyCard.findMany.mockResolvedValue([
@@ -182,6 +199,7 @@ describe('studyCandidateService', () => {
           createdAt: expect.objectContaining({ lt: expect.any(Date) }),
           promptAudioCards: { none: {} },
           answerAudioCards: { none: {} },
+          imageCards: { none: {} },
         }),
       })
     );
@@ -255,6 +273,57 @@ describe('studyCandidateService', () => {
     expect(result.candidates[0].answer.answerAudioVoiceId).toMatch(/^fishaudio:/);
     expect(result.candidates[0].answer.answerAudioVoiceId).not.toBe(DEFAULT_NARRATOR_VOICES.ja);
     expect(japaneseCandidateVoiceIds).toContain(result.candidates[0].answer.answerAudioVoiceId);
+  });
+
+  it('generates visual production candidates with prompt image media and a Japanese part-of-speech label', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'produce-cloudy',
+            candidateKind: 'production',
+            cardType: 'production',
+            prompt: { cueMeaning: '名詞' },
+            imagePrompt: 'A simple flashcard image of cloudy weather over a Japanese street.',
+            answer: {
+              expression: '曇り',
+              expressionReading: '曇り[くもり]',
+              meaning: 'cloudy weather',
+            },
+            rationale: 'A visual prompt is useful for a concrete weather noun.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '曇り',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
+      'A simple flashcard image of cloudy weather over a Japanese street.'
+    );
+    expect(result.candidates[0]).toMatchObject({
+      candidateKind: 'production',
+      imagePrompt: 'A simple flashcard image of cloudy weather over a Japanese street.',
+      previewImage: {
+        id: expect.stringMatching(/^media-/),
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      prompt: {
+        cueText: null,
+        cueMeaning: '名詞',
+        cueImage: {
+          id: expect.stringMatching(/^media-/),
+          mediaKind: 'image',
+        },
+      },
+    });
   });
 
   it('rejects malformed LLM output with a safe error', async () => {
@@ -446,6 +515,34 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('uses the restored cloze sentence for generated answer audio', async () => {
+    await regenerateStudyCardCandidatePreviewAudio({
+      userId: 'user-1',
+      candidate: {
+        clientId: 'cloze-tomorrow',
+        candidateKind: 'cloze',
+        cardType: 'cloze',
+        prompt: {
+          clozeText: '明日から{{c1::早く起きる}}ことにします。',
+          clozeAnswerText: '早く起きる',
+        },
+        answer: {
+          expression: '早く起きる',
+          restoredText: '明日から早く起きることにします。',
+          meaning: 'I will start getting up early from tomorrow.',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(synthesizeBatchedTextsMock).toHaveBeenLastCalledWith(
+      ['明日から早く起きることにします。'],
+      expect.any(Object)
+    );
+  });
+
   it('regenerates candidate preview audio that can be committed as the selected card audio', async () => {
     const result = await regenerateStudyCardCandidatePreviewAudio({
       userId: 'user-1',
@@ -479,6 +576,46 @@ describe('studyCandidateService', () => {
         source: 'generated',
       },
       previewAudioRole: 'answer',
+    });
+  });
+
+  it('regenerates production prompt images from the edited image prompt', async () => {
+    const result = await regenerateStudyCardCandidatePreviewImage({
+      userId: 'user-1',
+      imagePrompt: 'A minimal illustration of cloudy weather.',
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
+      'A minimal illustration of cloudy weather.'
+    );
+    expect(result).toMatchObject({
+      imagePrompt: 'A minimal illustration of cloudy weather.',
+      prompt: {
+        cueText: null,
+        cueMeaning: '名詞',
+        cueImage: {
+          id: expect.stringMatching(/^media-/),
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: expect.stringMatching(/^media-/),
+        mediaKind: 'image',
+        source: 'generated',
+      },
     });
   });
 
@@ -803,6 +940,161 @@ describe('studyCandidateService', () => {
         ],
       })
     ).rejects.toThrow('Preview audio was not found for this user');
+  });
+
+  it('rejects preview image media owned by another user', async () => {
+    mockPrisma.studyMedia.findMany
+      .mockResolvedValueOnce([{ id: 'audio-1' }])
+      .mockResolvedValueOnce([]);
+
+    await expect(
+      commitStudyCardCandidates({
+        userId: 'user-1',
+        candidates: [
+          {
+            clientId: 'bad-image',
+            candidateKind: 'production',
+            cardType: 'production',
+            prompt: {
+              cueMeaning: '名詞',
+              cueImage: {
+                id: 'image-other',
+                filename: 'other.png',
+                url: '/api/study/media/image-other',
+                mediaKind: 'image',
+                source: 'generated',
+              },
+            },
+            answer: { expression: '曇り', meaning: 'cloudy weather' },
+            previewImage: {
+              id: 'image-other',
+              filename: 'other.png',
+              url: '/api/study/media/image-other',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+            previewAudio: {
+              id: 'audio-1',
+              filename: 'audio.mp3',
+              url: '/api/study/media/audio-1',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+            previewAudioRole: 'answer',
+            imagePrompt: 'Cloudy weather.',
+          },
+        ],
+      })
+    ).rejects.toThrow('Preview image was not found for this user');
+  });
+
+  it('attaches owned preview image media when committing visual production candidates', async () => {
+    mockPrisma.studyMedia.findMany
+      .mockResolvedValueOnce([{ id: 'audio-1' }])
+      .mockResolvedValueOnce([{ id: 'image-1' }]);
+    mockPrisma.studyNote.create.mockResolvedValue({
+      id: 'note-1',
+      userId: 'user-1',
+      sourceKind: 'convolab',
+      rawFieldsJson: {},
+      canonicalJson: {},
+      searchText: '',
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+    });
+    mockPrisma.studyCard.create.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'production',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'generated',
+      promptJson: { cueMeaning: '名詞' },
+      answerJson: { expression: '曇り', meaning: 'cloudy weather' },
+      schedulerStateJson: schedulerState,
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: { rawFieldsJson: {} },
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'production',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'generated',
+      promptJson: { cueMeaning: '名詞' },
+      answerJson: { expression: '曇り', meaning: 'cloudy weather' },
+      schedulerStateJson: schedulerState,
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: { rawFieldsJson: {} },
+      promptAudioMedia: null,
+      answerAudioMedia: {
+        id: 'audio-1',
+        sourceFilename: 'cloudy.mp3',
+        mediaKind: 'audio',
+      },
+      imageMedia: {
+        id: 'image-1',
+        sourceFilename: 'cloudy.png',
+        mediaKind: 'image',
+      },
+    });
+
+    await commitStudyCardCandidates({
+      userId: 'user-1',
+      candidates: [
+        {
+          clientId: 'cloudy',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: {
+            cueMeaning: '名詞',
+            cueImage: {
+              id: 'image-1',
+              filename: 'cloudy.png',
+              url: '/api/study/media/image-1',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+          answer: { expression: '曇り', meaning: 'cloudy weather' },
+          previewAudio: {
+            id: 'audio-1',
+            filename: 'cloudy.mp3',
+            url: '/api/study/media/audio-1',
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+          previewAudioRole: 'answer',
+          previewImage: {
+            id: 'image-1',
+            filename: 'cloudy.png',
+            url: '/api/study/media/image-1',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+          imagePrompt: 'Cloudy weather.',
+        },
+      ],
+    });
+
+    expect(mockPrisma.studyCard.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          answerAudioMediaId: 'audio-1',
+          imageMediaId: 'image-1',
+        }),
+      })
+    );
   });
 
   it('resolves all selected preview media before creating committed cards', async () => {

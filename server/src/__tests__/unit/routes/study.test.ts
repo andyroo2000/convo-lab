@@ -5,6 +5,7 @@ import path from 'node:path';
 import {
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
 import express, {
@@ -55,6 +56,7 @@ const {
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudioMock,
+  regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReviewMock,
   regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueueMock,
@@ -87,6 +89,7 @@ const {
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
   regenerateStudyCardCandidatePreviewAudioMock: vi.fn(),
+  regenerateStudyCardCandidatePreviewImageMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   regenerateStudyCardAnswerAudioMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
@@ -128,6 +131,7 @@ vi.mock('../../../services/studyService.js', () => ({
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
+  regenerateStudyCardCandidatePreviewImage: regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReview: recordStudyReviewMock,
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
@@ -169,6 +173,7 @@ describe('Study Routes', () => {
     completeStudyImportUploadMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
+    regenerateStudyCardCandidatePreviewImageMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -678,6 +683,79 @@ describe('Study Routes', () => {
         previewAudio: null,
       }),
     });
+  });
+
+  it('regenerates candidate preview images after validating the candidate payload', async () => {
+    regenerateStudyCardCandidatePreviewImageMock.mockResolvedValue({
+      prompt: {
+        cueMeaning: '名詞',
+        cueImage: {
+          id: 'image-regenerated',
+          filename: 'candidate-regenerated.png',
+          url: '/api/study/media/image-regenerated',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: 'image-regenerated',
+        filename: 'candidate-regenerated.png',
+        url: '/api/study/media/image-regenerated',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A clear image of cloudy weather.',
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/regenerate-image')
+    ).send({
+      imagePrompt: 'A clear image of cloudy weather.',
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+        imagePrompt: 'A clear image of cloudy weather.',
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.previewImage.id).toBe('image-regenerated');
+    expect(regenerateStudyCardCandidatePreviewImageMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      imagePrompt: 'A clear image of cloudy weather.',
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+        cardType: 'production',
+      }),
+    });
+  });
+
+  it('rejects overlong candidate image prompts before regenerating images', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/regenerate-image')
+    ).send({
+      imagePrompt: 'a'.repeat(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH + 1),
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('imagePrompt must be');
+    expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
   });
 
   it('commits selected generated candidates after validating media refs', async () => {

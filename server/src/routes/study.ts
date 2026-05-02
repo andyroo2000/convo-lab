@@ -6,6 +6,7 @@ import {
   STUDY_BROWSER_PAGE_SIZE_MAX,
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
@@ -17,6 +18,7 @@ import type {
   StudyCardCandidateCommitItem,
   StudyCardCandidateKind,
   StudyCardCandidatePreviewAudioRequest,
+  StudyCardCandidatePreviewImageRequest,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -57,6 +59,7 @@ import {
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
   regenerateStudyCardCandidatePreviewAudio,
+  regenerateStudyCardCandidatePreviewImage,
   regenerateStudyCardAnswerAudio,
   recordStudyReview,
   reorderStudyNewCardQueue,
@@ -556,6 +559,24 @@ function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateC
 
     const payloads = parseStudyCardPayloads(item.prompt, item.answer);
     const previewAudio = parseOptionalStudyMediaRef('candidate', 'previewAudio', item.previewAudio);
+    const previewImage = parseOptionalStudyMediaRef('candidate', 'previewImage', item.previewImage);
+    if (previewImage?.mediaKind && previewImage.mediaKind !== 'image') {
+      throw new AppError('candidate.previewImage.mediaKind must be image.', 400);
+    }
+    const imagePrompt = parseOptionalNullableStringField(
+      'candidate',
+      'imagePrompt',
+      item.imagePrompt
+    );
+    if (
+      typeof imagePrompt === 'string' &&
+      imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH
+    ) {
+      throw new AppError(
+        `candidate.imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+        400
+      );
+    }
 
     return {
       clientId:
@@ -568,6 +589,8 @@ function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateC
       answer: payloads.answer,
       previewAudio: previewAudio ?? null,
       previewAudioRole: parseStudyCardCandidatePreviewRole(item.previewAudioRole),
+      previewImage: previewImage ?? null,
+      imagePrompt: imagePrompt ?? null,
     };
   });
 }
@@ -992,6 +1015,43 @@ router.post(
       const result = await regenerateStudyCardCandidatePreviewAudio({
         userId: req.userId,
         candidate,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-candidates/regenerate-image',
+  rateLimitStudyRoute({ key: 'card-candidate-regenerate-image', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as Partial<StudyCardCandidatePreviewImageRequest>;
+      if (!isPlainObject(body.candidate)) {
+        throw new AppError('candidate must be an object.', 400);
+      }
+      if (typeof body.imagePrompt !== 'string' || body.imagePrompt.trim().length === 0) {
+        throw new AppError('imagePrompt is required.', 400);
+      }
+      if (body.imagePrompt.trim().length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
+        throw new AppError(
+          `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
+          400
+        );
+      }
+
+      const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
+      const result = await regenerateStudyCardCandidatePreviewImage({
+        userId: req.userId,
+        candidate,
+        imagePrompt: body.imagePrompt,
       });
 
       res.json(result);

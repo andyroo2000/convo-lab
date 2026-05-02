@@ -187,8 +187,8 @@ export function getRequiredSchedulerState(record: {
 export function getBestAnswerAudioText(answer: StudyAnswerPayload): string | null {
   return (
     answer.answerAudioTextOverride ??
-    answer.expression ??
     answer.restoredText ??
+    answer.expression ??
     answer.sentenceJp ??
     answer.meaning ??
     null

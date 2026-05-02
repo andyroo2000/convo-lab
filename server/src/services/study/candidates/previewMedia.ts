@@ -1,0 +1,249 @@
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
+import type {
+  StudyAnswerPayload,
+  StudyCardCandidate,
+  StudyCardCandidateCommitItem,
+  StudyMediaRef,
+} from '@languageflow/shared/src/types.js';
+import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
+
+import { prisma } from '../../../db/client.js';
+import { AppError } from '../../../middleware/errorHandler.js';
+import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
+import { generateOpenAIImageBuffer } from '../../openAIClient.js';
+import { persistStudyMediaBuffer } from '../shared/mediaHelpers.js';
+import {
+  deletePersistedStudyMediaByStoragePath,
+  getStudyMediaApiPath,
+  normalizeFilename,
+} from '../shared/paths.js';
+import { getBestAnswerAudioText } from '../shared/time.js';
+
+import {
+  STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
+  STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
+} from './constants.js';
+
+function toCandidateFilename(clientId: string, extension: string): string {
+  return `${normalizeFilename(clientId)}.${extension}`;
+}
+
+async function createPreviewMedia(input: {
+  userId: string;
+  clientId: string;
+  mediaKind: 'audio' | 'image';
+  contentType: string;
+  extension: string;
+  buffer: Buffer;
+}): Promise<StudyMediaRef> {
+  const filename = toCandidateFilename(input.clientId, input.extension);
+  const persisted = await persistStudyMediaBuffer({
+    userId: input.userId,
+    importJobId: STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
+    filename,
+    buffer: input.buffer,
+  });
+
+  let media: Awaited<ReturnType<typeof prisma.studyMedia.create>>;
+  try {
+    media = await prisma.studyMedia.create({
+      data: {
+        userId: input.userId,
+        sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: input.mediaKind,
+        contentType: input.contentType,
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
+  } catch (error) {
+    await deletePersistedStudyMediaByStoragePath(persisted.storagePath);
+    throw error;
+  }
+
+  return {
+    id: media.id,
+    filename,
+    url: getStudyMediaApiPath(media.id),
+    mediaKind: input.mediaKind,
+    source: 'generated',
+  };
+}
+
+export function getCandidatePreviewAudioText(
+  candidate: StudyCardCandidate | StudyCardCandidateCommitItem
+): string | null {
+  if (candidate.candidateKind === 'audio-recognition') {
+    return (
+      candidate.answer.answerAudioTextOverride ??
+      candidate.answer.expressionReading ??
+      candidate.answer.expression ??
+      null
+    );
+  }
+
+  return getBestAnswerAudioText(candidate.answer);
+}
+
+export async function synthesizeCandidatePreviewAudio(
+  userId: string,
+  candidate: Pick<
+    StudyCardCandidate,
+    'clientId' | 'candidateKind' | 'cardType' | 'prompt' | 'answer' | 'rationale'
+  >
+): Promise<StudyMediaRef | null> {
+  const text = getCandidatePreviewAudioText(candidate);
+  if (!text) return null;
+
+  const voiceId = candidate.answer.answerAudioVoiceId ?? DEFAULT_NARRATOR_VOICES.ja;
+  const [audioBuffer] = await synthesizeBatchedTexts([text], {
+    voiceId,
+    languageCode: getLanguageCodeFromVoiceId(voiceId),
+    speed: 1.0,
+  });
+
+  if (!audioBuffer) {
+    throw new Error('TTS preview returned no audio.');
+  }
+
+  return createPreviewMedia({
+    userId,
+    clientId: candidate.clientId,
+    mediaKind: 'audio',
+    contentType: 'audio/mpeg',
+    extension: 'mp3',
+    buffer: audioBuffer,
+  });
+}
+
+export async function generateCandidatePreviewImage(input: {
+  userId: string;
+  clientId: string;
+  imagePrompt: string;
+}): Promise<StudyMediaRef> {
+  const generated = await generateOpenAIImageBuffer(input.imagePrompt);
+
+  return createPreviewMedia({
+    userId: input.userId,
+    clientId: input.clientId,
+    mediaKind: 'image',
+    contentType: generated.contentType,
+    extension: 'png',
+    buffer: generated.buffer,
+  });
+}
+
+export async function addPreviewAudio(
+  userId: string,
+  candidate: StudyCardCandidate
+): Promise<StudyCardCandidate> {
+  try {
+    const previewAudio = await synthesizeCandidatePreviewAudio(userId, candidate);
+    if (!previewAudio) {
+      return {
+        ...candidate,
+        warnings: [...(candidate.warnings ?? []), 'No audio text was available for preview.'],
+      };
+    }
+
+    if (candidate.candidateKind === 'audio-recognition') {
+      return {
+        ...candidate,
+        prompt: {
+          ...candidate.prompt,
+          cueAudio: previewAudio,
+        },
+        previewAudio,
+        previewAudioRole: 'prompt',
+      };
+    }
+
+    return {
+      ...candidate,
+      answer: {
+        ...candidate.answer,
+        answerAudio: previewAudio,
+      },
+      previewAudio,
+      previewAudioRole: 'answer',
+    };
+  } catch (error) {
+    console.warn('[Study candidates] Failed to generate preview audio.', error);
+    return {
+      ...candidate,
+      warnings: [...(candidate.warnings ?? []), 'Audio preview could not be generated.'],
+    };
+  }
+}
+
+export async function addPreviewImage(
+  userId: string,
+  candidate: StudyCardCandidate
+): Promise<StudyCardCandidate> {
+  const imagePrompt = candidate.imagePrompt?.trim();
+  if (candidate.candidateKind !== 'production' || !imagePrompt) return candidate;
+
+  try {
+    const previewImage = await generateCandidatePreviewImage({
+      userId,
+      clientId: candidate.clientId,
+      imagePrompt,
+    });
+
+    return {
+      ...candidate,
+      prompt: {
+        ...candidate.prompt,
+        cueText: null,
+        cueImage: previewImage,
+      },
+      previewImage,
+      imagePrompt,
+    };
+  } catch (error) {
+    console.warn('[Study candidates] Failed to generate preview image.', error);
+    return {
+      ...candidate,
+      warnings: [...(candidate.warnings ?? []), 'Image preview could not be generated.'],
+    };
+  }
+}
+
+export async function getOwnedPreviewMediaIds(input: {
+  userId: string;
+  mediaIds: string[];
+  mediaKind: 'audio' | 'image';
+  errorMessage: string;
+}): Promise<Set<string>> {
+  const uniqueMediaIds = [...new Set(input.mediaIds)];
+  if (uniqueMediaIds.length === 0) return new Set();
+
+  const media = await prisma.studyMedia.findMany({
+    where: {
+      id: { in: uniqueMediaIds },
+      userId: input.userId,
+      sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
+      mediaKind: input.mediaKind,
+    },
+    select: {
+      id: true,
+    },
+  });
+  const ownedMediaIds = new Set(media.map((item) => item.id));
+
+  if (uniqueMediaIds.some((mediaId) => !ownedMediaIds.has(mediaId))) {
+    throw new AppError(input.errorMessage, 400);
+  }
+
+  return ownedMediaIds;
+}
+
+export function withAnswerPreviewAudio(
+  answer: StudyAnswerPayload,
+  previewAudio: StudyMediaRef | null,
+  role: 'prompt' | 'answer' | null
+): StudyAnswerPayload {
+  return role === 'answer' && previewAudio ? { ...answer, answerAudio: previewAudio } : answer;
+}

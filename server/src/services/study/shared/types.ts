@@ -208,6 +208,7 @@ export interface CreateStudyCardInput {
   answer: StudyAnswerPayload;
   promptAudioMediaId?: string | null;
   answerAudioMediaId?: string | null;
+  imageMediaId?: string | null;
 }
 
 export interface UpdateStudyCardInput {

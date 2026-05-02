@@ -15,6 +15,8 @@ export {
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_COMMIT_MAX_COUNT,
+  STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH,
+  STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT,
 } from './studyConstants';
 
 export type LanguageCode = 'ja' | 'en';
@@ -148,6 +150,8 @@ export interface StudyCardCandidate {
   warnings?: string[];
   previewAudio?: StudyMediaRef | null;
   previewAudioRole?: 'prompt' | 'answer' | null;
+  previewImage?: StudyMediaRef | null;
+  imagePrompt?: string | null;
 }
 
 export interface StudyCardCandidateGenerateRequest {
@@ -169,6 +173,8 @@ export interface StudyCardCandidateCommitItem {
   answer: StudyAnswerPayload;
   previewAudio?: StudyMediaRef | null;
   previewAudioRole?: 'prompt' | 'answer' | null;
+  previewImage?: StudyMediaRef | null;
+  imagePrompt?: string | null;
 }
 
 export interface StudyCardCandidateCommitRequest {
@@ -188,6 +194,17 @@ export interface StudyCardCandidatePreviewAudioResponse {
   answer: StudyAnswerPayload;
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
+}
+
+export interface StudyCardCandidatePreviewImageRequest {
+  candidate: StudyCardCandidateCommitItem;
+  imagePrompt: string;
+}
+
+export interface StudyCardCandidatePreviewImageResponse {
+  prompt: StudyPromptPayload;
+  previewImage: StudyMediaRef | null;
+  imagePrompt: string | null;
 }
 
 export interface StudyOverview {
