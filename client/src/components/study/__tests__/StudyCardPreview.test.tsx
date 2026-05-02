@@ -2,13 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyCardFace } from '../StudyCardPreview';
-
-const defineNavigatorValue = (key: string, value: unknown) => {
-  Object.defineProperty(window.navigator, key, {
-    configurable: true,
-    value,
-  });
-};
+import { defineNavigatorValue } from '../../../test/utils';
 
 const baseCard = {
   id: 'card-1',

@@ -13,6 +13,13 @@ export function renderWithI18n(ui: ReactElement, options?: Omit<RenderOptions, '
   return render(<I18nextProvider i18n={i18n}>{ui}</I18nextProvider>, options);
 }
 
+export function defineNavigatorValue(key: string, value: unknown) {
+  Object.defineProperty(window.navigator, key, {
+    configurable: true,
+    value,
+  });
+}
+
 // Re-export everything from @testing-library/react
 export * from '@testing-library/react';
 

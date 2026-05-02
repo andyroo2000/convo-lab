@@ -30,12 +30,12 @@ cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
 
-const isAudioRequest = (request: Request, url: URL) => {
-  const isSignedGoogleStorageUrl =
-    GOOGLE_STORAGE_ORIGINS.has(url.origin) &&
-    Array.from(GOOGLE_SIGNED_URL_PARAMS).some((param) => url.searchParams.has(param));
+const isSignedGoogleStorageUrl = (url: URL) =>
+  GOOGLE_STORAGE_ORIGINS.has(url.origin) &&
+  Array.from(GOOGLE_SIGNED_URL_PARAMS).some((param) => url.searchParams.has(param));
 
-  if (isSignedGoogleStorageUrl) return false;
+const isAudioRequest = (request: Request, url: URL) => {
+  if (isSignedGoogleStorageUrl(url)) return false;
   if (request.destination === 'audio') return true;
   if (url.pathname.startsWith('/api/study/media/')) return true;
   if (url.pathname.startsWith('/audio/')) return true;
@@ -132,7 +132,9 @@ const normalizeMessageUrls = (urls: unknown) => {
     new Set(
       urls
         .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-        .map((url) => new URL(url, self.location.origin).href)
+        .map((url) => new URL(url, self.location.origin))
+        .filter((url) => !isSignedGoogleStorageUrl(url))
+        .map((url) => url.href)
     )
   );
 };

@@ -6,13 +6,7 @@ import {
   shouldWarmAudioCache,
   warmAudioCache,
 } from '../audioCache';
-
-const defineNavigatorValue = (key: string, value: unknown) => {
-  Object.defineProperty(window.navigator, key, {
-    configurable: true,
-    value,
-  });
-};
+import { defineNavigatorValue } from '../../test/utils';
 
 describe('audioCache', () => {
   const originalFetch = globalThis.fetch;
