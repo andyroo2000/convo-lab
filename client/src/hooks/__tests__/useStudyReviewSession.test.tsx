@@ -13,6 +13,7 @@ const {
   undoStudyReviewMock,
   updateStudyCardMock,
   regenerateStudyAnswerAudioMock,
+  warmAudioCacheMock,
 } = vi.hoisted(() => ({
   cardActionMutateAsyncMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -21,6 +22,7 @@ const {
   undoStudyReviewMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
+  warmAudioCacheMock: vi.fn(),
 }));
 
 vi.mock('../useStudy', () => ({
@@ -45,6 +47,10 @@ vi.mock('../useStudy', () => ({
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
   undoStudyReview: undoStudyReviewMock,
+}));
+
+vi.mock('../../lib/audioCache', () => ({
+  warmAudioCache: warmAudioCacheMock,
 }));
 
 const baseOverview = {
@@ -133,6 +139,8 @@ describe('useStudyReviewSession', () => {
     undoStudyReviewMock.mockReset();
     updateStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
+    warmAudioCacheMock.mockReset();
+    warmAudioCacheMock.mockResolvedValue(undefined);
 
     startStudySessionMock.mockResolvedValue({
       overview: baseOverview,
@@ -218,6 +226,62 @@ describe('useStudyReviewSession', () => {
       configurable: true,
       value: vi.fn(),
     });
+  });
+
+  it('warms nearby study prompt and answer audio after entering focus mode', async () => {
+    const cardOneWithAudio = {
+      ...baseCardOne,
+      prompt: {
+        ...baseCardOne.prompt,
+        cueAudio: {
+          filename: 'prompt-1.mp3',
+          url: 'https://example.com/prompt-1.mp3',
+          mediaKind: 'audio',
+          source: 'imported',
+        },
+      },
+      answer: {
+        ...baseCardOne.answer,
+        answerAudio: {
+          filename: 'answer-1.mp3',
+          url: 'https://example.com/answer-1.mp3',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated' as const,
+    };
+    const cardTwoWithAudio = {
+      ...baseCardTwo,
+      answer: {
+        ...baseCardTwo.answer,
+        answerAudio: {
+          filename: 'answer-2.mp3',
+          url: 'https://example.com/answer-2.mp3',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answerAudioSource: 'generated' as const,
+    };
+    startStudySessionMock.mockResolvedValue({
+      overview: baseOverview,
+      cards: [cardOneWithAudio, cardTwoWithAudio],
+    });
+
+    const { result } = renderHook(() => useStudyReviewSession(), {
+      wrapper: createWrapper(),
+    });
+
+    await act(async () => {
+      await result.current.enterFocusMode();
+    });
+
+    expect(warmAudioCacheMock).toHaveBeenCalledWith([
+      'https://example.com/prompt-1.mp3',
+      'https://example.com/answer-1.mp3',
+      'https://example.com/answer-2.mp3',
+    ]);
   });
 
   it('restores the previous revealed card after grade then undo', async () => {
@@ -547,6 +611,7 @@ describe('useStudyReviewSession', () => {
     expect(result.current.currentCard?.answer.answerAudio?.url).toBe(
       'https://example.com/card-1.mp3'
     );
+    expect(warmAudioCacheMock).toHaveBeenCalledWith(['https://example.com/card-1.mp3']);
   });
 
   it('regenerates current card answer audio and merges the refreshed card', async () => {

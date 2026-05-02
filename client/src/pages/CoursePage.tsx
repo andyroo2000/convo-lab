@@ -5,6 +5,7 @@ import { useCourse } from '../hooks/useCourse';
 import { useAuth } from '../contexts/AuthContext';
 import AudioPlayer from '../components/AudioPlayer';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import CurrentTextDisplay from '../components/CurrentTextDisplay';
 import ViewToggleButtons from '../components/common/ViewToggleButtons';
 import { LessonScriptUnit } from '../types';
@@ -33,6 +34,8 @@ const CoursePage = () => {
 
   // Admin pipeline viewer
   const [showPipeline, setShowPipeline] = useState(false);
+
+  useWarmAudioCache([course?.audioUrl], course?.status === 'ready');
 
   // Track current L2 unit based on audio playback position
   useEffect(() => {

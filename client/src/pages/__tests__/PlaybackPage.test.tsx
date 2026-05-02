@@ -16,6 +16,7 @@ const mockAudioRef = vi.hoisted(() => vi.fn());
 const mockSeek = vi.hoisted(() => vi.fn());
 const mockPlay = vi.hoisted(() => vi.fn());
 const mockPause = vi.hoisted(() => vi.fn());
+const mockUseWarmAudioCache = vi.hoisted(() => vi.fn());
 
 vi.mock('../../hooks/useEpisodes', () => ({
   useEpisodes: () => ({
@@ -36,6 +37,10 @@ vi.mock('../../hooks/useAudioPlayer', () => ({
     play: mockPlay,
     pause: mockPause,
   }),
+}));
+
+vi.mock('../../hooks/useWarmAudioCache', () => ({
+  default: mockUseWarmAudioCache,
 }));
 
 vi.mock('../../hooks/useSpeakerAvatars', () => ({
@@ -203,6 +208,22 @@ describe('PlaybackPage', () => {
   });
 
   describe('episode display', () => {
+    it('should warm all available episode audio speeds', async () => {
+      renderPlaybackPage();
+
+      await waitFor(() => {
+        expect(mockUseWarmAudioCache).toHaveBeenCalledWith(
+          [
+            'https://storage.example.com/audio-0.7.mp3',
+            'https://storage.example.com/audio-0.85.mp3',
+            'https://storage.example.com/audio-1.0.mp3',
+            'https://storage.example.com/audio.mp3',
+          ],
+          true
+        );
+      });
+    });
+
     it('should display episode title', async () => {
       renderPlaybackPage();
 

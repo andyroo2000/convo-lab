@@ -1626,6 +1626,7 @@ describe('Study Routes', () => {
     const response = await request(app).get('/study/media/media-1');
 
     expect(response.status).toBe(200);
+    expect(response.headers['cache-control']).toBe('private, max-age=15552000, immutable');
     expect(response.headers['content-disposition']).toBe(
       'inline; filename="evil___filename__utf-8__oops.mp3"'
     );

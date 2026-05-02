@@ -3,12 +3,10 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import { prepareStudyAnswerAudio } from './useStudy';
 import { toAssetUrl } from '../components/study/studyCardUtils';
+import { warmAudioCache } from '../lib/audioCache';
 
 const ANSWER_AUDIO_PREP_MAX_ATTEMPTS = 4;
 const ANSWER_AUDIO_PREP_RETRY_DELAY_MS = 300;
-
-const hasReadyAnswerAudio = (card: StudyCardSummary) =>
-  Boolean(toAssetUrl(card.answer.answerAudio?.url));
 
 function delay(ms: number) {
   return new Promise<void>((resolve) => {
@@ -59,7 +57,14 @@ export default function useStudyAnswerAudioPrep({
             mergeCardIntoSession(updatedCard);
           }
 
-          if (hasReadyAnswerAudio(updatedCard) || attempt >= ANSWER_AUDIO_PREP_MAX_ATTEMPTS - 1) {
+          const answerAudioUrl = toAssetUrl(updatedCard.answer.answerAudio?.url);
+          if (answerAudioUrl) {
+            warmAudioCache([answerAudioUrl]).catch((error) => {
+              console.warn('Unable to warm prepared answer audio:', error);
+            });
+          }
+
+          if (answerAudioUrl || attempt >= ANSWER_AUDIO_PREP_MAX_ATTEMPTS - 1) {
             return updatedCard;
           }
 

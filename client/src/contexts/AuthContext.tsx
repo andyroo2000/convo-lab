@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useMemo, useCall
 import { User } from '../types';
 import { API_URL } from '../config';
 import { fetchWithCsrf } from '../lib/csrf';
+import { clearAudioCache } from '../lib/audioCache';
 
 interface AuthContextType {
   user: User | null;
@@ -74,6 +75,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await fetchWithCsrf(`${API_URL}/api/auth/logout`, {
       method: 'POST',
       credentials: 'include',
+    });
+    await clearAudioCache().catch((error) => {
+      console.warn('Unable to clear audio cache after logout:', error);
     });
     setUser(null);
   };

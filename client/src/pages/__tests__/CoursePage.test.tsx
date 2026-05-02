@@ -9,6 +9,7 @@ import type { Course } from '../../types';
 // Use vi.hoisted for mock functions
 const mockUpdateCourse = vi.hoisted(() => vi.fn());
 const mockUseCourse = vi.hoisted(() => vi.fn());
+const mockUseWarmAudioCache = vi.hoisted(() => vi.fn());
 
 vi.mock('../../hooks/useCourse', () => ({
   useCourse: mockUseCourse,
@@ -27,6 +28,10 @@ vi.mock('../../hooks/useAudioPlayer', () => ({
   useAudioPlayer: () => ({
     audioRef: { current: null },
   }),
+}));
+
+vi.mock('../../hooks/useWarmAudioCache', () => ({
+  default: mockUseWarmAudioCache,
 }));
 
 vi.mock('../../components/AudioPlayer', () => ({
@@ -125,6 +130,28 @@ describe('CoursePage', () => {
       expect(screen.getByText('Loading course...')).toBeInTheDocument();
       const spinner = document.querySelector('.loading-spinner');
       expect(spinner).toBeInTheDocument();
+    });
+  });
+
+  describe('audio cache warming', () => {
+    it('warms ready course audio', async () => {
+      mockUseCourse.mockReturnValue({
+        course: mockCourse,
+        isLoading: false,
+        error: null,
+        generationProgress: null,
+        updateCourse: mockUpdateCourse,
+        isUpdating: false,
+      });
+
+      renderPage();
+
+      await waitFor(() => {
+        expect(mockUseWarmAudioCache).toHaveBeenCalledWith(
+          ['https://example.com/course.mp3'],
+          true
+        );
+      });
     });
   });
 

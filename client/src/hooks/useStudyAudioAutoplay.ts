@@ -3,6 +3,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { AudioPlayerHandle } from '../components/study/StudyAudioPlayer';
 import { isAudioLedPromptCard, toAssetUrl } from '../components/study/studyCardUtils';
+import { warmAudioCache } from '../lib/audioCache';
 
 const PREWARM_CARD_COUNT = 3;
 
@@ -78,8 +79,19 @@ export default function useStudyAudioAutoplay({
   useEffect(() => {
     if (!focusMode || !cards.length) return;
 
-    cards
-      .slice(0, PREWARM_CARD_COUNT)
+    const upcomingCards = cards.slice(0, PREWARM_CARD_COUNT);
+    const audioUrls = upcomingCards
+      .flatMap((card) => [
+        toAssetUrl(card.prompt.cueAudio?.url),
+        toAssetUrl(card.answer.answerAudio?.url),
+      ])
+      .filter((url): url is string => Boolean(url));
+
+    warmAudioCache(audioUrls).catch((error) => {
+      console.warn('Unable to warm study session audio:', error);
+    });
+
+    upcomingCards
       .filter((card) => !toAssetUrl(card.answer.answerAudio?.url))
       .forEach((card) => {
         runBackgroundTask(() => ensureAnswerAudioPrepared(card.id), {

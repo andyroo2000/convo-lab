@@ -1394,7 +1394,9 @@ router.get(
       res.type(mediaAccess.contentType);
       res.sendFile(mediaAccess.absolutePath as string, {
         headers: {
-          'Cache-Control': 'private, max-age=60',
+          // Study media URLs contain the immutable media row ID. Regenerated audio creates
+          // a new media row and URL, so cached `/api/study/media/:id` responses stay valid.
+          'Cache-Control': 'private, max-age=15552000, immutable',
           'Content-Disposition': toSafeContentDisposition(
             mediaAccess.contentDisposition,
             mediaAccess.filename

@@ -139,13 +139,21 @@ describe('AuthContext', () => {
   });
 
   describe('logout', () => {
-    it('should clear user on logout', async () => {
+    it('should clear user and audio cache on logout', async () => {
       const mockUser = {
         id: '1',
         email: 'test@example.com',
         name: 'Test User',
         role: 'user',
       };
+      const postMessage = vi.fn();
+      Object.defineProperty(window.navigator, 'serviceWorker', {
+        configurable: true,
+        value: {
+          controller: { postMessage },
+          ready: Promise.resolve({ active: { postMessage } }),
+        },
+      });
 
       // First call: checkAuth (has session)
       mockFetch.mockResolvedValueOnce({
@@ -170,6 +178,7 @@ describe('AuthContext', () => {
       });
 
       expect(result.current.user).toBe(null);
+      expect(postMessage).toHaveBeenCalledWith({ type: 'CLEAR_AUDIO_CACHE' });
     });
   });
 
