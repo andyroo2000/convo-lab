@@ -77,6 +77,8 @@ const ANSWER_AUDIO_TEXT_OVERRIDE_MAX_LENGTH = 500;
 const STUDY_BROWSER_QUERY_MAX_LENGTH = 200;
 const STUDY_CURSOR_QUERY_MAX_LENGTH = 1000;
 const MAX_STUDY_SET_DUE_FUTURE_YEARS = 10;
+// Tune with STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT, which caps automatic lazy backfill.
+const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = 10;
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -1026,7 +1028,11 @@ router.post(
 
 router.post(
   '/card-candidates/regenerate-image',
-  rateLimitStudyRoute({ key: 'card-candidate-regenerate-image', max: 10, windowMs: 60 * 1000 }),
+  rateLimitStudyRoute({
+    key: 'card-candidate-regenerate-image',
+    max: STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60 * 1000,
+  }),
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {

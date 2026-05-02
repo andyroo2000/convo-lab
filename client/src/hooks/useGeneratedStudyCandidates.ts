@@ -167,8 +167,12 @@ function useGeneratedStudyCandidates() {
 
   const clearGeneratedState = useCallback(() => {
     generationTokenRef.current += 1;
+    activeRegenerationCandidateIdRef.current = null;
+    activeImageRegenerationCandidateIdRef.current = null;
     setLearnerContextSummary(null);
     setCandidateDrafts([]);
+    setRegeneratingCandidateId(null);
+    setRegeneratingImageCandidateId(null);
     setRegenerateErrorByCandidateId({});
     setRegenerateImageErrorByCandidateId({});
     setPreviewDraftIndex(null);
@@ -183,6 +187,8 @@ function useGeneratedStudyCandidates() {
       const nextDrafts = result.candidates.map(createStudyCandidateDraft);
       const token = generationTokenRef.current + 1;
       generationTokenRef.current = token;
+      // Keep the ref in step with the freshly generated drafts before React commits state,
+      // because lazy image backfill may read it immediately after generation resolves.
       candidateDraftsRef.current = nextDrafts;
       setLearnerContextSummary(result.learnerContextSummary ?? null);
       setCandidateDrafts(nextDrafts);

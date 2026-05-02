@@ -526,6 +526,79 @@ describe('StudyCreatePage', () => {
     );
   });
 
+  it('unblocks generation when a new generate starts during lazy image backfill', async () => {
+    generateCandidatesMock.mockResolvedValueOnce({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: { cueMeaning: '名詞' },
+          answer: {
+            expression: '曇り',
+            expressionReading: '曇り[くもり]',
+            meaning: 'cloudy weather',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          previewImage: null,
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+    let resolveImageBackfill:
+      | ((value: Awaited<ReturnType<typeof regenerateCandidateImageMock>>) => void)
+      | null = null;
+    regenerateCandidateImageMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveImageBackfill = resolve;
+        })
+    );
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Prompt image preview')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(regenerateCandidateImageMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
+
+    fireEvent.submit(screen.getByTestId('study-generate-form'));
+
+    await waitFor(() => {
+      expect(generateCandidatesMock).toHaveBeenCalledTimes(2);
+      expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
+    });
+    expect(screen.queryByText('Prompt image preview')).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolveImageBackfill?.({
+        prompt: {
+          cueMeaning: '名詞',
+          cueImage: {
+            id: 'stale-image',
+            filename: 'stale-image.webp',
+            url: '/api/study/media/stale-image',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+        },
+        previewImage: {
+          id: 'stale-image',
+          filename: 'stale-image.webp',
+          url: '/api/study/media/stale-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePrompt: 'A simple image of cloudy weather.',
+      });
+    });
+
+    expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
+    expect(screen.queryByAltText('Generated card prompt')).not.toBeInTheDocument();
+  });
+
   it('keeps an existing image preview when the image prompt changes without regeneration', async () => {
     generateCandidatesMock.mockResolvedValue({
       learnerContextSummary: null,
