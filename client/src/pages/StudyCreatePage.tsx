@@ -124,6 +124,7 @@ const StudyCreatePage = () => {
     event.preventDefault();
     setSuccess(null);
     setLearnerContextSummary(null);
+    setCandidateDrafts([]);
 
     const result = await generateCandidates.mutateAsync({
       targetText,

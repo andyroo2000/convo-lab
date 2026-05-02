@@ -221,6 +221,95 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('fills missing generated answer readings before previewing candidates', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'produce-company',
+            candidateKind: 'production',
+            cardType: 'production',
+            prompt: {},
+            answer: {
+              expression: '会社',
+              meaning: 'company',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Production recall is useful.',
+          },
+          {
+            clientId: 'read-company',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: {
+              cueText: '会社',
+              cueReading: '会社[かいしゃ]',
+            },
+            answer: {
+              expression: '会社',
+              meaning: 'company',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Reading recognition is useful.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0].answer.expressionReading).toBe('会社[furigana]');
+    expect(result.candidates[1].answer.expressionReading).toBe('会社[かいしゃ]');
+  });
+
+  it('cleans quoted cloze text and fills missing restored readings', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'cloze-company',
+            candidateKind: 'cloze',
+            cardType: 'cloze',
+            prompt: {
+              clozeText: '"会社{{c1::にも}}行ったよ"',
+            },
+            answer: {
+              restoredText: '会社にも行ったよ',
+              meaning: 'I went to the company too.',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: '"Practice にも."',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社にも行ったよ',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0]).toMatchObject({
+      candidateKind: 'cloze',
+      prompt: {
+        clozeText: '会社{{c1::にも}}行ったよ',
+      },
+      answer: {
+        restoredTextReading: '会社にも行ったよ[furigana]',
+      },
+      rationale: 'Practice にも.',
+    });
+  });
+
   it('commits selected audio-recognition candidates with owned preview media', async () => {
     mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
     mockPrisma.studyNote.create.mockResolvedValue({

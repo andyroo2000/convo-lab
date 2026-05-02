@@ -19,6 +19,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { synthesizeBatchedTexts } from './batchedTTSClient.js';
+import { addFuriganaBrackets } from './furiganaService.js';
 import { generateStudyCardCandidateJson } from './llmClient.js';
 import {
   getBestAnswerAudioText,
@@ -63,7 +64,25 @@ function stripJsonFromResponse(response: string): string {
 function parseNullableString(value: unknown): string | null | undefined {
   if (typeof value === 'undefined') return undefined;
   if (value === null) return null;
-  return typeof value === 'string' ? value : undefined;
+  if (typeof value !== 'string') return undefined;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const quotePairs: Array<[string, string]> = [
+    ['"', '"'],
+    ["'", "'"],
+    ['“', '”'],
+    ['「', '」'],
+  ];
+  const unquoted = quotePairs.reduce((current, [open, close]) => {
+    if (current.length >= 2 && current.startsWith(open) && current.endsWith(close)) {
+      return current.slice(1, -1).trim();
+    }
+    return current;
+  }, trimmed);
+
+  return unquoted || null;
 }
 
 function sanitizePromptPayload(value: unknown): StudyPromptPayload {
@@ -138,6 +157,50 @@ function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCan
   return candidate;
 }
 
+async function getGeneratedReading(text: string | null | undefined): Promise<string | null> {
+  const trimmed = text?.trim();
+  if (!trimmed) return null;
+  return addFuriganaBrackets(trimmed);
+}
+
+async function enrichCandidateReadings(candidate: StudyCardCandidate): Promise<StudyCardCandidate> {
+  if (candidate.candidateKind === 'cloze') {
+    if (candidate.answer.restoredTextReading || !candidate.answer.restoredText) {
+      return candidate;
+    }
+
+    return {
+      ...candidate,
+      answer: {
+        ...candidate.answer,
+        restoredTextReading: await getGeneratedReading(candidate.answer.restoredText),
+      },
+    };
+  }
+
+  let promptReading = candidate.prompt.cueReading ?? null;
+  if (!promptReading && candidate.prompt.cueText) {
+    promptReading = await getGeneratedReading(candidate.prompt.cueText);
+  }
+
+  const answerReading =
+    candidate.answer.expressionReading ??
+    (candidate.prompt.cueText === candidate.answer.expression ? promptReading : null) ??
+    (await getGeneratedReading(candidate.answer.expression));
+
+  return {
+    ...candidate,
+    prompt: {
+      ...candidate.prompt,
+      cueReading: promptReading,
+    },
+    answer: {
+      ...candidate.answer,
+      expressionReading: answerReading,
+    },
+  };
+}
+
 function assertCandidateShape(candidate: StudyCardCandidate): void {
   if (candidate.candidateKind === 'cloze') {
     if (!candidate.prompt.clozeText?.includes('{{c1::')) {
@@ -191,10 +254,7 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
     cardType,
     prompt: sanitizePromptPayload(raw.prompt),
     answer: sanitizeAnswerPayload(raw.answer),
-    rationale:
-      typeof raw.rationale === 'string' && raw.rationale.trim()
-        ? raw.rationale.trim()
-        : 'Generated from your prompt.',
+    rationale: parseNullableString(raw.rationale) ?? 'Generated from your prompt.',
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.filter((warning): warning is string => typeof warning === 'string')
       : [],
@@ -456,8 +516,9 @@ Rules:
 - audio-recognition persists as cardType "recognition"; leave prompt text blank and put the Japanese in answer.expression.
 - text-recognition asks Japanese -> English; set prompt.cueText to the Japanese phrase, prompt.cueReading when useful, answer.expression to the same Japanese phrase, and answer.meaning to English.
 - production asks English/context -> Japanese; set prompt.cueMeaning or prompt.cueText to the English cue, answer.expression to the Japanese answer, and answer.meaning to English.
-- cloze uses prompt.clozeText with {{c1::...}} markup and answer.restoredText.
-- Use bracket ruby readings like 稚内[わっかない] in reading fields when useful.
+- cloze uses prompt.clozeText with {{c1::...}} markup and answer.restoredText. Do not wrap text fields in extra quotation marks.
+- Use bracket ruby readings like 稚内[わっかない] in reading fields, including answer.expressionReading and answer.restoredTextReading.
+- Include concise notes for grammar/usage nuance when useful. Include example sentence fields only when they add value beyond the target sentence.
 - Set answer.answerAudioVoiceId to "${DEFAULT_NARRATOR_VOICES.ja}" unless a better Japanese voice is clearly warranted.
 - Set answer.answerAudioTextOverride to kana/hiragana only when TTS may misread the kanji.
 - Do not include media refs; the server will add audio previews.
@@ -503,7 +564,9 @@ export async function generateStudyCardCandidates(input: {
     'You are a careful Japanese flashcard author. Output valid JSON only.'
   );
 
-  const candidates = parseCandidateResponse(rawResponse);
+  const candidates = await Promise.all(
+    parseCandidateResponse(rawResponse).map((candidate) => enrichCandidateReadings(candidate))
+  );
   const withPreviewAudio = await Promise.all(
     candidates.map((candidate) => addPreviewAudio(input.userId, candidate))
   );

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -203,5 +203,55 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Created 1 generated cards and added them to the study queue.')
     ).toBeInTheDocument();
+  });
+
+  it('clears stale generated candidates while a new generation is pending', async () => {
+    generateCandidatesMock.mockResolvedValueOnce({
+      learnerContextSummary: null,
+      candidates: [
+        {
+          clientId: 'candidate-1',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: 'company' },
+          answer: {
+            expression: '会社',
+            expressionReading: '会社[かいしゃ]',
+            meaning: 'company',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          rationale: 'Production checks recall.',
+          warnings: [],
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+      ],
+    });
+    let resolveSecondGeneration:
+      | ((value: { candidates: unknown[]; learnerContextSummary: null }) => void)
+      | null = null;
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    expect(await screen.findByText('Production')).toBeInTheDocument();
+
+    generateCandidatesMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveSecondGeneration = resolve;
+        })
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Production')).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      resolveSecondGeneration?.({ candidates: [], learnerContextSummary: null });
+    });
   });
 });
