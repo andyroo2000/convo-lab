@@ -32,13 +32,7 @@ export function normalizeCandidateImagePrompt(value: string): string | null {
 export function hasVisualProductionPreview(draft: StudyCandidateDraft): boolean {
   return (
     draft.candidate.candidateKind === 'production' &&
-    Boolean(
-      draft.candidate.imagePrompt ||
-      draft.candidate.previewImage ||
-      draft.candidate.prompt.cueImage ||
-      draft.imagePrompt ||
-      draft.previewImage
-    )
+    (draft.imagePrompt.trim().length > 0 || draft.previewImage !== null)
   );
 }
 

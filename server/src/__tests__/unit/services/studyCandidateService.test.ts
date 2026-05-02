@@ -2,9 +2,10 @@
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { generateOpenAIImageBufferMock, sharpMock } = vi.hoisted(() => ({
+const { generateOpenAIImageBufferMock, sharpMock, webpMock } = vi.hoisted(() => ({
   generateOpenAIImageBufferMock: vi.fn(),
   sharpMock: vi.fn(),
+  webpMock: vi.fn(),
 }));
 
 import { mockPrisma } from '../../setup.js';
@@ -72,10 +73,12 @@ describe('studyCandidateService', () => {
       contentType: 'image/png',
     });
     sharpMock.mockReset();
+    webpMock.mockReset();
+    webpMock.mockReturnValue({
+      toBuffer: async () => Buffer.from('fake-webp'),
+    });
     sharpMock.mockReturnValue({
-      webp: () => ({
-        toBuffer: async () => Buffer.from('fake-webp'),
-      }),
+      webp: webpMock,
     });
     synthesizeBatchedTextsMock.mockClear();
     resetStudyCandidatePreviewMediaCleanupSchedule();
@@ -601,6 +604,7 @@ describe('studyCandidateService', () => {
       'A minimal illustration of cloudy weather.'
     );
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
+    expect(webpMock).toHaveBeenCalledWith({ quality: 82 });
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

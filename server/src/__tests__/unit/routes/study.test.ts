@@ -763,7 +763,16 @@ describe('Study Routes', () => {
     expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
   });
 
-  it('rejects overlong candidate image prompts before regenerating images', async () => {
+  it('lets the candidate service own image prompt length validation', async () => {
+    regenerateStudyCardCandidatePreviewImageMock.mockRejectedValueOnce(
+      Object.assign(
+        new Error(
+          `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`
+        ),
+        { statusCode: 400 }
+      )
+    );
+
     const response = await withMutationCsrf(
       request(app).post('/study/card-candidates/regenerate-image')
     ).send({
@@ -782,7 +791,13 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('imagePrompt must be');
-    expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
+    expect(regenerateStudyCardCandidatePreviewImageMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      imagePrompt: 'a'.repeat(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH + 1),
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+      }),
+    });
   });
 
   it('commits selected generated candidates after validating media refs', async () => {

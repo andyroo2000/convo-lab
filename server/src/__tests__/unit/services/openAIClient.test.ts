@@ -51,6 +51,46 @@ describe('openAIClient', () => {
         body: expect.stringContaining('"prompt":"A simple cloudy day image."'),
       })
     );
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      output_format: 'png',
+    });
+  });
+
+  it('requests base64 image responses for non-GPT image models', async () => {
+    vi.stubEnv('STUDY_CARD_IMAGE_GENERATOR_MODEL', 'dall-e-2');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          data: [{ b64_json: Buffer.from('png-bytes').toString('base64') }],
+        })
+      )
+    );
+
+    await expect(generateOpenAIImageBuffer('A simple cloudy day image.')).resolves.toMatchObject({
+      buffer: Buffer.from('png-bytes'),
+    });
+
+    expect(JSON.parse(vi.mocked(fetch).mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      response_format: 'b64_json',
+    });
+  });
+
+  it('rejects image responses with an unexpected output format', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          output_format: 'jpeg',
+          data: [{ b64_json: Buffer.from('jpeg-bytes').toString('base64') }],
+        })
+      )
+    );
+
+    await expect(generateOpenAIImageBuffer('A cat.')).rejects.toMatchObject({
+      message: 'OpenAI returned an unsupported image format.',
+      statusCode: 502,
+    } satisfies Partial<AppError>);
   });
 
   it('requires an API key before making provider requests', async () => {

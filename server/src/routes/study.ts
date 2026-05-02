@@ -1044,15 +1044,6 @@ router.post(
         throw new AppError('candidate must be an object.', 400);
       }
       const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
-      if (!imagePrompt) {
-        throw new AppError('imagePrompt is required.', 400);
-      }
-      if (imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
-        throw new AppError(
-          `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
-          400
-        );
-      }
 
       const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
       const result = await regenerateStudyCardCandidatePreviewImage({

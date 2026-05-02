@@ -27,6 +27,7 @@ import {
 
 const STUDY_CANDIDATE_IMAGE_CONTENT_TYPE = 'image/webp';
 const STUDY_CANDIDATE_IMAGE_EXTENSION = 'webp';
+const STUDY_CANDIDATE_IMAGE_WEBP_QUALITY = 82;
 
 function toCandidateFilename(clientId: string, extension: string): string {
   return `${normalizeFilename(clientId)}.${extension}`;
@@ -128,7 +129,9 @@ export async function generateCandidatePreviewImage(input: {
   imagePrompt: string;
 }): Promise<StudyMediaRef> {
   const generated = await generateOpenAIImageBuffer(input.imagePrompt);
-  const webpBuffer = await sharp(generated.buffer).webp().toBuffer();
+  const webpBuffer = await sharp(generated.buffer)
+    .webp({ quality: STUDY_CANDIDATE_IMAGE_WEBP_QUALITY })
+    .toBuffer();
 
   return createPreviewMedia({
     userId: input.userId,

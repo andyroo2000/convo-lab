@@ -5,6 +5,7 @@ const OPENAI_IMAGES_TIMEOUT_MS = 45_000;
 const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 const DEFAULT_OPENAI_IMAGE_SIZE = '1024x1024';
 const DEFAULT_OPENAI_IMAGE_QUALITY = 'medium';
+const DEFAULT_OPENAI_IMAGE_OUTPUT_FORMAT = 'png';
 
 type OpenAIResponseContent = {
   type?: string;
@@ -31,12 +32,17 @@ type OpenAIImagePayload = {
     b64_json?: string;
     url?: string;
   }>;
+  output_format?: string;
   error?: {
     message?: string;
     type?: string;
     code?: string;
   };
 };
+
+function isGptImageModel(model: string): boolean {
+  return model.startsWith('gpt-image-');
+}
 
 function getOpenAIApiKey(): string {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -161,17 +167,32 @@ export async function generateOpenAIImageBuffer(prompt: string): Promise<{
   contentType: string;
 }> {
   const model = process.env.STUDY_CARD_IMAGE_GENERATOR_MODEL ?? DEFAULT_OPENAI_IMAGE_MODEL;
+  const imageRequest: Record<string, unknown> = {
+    model,
+    prompt,
+    n: 1,
+    size: DEFAULT_OPENAI_IMAGE_SIZE,
+    quality: DEFAULT_OPENAI_IMAGE_QUALITY,
+  };
+
+  if (isGptImageModel(model)) {
+    imageRequest.output_format = DEFAULT_OPENAI_IMAGE_OUTPUT_FORMAT;
+  } else {
+    imageRequest.response_format = 'b64_json';
+  }
+
   const payload = await postOpenAIJson<OpenAIImagePayload>(
     'images/generations',
-    {
-      model,
-      prompt,
-      n: 1,
-      size: DEFAULT_OPENAI_IMAGE_SIZE,
-      quality: DEFAULT_OPENAI_IMAGE_QUALITY,
-    },
+    imageRequest,
     OPENAI_IMAGES_TIMEOUT_MS
   );
+
+  if (
+    typeof payload.output_format === 'string' &&
+    payload.output_format !== DEFAULT_OPENAI_IMAGE_OUTPUT_FORMAT
+  ) {
+    throw new AppError('OpenAI returned an unsupported image format.', 502);
+  }
 
   const b64Json = payload.data?.[0]?.b64_json;
   if (!b64Json) {
