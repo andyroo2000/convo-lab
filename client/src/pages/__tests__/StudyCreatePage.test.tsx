@@ -441,7 +441,7 @@ describe('StudyCreatePage', () => {
         expect.objectContaining({
           imagePrompt: 'A clearer image of cloudy weather over Tokyo.',
           candidate: expect.objectContaining({
-            previewImage: null,
+            previewImage: expect.objectContaining({ id: 'image-1' }),
           }),
         })
       );
@@ -464,6 +464,159 @@ describe('StudyCreatePage', () => {
             mediaKind: 'image',
           },
           imagePrompt: 'A clearer image of cloudy weather over Tokyo.',
+        },
+      ],
+    });
+  });
+
+  it('lazy-loads missing visual production images after candidates render', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: { cueMeaning: '名詞' },
+          answer: {
+            expression: '曇り',
+            expressionReading: '曇り[くもり]',
+            meaning: 'cloudy weather',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          previewImage: null,
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+    regenerateCandidateImageMock.mockResolvedValueOnce({
+      prompt: {
+        cueMeaning: '名詞',
+        cueImage: {
+          id: 'image-lazy',
+          filename: 'cloudy-lazy.webp',
+          url: '/api/study/media/image-lazy',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: 'image-lazy',
+        filename: 'cloudy-lazy.webp',
+        url: '/api/study/media/image-lazy',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A simple image of cloudy weather.',
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Prompt image preview')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(regenerateCandidateImageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          imagePrompt: 'A simple image of cloudy weather.',
+        })
+      );
+    });
+    expect(await screen.findByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/image-lazy'
+    );
+  });
+
+  it('keeps an existing image preview when the image prompt changes without regeneration', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: {
+            cueMeaning: '名詞',
+            cueImage: {
+              id: 'image-1',
+              filename: 'cloudy.png',
+              url: '/api/study/media/image-1',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+          previewImage: {
+            id: 'image-1',
+            filename: 'cloudy.png',
+            url: '/api/study/media/image-1',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    await userEvent.clear(await screen.findByLabelText('Image prompt'));
+    await userEvent.type(screen.getByLabelText('Image prompt'), 'A newly edited image prompt.');
+    expect(screen.getByAltText('Generated card prompt')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/image-1'
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    expect(commitCandidatesMock.mock.calls[0]?.[0]).toMatchObject({
+      candidates: [
+        {
+          previewImage: {
+            id: 'image-1',
+            mediaKind: 'image',
+          },
+          imagePrompt: 'A newly edited image prompt.',
+        },
+      ],
+    });
+  });
+
+  it('serializes a blank candidate image prompt as null', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: {
+            cueMeaning: '名詞',
+            cueImage: {
+              id: 'image-1',
+              filename: 'cloudy.png',
+              url: '/api/study/media/image-1',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+          previewImage: {
+            id: 'image-1',
+            filename: 'cloudy.png',
+            url: '/api/study/media/image-1',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    await userEvent.clear(await screen.findByLabelText('Image prompt'));
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    expect(commitCandidatesMock.mock.calls[0]?.[0]).toMatchObject({
+      candidates: [
+        {
+          imagePrompt: null,
         },
       ],
     });

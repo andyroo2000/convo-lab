@@ -98,4 +98,28 @@ describe('openAIClient', () => {
     } satisfies Partial<AppError>);
     expect(consoleErrorSpy).toHaveBeenCalledWith('OpenAI request failed:', expect.any(Error));
   });
+
+  it('does not surface raw provider messages for non-credential request failures', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(400, {
+          error: { message: 'Unsafe provider detail with prompt contents.' },
+        })
+      )
+    );
+
+    await expect(generateOpenAIImageBuffer('A cat.')).rejects.toMatchObject({
+      message: 'AI generation provider rejected the request.',
+      statusCode: 502,
+    } satisfies Partial<AppError>);
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      'OpenAI rejected study-card generation request:',
+      expect.objectContaining({
+        status: 400,
+        message: 'Unsafe provider detail with prompt contents.',
+      })
+    );
+  });
 });

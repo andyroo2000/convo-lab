@@ -2,8 +2,9 @@
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { generateOpenAIImageBufferMock } = vi.hoisted(() => ({
+const { generateOpenAIImageBufferMock, sharpMock } = vi.hoisted(() => ({
   generateOpenAIImageBufferMock: vi.fn(),
+  sharpMock: vi.fn(),
 }));
 
 import { mockPrisma } from '../../setup.js';
@@ -36,6 +37,10 @@ vi.mock('../../../services/openAIClient.js', () => ({
   generateOpenAIResponseText: vi.fn(),
 }));
 
+vi.mock('sharp', () => ({
+  default: sharpMock,
+}));
+
 const schedulerState = {
   due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
   stability: 0.1,
@@ -65,6 +70,12 @@ describe('studyCandidateService', () => {
     generateOpenAIImageBufferMock.mockResolvedValue({
       buffer: Buffer.from('fake-png'),
       contentType: 'image/png',
+    });
+    sharpMock.mockReset();
+    sharpMock.mockReturnValue({
+      webp: () => ({
+        toBuffer: async () => Buffer.from('fake-webp'),
+      }),
     });
     synthesizeBatchedTextsMock.mockClear();
     resetStudyCandidatePreviewMediaCleanupSchedule();
@@ -275,7 +286,7 @@ describe('studyCandidateService', () => {
     expect(japaneseCandidateVoiceIds).toContain(result.candidates[0].answer.answerAudioVoiceId);
   });
 
-  it('generates visual production candidates with prompt image media and a Japanese part-of-speech label', async () => {
+  it('returns visual production candidates without eagerly generating prompt image media', async () => {
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
         candidates: [
@@ -304,24 +315,13 @@ describe('studyCandidateService', () => {
       },
     });
 
-    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
-      'A simple flashcard image of cloudy weather over a Japanese street.'
-    );
+    expect(generateOpenAIImageBufferMock).not.toHaveBeenCalled();
     expect(result.candidates[0]).toMatchObject({
       candidateKind: 'production',
       imagePrompt: 'A simple flashcard image of cloudy weather over a Japanese street.',
-      previewImage: {
-        id: expect.stringMatching(/^media-/),
-        mediaKind: 'image',
-        source: 'generated',
-      },
+      previewImage: null,
       prompt: {
-        cueText: null,
         cueMeaning: '名詞',
-        cueImage: {
-          id: expect.stringMatching(/^media-/),
-          mediaKind: 'image',
-        },
       },
     });
   });
@@ -600,6 +600,15 @@ describe('studyCandidateService', () => {
     expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
       'A minimal illustration of cloudy weather.'
     );
+    expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
+    expect(mockPrisma.studyMedia.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          contentType: 'image/webp',
+          sourceFilename: 'produce-cloudy.webp',
+        }),
+      })
+    );
     expect(result).toMatchObject({
       imagePrompt: 'A minimal illustration of cloudy weather.',
       prompt: {
@@ -644,6 +653,34 @@ describe('studyCandidateService', () => {
 
     expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
       'study-media/user-1/candidate-preview/produce-company.mp3'
+    );
+  });
+
+  it('deletes persisted preview image storage when creating the media row fails', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.create.mockRejectedValueOnce(new Error('DB unavailable'));
+
+    await expect(
+      regenerateStudyCardCandidatePreviewImage({
+        userId: 'user-1',
+        imagePrompt: 'A minimal illustration of cloudy weather.',
+        candidate: {
+          clientId: 'produce-cloudy',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: '名詞' },
+          answer: {
+            expression: '曇り',
+            meaning: 'cloudy weather',
+          },
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+      })
+    ).rejects.toThrow('DB unavailable');
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study-media/user-1/candidate-preview/produce-cloudy.webp'
     );
   });
 

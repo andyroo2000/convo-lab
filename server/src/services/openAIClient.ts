@@ -65,7 +65,12 @@ function toOpenAIServiceError(status: number, payload: { error?: { message?: str
   }
 
   if (status >= 400 && status < 500) {
-    return new AppError(`OpenAI rejected the study-card generation request: ${message}`, 502);
+    // eslint-disable-next-line no-console
+    console.warn('OpenAI rejected study-card generation request:', {
+      status,
+      message,
+    });
+    return new AppError('AI generation provider rejected the request.', 502);
   }
 
   return new AppError('OpenAI failed to generate content.', 502);
@@ -85,6 +90,7 @@ async function postOpenAIJson<T>(path: string, body: unknown, timeoutMs: number)
       body: JSON.stringify(body),
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('OpenAI request failed:', error);
     throw new AppError('OpenAI failed to generate content.', 502);
   }

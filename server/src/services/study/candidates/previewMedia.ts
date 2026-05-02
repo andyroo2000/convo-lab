@@ -6,6 +6,7 @@ import type {
   StudyMediaRef,
 } from '@languageflow/shared/src/types.js';
 import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
+import sharp from 'sharp';
 
 import { prisma } from '../../../db/client.js';
 import { AppError } from '../../../middleware/errorHandler.js';
@@ -23,6 +24,9 @@ import {
   STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
   STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
 } from './constants.js';
+
+const STUDY_CANDIDATE_IMAGE_CONTENT_TYPE = 'image/webp';
+const STUDY_CANDIDATE_IMAGE_EXTENSION = 'webp';
 
 function toCandidateFilename(clientId: string, extension: string): string {
   return `${normalizeFilename(clientId)}.${extension}`;
@@ -124,14 +128,15 @@ export async function generateCandidatePreviewImage(input: {
   imagePrompt: string;
 }): Promise<StudyMediaRef> {
   const generated = await generateOpenAIImageBuffer(input.imagePrompt);
+  const webpBuffer = await sharp(generated.buffer).webp().toBuffer();
 
   return createPreviewMedia({
     userId: input.userId,
     clientId: input.clientId,
     mediaKind: 'image',
-    contentType: generated.contentType,
-    extension: 'png',
-    buffer: generated.buffer,
+    contentType: STUDY_CANDIDATE_IMAGE_CONTENT_TYPE,
+    extension: STUDY_CANDIDATE_IMAGE_EXTENSION,
+    buffer: webpBuffer,
   });
 }
 
@@ -170,6 +175,7 @@ export async function addPreviewAudio(
       previewAudioRole: 'answer',
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn('[Study candidates] Failed to generate preview audio.', error);
     return {
       ...candidate,
@@ -203,6 +209,7 @@ export async function addPreviewImage(
       imagePrompt,
     };
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.warn('[Study candidates] Failed to generate preview image.', error);
     return {
       ...candidate,

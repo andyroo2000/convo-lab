@@ -11,6 +11,7 @@ import type { StudyCardFormValues } from './studyCardFormModel';
 import {
   buildStudyCandidateCommitItem,
   buildStudyCandidatePreviewCard,
+  hasVisualProductionPreview,
   type StudyCandidateDraft,
 } from './studyCandidateModel';
 
@@ -82,15 +83,7 @@ const StudyCandidateDraftList = ({
       {candidateDrafts.map((draft, index) => {
         const previewUrl = toAssetUrl(draft.previewAudio?.url);
         const previewImageUrl = toAssetUrl(draft.previewImage?.url);
-        const hasVisualProductionPreview =
-          draft.candidate.candidateKind === 'production' &&
-          Boolean(
-            draft.candidate.imagePrompt ||
-            draft.candidate.previewImage ||
-            draft.candidate.prompt.cueImage ||
-            draft.imagePrompt ||
-            draft.previewImage
-          );
+        const shouldShowImagePreview = hasVisualProductionPreview(draft);
         const candidateSelectId = `candidate-${index}-selected`;
         const commitItem = buildStudyCandidateCommitItem(draft);
         const previewCard = buildStudyCandidatePreviewCard(draft, commitItem);
@@ -153,7 +146,7 @@ const StudyCandidateDraftList = ({
               title={previewTitle}
             />
 
-            {hasVisualProductionPreview ? (
+            {shouldShowImagePreview ? (
               <StudyCandidatePreviewImage
                 imagePrompt={draft.imagePrompt}
                 imagePromptId={`candidate-${index}-image-prompt`}

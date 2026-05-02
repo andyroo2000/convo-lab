@@ -203,8 +203,8 @@ export interface StudyCardCandidatePreviewImageRequest {
 
 export interface StudyCardCandidatePreviewImageResponse {
   prompt: StudyPromptPayload;
-  previewImage: StudyMediaRef | null;
-  imagePrompt: string | null;
+  previewImage: StudyMediaRef;
+  imagePrompt: string;
 }
 
 export interface StudyOverview {

@@ -24,6 +24,24 @@ export const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFor
   'answerAudioTextOverride',
 ]);
 
+export function normalizeCandidateImagePrompt(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+export function hasVisualProductionPreview(draft: StudyCandidateDraft): boolean {
+  return (
+    draft.candidate.candidateKind === 'production' &&
+    Boolean(
+      draft.candidate.imagePrompt ||
+      draft.candidate.previewImage ||
+      draft.candidate.prompt.cueImage ||
+      draft.imagePrompt ||
+      draft.previewImage
+    )
+  );
+}
+
 export function studyCandidateToFormValues(candidate: StudyCardCandidate): StudyCardFormValues {
   if (candidate.cardType === 'cloze') {
     return {
@@ -92,7 +110,7 @@ export function buildStudyCandidateCommitItem(
     previewAudio: draft.previewAudio,
     previewAudioRole: draft.previewAudioRole,
     previewImage: draft.previewImage,
-    imagePrompt: draft.imagePrompt || null,
+    imagePrompt: normalizeCandidateImagePrompt(draft.imagePrompt),
   };
 }
 

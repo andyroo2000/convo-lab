@@ -704,7 +704,7 @@ describe('Study Routes', () => {
         mediaKind: 'image',
         source: 'generated',
       },
-      imagePrompt: 'A clear image of cloudy weather.',
+      imagePrompt: '  A clear image of cloudy weather.  ',
     });
 
     const response = await withMutationCsrf(
@@ -734,6 +734,33 @@ describe('Study Routes', () => {
         cardType: 'production',
       }),
     });
+  });
+
+  it('rate limits candidate image regeneration more tightly than other candidate writes', async () => {
+    execMock.mockResolvedValueOnce([
+      [null, 11],
+      [null, 1],
+    ]);
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/regenerate-image')
+    ).send({
+      imagePrompt: 'A clear image of cloudy weather.',
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+      },
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.body.message).toContain('Too many study requests');
+    expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
   });
 
   it('rejects overlong candidate image prompts before regenerating images', async () => {

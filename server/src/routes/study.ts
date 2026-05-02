@@ -1026,7 +1026,7 @@ router.post(
 
 router.post(
   '/card-candidates/regenerate-image',
-  rateLimitStudyRoute({ key: 'card-candidate-regenerate-image', max: 30, windowMs: 60 * 1000 }),
+  rateLimitStudyRoute({ key: 'card-candidate-regenerate-image', max: 10, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
@@ -1037,10 +1037,11 @@ router.post(
       if (!isPlainObject(body.candidate)) {
         throw new AppError('candidate must be an object.', 400);
       }
-      if (typeof body.imagePrompt !== 'string' || body.imagePrompt.trim().length === 0) {
+      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
+      if (!imagePrompt) {
         throw new AppError('imagePrompt is required.', 400);
       }
-      if (body.imagePrompt.trim().length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
+      if (imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
         throw new AppError(
           `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,
           400
@@ -1051,7 +1052,7 @@ router.post(
       const result = await regenerateStudyCardCandidatePreviewImage({
         userId: req.userId,
         candidate,
-        imagePrompt: body.imagePrompt,
+        imagePrompt,
       });
 
       res.json(result);
