@@ -139,6 +139,88 @@ describe('studyCandidateService', () => {
     ).rejects.toThrow('Could not generate cards from that input');
   });
 
+  it('hydrates missing generated text-recognition prompt text from the answer expression', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'read-company',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: {},
+            answer: {
+              expression: '会社',
+              expressionReading: '会社[かいしゃ]',
+              meaning: 'company',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Reading recognition is useful.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0]).toMatchObject({
+      candidateKind: 'text-recognition',
+      prompt: {
+        cueText: '会社',
+        cueReading: '会社[かいしゃ]',
+      },
+      answer: {
+        meaning: 'company',
+      },
+    });
+    expect(result.candidates[0].prompt.cueMeaning).toBeUndefined();
+  });
+
+  it('hydrates missing generated production prompt meaning from the answer meaning', async () => {
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'produce-company',
+            candidateKind: 'production',
+            cardType: 'production',
+            prompt: {},
+            answer: {
+              expression: '会社',
+              expressionReading: '会社[かいしゃ]',
+              meaning: 'company',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Production recall is useful.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0]).toMatchObject({
+      candidateKind: 'production',
+      prompt: {
+        cueMeaning: 'company',
+      },
+      answer: {
+        expression: '会社',
+      },
+    });
+  });
+
   it('commits selected audio-recognition candidates with owned preview media', async () => {
     mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
     mockPrisma.studyNote.create.mockResolvedValue({

@@ -113,6 +113,31 @@ function cardTypeForCandidateKind(candidateKind: StudyCardCandidateKind): StudyC
   return 'recognition';
 }
 
+function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCandidate {
+  if (candidate.candidateKind === 'text-recognition') {
+    return {
+      ...candidate,
+      prompt: {
+        ...candidate.prompt,
+        cueText: candidate.prompt.cueText ?? candidate.answer.expression ?? null,
+        cueReading: candidate.prompt.cueReading ?? candidate.answer.expressionReading ?? null,
+      },
+    };
+  }
+
+  if (candidate.candidateKind === 'production') {
+    return {
+      ...candidate,
+      prompt: {
+        ...candidate.prompt,
+        cueMeaning: candidate.prompt.cueMeaning ?? candidate.answer.meaning ?? null,
+      },
+    };
+  }
+
+  return candidate;
+}
+
 function assertCandidateShape(candidate: StudyCardCandidate): void {
   if (candidate.candidateKind === 'cloze') {
     if (!candidate.prompt.clozeText?.includes('{{c1::')) {
@@ -157,7 +182,7 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
     throw new AppError('Generated candidate card type did not match its candidate kind.', 502);
   }
 
-  const candidate: StudyCardCandidate = {
+  let candidate: StudyCardCandidate = {
     clientId:
       typeof raw.clientId === 'string' && raw.clientId.trim()
         ? raw.clientId.trim()
@@ -182,6 +207,8 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
       cueAudio: candidate.prompt.cueAudio ?? null,
       cueImage: candidate.prompt.cueImage ?? null,
     };
+  } else {
+    candidate = hydrateMissingPromptFields(candidate);
   }
 
   assertCandidateShape(candidate);
@@ -427,8 +454,8 @@ Rules:
 - Generate 2 to ${STUDY_CANDIDATE_MAX_COUNT} useful candidates.
 - Include audio-recognition when listening to the Japanese phrase would be useful.
 - audio-recognition persists as cardType "recognition"; leave prompt text blank and put the Japanese in answer.expression.
-- text-recognition asks Japanese -> English.
-- production asks English/context -> Japanese.
+- text-recognition asks Japanese -> English; set prompt.cueText to the Japanese phrase, prompt.cueReading when useful, answer.expression to the same Japanese phrase, and answer.meaning to English.
+- production asks English/context -> Japanese; set prompt.cueMeaning or prompt.cueText to the English cue, answer.expression to the Japanese answer, and answer.meaning to English.
 - cloze uses prompt.clozeText with {{c1::...}} markup and answer.restoredText.
 - Use bracket ruby readings like 稚内[わっかない] in reading fields when useful.
 - Set answer.answerAudioVoiceId to "${DEFAULT_NARRATOR_VOICES.ja}" unless a better Japanese voice is clearly warranted.
