@@ -449,6 +449,46 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('regenerates audio-recognition preview audio as prompt audio only', async () => {
+    const result = await regenerateStudyCardCandidatePreviewAudio({
+      userId: 'user-1',
+      candidate: {
+        clientId: 'listen-company',
+        candidateKind: 'audio-recognition',
+        cardType: 'recognition',
+        prompt: {},
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(result).toMatchObject({
+      prompt: {
+        cueAudio: {
+          id: expect.stringMatching(/^media-/),
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+      },
+      previewAudio: {
+        id: expect.stringMatching(/^media-/),
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'prompt',
+    });
+    expect(result.answer.answerAudio).toBeUndefined();
+  });
+
   it('commits selected audio-recognition candidates with owned preview media', async () => {
     mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
     mockPrisma.studyNote.create.mockResolvedValue({

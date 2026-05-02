@@ -77,12 +77,7 @@ export function buildStudyCandidateCommitItem(
         }
       : payload.prompt;
   const answer =
-    draft.candidate.candidateKind === 'audio-recognition'
-      ? {
-          ...payload.answer,
-          answerAudio: draft.previewAudio ?? draft.candidate.answer.answerAudio ?? null,
-        }
-      : payload.answer;
+    draft.candidate.candidateKind === 'audio-recognition' ? payload.answer : payload.answer;
 
   return {
     clientId: draft.candidate.clientId,

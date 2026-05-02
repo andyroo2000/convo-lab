@@ -264,6 +264,9 @@ describe('StudyCreatePage', () => {
         }),
       ],
     });
+    expect(commitCandidatesMock.mock.calls[0]?.[0].candidates[0].answer).not.toHaveProperty(
+      'answerAudio'
+    );
     expect(
       await screen.findByText('Created 1 generated card and added it to the study queue.')
     ).toBeInTheDocument();
@@ -507,6 +510,7 @@ describe('StudyCreatePage', () => {
     await userEvent.click(await screen.findByRole('button', { name: 'Preview card' }));
 
     expect(screen.getByRole('dialog', { name: 'Card preview' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
     expect(screen.getByText('Prompt side')).toBeInTheDocument();
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
 

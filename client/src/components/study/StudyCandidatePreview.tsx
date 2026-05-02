@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
@@ -53,6 +53,7 @@ export const StudyCandidateCardPreviewModal = ({
   onClose: () => void;
 }) => {
   const { t } = useTranslation('study');
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const [side, setSide] = useState<'front' | 'back'>('front');
   const toggleSide = useCallback(
     () => setSide((current) => (current === 'front' ? 'back' : 'front')),
@@ -75,6 +76,7 @@ export const StudyCandidateCardPreviewModal = ({
     const originalBodyOverflow = document.body.style.overflow;
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
+    closeButtonRef.current?.focus();
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -106,6 +108,7 @@ export const StudyCandidateCardPreviewModal = ({
             <p className="text-sm text-gray-500">{t(`create.previewSides.${side}`)}</p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-navy hover:bg-gray-50"

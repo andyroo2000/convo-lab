@@ -420,10 +420,6 @@ async function addPreviewAudio(
           ...candidate.prompt,
           cueAudio: previewAudio,
         },
-        answer: {
-          ...candidate.answer,
-          answerAudio: previewAudio,
-        },
         previewAudio,
         previewAudioRole: 'prompt',
       };
@@ -712,8 +708,9 @@ async function resolveStudyCardCandidateCommitItem(input: {
     if (regeneratedPreview) {
       if (item.candidateKind === 'audio-recognition') {
         resolvedPrompt = { ...resolvedPrompt, cueAudio: regeneratedPreview };
+      } else {
+        resolvedAnswer = { ...resolvedAnswer, answerAudio: regeneratedPreview };
       }
-      resolvedAnswer = { ...resolvedAnswer, answerAudio: regeneratedPreview };
     }
   }
 
@@ -730,6 +727,8 @@ async function resolveStudyCardCandidateCommitItem(input: {
       resolvedPreviewAudioRole === 'prompt' || item.candidateKind === 'audio-recognition'
         ? previewMediaId
         : null,
+    // Listening cards intentionally reuse the same synthesized Japanese audio for the
+    // front cue and answer replay, while keeping the JSON payload answer free of cue-audio refs.
     answerAudioMediaId:
       resolvedPreviewAudioRole === 'answer' || item.candidateKind === 'audio-recognition'
         ? previewMediaId
@@ -805,7 +804,7 @@ export async function regenerateStudyCardCandidatePreviewAudio(input: {
       : item.prompt;
   const answer = {
     ...item.answer,
-    answerAudio: generated,
+    ...(previewAudioRole === 'answer' ? { answerAudio: generated } : {}),
   };
 
   return {
