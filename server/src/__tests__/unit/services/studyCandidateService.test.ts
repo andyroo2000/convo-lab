@@ -609,10 +609,30 @@ describe('studyCandidateService', () => {
       expect.objectContaining({
         data: expect.objectContaining({
           contentType: 'image/webp',
-          sourceFilename: 'produce-cloudy.webp',
+          sourceFilename: expect.stringMatching(/^produce-cloudy-[0-9a-f-]+\.webp$/),
         }),
       })
     );
+    const firstFilename = mockPrisma.studyMedia.create.mock.calls[0]?.[0].data.sourceFilename;
+    await regenerateStudyCardCandidatePreviewImage({
+      userId: 'user-1',
+      imagePrompt: 'A minimal illustration of cloudy weather.',
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+    const secondFilename = mockPrisma.studyMedia.create.mock.calls[1]?.[0].data.sourceFilename;
+    expect(secondFilename).toEqual(expect.stringMatching(/^produce-cloudy-[0-9a-f-]+\.webp$/));
+    expect(secondFilename).not.toBe(firstFilename);
     expect(result).toMatchObject({
       imagePrompt: 'A minimal illustration of cloudy weather.',
       prompt: {
@@ -656,7 +676,9 @@ describe('studyCandidateService', () => {
     ).rejects.toThrow('DB unavailable');
 
     expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
-      'study-media/user-1/candidate-preview/produce-company.mp3'
+      expect.stringMatching(
+        /^study-media\/user-1\/candidate-preview\/produce-company-[0-9a-f-]+\.mp3$/
+      )
     );
   });
 
@@ -684,7 +706,9 @@ describe('studyCandidateService', () => {
     ).rejects.toThrow('DB unavailable');
 
     expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
-      'study-media/user-1/candidate-preview/produce-cloudy.webp'
+      expect.stringMatching(
+        /^study-media\/user-1\/candidate-preview\/produce-cloudy-[0-9a-f-]+\.webp$/
+      )
     );
   });
 

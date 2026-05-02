@@ -1,6 +1,7 @@
+import { randomUUID } from 'node:crypto';
+
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
 import type {
-  StudyAnswerPayload,
   StudyCardCandidate,
   StudyCardCandidateCommitItem,
   StudyMediaRef,
@@ -30,7 +31,8 @@ const STUDY_CANDIDATE_IMAGE_EXTENSION = 'webp';
 const STUDY_CANDIDATE_IMAGE_WEBP_QUALITY = 82;
 
 function toCandidateFilename(clientId: string, extension: string): string {
-  return `${normalizeFilename(clientId)}.${extension}`;
+  const normalizedClientId = normalizeFilename(clientId) || 'candidate';
+  return `${normalizedClientId}-${randomUUID()}.${extension}`;
 }
 
 async function createPreviewMedia(input: {
@@ -214,12 +216,4 @@ export async function getOwnedPreviewMediaIds(input: {
   }
 
   return ownedMediaIds;
-}
-
-export function withAnswerPreviewAudio(
-  answer: StudyAnswerPayload,
-  previewAudio: StudyMediaRef | null,
-  role: 'prompt' | 'answer' | null
-): StudyAnswerPayload {
-  return role === 'answer' && previewAudio ? { ...answer, answerAudio: previewAudio } : answer;
 }
