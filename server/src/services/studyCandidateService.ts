@@ -589,6 +589,12 @@ export async function generateStudyCardCandidates(input: {
         updatedAt: {
           lt: new Date(Date.now() - STUDY_CANDIDATE_PREVIEW_RETENTION_MS),
         },
+        promptAudioCards: {
+          none: {},
+        },
+        answerAudioCards: {
+          none: {},
+        },
       },
       select: {
         id: true,

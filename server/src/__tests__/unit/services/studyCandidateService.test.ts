@@ -142,7 +142,7 @@ describe('studyCandidateService', () => {
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
   });
 
-  it('removes stale generated-preview storage before deleting stale preview rows', async () => {
+  it('removes only uncommitted stale generated-preview media and storage', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
     mockPrisma.studyMedia.findMany.mockResolvedValueOnce([
       {
@@ -177,6 +177,16 @@ describe('studyCandidateService', () => {
       },
     });
 
+    expect(mockPrisma.studyMedia.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          userId: 'user-1',
+          sourceKind: 'generated_preview',
+          promptAudioCards: { none: {} },
+          answerAudioCards: { none: {} },
+        }),
+      })
+    );
     expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
       'study-media/user-1/candidate-preview/stale.mp3'
     );
