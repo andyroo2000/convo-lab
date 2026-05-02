@@ -6,14 +6,17 @@ export default function useWarmAudioCache(
   urls: Array<string | null | undefined>,
   enabled: boolean = true
 ) {
-  const urlKey = urls
-    .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-    .join('\n');
+  const urlKey = JSON.stringify(
+    urls
+      .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+      .map((url) => url.trim())
+  );
 
   useEffect(() => {
-    if (!enabled || !urlKey) return;
+    const audioUrls = JSON.parse(urlKey) as string[];
+    if (!enabled || audioUrls.length === 0) return;
 
-    warmAudioCache(urlKey.split('\n')).catch((error) => {
+    warmAudioCache(audioUrls).catch((error) => {
       console.warn('Unable to warm audio cache:', error);
     });
   }, [enabled, urlKey]);

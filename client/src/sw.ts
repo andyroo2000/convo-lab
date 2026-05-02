@@ -16,6 +16,7 @@ declare let self: ServiceWorkerGlobalScope & {
 const AUDIO_CACHE_NAME = 'audio-cache';
 const AUDIO_FILE_PATTERN = /\.(?:aac|flac|m4a|mp3|oga|ogg|opus|wav|weba)(?:$|[?#])/i;
 const AUDIO_MESSAGE_TYPES = new Set(['PRECACHE_AUDIO_URLS', 'CLEAR_AUDIO_CACHE']);
+const GOOGLE_SIGNED_URL_PARAMS = new Set(['X-Goog-Signature', 'X-Goog-Expires']);
 const GOOGLE_STORAGE_ORIGINS = new Set([
   'https://storage.googleapis.com',
   'https://storage.cloud.google.com',
@@ -30,12 +31,16 @@ cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST);
 
 const isAudioRequest = (request: Request, url: URL) => {
+  const isSignedGoogleStorageUrl =
+    GOOGLE_STORAGE_ORIGINS.has(url.origin) &&
+    Array.from(GOOGLE_SIGNED_URL_PARAMS).some((param) => url.searchParams.has(param));
+
+  if (isSignedGoogleStorageUrl) return false;
   if (request.destination === 'audio') return true;
   if (url.pathname.startsWith('/api/study/media/')) return true;
   if (url.pathname.startsWith('/audio/')) return true;
   if (url.pathname.startsWith('/voice-previews/')) return true;
   if (AUDIO_FILE_PATTERN.test(url.pathname)) return true;
-  if (GOOGLE_STORAGE_ORIGINS.has(url.origin) && AUDIO_FILE_PATTERN.test(url.pathname)) return true;
 
   return false;
 };
