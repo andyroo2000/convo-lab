@@ -33,6 +33,7 @@ import {
   buildCandidateSystemInstruction,
   buildCandidateUserPrompt,
 } from './study/candidates/promptBuilder.js';
+import { deletePersistedStudyMediaByStoragePath } from './study/shared/paths.js';
 import {
   cardTypeForStudyCardCandidateKind,
   getBestAnswerAudioText,
@@ -387,18 +388,24 @@ async function synthesizeCandidatePreviewAudio(
     buffer: audioBuffer,
   });
 
-  const media = await prisma.studyMedia.create({
-    data: {
-      userId,
-      sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
-      sourceFilename: filename,
-      normalizedFilename: normalizeFilename(filename),
-      mediaKind: 'audio',
-      contentType: 'audio/mpeg',
-      storagePath: persisted.storagePath,
-      publicUrl: persisted.publicUrl,
-    },
-  });
+  let media: Awaited<ReturnType<typeof prisma.studyMedia.create>>;
+  try {
+    media = await prisma.studyMedia.create({
+      data: {
+        userId,
+        sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
+        sourceFilename: filename,
+        normalizedFilename: normalizeFilename(filename),
+        mediaKind: 'audio',
+        contentType: 'audio/mpeg',
+        storagePath: persisted.storagePath,
+        publicUrl: persisted.publicUrl,
+      },
+    });
+  } catch (error) {
+    await deletePersistedStudyMediaByStoragePath(persisted.storagePath);
+    throw error;
+  }
 
   return {
     id: media.id,

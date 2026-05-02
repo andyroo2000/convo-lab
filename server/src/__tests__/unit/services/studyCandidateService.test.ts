@@ -482,6 +482,34 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('deletes persisted preview audio when creating the media row fails', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.create.mockRejectedValueOnce(new Error('DB unavailable'));
+
+    await expect(
+      regenerateStudyCardCandidatePreviewAudio({
+        userId: 'user-1',
+        candidate: {
+          clientId: 'produce-company',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: 'company' },
+          answer: {
+            expression: '会社',
+            meaning: 'company',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+      })
+    ).rejects.toThrow('DB unavailable');
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study-media/user-1/candidate-preview/produce-company.mp3'
+    );
+  });
+
   it('regenerates audio-recognition preview audio as prompt audio only', async () => {
     const result = await regenerateStudyCardCandidatePreviewAudio({
       userId: 'user-1',

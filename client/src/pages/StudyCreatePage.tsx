@@ -37,7 +37,6 @@ const StudyCreatePage = () => {
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [learnerContextSummary, setLearnerContextSummary] = useState<string | null>(null);
   const [candidateDrafts, setCandidateDrafts] = useState<StudyCandidateDraft[]>([]);
-  const [generatedNoCandidates, setGeneratedNoCandidates] = useState(false);
   const [regeneratingCandidateId, setRegeneratingCandidateId] = useState<string | null>(null);
   const [regenerateErrorByCandidateId, setRegenerateErrorByCandidateId] = useState<
     Record<string, string>
@@ -68,7 +67,6 @@ const StudyCreatePage = () => {
     setSuccess(null);
     setLearnerContextSummary(null);
     setCandidateDrafts([]);
-    setGeneratedNoCandidates(false);
     setRegenerateErrorByCandidateId({});
     setPreviewDraftIndex(null);
 
@@ -80,7 +78,6 @@ const StudyCreatePage = () => {
       });
 
       setLearnerContextSummary(result.learnerContextSummary ?? null);
-      setGeneratedNoCandidates(result.candidates.length === 0);
       setCandidateDrafts(result.candidates.map(createStudyCandidateDraft));
     } catch {
       // React Query stores the mutation error for the visible form message.
@@ -199,7 +196,6 @@ const StudyCreatePage = () => {
               onClick={() => {
                 setMode(nextMode);
                 setSuccess(null);
-                setGeneratedNoCandidates(false);
                 setRegenerateErrorByCandidateId({});
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
@@ -274,9 +270,6 @@ const StudyCreatePage = () => {
                   ? generateCandidates.error.message
                   : t('create.generateFailed')}
               </p>
-            ) : null}
-            {generatedNoCandidates ? (
-              <p className="text-sm text-amber-700">{t('create.noCandidatesGenerated')}</p>
             ) : null}
             <button
               type="submit"
