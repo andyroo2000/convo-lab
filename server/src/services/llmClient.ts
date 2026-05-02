@@ -129,6 +129,7 @@ async function generateStudyCardCandidatesWithOpenAI(
       }),
     });
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.error('OpenAI request failed:', error);
     throw new AppError('OpenAI failed to generate study card candidates.', 502);
   }

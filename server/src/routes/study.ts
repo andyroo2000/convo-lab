@@ -916,6 +916,8 @@ router.post(
       if (typeof targetText !== 'string') {
         throw new AppError('targetText is required.', 400);
       }
+      // Keep cheap route-level size checks in front of service validation so oversized
+      // requests fail before any learner-context or LLM work can start.
       if (targetText.trim().length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
         throw new AppError(
           `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,

@@ -47,12 +47,14 @@ describe('llmClient', () => {
   });
 
   it('normalizes OpenAI network failures into an operational provider error', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')));
 
     await expect(generateStudyCardCandidateJson('prompt', 'system')).rejects.toMatchObject({
       message: 'OpenAI failed to generate study card candidates.',
       statusCode: 502,
     } satisfies Partial<AppError>);
+    expect(consoleErrorSpy).toHaveBeenCalledWith('OpenAI request failed:', expect.any(Error));
   });
 
   it('can still delegate to Gemini when configured', async () => {

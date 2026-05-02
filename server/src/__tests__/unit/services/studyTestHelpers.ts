@@ -517,6 +517,7 @@ export function resetStudyServiceMocks() {
   mockPrisma.studyReviewLog.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyCard.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyNote.deleteMany.mockResolvedValue({ count: 0 });
+  mockPrisma.studyMedia.findMany.mockResolvedValue([]);
   mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 0 });
   mockPrisma.studyNote.createMany.mockResolvedValue({ count: 4 });
   mockPrisma.studyMedia.createMany.mockResolvedValue({ count: 8 });

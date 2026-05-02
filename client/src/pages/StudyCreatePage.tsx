@@ -57,10 +57,14 @@ const StudyCreatePage = () => {
     setSuccess(null);
     const payload = buildPayload();
 
-    const created = await createCard.mutateAsync(payload);
+    try {
+      const created = await createCard.mutateAsync(payload);
 
-    setSuccess(t('create.success', { cardType: created.cardType }));
-    reset();
+      setSuccess(t('create.success', { cardType: created.cardType }));
+      reset();
+    } catch {
+      // React Query stores the mutation error for the visible form message.
+    }
   };
 
   const handleGenerateSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -69,15 +73,20 @@ const StudyCreatePage = () => {
     setLearnerContextSummary(null);
     setCandidateDrafts([]);
     setRegenerateErrorByCandidateId({});
+    setPreviewDraftIndex(null);
 
-    const result = await generateCandidates.mutateAsync({
-      targetText,
-      context,
-      includeLearnerContext,
-    });
+    try {
+      const result = await generateCandidates.mutateAsync({
+        targetText,
+        context,
+        includeLearnerContext,
+      });
 
-    setLearnerContextSummary(result.learnerContextSummary ?? null);
-    setCandidateDrafts(result.candidates.map(createStudyCandidateDraft));
+      setLearnerContextSummary(result.learnerContextSummary ?? null);
+      setCandidateDrafts(result.candidates.map(createStudyCandidateDraft));
+    } catch {
+      // React Query stores the mutation error for the visible form message.
+    }
   };
 
   const updateCandidateField = <K extends keyof StudyCardFormValues>(
@@ -163,13 +172,18 @@ const StudyCreatePage = () => {
   const handleCommitCandidates = async () => {
     setSuccess(null);
     const selectedCandidates = candidateDrafts.filter((draft) => draft.selected);
-    const result = await commitCandidates.mutateAsync({
-      candidates: selectedCandidates.map((draft) => buildStudyCandidateCommitItem(draft)),
-    });
+    try {
+      const result = await commitCandidates.mutateAsync({
+        candidates: selectedCandidates.map((draft) => buildStudyCandidateCommitItem(draft)),
+      });
 
-    setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
-    setCandidateDrafts([]);
-    setRegenerateErrorByCandidateId({});
+      setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
+      setCandidateDrafts([]);
+      setRegenerateErrorByCandidateId({});
+      setPreviewDraftIndex(null);
+    } catch {
+      // React Query stores the mutation error for the visible form message.
+    }
   };
 
   return (

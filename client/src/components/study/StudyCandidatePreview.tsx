@@ -72,12 +72,13 @@ export const StudyCandidateCardPreviewModal = ({
       }
     };
 
+    const originalBodyOverflow = document.body.style.overflow;
     document.addEventListener('keydown', handleKeyDown);
     document.body.style.overflow = 'hidden';
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = originalBodyOverflow;
     };
   }, [onClose, toggleSide]);
 

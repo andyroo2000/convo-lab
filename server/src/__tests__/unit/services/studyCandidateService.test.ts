@@ -4,7 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockPrisma } from '../../setup.js';
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
-import { cleanupStudyServiceTestMedia, resetStudyServiceMocks } from './studyTestHelpers.js';
+import {
+  cleanupStudyServiceTestMedia,
+  deleteFromGCSPathMock,
+  resetStudyServiceMocks,
+} from './studyTestHelpers.js';
 import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
@@ -138,6 +142,53 @@ describe('studyCandidateService', () => {
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
   });
 
+  it('removes stale generated-preview storage before deleting stale preview rows', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    mockPrisma.studyMedia.findMany.mockResolvedValueOnce([
+      {
+        id: 'stale-media-1',
+        storagePath: 'study-media/user-1/candidate-preview/stale.mp3',
+      },
+    ]);
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'read-company',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: {
+              expression: '会社',
+              expressionReading: '会社[かいしゃ]',
+              meaning: 'company',
+            },
+            rationale: 'Reading recognition is useful.',
+          },
+        ],
+      })
+    );
+
+    await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study-media/user-1/candidate-preview/stale.mp3'
+    );
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: {
+          in: ['stale-media-1'],
+        },
+      },
+    });
+  });
+
   it('uses a random Fish Audio voice for generated candidates even when the model returns the Google default', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.45);
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
@@ -174,6 +225,7 @@ describe('studyCandidateService', () => {
   });
 
   it('rejects malformed LLM output with a safe error', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue('not json');
 
     await expect(
@@ -182,6 +234,10 @@ describe('studyCandidateService', () => {
         request: { targetText: '会社' },
       })
     ).rejects.toThrow('Could not generate cards from that input');
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[Study candidates] Failed to parse LLM JSON response.',
+      expect.any(SyntaxError)
+    );
   });
 
   it('hydrates missing generated text-recognition prompt text from the answer expression', async () => {
@@ -636,5 +692,51 @@ describe('studyCandidateService', () => {
         ],
       })
     ).rejects.toThrow('Preview audio was not found for this user');
+  });
+
+  it('resolves all selected preview media before creating committed cards', async () => {
+    mockPrisma.studyMedia.findFirst.mockImplementation(async ({ where }) =>
+      where.id === 'media-good' ? { id: 'media-good' } : null
+    );
+
+    await expect(
+      commitStudyCardCandidates({
+        userId: 'user-1',
+        candidates: [
+          {
+            clientId: 'good-card',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: { expression: '会社', meaning: 'company' },
+            previewAudio: {
+              id: 'media-good',
+              filename: 'good.mp3',
+              url: '/api/study/media/media-good',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+            previewAudioRole: 'answer',
+          },
+          {
+            clientId: 'bad-card',
+            candidateKind: 'production',
+            cardType: 'production',
+            prompt: { cueMeaning: 'company' },
+            answer: { expression: '会社', meaning: 'company' },
+            previewAudio: {
+              id: 'media-other',
+              filename: 'other.mp3',
+              url: '/api/study/media/media-other',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+            previewAudioRole: 'answer',
+          },
+        ],
+      })
+    ).rejects.toThrow('Preview audio was not found for this user');
+
+    expect(mockPrisma.studyCard.create).not.toHaveBeenCalled();
   });
 });

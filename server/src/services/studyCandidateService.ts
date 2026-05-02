@@ -27,6 +27,7 @@ import { addFuriganaBrackets } from './furiganaService.js';
 import { generateStudyCardCandidateJson } from './llmClient.js';
 import {
   cardTypeForStudyCardCandidateKind,
+  deletePersistedStudyMediaByStoragePath,
   getBestAnswerAudioText,
   getStudyMediaApiPath,
   normalizeFilename,
@@ -37,6 +38,7 @@ import { createStudyCard } from './studySchedulerService.js';
 
 const STUDY_CANDIDATE_MAX_COUNT = 6;
 const STUDY_CANDIDATE_LEARNER_CONTEXT_LIMIT = 12;
+// Storage-path namespace only; preview media rows intentionally do not set StudyMedia.importJobId.
 const STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID = 'candidate-preview';
 const STUDY_CANDIDATE_PREVIEW_SOURCE_KIND = 'generated_preview';
 const STUDY_CANDIDATE_PREVIEW_RETENTION_MS = 24 * 60 * 60 * 1000;
@@ -584,7 +586,7 @@ export async function generateStudyCardCandidates(input: {
 }): Promise<StudyCardCandidateGenerateResponse> {
   const request = validateGenerateRequest(input.request);
   try {
-    await prisma.studyMedia.deleteMany({
+    const stalePreviewMedia = await prisma.studyMedia.findMany({
       where: {
         userId: input.userId,
         sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
@@ -592,7 +594,26 @@ export async function generateStudyCardCandidates(input: {
           lt: new Date(Date.now() - STUDY_CANDIDATE_PREVIEW_RETENTION_MS),
         },
       },
+      select: {
+        id: true,
+        storagePath: true,
+      },
     });
+    if (stalePreviewMedia.length > 0) {
+      await Promise.allSettled(
+        stalePreviewMedia
+          .map((media) => media.storagePath)
+          .filter((storagePath): storagePath is string => typeof storagePath === 'string')
+          .map((storagePath) => deletePersistedStudyMediaByStoragePath(storagePath))
+      );
+      await prisma.studyMedia.deleteMany({
+        where: {
+          id: {
+            in: stalePreviewMedia.map((media) => media.id),
+          },
+        },
+      });
+    }
   } catch (error) {
     console.warn('[Study candidates] Failed to prune stale preview media.', error);
   }
@@ -648,6 +669,74 @@ async function resolvePreviewMediaId(input: {
   return media.id;
 }
 
+type ResolvedStudyCardCandidateCommitItem = {
+  item: StudyCardCandidateCommitItem;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  promptAudioMediaId: string | null;
+  answerAudioMediaId: string | null;
+};
+
+async function resolveStudyCardCandidateCommitItem(input: {
+  userId: string;
+  item: StudyCardCandidateCommitItem;
+}): Promise<ResolvedStudyCardCandidateCommitItem> {
+  const { item } = input;
+  if (!STUDY_CARD_CANDIDATE_KINDS.has(item.candidateKind)) {
+    throw new AppError('candidateKind must be a supported generated card kind.', 400);
+  }
+
+  const expectedCardType = cardTypeForStudyCardCandidateKind(item.candidateKind);
+  if (item.cardType !== expectedCardType) {
+    throw new AppError('cardType does not match candidateKind.', 400);
+  }
+
+  let resolvedPrompt = item.prompt;
+  let resolvedAnswer = item.answer;
+  let resolvedPreviewAudio = item.previewAudio ?? null;
+  let resolvedPreviewAudioRole = item.previewAudioRole;
+  if (!resolvedPreviewAudio && getPreviewAudioText(item)) {
+    const regeneratedPreview = await synthesizeCandidatePreviewAudio(input.userId, {
+      clientId: item.clientId,
+      candidateKind: item.candidateKind,
+      cardType: item.cardType,
+      prompt: resolvedPrompt,
+      answer: resolvedAnswer,
+      rationale:
+        item.candidateKind === 'audio-recognition'
+          ? 'Regenerated listening prompt audio.'
+          : 'Regenerated answer audio.',
+    });
+    resolvedPreviewAudio = regeneratedPreview;
+    resolvedPreviewAudioRole = item.candidateKind === 'audio-recognition' ? 'prompt' : 'answer';
+    if (regeneratedPreview) {
+      if (item.candidateKind === 'audio-recognition') {
+        resolvedPrompt = { ...resolvedPrompt, cueAudio: regeneratedPreview };
+      }
+      resolvedAnswer = { ...resolvedAnswer, answerAudio: regeneratedPreview };
+    }
+  }
+
+  const previewMediaId = await resolvePreviewMediaId({
+    userId: input.userId,
+    previewAudio: resolvedPreviewAudio,
+  });
+
+  return {
+    item,
+    prompt: resolvedPrompt,
+    answer: resolvedAnswer,
+    promptAudioMediaId:
+      resolvedPreviewAudioRole === 'prompt' || item.candidateKind === 'audio-recognition'
+        ? previewMediaId
+        : null,
+    answerAudioMediaId:
+      resolvedPreviewAudioRole === 'answer' || item.candidateKind === 'audio-recognition'
+        ? previewMediaId
+        : null,
+  };
+}
+
 export async function commitStudyCardCandidates(input: {
   userId: string;
   candidates: StudyCardCandidateCommitItem[];
@@ -662,57 +751,20 @@ export async function commitStudyCardCandidates(input: {
     );
   }
 
-  const cards = [];
+  const resolvedItems = [];
   for (const item of input.candidates) {
-    if (!STUDY_CARD_CANDIDATE_KINDS.has(item.candidateKind)) {
-      throw new AppError('candidateKind must be a supported generated card kind.', 400);
-    }
+    resolvedItems.push(await resolveStudyCardCandidateCommitItem({ userId: input.userId, item }));
+  }
 
-    const expectedCardType = cardTypeForStudyCardCandidateKind(item.candidateKind);
-    if (item.cardType !== expectedCardType) {
-      throw new AppError('cardType does not match candidateKind.', 400);
-    }
-
-    let resolvedPrompt = item.prompt;
-    let resolvedAnswer = item.answer;
-    let resolvedPreviewAudio = item.previewAudio ?? null;
-    if (!resolvedPreviewAudio && item.candidateKind === 'audio-recognition') {
-      const regeneratedPreview = await synthesizeCandidatePreviewAudio(input.userId, {
-        clientId: item.clientId,
-        candidateKind: item.candidateKind,
-        cardType: item.cardType,
-        prompt: resolvedPrompt,
-        answer: resolvedAnswer,
-        rationale: 'Regenerated listening prompt audio.',
-      });
-      resolvedPreviewAudio = regeneratedPreview;
-      if (regeneratedPreview) {
-        resolvedPrompt = { ...resolvedPrompt, cueAudio: regeneratedPreview };
-        resolvedAnswer = { ...resolvedAnswer, answerAudio: regeneratedPreview };
-      }
-    }
-
-    const previewMediaId = await resolvePreviewMediaId({
-      userId: input.userId,
-      previewAudio: resolvedPreviewAudio,
-    });
-
-    const promptAudioMediaId =
-      item.previewAudioRole === 'prompt' || item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null;
-    const answerAudioMediaId =
-      item.previewAudioRole === 'answer' || item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null;
-
+  const cards = [];
+  for (const resolved of resolvedItems) {
     const card = await createStudyCard({
       userId: input.userId,
-      cardType: item.cardType,
-      prompt: resolvedPrompt,
-      answer: resolvedAnswer,
-      promptAudioMediaId,
-      answerAudioMediaId,
+      cardType: resolved.item.cardType,
+      prompt: resolved.prompt,
+      answer: resolved.answer,
+      promptAudioMediaId: resolved.promptAudioMediaId,
+      answerAudioMediaId: resolved.answerAudioMediaId,
     });
     cards.push(card);
   }
