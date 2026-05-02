@@ -14,11 +14,13 @@ import StudyCreatePage from '../StudyCreatePage';
 
 const {
   commitCandidatesMock,
+  commitCandidatesState,
   createStudyCardMock,
   generateCandidatesMock,
   regenerateCandidateAudioMock,
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
+  commitCandidatesState: { isPending: false },
   createStudyCardMock: vi.fn(),
   generateCandidatesMock: vi.fn(),
   regenerateCandidateAudioMock: vi.fn(),
@@ -27,7 +29,7 @@ const {
 vi.mock('../../hooks/useStudy', () => ({
   useCommitStudyCardCandidates: () => ({
     mutateAsync: commitCandidatesMock,
-    isPending: false,
+    isPending: commitCandidatesState.isPending,
     error: null,
   }),
   useCreateStudyCard: () => ({
@@ -96,6 +98,7 @@ const productionCandidate = (overrides: Record<string, unknown> = {}) => ({
 describe('StudyCreatePage', () => {
   beforeEach(() => {
     commitCandidatesMock.mockReset();
+    commitCandidatesState.isPending = false;
     createStudyCardMock.mockReset();
     generateCandidatesMock.mockReset();
     regenerateCandidateAudioMock.mockReset();
@@ -332,6 +335,24 @@ describe('StudyCreatePage', () => {
         }),
       ],
     });
+  });
+
+  it('shows an expected wait indicator while selected candidates are being added', async () => {
+    commitCandidatesState.isPending = true;
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [productionCandidate()],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Adding 1 selected card(s). Audio may be regenerated one card at a time'
+    );
+    expect(screen.getByRole('button', { name: 'Adding…' })).toBeDisabled();
   });
 
   it('shows candidate audio regeneration loading and errors per candidate', async () => {

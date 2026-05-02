@@ -21,6 +21,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+            echo "::error::OPENAI_API_KEY secret is not set"
+            exit 1
+          fi
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -50,31 +57,31 @@ jobs:
 
             # Inject secrets not stored in repo (production)
             if grep -q '^FISH_AUDIO_API_KEY=' .env.production; then
-              sed -i.bak "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
+              sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
             else
               echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.production
             fi
 
             if grep -q '^CLIENT_URL=' .env.production; then
-              sed -i.bak "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
+              sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://convo-lab.com#g" .env.production
             else
               echo "CLIENT_URL=https://convo-lab.com" >> .env.production
             fi
 
             if grep -q '^OPENAI_API_KEY=' .env.production; then
-              sed -i.bak "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
+              sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
             else
               echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.production
             fi
 
             if grep -q '^LLM_PROVIDER=' .env.production; then
-              sed -i.bak "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.production
+              sed -i "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.production
             else
               echo "LLM_PROVIDER=openai" >> .env.production
             fi
 
             if grep -q '^STUDY_CARD_GENERATOR_MODEL=' .env.production; then
-              sed -i.bak "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.production
+              sed -i "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.production
             else
               echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.production
             fi
@@ -89,11 +96,10 @@ jobs:
 
             # Persist image tag in env file so containers can restart independently
             if grep -q '^CONVOLAB_IMAGE_TAG=' .env.production; then
-              sed -i.bak "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
+              sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
             else
               echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.production
             fi
-            rm -f .env.production.bak
             # Ensure compose interpolation uses this run's image tag (shell env takes precedence)
             export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
 

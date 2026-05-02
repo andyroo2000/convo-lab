@@ -14,6 +14,10 @@ import {
   generateStudyCardCandidates,
   regenerateStudyCardCandidatePreviewAudio,
 } from '../../../services/studyCandidateService.js';
+import {
+  cleanupStudyCandidatePreviewMedia,
+  resetStudyCandidatePreviewMediaCleanupSchedule,
+} from '../../../services/study/candidates/mediaCleanup.js';
 
 vi.mock('../../../services/llmClient.js', () => ({
   generateStudyCardCandidateJson: vi.fn(),
@@ -44,6 +48,8 @@ describe('studyCandidateService', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
     vi.mocked(generateStudyCardCandidateJson).mockReset();
+    resetStudyCandidatePreviewMediaCleanupSchedule();
+    mockPrisma.studyMedia.findMany.mockResolvedValue([]);
     mockPrisma.studyCard.findMany.mockResolvedValue([
       {
         cardType: 'recognition',
@@ -160,32 +166,7 @@ describe('studyCandidateService', () => {
         storagePath: 'study-media/user-1/candidate-preview/stale.mp3',
       },
     ]);
-    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
-      JSON.stringify({
-        candidates: [
-          {
-            clientId: 'read-company',
-            candidateKind: 'text-recognition',
-            cardType: 'recognition',
-            prompt: { cueText: '会社' },
-            answer: {
-              expression: '会社',
-              expressionReading: '会社[かいしゃ]',
-              meaning: 'company',
-            },
-            rationale: 'Reading recognition is useful.',
-          },
-        ],
-      })
-    );
-
-    await generateStudyCardCandidates({
-      userId: 'user-1',
-      request: {
-        targetText: '会社',
-        includeLearnerContext: false,
-      },
-    });
+    await cleanupStudyCandidatePreviewMedia('user-1');
 
     expect(mockPrisma.studyMedia.findMany).toHaveBeenCalledWith(
       expect.objectContaining({

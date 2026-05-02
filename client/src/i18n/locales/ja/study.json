@@ -189,6 +189,7 @@
     "regeneratePreviewFailed": "候補カードの音声を再生成できませんでした。",
     "addSelected": "選択した {{count}} 件を追加",
     "addingSelected": "追加中…",
+    "commitProgress": "選択した {{count}} 件を追加中です。音声はカードごとに再生成される場合があるため、少し時間がかかることがあります。",
     "commitFailed": "選択したカードを追加できませんでした。",
     "generatedSuccess_one": "生成カード {{count}} 件を作成し、学習キューに追加しました。",
     "generatedSuccess_other": "生成カード {{count}} 件を作成し、学習キューに追加しました。",

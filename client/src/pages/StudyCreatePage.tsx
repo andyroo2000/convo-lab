@@ -434,6 +434,11 @@ const StudyCreatePage = () => {
               </p>
             ) : null}
             {success ? <p className="mb-3 text-sm text-emerald-700">{success}</p> : null}
+            {commitCandidates.isPending ? (
+              <p className="mb-3 text-sm text-gray-600" role="status">
+                {t('create.commitProgress', { count: selectedCount })}
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-3">
               <button
                 type="button"

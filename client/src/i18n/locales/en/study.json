@@ -189,6 +189,7 @@
     "regeneratePreviewFailed": "Could not regenerate candidate audio.",
     "addSelected": "Add {{count}} selected",
     "addingSelected": "Adding…",
+    "commitProgress": "Adding {{count}} selected card(s). Audio may be regenerated one card at a time, so this can take a moment.",
     "commitFailed": "Could not add selected cards.",
     "generatedSuccess_one": "Created {{count}} generated card and added it to the study queue.",
     "generatedSuccess_other": "Created {{count}} generated cards and added them to the study queue.",
