@@ -76,6 +76,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Validate OpenAI API key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -z "$OPENAI_API_KEY" ]; then
+            echo "::error::OPENAI_API_KEY secret is not set"
+            exit 1
+          fi
+          curl -fsS https://api.openai.com/v1/models \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -o /dev/null
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
@@ -105,15 +117,38 @@ jobs:
 
             # Inject secrets not stored in repo (staging)
             if grep -q '^FISH_AUDIO_API_KEY=' .env.staging; then
-              sed -i.bak "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.staging
+              sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.staging
             else
               echo "FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}" >> .env.staging
             fi
 
             if grep -q '^CLIENT_URL=' .env.staging; then
-              sed -i.bak "s#^CLIENT_URL=.*#CLIENT_URL=https://stage.convo-lab.com#g" .env.staging
+              sed -i "s#^CLIENT_URL=.*#CLIENT_URL=https://stage.convo-lab.com#g" .env.staging
             else
               echo "CLIENT_URL=https://stage.convo-lab.com" >> .env.staging
+            fi
+
+            if grep -q '^OPENAI_API_KEY=' .env.staging; then
+              sed -i "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.staging
+            else
+              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.staging
+            fi
+
+            if grep -q '^LLM_PROVIDER=' .env.staging; then
+              sed -i "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.staging
+            else
+              echo "LLM_PROVIDER=openai" >> .env.staging
+            fi
+
+            if grep -q '^STUDY_CARD_GENERATOR_MODEL=' .env.staging; then
+              sed -i "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.staging
+            else
+              echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.staging
+            fi
+
+            if ! grep -Eq '^OPENAI_API_KEY=.+$' .env.staging; then
+              echo "❌ OPENAI_API_KEY is missing after staging env injection."
+              exit 1
             fi
 
             # Login to GitHub Container Registry
@@ -126,7 +161,7 @@ jobs:
 
             # Persist image tag in env file so containers can restart independently
             if grep -q '^CONVOLAB_IMAGE_TAG=' .env.staging; then
-              sed -i.bak "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.staging
+              sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.staging
             else
               echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.staging
             fi

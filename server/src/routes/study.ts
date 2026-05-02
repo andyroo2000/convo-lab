@@ -4,6 +4,9 @@ import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
@@ -11,6 +14,9 @@ import {
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
+  StudyCardCandidateCommitItem,
+  StudyCardCandidateKind,
+  StudyCardCandidatePreviewAudioRequest,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -22,7 +28,11 @@ import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
-import { parseOptionalStudyOverview } from '../services/study/shared.js';
+import {
+  cardTypeForStudyCardCandidateKind,
+  parseOptionalStudyOverview,
+  STUDY_CARD_CANDIDATE_KINDS,
+} from '../services/study/shared.js';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
@@ -42,8 +52,11 @@ import {
   getStudyImportUploadReadiness,
   getStudyOverview,
   getStudySettings,
+  commitStudyCardCandidates,
+  generateStudyCardCandidates,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
+  regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardAnswerAudio,
   recordStudyReview,
   reorderStudyNewCardQueue,
@@ -79,6 +92,7 @@ const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'suspended',
   'buried',
 ]);
+const STUDY_CARD_CANDIDATE_PREVIEW_ROLES = new Set(['prompt', 'answer']);
 const STUDY_IMPORT_MIME_TYPES = new Set([
   '',
   'application/zip',
@@ -492,6 +506,72 @@ function parseStudyCardPayloads(
   };
 }
 
+function parseStudyCardCandidateKind(value: unknown): StudyCardCandidateKind {
+  if (
+    typeof value !== 'string' ||
+    !STUDY_CARD_CANDIDATE_KINDS.has(value as StudyCardCandidateKind)
+  ) {
+    throw new AppError(
+      'candidateKind must be text-recognition, audio-recognition, production, or cloze.',
+      400
+    );
+  }
+
+  return value as StudyCardCandidateKind;
+}
+
+function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer' | null {
+  if (typeof value === 'undefined' || value === null) {
+    return null;
+  }
+  if (typeof value !== 'string' || !STUDY_CARD_CANDIDATE_PREVIEW_ROLES.has(value)) {
+    throw new AppError('previewAudioRole must be prompt or answer.', 400);
+  }
+
+  return value as 'prompt' | 'answer';
+}
+
+function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateCommitItem[] {
+  if (!Array.isArray(value)) {
+    throw new AppError('candidates must be an array.', 400);
+  }
+  if (value.length > STUDY_CANDIDATE_COMMIT_MAX_COUNT) {
+    throw new AppError(
+      `candidates must include no more than ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} cards.`,
+      400
+    );
+  }
+
+  return value.map((item, index) => {
+    if (!isPlainObject(item)) {
+      throw new AppError(`candidates[${String(index)}] must be an object.`, 400);
+    }
+
+    const candidateKind = parseStudyCardCandidateKind(item.candidateKind);
+    const cardType = String(item.cardType);
+    const expectedCardType = cardTypeForStudyCardCandidateKind(candidateKind);
+    if (cardType !== expectedCardType) {
+      throw new AppError('cardType must match candidateKind.', 400);
+    }
+
+    const payloads = parseStudyCardPayloads(item.prompt, item.answer);
+    const previewAudio = parseOptionalStudyMediaRef('candidate', 'previewAudio', item.previewAudio);
+
+    return {
+      clientId:
+        typeof item.clientId === 'string' && item.clientId
+          ? item.clientId
+          : `candidate-${String(index + 1)}`,
+      candidateKind,
+      cardType: expectedCardType,
+      prompt: payloads.prompt,
+      answer: payloads.answer,
+      previewAudio: previewAudio ?? null,
+      previewAudioRole: parseStudyCardCandidatePreviewRole(item.previewAudioRole),
+    };
+  });
+}
+
 function parseStudyReviewDurationMs(value: unknown): number | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return undefined;
@@ -819,6 +899,127 @@ router.post(
       });
 
       res.json(undoResult);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+// Candidate routes intentionally rely on the global flashcardsEnabled gate above;
+// no separate rollout flag is needed for this flashcards-only surface.
+router.post(
+  '/card-candidates/generate',
+  rateLimitStudyRoute({ key: 'card-candidate-generate', max: 20, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const { targetText, context, includeLearnerContext } = req.body as {
+        targetText?: unknown;
+        context?: unknown;
+        includeLearnerContext?: unknown;
+      };
+
+      if (typeof targetText !== 'string') {
+        throw new AppError('targetText is required.', 400);
+      }
+      const trimmedTargetText = targetText.trim();
+      // Keep cheap route-level size checks here so oversized requests fail before
+      // learner-context or LLM work can start.
+      if (!trimmedTargetText) {
+        throw new AppError('targetText is required.', 400);
+      }
+      if (trimmedTargetText.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+        throw new AppError(
+          `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
+          400
+        );
+      }
+      if (typeof context !== 'undefined' && context !== null && typeof context !== 'string') {
+        throw new AppError('context must be a string or null.', 400);
+      }
+      const trimmedContext = typeof context === 'string' ? context.trim() : null;
+      if (
+        typeof trimmedContext === 'string' &&
+        trimmedContext.length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
+      ) {
+        throw new AppError(
+          `context must be ${String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)} characters or fewer.`,
+          400
+        );
+      }
+      if (
+        typeof includeLearnerContext !== 'undefined' &&
+        typeof includeLearnerContext !== 'boolean'
+      ) {
+        throw new AppError('includeLearnerContext must be a boolean.', 400);
+      }
+
+      const result = await generateStudyCardCandidates({
+        userId: req.userId,
+        request: {
+          targetText: trimmedTargetText,
+          context: trimmedContext,
+          includeLearnerContext:
+            typeof includeLearnerContext === 'boolean' ? includeLearnerContext : true,
+        },
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-candidates/regenerate-audio',
+  rateLimitStudyRoute({ key: 'card-candidate-regenerate-audio', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as Partial<StudyCardCandidatePreviewAudioRequest>;
+      if (!isPlainObject(body.candidate)) {
+        throw new AppError('candidate must be an object.', 400);
+      }
+
+      const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
+      const result = await regenerateStudyCardCandidatePreviewAudio({
+        userId: req.userId,
+        candidate,
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-candidates/commit',
+  rateLimitStudyRoute({ key: 'card-candidate-commit', max: 30, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const candidates = parseStudyCardCandidateCommitItems(
+        (req.body as { candidates?: unknown }).candidates
+      );
+
+      const result = await commitStudyCardCandidates({
+        userId: req.userId,
+        candidates,
+      });
+
+      res.status(201).json(result);
     } catch (error) {
       next(error);
     }

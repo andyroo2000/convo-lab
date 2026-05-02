@@ -12,6 +12,9 @@ export {
   STUDY_NEW_CARDS_PER_DAY_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
 } from './studyConstants';
 
 export type LanguageCode = 'ja' | 'en';
@@ -127,6 +130,64 @@ export interface StudyCardSummary {
   answerAudioSource: StudyAudioSource;
   createdAt: string;
   updatedAt: string;
+}
+
+export type StudyCardCandidateKind =
+  | 'text-recognition'
+  | 'audio-recognition'
+  | 'production'
+  | 'cloze';
+
+export interface StudyCardCandidate {
+  clientId: string;
+  candidateKind: StudyCardCandidateKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  rationale: string;
+  warnings?: string[];
+  previewAudio?: StudyMediaRef | null;
+  previewAudioRole?: 'prompt' | 'answer' | null;
+}
+
+export interface StudyCardCandidateGenerateRequest {
+  targetText: string;
+  context?: string | null;
+  includeLearnerContext?: boolean;
+}
+
+export interface StudyCardCandidateGenerateResponse {
+  candidates: StudyCardCandidate[];
+  learnerContextSummary?: string | null;
+}
+
+export interface StudyCardCandidateCommitItem {
+  clientId: string;
+  candidateKind: StudyCardCandidateKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  previewAudio?: StudyMediaRef | null;
+  previewAudioRole?: 'prompt' | 'answer' | null;
+}
+
+export interface StudyCardCandidateCommitRequest {
+  candidates: StudyCardCandidateCommitItem[];
+}
+
+export interface StudyCardCandidateCommitResponse {
+  cards: StudyCardSummary[];
+}
+
+export interface StudyCardCandidatePreviewAudioRequest {
+  candidate: StudyCardCandidateCommitItem;
+}
+
+export interface StudyCardCandidatePreviewAudioResponse {
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
 }
 
 export interface StudyOverview {

@@ -10,6 +10,7 @@ interface StudyCardFormFieldsProps {
   idPrefix: string;
   includeCardTypeSelect?: boolean;
   includeAudioSettings?: boolean;
+  hidePromptFields?: boolean;
   includeSentenceFields?: boolean;
   onCardTypeChange?: (cardType: StudyCardType) => void;
   onFieldChange: <K extends keyof StudyCardFormValues>(
@@ -23,6 +24,7 @@ const StudyCardFormFields = ({
   idPrefix,
   includeCardTypeSelect = false,
   includeAudioSettings = true,
+  hidePromptFields = false,
   includeSentenceFields = false,
   onCardTypeChange,
   onFieldChange,
@@ -46,48 +48,52 @@ const StudyCardFormFields = ({
         </StudyFormField>
       ) : null}
 
-      <StudyFormField
-        htmlFor={`${idPrefix}-cue-text`}
-        label={values.cardType === 'cloze' ? t('form.clozeText') : t('form.promptText')}
-      >
-        <textarea
-          id={`${idPrefix}-cue-text`}
-          value={values.cueText}
-          onChange={(event) => onFieldChange('cueText', event.target.value)}
-          className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-          required
-        />
-      </StudyFormField>
+      {!hidePromptFields ? (
+        <>
+          <StudyFormField
+            htmlFor={`${idPrefix}-cue-text`}
+            label={values.cardType === 'cloze' ? t('form.clozeText') : t('form.promptText')}
+          >
+            <textarea
+              id={`${idPrefix}-cue-text`}
+              value={values.cueText}
+              onChange={(event) => onFieldChange('cueText', event.target.value)}
+              className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+              required
+            />
+          </StudyFormField>
 
-      {values.cardType === 'cloze' ? (
-        <StudyFormField htmlFor={`${idPrefix}-cloze-hint`} label={t('form.clozeHint')}>
-          <input
-            id={`${idPrefix}-cloze-hint`}
-            value={values.cueMeaning}
-            onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
-            className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-          />
-        </StudyFormField>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          <StudyFormField htmlFor={`${idPrefix}-cue-reading`} label={t('form.promptReading')}>
-            <input
-              id={`${idPrefix}-cue-reading`}
-              value={values.cueReading}
-              onChange={(event) => onFieldChange('cueReading', event.target.value)}
-              className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-            />
-          </StudyFormField>
-          <StudyFormField htmlFor={`${idPrefix}-cue-meaning`} label={t('form.promptMeaning')}>
-            <input
-              id={`${idPrefix}-cue-meaning`}
-              value={values.cueMeaning}
-              onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
-              className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
-            />
-          </StudyFormField>
-        </div>
-      )}
+          {values.cardType === 'cloze' ? (
+            <StudyFormField htmlFor={`${idPrefix}-cloze-hint`} label={t('form.clozeHint')}>
+              <input
+                id={`${idPrefix}-cloze-hint`}
+                value={values.cueMeaning}
+                onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
+                className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+              />
+            </StudyFormField>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              <StudyFormField htmlFor={`${idPrefix}-cue-reading`} label={t('form.promptReading')}>
+                <input
+                  id={`${idPrefix}-cue-reading`}
+                  value={values.cueReading}
+                  onChange={(event) => onFieldChange('cueReading', event.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+                />
+              </StudyFormField>
+              <StudyFormField htmlFor={`${idPrefix}-cue-meaning`} label={t('form.promptMeaning')}>
+                <input
+                  id={`${idPrefix}-cue-meaning`}
+                  value={values.cueMeaning}
+                  onChange={(event) => onFieldChange('cueMeaning', event.target.value)}
+                  className="block w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
+                />
+              </StudyFormField>
+            </div>
+          )}
+        </>
+      ) : null}
 
       <div className="grid gap-4 md:grid-cols-2">
         <StudyFormField

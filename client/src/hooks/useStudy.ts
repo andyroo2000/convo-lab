@@ -7,6 +7,12 @@ import type {
   StudyCardSetDueMode,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
+  StudyCardCandidateCommitRequest,
+  StudyCardCandidateCommitResponse,
+  StudyCardCandidateGenerateRequest,
+  StudyCardCandidateGenerateResponse,
+  StudyCardCandidatePreviewAudioRequest,
+  StudyCardCandidatePreviewAudioResponse,
   StudyCardSummary,
   StudyExportManifest,
   StudyImportResult,
@@ -154,6 +160,36 @@ export async function regenerateStudyAnswerAudio(
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
       }),
+    }
+  );
+}
+
+export async function generateStudyCardCandidates(
+  payload: StudyCardCandidateGenerateRequest
+): Promise<StudyCardCandidateGenerateResponse> {
+  return apiRequest<StudyCardCandidateGenerateResponse>('/api/study/card-candidates/generate', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function commitStudyCardCandidates(
+  payload: StudyCardCandidateCommitRequest
+): Promise<StudyCardCandidateCommitResponse> {
+  return apiRequest<StudyCardCandidateCommitResponse>('/api/study/card-candidates/commit', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function regenerateStudyCardCandidatePreviewAudio(
+  payload: StudyCardCandidatePreviewAudioRequest
+): Promise<StudyCardCandidatePreviewAudioResponse> {
+  return apiRequest<StudyCardCandidatePreviewAudioResponse>(
+    '/api/study/card-candidates/regenerate-audio',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
     }
   );
 }
@@ -348,6 +384,33 @@ export function useCreateStudyCard() {
         queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
       ]);
     },
+  });
+}
+
+export function useGenerateStudyCardCandidates() {
+  return useMutation({
+    mutationFn: generateStudyCardCandidates,
+  });
+}
+
+export function useCommitStudyCardCandidates() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: commitStudyCardCandidates,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+      ]);
+    },
+  });
+}
+
+export function useRegenerateStudyCardCandidatePreviewAudio() {
+  return useMutation({
+    mutationFn: regenerateStudyCardCandidatePreviewAudio,
   });
 }
 
