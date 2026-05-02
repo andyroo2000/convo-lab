@@ -3,6 +3,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import AudioPlayer, { RepeatMode } from '../AudioPlayer';
 
+const defineNavigatorValue = (key: string, value: unknown) => {
+  Object.defineProperty(window.navigator, key, {
+    configurable: true,
+    value,
+  });
+};
+
 // Mock HTMLAudioElement
 class MockAudioElement {
   src = '';
@@ -67,6 +74,7 @@ describe('AudioPlayer', () => {
   let originalCAF: typeof cancelAnimationFrame;
 
   beforeEach(() => {
+    defineNavigatorValue('connection', undefined);
     mockAudioRef = vi.fn();
     mockOnRepeatModeChange = vi.fn();
     mockOnEnded = vi.fn();
@@ -138,11 +146,20 @@ describe('AudioPlayer', () => {
       expect(audio).toHaveAttribute('src', 'https://test.com/audio.mp3');
     });
 
-    it('should eagerly preload audio for warm repeat playback', () => {
+    it('should eagerly preload audio for warm repeat playback on unconstrained networks', () => {
       const { container } = renderAudioPlayer();
       // eslint-disable-next-line testing-library/no-container
       const audio = container.querySelector('audio');
       expect(audio).toHaveAttribute('preload', 'auto');
+    });
+
+    it('should only preload metadata when the browser asks to save data', () => {
+      defineNavigatorValue('connection', { saveData: true });
+
+      const { container } = renderAudioPlayer();
+      // eslint-disable-next-line testing-library/no-container
+      const audio = container.querySelector('audio');
+      expect(audio).toHaveAttribute('preload', 'metadata');
     });
   });
 

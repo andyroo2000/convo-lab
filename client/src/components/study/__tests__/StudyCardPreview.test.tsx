@@ -3,6 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyCardFace } from '../StudyCardPreview';
 
+const defineNavigatorValue = (key: string, value: unknown) => {
+  Object.defineProperty(window.navigator, key, {
+    configurable: true,
+    value,
+  });
+};
+
 const baseCard = {
   id: 'card-1',
   noteId: 'note-1',
@@ -30,6 +37,7 @@ const baseCard = {
 
 describe('StudyCardPreview', () => {
   beforeEach(() => {
+    defineNavigatorValue('connection', undefined);
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
       value: vi.fn().mockResolvedValue(undefined),
@@ -222,6 +230,31 @@ describe('StudyCardPreview', () => {
     const audioSource = screen.getByTestId('study-answer-audio-source');
     expect(audioSource).toHaveAttribute('src', 'https://example.com/answer.mp3');
     expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'auto');
+  });
+
+  it('only preloads answer audio metadata when the browser asks to save data', () => {
+    defineNavigatorValue('connection', { saveData: true });
+
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: 'https://example.com/answer.mp3',
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'metadata');
   });
 
   it('shows a visible audio playback error when playback fails', async () => {

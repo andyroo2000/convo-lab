@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
@@ -59,12 +59,10 @@ const PlaybackPage = () => {
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
-  const episodeAudioUrls = [
-    episode?.audioUrl_0_7,
-    episode?.audioUrl_0_85,
-    episode?.audioUrl_1_0,
-    episode?.audioUrl,
-  ];
+  const episodeAudioUrls = useMemo(
+    () => [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl],
+    [episode?.audioUrl_0_7, episode?.audioUrl_0_85, episode?.audioUrl_1_0, episode?.audioUrl]
+  );
 
   useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
 
