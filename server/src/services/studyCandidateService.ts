@@ -752,6 +752,7 @@ export async function commitStudyCardCandidates(input: {
 
   const resolvedItems = [];
   for (const item of input.candidates) {
+    // Keep this sequential so a commit cannot fan out several missing-preview TTS calls at once.
     resolvedItems.push(await resolveStudyCardCandidateCommitItem({ userId: input.userId, item }));
   }
 

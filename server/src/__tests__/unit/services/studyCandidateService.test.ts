@@ -240,6 +240,33 @@ describe('studyCandidateService', () => {
     );
   });
 
+  it('validates generated-card request content at the service boundary', async () => {
+    await expect(
+      generateStudyCardCandidates({
+        userId: 'user-1',
+        request: { targetText: '   ' },
+      })
+    ).rejects.toThrow('targetText is required');
+    await expect(
+      generateStudyCardCandidates({
+        userId: 'user-1',
+        request: {
+          targetText: 'a'.repeat(501),
+        },
+      })
+    ).rejects.toThrow('targetText must be 500 characters or fewer');
+    await expect(
+      generateStudyCardCandidates({
+        userId: 'user-1',
+        request: {
+          targetText: '会社',
+          context: 'a'.repeat(2001),
+        },
+      })
+    ).rejects.toThrow('context must be 2000 characters or fewer');
+    expect(generateStudyCardCandidateJson).not.toHaveBeenCalled();
+  });
+
   it('hydrates missing generated text-recognition prompt text from the answer expression', async () => {
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({

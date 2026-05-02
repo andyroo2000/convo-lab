@@ -76,15 +76,12 @@ export function buildStudyCandidateCommitItem(
           cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
         }
       : payload.prompt;
-  const answer =
-    draft.candidate.candidateKind === 'audio-recognition' ? payload.answer : payload.answer;
-
   return {
     clientId: draft.candidate.clientId,
     candidateKind: draft.candidate.candidateKind,
     cardType: draft.candidate.cardType,
     prompt,
-    answer,
+    answer: payload.answer,
     previewAudio: draft.previewAudio,
     previewAudioRole: draft.previewAudioRole,
   };
