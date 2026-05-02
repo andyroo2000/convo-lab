@@ -1271,6 +1271,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
   const newQueuePosition = await getNextNewQueuePosition(input.userId);
   const promptAudioMediaId = input.promptAudioMediaId ?? null;
   const answerAudioMediaId = input.answerAudioMediaId ?? null;
+  const imageMediaId = input.imageMediaId ?? null;
 
   const created: StudyCardWithRelations = await prisma.studyCard.create({
     data: {
@@ -1286,6 +1287,7 @@ export async function createStudyCard(input: CreateStudyCardInput): Promise<Stud
       schedulerStateJson: toPrismaJson(initialState),
       promptAudioMediaId,
       answerAudioMediaId,
+      imageMediaId,
       answerAudioSource: answerAudioMediaId ? 'generated' : 'missing',
     },
     include: {

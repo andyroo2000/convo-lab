@@ -55,6 +55,9 @@ export async function cleanupStudyCandidatePreviewMedia(
       answerAudioCards: {
         none: {},
       },
+      imageCards: {
+        none: {},
+      },
     },
     select: {
       id: true,

@@ -13,6 +13,8 @@ export interface StudyCandidateDraft {
   values: StudyCardFormValues;
   previewAudio: StudyMediaRef | null;
   previewAudioRole: 'prompt' | 'answer' | null;
+  previewImage: StudyMediaRef | null;
+  imagePrompt: string;
 }
 
 export const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFormValues>([
@@ -21,6 +23,18 @@ export const STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS = new Set<keyof StudyCardFor
   'answerAudioVoiceId',
   'answerAudioTextOverride',
 ]);
+
+export function normalizeCandidateImagePrompt(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed || null;
+}
+
+export function hasVisualProductionPreview(draft: StudyCandidateDraft): boolean {
+  return (
+    draft.candidate.candidateKind === 'production' &&
+    (draft.imagePrompt.trim().length > 0 || draft.previewImage !== null)
+  );
+}
 
 export function studyCandidateToFormValues(candidate: StudyCardCandidate): StudyCardFormValues {
   if (candidate.cardType === 'cloze') {
@@ -63,6 +77,8 @@ export function createStudyCandidateDraft(candidate: StudyCardCandidate): StudyC
     values: studyCandidateToFormValues(candidate),
     previewAudio: candidate.previewAudio ?? null,
     previewAudioRole: candidate.previewAudioRole ?? null,
+    previewImage: candidate.previewImage ?? candidate.prompt.cueImage ?? null,
+    imagePrompt: candidate.imagePrompt ?? '',
   };
 }
 
@@ -75,7 +91,12 @@ export function buildStudyCandidateCommitItem(
       ? {
           cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
         }
-      : payload.prompt;
+      : {
+          ...payload.prompt,
+          // Visual production prompts use the generated image as the cue, so suppress
+          // any residual text cue when an image is selected.
+          ...(draft.previewImage ? { cueText: null, cueImage: draft.previewImage } : {}),
+        };
   return {
     clientId: draft.candidate.clientId,
     candidateKind: draft.candidate.candidateKind,
@@ -84,6 +105,8 @@ export function buildStudyCandidateCommitItem(
     answer: payload.answer,
     previewAudio: draft.previewAudio,
     previewAudioRole: draft.previewAudioRole,
+    previewImage: draft.previewImage,
+    imagePrompt: normalizeCandidateImagePrompt(draft.imagePrompt),
   };
 }
 

@@ -13,6 +13,8 @@ import type {
   StudyCardCandidateGenerateResponse,
   StudyCardCandidatePreviewAudioRequest,
   StudyCardCandidatePreviewAudioResponse,
+  StudyCardCandidatePreviewImageRequest,
+  StudyCardCandidatePreviewImageResponse,
   StudyCardSummary,
   StudyExportManifest,
   StudyImportResult,
@@ -187,6 +189,18 @@ export async function regenerateStudyCardCandidatePreviewAudio(
 ): Promise<StudyCardCandidatePreviewAudioResponse> {
   return apiRequest<StudyCardCandidatePreviewAudioResponse>(
     '/api/study/card-candidates/regenerate-audio',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export async function regenerateStudyCardCandidatePreviewImage(
+  payload: StudyCardCandidatePreviewImageRequest
+): Promise<StudyCardCandidatePreviewImageResponse> {
+  return apiRequest<StudyCardCandidatePreviewImageResponse>(
+    '/api/study/card-candidates/regenerate-image',
     {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -411,6 +425,12 @@ export function useCommitStudyCardCandidates() {
 export function useRegenerateStudyCardCandidatePreviewAudio() {
   return useMutation({
     mutationFn: regenerateStudyCardCandidatePreviewAudio,
+  });
+}
+
+export function useRegenerateStudyCardCandidatePreviewImage() {
+  return useMutation({
+    mutationFn: regenerateStudyCardCandidatePreviewImage,
   });
 }
 

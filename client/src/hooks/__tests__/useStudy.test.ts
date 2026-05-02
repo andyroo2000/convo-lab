@@ -7,6 +7,7 @@ import {
   generateStudyCardCandidates,
   getStudyImportStatus,
   regenerateStudyCardCandidatePreviewAudio,
+  regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
   startStudySession,
   undoStudyReview,
@@ -251,6 +252,45 @@ describe('useStudy request helpers', () => {
       candidate: expect.objectContaining({
         candidateKind: 'production',
         previewAudio: null,
+      }),
+    });
+  });
+
+  it('regenerates candidate preview images with JSON and CSRF headers', async () => {
+    await regenerateStudyCardCandidatePreviewImage({
+      imagePrompt: 'A simple cloudy weather image.',
+      candidate: {
+        clientId: 'candidate-1',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+        imagePrompt: 'A simple cloudy weather image.',
+        previewImage: null,
+      },
+    });
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/study/card-candidates/regenerate-image`,
+      expect.any(Object)
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      imagePrompt: 'A simple cloudy weather image.',
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+        imagePrompt: 'A simple cloudy weather image.',
       }),
     });
   });
