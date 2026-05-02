@@ -8,10 +8,8 @@ import {
 
 import StudyCardAudioSettingsFields from '../components/study/StudyCardAudioSettingsFields';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
-import {
-  StudyCandidateCardPreviewModal,
-  StudyCandidatePreviewAudio,
-} from '../components/study/StudyCandidatePreview';
+import StudyCandidatePreviewAudio from '../components/study/StudyCandidatePreviewAudio';
+import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import { useStudyCardForm, type StudyCardFormValues } from '../components/study/studyCardFormModel';
 import {
   buildStudyCandidateCommitItem,

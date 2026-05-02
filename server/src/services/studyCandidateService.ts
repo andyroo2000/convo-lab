@@ -639,38 +639,12 @@ export async function generateStudyCardCandidates(input: {
   };
 }
 
-async function resolvePreviewMediaId(input: {
-  userId: string;
-  previewAudio: StudyMediaRef | null | undefined;
-}): Promise<string | null> {
-  const mediaId = input.previewAudio?.id;
-  if (!mediaId) return null;
-
-  const media = await prisma.studyMedia.findFirst({
-    where: {
-      id: mediaId,
-      userId: input.userId,
-      sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
-      mediaKind: 'audio',
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  if (!media) {
-    throw new AppError('Preview audio was not found for this user.', 400);
-  }
-
-  return media.id;
-}
-
 type ResolvedStudyCardCandidateCommitItem = {
   item: StudyCardCandidateCommitItem;
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
-  promptAudioMediaId: string | null;
-  answerAudioMediaId: string | null;
+  previewAudioId: string | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
 };
 
 async function resolveStudyCardCandidateCommitItem(input: {
@@ -714,26 +688,37 @@ async function resolveStudyCardCandidateCommitItem(input: {
     }
   }
 
-  const previewMediaId = await resolvePreviewMediaId({
-    userId: input.userId,
-    previewAudio: resolvedPreviewAudio,
-  });
-
   return {
     item,
     prompt: resolvedPrompt,
     answer: resolvedAnswer,
-    promptAudioMediaId:
-      resolvedPreviewAudioRole === 'prompt' || item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null,
-    // Listening cards intentionally reuse the same synthesized Japanese audio for the
-    // front cue and answer replay, while keeping the JSON payload answer free of cue-audio refs.
-    answerAudioMediaId:
-      resolvedPreviewAudioRole === 'answer' || item.candidateKind === 'audio-recognition'
-        ? previewMediaId
-        : null,
+    previewAudioId: resolvedPreviewAudio?.id ?? null,
+    previewAudioRole: resolvedPreviewAudioRole ?? null,
   };
+}
+
+async function getOwnedPreviewMediaIds(userId: string, mediaIds: string[]): Promise<Set<string>> {
+  const uniqueMediaIds = [...new Set(mediaIds)];
+  if (uniqueMediaIds.length === 0) return new Set();
+
+  const media = await prisma.studyMedia.findMany({
+    where: {
+      id: { in: uniqueMediaIds },
+      userId,
+      sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
+      mediaKind: 'audio',
+    },
+    select: {
+      id: true,
+    },
+  });
+  const ownedMediaIds = new Set(media.map((item) => item.id));
+
+  if (uniqueMediaIds.some((mediaId) => !ownedMediaIds.has(mediaId))) {
+    throw new AppError('Preview audio was not found for this user.', 400);
+  }
+
+  return ownedMediaIds;
 }
 
 export async function commitStudyCardCandidates(input: {
@@ -755,16 +740,34 @@ export async function commitStudyCardCandidates(input: {
     // Keep this sequential so a commit cannot fan out several missing-preview TTS calls at once.
     resolvedItems.push(await resolveStudyCardCandidateCommitItem({ userId: input.userId, item }));
   }
+  const ownedPreviewMediaIds = await getOwnedPreviewMediaIds(
+    input.userId,
+    resolvedItems.flatMap((item) => (item.previewAudioId ? [item.previewAudioId] : []))
+  );
 
   const cards = [];
   for (const resolved of resolvedItems) {
+    const previewMediaId =
+      resolved.previewAudioId && ownedPreviewMediaIds.has(resolved.previewAudioId)
+        ? resolved.previewAudioId
+        : null;
+    const promptAudioMediaId =
+      resolved.previewAudioRole === 'prompt' || resolved.item.candidateKind === 'audio-recognition'
+        ? previewMediaId
+        : null;
+    // Listening cards intentionally reuse the same synthesized Japanese audio for the
+    // front cue and answer replay, while keeping the JSON payload answer free of cue-audio refs.
+    const answerAudioMediaId =
+      resolved.previewAudioRole === 'answer' || resolved.item.candidateKind === 'audio-recognition'
+        ? previewMediaId
+        : null;
     const card = await createStudyCard({
       userId: input.userId,
       cardType: resolved.item.cardType,
       prompt: resolved.prompt,
       answer: resolved.answer,
-      promptAudioMediaId: resolved.promptAudioMediaId,
-      answerAudioMediaId: resolved.answerAudioMediaId,
+      promptAudioMediaId,
+      answerAudioMediaId,
     });
     cards.push(card);
   }

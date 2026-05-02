@@ -517,7 +517,7 @@ describe('studyCandidateService', () => {
   });
 
   it('commits selected audio-recognition candidates with owned preview media', async () => {
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
+    mockPrisma.studyMedia.findMany.mockResolvedValue([{ id: 'media-1' }]);
     mockPrisma.studyNote.create.mockResolvedValue({
       id: 'note-1',
       userId: 'user-1',
@@ -641,11 +641,21 @@ describe('studyCandidateService', () => {
         }),
       })
     );
+    expect(mockPrisma.studyMedia.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: { in: ['media-1'] },
+          userId: 'user-1',
+          sourceKind: 'generated_preview',
+          mediaKind: 'audio',
+        }),
+      })
+    );
     expect(result.cards[0].prompt.cueAudio?.url).toBe('/api/study/media/media-1');
   });
 
   it('regenerates missing audio-recognition preview audio without mutating the commit input', async () => {
-    mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
+    mockPrisma.studyMedia.findMany.mockResolvedValue([{ id: 'media-1' }]);
     mockPrisma.studyNote.create.mockResolvedValue({
       id: 'note-1',
       userId: 'user-1',
@@ -735,7 +745,7 @@ describe('studyCandidateService', () => {
   });
 
   it('rejects preview media owned by another user', async () => {
-    mockPrisma.studyMedia.findFirst.mockResolvedValue(null);
+    mockPrisma.studyMedia.findMany.mockResolvedValue([]);
 
     await expect(
       commitStudyCardCandidates({
@@ -762,9 +772,7 @@ describe('studyCandidateService', () => {
   });
 
   it('resolves all selected preview media before creating committed cards', async () => {
-    mockPrisma.studyMedia.findFirst.mockImplementation(async ({ where }) =>
-      where.id === 'media-good' ? { id: 'media-good' } : null
-    );
+    mockPrisma.studyMedia.findMany.mockResolvedValue([{ id: 'media-good' }]);
 
     await expect(
       commitStudyCardCandidates({
@@ -805,5 +813,6 @@ describe('studyCandidateService', () => {
     ).rejects.toThrow('Preview audio was not found for this user');
 
     expect(mockPrisma.studyCard.create).not.toHaveBeenCalled();
+    expect(mockPrisma.studyMedia.findMany).toHaveBeenCalledTimes(1);
   });
 });

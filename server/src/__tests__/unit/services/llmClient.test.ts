@@ -42,6 +42,7 @@ describe('llmClient', () => {
         headers: expect.objectContaining({
           Authorization: 'Bearer test-openai-key',
         }),
+        signal: expect.any(AbortSignal),
       })
     );
   });

@@ -7,6 +7,7 @@ type LlmProvider = 'openai' | 'gemini';
 const DEFAULT_STUDY_CARD_GENERATOR_PROVIDER: LlmProvider = 'openai';
 const DEFAULT_STUDY_CARD_GENERATOR_MODEL = 'gpt-5.5';
 const DEFAULT_STUDY_CARD_GENERATOR_REASONING_EFFORT = 'medium';
+const OPENAI_RESPONSES_TIMEOUT_MS = 120_000;
 
 type OpenAIResponseContent = {
   type?: string;
@@ -106,6 +107,7 @@ async function generateStudyCardCandidatesWithOpenAI(
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(OPENAI_RESPONSES_TIMEOUT_MS),
       body: JSON.stringify({
         model,
         input: [
