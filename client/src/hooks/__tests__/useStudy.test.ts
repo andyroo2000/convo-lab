@@ -6,6 +6,7 @@ import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
   getStudyImportStatus,
+  regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyAnswerAudio,
   startStudySession,
   undoStudyReview,
@@ -215,6 +216,42 @@ describe('useStudy request helpers', () => {
           previewAudioRole: 'prompt',
         }),
       ],
+    });
+  });
+
+  it('regenerates candidate preview audio with JSON and CSRF headers', async () => {
+    await regenerateStudyCardCandidatePreviewAudio({
+      candidate: {
+        clientId: 'candidate-1',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: 'ja-JP-Neural2-C',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/study/card-candidates/regenerate-audio`,
+      expect.any(Object)
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBe('application/json');
+    expect(JSON.parse(String(requestInit.body))).toEqual({
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+        previewAudio: null,
+      }),
     });
   });
 

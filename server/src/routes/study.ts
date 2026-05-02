@@ -13,6 +13,7 @@ import type {
   StudyAnswerPayload,
   StudyCardCandidateCommitItem,
   StudyCardCandidateKind,
+  StudyCardCandidatePreviewAudioRequest,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -48,6 +49,7 @@ import {
   generateStudyCardCandidates,
   performStudyCardAction,
   prepareStudyCardAnswerAudio,
+  regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardAnswerAudio,
   recordStudyReview,
   reorderStudyNewCardQueue,
@@ -938,6 +940,33 @@ router.post(
           includeLearnerContext:
             typeof includeLearnerContext === 'boolean' ? includeLearnerContext : true,
         },
+      });
+
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/card-candidates/regenerate-audio',
+  rateLimitStudyRoute({ key: 'card-candidate-regenerate-audio', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = req.body as Partial<StudyCardCandidatePreviewAudioRequest>;
+      if (!isPlainObject(body.candidate)) {
+        throw new AppError('candidate must be an object.', 400);
+      }
+
+      const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
+      const result = await regenerateStudyCardCandidatePreviewAudio({
+        userId: req.userId,
+        candidate,
       });
 
       res.json(result);

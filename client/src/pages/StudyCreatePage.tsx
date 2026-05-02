@@ -15,6 +15,7 @@ import {
   useCommitStudyCardCandidates,
   useCreateStudyCard,
   useGenerateStudyCardCandidates,
+  useRegenerateStudyCardCandidatePreviewAudio,
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
@@ -69,35 +70,48 @@ const audioAffectingFields = new Set<keyof StudyCardFormValues>([
 ]);
 
 const CandidatePreviewAudio = ({
+  isRegenerating,
   label,
+  onRegenerate,
   previewUrl,
+  regenerateLabel,
   staleLabel,
   title,
 }: {
+  isRegenerating: boolean;
   label: string;
+  onRegenerate: () => void;
   previewUrl: string | null;
+  regenerateLabel: string;
   staleLabel: string;
   title: string;
-}) => {
-  if (!previewUrl) {
-    return <p className="mb-4 text-sm text-amber-700">{staleLabel}</p>;
-  }
-
-  return (
-    <div className="mb-4 rounded-xl border border-gray-200 bg-white/70 p-4">
-      <p className="text-sm font-semibold text-gray-700">{title}</p>
+}) => (
+  <div className="mb-4 rounded-xl border border-gray-200 bg-white/70 p-4">
+    <p className="text-sm font-semibold text-gray-700">{title}</p>
+    {previewUrl ? (
       <div className="mt-3">
         <StudyAudioPlayer url={previewUrl} label={label} />
       </div>
-    </div>
-  );
-};
+    ) : (
+      <p className="mt-3 text-sm text-amber-700">{staleLabel}</p>
+    )}
+    <button
+      type="button"
+      onClick={onRegenerate}
+      disabled={isRegenerating}
+      className="mt-3 rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {regenerateLabel}
+    </button>
+  </div>
+);
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
   const createCard = useCreateStudyCard();
   const generateCandidates = useGenerateStudyCardCandidates();
   const commitCandidates = useCommitStudyCardCandidates();
+  const regenerateCandidateAudio = useRegenerateStudyCardCandidatePreviewAudio();
   const [mode, setMode] = useState<CreateMode>('generate');
   const [success, setSuccess] = useState<string | null>(null);
   const [targetText, setTargetText] = useState('');
@@ -174,36 +188,67 @@ const StudyCreatePage = () => {
 
   const selectedCount = candidateDrafts.filter((draft) => draft.selected).length;
 
+  const buildCandidateCommitItem = (draft: CandidateDraft) => {
+    const payload = buildStudyCardFormPayload(draft.values);
+    const prompt =
+      draft.candidate.candidateKind === 'audio-recognition'
+        ? {
+            cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
+          }
+        : payload.prompt;
+    const answer =
+      draft.candidate.candidateKind === 'audio-recognition'
+        ? {
+            ...payload.answer,
+            answerAudio: draft.previewAudio ?? draft.candidate.answer.answerAudio ?? null,
+          }
+        : payload.answer;
+
+    return {
+      clientId: draft.candidate.clientId,
+      candidateKind: draft.candidate.candidateKind,
+      cardType: draft.candidate.cardType,
+      prompt,
+      answer,
+      previewAudio: draft.previewAudio,
+      previewAudioRole: draft.previewAudioRole,
+    };
+  };
+
+  const handleRegenerateCandidateAudio = async (index: number) => {
+    setSuccess(null);
+    const draft = candidateDrafts[index];
+    if (!draft) return;
+
+    const result = await regenerateCandidateAudio.mutateAsync({
+      candidate: buildCandidateCommitItem(draft),
+    });
+
+    setCandidateDrafts((current) =>
+      current.map((currentDraft, draftIndex) =>
+        draftIndex === index
+          ? {
+              ...currentDraft,
+              candidate: {
+                ...currentDraft.candidate,
+                prompt: result.prompt,
+                answer: result.answer,
+                previewAudio: result.previewAudio,
+                previewAudioRole: result.previewAudioRole,
+              },
+              previewAudio: result.previewAudio,
+              previewAudioRole: result.previewAudioRole,
+            }
+          : currentDraft
+      )
+    );
+  };
+
   const handleCommitCandidates = async () => {
     setSuccess(null);
     const selectedCandidates = candidateDrafts.filter((draft) => draft.selected);
     const result = await commitCandidates.mutateAsync({
-      candidates: selectedCandidates.map((draft) => {
-        const payload = buildStudyCardFormPayload(draft.values);
-        const prompt =
-          draft.candidate.candidateKind === 'audio-recognition'
-            ? {
-                cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
-              }
-            : payload.prompt;
-        const answer =
-          draft.candidate.candidateKind === 'audio-recognition'
-            ? {
-                ...payload.answer,
-                answerAudio: draft.previewAudio ?? draft.candidate.answer.answerAudio ?? null,
-              }
-            : payload.answer;
-
-        return {
-          clientId: draft.candidate.clientId,
-          candidateKind: draft.candidate.candidateKind,
-          cardType: draft.candidate.cardType,
-          prompt,
-          answer,
-          previewAudio: draft.previewAudio,
-          previewAudioRole: draft.previewAudioRole,
-        };
-      }),
+      candidates: selectedCandidates.map((draft) => buildCandidateCommitItem(draft)),
     });
 
     setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
@@ -289,6 +334,13 @@ const StudyCreatePage = () => {
                 {generateCandidates.error instanceof Error
                   ? generateCandidates.error.message
                   : t('create.generateFailed')}
+              </p>
+            ) : null}
+            {regenerateCandidateAudio.error ? (
+              <p className="text-sm text-red-600">
+                {regenerateCandidateAudio.error instanceof Error
+                  ? regenerateCandidateAudio.error.message
+                  : t('create.regeneratePreviewFailed')}
               </p>
             ) : null}
 
@@ -383,8 +435,15 @@ const StudyCreatePage = () => {
                 ) : null}
 
                 <CandidatePreviewAudio
+                  isRegenerating={regenerateCandidateAudio.isPending}
                   label={t('create.playPreview')}
+                  onRegenerate={() => handleRegenerateCandidateAudio(index)}
                   previewUrl={previewUrl}
+                  regenerateLabel={
+                    regenerateCandidateAudio.isPending
+                      ? t('create.regeneratingPreview')
+                      : t('create.regeneratePreview')
+                  }
                   staleLabel={t('create.previewStale')}
                   title={previewTitle}
                 />

@@ -8,10 +8,16 @@ import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new'
 
 import StudyCreatePage from '../StudyCreatePage';
 
-const { commitCandidatesMock, createStudyCardMock, generateCandidatesMock } = vi.hoisted(() => ({
+const {
+  commitCandidatesMock,
+  createStudyCardMock,
+  generateCandidatesMock,
+  regenerateCandidateAudioMock,
+} = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   createStudyCardMock: vi.fn(),
   generateCandidatesMock: vi.fn(),
+  regenerateCandidateAudioMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -27,6 +33,11 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useGenerateStudyCardCandidates: () => ({
     mutateAsync: generateCandidatesMock,
+    isPending: false,
+    error: null,
+  }),
+  useRegenerateStudyCardCandidatePreviewAudio: () => ({
+    mutateAsync: regenerateCandidateAudioMock,
     isPending: false,
     error: null,
   }),
@@ -65,9 +76,26 @@ describe('StudyCreatePage', () => {
     commitCandidatesMock.mockReset();
     createStudyCardMock.mockReset();
     generateCandidatesMock.mockReset();
+    regenerateCandidateAudioMock.mockReset();
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
+    regenerateCandidateAudioMock.mockResolvedValue({
+      prompt: { cueMeaning: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
+      previewAudio: {
+        id: 'media-regenerated',
+        filename: 'candidate-regenerated.mp3',
+        url: '/api/study/media/media-regenerated',
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
+    });
   });
 
   it('creates a recognition card and shows a success message', async () => {
@@ -203,6 +231,68 @@ describe('StudyCreatePage', () => {
     expect(
       await screen.findByText('Created 1 generated cards and added them to the study queue.')
     ).toBeInTheDocument();
+  });
+
+  it('regenerates candidate audio and commits the refreshed preview', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        {
+          clientId: 'candidate-1',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: 'company' },
+          answer: {
+            expression: '会社',
+            expressionReading: '会社[かいしゃ]',
+            meaning: 'company',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          rationale: 'Production checks recall.',
+          warnings: [],
+          previewAudio: {
+            id: 'media-1',
+            filename: 'candidate-1.mp3',
+            url: '/api/study/media/media-1',
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+          previewAudioRole: 'answer',
+        },
+      ],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    expect(await screen.findByText('Production')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+
+    expect(regenerateCandidateAudioMock).toHaveBeenCalledWith({
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+        previewAudio: expect.objectContaining({ id: 'media-1' }),
+      }),
+    });
+
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-url',
+      'http://localhost:3001/api/study/media/media-regenerated'
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    expect(commitCandidatesMock).toHaveBeenCalledWith({
+      candidates: [
+        expect.objectContaining({
+          candidateKind: 'production',
+          previewAudio: expect.objectContaining({ id: 'media-regenerated' }),
+          previewAudioRole: 'answer',
+        }),
+      ],
+    });
   });
 
   it('clears stale generated candidates while a new generation is pending', async () => {

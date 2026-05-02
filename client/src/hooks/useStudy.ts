@@ -11,6 +11,8 @@ import type {
   StudyCardCandidateCommitResponse,
   StudyCardCandidateGenerateRequest,
   StudyCardCandidateGenerateResponse,
+  StudyCardCandidatePreviewAudioRequest,
+  StudyCardCandidatePreviewAudioResponse,
   StudyCardSummary,
   StudyExportManifest,
   StudyImportResult,
@@ -178,6 +180,18 @@ export async function commitStudyCardCandidates(
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function regenerateStudyCardCandidatePreviewAudio(
+  payload: StudyCardCandidatePreviewAudioRequest
+): Promise<StudyCardCandidatePreviewAudioResponse> {
+  return apiRequest<StudyCardCandidatePreviewAudioResponse>(
+    '/api/study/card-candidates/regenerate-audio',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
 }
 
 export async function undoStudyReview(
@@ -391,6 +405,12 @@ export function useCommitStudyCardCandidates() {
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
       ]);
     },
+  });
+}
+
+export function useRegenerateStudyCardCandidatePreviewAudio() {
+  return useMutation({
+    mutationFn: regenerateStudyCardCandidatePreviewAudio,
   });
 }
 

@@ -8,6 +8,7 @@ import { cleanupStudyServiceTestMedia, resetStudyServiceMocks } from './studyTes
 import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
+  regenerateStudyCardCandidatePreviewAudio,
 } from '../../../services/studyCandidateService.js';
 
 vi.mock('../../../services/llmClient.js', () => ({
@@ -302,11 +303,49 @@ describe('studyCandidateService', () => {
       candidateKind: 'cloze',
       prompt: {
         clozeText: '会社{{c1::にも}}行ったよ',
+        clozeHint: 'Grammar or particle chunk',
       },
       answer: {
+        notes: 'Practice にも.',
         restoredTextReading: '会社にも行ったよ[furigana]',
       },
       rationale: 'Practice にも.',
+    });
+  });
+
+  it('regenerates candidate preview audio that can be committed as the selected card audio', async () => {
+    const result = await regenerateStudyCardCandidatePreviewAudio({
+      userId: 'user-1',
+      candidate: {
+        clientId: 'produce-company',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(result).toMatchObject({
+      prompt: { cueMeaning: 'company' },
+      answer: {
+        answerAudio: {
+          id: expect.stringMatching(/^media-/),
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      previewAudio: {
+        id: expect.stringMatching(/^media-/),
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
     });
   });
 

@@ -9,6 +9,7 @@ import type {
   StudyCardCandidateGenerateRequest,
   StudyCardCandidateGenerateResponse,
   StudyCardCandidateKind,
+  StudyCardCandidatePreviewAudioResponse,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -133,6 +134,16 @@ function cardTypeForCandidateKind(candidateKind: StudyCardCandidateKind): StudyC
 }
 
 function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCandidate {
+  if (candidate.candidateKind === 'cloze') {
+    return {
+      ...candidate,
+      prompt: {
+        ...candidate.prompt,
+        clozeHint: candidate.prompt.clozeHint ?? getFallbackClozeHint(candidate.prompt.clozeText),
+      },
+    };
+  }
+
   if (candidate.candidateKind === 'text-recognition') {
     return {
       ...candidate,
@@ -155,6 +166,29 @@ function hydrateMissingPromptFields(candidate: StudyCardCandidate): StudyCardCan
   }
 
   return candidate;
+}
+
+function getFallbackClozeHint(clozeText: string | null | undefined): string {
+  const hiddenText = clozeText?.match(/\{\{c1::([^}:]+)(?:::[^}]*)?}}/)?.[1]?.trim() ?? '';
+  if (hiddenText && hiddenText.length <= 4 && !/[\u4e00-\u9faf]/.test(hiddenText)) {
+    return 'Grammar or particle chunk';
+  }
+
+  return 'Missing Japanese expression';
+}
+
+function hydrateMissingNotes(candidate: StudyCardCandidate): StudyCardCandidate {
+  if (candidate.answer.notes) {
+    return candidate;
+  }
+
+  return {
+    ...candidate,
+    answer: {
+      ...candidate.answer,
+      notes: candidate.rationale,
+    },
+  };
 }
 
 async function getGeneratedReading(text: string | null | undefined): Promise<string | null> {
@@ -270,6 +304,8 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
   } else {
     candidate = hydrateMissingPromptFields(candidate);
   }
+
+  candidate = hydrateMissingNotes(candidate);
 
   assertCandidateShape(candidate);
   return candidate;
@@ -516,9 +552,9 @@ Rules:
 - audio-recognition persists as cardType "recognition"; leave prompt text blank and put the Japanese in answer.expression.
 - text-recognition asks Japanese -> English; set prompt.cueText to the Japanese phrase, prompt.cueReading when useful, answer.expression to the same Japanese phrase, and answer.meaning to English.
 - production asks English/context -> Japanese; set prompt.cueMeaning or prompt.cueText to the English cue, answer.expression to the Japanese answer, and answer.meaning to English.
-- cloze uses prompt.clozeText with {{c1::...}} markup and answer.restoredText. Do not wrap text fields in extra quotation marks.
+- cloze uses prompt.clozeText with {{c1::...}} markup, prompt.clozeHint with a short non-answer clue, and answer.restoredText. Do not wrap text fields in extra quotation marks.
 - Use bracket ruby readings like 稚内[わっかない] in reading fields, including answer.expressionReading and answer.restoredTextReading.
-- Include concise notes for grammar/usage nuance when useful. Include example sentence fields only when they add value beyond the target sentence.
+- Include answer.notes on every candidate with concise grammar/usage nuance. Include example sentence fields only when they add value beyond the target sentence.
 - Set answer.answerAudioVoiceId to "${DEFAULT_NARRATOR_VOICES.ja}" unless a better Japanese voice is clearly warranted.
 - Set answer.answerAudioTextOverride to kana/hiragana only when TTS may misread the kanji.
 - Do not include media refs; the server will add audio previews.
@@ -671,4 +707,48 @@ export async function commitStudyCardCandidates(input: {
   }
 
   return { cards };
+}
+
+export async function regenerateStudyCardCandidatePreviewAudio(input: {
+  userId: string;
+  candidate: StudyCardCandidateCommitItem;
+}): Promise<StudyCardCandidatePreviewAudioResponse> {
+  const item = input.candidate;
+  if (!STUDY_CANDIDATE_KINDS.has(item.candidateKind)) {
+    throw new AppError('candidateKind must be a supported generated card kind.', 400);
+  }
+
+  const expectedCardType = cardTypeForCandidateKind(item.candidateKind);
+  if (item.cardType !== expectedCardType) {
+    throw new AppError('cardType does not match candidateKind.', 400);
+  }
+
+  const generated = await synthesizeCandidatePreviewAudio(input.userId, {
+    clientId: item.clientId,
+    candidateKind: item.candidateKind,
+    cardType: item.cardType,
+    prompt: item.prompt,
+    answer: item.answer,
+    rationale: 'Regenerated candidate preview audio.',
+  });
+
+  const previewAudioRole = item.candidateKind === 'audio-recognition' ? 'prompt' : 'answer';
+  const prompt =
+    item.candidateKind === 'audio-recognition'
+      ? {
+          ...item.prompt,
+          cueAudio: generated,
+        }
+      : item.prompt;
+  const answer = {
+    ...item.answer,
+    answerAudio: generated,
+  };
+
+  return {
+    prompt,
+    answer,
+    previewAudio: generated,
+    previewAudioRole,
+  };
 }

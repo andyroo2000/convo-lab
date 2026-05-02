@@ -49,6 +49,7 @@ const {
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
+  regenerateStudyCardCandidatePreviewAudioMock,
   recordStudyReviewMock,
   regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueueMock,
@@ -80,6 +81,7 @@ const {
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
+  regenerateStudyCardCandidatePreviewAudioMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   regenerateStudyCardAnswerAudioMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
@@ -120,6 +122,7 @@ vi.mock('../../../services/studyService.js', () => ({
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
+  regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
   recordStudyReview: recordStudyReviewMock,
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
@@ -160,6 +163,7 @@ describe('Study Routes', () => {
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
+    regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -554,6 +558,59 @@ describe('Study Routes', () => {
         context: 'Business vocabulary',
         includeLearnerContext: true,
       },
+    });
+  });
+
+  it('regenerates candidate preview audio after validating the candidate payload', async () => {
+    regenerateStudyCardCandidatePreviewAudioMock.mockResolvedValue({
+      prompt: { cueMeaning: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudio: {
+          id: 'media-regenerated',
+          filename: 'candidate-regenerated.mp3',
+          url: '/api/study/media/media-regenerated',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+      previewAudio: {
+        id: 'media-regenerated',
+        filename: 'candidate-regenerated.mp3',
+        url: '/api/study/media/media-regenerated',
+        mediaKind: 'audio',
+        source: 'generated',
+      },
+      previewAudioRole: 'answer',
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/regenerate-audio')
+    ).send({
+      candidate: {
+        clientId: 'produce-company',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.previewAudio.id).toBe('media-regenerated');
+    expect(regenerateStudyCardCandidatePreviewAudioMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      candidate: expect.objectContaining({
+        candidateKind: 'production',
+        cardType: 'production',
+        previewAudio: null,
+      }),
     });
   });
 

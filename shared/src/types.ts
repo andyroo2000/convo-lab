@@ -176,6 +176,17 @@ export interface StudyCardCandidateCommitResponse {
   cards: StudyCardSummary[];
 }
 
+export interface StudyCardCandidatePreviewAudioRequest {
+  candidate: StudyCardCandidateCommitItem;
+}
+
+export interface StudyCardCandidatePreviewAudioResponse {
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
+}
+
 export interface StudyOverview {
   dueCount: number;
   newCount: number;
