@@ -48,8 +48,8 @@ vi.mock('../../components/common/VoicePreview', () => ({
 }));
 
 vi.mock('../../components/study/StudyAudioPlayer', () => ({
-  default: ({ label, url }: { label: string; url: string }) => (
-    <button type="button" data-url={url}>
+  default: ({ label, size, url }: { label: string; size?: string; url: string }) => (
+    <button type="button" data-size={size} data-url={url}>
       {label}
     </button>
   ),
@@ -201,6 +201,14 @@ describe('StudyCreatePage', () => {
       'data-url',
       'http://localhost:3001/api/study/media/media-1'
     );
+    expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
+      'data-size',
+      'compact'
+    );
+    const regenerateToVoicePosition = screen
+      .getByRole('button', { name: 'Regenerate audio' })
+      .compareDocumentPosition(screen.getByLabelText('Answer audio voice'));
+    expect(regenerateToVoicePosition).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
     await userEvent.clear(screen.getByLabelText('Answer meaning'));
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'business');
@@ -293,6 +301,55 @@ describe('StudyCreatePage', () => {
         }),
       ],
     });
+  });
+
+  it('opens a candidate card preview and flips to the answer', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        {
+          clientId: 'candidate-1',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: 'company' },
+          answer: {
+            expression: '会社',
+            expressionReading: '会社[かいしゃ]',
+            meaning: 'company',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          rationale: 'Production checks recall.',
+          warnings: [],
+          previewAudio: {
+            id: 'media-1',
+            filename: 'candidate-1.mp3',
+            url: '/api/study/media/media-1',
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+          previewAudioRole: 'answer',
+        },
+      ],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Preview card' }));
+
+    expect(screen.getByRole('dialog', { name: 'Card preview' })).toBeInTheDocument();
+    expect(screen.getByText('Prompt side')).toBeInTheDocument();
+    expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+
+    expect(screen.getByText('Answer side')).toBeInTheDocument();
+    expect(screen.getByTestId('study-japanese-heading')).toHaveTextContent('会社');
+    expect(screen.getByRole('button', { name: 'Play answer audio' })).toHaveAttribute(
+      'data-url',
+      'http://localhost:3001/api/study/media/media-1'
+    );
   });
 
   it('clears stale generated candidates while a new generation is pending', async () => {

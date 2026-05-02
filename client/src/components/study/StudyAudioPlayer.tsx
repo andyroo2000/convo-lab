@@ -12,6 +12,7 @@ export interface AudioPlayerHandle {
 interface StudyAudioPlayerProps {
   filename?: string | null;
   label: string;
+  size?: 'default' | 'compact';
   showTimeline?: boolean;
   timelineMode?: 'always' | 'desktop';
   testId?: string;
@@ -19,7 +20,18 @@ interface StudyAudioPlayerProps {
 }
 
 const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
-  ({ filename, label, showTimeline = false, timelineMode = 'always', testId, url }, ref) => {
+  (
+    {
+      filename,
+      label,
+      size = 'default',
+      showTimeline = false,
+      timelineMode = 'always',
+      testId,
+      url,
+    },
+    ref
+  ) => {
     const { t } = useTranslation('study');
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const playingRef = useRef(false);
@@ -141,9 +153,15 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       timelineMode === 'desktop'
         ? 'mx-auto hidden w-full max-w-xl md:block'
         : 'mx-auto w-full max-w-xl';
+    const buttonSizeClasses =
+      size === 'compact'
+        ? 'h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12'
+        : 'h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20';
+    const iconSizeClasses =
+      size === 'compact' ? 'h-5 w-5 sm:h-5 sm:w-5' : 'h-6 w-6 sm:h-7 sm:w-7 md:h-9 md:w-9';
 
     return (
-      <div className="space-y-3" data-testid={testId}>
+      <div className={size === 'compact' ? 'space-y-2' : 'space-y-3'} data-testid={testId}>
         {showButton ? (
           <div className={buttonClasses}>
             <button
@@ -151,12 +169,12 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               onClick={handleClick}
               aria-label={label}
               data-testid={testId ? `${testId}-button` : undefined}
-              className="inline-flex h-14 w-14 items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md sm:h-16 sm:w-16 md:h-20 md:w-20"
+              className={`inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${buttonSizeClasses}`}
             >
               {playing ? (
                 <svg
                   viewBox="0 0 24 24"
-                  className="h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
+                  className={`fill-current ${iconSizeClasses}`}
                   aria-hidden="true"
                 >
                   <rect x="6" y="5" width="4" height="14" rx="1" />
@@ -165,7 +183,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
               ) : (
                 <svg
                   viewBox="0 0 24 24"
-                  className="ml-1 h-6 w-6 fill-current sm:h-7 sm:w-7 md:h-9 md:w-9"
+                  className={`ml-0.5 fill-current ${iconSizeClasses}`}
                   aria-hidden="true"
                 >
                   <path d="M8 5v14l11-7z" />

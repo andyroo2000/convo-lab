@@ -170,6 +170,16 @@
     "candidates": "Candidate cards",
     "learnerContextUsed": "Recent study context was included in the prompt.",
     "addCandidate": "Add this card",
+    "previewCard": "Preview card",
+    "previewCardTitle": "Card preview",
+    "previewPrompt": "Prompt",
+    "previewAnswer": "Answer",
+    "previewHint": "Tap the card, press Space, or use arrow keys to flip.",
+    "closePreview": "Close",
+    "previewSides": {
+      "front": "Prompt side",
+      "back": "Answer side"
+    },
     "audioRecognitionPrompt": "Listening prompt audio",
     "answerPreview": "Answer audio preview",
     "playPreview": "Play generated preview audio",

@@ -170,6 +170,16 @@
     "candidates": "候補カード",
     "learnerContextUsed": "最近の学習文脈をプロンプトに含めました。",
     "addCandidate": "このカードを追加",
+    "previewCard": "カードをプレビュー",
+    "previewCardTitle": "カードプレビュー",
+    "previewPrompt": "表",
+    "previewAnswer": "裏",
+    "previewHint": "カードをタップ、Space、または矢印キーで切り替えます。",
+    "closePreview": "閉じる",
+    "previewSides": {
+      "front": "表面",
+      "back": "裏面"
+    },
     "audioRecognitionPrompt": "リスニング用プロンプト音声",
     "answerPreview": "答え音声のプレビュー",
     "playPreview": "生成音声を再生",
