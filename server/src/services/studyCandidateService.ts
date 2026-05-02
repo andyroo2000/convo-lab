@@ -45,7 +45,7 @@ const STUDY_CANDIDATE_PREVIEW_RETENTION_MS = 24 * 60 * 60 * 1000;
 const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
 const STUDY_CANDIDATE_RANDOM_FISH_AUDIO_VOICE_IDS = new Set([
   'fishaudio:875668667eb94c20b09856b971d9ca2f', // Sample - Calm narrator
-  'fishaudio:b3e9710c629a472f8224e1c4975a869e', // Otani-san - Confident and professional
+  'fishaudio:abb4362e736f40b7b5716f4fafcafa9f', // Watashi no Boisu - Warm and gentle
   'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0', // Ken Mama - Soft and intimate
 ]);
 const STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS = TTS_VOICES.ja.voices

@@ -33,7 +33,7 @@ const schedulerState = {
 };
 const expectedCandidateVoiceIds = [
   'fishaudio:875668667eb94c20b09856b971d9ca2f',
-  'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+  'fishaudio:abb4362e736f40b7b5716f4fafcafa9f',
   'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0',
 ];
 const japaneseCandidateVoiceIds = TTS_VOICES.ja.voices
