@@ -43,8 +43,16 @@ const STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID = 'candidate-preview';
 const STUDY_CANDIDATE_PREVIEW_SOURCE_KIND = 'generated_preview';
 const STUDY_CANDIDATE_PREVIEW_RETENTION_MS = 24 * 60 * 60 * 1000;
 const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
-const STUDY_JA_FISH_AUDIO_VOICE_IDS = TTS_VOICES.ja.voices
-  .filter((voice) => voice.provider === 'fishaudio')
+const STUDY_CANDIDATE_RANDOM_FISH_AUDIO_VOICE_IDS = new Set([
+  'fishaudio:875668667eb94c20b09856b971d9ca2f', // Sample - Calm narrator
+  'fishaudio:b3e9710c629a472f8224e1c4975a869e', // Otani-san - Confident and professional
+  'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0', // Ken Mama - Soft and intimate
+]);
+const STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS = TTS_VOICES.ja.voices
+  .filter(
+    (voice) =>
+      voice.provider === 'fishaudio' && STUDY_CANDIDATE_RANDOM_FISH_AUDIO_VOICE_IDS.has(voice.id)
+  )
   .map((voice) => voice.id);
 
 type JsonRecord = Record<string, unknown>;
@@ -106,8 +114,8 @@ function sanitizePromptPayload(value: unknown): StudyPromptPayload {
 
 function getRandomStudyCandidateVoiceId(): string {
   const voices =
-    STUDY_JA_FISH_AUDIO_VOICE_IDS.length > 0
-      ? STUDY_JA_FISH_AUDIO_VOICE_IDS
+    STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS.length > 0
+      ? STUDY_JA_CANDIDATE_RANDOM_VOICE_IDS
       : [DEFAULT_NARRATOR_VOICES.ja];
   const voice = voices[Math.floor(Math.random() * voices.length)];
   return voice ?? DEFAULT_NARRATOR_VOICES.ja;

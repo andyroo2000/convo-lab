@@ -31,8 +31,13 @@ const schedulerState = {
   state: 0,
   last_review: null,
 };
-const japaneseFishVoiceIds = TTS_VOICES.ja.voices
-  .filter((voice) => voice.provider === 'fishaudio')
+const expectedCandidateVoiceIds = [
+  'fishaudio:875668667eb94c20b09856b971d9ca2f',
+  'fishaudio:b3e9710c629a472f8224e1c4975a869e',
+  'fishaudio:351aa1e3ef354082bc1f4294d4eea5d0',
+];
+const japaneseCandidateVoiceIds = TTS_VOICES.ja.voices
+  .filter((voice) => expectedCandidateVoiceIds.includes(voice.id))
   .map((voice) => voice.id);
 
 describe('studyCandidateService', () => {
@@ -135,9 +140,10 @@ describe('studyCandidateService', () => {
       candidateKind: 'production',
       previewAudioRole: 'answer',
     });
-    expect(result.candidates[0].answer.answerAudioVoiceId).toBe(japaneseFishVoiceIds[0]);
+    expect(japaneseCandidateVoiceIds).toEqual(expectedCandidateVoiceIds);
+    expect(result.candidates[0].answer.answerAudioVoiceId).toBe(japaneseCandidateVoiceIds[0]);
     expect(result.candidates[1].answer.answerAudioVoiceId).toBe(
-      japaneseFishVoiceIds[japaneseFishVoiceIds.length - 1]
+      japaneseCandidateVoiceIds[japaneseCandidateVoiceIds.length - 1]
     );
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
   });
@@ -199,7 +205,7 @@ describe('studyCandidateService', () => {
     });
   });
 
-  it('uses a random Fish Audio voice for generated candidates even when the model returns the Google default', async () => {
+  it('uses one of the preferred Fish Audio voices for generated candidates even when the model returns the Google default', async () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.45);
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
@@ -231,7 +237,7 @@ describe('studyCandidateService', () => {
 
     expect(result.candidates[0].answer.answerAudioVoiceId).toMatch(/^fishaudio:/);
     expect(result.candidates[0].answer.answerAudioVoiceId).not.toBe(DEFAULT_NARRATOR_VOICES.ja);
-    expect(japaneseFishVoiceIds).toContain(result.candidates[0].answer.answerAudioVoiceId);
+    expect(japaneseCandidateVoiceIds).toContain(result.candidates[0].answer.answerAudioVoiceId);
   });
 
   it('rejects malformed LLM output with a safe error', async () => {
