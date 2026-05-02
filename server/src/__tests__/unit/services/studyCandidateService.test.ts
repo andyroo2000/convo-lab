@@ -1,5 +1,5 @@
 /* eslint-disable import/order */
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockPrisma } from '../../setup.js';
@@ -27,6 +27,9 @@ const schedulerState = {
   state: 0,
   last_review: null,
 };
+const japaneseFishVoiceIds = TTS_VOICES.ja.voices
+  .filter((voice) => voice.provider === 'fishaudio')
+  .map((voice) => voice.id);
 
 describe('studyCandidateService', () => {
   beforeEach(() => {
@@ -59,9 +62,11 @@ describe('studyCandidateService', () => {
 
   afterEach(async () => {
     await cleanupStudyServiceTestMedia();
+    vi.restoreAllMocks();
   });
 
   it('generates candidates with learner context and audio-recognition preview media', async () => {
+    vi.spyOn(Math, 'random').mockReturnValueOnce(0).mockReturnValueOnce(0.99);
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
         candidates: [
@@ -126,7 +131,46 @@ describe('studyCandidateService', () => {
       candidateKind: 'production',
       previewAudioRole: 'answer',
     });
+    expect(result.candidates[0].answer.answerAudioVoiceId).toBe(japaneseFishVoiceIds[0]);
+    expect(result.candidates[1].answer.answerAudioVoiceId).toBe(
+      japaneseFishVoiceIds[japaneseFishVoiceIds.length - 1]
+    );
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses a random Fish Audio voice for generated candidates even when the model returns the Google default', async () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.45);
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        candidates: [
+          {
+            clientId: 'read-company',
+            candidateKind: 'text-recognition',
+            cardType: 'recognition',
+            prompt: { cueText: '会社' },
+            answer: {
+              expression: '会社',
+              expressionReading: '会社[かいしゃ]',
+              meaning: 'company',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+            rationale: 'Reading recognition is useful.',
+          },
+        ],
+      })
+    );
+
+    const result = await generateStudyCardCandidates({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        includeLearnerContext: false,
+      },
+    });
+
+    expect(result.candidates[0].answer.answerAudioVoiceId).toMatch(/^fishaudio:/);
+    expect(result.candidates[0].answer.answerAudioVoiceId).not.toBe(DEFAULT_NARRATOR_VOICES.ja);
+    expect(japaneseFishVoiceIds).toContain(result.candidates[0].answer.answerAudioVoiceId);
   });
 
   it('rejects malformed LLM output with a safe error', async () => {

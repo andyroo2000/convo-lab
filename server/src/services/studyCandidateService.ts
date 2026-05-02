@@ -38,6 +38,9 @@ const STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID = 'candidate-preview';
 const STUDY_CANDIDATE_PREVIEW_SOURCE_KIND = 'generated_preview';
 const STUDY_CANDIDATE_PREVIEW_RETENTION_MS = 24 * 60 * 60 * 1000;
 const STUDY_JA_TTS_VOICE_IDS = new Set<string>(TTS_VOICES.ja.voices.map((voice) => voice.id));
+const STUDY_JA_FISH_AUDIO_VOICE_IDS = TTS_VOICES.ja.voices
+  .filter((voice) => voice.provider === 'fishaudio')
+  .map((voice) => voice.id);
 
 const STUDY_CANDIDATE_KINDS = new Set<StudyCardCandidateKind>([
   'text-recognition',
@@ -103,14 +106,19 @@ function sanitizePromptPayload(value: unknown): StudyPromptPayload {
   };
 }
 
-function sanitizeAnswerPayload(value: unknown): StudyAnswerPayload {
+function getRandomStudyCandidateVoiceId(): string {
+  const voices =
+    STUDY_JA_FISH_AUDIO_VOICE_IDS.length > 0
+      ? STUDY_JA_FISH_AUDIO_VOICE_IDS
+      : [DEFAULT_NARRATOR_VOICES.ja];
+  const voice = voices[Math.floor(Math.random() * voices.length)];
+  return voice ?? DEFAULT_NARRATOR_VOICES.ja;
+}
+
+function sanitizeAnswerPayload(value: unknown, generatedVoiceId: string): StudyAnswerPayload {
   if (!isRecord(value)) {
     throw new AppError('Generated candidate answer must be an object.', 502);
   }
-
-  const rawVoiceId = parseNullableString(value.answerAudioVoiceId);
-  const answerAudioVoiceId =
-    rawVoiceId && STUDY_JA_TTS_VOICE_IDS.has(rawVoiceId) ? rawVoiceId : DEFAULT_NARRATOR_VOICES.ja;
 
   return {
     expression: parseNullableString(value.expression),
@@ -122,7 +130,9 @@ function sanitizeAnswerPayload(value: unknown): StudyAnswerPayload {
     sentenceEn: parseNullableString(value.sentenceEn),
     restoredText: parseNullableString(value.restoredText),
     restoredTextReading: parseNullableString(value.restoredTextReading),
-    answerAudioVoiceId,
+    answerAudioVoiceId: STUDY_JA_TTS_VOICE_IDS.has(generatedVoiceId)
+      ? generatedVoiceId
+      : DEFAULT_NARRATOR_VOICES.ja,
     answerAudioTextOverride: parseNullableString(value.answerAudioTextOverride),
   };
 }
@@ -287,7 +297,7 @@ function normalizeGeneratedCandidate(raw: unknown, index: number): StudyCardCand
     candidateKind: kind,
     cardType,
     prompt: sanitizePromptPayload(raw.prompt),
-    answer: sanitizeAnswerPayload(raw.answer),
+    answer: sanitizeAnswerPayload(raw.answer, getRandomStudyCandidateVoiceId()),
     rationale: parseNullableString(raw.rationale) ?? 'Generated from your prompt.',
     warnings: Array.isArray(raw.warnings)
       ? raw.warnings.filter((warning): warning is string => typeof warning === 'string')
@@ -555,7 +565,7 @@ Rules:
 - cloze uses prompt.clozeText with {{c1::...}} markup, prompt.clozeHint with a short non-answer clue, and answer.restoredText. Do not wrap text fields in extra quotation marks.
 - Use bracket ruby readings like 稚内[わっかない] in reading fields, including answer.expressionReading and answer.restoredTextReading.
 - Include answer.notes on every candidate with concise grammar/usage nuance. Include example sentence fields only when they add value beyond the target sentence.
-- Set answer.answerAudioVoiceId to "${DEFAULT_NARRATOR_VOICES.ja}" unless a better Japanese voice is clearly warranted.
+- Omit answer.answerAudioVoiceId; the server assigns a random Fish Audio Japanese voice for each candidate preview.
 - Set answer.answerAudioTextOverride to kana/hiragana only when TTS may misread the kanji.
 - Do not include media refs; the server will add audio previews.
 
