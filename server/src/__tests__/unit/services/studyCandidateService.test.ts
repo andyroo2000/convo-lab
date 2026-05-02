@@ -192,6 +192,7 @@ describe('studyCandidateService', () => {
         where: expect.objectContaining({
           userId: 'user-1',
           sourceKind: 'generated_preview',
+          createdAt: expect.objectContaining({ lt: expect.any(Date) }),
           promptAudioCards: { none: {} },
           answerAudioCards: { none: {} },
         }),

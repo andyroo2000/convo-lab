@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants.js';
@@ -596,7 +597,7 @@ export async function generateStudyCardCandidates(input: {
       where: {
         userId: input.userId,
         sourceKind: STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
-        updatedAt: {
+        createdAt: {
           lt: new Date(Date.now() - STUDY_CANDIDATE_PREVIEW_RETENTION_MS),
         },
         promptAudioCards: {
@@ -744,9 +745,9 @@ export async function commitStudyCardCandidates(input: {
   if (!Array.isArray(input.candidates) || input.candidates.length === 0) {
     throw new AppError('At least one candidate is required.', 400);
   }
-  if (input.candidates.length > STUDY_CANDIDATE_MAX_COUNT) {
+  if (input.candidates.length > STUDY_CANDIDATE_COMMIT_MAX_COUNT) {
     throw new AppError(
-      `A maximum of ${String(STUDY_CANDIDATE_MAX_COUNT)} candidates can be added at once.`,
+      `A maximum of ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} candidates can be added at once.`,
       400
     );
   }

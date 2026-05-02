@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -389,6 +389,7 @@ describe('StudyCreatePage', () => {
     await userEvent.click(regenerateButtons[0]);
 
     expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
     expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(1);
 
     await act(async () => {
@@ -396,6 +397,7 @@ describe('StudyCreatePage', () => {
     });
 
     expect(await screen.findByText('Voice unavailable')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
     expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(2);
   });
 
@@ -439,7 +441,7 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
     await userEvent.clear(screen.getByLabelText('Target word or sentence'));
     await userEvent.type(screen.getByLabelText('Target word or sentence'), '学校');
-    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    fireEvent.submit(screen.getByTestId('study-generate-form'));
     expect(await screen.findByLabelText('Answer expression')).toHaveValue('学校');
 
     await act(async () => {
@@ -513,6 +515,11 @@ describe('StudyCreatePage', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
     expect(screen.getByText('Prompt side')).toBeInTheDocument();
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('button', { name: 'Answer' })).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
 
     screen.getByRole('button', { name: /company/i }).focus();
     await userEvent.keyboard(' ');

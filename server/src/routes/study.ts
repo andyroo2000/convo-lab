@@ -4,6 +4,7 @@ import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
@@ -533,6 +534,12 @@ function parseStudyCardCandidatePreviewRole(value: unknown): 'prompt' | 'answer'
 function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateCommitItem[] {
   if (!Array.isArray(value)) {
     throw new AppError('candidates must be an array.', 400);
+  }
+  if (value.length > STUDY_CANDIDATE_COMMIT_MAX_COUNT) {
+    throw new AppError(
+      `candidates must include no more than ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} cards.`,
+      400
+    );
   }
 
   return value.map((item, index) => {

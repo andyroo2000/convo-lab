@@ -13,6 +13,7 @@ const StudyCandidateCardPreviewModal = ({
 }) => {
   const { t } = useTranslation('study');
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   const [side, setSide] = useState<'front' | 'back'>('front');
   const toggleSide = useCallback(
     () => setSide((current) => (current === 'front' ? 'back' : 'front')),
@@ -20,7 +21,33 @@ const StudyCandidateCardPreviewModal = ({
   );
 
   useEffect(() => {
+    const getFocusableElements = () =>
+      Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), audio[controls], [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      ).filter(
+        (element) =>
+          !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true'
+      );
+
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Tab') {
+        const focusableElements = getFocusableElements();
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements.at(-1);
+        if (!firstElement || !lastElement) return;
+
+        if (event.shiftKey && document.activeElement === firstElement) {
+          event.preventDefault();
+          lastElement.focus();
+        } else if (!event.shiftKey && document.activeElement === lastElement) {
+          event.preventDefault();
+          firstElement.focus();
+        }
+        return;
+      }
+
       if (event.key === 'Escape') {
         onClose();
         return;
@@ -54,6 +81,7 @@ const StudyCandidateCardPreviewModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div
+        ref={dialogRef}
         className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl"
         role="dialog"
         aria-modal="true"

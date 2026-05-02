@@ -3,6 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
@@ -735,6 +736,20 @@ describe('Study Routes', () => {
         }),
       ],
     });
+  });
+
+  it('rejects generated candidate commits over the route cap before parsing items', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/commit')
+    ).send({
+      candidates: Array.from({ length: STUDY_CANDIDATE_COMMIT_MAX_COUNT + 1 }, () => null),
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain(
+      `no more than ${String(STUDY_CANDIDATE_COMMIT_MAX_COUNT)} cards`
+    );
+    expect(commitStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
   it('rejects generated candidate commits with mismatched card type', async () => {

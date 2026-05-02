@@ -49,6 +49,7 @@ const StudyCreatePage = () => {
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
+  const isCandidateAudioRegenerating = regeneratingCandidateId !== null;
 
   const handleManualSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -137,6 +138,8 @@ const StudyCreatePage = () => {
       });
 
       setCandidateDrafts((current) =>
+        // If a newer generation replaced the draft list while this request was in flight,
+        // the old clientId will not match anything and the stale audio result is dropped.
         current.map((currentDraft) =>
           currentDraft.candidate.clientId === candidateId
             ? {
@@ -213,7 +216,11 @@ const StudyCreatePage = () => {
 
       {mode === 'generate' ? (
         <section className="card retro-paper-panel max-w-4xl">
-          <form className="space-y-4" onSubmit={handleGenerateSubmit}>
+          <form
+            className="space-y-4"
+            data-testid="study-generate-form"
+            onSubmit={handleGenerateSubmit}
+          >
             <div className="block">
               <label
                 htmlFor="study-generate-target"
@@ -270,7 +277,7 @@ const StudyCreatePage = () => {
             ) : null}
             <button
               type="submit"
-              disabled={generateCandidates.isPending}
+              disabled={generateCandidates.isPending || isCandidateAudioRegenerating}
               className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {generateCandidates.isPending ? t('create.generating') : t('create.generateSubmit')}

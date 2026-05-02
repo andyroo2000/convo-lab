@@ -14,6 +14,7 @@ export {
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
 } from './studyConstants';
 
 export type LanguageCode = 'ja' | 'en';
