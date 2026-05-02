@@ -165,28 +165,36 @@ function useGeneratedStudyCandidates() {
     [regenerateImageForCandidate]
   );
 
-  const clearGeneratedState = useCallback(() => {
-    generationTokenRef.current += 1;
-    activeRegenerationCandidateIdRef.current = null;
-    activeImageRegenerationCandidateIdRef.current = null;
-    setLearnerContextSummary(null);
-    setCandidateDrafts([]);
-    setRegeneratingCandidateId(null);
-    setRegeneratingImageCandidateId(null);
-    setRegenerateErrorByCandidateId({});
-    setRegenerateImageErrorByCandidateId({});
-    setPreviewDraftIndex(null);
-  }, [setCandidateDrafts]);
+  const clearGeneratedState = useCallback(
+    (options: { invalidateGeneration?: boolean } = {}) => {
+      if (options.invalidateGeneration !== false) {
+        generationTokenRef.current += 1;
+      }
+
+      activeRegenerationCandidateIdRef.current = null;
+      activeImageRegenerationCandidateIdRef.current = null;
+      setLearnerContextSummary(null);
+      setCandidateDrafts([]);
+      setRegeneratingCandidateId(null);
+      setRegeneratingImageCandidateId(null);
+      setRegenerateErrorByCandidateId({});
+      setRegenerateImageErrorByCandidateId({});
+      setPreviewDraftIndex(null);
+    },
+    [setCandidateDrafts]
+  );
 
   const generate = useCallback(
     async (payload: StudyCardCandidateGenerateRequest) => {
       setSuccess(null);
-      clearGeneratedState();
-
-      const result = await generateCandidates.mutateAsync(payload);
-      const nextDrafts = result.candidates.map(createStudyCandidateDraft);
       const token = generationTokenRef.current + 1;
       generationTokenRef.current = token;
+      clearGeneratedState({ invalidateGeneration: false });
+
+      const result = await generateCandidates.mutateAsync(payload);
+      if (generationTokenRef.current !== token) return;
+
+      const nextDrafts = result.candidates.map(createStudyCandidateDraft);
       // Keep the ref in step with the freshly generated drafts before React commits state,
       // because lazy image backfill may read it immediately after generation resolves.
       candidateDraftsRef.current = nextDrafts;

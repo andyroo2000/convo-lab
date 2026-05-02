@@ -1044,6 +1044,9 @@ router.post(
         throw new AppError('candidate must be an object.', 400);
       }
       const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt.trim() : '';
+      if (!imagePrompt) {
+        throw new AppError('imagePrompt is required.', 400);
+      }
 
       const [candidate] = parseStudyCardCandidateCommitItems([body.candidate]);
       const result = await regenerateStudyCardCandidatePreviewImage({

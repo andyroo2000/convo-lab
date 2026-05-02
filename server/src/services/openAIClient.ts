@@ -44,6 +44,20 @@ function isGptImageModel(model: string): boolean {
   return model.startsWith('gpt-image-');
 }
 
+function contentTypeForOpenAIImageFormat(value: unknown): string {
+  if (typeof value === 'undefined' || value === null || value === 'png') {
+    return 'image/png';
+  }
+  if (value === 'webp') {
+    return 'image/webp';
+  }
+  if (value === 'jpeg') {
+    return 'image/jpeg';
+  }
+
+  throw new AppError('OpenAI returned an unsupported image format.', 502);
+}
+
 function getOpenAIApiKey(): string {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -187,12 +201,7 @@ export async function generateOpenAIImageBuffer(prompt: string): Promise<{
     OPENAI_IMAGES_TIMEOUT_MS
   );
 
-  if (
-    typeof payload.output_format === 'string' &&
-    payload.output_format !== DEFAULT_OPENAI_IMAGE_OUTPUT_FORMAT
-  ) {
-    throw new AppError('OpenAI returned an unsupported image format.', 502);
-  }
+  const contentType = contentTypeForOpenAIImageFormat(payload.output_format);
 
   const b64Json = payload.data?.[0]?.b64_json;
   if (!b64Json) {
@@ -201,6 +210,6 @@ export async function generateOpenAIImageBuffer(prompt: string): Promise<{
 
   return {
     buffer: Buffer.from(b64Json, 'base64'),
-    contentType: 'image/png',
+    contentType,
   };
 }

@@ -76,13 +76,30 @@ describe('openAIClient', () => {
     });
   });
 
+  it('uses the returned OpenAI image output format for the content type', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          output_format: 'webp',
+          data: [{ b64_json: Buffer.from('webp-bytes').toString('base64') }],
+        })
+      )
+    );
+
+    await expect(generateOpenAIImageBuffer('A cat.')).resolves.toEqual({
+      buffer: Buffer.from('webp-bytes'),
+      contentType: 'image/webp',
+    });
+  });
+
   it('rejects image responses with an unexpected output format', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
         mockJsonResponse(200, {
-          output_format: 'jpeg',
-          data: [{ b64_json: Buffer.from('jpeg-bytes').toString('base64') }],
+          output_format: 'gif',
+          data: [{ b64_json: Buffer.from('gif-bytes').toString('base64') }],
         })
       )
     );

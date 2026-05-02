@@ -763,6 +763,28 @@ describe('Study Routes', () => {
     expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
   });
 
+  it('rejects blank candidate image prompts before regenerating images', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/regenerate-image')
+    ).send({
+      imagePrompt: '   ',
+      candidate: {
+        clientId: 'produce-cloudy',
+        candidateKind: 'production',
+        cardType: 'production',
+        prompt: { cueMeaning: '名詞' },
+        answer: {
+          expression: '曇り',
+          meaning: 'cloudy weather',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('imagePrompt is required.');
+    expect(regenerateStudyCardCandidatePreviewImageMock).not.toHaveBeenCalled();
+  });
+
   it('lets the candidate service own image prompt length validation', async () => {
     regenerateStudyCardCandidatePreviewImageMock.mockRejectedValueOnce(
       Object.assign(
