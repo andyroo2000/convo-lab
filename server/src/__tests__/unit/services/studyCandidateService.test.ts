@@ -120,7 +120,11 @@ describe('studyCandidateService', () => {
 
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('Recent learner context:'),
-      expect.stringContaining('valid JSON')
+      expect.stringContaining('Return strict JSON only')
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.not.stringContaining('Rules:'),
+      expect.stringContaining('Rules:')
     );
     expect(result.learnerContextSummary).toContain('会社 - company');
     expect(result.candidates).toHaveLength(2);
