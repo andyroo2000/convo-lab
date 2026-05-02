@@ -9,6 +9,7 @@ import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
+import type { StudyCardCandidatePreviewImageResponse } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
 
@@ -543,9 +544,8 @@ describe('StudyCreatePage', () => {
         }),
       ],
     });
-    let resolveImageBackfill:
-      | ((value: Awaited<ReturnType<typeof regenerateCandidateImageMock>>) => void)
-      | null = null;
+    let resolveImageBackfill: ((value: StudyCardCandidatePreviewImageResponse) => void) | null =
+      null;
     regenerateCandidateImageMock.mockImplementationOnce(
       () =>
         new Promise((resolve) => {
@@ -597,6 +597,73 @@ describe('StudyCreatePage', () => {
 
     expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
     expect(screen.queryByAltText('Generated card prompt')).not.toBeInTheDocument();
+  });
+
+  it('unblocks generation after committing while lazy image backfill is running', async () => {
+    let resolveImageBackfill: ((value: StudyCardCandidatePreviewImageResponse) => void) | undefined;
+    generateCandidatesMock.mockResolvedValueOnce({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({
+          prompt: { cueMeaning: '名詞' },
+          answer: {
+            expression: '曇り',
+            expressionReading: '曇り[くもり]',
+            meaning: 'cloudy weather',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          previewImage: null,
+          imagePrompt: 'A simple image of cloudy weather.',
+        }),
+      ],
+    });
+    regenerateCandidateImageMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveImageBackfill = resolve;
+        })
+    );
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '曇り');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Prompt image preview')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(regenerateCandidateImageMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    await waitFor(() => {
+      expect(commitCandidatesMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
+    });
+
+    await act(async () => {
+      resolveImageBackfill?.({
+        prompt: {
+          cueMeaning: '名詞',
+          cueImage: {
+            id: 'late-image',
+            filename: 'late-image.webp',
+            url: '/api/study/media/late-image',
+            mediaKind: 'image',
+            source: 'generated',
+          },
+        },
+        previewImage: {
+          id: 'late-image',
+          filename: 'late-image.webp',
+          url: '/api/study/media/late-image',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+        imagePrompt: 'A simple image of cloudy weather.',
+      });
+    });
   });
 
   it('keeps an existing image preview when the image prompt changes without regeneration', async () => {

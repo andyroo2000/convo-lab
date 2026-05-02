@@ -148,6 +148,7 @@ const StudyCandidateDraftList = ({
 
             {shouldShowImagePreview ? (
               <StudyCandidatePreviewImage
+                altText={t('create.generatedCardPromptAlt')}
                 imagePrompt={draft.imagePrompt}
                 imagePromptId={`candidate-${index}-image-prompt`}
                 imagePromptLabel={t('create.imagePrompt')}

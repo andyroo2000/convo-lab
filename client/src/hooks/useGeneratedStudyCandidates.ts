@@ -166,8 +166,8 @@ function useGeneratedStudyCandidates() {
   );
 
   const clearGeneratedState = useCallback(
-    (options: { invalidateGeneration?: boolean } = {}) => {
-      if (options.invalidateGeneration !== false) {
+    (options: { skipTokenIncrement?: boolean } = {}) => {
+      if (!options.skipTokenIncrement) {
         generationTokenRef.current += 1;
       }
 
@@ -189,7 +189,9 @@ function useGeneratedStudyCandidates() {
       setSuccess(null);
       const token = generationTokenRef.current + 1;
       generationTokenRef.current = token;
-      clearGeneratedState({ invalidateGeneration: false });
+      // This generate call has already advanced the token above; clearing state here should
+      // not advance it again or the upcoming response would look stale to itself.
+      clearGeneratedState({ skipTokenIncrement: true });
 
       const result = await generateCandidates.mutateAsync(payload);
       if (generationTokenRef.current !== token) return;
@@ -334,7 +336,11 @@ function useGeneratedStudyCandidates() {
 
     setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
     generationTokenRef.current += 1;
+    activeRegenerationCandidateIdRef.current = null;
+    activeImageRegenerationCandidateIdRef.current = null;
     setCandidateDrafts([]);
+    setRegeneratingCandidateId(null);
+    setRegeneratingImageCandidateId(null);
     setRegenerateErrorByCandidateId({});
     setRegenerateImageErrorByCandidateId({});
     setPreviewDraftIndex(null);

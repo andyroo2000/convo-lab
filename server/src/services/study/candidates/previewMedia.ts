@@ -130,8 +130,8 @@ export async function generateCandidatePreviewImage(input: {
   clientId: string;
   imagePrompt: string;
 }): Promise<StudyMediaRef> {
-  const generated = await generateOpenAIImageBuffer(input.imagePrompt);
-  const webpBuffer = await sharp(generated.buffer)
+  const { buffer } = await generateOpenAIImageBuffer(input.imagePrompt);
+  const webpBuffer = await sharp(buffer)
     .webp({ quality: STUDY_CANDIDATE_IMAGE_WEBP_QUALITY })
     .toBuffer();
 
