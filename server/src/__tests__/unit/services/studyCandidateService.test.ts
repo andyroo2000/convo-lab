@@ -125,12 +125,16 @@ describe('studyCandidateService', () => {
     });
 
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
-      expect.stringContaining('Recent learner context:'),
+      expect.stringContaining('"learnerContextSummary"'),
       expect.stringContaining('Return strict JSON only')
     );
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.not.stringContaining('Rules:'),
       expect.stringContaining('Rules:')
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.not.stringContaining('<target_text>'),
+      expect.any(String)
     );
     expect(result.learnerContextSummary).toContain('会社 - company');
     expect(result.candidates).toHaveLength(2);
@@ -189,6 +193,9 @@ describe('studyCandidateService', () => {
         },
       },
     });
+    expect(mockPrisma.studyMedia.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
+      deleteFromGCSPathMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
+    );
   });
 
   it('uses one of the preferred Fish Audio voices for generated candidates even when the model returns the Google default', async () => {
@@ -240,33 +247,6 @@ describe('studyCandidateService', () => {
       '[Study candidates] Failed to parse LLM JSON response.',
       expect.any(SyntaxError)
     );
-  });
-
-  it('validates generated-card request content at the service boundary', async () => {
-    await expect(
-      generateStudyCardCandidates({
-        userId: 'user-1',
-        request: { targetText: '   ' },
-      })
-    ).rejects.toThrow('targetText is required');
-    await expect(
-      generateStudyCardCandidates({
-        userId: 'user-1',
-        request: {
-          targetText: 'a'.repeat(501),
-        },
-      })
-    ).rejects.toThrow('targetText must be 500 characters or fewer');
-    await expect(
-      generateStudyCardCandidates({
-        userId: 'user-1',
-        request: {
-          targetText: '会社',
-          context: 'a'.repeat(2001),
-        },
-      })
-    ).rejects.toThrow('context must be 2000 characters or fewer');
-    expect(generateStudyCardCandidateJson).not.toHaveBeenCalled();
   });
 
   it('hydrates missing generated text-recognition prompt text from the answer expression', async () => {

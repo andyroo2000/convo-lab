@@ -1,11 +1,7 @@
 import { randomUUID } from 'crypto';
 
 import { DEFAULT_NARRATOR_VOICES, TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
-import {
-  STUDY_CANDIDATE_COMMIT_MAX_COUNT,
-  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
-  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
-} from '@languageflow/shared/src/studyConstants.js';
+import { STUDY_CANDIDATE_COMMIT_MAX_COUNT } from '@languageflow/shared/src/studyConstants.js';
 import type {
   StudyAnswerPayload,
   StudyCardCandidate,
@@ -456,29 +452,13 @@ async function addPreviewAudio(
   }
 }
 
-function validateGenerateRequest(input: StudyCardCandidateGenerateRequest): {
+function normalizeGenerateRequest(input: StudyCardCandidateGenerateRequest): {
   targetText: string;
   context: string;
   includeLearnerContext: boolean;
 } {
   const targetText = input.targetText?.trim() ?? '';
-  if (!targetText) {
-    throw new AppError('targetText is required.', 400);
-  }
-  if (targetText.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
-    throw new AppError(
-      `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
-      400
-    );
-  }
-
   const context = input.context?.trim() ?? '';
-  if (context.length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH) {
-    throw new AppError(
-      `context must be ${String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)} characters or fewer.`,
-      400
-    );
-  }
 
   return {
     targetText,
@@ -539,7 +519,7 @@ export async function generateStudyCardCandidates(input: {
   userId: string;
   request: StudyCardCandidateGenerateRequest;
 }): Promise<StudyCardCandidateGenerateResponse> {
-  const request = validateGenerateRequest(input.request);
+  const request = normalizeGenerateRequest(input.request);
   scheduleStudyCandidatePreviewMediaCleanup(input.userId);
   const learnerContextSummary = request.includeLearnerContext
     ? await buildLearnerContextSummary(input.userId)

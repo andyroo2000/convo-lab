@@ -905,6 +905,8 @@ router.post(
   }
 );
 
+// Candidate routes intentionally rely on the global flashcardsEnabled gate above;
+// no separate rollout flag is needed for this flashcards-only surface.
 router.post(
   '/card-candidates/generate',
   rateLimitStudyRoute({ key: 'card-candidate-generate', max: 20, windowMs: 60 * 1000 }),
@@ -924,8 +926,8 @@ router.post(
         throw new AppError('targetText is required.', 400);
       }
       const trimmedTargetText = targetText.trim();
-      // Keep cheap route-level size checks in front of service validation so oversized
-      // requests fail before any learner-context or LLM work can start.
+      // Keep cheap route-level size checks here so oversized requests fail before
+      // learner-context or LLM work can start.
       if (!trimmedTargetText) {
         throw new AppError('targetText is required.', 400);
       }

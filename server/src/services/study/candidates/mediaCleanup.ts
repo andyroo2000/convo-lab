@@ -35,19 +35,21 @@ export async function cleanupStudyCandidatePreviewMedia(
 
   if (stalePreviewMedia.length === 0) return;
 
+  const staleMediaIds = stalePreviewMedia.map((media) => media.id);
+  // Delete DB rows first; orphaned storage is preferable to card audio rows pointing at missing files.
+  await prisma.studyMedia.deleteMany({
+    where: {
+      id: {
+        in: staleMediaIds,
+      },
+    },
+  });
   await Promise.allSettled(
     stalePreviewMedia
       .map((media) => media.storagePath)
       .filter((storagePath): storagePath is string => typeof storagePath === 'string')
       .map((storagePath) => deletePersistedStudyMediaByStoragePath(storagePath))
   );
-  await prisma.studyMedia.deleteMany({
-    where: {
-      id: {
-        in: stalePreviewMedia.map((media) => media.id),
-      },
-    },
-  });
 }
 
 export function scheduleStudyCandidatePreviewMediaCleanup(

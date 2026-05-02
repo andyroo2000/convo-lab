@@ -76,12 +76,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Validate required secrets
+      - name: Validate OpenAI API key
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          if [ -z "${{ secrets.OPENAI_API_KEY }}" ]; then
+          if [ -z "$OPENAI_API_KEY" ]; then
             echo "::error::OPENAI_API_KEY secret is not set"
             exit 1
           fi
+          curl -fsS https://api.openai.com/v1/models \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -o /dev/null
 
       - name: Setup SSH
         run: |
@@ -139,6 +144,11 @@ jobs:
               sed -i "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.staging
             else
               echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.staging
+            fi
+
+            if ! grep -Eq '^OPENAI_API_KEY=.+$' .env.staging; then
+              echo "❌ OPENAI_API_KEY is missing after staging env injection."
+              exit 1
             fi
 
             # Login to GitHub Container Registry

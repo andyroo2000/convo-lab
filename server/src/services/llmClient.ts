@@ -7,7 +7,7 @@ type LlmProvider = 'openai' | 'gemini';
 const DEFAULT_STUDY_CARD_GENERATOR_PROVIDER: LlmProvider = 'openai';
 const DEFAULT_STUDY_CARD_GENERATOR_MODEL = 'gpt-5.5';
 const DEFAULT_STUDY_CARD_GENERATOR_REASONING_EFFORT = 'medium';
-const OPENAI_RESPONSES_TIMEOUT_MS = 120_000;
+const OPENAI_RESPONSES_TIMEOUT_MS = 30_000;
 
 type OpenAIResponseContent = {
   type?: string;
