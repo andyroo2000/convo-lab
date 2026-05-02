@@ -280,7 +280,6 @@ describe('useStudyReviewSession', () => {
     expect(warmAudioCacheMock).toHaveBeenCalledWith([
       'https://example.com/prompt-1.mp3',
       'https://example.com/answer-1.mp3',
-      null,
       'https://example.com/answer-2.mp3',
     ]);
   });

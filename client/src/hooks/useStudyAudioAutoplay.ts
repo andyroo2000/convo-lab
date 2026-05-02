@@ -80,10 +80,12 @@ export default function useStudyAudioAutoplay({
     if (!focusMode || !cards.length) return;
 
     const upcomingCards = cards.slice(0, PREWARM_CARD_COUNT);
-    const audioUrls = upcomingCards.flatMap((card) => [
-      toAssetUrl(card.prompt.cueAudio?.url),
-      toAssetUrl(card.answer.answerAudio?.url),
-    ]);
+    const audioUrls = upcomingCards
+      .flatMap((card) => [
+        toAssetUrl(card.prompt.cueAudio?.url),
+        toAssetUrl(card.answer.answerAudio?.url),
+      ])
+      .filter((url): url is string => Boolean(url));
 
     warmAudioCache(audioUrls).catch((error) => {
       console.warn('Unable to warm study session audio:', error);

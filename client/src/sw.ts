@@ -49,7 +49,7 @@ const audioStrategy = new CacheFirst({
   cacheName: AUDIO_CACHE_NAME,
   plugins: [
     new ExpirationPlugin({
-      maxEntries: 300,
+      maxEntries: 150,
       maxAgeSeconds: 60 * 60 * 24 * 60,
       purgeOnQuotaError: true,
     }),

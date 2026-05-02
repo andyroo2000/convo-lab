@@ -7,6 +7,8 @@ import { installCsrfFetch } from './lib/csrf';
 import './styles/index.css';
 
 registerSW({
+  // Register before window load so first-session audio warming can reach the SW quickly.
+  // VitePWA's `immediate` controls registration timing, not skip-waiting activation.
   immediate: true,
 });
 
