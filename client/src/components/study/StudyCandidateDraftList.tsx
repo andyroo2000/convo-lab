@@ -51,6 +51,7 @@ const StudyCandidateDraftList = ({
   success,
 }: StudyCandidateDraftListProps) => {
   const { t } = useTranslation('study');
+  const isAnyCandidateRegenerating = regeneratingCandidateId !== null;
 
   return (
     <section className="space-y-4">
@@ -118,6 +119,7 @@ const StudyCandidateDraftList = ({
             ) : null}
 
             <StudyCandidatePreviewAudio
+              isRegenerateDisabled={isAnyCandidateRegenerating && !isRegenerating}
               isRegenerating={isRegenerating}
               label={t('create.playPreview')}
               onRegenerate={() => onRegenerateCandidateAudio(index)}

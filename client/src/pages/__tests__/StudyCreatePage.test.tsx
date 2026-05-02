@@ -412,7 +412,8 @@ describe('StudyCreatePage', () => {
     expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
     expect(screen.getByRole('status', { name: 'Regenerating…' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
-    expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(1);
+    const otherRegenerateButton = screen.getByRole('button', { name: 'Regenerate audio' });
+    expect(otherRegenerateButton).toBeDisabled();
 
     await act(async () => {
       rejectRegeneration?.(new Error('Voice unavailable'));
@@ -421,6 +422,68 @@ describe('StudyCreatePage', () => {
     expect(await screen.findByText('Voice unavailable')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeEnabled();
     expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(2);
+  });
+
+  it('blocks concurrent candidate audio regeneration requests from rapid clicks', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        productionCandidate({ clientId: 'candidate-1' }),
+        productionCandidate({
+          clientId: 'candidate-2',
+          prompt: { cueMeaning: 'school' },
+          answer: {
+            expression: '学校',
+            expressionReading: '学校[がっこう]',
+            meaning: 'school',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+        }),
+      ],
+    });
+    let resolveRegeneration:
+      | ((value: Awaited<ReturnType<typeof regenerateCandidateAudioMock>>) => void)
+      | null = null;
+    regenerateCandidateAudioMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRegeneration = resolve;
+        })
+    );
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    const regenerateButtons = await screen.findAllByRole('button', { name: 'Regenerate audio' });
+    act(() => {
+      regenerateButtons[0].click();
+      regenerateButtons[1].click();
+    });
+
+    expect(regenerateCandidateAudioMock).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Regenerate audio' })).toBeDisabled();
+
+    await act(async () => {
+      resolveRegeneration?.({
+        prompt: { cueMeaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
+        previewAudio: {
+          id: 'media-regenerated',
+          filename: 'candidate-regenerated.mp3',
+          url: '/api/study/media/media-regenerated',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      });
+    });
   });
 
   it('ignores stale candidate audio regeneration results after a new generation replaces candidates', async () => {

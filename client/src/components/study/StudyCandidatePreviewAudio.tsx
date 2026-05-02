@@ -2,6 +2,7 @@ import StudyAudioPlayer from './StudyAudioPlayer';
 
 const StudyCandidatePreviewAudio = ({
   isRegenerating,
+  isRegenerateDisabled,
   label,
   onRegenerate,
   previewUrl,
@@ -11,6 +12,7 @@ const StudyCandidatePreviewAudio = ({
   title,
 }: {
   isRegenerating: boolean;
+  isRegenerateDisabled?: boolean;
   label: string;
   onRegenerate: () => void;
   previewUrl: string | null;
@@ -53,7 +55,7 @@ const StudyCandidatePreviewAudio = ({
     <button
       type="button"
       onClick={onRegenerate}
-      disabled={isRegenerating}
+      disabled={isRegenerating || isRegenerateDisabled}
       className="mt-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {regenerateLabel}

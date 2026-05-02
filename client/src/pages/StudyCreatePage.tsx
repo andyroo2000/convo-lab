@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -42,6 +42,7 @@ const StudyCreatePage = () => {
     Record<string, string>
   >({});
   const [previewDraftIndex, setPreviewDraftIndex] = useState<number | null>(null);
+  const activeRegenerationCandidateIdRef = useRef<string | null>(null);
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
@@ -122,6 +123,9 @@ const StudyCreatePage = () => {
     if (!draft) return;
 
     const candidateId = draft.candidate.clientId;
+    if (activeRegenerationCandidateIdRef.current !== null) return;
+
+    activeRegenerationCandidateIdRef.current = candidateId;
     setRegeneratingCandidateId(candidateId);
     setRegenerateErrorByCandidateId((current) => {
       const { [candidateId]: _removed, ...remaining } = current;
@@ -162,6 +166,9 @@ const StudyCreatePage = () => {
             : t('create.regeneratePreviewFailed'),
       }));
     } finally {
+      if (activeRegenerationCandidateIdRef.current === candidateId) {
+        activeRegenerationCandidateIdRef.current = null;
+      }
       setRegeneratingCandidateId((current) => (current === candidateId ? null : current));
     }
   };
