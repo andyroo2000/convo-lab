@@ -410,6 +410,7 @@ describe('StudyCreatePage', () => {
     await userEvent.click(regenerateButtons[0]);
 
     expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getByRole('status', { name: 'Regenerating…' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
     expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(1);
 
@@ -536,11 +537,6 @@ describe('StudyCreatePage', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
     expect(screen.getByText('Prompt side')).toBeInTheDocument();
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
-
-    await userEvent.tab({ shift: true });
-    expect(screen.getByRole('button', { name: 'Answer' })).toHaveFocus();
-    await userEvent.tab();
-    expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus();
 
     screen.getByRole('button', { name: /company/i }).focus();
     await userEvent.keyboard(' ');

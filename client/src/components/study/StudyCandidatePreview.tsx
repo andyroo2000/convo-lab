@@ -13,7 +13,7 @@ const StudyCandidateCardPreviewModal = ({
 }) => {
   const { t } = useTranslation('study');
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const dialogRef = useRef<HTMLDialogElement | null>(null);
   const [side, setSide] = useState<'front' | 'back'>('front');
   const toggleSide = useCallback(
     () => setSide((current) => (current === 'front' ? 'back' : 'front')),
@@ -21,54 +21,37 @@ const StudyCandidateCardPreviewModal = ({
   );
 
   useEffect(() => {
-    const getFocusableElements = () =>
-      Array.from(
-        dialogRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), audio[controls], [tabindex]:not([tabindex="-1"])'
-        ) ?? []
-      ).filter(
-        (element) =>
-          !element.hasAttribute('hidden') && element.getAttribute('aria-hidden') !== 'true'
-      );
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Tab') {
-        const focusableElements = getFocusableElements();
-        const firstElement = focusableElements[0];
-        const lastElement = focusableElements.at(-1);
-        if (!firstElement || !lastElement) return;
-
-        if (event.shiftKey && document.activeElement === firstElement) {
-          event.preventDefault();
-          lastElement.focus();
-        } else if (!event.shiftKey && document.activeElement === lastElement) {
-          event.preventDefault();
-          firstElement.focus();
-        }
-        return;
-      }
-
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
-
-      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === ' ') {
+    const dialog = dialogRef.current;
+    const handleKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
         event.preventDefault();
         toggleSide();
       }
     };
 
-    const originalBodyOverflow = document.body.style.overflow;
+    if (dialog) {
+      if (!dialog.open) {
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+
+      closeButtonRef.current?.focus();
+    }
+
     document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-    closeButtonRef.current?.focus();
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = originalBodyOverflow;
+      if (dialog?.open && typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog?.removeAttribute('open');
+      }
     };
-  }, [onClose, toggleSide]);
+  }, [toggleSide]);
 
   const handlePreviewClick = (event: MouseEvent<HTMLDivElement>) => {
     if ((event.target as HTMLElement).closest('button, audio, input, select, textarea, a')) {
@@ -79,14 +62,16 @@ const StudyCandidateCardPreviewModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        ref={dialogRef}
-        className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="candidate-card-preview-title"
-      >
+    <dialog
+      ref={dialogRef}
+      className="w-[calc(100%-2rem)] max-w-5xl rounded-2xl bg-white p-0 shadow-2xl backdrop:bg-black/50"
+      aria-labelledby="candidate-card-preview-title"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
           <div>
             <h2 id="candidate-card-preview-title" className="text-lg font-bold text-navy">
@@ -138,7 +123,7 @@ const StudyCandidateCardPreviewModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 };
 

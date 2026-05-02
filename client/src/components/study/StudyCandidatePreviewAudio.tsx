@@ -22,12 +22,34 @@ const StudyCandidatePreviewAudio = ({
   <div className="mb-3 rounded-lg border border-gray-200 bg-white/70 p-3">
     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">{title}</p>
     {previewUrl ? (
-      <div className="mt-2">
+      <div
+        className={`relative mt-2 ${isRegenerating ? 'pointer-events-none opacity-70' : ''}`}
+        aria-busy={isRegenerating}
+      >
         <StudyAudioPlayer url={previewUrl} label={label} size="compact" />
+        {isRegenerating ? (
+          <div
+            role="status"
+            aria-label={regenerateLabel}
+            className="absolute inset-0 flex items-center justify-center rounded-lg bg-white/70"
+          >
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+          </div>
+        ) : null}
       </div>
     ) : (
       <p className="mt-2 text-sm text-amber-700">{staleLabel}</p>
     )}
+    {!previewUrl && isRegenerating ? (
+      <div
+        role="status"
+        aria-label={regenerateLabel}
+        className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-navy"
+      >
+        <span className="h-4 w-4 animate-spin rounded-full border-2 border-navy border-t-transparent" />
+        <span>{regenerateLabel}</span>
+      </div>
+    ) : null}
     <button
       type="button"
       onClick={onRegenerate}
