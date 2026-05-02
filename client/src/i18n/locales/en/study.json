@@ -188,6 +188,7 @@
     "regeneratingPreview": "Regenerating…",
     "regeneratePreviewFailed": "Could not regenerate candidate audio.",
     "imagePreview": "Prompt image preview",
+    "generatedCardPromptAlt": "Generated card prompt",
     "imagePrompt": "Image prompt",
     "regenerateImage": "Regenerate image",
     "regeneratingImage": "Regenerating image…",

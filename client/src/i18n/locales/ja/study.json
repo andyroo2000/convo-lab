@@ -188,6 +188,7 @@
     "regeneratingPreview": "再生成中…",
     "regeneratePreviewFailed": "候補カードの音声を再生成できませんでした。",
     "imagePreview": "プロンプト画像プレビュー",
+    "generatedCardPromptAlt": "生成されたカードプロンプト画像",
     "imagePrompt": "画像プロンプト",
     "regenerateImage": "画像を再生成",
     "regeneratingImage": "画像を再生成中…",

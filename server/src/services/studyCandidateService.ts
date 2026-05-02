@@ -117,10 +117,7 @@ export async function regenerateStudyCardCandidatePreviewImage(input: {
     throw new AppError('Only production candidates can regenerate prompt images.', 400);
   }
 
-  const imagePrompt = input.imagePrompt.trim();
-  if (!imagePrompt) {
-    throw new AppError('imagePrompt is required.', 400);
-  }
+  const imagePrompt = input.imagePrompt;
   if (imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
     throw new AppError(
       `imagePrompt must be ${String(STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH)} characters or fewer.`,

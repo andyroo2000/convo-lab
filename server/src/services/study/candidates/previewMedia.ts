@@ -187,40 +187,6 @@ export async function addPreviewAudio(
   }
 }
 
-export async function addPreviewImage(
-  userId: string,
-  candidate: StudyCardCandidate
-): Promise<StudyCardCandidate> {
-  const imagePrompt = candidate.imagePrompt?.trim();
-  if (candidate.candidateKind !== 'production' || !imagePrompt) return candidate;
-
-  try {
-    const previewImage = await generateCandidatePreviewImage({
-      userId,
-      clientId: candidate.clientId,
-      imagePrompt,
-    });
-
-    return {
-      ...candidate,
-      prompt: {
-        ...candidate.prompt,
-        cueText: null,
-        cueImage: previewImage,
-      },
-      previewImage,
-      imagePrompt,
-    };
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.warn('[Study candidates] Failed to generate preview image.', error);
-    return {
-      ...candidate,
-      warnings: [...(candidate.warnings ?? []), 'Image preview could not be generated.'],
-    };
-  }
-}
-
 export async function getOwnedPreviewMediaIds(input: {
   userId: string;
   mediaIds: string[];
