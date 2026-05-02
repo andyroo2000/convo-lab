@@ -61,6 +61,24 @@ jobs:
               echo "CLIENT_URL=https://convo-lab.com" >> .env.production
             fi
 
+            if grep -q '^OPENAI_API_KEY=' .env.production; then
+              sed -i.bak "s#^OPENAI_API_KEY=.*#OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}#g" .env.production
+            else
+              echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.production
+            fi
+
+            if grep -q '^LLM_PROVIDER=' .env.production; then
+              sed -i.bak "s#^LLM_PROVIDER=.*#LLM_PROVIDER=openai#g" .env.production
+            else
+              echo "LLM_PROVIDER=openai" >> .env.production
+            fi
+
+            if grep -q '^STUDY_CARD_GENERATOR_MODEL=' .env.production; then
+              sed -i.bak "s#^STUDY_CARD_GENERATOR_MODEL=.*#STUDY_CARD_GENERATOR_MODEL=gpt-5.5#g" .env.production
+            else
+              echo "STUDY_CARD_GENERATOR_MODEL=gpt-5.5" >> .env.production
+            fi
+
             # Login to GitHub Container Registry
             echo "🔐 Logging in to GitHub Container Registry..."
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
