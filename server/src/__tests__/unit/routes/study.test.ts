@@ -2,6 +2,10 @@ import { mkdtemp, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
+import {
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+} from '@languageflow/shared/src/studyConstants';
 import express, {
   json as expressJson,
   type ErrorRequestHandler,
@@ -559,6 +563,29 @@ describe('Study Routes', () => {
         includeLearnerContext: true,
       },
     });
+  });
+
+  it('rejects overlong generated candidate inputs before hitting the service', async () => {
+    const targetResponse = await withMutationCsrf(
+      request(app).post('/study/card-candidates/generate')
+    ).send({
+      targetText: 'a'.repeat(STUDY_CANDIDATE_TARGET_MAX_LENGTH + 1),
+    });
+
+    expect(targetResponse.status).toBe(400);
+    expect(targetResponse.body.message).toContain('targetText must be');
+    expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
+
+    const contextResponse = await withMutationCsrf(
+      request(app).post('/study/card-candidates/generate')
+    ).send({
+      targetText: '会社',
+      context: 'a'.repeat(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH + 1),
+    });
+
+    expect(contextResponse.status).toBe(400);
+    expect(contextResponse.body.message).toContain('context must be');
+    expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
   });
 
   it('regenerates candidate preview audio after validating the candidate payload', async () => {

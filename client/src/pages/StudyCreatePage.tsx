@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import {
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+} from '@languageflow/shared/src/studyConstants';
 import type {
   StudyCardCandidate,
   StudyCardCandidateCommitItem,
@@ -82,6 +86,7 @@ const CandidatePreviewAudio = ({
   onRegenerate,
   previewUrl,
   regenerateLabel,
+  regenerateError,
   staleLabel,
   title,
 }: {
@@ -90,6 +95,7 @@ const CandidatePreviewAudio = ({
   onRegenerate: () => void;
   previewUrl: string | null;
   regenerateLabel: string;
+  regenerateError: string | null;
   staleLabel: string;
   title: string;
 }) => (
@@ -110,6 +116,7 @@ const CandidatePreviewAudio = ({
     >
       {regenerateLabel}
     </button>
+    {regenerateError ? <p className="mt-2 text-sm text-red-600">{regenerateError}</p> : null}
   </div>
 );
 
@@ -263,6 +270,10 @@ const StudyCreatePage = () => {
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [learnerContextSummary, setLearnerContextSummary] = useState<string | null>(null);
   const [candidateDrafts, setCandidateDrafts] = useState<CandidateDraft[]>([]);
+  const [regeneratingCandidateId, setRegeneratingCandidateId] = useState<string | null>(null);
+  const [regenerateErrorByCandidateId, setRegenerateErrorByCandidateId] = useState<
+    Record<string, string>
+  >({});
   const [previewDraftIndex, setPreviewDraftIndex] = useState<number | null>(null);
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
@@ -284,6 +295,7 @@ const StudyCreatePage = () => {
     setSuccess(null);
     setLearnerContextSummary(null);
     setCandidateDrafts([]);
+    setRegenerateErrorByCandidateId({});
 
     const result = await generateCandidates.mutateAsync({
       targetText,
@@ -365,28 +377,47 @@ const StudyCreatePage = () => {
     const draft = candidateDrafts[index];
     if (!draft) return;
 
-    const result = await regenerateCandidateAudio.mutateAsync({
-      candidate: buildCandidateCommitItem(draft),
+    const candidateId = draft.candidate.clientId;
+    setRegeneratingCandidateId(candidateId);
+    setRegenerateErrorByCandidateId((current) => {
+      const { [candidateId]: _removed, ...remaining } = current;
+      return remaining;
     });
 
-    setCandidateDrafts((current) =>
-      current.map((currentDraft, draftIndex) =>
-        draftIndex === index
-          ? {
-              ...currentDraft,
-              candidate: {
-                ...currentDraft.candidate,
-                prompt: result.prompt,
-                answer: result.answer,
+    try {
+      const result = await regenerateCandidateAudio.mutateAsync({
+        candidate: buildCandidateCommitItem(draft),
+      });
+
+      setCandidateDrafts((current) =>
+        current.map((currentDraft, draftIndex) =>
+          draftIndex === index
+            ? {
+                ...currentDraft,
+                candidate: {
+                  ...currentDraft.candidate,
+                  prompt: result.prompt,
+                  answer: result.answer,
+                  previewAudio: result.previewAudio,
+                  previewAudioRole: result.previewAudioRole,
+                },
                 previewAudio: result.previewAudio,
                 previewAudioRole: result.previewAudioRole,
-              },
-              previewAudio: result.previewAudio,
-              previewAudioRole: result.previewAudioRole,
-            }
-          : currentDraft
-      )
-    );
+              }
+            : currentDraft
+        )
+      );
+    } catch (error) {
+      setRegenerateErrorByCandidateId((current) => ({
+        ...current,
+        [candidateId]:
+          error instanceof Error && error.message
+            ? error.message
+            : t('create.regeneratePreviewFailed'),
+      }));
+    } finally {
+      setRegeneratingCandidateId((current) => (current === candidateId ? null : current));
+    }
   };
 
   const handleCommitCandidates = async () => {
@@ -398,6 +429,7 @@ const StudyCreatePage = () => {
 
     setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
     setCandidateDrafts([]);
+    setRegenerateErrorByCandidateId({});
   };
 
   return (
@@ -413,6 +445,7 @@ const StudyCreatePage = () => {
               onClick={() => {
                 setMode(nextMode);
                 setSuccess(null);
+                setRegenerateErrorByCandidateId({});
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold ${
                 mode === nextMode
@@ -440,6 +473,7 @@ const StudyCreatePage = () => {
                 id="study-generate-target"
                 value={targetText}
                 onChange={(event) => setTargetText(event.target.value)}
+                maxLength={STUDY_CANDIDATE_TARGET_MAX_LENGTH}
                 className="block min-h-28 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
                 required
               />
@@ -455,6 +489,7 @@ const StudyCreatePage = () => {
                 id="study-generate-context"
                 value={context}
                 onChange={(event) => setContext(event.target.value)}
+                maxLength={STUDY_CANDIDATE_CONTEXT_MAX_LENGTH}
                 className="block min-h-24 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-700"
               />
             </div>
@@ -481,14 +516,6 @@ const StudyCreatePage = () => {
                   : t('create.generateFailed')}
               </p>
             ) : null}
-            {regenerateCandidateAudio.error ? (
-              <p className="text-sm text-red-600">
-                {regenerateCandidateAudio.error instanceof Error
-                  ? regenerateCandidateAudio.error.message
-                  : t('create.regeneratePreviewFailed')}
-              </p>
-            ) : null}
-
             <button
               type="submit"
               disabled={generateCandidates.isPending}
@@ -539,7 +566,14 @@ const StudyCreatePage = () => {
           <div className="card retro-paper-panel max-w-4xl">
             <h2 className="text-2xl font-bold text-navy">{t('create.candidates')}</h2>
             {learnerContextSummary ? (
-              <p className="mt-2 text-sm text-gray-600">{t('create.learnerContextUsed')}</p>
+              <details className="mt-3 rounded-xl border border-gray-200 bg-white/70 p-3 text-sm text-gray-600">
+                <summary className="cursor-pointer font-semibold text-navy">
+                  {t('create.learnerContextUsed')}
+                </summary>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-gray-50 p-3 font-sans text-xs leading-5 text-gray-600">
+                  {learnerContextSummary}
+                </pre>
+              </details>
             ) : null}
           </div>
 
@@ -547,6 +581,7 @@ const StudyCreatePage = () => {
             const previewUrl = toAssetUrl(draft.previewAudio?.url);
             const candidateSelectId = `candidate-${index}-selected`;
             const previewCard = buildPreviewCard(draft, buildCandidateCommitItem(draft));
+            const isRegenerating = regeneratingCandidateId === draft.candidate.clientId;
             const previewTitle =
               draft.candidate.candidateKind === 'audio-recognition'
                 ? t('create.audioRecognitionPrompt')
@@ -593,14 +628,13 @@ const StudyCreatePage = () => {
                 ) : null}
 
                 <CandidatePreviewAudio
-                  isRegenerating={regenerateCandidateAudio.isPending}
+                  isRegenerating={isRegenerating}
                   label={t('create.playPreview')}
                   onRegenerate={() => handleRegenerateCandidateAudio(index)}
                   previewUrl={previewUrl}
+                  regenerateError={regenerateErrorByCandidateId[draft.candidate.clientId] ?? null}
                   regenerateLabel={
-                    regenerateCandidateAudio.isPending
-                      ? t('create.regeneratingPreview')
-                      : t('create.regeneratePreview')
+                    isRegenerating ? t('create.regeneratingPreview') : t('create.regeneratePreview')
                   }
                   staleLabel={t('create.previewStale')}
                   title={previewTitle}

@@ -5,6 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
+} from '@languageflow/shared/src/studyConstants';
 
 import StudyCreatePage from '../StudyCreatePage';
 
@@ -186,8 +190,13 @@ describe('StudyCreatePage', () => {
 
     renderPage();
 
-    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
-    await userEvent.type(screen.getByLabelText('Extra context or instructions'), 'Business word');
+    const targetInput = screen.getByLabelText('Target word or sentence');
+    const contextInput = screen.getByLabelText('Extra context or instructions');
+    expect(targetInput).toHaveAttribute('maxlength', String(STUDY_CANDIDATE_TARGET_MAX_LENGTH));
+    expect(contextInput).toHaveAttribute('maxlength', String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH));
+
+    await userEvent.type(targetInput, '会社');
+    await userEvent.type(contextInput, 'Business word');
     await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
 
     expect(generateCandidatesMock).toHaveBeenCalledWith({
@@ -196,6 +205,7 @@ describe('StudyCreatePage', () => {
       includeLearnerContext: true,
     });
     expect(await screen.findByText('Audio recognition')).toBeInTheDocument();
+    expect(screen.getByText('- recognition/relearning: 会社 - company')).toBeInTheDocument();
     expect(screen.queryByLabelText('Prompt text')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Play generated preview audio' })).toHaveAttribute(
       'data-url',
@@ -237,7 +247,7 @@ describe('StudyCreatePage', () => {
       ],
     });
     expect(
-      await screen.findByText('Created 1 generated cards and added them to the study queue.')
+      await screen.findByText('Created 1 generated card and added it to the study queue.')
     ).toBeInTheDocument();
   });
 
@@ -301,6 +311,71 @@ describe('StudyCreatePage', () => {
         }),
       ],
     });
+  });
+
+  it('shows candidate audio regeneration loading and errors per candidate', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [
+        {
+          clientId: 'candidate-1',
+          candidateKind: 'production',
+          cardType: 'production',
+          prompt: { cueMeaning: 'company' },
+          answer: {
+            expression: '会社',
+            expressionReading: '会社[かいしゃ]',
+            meaning: 'company',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          rationale: 'Production checks recall.',
+          warnings: [],
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+        {
+          clientId: 'candidate-2',
+          candidateKind: 'text-recognition',
+          cardType: 'recognition',
+          prompt: { cueText: '学校' },
+          answer: {
+            expression: '学校',
+            expressionReading: '学校[がっこう]',
+            meaning: 'school',
+            answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          },
+          rationale: 'Reading checks recognition.',
+          warnings: [],
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+      ],
+    });
+    let rejectRegeneration: ((error: Error) => void) | null = null;
+    regenerateCandidateAudioMock.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectRegeneration = reject;
+        })
+    );
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    const regenerateButtons = await screen.findAllByRole('button', { name: 'Regenerate audio' });
+    await userEvent.click(regenerateButtons[0]);
+
+    expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(1);
+
+    await act(async () => {
+      rejectRegeneration?.(new Error('Voice unavailable'));
+    });
+
+    expect(await screen.findByText('Voice unavailable')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(2);
   });
 
   it('opens a candidate card preview and flips to the answer', async () => {

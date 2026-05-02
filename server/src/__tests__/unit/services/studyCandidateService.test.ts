@@ -521,6 +521,96 @@ describe('studyCandidateService', () => {
     expect(result.cards[0].prompt.cueAudio?.url).toBe('/api/study/media/media-1');
   });
 
+  it('regenerates missing audio-recognition preview audio without mutating the commit input', async () => {
+    mockPrisma.studyMedia.findFirst.mockResolvedValue({ id: 'media-1' });
+    mockPrisma.studyNote.create.mockResolvedValue({
+      id: 'note-1',
+      userId: 'user-1',
+      sourceKind: 'convolab',
+      rawFieldsJson: {},
+      canonicalJson: {},
+      searchText: '',
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+    });
+    mockPrisma.studyCard.create.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'generated',
+      promptJson: {},
+      answerJson: { expression: '会社', meaning: 'company' },
+      schedulerStateJson: schedulerState,
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: { rawFieldsJson: {} },
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'generated',
+      promptJson: {},
+      answerJson: { expression: '会社', meaning: 'company' },
+      schedulerStateJson: schedulerState,
+      createdAt: new Date('2026-04-12T00:00:00.000Z'),
+      updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+      note: { rawFieldsJson: {} },
+      promptAudioMedia: {
+        id: 'media-1',
+        sourceFilename: 'listen-company.mp3',
+        mediaKind: 'audio',
+      },
+      answerAudioMedia: {
+        id: 'media-1',
+        sourceFilename: 'listen-company.mp3',
+        mediaKind: 'audio',
+      },
+      imageMedia: null,
+    });
+    const input = {
+      userId: 'user-1',
+      candidates: [
+        {
+          clientId: 'listen-company',
+          candidateKind: 'audio-recognition' as const,
+          cardType: 'recognition' as const,
+          prompt: {},
+          answer: {
+            expression: '会社',
+            meaning: 'company',
+          },
+          previewAudio: null,
+          previewAudioRole: null,
+        },
+      ],
+    };
+    const originalInput = structuredClone(input);
+
+    await commitStudyCardCandidates(input);
+
+    expect(input).toEqual(originalInput);
+    expect(mockPrisma.studyCard.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          promptAudioMediaId: 'media-1',
+          answerAudioMediaId: 'media-1',
+        }),
+      })
+    );
+  });
+
   it('rejects preview media owned by another user', async () => {
     mockPrisma.studyMedia.findFirst.mockResolvedValue(null);
 

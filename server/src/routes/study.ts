@@ -4,6 +4,8 @@ import { TTS_VOICES } from '@languageflow/shared/src/constants-new.js';
 import {
   STUDY_BROWSER_PAGE_SIZE_DEFAULT,
   STUDY_BROWSER_PAGE_SIZE_MAX,
+  STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
+  STUDY_CANDIDATE_TARGET_MAX_LENGTH,
   STUDY_EXPORT_PAGE_SIZE_DEFAULT,
   STUDY_EXPORT_PAGE_SIZE_MAX,
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_DEFAULT,
@@ -25,7 +27,11 @@ import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
-import { parseOptionalStudyOverview } from '../services/study/shared.js';
+import {
+  cardTypeForStudyCardCandidateKind,
+  parseOptionalStudyOverview,
+  STUDY_CARD_CANDIDATE_KINDS,
+} from '../services/study/shared.js';
 import {
   cancelStudyImportUpload,
   completeStudyImportUpload,
@@ -84,12 +90,6 @@ const STUDY_QUEUE_STATES = new Set<StudyQueueState>([
   'relearning',
   'suspended',
   'buried',
-]);
-const STUDY_CARD_CANDIDATE_KINDS = new Set<StudyCardCandidateKind>([
-  'text-recognition',
-  'audio-recognition',
-  'production',
-  'cloze',
 ]);
 const STUDY_CARD_CANDIDATE_PREVIEW_ROLES = new Set(['prompt', 'answer']);
 const STUDY_IMPORT_MIME_TYPES = new Set([
@@ -505,12 +505,6 @@ function parseStudyCardPayloads(
   };
 }
 
-function cardTypeForCandidateKind(candidateKind: StudyCardCandidateKind): StudyCardType {
-  if (candidateKind === 'production') return 'production';
-  if (candidateKind === 'cloze') return 'cloze';
-  return 'recognition';
-}
-
 function parseStudyCardCandidateKind(value: unknown): StudyCardCandidateKind {
   if (
     typeof value !== 'string' ||
@@ -548,7 +542,7 @@ function parseStudyCardCandidateCommitItems(value: unknown): StudyCardCandidateC
 
     const candidateKind = parseStudyCardCandidateKind(item.candidateKind);
     const cardType = String(item.cardType);
-    const expectedCardType = cardTypeForCandidateKind(candidateKind);
+    const expectedCardType = cardTypeForStudyCardCandidateKind(candidateKind);
     if (cardType !== expectedCardType) {
       throw new AppError('cardType must match candidateKind.', 400);
     }
@@ -922,8 +916,23 @@ router.post(
       if (typeof targetText !== 'string') {
         throw new AppError('targetText is required.', 400);
       }
+      if (targetText.trim().length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+        throw new AppError(
+          `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
+          400
+        );
+      }
       if (typeof context !== 'undefined' && context !== null && typeof context !== 'string') {
         throw new AppError('context must be a string or null.', 400);
+      }
+      if (
+        typeof context === 'string' &&
+        context.trim().length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
+      ) {
+        throw new AppError(
+          `context must be ${String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)} characters or fewer.`,
+          400
+        );
       }
       if (
         typeof includeLearnerContext !== 'undefined' &&
@@ -951,7 +960,7 @@ router.post(
 
 router.post(
   '/card-candidates/regenerate-audio',
-  rateLimitStudyRoute({ key: 'card-candidate-regenerate-audio', max: 60, windowMs: 60 * 1000 }),
+  rateLimitStudyRoute({ key: 'card-candidate-regenerate-audio', max: 30, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {
@@ -978,7 +987,7 @@ router.post(
 
 router.post(
   '/card-candidates/commit',
-  rateLimitStudyRoute({ key: 'card-candidate-commit', max: 60, windowMs: 60 * 1000 }),
+  rateLimitStudyRoute({ key: 'card-candidate-commit', max: 30, windowMs: 60 * 1000 }),
   async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) {

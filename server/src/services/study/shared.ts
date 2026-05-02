@@ -58,6 +58,11 @@ export {
   encodeStudyExportCursor,
 } from './shared/cursors.js';
 
+export {
+  cardTypeForStudyCardCandidateKind,
+  STUDY_CARD_CANDIDATE_KINDS,
+} from './shared/candidates.js';
+
 export { noteFieldValueToString, stripHtml, toSearchText } from './shared/text.js';
 
 export {
