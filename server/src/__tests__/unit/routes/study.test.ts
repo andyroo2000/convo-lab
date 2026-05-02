@@ -565,6 +565,44 @@ describe('Study Routes', () => {
     });
   });
 
+  it('trims generated candidate input before calling the service', async () => {
+    generateStudyCardCandidatesMock.mockResolvedValue({
+      candidates: [],
+      learnerContextSummary: null,
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/generate')
+    ).send({
+      targetText: '  会社  ',
+      context: '  Business vocabulary  ',
+      includeLearnerContext: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(generateStudyCardCandidatesMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: {
+        targetText: '会社',
+        context: 'Business vocabulary',
+        includeLearnerContext: false,
+      },
+    });
+  });
+
+  it('rejects blank generated candidate targets before hitting the service', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/card-candidates/generate')
+    ).send({
+      targetText: '   ',
+      context: 'Business vocabulary',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('targetText is required');
+    expect(generateStudyCardCandidatesMock).not.toHaveBeenCalled();
+  });
+
   it('rejects overlong generated candidate inputs before hitting the service', async () => {
     const targetResponse = await withMutationCsrf(
       request(app).post('/study/card-candidates/generate')

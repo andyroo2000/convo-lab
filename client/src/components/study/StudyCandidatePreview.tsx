@@ -119,8 +119,9 @@ export const StudyCandidateCardPreviewModal = ({
           tabIndex={0}
           onClick={handlePreviewClick}
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'Enter' || event.key === ' ') {
               event.preventDefault();
+              event.stopPropagation();
               toggleSide();
             }
           }}

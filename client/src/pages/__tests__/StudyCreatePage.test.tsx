@@ -510,7 +510,8 @@ describe('StudyCreatePage', () => {
     expect(screen.getByText('Prompt side')).toBeInTheDocument();
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+    screen.getByRole('button', { name: /company/i }).focus();
+    await userEvent.keyboard(' ');
 
     expect(screen.getByText('Answer side')).toBeInTheDocument();
     expect(screen.getByTestId('study-japanese-heading')).toHaveTextContent('会社');

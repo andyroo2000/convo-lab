@@ -916,9 +916,13 @@ router.post(
       if (typeof targetText !== 'string') {
         throw new AppError('targetText is required.', 400);
       }
+      const trimmedTargetText = targetText.trim();
       // Keep cheap route-level size checks in front of service validation so oversized
       // requests fail before any learner-context or LLM work can start.
-      if (targetText.trim().length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
+      if (!trimmedTargetText) {
+        throw new AppError('targetText is required.', 400);
+      }
+      if (trimmedTargetText.length > STUDY_CANDIDATE_TARGET_MAX_LENGTH) {
         throw new AppError(
           `targetText must be ${String(STUDY_CANDIDATE_TARGET_MAX_LENGTH)} characters or fewer.`,
           400
@@ -927,9 +931,10 @@ router.post(
       if (typeof context !== 'undefined' && context !== null && typeof context !== 'string') {
         throw new AppError('context must be a string or null.', 400);
       }
+      const trimmedContext = typeof context === 'string' ? context.trim() : null;
       if (
-        typeof context === 'string' &&
-        context.trim().length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
+        typeof trimmedContext === 'string' &&
+        trimmedContext.length > STUDY_CANDIDATE_CONTEXT_MAX_LENGTH
       ) {
         throw new AppError(
           `context must be ${String(STUDY_CANDIDATE_CONTEXT_MAX_LENGTH)} characters or fewer.`,
@@ -946,8 +951,8 @@ router.post(
       const result = await generateStudyCardCandidates({
         userId: req.userId,
         request: {
-          targetText,
-          context: typeof context === 'string' ? context : null,
+          targetText: trimmedTargetText,
+          context: trimmedContext,
           includeLearnerContext:
             typeof includeLearnerContext === 'boolean' ? includeLearnerContext : true,
         },
