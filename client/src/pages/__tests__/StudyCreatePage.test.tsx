@@ -75,6 +75,24 @@ const renderPage = () => {
   );
 };
 
+const productionCandidate = (overrides: Record<string, unknown> = {}) => ({
+  clientId: 'candidate-1',
+  candidateKind: 'production',
+  cardType: 'production',
+  prompt: { cueMeaning: 'company' },
+  answer: {
+    expression: '会社',
+    expressionReading: '会社[かいしゃ]',
+    meaning: 'company',
+    answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+  },
+  rationale: 'Production checks recall.',
+  warnings: [],
+  previewAudio: null,
+  previewAudioRole: null,
+  ...overrides,
+});
+
 describe('StudyCreatePage', () => {
   beforeEach(() => {
     commitCandidatesMock.mockReset();
@@ -376,6 +394,81 @@ describe('StudyCreatePage', () => {
 
     expect(await screen.findByText('Voice unavailable')).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: 'Regenerate audio' })).toHaveLength(2);
+  });
+
+  it('ignores stale candidate audio regeneration results after a new generation replaces candidates', async () => {
+    generateCandidatesMock
+      .mockResolvedValueOnce({
+        learnerContextSummary: null,
+        candidates: [productionCandidate({ clientId: 'old-candidate' })],
+      })
+      .mockResolvedValueOnce({
+        learnerContextSummary: null,
+        candidates: [
+          productionCandidate({
+            clientId: 'new-candidate',
+            prompt: { cueMeaning: 'school' },
+            answer: {
+              expression: '学校',
+              expressionReading: '学校[がっこう]',
+              meaning: 'school',
+              answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+            },
+          }),
+        ],
+      });
+    let resolveRegeneration:
+      | ((value: Awaited<ReturnType<typeof regenerateCandidateAudioMock>>) => void)
+      | null = null;
+    regenerateCandidateAudioMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRegeneration = resolve;
+        })
+    );
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    expect(await screen.findByLabelText('Answer expression')).toHaveValue('会社');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
+    await userEvent.clear(screen.getByLabelText('Target word or sentence'));
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '学校');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+    expect(await screen.findByLabelText('Answer expression')).toHaveValue('学校');
+
+    await act(async () => {
+      resolveRegeneration?.({
+        prompt: { cueMeaning: 'company' },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          answerAudio: {
+            id: 'stale-media',
+            filename: 'stale.mp3',
+            url: '/api/study/media/stale-media',
+            mediaKind: 'audio',
+            source: 'generated',
+          },
+        },
+        previewAudio: {
+          id: 'stale-media',
+          filename: 'stale.mp3',
+          url: '/api/study/media/stale-media',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+        previewAudioRole: 'answer',
+      });
+    });
+
+    expect(screen.getByLabelText('Answer expression')).toHaveValue('学校');
+    expect(
+      screen.queryByRole('button', { name: 'Play generated preview audio' })
+    ).not.toBeInTheDocument();
   });
 
   it('opens a candidate card preview and flips to the answer', async () => {

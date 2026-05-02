@@ -98,34 +98,40 @@ async function generateStudyCardCandidatesWithOpenAI(
     process.env.STUDY_CARD_GENERATOR_REASONING_EFFORT ??
     DEFAULT_STUDY_CARD_GENERATOR_REASONING_EFFORT;
 
-  const response = await fetch('https://api.openai.com/v1/responses', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: systemInstruction }],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: prompt }],
-        },
-      ],
-      reasoning: {
-        effort: reasoningEffort,
+  let response: Response;
+  try {
+    response = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       },
-      text: {
-        format: {
-          type: 'json_object',
+      body: JSON.stringify({
+        model,
+        input: [
+          {
+            role: 'system',
+            content: [{ type: 'input_text', text: systemInstruction }],
+          },
+          {
+            role: 'user',
+            content: [{ type: 'input_text', text: prompt }],
+          },
+        ],
+        reasoning: {
+          effort: reasoningEffort,
         },
-      },
-    }),
-  });
+        text: {
+          format: {
+            type: 'json_object',
+          },
+        },
+      }),
+    });
+  } catch (error) {
+    console.error('OpenAI request failed:', error);
+    throw new AppError('OpenAI failed to generate study card candidates.', 502);
+  }
 
   const payload = (await response.json().catch(() => ({}))) as OpenAIResponsesPayload;
 

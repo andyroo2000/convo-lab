@@ -1,26 +1,25 @@
-import { useCallback, useEffect, useState, type MouseEvent } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   STUDY_CANDIDATE_CONTEXT_MAX_LENGTH,
   STUDY_CANDIDATE_TARGET_MAX_LENGTH,
 } from '@languageflow/shared/src/studyConstants';
-import type {
-  StudyCardCandidate,
-  StudyCardCandidateCommitItem,
-  StudyCardSummary,
-  StudyMediaRef,
-} from '@languageflow/shared/src/types';
 
 import StudyCardAudioSettingsFields from '../components/study/StudyCardAudioSettingsFields';
-import StudyAudioPlayer from '../components/study/StudyAudioPlayer';
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
-import { StudyCardFace } from '../components/study/StudyCardPreview';
 import {
-  buildStudyCardFormPayload,
-  useStudyCardForm,
-  type StudyCardFormValues,
-} from '../components/study/studyCardFormModel';
+  StudyCandidateCardPreviewModal,
+  StudyCandidatePreviewAudio,
+} from '../components/study/StudyCandidatePreview';
+import { useStudyCardForm, type StudyCardFormValues } from '../components/study/studyCardFormModel';
+import {
+  buildStudyCandidateCommitItem,
+  buildStudyCandidatePreviewCard,
+  createStudyCandidateDraft,
+  STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS,
+  type StudyCandidateDraft,
+} from '../components/study/studyCandidateModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
 import {
   useCommitStudyCardCandidates,
@@ -30,232 +29,6 @@ import {
 } from '../hooks/useStudy';
 
 type CreateMode = 'generate' | 'manual';
-
-interface CandidateDraft {
-  candidate: StudyCardCandidate;
-  selected: boolean;
-  values: StudyCardFormValues;
-  previewAudio: StudyMediaRef | null;
-  previewAudioRole: 'prompt' | 'answer' | null;
-}
-
-const candidateToFormValues = (candidate: StudyCardCandidate): StudyCardFormValues => {
-  if (candidate.cardType === 'cloze') {
-    return {
-      cardType: 'cloze',
-      cueText: candidate.prompt.clozeText ?? '',
-      cueReading: '',
-      cueMeaning: candidate.prompt.clozeHint ?? candidate.prompt.clozeResolvedHint ?? '',
-      answerExpression: candidate.answer.restoredText ?? '',
-      answerReading: candidate.answer.restoredTextReading ?? '',
-      answerMeaning: candidate.answer.meaning ?? '',
-      answerAudioVoiceId: candidate.answer.answerAudioVoiceId ?? '',
-      answerAudioTextOverride: candidate.answer.answerAudioTextOverride ?? '',
-      notes: candidate.answer.notes ?? '',
-      sentenceJp: '',
-      sentenceEn: '',
-    };
-  }
-
-  return {
-    cardType: candidate.cardType,
-    cueText: candidate.prompt.cueText ?? '',
-    cueReading: candidate.prompt.cueReading ?? '',
-    cueMeaning: candidate.prompt.cueMeaning ?? '',
-    answerExpression: candidate.answer.expression ?? '',
-    answerReading: candidate.answer.expressionReading ?? '',
-    answerMeaning: candidate.answer.meaning ?? '',
-    answerAudioVoiceId: candidate.answer.answerAudioVoiceId ?? '',
-    answerAudioTextOverride: candidate.answer.answerAudioTextOverride ?? '',
-    notes: candidate.answer.notes ?? '',
-    sentenceJp: candidate.answer.sentenceJp ?? '',
-    sentenceEn: candidate.answer.sentenceEn ?? '',
-  };
-};
-
-const audioAffectingFields = new Set<keyof StudyCardFormValues>([
-  'answerExpression',
-  'answerReading',
-  'answerAudioVoiceId',
-  'answerAudioTextOverride',
-]);
-
-const CandidatePreviewAudio = ({
-  isRegenerating,
-  label,
-  onRegenerate,
-  previewUrl,
-  regenerateLabel,
-  regenerateError,
-  staleLabel,
-  title,
-}: {
-  isRegenerating: boolean;
-  label: string;
-  onRegenerate: () => void;
-  previewUrl: string | null;
-  regenerateLabel: string;
-  regenerateError: string | null;
-  staleLabel: string;
-  title: string;
-}) => (
-  <div className="mb-3 rounded-lg border border-gray-200 bg-white/70 p-3">
-    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gray-500">{title}</p>
-    {previewUrl ? (
-      <div className="mt-2">
-        <StudyAudioPlayer url={previewUrl} label={label} size="compact" />
-      </div>
-    ) : (
-      <p className="mt-2 text-sm text-amber-700">{staleLabel}</p>
-    )}
-    <button
-      type="button"
-      onClick={onRegenerate}
-      disabled={isRegenerating}
-      className="mt-2 rounded-full border border-gray-300 bg-white px-3 py-1.5 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {regenerateLabel}
-    </button>
-    {regenerateError ? <p className="mt-2 text-sm text-red-600">{regenerateError}</p> : null}
-  </div>
-);
-
-const buildPreviewCard = (
-  draft: CandidateDraft,
-  candidate: StudyCardCandidateCommitItem
-): StudyCardSummary => {
-  const previewPrompt =
-    candidate.previewAudioRole === 'prompt' && candidate.previewAudio
-      ? { ...candidate.prompt, cueAudio: candidate.previewAudio }
-      : candidate.prompt;
-  const previewAnswer =
-    candidate.previewAudioRole === 'answer' && candidate.previewAudio
-      ? { ...candidate.answer, answerAudio: candidate.previewAudio }
-      : candidate.answer;
-
-  return {
-    id: `candidate-preview-${draft.candidate.clientId}`,
-    noteId: `candidate-preview-note-${draft.candidate.clientId}`,
-    cardType: candidate.cardType,
-    prompt: previewPrompt,
-    answer: previewAnswer,
-    answerAudioSource: 'generated',
-    createdAt: '1970-01-01T00:00:00.000Z',
-    updatedAt: '1970-01-01T00:00:00.000Z',
-    state: {
-      dueAt: null,
-      introducedAt: null,
-      queueState: 'new',
-      scheduler: null,
-      source: {},
-    },
-  };
-};
-
-const CandidateCardPreviewModal = ({
-  card,
-  onClose,
-}: {
-  card: StudyCardSummary;
-  onClose: () => void;
-}) => {
-  const { t } = useTranslation('study');
-  const [side, setSide] = useState<'front' | 'back'>('front');
-  const toggleSide = useCallback(
-    () => setSide((current) => (current === 'front' ? 'back' : 'front')),
-    []
-  );
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-        return;
-      }
-
-      if (event.key === 'ArrowRight' || event.key === 'ArrowLeft' || event.key === ' ') {
-        event.preventDefault();
-        toggleSide();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    document.body.style.overflow = 'hidden';
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
-  }, [onClose, toggleSide]);
-
-  const handlePreviewClick = (event: MouseEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest('button, audio, input, select, textarea, a')) {
-      return;
-    }
-
-    toggleSide();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div
-        className="flex max-h-[92vh] w-full max-w-5xl flex-col rounded-2xl bg-white shadow-2xl"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="candidate-card-preview-title"
-      >
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <div>
-            <h2 id="candidate-card-preview-title" className="text-lg font-bold text-navy">
-              {t('create.previewCardTitle')}
-            </h2>
-            <p className="text-sm text-gray-500">{t(`create.previewSides.${side}`)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-navy hover:bg-gray-50"
-          >
-            {t('create.closePreview')}
-          </button>
-        </div>
-
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={handlePreviewClick}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              toggleSide();
-            }
-          }}
-          className="min-h-[52vh] flex-1 overflow-y-auto px-5 py-8 text-left"
-        >
-          <StudyCardFace card={card} side={side} />
-        </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-gray-200 px-5 py-4">
-          <button
-            type="button"
-            onClick={() => setSide('front')}
-            className="rounded-full border border-gray-300 px-4 py-2 text-sm font-semibold text-navy hover:bg-gray-50"
-          >
-            {t('create.previewPrompt')}
-          </button>
-          <p className="hidden text-sm text-gray-500 sm:block">{t('create.previewHint')}</p>
-          <button
-            type="button"
-            onClick={() => setSide('back')}
-            className="rounded-full bg-navy px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
-          >
-            {t('create.previewAnswer')}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const StudyCreatePage = () => {
   const { t } = useTranslation('study');
@@ -269,7 +42,7 @@ const StudyCreatePage = () => {
   const [context, setContext] = useState('');
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [learnerContextSummary, setLearnerContextSummary] = useState<string | null>(null);
-  const [candidateDrafts, setCandidateDrafts] = useState<CandidateDraft[]>([]);
+  const [candidateDrafts, setCandidateDrafts] = useState<StudyCandidateDraft[]>([]);
   const [regeneratingCandidateId, setRegeneratingCandidateId] = useState<string | null>(null);
   const [regenerateErrorByCandidateId, setRegenerateErrorByCandidateId] = useState<
     Record<string, string>
@@ -304,15 +77,7 @@ const StudyCreatePage = () => {
     });
 
     setLearnerContextSummary(result.learnerContextSummary ?? null);
-    setCandidateDrafts(
-      result.candidates.map((candidate) => ({
-        candidate,
-        selected: true,
-        values: candidateToFormValues(candidate),
-        previewAudio: candidate.previewAudio ?? null,
-        previewAudioRole: candidate.previewAudioRole ?? null,
-      }))
-    );
+    setCandidateDrafts(result.candidates.map(createStudyCandidateDraft));
   };
 
   const updateCandidateField = <K extends keyof StudyCardFormValues>(
@@ -329,7 +94,9 @@ const StudyCreatePage = () => {
             ...draft.values,
             [field]: value,
           },
-          previewAudio: audioAffectingFields.has(field) ? null : draft.previewAudio,
+          previewAudio: STUDY_CANDIDATE_AUDIO_AFFECTING_FIELDS.has(field)
+            ? null
+            : draft.previewAudio,
         };
       })
     );
@@ -345,33 +112,6 @@ const StudyCreatePage = () => {
 
   const selectedCount = candidateDrafts.filter((draft) => draft.selected).length;
 
-  const buildCandidateCommitItem = (draft: CandidateDraft) => {
-    const payload = buildStudyCardFormPayload(draft.values);
-    const prompt =
-      draft.candidate.candidateKind === 'audio-recognition'
-        ? {
-            cueAudio: draft.previewAudio ?? draft.candidate.prompt.cueAudio ?? null,
-          }
-        : payload.prompt;
-    const answer =
-      draft.candidate.candidateKind === 'audio-recognition'
-        ? {
-            ...payload.answer,
-            answerAudio: draft.previewAudio ?? draft.candidate.answer.answerAudio ?? null,
-          }
-        : payload.answer;
-
-    return {
-      clientId: draft.candidate.clientId,
-      candidateKind: draft.candidate.candidateKind,
-      cardType: draft.candidate.cardType,
-      prompt,
-      answer,
-      previewAudio: draft.previewAudio,
-      previewAudioRole: draft.previewAudioRole,
-    };
-  };
-
   const handleRegenerateCandidateAudio = async (index: number) => {
     setSuccess(null);
     const draft = candidateDrafts[index];
@@ -386,12 +126,12 @@ const StudyCreatePage = () => {
 
     try {
       const result = await regenerateCandidateAudio.mutateAsync({
-        candidate: buildCandidateCommitItem(draft),
+        candidate: buildStudyCandidateCommitItem(draft),
       });
 
       setCandidateDrafts((current) =>
-        current.map((currentDraft, draftIndex) =>
-          draftIndex === index
+        current.map((currentDraft) =>
+          currentDraft.candidate.clientId === candidateId
             ? {
                 ...currentDraft,
                 candidate: {
@@ -424,7 +164,7 @@ const StudyCreatePage = () => {
     setSuccess(null);
     const selectedCandidates = candidateDrafts.filter((draft) => draft.selected);
     const result = await commitCandidates.mutateAsync({
-      candidates: selectedCandidates.map((draft) => buildCandidateCommitItem(draft)),
+      candidates: selectedCandidates.map((draft) => buildStudyCandidateCommitItem(draft)),
     });
 
     setSuccess(t('create.generatedSuccess', { count: result.cards.length }));
@@ -580,7 +320,8 @@ const StudyCreatePage = () => {
           {candidateDrafts.map((draft, index) => {
             const previewUrl = toAssetUrl(draft.previewAudio?.url);
             const candidateSelectId = `candidate-${index}-selected`;
-            const previewCard = buildPreviewCard(draft, buildCandidateCommitItem(draft));
+            const commitItem = buildStudyCandidateCommitItem(draft);
+            const previewCard = buildStudyCandidatePreviewCard(draft, commitItem);
             const isRegenerating = regeneratingCandidateId === draft.candidate.clientId;
             const previewTitle =
               draft.candidate.candidateKind === 'audio-recognition'
@@ -627,7 +368,7 @@ const StudyCreatePage = () => {
                   </div>
                 ) : null}
 
-                <CandidatePreviewAudio
+                <StudyCandidatePreviewAudio
                   isRegenerating={isRegenerating}
                   label={t('create.playPreview')}
                   onRegenerate={() => handleRegenerateCandidateAudio(index)}
@@ -656,7 +397,7 @@ const StudyCreatePage = () => {
                 />
 
                 {previewDraftIndex === index ? (
-                  <CandidateCardPreviewModal
+                  <StudyCandidateCardPreviewModal
                     card={previewCard}
                     onClose={() => setPreviewDraftIndex(null)}
                   />
