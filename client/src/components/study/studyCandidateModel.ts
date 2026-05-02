@@ -93,6 +93,8 @@ export function buildStudyCandidateCommitItem(
         }
       : {
           ...payload.prompt,
+          // Visual production prompts use the generated image as the cue, so suppress
+          // any residual text cue when an image is selected.
           ...(draft.previewImage ? { cueText: null, cueImage: draft.previewImage } : {}),
         };
   return {

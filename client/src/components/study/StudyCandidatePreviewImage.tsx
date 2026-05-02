@@ -53,6 +53,8 @@ const StudyCandidatePreviewImage = ({
         value={imagePrompt}
         onChange={(event) => onImagePromptChange(event.target.value)}
         maxLength={STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH}
+        readOnly={isRegenerating}
+        aria-busy={isRegenerating}
         className="mt-1 block min-h-20 w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm font-normal text-gray-700"
       />
     </label>

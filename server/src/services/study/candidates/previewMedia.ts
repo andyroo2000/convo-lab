@@ -29,6 +29,11 @@ import {
 const STUDY_CANDIDATE_IMAGE_CONTENT_TYPE = 'image/webp';
 const STUDY_CANDIDATE_IMAGE_EXTENSION = 'webp';
 const STUDY_CANDIDATE_IMAGE_WEBP_QUALITY = 82;
+const STUDY_CANDIDATE_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
 
 function toCandidateFilename(clientId: string, extension: string): string {
   const normalizedClientId = normalizeFilename(clientId) || 'candidate';
@@ -130,7 +135,14 @@ export async function generateCandidatePreviewImage(input: {
   clientId: string;
   imagePrompt: string;
 }): Promise<StudyMediaRef> {
-  const { buffer } = await generateOpenAIImageBuffer(input.imagePrompt);
+  const { buffer, contentType: openAIContentType } = await generateOpenAIImageBuffer(
+    input.imagePrompt
+  );
+  if (!STUDY_CANDIDATE_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES.has(openAIContentType)) {
+    throw new AppError('OpenAI returned an unsupported image format.', 502);
+  }
+
+  // Store all candidate prompt images as WebP regardless of the OpenAI source format.
   const webpBuffer = await sharp(buffer)
     .webp({ quality: STUDY_CANDIDATE_IMAGE_WEBP_QUALITY })
     .toBuffer();

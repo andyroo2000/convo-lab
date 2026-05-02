@@ -159,6 +159,9 @@ function useGeneratedStudyCandidates() {
       await visualDraftIds.reduce<Promise<void>>(async (previous, candidateId) => {
         await previous;
         if (generationTokenRef.current !== token) return;
+        // This lazy queue intentionally yields if the user starts another candidate
+        // regeneration; avoiding concurrent provider calls is more important than
+        // forcing every automatic image backfill to drain.
         await regenerateImageForCandidate(candidateId, token);
       }, Promise.resolve());
     },
