@@ -137,6 +137,13 @@ describe('AudioPlayer', () => {
       const audio = container.querySelector('audio');
       expect(audio).toHaveAttribute('src', 'https://test.com/audio.mp3');
     });
+
+    it('should eagerly preload audio for warm repeat playback', () => {
+      const { container } = renderAudioPlayer();
+      // eslint-disable-next-line testing-library/no-container
+      const audio = container.querySelector('audio');
+      expect(audio).toHaveAttribute('preload', 'auto');
+    });
   });
 
   describe('audioRef callback', () => {

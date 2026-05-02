@@ -219,10 +219,9 @@ describe('StudyCardPreview', () => {
     expect(screen.getByTestId('study-answer-audio-button')).toHaveAccessibleName(
       'Play answer audio'
     );
-    expect(screen.getByTestId('study-answer-audio-source')).toHaveAttribute(
-      'src',
-      'https://example.com/answer.mp3'
-    );
+    const audioSource = screen.getByTestId('study-answer-audio-source');
+    expect(audioSource).toHaveAttribute('src', 'https://example.com/answer.mp3');
+    expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'auto');
   });
 
   it('shows a visible audio playback error when playback fails', async () => {

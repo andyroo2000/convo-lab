@@ -45,16 +45,19 @@ client/public/avatars
 playwright-report
 test-results
 .beads/*.meta.json
+.beads/sync-state.json
 
 # Temporary files
 *.tmp
 *.temp
+tmp
 
 # Legacy/ops scripts (kept for manual operations; not part of app build path)
 server/scripts
 server/src/scripts
 scripts
 check-*.ts
+LOCAL_SETUP.md
 sample-courses-results.json
 tools/kanban
 

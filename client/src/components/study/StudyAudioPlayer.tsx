@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import useWarmAudioCache from '../../hooks/useWarmAudioCache';
 import { getAudioMimeType } from './studyCardUtils';
 
 export interface AudioPlayerHandle {
@@ -37,6 +38,8 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
     const playingRef = useRef(false);
     const [playing, setPlaying] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+    useWarmAudioCache([url]);
 
     const setPlayingState = useCallback((nextPlaying: boolean) => {
       playingRef.current = nextPlaying;
@@ -195,9 +198,10 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         <audio
           key={url}
           ref={audioRef}
-          preload="metadata"
+          preload="auto"
           controls={showTimeline}
           aria-label={label}
+          data-testid={testId ? `${testId}-element` : undefined}
           className={showTimeline ? timelineClasses : 'hidden'}
         >
           <source

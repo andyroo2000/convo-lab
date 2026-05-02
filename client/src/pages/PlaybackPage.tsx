@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import useWarmAudioCache from '../hooks/useWarmAudioCache';
 import { useSpeakerAvatars } from '../hooks/useSpeakerAvatars';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import { Episode, Sentence, AudioSpeed, Speaker } from '../types';
@@ -58,6 +59,14 @@ const PlaybackPage = () => {
   const sentenceRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioCourseEnabled = isFeatureEnabled('audioCourseEnabled');
+  const episodeAudioUrls = [
+    episode?.audioUrl_0_7,
+    episode?.audioUrl_0_85,
+    episode?.audioUrl_1_0,
+    episode?.audioUrl,
+  ];
+
+  useWarmAudioCache(episodeAudioUrls, Boolean(episode && !isGeneratingAudio));
 
   // Normalize speed values: '0.7x', 'slow', 0.7 all map to slow
   // Must be defined before useEffect hooks that reference speedKey

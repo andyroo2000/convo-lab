@@ -1394,7 +1394,7 @@ router.get(
       res.type(mediaAccess.contentType);
       res.sendFile(mediaAccess.absolutePath as string, {
         headers: {
-          'Cache-Control': 'private, max-age=60',
+          'Cache-Control': 'private, max-age=15552000, immutable',
           'Content-Disposition': toSafeContentDisposition(
             mediaAccess.contentDisposition,
             mediaAccess.filename

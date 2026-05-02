@@ -4,6 +4,7 @@ import { clientsClaim } from 'workbox-core';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+import { RangeRequestsPlugin } from 'workbox-range-requests';
 import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 
@@ -12,6 +13,14 @@ declare let self: ServiceWorkerGlobalScope & {
   __WB_DISABLE_DEV_LOGS?: boolean;
 };
 
+const AUDIO_CACHE_NAME = 'audio-cache';
+const AUDIO_FILE_PATTERN = /\.(?:aac|flac|m4a|mp3|oga|ogg|opus|wav|weba)(?:$|[?#])/i;
+const AUDIO_MESSAGE_TYPES = new Set(['PRECACHE_AUDIO_URLS', 'CLEAR_AUDIO_CACHE']);
+const GOOGLE_STORAGE_ORIGINS = new Set([
+  'https://storage.googleapis.com',
+  'https://storage.cloud.google.com',
+]);
+
 self.__WB_DISABLE_DEV_LOGS = true;
 
 self.skipWaiting();
@@ -19,6 +28,34 @@ clientsClaim();
 cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
+
+const isAudioRequest = (request: Request, url: URL) => {
+  if (request.destination === 'audio') return true;
+  if (url.pathname.startsWith('/api/study/media/')) return true;
+  if (url.pathname.startsWith('/audio/')) return true;
+  if (url.pathname.startsWith('/voice-previews/')) return true;
+  if (AUDIO_FILE_PATTERN.test(url.pathname)) return true;
+  if (GOOGLE_STORAGE_ORIGINS.has(url.origin) && AUDIO_FILE_PATTERN.test(url.pathname)) return true;
+
+  return false;
+};
+
+const audioStrategy = new CacheFirst({
+  cacheName: AUDIO_CACHE_NAME,
+  plugins: [
+    new ExpirationPlugin({
+      maxEntries: 600,
+      maxAgeSeconds: 60 * 60 * 24 * 180,
+      purgeOnQuotaError: true,
+    }),
+    new CacheableResponsePlugin({
+      statuses: [0, 200],
+    }),
+    new RangeRequestsPlugin(),
+  ],
+});
+
+registerRoute(({ request, url }) => isAudioRequest(request, url), audioStrategy);
 
 registerRoute(
   ({ url }) => url.origin === 'https://fonts.googleapis.com',
@@ -67,22 +104,6 @@ registerRoute(
 );
 
 registerRoute(
-  ({ url }) => url.pathname.startsWith('/audio/'),
-  new CacheFirst({
-    cacheName: 'audio-cache',
-    plugins: [
-      new ExpirationPlugin({
-        maxEntries: 100,
-        maxAgeSeconds: 60 * 60 * 24 * 30,
-      }),
-      new CacheableResponsePlugin({
-        statuses: [0, 200],
-      }),
-    ],
-  })
-);
-
-registerRoute(
   ({ url }) => url.pathname.startsWith('/assets/') && /\.(js|css)$/.test(url.pathname),
   new NetworkFirst({
     cacheName: 'assets-cache',
@@ -98,3 +119,48 @@ registerRoute(
     ],
   })
 );
+
+const normalizeMessageUrls = (urls: unknown) => {
+  if (!Array.isArray(urls)) return [];
+
+  return Array.from(
+    new Set(
+      urls
+        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
+        .map((url) => new URL(url, self.location.origin).href)
+    )
+  );
+};
+
+const precacheAudioUrls = async (event: ExtendableMessageEvent, urls: string[]) => {
+  await Promise.allSettled(
+    urls.map(async (url) => {
+      const requestUrl = new URL(url);
+      const sameOrigin = requestUrl.origin === self.location.origin;
+      const request = new Request(requestUrl.href, {
+        credentials: sameOrigin ? 'include' : 'omit',
+        mode: sameOrigin ? 'same-origin' : 'no-cors',
+      });
+
+      await audioStrategy.handle({ event, request });
+    })
+  );
+};
+
+self.addEventListener('message', (event) => {
+  const { data } = event;
+  if (!data || typeof data !== 'object' || !('type' in data)) return;
+
+  const type = String(data.type);
+  if (!AUDIO_MESSAGE_TYPES.has(type)) return;
+
+  if (type === 'CLEAR_AUDIO_CACHE') {
+    event.waitUntil(caches.delete(AUDIO_CACHE_NAME));
+    return;
+  }
+
+  const urls = normalizeMessageUrls('urls' in data ? data.urls : []);
+  if (urls.length === 0) return;
+
+  event.waitUntil(precacheAudioUrls(event, urls));
+});

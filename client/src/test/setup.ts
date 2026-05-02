@@ -23,6 +23,27 @@ Object.defineProperty(window, 'matchMedia', {
   }),
 });
 
+Object.defineProperty(window.navigator, 'serviceWorker', {
+  configurable: true,
+  value: {
+    controller: {
+      postMessage: () => {},
+    },
+    ready: Promise.resolve({
+      active: {
+        postMessage: () => {},
+      },
+    }),
+  },
+});
+
+Object.defineProperty(globalThis, 'caches', {
+  configurable: true,
+  value: {
+    delete: () => Promise.resolve(true),
+  },
+});
+
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   // eslint-disable-next-line @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function

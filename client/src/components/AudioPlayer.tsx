@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import useWarmAudioCache from '../hooks/useWarmAudioCache';
+
 export type RepeatMode = 'off' | 'one' | 'all';
 
 interface AudioPlayerProps {
@@ -40,6 +42,8 @@ const AudioPlayer = ({
   const [isDragging, setIsDragging] = useState(false);
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
+
+  useWarmAudioCache([src]);
 
   // Combined ref callback that updates both our local ref and parent's ref
   const combinedRef = useCallback(
@@ -160,7 +164,7 @@ const AudioPlayer = ({
 
   return (
     <div className="retro-audio-player w-full">
-      <audio ref={combinedRef} src={src} />
+      <audio ref={combinedRef} preload="auto" src={src} />
 
       {/* Play/Pause Button */}
       <button
