@@ -520,7 +520,7 @@ export async function generateStudyCardCandidates(input: {
   request: StudyCardCandidateGenerateRequest;
 }): Promise<StudyCardCandidateGenerateResponse> {
   const request = normalizeGenerateRequest(input.request);
-  scheduleStudyCandidatePreviewMediaCleanup(input.userId);
+  void scheduleStudyCandidatePreviewMediaCleanup(input.userId);
   const learnerContextSummary = request.includeLearnerContext
     ? await buildLearnerContextSummary(input.userId)
     : null;

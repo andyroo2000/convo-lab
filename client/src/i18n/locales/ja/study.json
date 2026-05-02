@@ -167,6 +167,7 @@
     "generateSubmit": "候補を生成",
     "generating": "生成中…",
     "generateFailed": "カード生成に失敗しました。",
+    "noCandidatesGenerated": "候補カードが生成されませんでした。文脈を少し追加するか、よりシンプルな対象でもう一度お試しください。",
     "candidates": "候補カード",
     "learnerContextUsed": "最近の学習文脈をプロンプトに含めました。",
     "addCandidate": "このカードを追加",

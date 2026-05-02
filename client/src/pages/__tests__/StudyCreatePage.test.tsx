@@ -165,6 +165,19 @@ describe('StudyCreatePage', () => {
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(DEFAULT_NARRATOR_VOICES.ja);
   });
 
+  it('surfaces an empty generated-candidate response', async () => {
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(
+      await screen.findByText(
+        'No candidate cards were generated. Try adding a little more context or a simpler target.'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('generates candidate cards and commits selected edited candidates', async () => {
     generateCandidatesMock.mockResolvedValue({
       learnerContextSummary: '- recognition/relearning: 会社 - company',

@@ -1,4 +1,5 @@
 import { prisma } from '../../../db/client.js';
+import { getStudyAudioRedisClient } from '../shared/mediaHelpers.js';
 import { deletePersistedStudyMediaByStoragePath } from '../shared/paths.js';
 
 import {
@@ -8,6 +9,34 @@ import {
 } from './constants.js';
 
 const lastPreviewCleanupByUser = new Map<string, number>();
+
+async function acquirePreviewCleanupLease(userId: string, nowMs: number): Promise<boolean> {
+  const leaseKey = `study:candidate-preview-cleanup:${userId}`;
+  try {
+    const redis = getStudyAudioRedisClient();
+    const acquired = await redis.set(
+      leaseKey,
+      String(nowMs),
+      'PX',
+      STUDY_CANDIDATE_PREVIEW_CLEANUP_INTERVAL_MS,
+      'NX'
+    );
+    return acquired === 'OK';
+  } catch (error) {
+    console.warn(
+      '[Study candidates] Redis preview cleanup lease unavailable; falling back to process-local throttle.',
+      error
+    );
+  }
+
+  const lastCleanupAt = lastPreviewCleanupByUser.get(userId) ?? 0;
+  if (nowMs - lastCleanupAt < STUDY_CANDIDATE_PREVIEW_CLEANUP_INTERVAL_MS) {
+    return false;
+  }
+
+  lastPreviewCleanupByUser.set(userId, nowMs);
+  return true;
+}
 
 export async function cleanupStudyCandidatePreviewMedia(
   userId: string,
@@ -52,16 +81,15 @@ export async function cleanupStudyCandidatePreviewMedia(
   );
 }
 
-export function scheduleStudyCandidatePreviewMediaCleanup(
+export async function scheduleStudyCandidatePreviewMediaCleanup(
   userId: string,
   nowMs = Date.now()
-): boolean {
-  const lastCleanupAt = lastPreviewCleanupByUser.get(userId) ?? 0;
-  if (nowMs - lastCleanupAt < STUDY_CANDIDATE_PREVIEW_CLEANUP_INTERVAL_MS) {
+): Promise<boolean> {
+  const shouldRun = await acquirePreviewCleanupLease(userId, nowMs);
+  if (!shouldRun) {
     return false;
   }
 
-  lastPreviewCleanupByUser.set(userId, nowMs);
   void cleanupStudyCandidatePreviewMedia(userId, nowMs).catch((error) => {
     console.warn('[Study candidates] Failed to prune stale preview media.', error);
   });

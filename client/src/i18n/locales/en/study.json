@@ -167,6 +167,7 @@
     "generateSubmit": "Generate candidates",
     "generating": "Generating…",
     "generateFailed": "Card generation failed.",
+    "noCandidatesGenerated": "No candidate cards were generated. Try adding a little more context or a simpler target.",
     "candidates": "Candidate cards",
     "learnerContextUsed": "Recent study context was included in the prompt.",
     "addCandidate": "Add this card",

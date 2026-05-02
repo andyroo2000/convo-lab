@@ -7,6 +7,7 @@ import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
 import {
   cleanupStudyServiceTestMedia,
   deleteFromGCSPathMock,
+  redisSetMock,
   resetStudyServiceMocks,
 } from './studyTestHelpers.js';
 import {
@@ -17,6 +18,7 @@ import {
 import {
   cleanupStudyCandidatePreviewMedia,
   resetStudyCandidatePreviewMediaCleanupSchedule,
+  scheduleStudyCandidatePreviewMediaCleanup,
 } from '../../../services/study/candidates/mediaCleanup.js';
 
 vi.mock('../../../services/llmClient.js', () => ({
@@ -195,6 +197,28 @@ describe('studyCandidateService', () => {
     });
     expect(mockPrisma.studyMedia.deleteMany.mock.invocationCallOrder[0]).toBeLessThan(
       deleteFromGCSPathMock.mock.invocationCallOrder[0] ?? Number.POSITIVE_INFINITY
+    );
+  });
+
+  it('uses Redis as the cross-process generated-preview cleanup throttle', async () => {
+    redisSetMock.mockResolvedValueOnce('OK').mockResolvedValueOnce(null);
+
+    await expect(scheduleStudyCandidatePreviewMediaCleanup('user-1', 1_000)).resolves.toBe(true);
+    await expect(scheduleStudyCandidatePreviewMediaCleanup('user-1', 1_001)).resolves.toBe(false);
+
+    expect(redisSetMock).toHaveBeenCalledWith(
+      'study:candidate-preview-cleanup:user-1',
+      '1000',
+      'PX',
+      expect.any(Number),
+      'NX'
+    );
+    expect(redisSetMock).toHaveBeenCalledWith(
+      'study:candidate-preview-cleanup:user-1',
+      '1001',
+      'PX',
+      expect.any(Number),
+      'NX'
     );
   });
 
