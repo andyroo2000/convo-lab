@@ -17,6 +17,7 @@ describe('audioCache', () => {
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     globalThis.fetch = originalFetch;
     defineNavigatorValue('serviceWorker', {
       controller: {
@@ -69,6 +70,7 @@ describe('audioCache', () => {
   });
 
   it('falls back to credentialed fetch when no service worker is active', async () => {
+    vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
     globalThis.fetch = fetchMock;
     defineNavigatorValue('serviceWorker', {
@@ -76,7 +78,9 @@ describe('audioCache', () => {
       ready: new Promise(() => {}),
     });
 
-    await warmAudioCache(['/api/study/media/1']);
+    const warmPromise = warmAudioCache(['/api/study/media/1']);
+    await vi.advanceTimersByTimeAsync(1200);
+    await warmPromise;
 
     expect(fetchMock).toHaveBeenCalledWith(`${window.location.origin}/api/study/media/1`, {
       cache: 'force-cache',

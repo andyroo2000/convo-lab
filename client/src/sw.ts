@@ -149,7 +149,9 @@ const precacheAudioUrls = async (event: ExtendableMessageEvent, urls: string[]) 
         mode: sameOrigin ? 'same-origin' : 'no-cors',
       });
 
-      await audioStrategy.handle({ event, request });
+      const [responseDone, cacheDone] = audioStrategy.handleAll({ event, request });
+      await responseDone;
+      await cacheDone;
     })
   );
 };
