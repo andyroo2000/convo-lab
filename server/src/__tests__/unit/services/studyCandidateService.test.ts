@@ -3,12 +3,16 @@ import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mockPrisma } from '../../setup.js';
-import { generateWithGemini } from '../../../services/geminiClient.js';
+import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
 import { cleanupStudyServiceTestMedia, resetStudyServiceMocks } from './studyTestHelpers.js';
 import {
   commitStudyCardCandidates,
   generateStudyCardCandidates,
 } from '../../../services/studyCandidateService.js';
+
+vi.mock('../../../services/llmClient.js', () => ({
+  generateStudyCardCandidateJson: vi.fn(),
+}));
 
 const schedulerState = {
   due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
@@ -26,7 +30,7 @@ const schedulerState = {
 describe('studyCandidateService', () => {
   beforeEach(() => {
     resetStudyServiceMocks();
-    vi.mocked(generateWithGemini).mockReset();
+    vi.mocked(generateStudyCardCandidateJson).mockReset();
     mockPrisma.studyCard.findMany.mockResolvedValue([
       {
         cardType: 'recognition',
@@ -57,7 +61,7 @@ describe('studyCandidateService', () => {
   });
 
   it('generates candidates with learner context and audio-recognition preview media', async () => {
-    vi.mocked(generateWithGemini).mockResolvedValue(
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
         candidates: [
           {
@@ -99,7 +103,7 @@ describe('studyCandidateService', () => {
       },
     });
 
-    expect(generateWithGemini).toHaveBeenCalledWith(
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('Recent learner context:'),
       expect.stringContaining('valid JSON')
     );
@@ -125,7 +129,7 @@ describe('studyCandidateService', () => {
   });
 
   it('rejects malformed LLM output with a safe error', async () => {
-    vi.mocked(generateWithGemini).mockResolvedValue('not json');
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue('not json');
 
     await expect(
       generateStudyCardCandidates({

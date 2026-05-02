@@ -19,7 +19,7 @@ import { prisma } from '../db/client.js';
 import { AppError } from '../middleware/errorHandler.js';
 
 import { synthesizeBatchedTexts } from './batchedTTSClient.js';
-import { generateWithGemini } from './geminiClient.js';
+import { generateStudyCardCandidateJson } from './llmClient.js';
 import {
   getBestAnswerAudioText,
   getStudyMediaApiPath,
@@ -193,7 +193,7 @@ function parseCandidateResponse(response: string): StudyCardCandidate[] {
   try {
     parsed = JSON.parse(stripJsonFromResponse(response));
   } catch (error) {
-    console.warn('[Study candidates] Failed to parse Gemini JSON response.', error);
+    console.warn('[Study candidates] Failed to parse LLM JSON response.', error);
     throw new AppError('Could not generate cards from that input. Please try again.', 502);
   }
 
@@ -467,7 +467,7 @@ export async function generateStudyCardCandidates(input: {
     ? await buildLearnerContextSummary(input.userId)
     : null;
 
-  const rawResponse = await generateWithGemini(
+  const rawResponse = await generateStudyCardCandidateJson(
     buildCandidatePrompt({
       targetText: request.targetText,
       context: request.context,

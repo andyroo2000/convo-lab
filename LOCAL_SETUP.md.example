@@ -17,6 +17,22 @@ DATABASE_URL="postgresql://YOUR_MAC_USERNAME@localhost:5432/languageflow?schema=
 
 ## Production API Keys
 
+### OpenAI API Key
+
+Flashcard candidate generation uses OpenAI by default. Create a personal API key at:
+
+```text
+https://platform.openai.com/api-keys
+```
+
+Add these to your local `.env` file:
+
+```bash
+OPENAI_API_KEY=your-key-here
+LLM_PROVIDER=openai
+STUDY_CARD_GENERATOR_MODEL=gpt-5.5
+```
+
 ### Fish Audio API Key
 
 For local testing of TTS features, you'll need to copy the API key from production:
