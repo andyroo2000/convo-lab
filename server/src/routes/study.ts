@@ -1482,6 +1482,9 @@ router.post(
         ? (req.body as Partial<StudyCardRegenerateImageRequest>)
         : {};
       const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt : '';
+      if (!imagePrompt.trim()) {
+        throw new AppError('imagePrompt is required.', 400);
+      }
       if (body.imageRole !== 'prompt' && body.imageRole !== 'answer') {
         throw new AppError('imageRole must be prompt or answer.', 400);
       }

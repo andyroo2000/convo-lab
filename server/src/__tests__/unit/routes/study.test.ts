@@ -1347,6 +1347,19 @@ describe('Study Routes', () => {
     expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
   });
 
+  it('rejects study card image regeneration with an empty image prompt', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-image')
+    ).send({
+      imagePrompt: '   ',
+      imageRole: 'prompt',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('imagePrompt is required.');
+    expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
+  });
+
   it('passes card actions through to the service', async () => {
     performStudyCardActionMock.mockResolvedValue({
       card: { id: 'card-1' },

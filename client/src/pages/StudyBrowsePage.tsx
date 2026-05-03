@@ -74,6 +74,16 @@ const StudyBrowsePage = () => {
   const [editorResetToken, setEditorResetToken] = useState(0);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const runBackgroundTask = useStudyBackgroundTask();
+  const mutationResetRef = useRef({
+    updateCard: updateCardMutation.reset,
+    regenerateAudio: regenerateAudioMutation.reset,
+    regenerateImage: regenerateImageMutation.reset,
+  });
+  mutationResetRef.current = {
+    updateCard: updateCardMutation.reset,
+    regenerateAudio: regenerateAudioMutation.reset,
+    regenerateImage: regenerateImageMutation.reset,
+  };
 
   useEffect(() => {
     if (!browserQuery.data) return;
@@ -133,6 +143,9 @@ const StudyBrowsePage = () => {
 
   useEffect(() => {
     setShowSetDueControls(false);
+    mutationResetRef.current.updateCard?.();
+    mutationResetRef.current.regenerateAudio?.();
+    mutationResetRef.current.regenerateImage?.();
     setEditorResetToken((current) => current + 1);
   }, [selectedCardId]);
 

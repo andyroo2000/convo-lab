@@ -1,4 +1,4 @@
-const STUDY_IMAGE_PROMPT_GUARDRAIL =
+export const STUDY_IMAGE_PROMPT_GUARDRAIL =
   'Natural real-world scene only. No text, words, letters, captions, labels, signs, logos, watermarks, UI, flashcard layout, worksheet, poster, or title.';
 
 export function applyStudyImagePromptGuardrails(imagePrompt: string): string {
@@ -11,5 +11,3 @@ export function applyStudyImagePromptGuardrails(imagePrompt: string): string {
 
   return `${trimmed}\n\n${STUDY_IMAGE_PROMPT_GUARDRAIL}`;
 }
-
-export { STUDY_IMAGE_PROMPT_GUARDRAIL };

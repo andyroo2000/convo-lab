@@ -44,7 +44,7 @@ function getCardImagePrompt(card: StudyCardSummary): string {
     card.answer.meaning ??
     'this study card';
   const meaning = card.answer.meaning ? ` (${card.answer.meaning})` : '';
-  return `A clear natural real-world image representing ${subject}${meaning}. No text.`;
+  return `A clear natural real-world image representing ${subject}${meaning}.`;
 }
 
 const StudyCardEditor = ({
@@ -72,12 +72,9 @@ const StudyCardEditor = ({
   const imageUrl = toAssetUrl(currentImage?.url);
   const cardResetKey = [
     card.id,
-    card.answer.answerAudio?.id ?? '',
-    card.answer.answerImage?.id ?? '',
     card.answer.expression ?? '',
     card.answer.meaning ?? '',
     card.answer.restoredText ?? '',
-    card.prompt.cueImage?.id ?? '',
     card.prompt.cueText ?? '',
   ].join('\u001f');
   const lastCardResetKeyRef = useRef(cardResetKey);
