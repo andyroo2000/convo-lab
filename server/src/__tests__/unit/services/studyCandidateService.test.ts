@@ -23,6 +23,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
 } from '../../../services/studyCandidateService.js';
+import { regenerateStudyCardImage } from '../../../services/study/imageMedia.js';
 import {
   cleanupStudyCandidatePreviewMedia,
   resetStudyCandidatePreviewMediaCleanupSchedule,
@@ -601,7 +602,11 @@ describe('studyCandidateService', () => {
     });
 
     expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
-      'A minimal illustration of cloudy weather.'
+      expect.stringContaining('A minimal illustration of cloudy weather.')
+    );
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(expect.stringContaining('No text'));
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
+      expect.stringContaining('flashcard layout')
     );
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
     expect(webpMock).toHaveBeenCalledWith({ quality: 82 });
@@ -650,6 +655,89 @@ describe('studyCandidateService', () => {
         source: 'generated',
       },
     });
+  });
+
+  it('cleans up replaced generated study-card image media after regeneration', async () => {
+    process.env.GCS_BUCKET_NAME = 'test-bucket';
+    const now = new Date('2026-04-12T00:00:00.000Z');
+    const oldImageMedia = {
+      id: 'image-old',
+      userId: 'user-1',
+      importJobId: null,
+      sourceKind: 'generated',
+      sourceFilename: 'old-card.webp',
+      normalizedFilename: 'old-card.webp',
+      sourceMediaKey: null,
+      mediaKind: 'image',
+      contentType: 'image/webp',
+      storagePath: 'study-media/user-1/generated/old-card.webp',
+      publicUrl: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const baseCard = {
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      cardType: 'recognition',
+      queueState: 'new',
+      dueAt: null,
+      introducedAt: null,
+      answerAudioSource: 'generated',
+      promptJson: {},
+      answerJson: {
+        expression: '曇り',
+        meaning: 'cloudy weather',
+        answerImage: {
+          id: oldImageMedia.id,
+          filename: oldImageMedia.sourceFilename,
+          url: '/api/study/media/image-old',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      schedulerStateJson: schedulerState,
+      createdAt: now,
+      updatedAt: now,
+      note: {
+        id: 'note-1',
+        rawFieldsJson: {},
+        sourceNoteId: null,
+        sourceGuid: null,
+        sourceNotetypeId: null,
+        sourceNotetypeName: null,
+      },
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: oldImageMedia,
+    };
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(baseCard).mockResolvedValueOnce({
+      ...baseCard,
+      imageMedia: {
+        ...oldImageMedia,
+        id: 'media-1',
+        sourceFilename: 'card-1-new.webp',
+        normalizedFilename: 'card-1-new.webp',
+        storagePath: 'study-media/user-1/generated/card-1-new.webp',
+      },
+    });
+
+    await regenerateStudyCardImage({
+      userId: 'user-1',
+      cardId: 'card-1',
+      imagePrompt: 'A cloudy train platform.',
+      imageRole: 'answer',
+    });
+
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ imageMediaId: 'media-1' }),
+      })
+    );
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({ where: { id: 'image-old' } });
+    expect(deleteFromGCSPathMock).toHaveBeenCalledWith(
+      'study-media/user-1/generated/old-card.webp'
+    );
   });
 
   it('deletes persisted preview audio when creating the media row fails', async () => {

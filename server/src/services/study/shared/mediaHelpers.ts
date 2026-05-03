@@ -12,7 +12,11 @@ import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
 import { uploadBufferToGCSPath } from '../../storageClient.js';
 
 import { mergeStudyMediaRecord } from './cardMappers.js';
-import { STUDY_AUDIO_LOCK_POLL_INTERVAL_MS, STUDY_AUDIO_LOCK_TTL_MS } from './constants.js';
+import {
+  STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
+  STUDY_AUDIO_LOCK_TTL_MS,
+  STUDY_GENERATED_IMPORT_JOB_ID,
+} from './constants.js';
 import { isRecord, toPrismaJson } from './guards.js';
 import { parsePersistedStudyMediaRecord } from './parsers.js';
 import {
@@ -265,7 +269,7 @@ async function ensureGeneratedAnswerAudioLocally(
     const filename = `${normalizeFilename(cardId)}.mp3`;
     const persisted = await persistStudyMediaBuffer({
       userId,
-      importJobId: 'generated',
+      importJobId: STUDY_GENERATED_IMPORT_JOB_ID,
       filename,
       buffer: audioBuffer,
     });

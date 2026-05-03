@@ -84,10 +84,14 @@
     "description": "Save returns you to the front of this card in review mode.",
     "currentAudio": "Current card audio",
     "noCurrentAudio": "No card audio is available yet.",
+    "currentImage": "Current card image",
+    "imagePrompt": "Image prompt",
     "save": "Save card",
     "saving": "Saving…",
     "regenerateAudio": "Regenerate audio",
     "regeneratingAudio": "Regenerating…",
+    "regenerateImage": "Regenerate image",
+    "regeneratingImage": "Regenerating image…",
     "cancel": "Cancel"
   },
   "form": {

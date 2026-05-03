@@ -16,6 +16,7 @@ import {
   useStudyBrowser,
   useStudyBrowserNoteDetail,
   useRegenerateStudyAnswerAudio,
+  useRegenerateStudyCardImage,
   useUpdateStudyCard,
 } from '../hooks/useStudy';
 import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
@@ -52,6 +53,7 @@ const StudyBrowsePage = () => {
   const enabled = isFeatureEnabled('flashcardsEnabled');
   const updateCardMutation = useUpdateStudyCard();
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
+  const regenerateImageMutation = useRegenerateStudyCardImage();
   const cardActionMutation = useStudyCardAction();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState('');
@@ -72,6 +74,16 @@ const StudyBrowsePage = () => {
   const [editorResetToken, setEditorResetToken] = useState(0);
   const [showSetDueControls, setShowSetDueControls] = useState(false);
   const runBackgroundTask = useStudyBackgroundTask();
+  const mutationResetRef = useRef({
+    updateCard: updateCardMutation.reset,
+    regenerateAudio: regenerateAudioMutation.reset,
+    regenerateImage: regenerateImageMutation.reset,
+  });
+  mutationResetRef.current = {
+    updateCard: updateCardMutation.reset,
+    regenerateAudio: regenerateAudioMutation.reset,
+    regenerateImage: regenerateImageMutation.reset,
+  };
 
   useEffect(() => {
     if (!browserQuery.data) return;
@@ -131,6 +143,9 @@ const StudyBrowsePage = () => {
 
   useEffect(() => {
     setShowSetDueControls(false);
+    mutationResetRef.current.updateCard?.();
+    mutationResetRef.current.regenerateAudio?.();
+    mutationResetRef.current.regenerateImage?.();
     setEditorResetToken((current) => current + 1);
   }, [selectedCardId]);
 
@@ -174,10 +189,14 @@ const StudyBrowsePage = () => {
     updateCardErrorMessage = updateCardMutation.error.message;
   } else if (regenerateAudioMutation.error instanceof Error) {
     updateCardErrorMessage = regenerateAudioMutation.error.message;
+  } else if (regenerateImageMutation.error instanceof Error) {
+    updateCardErrorMessage = regenerateImageMutation.error.message;
   } else if (updateCardMutation.error) {
     updateCardErrorMessage = 'Card update failed.';
   } else if (regenerateAudioMutation.error) {
     updateCardErrorMessage = 'Audio regeneration failed.';
+  } else if (regenerateImageMutation.error) {
+    updateCardErrorMessage = 'Image regeneration failed.';
   }
 
   return (
@@ -565,6 +584,7 @@ const StudyBrowsePage = () => {
                       card={selectedCard}
                       isSaving={updateCardMutation.isPending}
                       isRegeneratingAudio={regenerateAudioMutation.isPending}
+                      isRegeneratingImage={regenerateImageMutation.isPending}
                       error={updateCardErrorMessage}
                       onCancel={() => setEditorResetToken((current) => current + 1)}
                       onSave={async ({ prompt, answer }) => {
@@ -585,6 +605,16 @@ const StudyBrowsePage = () => {
                           cardId: selectedCard.id,
                           answerAudioVoiceId,
                           answerAudioTextOverride,
+                        });
+                        await detailQuery.refetch();
+                        await browserQuery.refetch();
+                        return updatedCard;
+                      }}
+                      onRegenerateImage={async ({ imagePrompt, imageRole }) => {
+                        const updatedCard = await regenerateImageMutation.mutateAsync({
+                          cardId: selectedCard.id,
+                          imagePrompt,
+                          imageRole,
                         });
                         await detailQuery.refetch();
                         await browserQuery.refetch();

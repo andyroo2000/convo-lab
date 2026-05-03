@@ -10,7 +10,7 @@ const StudyCandidatePreviewImage = ({
   onImagePromptChange,
   onRegenerate,
   previewUrl,
-  regenerateError,
+  regenerateError = null,
   regenerateLabel,
   title,
 }: {
@@ -23,7 +23,7 @@ const StudyCandidatePreviewImage = ({
   onImagePromptChange: (value: string) => void;
   onRegenerate: () => void;
   previewUrl: string | null;
-  regenerateError: string | null;
+  regenerateError?: string | null;
   regenerateLabel: string;
   title: string;
 }) => (

@@ -22,6 +22,7 @@ import type {
   StudyCardCandidateKind,
   StudyCardCandidatePreviewAudioRequest,
   StudyCardCandidatePreviewImageRequest,
+  StudyCardRegenerateImageRequest,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -64,6 +65,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyCardAnswerAudio,
+  regenerateStudyCardImage,
   recordStudyReview,
   resolveStudyCardPitchAccent,
   reorderStudyNewCardQueue,
@@ -86,6 +88,9 @@ const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
   10,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT
 );
+// Keep a separate name so persisted-card regeneration can diverge from preview regeneration later.
+const STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE =
+  STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE;
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -1452,6 +1457,43 @@ router.post(
         cardId: req.params.cardId,
         answerAudioVoiceId,
         answerAudioTextOverride,
+      });
+      res.json(card);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/cards/:cardId/regenerate-image',
+  rateLimitStudyRoute({
+    key: 'regenerate-card-image',
+    max: STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
+    windowMs: 60 * 1000,
+  }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      const body = isPlainObject(req.body)
+        ? (req.body as Partial<StudyCardRegenerateImageRequest>)
+        : {};
+      const imagePrompt = typeof body.imagePrompt === 'string' ? body.imagePrompt : '';
+      if (!imagePrompt.trim()) {
+        throw new AppError('imagePrompt is required.', 400);
+      }
+      if (body.imageRole !== 'prompt' && body.imageRole !== 'answer') {
+        throw new AppError('imageRole must be prompt or answer.', 400);
+      }
+
+      const card = await regenerateStudyCardImage({
+        userId: req.userId,
+        cardId: req.params.cardId,
+        imagePrompt,
+        imageRole: body.imageRole,
       });
       res.json(card);
     } catch (error) {

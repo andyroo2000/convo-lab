@@ -11,6 +11,7 @@ const {
   useStudyBrowserNoteDetailMock,
   updateStudyCardMock,
   regenerateStudyAnswerAudioMock,
+  regenerateStudyCardImageMock,
   cardActionMutateAsyncMock,
   resolveStudyCardPitchAccentMock,
 } = vi.hoisted(() => ({
@@ -18,6 +19,7 @@ const {
   useStudyBrowserNoteDetailMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
+  regenerateStudyCardImageMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
 }));
@@ -86,6 +88,13 @@ const noteDetailById = {
           meaning: 'company',
           answerAudioVoiceId: 'ja-JP-Neural2-D',
           answerAudioTextOverride: 'かいしゃ',
+          answerImage: {
+            id: 'image-1',
+            filename: 'company.webp',
+            url: 'https://example.com/company.webp',
+            mediaKind: 'image',
+            source: 'generated',
+          },
         },
         state: {
           dueAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
@@ -170,6 +179,11 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  useRegenerateStudyCardImage: () => ({
+    mutateAsync: regenerateStudyCardImageMock,
+    isPending: false,
+    error: null,
+  }),
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
@@ -204,6 +218,7 @@ describe('StudyBrowsePage', () => {
     useStudyBrowserNoteDetailMock.mockReset();
     updateStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
+    regenerateStudyCardImageMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
 
@@ -248,6 +263,22 @@ describe('StudyBrowsePage', () => {
             filename: `${payload.cardId}-regenerated.mp3`,
             url: `https://example.com/${payload.cardId}-regenerated.mp3`,
             mediaKind: 'audio',
+            source: 'generated',
+          },
+        },
+      })
+    );
+    regenerateStudyCardImageMock.mockImplementation(
+      async (payload: { cardId: string; imagePrompt: string; imageRole: 'prompt' | 'answer' }) => ({
+        ...(noteDetailById['note-1'].cards[0] ?? {}),
+        id: payload.cardId,
+        answer: {
+          ...(noteDetailById['note-1'].cards[0]?.answer ?? {}),
+          answerImage: {
+            id: 'image-regenerated',
+            filename: 'company-regenerated.webp',
+            url: 'https://example.com/company-regenerated.webp',
+            mediaKind: 'image',
             source: 'generated',
           },
         },
@@ -391,6 +422,10 @@ describe('StudyBrowsePage', () => {
 
     expect(screen.getByTestId('study-card-editor')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByAltText('Current card image')).toHaveAttribute(
+      'src',
+      'https://example.com/company.webp'
+    );
     expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
     expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
 
@@ -435,6 +470,29 @@ describe('StudyBrowsePage', () => {
     });
     await waitFor(() => {
       expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('regenerates card images from the edit pane', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.clear(screen.getByLabelText('Image prompt'));
+    await userEvent.type(screen.getByLabelText('Image prompt'), 'A company office in Tokyo.');
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate image' }));
+
+    await waitFor(() => {
+      expect(regenerateStudyCardImageMock).toHaveBeenCalledWith({
+        cardId: 'card-1',
+        imagePrompt: 'A company office in Tokyo.',
+        imageRole: 'answer',
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByAltText('Current card image')).toHaveAttribute(
+        'src',
+        'https://example.com/company-regenerated.webp'
+      );
     });
   });
 

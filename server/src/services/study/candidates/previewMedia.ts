@@ -25,6 +25,7 @@ import {
   STUDY_CANDIDATE_PREVIEW_IMPORT_JOB_ID,
   STUDY_CANDIDATE_PREVIEW_SOURCE_KIND,
 } from './constants.js';
+import { applyStudyImagePromptGuardrails } from './imagePromptGuardrails.js';
 
 const STUDY_CANDIDATE_IMAGE_CONTENT_TYPE = 'image/webp';
 const STUDY_CANDIDATE_IMAGE_EXTENSION = 'webp';
@@ -136,7 +137,7 @@ export async function generateCandidatePreviewImage(input: {
   imagePrompt: string;
 }): Promise<StudyMediaRef> {
   const { buffer, contentType: openAIContentType } = await generateOpenAIImageBuffer(
-    input.imagePrompt
+    applyStudyImagePromptGuardrails(input.imagePrompt)
   );
   if (!STUDY_CANDIDATE_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES.has(openAIContentType)) {
     throw new AppError('OpenAI returned an unsupported image format.', 502);

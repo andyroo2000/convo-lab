@@ -5,6 +5,7 @@ import {
 
 export const ANKI_DECK_NAME = '日本語';
 export const FIELD_SEPARATOR = String.fromCharCode(31);
+export const STUDY_GENERATED_IMPORT_JOB_ID = 'generated';
 // Keep ready study sessions bounded while still covering a realistic full due-card sitting.
 export const STUDY_SESSION_READY_CARD_LIMIT = 300;
 export const STUDY_SESSION_EAGER_MEDIA_CARD_LIMIT = 30;

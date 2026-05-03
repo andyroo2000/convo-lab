@@ -6,6 +6,7 @@ import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
 import StudyCardFormFields from './StudyCardFormFields';
+import StudyCandidatePreviewImage from './StudyCandidatePreviewImage';
 import { useStudyCardForm } from './studyCardFormModel';
 import { toAssetUrl } from './studyCardUtils';
 
@@ -20,9 +21,30 @@ interface StudyCardEditorProps {
     answerAudioVoiceId: string | null;
     answerAudioTextOverride: string | null;
   }) => Promise<StudyCardSummary | void> | StudyCardSummary | void;
+  onRegenerateImage?: (payload: {
+    imagePrompt: string;
+    imageRole: 'prompt' | 'answer';
+  }) => Promise<StudyCardSummary | void> | StudyCardSummary | void;
   isSaving?: boolean;
   isRegeneratingAudio?: boolean;
+  isRegeneratingImage?: boolean;
   error?: string | null;
+}
+
+function getCardImageRole(card: StudyCardSummary): 'prompt' | 'answer' {
+  // Study cards currently carry at most one image, hydrated onto whichever side owns it.
+  return card.prompt.cueImage ? 'prompt' : 'answer';
+}
+
+function getCardImagePrompt(card: StudyCardSummary): string {
+  const subject =
+    card.answer.expression ??
+    card.answer.restoredText ??
+    card.prompt.cueText ??
+    card.answer.meaning ??
+    'this study card';
+  const meaning = card.answer.meaning ? ` (${card.answer.meaning})` : '';
+  return `A clear natural real-world image representing ${subject}${meaning}.`;
 }
 
 const StudyCardEditor = ({
@@ -30,21 +52,55 @@ const StudyCardEditor = ({
   onCancel,
   onSave,
   onRegenerateAudio,
+  onRegenerateImage,
   isSaving = false,
   isRegeneratingAudio = false,
+  isRegeneratingImage = false,
   error,
 }: StudyCardEditorProps) => {
   const { t } = useTranslation('study');
   const { values, setField, buildPayload } = useStudyCardForm({ card });
   const [currentAnswerAudio, setCurrentAnswerAudio] = useState(card.answer.answerAudio ?? null);
+  const [currentImage, setCurrentImage] = useState(
+    card.prompt.cueImage ?? card.answer.answerImage ?? null
+  );
+  const [imageRole, setImageRole] = useState<'prompt' | 'answer'>(() => getCardImageRole(card));
+  const [imagePrompt, setImagePrompt] = useState(() => getCardImagePrompt(card));
   const [regeneratedAudioPlayRequest, setRegeneratedAudioPlayRequest] = useState(0);
   const currentAudioPlayerRef = useRef<AudioPlayerHandle | null>(null);
   const answerAudioUrl = toAssetUrl(currentAnswerAudio?.url);
-
+  const imageUrl = toAssetUrl(currentImage?.url);
+  const cardResetKey = [
+    card.id,
+    card.answer.expression ?? '',
+    card.answer.meaning ?? '',
+    card.answer.restoredText ?? '',
+    card.prompt.cueText ?? '',
+  ].join('\u001f');
+  const lastCardResetKeyRef = useRef(cardResetKey);
+  const cardMediaSnapshotRef = useRef({
+    answerAudio: card.answer.answerAudio ?? null,
+    image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
+    imageRole: getCardImageRole(card),
+    imagePrompt: getCardImagePrompt(card),
+  });
+  cardMediaSnapshotRef.current = {
+    answerAudio: card.answer.answerAudio ?? null,
+    image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
+    imageRole: getCardImageRole(card),
+    imagePrompt: getCardImagePrompt(card),
+  };
   useEffect(() => {
-    setCurrentAnswerAudio(card.answer.answerAudio ?? null);
+    if (lastCardResetKeyRef.current === cardResetKey) {
+      return;
+    }
+    lastCardResetKeyRef.current = cardResetKey;
+    setCurrentAnswerAudio(cardMediaSnapshotRef.current.answerAudio);
+    setCurrentImage(cardMediaSnapshotRef.current.image);
+    setImageRole(cardMediaSnapshotRef.current.imageRole);
+    setImagePrompt(cardMediaSnapshotRef.current.imagePrompt);
     setRegeneratedAudioPlayRequest(0);
-  }, [card.answer.answerAudio, card.id]);
+  }, [cardResetKey]);
 
   useEffect(() => {
     let animationFrame: number | undefined;
@@ -72,8 +128,14 @@ const StudyCardEditor = ({
         event.preventDefault();
         const { prompt, answer } = buildPayload();
         // Regeneration saves media immediately; include the current reference so a later form save
-        // does not accidentally drop freshly previewed audio.
-        await onSave({ prompt, answer: { ...answer, answerAudio: currentAnswerAudio } });
+        // does not accidentally drop freshly previewed media.
+        await onSave({
+          prompt: imageRole === 'prompt' ? { ...prompt, cueImage: currentImage } : prompt,
+          answer:
+            imageRole === 'answer'
+              ? { ...answer, answerAudio: currentAnswerAudio, answerImage: currentImage }
+              : { ...answer, answerAudio: currentAnswerAudio },
+        });
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -92,6 +154,43 @@ const StudyCardEditor = ({
         includeSentenceFields
         onFieldChange={setField}
       />
+
+      {currentImage ? (
+        <StudyCandidatePreviewImage
+          altText={t('editor.currentImage')}
+          imagePrompt={imagePrompt}
+          imagePromptId="study-edit-image-prompt"
+          imagePromptLabel={t('editor.imagePrompt')}
+          isRegenerateDisabled={
+            !onRegenerateImage || isSaving || isRegeneratingAudio || isRegeneratingImage
+          }
+          isRegenerating={isRegeneratingImage}
+          onImagePromptChange={setImagePrompt}
+          onRegenerate={async () => {
+            if (!onRegenerateImage) return;
+            try {
+              const updatedCard = await onRegenerateImage({
+                imagePrompt,
+                imageRole,
+              });
+              if (updatedCard) {
+                const nextImage =
+                  imageRole === 'prompt'
+                    ? updatedCard.prompt.cueImage
+                    : updatedCard.answer.answerImage;
+                setCurrentImage(nextImage ?? null);
+              }
+            } catch {
+              // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.
+            }
+          }}
+          previewUrl={imageUrl}
+          regenerateLabel={
+            isRegeneratingImage ? t('editor.regeneratingImage') : t('editor.regenerateImage')
+          }
+          title={t('editor.currentImage')}
+        />
+      ) : null}
 
       <div className="rounded-2xl border border-gray-200 bg-cream/50 p-4">
         <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">
@@ -122,7 +221,7 @@ const StudyCardEditor = ({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          disabled={isSaving || isRegeneratingAudio}
+          disabled={isSaving || isRegeneratingAudio || isRegeneratingImage}
           className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving ? t('editor.saving') : t('editor.save')}
@@ -153,7 +252,7 @@ const StudyCardEditor = ({
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSaving || isRegeneratingAudio}
+          disabled={isSaving || isRegeneratingAudio || isRegeneratingImage}
           className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {t('editor.cancel')}
