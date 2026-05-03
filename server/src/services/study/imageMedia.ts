@@ -17,6 +17,7 @@ import {
   normalizeFilename,
   normalizeStudyCardPayload,
   persistStudyMediaBuffer,
+  STUDY_GENERATED_IMPORT_JOB_ID,
   toPrismaJson,
   toStudyCardSummary,
 } from './shared.js';
@@ -24,7 +25,6 @@ import {
 const STUDY_CARD_IMAGE_CONTENT_TYPE = 'image/webp';
 const STUDY_CARD_IMAGE_EXTENSION = 'webp';
 const STUDY_CARD_IMAGE_WEBP_QUALITY = 82;
-const STUDY_CARD_GENERATED_IMPORT_JOB_ID = 'generated';
 const STUDY_CARD_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES = new Set([
   'image/jpeg',
   'image/png',
@@ -79,7 +79,7 @@ async function generateStudyCardImageMedia(input: {
   const filename = `${normalizeFilename(input.cardId) || 'card'}-${randomUUID()}.${STUDY_CARD_IMAGE_EXTENSION}`;
   const persisted = await persistStudyMediaBuffer({
     userId: input.userId,
-    importJobId: STUDY_CARD_GENERATED_IMPORT_JOB_ID,
+    importJobId: STUDY_GENERATED_IMPORT_JOB_ID,
     filename,
     buffer: webpBuffer,
   });

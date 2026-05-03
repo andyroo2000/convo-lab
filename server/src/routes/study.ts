@@ -88,6 +88,9 @@ const STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE = Math.max(
   10,
   STUDY_CANDIDATE_IMAGE_GENERATE_MAX_COUNT
 );
+// Keep a separate name so persisted-card regeneration can diverge from preview regeneration later.
+const STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE =
+  STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE;
 
 function isValidIanaTimeZone(value: string): boolean {
   try {
@@ -1466,7 +1469,7 @@ router.post(
   '/cards/:cardId/regenerate-image',
   rateLimitStudyRoute({
     key: 'regenerate-card-image',
-    max: STUDY_CANDIDATE_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
+    max: STUDY_CARD_IMAGE_REGENERATION_RATE_LIMIT_PER_MINUTE,
     windowMs: 60 * 1000,
   }),
   async (req: AuthRequest, res, next) => {

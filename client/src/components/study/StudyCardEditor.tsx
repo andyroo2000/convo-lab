@@ -32,6 +32,7 @@ interface StudyCardEditorProps {
 }
 
 function getCardImageRole(card: StudyCardSummary): 'prompt' | 'answer' {
+  // Study cards currently carry at most one image, hydrated onto whichever side owns it.
   return card.prompt.cueImage ? 'prompt' : 'answer';
 }
 
@@ -92,9 +93,6 @@ const StudyCardEditor = ({
     imageRole: getCardImageRole(card),
     imagePrompt: getCardImagePrompt(card),
   };
-  // The parent mutation renders image regeneration errors in the editor-level error slot.
-  const imageRegenerateError = null;
-
   useEffect(() => {
     if (lastCardResetKeyRef.current === cardResetKey) {
       return;
@@ -190,7 +188,6 @@ const StudyCardEditor = ({
             }
           }}
           previewUrl={imageUrl}
-          regenerateError={imageRegenerateError}
           regenerateLabel={
             isRegeneratingImage ? t('editor.regeneratingImage') : t('editor.regenerateImage')
           }
