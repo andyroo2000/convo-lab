@@ -34,7 +34,8 @@ const isSignedGoogleStorageUrl = (url: URL) =>
   GOOGLE_STORAGE_ORIGINS.has(url.origin) &&
   Array.from(GOOGLE_SIGNED_URL_PARAMS).some((param) => url.searchParams.has(param));
 
-const isAudioRequest = (request: Request, url: URL) => {
+const isAudioRequest = (request: Request, url: URL, sameOrigin: boolean) => {
+  if (!sameOrigin) return false;
   if (isSignedGoogleStorageUrl(url)) return false;
   if (request.destination === 'audio') return true;
   if (url.pathname.startsWith('/api/study/media/')) return true;
@@ -60,7 +61,10 @@ const audioStrategy = new CacheFirst({
   ],
 });
 
-registerRoute(({ request, url }) => isAudioRequest(request, url), audioStrategy);
+registerRoute(
+  ({ request, url, sameOrigin }) => isAudioRequest(request, url, sameOrigin),
+  audioStrategy
+);
 
 registerRoute(
   ({ url }) => url.origin === 'https://fonts.googleapis.com',

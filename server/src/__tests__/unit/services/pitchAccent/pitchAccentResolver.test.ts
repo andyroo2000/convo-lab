@@ -59,7 +59,7 @@ describe('pitchAccentResolver', () => {
     });
   });
 
-  it('caches unresolved results when the LLM is not confident', async () => {
+  it('returns unresolved metadata when the LLM is not confident', async () => {
     const selectReading = vi.fn().mockResolvedValue('');
 
     await expect(
@@ -73,6 +73,31 @@ describe('pitchAccentResolver', () => {
       status: 'unresolved',
       reason: 'ambiguous-reading',
     });
+  });
+
+  it('retries stale unresolved cached data instead of returning it permanently', async () => {
+    const selectReading = vi.fn();
+
+    await expect(
+      resolvePitchAccent({
+        expression: '会社',
+        expressionReading: '会社[かいしゃ]',
+        entries,
+        cached: {
+          status: 'unresolved',
+          expression: '会社',
+          reason: 'not-found',
+          source: 'kanjium',
+          resolvedBy: 'none',
+        },
+        selectReading,
+      })
+    ).resolves.toMatchObject({
+      status: 'resolved',
+      reading: 'かいしゃ',
+      pitchNum: 0,
+    });
+    expect(selectReading).not.toHaveBeenCalled();
   });
 
   it('returns unresolved instead of throwing when LLM disambiguation fails', async () => {

@@ -4,6 +4,9 @@ import type { JapanesePitchAccentPayload, StudyCardSummary } from '@languageflow
 
 import { resolveStudyCardPitchAccent } from './useStudy';
 
+const shouldResolvePitchAccent = (pitchAccent: JapanesePitchAccentPayload | null | undefined) =>
+  !pitchAccent || pitchAccent.status === 'unresolved';
+
 export default function useStudyPitchAccent(
   card: StudyCardSummary,
   enabled: boolean
@@ -23,7 +26,13 @@ export default function useStudyPitchAccent(
 
   useEffect(() => {
     // Keep failed requests quiet for the current card; changing cards resets the mutation above.
-    if (enabled && !card.answer.pitchAccent && !resolvedCard && !isPending && !isError) {
+    if (
+      enabled &&
+      shouldResolvePitchAccent(card.answer.pitchAccent) &&
+      !resolvedCard &&
+      !isPending &&
+      !isError
+    ) {
       mutate(card.id);
     }
   }, [card.answer.pitchAccent, card.id, enabled, isError, isPending, mutate, resolvedCard]);

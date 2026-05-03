@@ -41,7 +41,7 @@ describe('audioCache', () => {
         '/api/study/media/1',
         'https://cdn.test/a.mp3',
       ])
-    ).toEqual([`${window.location.origin}/api/study/media/1`, 'https://cdn.test/a.mp3']);
+    ).toEqual([`${window.location.origin}/api/study/media/1`]);
   });
 
   it('skips warming when the browser asks to save data', async () => {
@@ -113,7 +113,21 @@ describe('audioCache', () => {
     });
   });
 
-  it('omits credentials for cross-origin fallback fetches', async () => {
+  it('filters cross-origin audio URLs from cache warming', async () => {
+    const postMessage = vi.fn();
+    defineNavigatorValue('serviceWorker', {
+      controller: { postMessage },
+      ready: Promise.resolve({ active: { postMessage } }),
+    });
+
+    expect(normalizeAudioCacheUrls(['https://cdn.test/audio.mp3'])).toEqual([]);
+
+    await warmAudioCache(['https://cdn.test/audio.mp3']);
+
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
+  it('does not fallback-fetch cross-origin audio URLs', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
     globalThis.fetch = fetchMock;
@@ -126,10 +140,7 @@ describe('audioCache', () => {
     await vi.advanceTimersByTimeAsync(1200);
     await warmPromise;
 
-    expect(fetchMock).toHaveBeenCalledWith('https://cdn.test/audio.mp3', {
-      cache: 'force-cache',
-      credentials: 'omit',
-    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('does not fallback-fetch signed Google Storage URLs', async () => {

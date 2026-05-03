@@ -44,6 +44,14 @@ const resolvedPitchAccent: JapanesePitchAccentPayload = {
   resolvedBy: 'local-reading',
 };
 
+const unresolvedPitchAccent: JapanesePitchAccentPayload = {
+  status: 'unresolved',
+  expression: '会社',
+  reason: 'not-found',
+  source: 'kanjium',
+  resolvedBy: 'none',
+};
+
 describe('useStudyPitchAccent', () => {
   beforeEach(() => {
     resolveStudyCardPitchAccentMock.mockReset();
@@ -102,5 +110,38 @@ describe('useStudyPitchAccent', () => {
       expect(result.current.pitchAccent).toEqual(resolvedPitchAccent);
     });
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('retries cards with cached unresolved pitch accent data', async () => {
+    resolveStudyCardPitchAccentMock.mockResolvedValueOnce({
+      ...buildCard('card-1'),
+      answer: {
+        ...buildCard('card-1').answer,
+        pitchAccent: resolvedPitchAccent,
+      },
+    });
+
+    const card = {
+      ...buildCard('card-1'),
+      answer: {
+        ...buildCard('card-1').answer,
+        pitchAccent: unresolvedPitchAccent,
+      },
+    };
+
+    const { result } = renderHook(() => useStudyPitchAccent(card, true), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith(
+        'card-1',
+        expect.objectContaining({ client: expect.any(Object) })
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.pitchAccent).toEqual(resolvedPitchAccent);
+    });
   });
 });

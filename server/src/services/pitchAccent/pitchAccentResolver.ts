@@ -74,7 +74,7 @@ function findByReading(
 export async function resolvePitchAccent(
   input: PitchAccentResolverInput
 ): Promise<JapanesePitchAccentPayload> {
-  if (input.cached?.status === 'resolved' || input.cached?.status === 'unresolved') {
+  if (input.cached?.status === 'resolved') {
     return input.cached;
   }
 

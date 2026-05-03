@@ -68,7 +68,9 @@ export const normalizeAudioCacheUrls = (urls: Array<string | null | undefined>) 
     new Set(
       urls
         .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-        .map((url) => new URL(url, window.location.href).href)
+        .map((url) => new URL(url, window.location.href))
+        .filter((url) => url.origin === window.location.origin)
+        .map((url) => url.href)
         .filter((url) => !isSignedGoogleStorageUrl(url))
     )
   );
