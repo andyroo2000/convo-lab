@@ -1329,7 +1329,7 @@ describe('Study Routes', () => {
     expect(regenerateStudyCardAnswerImageMock).toHaveBeenCalledWith({
       userId: 'user-1',
       cardId: 'card-1',
-      imagePrompt: 'A natural street scene showing cloudy weather.',
+      imagePrompt: '  A natural street scene showing cloudy weather.  ',
       imageRole: 'prompt',
     });
   });

@@ -9,7 +9,7 @@ import { AppError } from '../../middleware/errorHandler.js';
 import { generateOpenAIImageBuffer } from '../openAIClient.js';
 
 import { applyStudyImagePromptGuardrails } from './candidates/imagePromptGuardrails.js';
-import type { StudyCardWithRelations } from './shared.js';
+import type { StudyCardWithRelations, StudyMediaRecord } from './shared.js';
 import {
   buildStudyCardSearchText,
   deletePersistedStudyMediaByStoragePath,
@@ -29,6 +29,35 @@ const STUDY_CARD_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES = new Set([
   'image/png',
   'image/webp',
 ]);
+
+function shouldDeleteReplacedGeneratedImageMedia(
+  media: StudyMediaRecord | null,
+  replacementImageId: string
+): media is StudyMediaRecord & { storagePath: string } {
+  return Boolean(
+    media &&
+    media.id !== replacementImageId &&
+    media.sourceKind === 'generated' &&
+    media.mediaKind === 'image' &&
+    media.storagePath
+  );
+}
+
+async function cleanupReplacedGeneratedImageMedia(input: {
+  media: StudyMediaRecord | null;
+  replacementImageId: string;
+}): Promise<void> {
+  if (!shouldDeleteReplacedGeneratedImageMedia(input.media, input.replacementImageId)) {
+    return;
+  }
+
+  try {
+    await prisma.studyMedia.deleteMany({ where: { id: input.media.id } });
+    await deletePersistedStudyMediaByStoragePath(input.media.storagePath);
+  } catch (error) {
+    console.warn('[Study] Unable to clean up replaced generated card image media.', error);
+  }
+}
 
 async function generateStudyCardImageMedia(input: {
   userId: string;
@@ -124,6 +153,8 @@ export async function regenerateStudyCardAnswerImage(input: {
   const nextAnswer =
     input.imageRole === 'answer' ? { ...normalized.answer, answerImage: image } : normalized.answer;
 
+  // Cards keep one denormalized imageMediaId used by the mappers to hydrate whichever side
+  // currently owns the card image.
   const updatedCardResult = await prisma.studyCard.updateMany({
     where: { id: input.cardId, userId: input.userId },
     data: {
@@ -135,6 +166,13 @@ export async function regenerateStudyCardAnswerImage(input: {
   });
   if (updatedCardResult.count !== 1) {
     throw new AppError('Study card not found.', 404);
+  }
+
+  if (image.id) {
+    await cleanupReplacedGeneratedImageMedia({
+      media: existing.imageMedia,
+      replacementImageId: image.id,
+    });
   }
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({

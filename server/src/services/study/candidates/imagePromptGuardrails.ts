@@ -5,8 +5,7 @@ export function applyStudyImagePromptGuardrails(imagePrompt: string): string {
   const trimmed = imagePrompt.trim();
   if (!trimmed) return STUDY_IMAGE_PROMPT_GUARDRAIL;
 
-  const lower = trimmed.toLowerCase();
-  if (lower.includes('no text') && lower.includes('flashcard')) {
+  if (trimmed.includes(STUDY_IMAGE_PROMPT_GUARDRAIL)) {
     return trimmed;
   }
 

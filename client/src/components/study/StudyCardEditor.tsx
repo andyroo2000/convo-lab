@@ -69,14 +69,29 @@ const StudyCardEditor = ({
   const currentAudioPlayerRef = useRef<AudioPlayerHandle | null>(null);
   const answerAudioUrl = toAssetUrl(currentAnswerAudio?.url);
   const imageUrl = toAssetUrl(currentImage?.url);
+  const cardResetKey = [
+    card.id,
+    card.answer.answerAudio?.id ?? '',
+    card.answer.answerImage?.id ?? '',
+    card.answer.expression ?? '',
+    card.answer.meaning ?? '',
+    card.answer.restoredText ?? '',
+    card.prompt.cueImage?.id ?? '',
+    card.prompt.cueText ?? '',
+  ].join('\u001f');
+  const lastCardResetKeyRef = useRef(cardResetKey);
 
   useEffect(() => {
+    if (lastCardResetKeyRef.current === cardResetKey) {
+      return;
+    }
+    lastCardResetKeyRef.current = cardResetKey;
     setCurrentAnswerAudio(card.answer.answerAudio ?? null);
     setCurrentImage(card.prompt.cueImage ?? card.answer.answerImage ?? null);
     setImageRole(getCardImageRole(card));
     setImagePrompt(getCardImagePrompt(card));
     setRegeneratedAudioPlayRequest(0);
-  }, [card]);
+  }, [card, cardResetKey]);
 
   useEffect(() => {
     let animationFrame: number | undefined;
@@ -137,7 +152,9 @@ const StudyCardEditor = ({
           imagePrompt={imagePrompt}
           imagePromptId="study-edit-image-prompt"
           imagePromptLabel={t('editor.imagePrompt')}
-          isRegenerateDisabled={!onRegenerateImage || isSaving || isRegeneratingAudio}
+          isRegenerateDisabled={
+            !onRegenerateImage || isSaving || isRegeneratingAudio || isRegeneratingImage
+          }
           isRegenerating={isRegeneratingImage}
           onImagePromptChange={setImagePrompt}
           onRegenerate={async () => {
