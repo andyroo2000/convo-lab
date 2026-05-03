@@ -418,8 +418,12 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
         400
       );
     }
-    if (typeof value.pitchNum !== 'number' || !Number.isSafeInteger(value.pitchNum)) {
-      throw new AppError('answer.pitchAccent.pitchNum must be an integer.', 400);
+    if (
+      typeof value.pitchNum !== 'number' ||
+      !Number.isSafeInteger(value.pitchNum) ||
+      value.pitchNum < 0
+    ) {
+      throw new AppError('answer.pitchAccent.pitchNum must be a non-negative integer.', 400);
     }
     if (value.source !== 'kanjium') {
       throw new AppError('answer.pitchAccent.source is not supported.', 400);

@@ -624,6 +624,30 @@ describe('Study Routes', () => {
     expect(updateStudyCardMock).not.toHaveBeenCalled();
   });
 
+  it('rejects cached resolved pitch accent payloads with negative pitch numbers', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: -1,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.pitchNum must be a non-negative');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('rejects cached pitch accent payloads from unsupported sources', async () => {
     const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
       prompt: { cueText: '会社' },
