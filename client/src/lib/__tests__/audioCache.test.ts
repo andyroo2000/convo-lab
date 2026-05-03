@@ -36,12 +36,24 @@ describe('audioCache', () => {
 
   it('normalizes and dedupes audio URLs', () => {
     expect(
-      normalizeAudioCacheUrls([
-        '/api/study/media/1',
-        '/api/study/media/1',
-        'https://cdn.test/a.mp3',
-      ])
-    ).toEqual([`${window.location.origin}/api/study/media/1`]);
+      normalizeAudioCacheUrls(['/audio/1.mp3', '/audio/1.mp3', 'https://cdn.test/a.mp3'])
+    ).toEqual([`${window.location.origin}/audio/1.mp3`]);
+  });
+
+  it('excludes redirected study media URLs from cache warming and preloading', async () => {
+    const postMessage = vi.fn();
+    defineNavigatorValue('serviceWorker', {
+      controller: { postMessage },
+      ready: Promise.resolve({ active: { postMessage } }),
+    });
+
+    expect(normalizeAudioCacheUrls(['/api/study/media/1'])).toEqual([]);
+    expect(shouldPreloadAudioUrl('/api/study/media/1')).toBe(false);
+    expect(getAudioPreloadMode('/api/study/media/1')).toBe('none');
+
+    await warmAudioCache(['/api/study/media/1']);
+
+    expect(postMessage).not.toHaveBeenCalled();
   });
 
   it('skips warming when the browser asks to save data', async () => {
@@ -52,7 +64,7 @@ describe('audioCache', () => {
       ready: Promise.resolve({ active: { postMessage } }),
     });
 
-    await warmAudioCache(['/api/study/media/1']);
+    await warmAudioCache(['/audio/1.mp3']);
 
     expect(postMessage).not.toHaveBeenCalled();
   });
@@ -64,11 +76,11 @@ describe('audioCache', () => {
       ready: Promise.resolve({ active: { postMessage } }),
     });
 
-    await warmAudioCache(['/api/study/media/1', '/api/study/media/1']);
+    await warmAudioCache(['/audio/1.mp3', '/audio/1.mp3']);
 
     expect(postMessage).toHaveBeenCalledWith({
       type: 'PRECACHE_AUDIO_URLS',
-      urls: [`${window.location.origin}/api/study/media/1`],
+      urls: [`${window.location.origin}/audio/1.mp3`],
     });
   });
 
@@ -85,8 +97,8 @@ describe('audioCache', () => {
     expect(isSignedGoogleStorageUrl(signedUrl)).toBe(true);
     expect(shouldPreloadAudioUrl(signedUrl)).toBe(false);
     expect(getAudioPreloadMode(signedUrl)).toBe('none');
-    expect(normalizeAudioCacheUrls([signedUrl, '/api/study/media/1'])).toEqual([
-      `${window.location.origin}/api/study/media/1`,
+    expect(normalizeAudioCacheUrls([signedUrl, '/audio/1.mp3'])).toEqual([
+      `${window.location.origin}/audio/1.mp3`,
     ]);
 
     await warmAudioCache([signedUrl]);
@@ -103,11 +115,11 @@ describe('audioCache', () => {
       ready: new Promise(() => {}),
     });
 
-    const warmPromise = warmAudioCache(['/api/study/media/1']);
+    const warmPromise = warmAudioCache(['/audio/1.mp3']);
     await vi.advanceTimersByTimeAsync(1200);
     await warmPromise;
 
-    expect(fetchMock).toHaveBeenCalledWith(`${window.location.origin}/api/study/media/1`, {
+    expect(fetchMock).toHaveBeenCalledWith(`${window.location.origin}/audio/1.mp3`, {
       cache: 'force-cache',
       credentials: 'include',
     });

@@ -8,19 +8,18 @@ import { RangeRequestsPlugin } from 'workbox-range-requests';
 import { registerRoute } from 'workbox-routing';
 import { CacheFirst, NetworkFirst } from 'workbox-strategies';
 
+import {
+  isServiceWorkerAudioRoute,
+  normalizeServiceWorkerAudioMessageUrls,
+} from './lib/audioCachePolicy';
+
 declare let self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<import('workbox-precaching').PrecacheEntry | string>;
   __WB_DISABLE_DEV_LOGS?: boolean;
 };
 
 const AUDIO_CACHE_NAME = 'audio-cache';
-const AUDIO_FILE_PATTERN = /\.(?:aac|flac|m4a|mp3|oga|ogg|opus|wav|weba)(?:$|[?#])/i;
 const AUDIO_MESSAGE_TYPES = new Set(['PRECACHE_AUDIO_URLS', 'CLEAR_AUDIO_CACHE']);
-const GOOGLE_SIGNED_URL_PARAMS = new Set(['X-Goog-Signature', 'X-Goog-Expires']);
-const GOOGLE_STORAGE_ORIGINS = new Set([
-  'https://storage.googleapis.com',
-  'https://storage.cloud.google.com',
-]);
 
 self.__WB_DISABLE_DEV_LOGS = true;
 
@@ -29,22 +28,6 @@ clientsClaim();
 cleanupOutdatedCaches();
 
 precacheAndRoute(self.__WB_MANIFEST);
-
-const isSignedGoogleStorageUrl = (url: URL) =>
-  GOOGLE_STORAGE_ORIGINS.has(url.origin) &&
-  Array.from(GOOGLE_SIGNED_URL_PARAMS).some((param) => url.searchParams.has(param));
-
-const isAudioRequest = (request: Request, url: URL, sameOrigin: boolean) => {
-  if (!sameOrigin) return false;
-  if (isSignedGoogleStorageUrl(url)) return false;
-  if (request.destination === 'audio') return true;
-  if (url.pathname.startsWith('/api/study/media/')) return true;
-  if (url.pathname.startsWith('/audio/')) return true;
-  if (url.pathname.startsWith('/voice-previews/')) return true;
-  if (AUDIO_FILE_PATTERN.test(url.pathname)) return true;
-
-  return false;
-};
 
 const audioStrategy = new CacheFirst({
   cacheName: AUDIO_CACHE_NAME,
@@ -62,7 +45,7 @@ const audioStrategy = new CacheFirst({
 });
 
 registerRoute(
-  ({ request, url, sameOrigin }) => isAudioRequest(request, url, sameOrigin),
+  ({ request, url, sameOrigin }) => isServiceWorkerAudioRoute({ request, url, sameOrigin }),
   audioStrategy
 );
 
@@ -129,20 +112,6 @@ registerRoute(
   })
 );
 
-const normalizeMessageUrls = (urls: unknown) => {
-  if (!Array.isArray(urls)) return [];
-
-  return Array.from(
-    new Set(
-      urls
-        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-        .map((url) => new URL(url, self.location.origin))
-        .filter((url) => !isSignedGoogleStorageUrl(url))
-        .map((url) => url.href)
-    )
-  );
-};
-
 const precacheAudioUrls = async (event: ExtendableMessageEvent, urls: string[]) => {
   await Promise.allSettled(
     urls.map(async (url) => {
@@ -172,7 +141,10 @@ self.addEventListener('message', (event) => {
     return;
   }
 
-  const urls = normalizeMessageUrls('urls' in data ? data.urls : []);
+  const urls = normalizeServiceWorkerAudioMessageUrls(
+    'urls' in data ? data.urls : [],
+    self.location.origin
+  );
   if (urls.length === 0) return;
 
   event.waitUntil(precacheAudioUrls(event, urls));
