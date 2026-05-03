@@ -54,9 +54,15 @@ function getPitchAccentLlmReasoningEffort(): string {
 
 function parseBatchResponse(text: string, items: PitchAccentLlmBatchItem[]): string[] {
   const readings = Array.from({ length: items.length }, () => '');
-  const payload = JSON.parse(text) as {
-    choices?: Array<{ id?: unknown; reading?: unknown }>;
-  };
+  let payload: { choices?: Array<{ id?: unknown; reading?: unknown }> };
+
+  try {
+    payload = JSON.parse(text) as {
+      choices?: Array<{ id?: unknown; reading?: unknown }>;
+    };
+  } catch (error) {
+    throw new Error('Pitch accent LLM returned non-JSON batch output.', { cause: error });
+  }
 
   for (const choice of payload.choices ?? []) {
     const id = typeof choice.id === 'string' ? choice.id : null;

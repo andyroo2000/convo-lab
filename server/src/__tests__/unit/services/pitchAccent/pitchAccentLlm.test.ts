@@ -77,4 +77,18 @@ describe('pitchAccentLlm', () => {
     expect(payload.items[0].sentenceJp).not.toContain('\u0007');
     expect(payload.items[0].sentenceJp).toHaveLength(240);
   });
+
+  it('rejects malformed batch responses with a descriptive error', async () => {
+    const { selectPitchAccentReadingWithLlm } =
+      await import('../../../../services/pitchAccent/pitchAccentLlm.js');
+    generateOpenAIResponseTextMock.mockResolvedValueOnce('```json\n{}\n```');
+
+    await expect(
+      selectPitchAccentReadingWithLlm({
+        expression: '日本',
+        sentenceJp: '日本代表を応援します。',
+        candidates: ['にほん', 'にっぽん'],
+      })
+    ).rejects.toThrow('Pitch accent LLM returned non-JSON batch output.');
+  });
 });

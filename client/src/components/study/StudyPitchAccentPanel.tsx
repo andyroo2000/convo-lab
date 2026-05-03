@@ -17,6 +17,7 @@ const StudyPitchAccentPanel = ({ card, enabled }: StudyPitchAccentPanelProps) =>
       <p
         className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-400"
         data-testid="study-pitch-accent-panel"
+        data-state="loading"
       >
         Loading pitch accent...
       </p>
@@ -28,7 +29,11 @@ const StudyPitchAccentPanel = ({ card, enabled }: StudyPitchAccentPanelProps) =>
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm text-navy" data-testid="study-pitch-accent-panel">
+    <div
+      className="mx-auto w-full max-w-sm text-navy"
+      data-testid="study-pitch-accent-panel"
+      data-state="resolved"
+    >
       <PitchAccentDiagram pitchAccent={pitchAccent} className="mx-auto h-24 w-full" />
     </div>
   );

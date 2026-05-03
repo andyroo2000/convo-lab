@@ -66,13 +66,21 @@ describe('useStudyPitchAccent', () => {
     });
 
     await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith('card-1', expect.any(Object));
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(
+        1,
+        'card-1',
+        expect.objectContaining({ client: expect.any(Object) })
+      );
     });
 
     rerender({ card: buildCard('card-2') });
 
     await waitFor(() => {
-      expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith('card-2', expect.any(Object));
+      expect(resolveStudyCardPitchAccentMock).toHaveBeenNthCalledWith(
+        2,
+        'card-2',
+        expect.objectContaining({ client: expect.any(Object) })
+      );
     });
   });
 
