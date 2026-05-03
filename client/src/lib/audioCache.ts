@@ -1,16 +1,13 @@
+import {
+  getAudioCachePreloadMode,
+  isSignedGoogleStorageUrlValue,
+  normalizeWarmableAudioUrls,
+  shouldPreloadAudioCacheUrl,
+} from './audioCachePolicy';
+
 const PRECACHE_AUDIO_MESSAGE = 'PRECACHE_AUDIO_URLS';
 const CLEAR_AUDIO_CACHE_MESSAGE = 'CLEAR_AUDIO_CACHE';
 const AUDIO_CACHE_READY_TIMEOUT_MS = 1200;
-const GOOGLE_SIGNED_URL_PARAMS = [
-  'X-Goog-Algorithm',
-  'X-Goog-Credential',
-  'X-Goog-Expires',
-  'X-Goog-Signature',
-] as const;
-const GOOGLE_STORAGE_ORIGINS = new Set([
-  'https://storage.googleapis.com',
-  'https://storage.cloud.google.com',
-]);
 
 type AudioCacheMessage =
   | { type: typeof PRECACHE_AUDIO_MESSAGE; urls: string[] }
@@ -44,36 +41,25 @@ export const shouldWarmAudioCache = () => {
 export const isSignedGoogleStorageUrl = (url: string) => {
   if (typeof window === 'undefined') return false;
 
-  try {
-    const parsed = new URL(url, window.location.href);
-    if (!GOOGLE_STORAGE_ORIGINS.has(parsed.origin)) return false;
-
-    return GOOGLE_SIGNED_URL_PARAMS.some((param) => parsed.searchParams.has(param));
-  } catch {
-    return false;
-  }
+  return isSignedGoogleStorageUrlValue(url, window.location.href);
 };
 
-export const shouldPreloadAudioUrl = (url: string) => !isSignedGoogleStorageUrl(url);
+export const shouldPreloadAudioUrl = (url: string) => {
+  if (typeof window === 'undefined') return false;
+
+  return shouldPreloadAudioCacheUrl(url, window.location.href);
+};
 
 export const getAudioPreloadMode = (url: string): 'auto' | 'metadata' | 'none' => {
-  if (!shouldPreloadAudioUrl(url)) return 'none';
-  return shouldWarmAudioCache() ? 'auto' : 'metadata';
+  if (typeof window === 'undefined') return 'none';
+
+  return getAudioCachePreloadMode(url, window.location.href, shouldWarmAudioCache());
 };
 
 export const normalizeAudioCacheUrls = (urls: Array<string | null | undefined>) => {
   if (typeof window === 'undefined') return [];
 
-  return Array.from(
-    new Set(
-      urls
-        .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
-        .map((url) => new URL(url, window.location.href))
-        .filter((url) => url.origin === window.location.origin)
-        .map((url) => url.href)
-        .filter((url) => !isSignedGoogleStorageUrl(url))
-    )
-  );
+  return normalizeWarmableAudioUrls(urls, window.location.href);
 };
 
 const timeout = (ms: number) =>
