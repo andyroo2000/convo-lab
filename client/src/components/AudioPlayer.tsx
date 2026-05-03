@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import useWarmAudioCache from '../hooks/useWarmAudioCache';
-import { shouldWarmAudioCache } from '../lib/audioCache';
+import { getAudioPreloadMode } from '../lib/audioCache';
 
 export type RepeatMode = 'off' | 'one' | 'all';
 
@@ -162,7 +162,7 @@ const AudioPlayer = ({
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const clampedProgress = Math.max(0, Math.min(100, progress));
-  const audioPreload = shouldWarmAudioCache() ? 'auto' : 'metadata';
+  const audioPreload = getAudioPreloadMode(src);
 
   return (
     <div className="retro-audio-player w-full">

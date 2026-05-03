@@ -2,7 +2,7 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useSta
 import { useTranslation } from 'react-i18next';
 
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
-import { shouldWarmAudioCache } from '../../lib/audioCache';
+import { getAudioPreloadMode } from '../../lib/audioCache';
 import { getAudioMimeType } from './studyCardUtils';
 
 export interface AudioPlayerHandle {
@@ -162,7 +162,7 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         ? 'h-10 w-10 sm:h-11 sm:w-11 md:h-12 md:w-12'
         : 'h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20';
     const iconSizeClasses = size === 'compact' ? 'h-5 w-5' : 'h-6 w-6 sm:h-7 sm:w-7 md:h-9 md:w-9';
-    const audioPreload = shouldWarmAudioCache() ? 'auto' : 'metadata';
+    const audioPreload = getAudioPreloadMode(url);
 
     return (
       <div className={size === 'compact' ? 'space-y-2' : 'space-y-3'} data-testid={testId}>
