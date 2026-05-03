@@ -8,6 +8,7 @@ import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyC
 import {
   cleanupStudyServiceTestMedia,
   resetStudyServiceMocks,
+  resolvePitchAccentMock,
   uploadBufferToGCSPathMock,
 } from './studyTestHelpers.js';
 import { mockPrisma } from '../../setup.js';
@@ -20,6 +21,7 @@ import {
   performStudyCardAction,
   recordStudyReview,
   reorderStudyNewCardQueue,
+  resolveStudyCardPitchAccent,
   startStudySession,
   undoStudyReview,
   updateStudySettings,
@@ -159,6 +161,7 @@ describe('studySchedulerService', () => {
         newQueuePosition: 0,
       },
     });
+    resolvePitchAccentMock.mockReset();
   });
 
   afterEach(async () => {
@@ -653,6 +656,66 @@ describe('studySchedulerService', () => {
     await expect(updateStudySettings({ userId: 'user-1', newCardsPerDay: -1 })).rejects.toThrow(
       'newCardsPerDay must be an integer'
     );
+  });
+
+  it('resolves pitch accent and persists it on the card answer JSON', async () => {
+    const existing = {
+      ...buildStudySessionCard({
+        id: 'pitch-card',
+        queueState: 'review',
+        label: '会社',
+      }),
+      promptJson: { cueText: '会社', cueReading: 'かいしゃ' },
+      answerJson: {
+        expression: '会社',
+        expressionReading: '会社[かいしゃ]',
+        meaning: 'company',
+      },
+      note: { rawFieldsJson: {} },
+    };
+    const pitchAccent = {
+      status: 'resolved' as const,
+      expression: '会社',
+      reading: 'かいしゃ',
+      pitchNum: 0,
+      morae: ['か', 'い', 'しゃ'],
+      pattern: [0, 1, 1],
+      patternName: '平板',
+      source: 'kanjium' as const,
+      resolvedBy: 'local-reading' as const,
+    };
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce({
+      ...existing,
+      answerJson: {
+        ...existing.answerJson,
+        pitchAccent,
+      },
+    });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+    resolvePitchAccentMock.mockResolvedValue(pitchAccent);
+
+    const result = await resolveStudyCardPitchAccent({
+      userId: 'user-1',
+      cardId: 'pitch-card',
+    });
+
+    expect(resolvePitchAccentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expression: '会社',
+        expressionReading: '会社[かいしゃ]',
+        promptReading: 'かいしゃ',
+      })
+    );
+    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          answerJson: expect.objectContaining({
+            pitchAccent,
+          }),
+        }),
+      })
+    );
+    expect(result.answer.pitchAccent).toEqual(pitchAccent);
   });
 
   it('updates a study card without changing scheduling and regenerates answer audio when spoken answer text changes', async () => {

@@ -9,6 +9,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyAnswerAudio,
+  resolveStudyCardPitchAccent,
   startStudySession,
   undoStudyReview,
   uploadStudyImport,
@@ -143,6 +144,23 @@ describe('useStudy request helpers', () => {
       answerAudioVoiceId: 'ja-JP-Neural2-C',
       answerAudioTextOverride: 'かいしゃ',
     });
+  });
+
+  it('requests study-card pitch accent resolution with CSRF headers', async () => {
+    await resolveStudyCardPitchAccent('card-1');
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `${API_URL}/api/study/cards/card-1/pitch-accent`,
+      expect.any(Object)
+    );
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBeNull();
+    expect(requestInit.method).toBe('POST');
   });
 
   it('generates study card candidates with JSON and CSRF headers', async () => {

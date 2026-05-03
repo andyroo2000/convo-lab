@@ -4,6 +4,7 @@ import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import StudyAudioPlayer from './StudyAudioPlayer';
 import type { AudioPlayerHandle } from './StudyAudioPlayer';
+import StudyPitchAccentPanel from './StudyPitchAccentPanel';
 import StudyRubyText from './StudyRubyText';
 import { isAudioLedPromptCard, isMediaLedPromptCard, toAssetUrl } from './studyCardUtils';
 import { getHeadlineClasses, toDisplayText, toNotesList } from './studyTextUtils';
@@ -299,6 +300,7 @@ export const StudyCardFace = ({
           testId="study-answer-audio"
         />
       ) : null}
+      <StudyPitchAccentPanel card={card} enabled />
       <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
       {card.answer.restoredText ? (
         <p

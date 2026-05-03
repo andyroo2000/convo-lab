@@ -53,12 +53,22 @@ const ttsMocks = vi.hoisted(() => ({
 
 export const { synthesizeBatchedTextsMock } = ttsMocks;
 
+const pitchAccentMocks = vi.hoisted(() => ({
+  resolvePitchAccentMock: vi.fn(),
+}));
+
+export const { resolvePitchAccentMock } = pitchAccentMocks;
+
 vi.mock('../../../services/batchedTTSClient.js', () => ({
   synthesizeBatchedTexts: synthesizeBatchedTextsMock,
 }));
 
 vi.mock('../../../services/furiganaService.js', () => ({
   addFuriganaBrackets: vi.fn(async (text: string) => `${text}[furigana]`),
+}));
+
+vi.mock('../../../services/pitchAccent/pitchAccentResolver.js', () => ({
+  resolvePitchAccent: resolvePitchAccentMock,
 }));
 
 vi.mock('../../../services/storageClient.js', () => ({

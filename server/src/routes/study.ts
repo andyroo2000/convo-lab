@@ -15,6 +15,8 @@ import {
   STUDY_NEW_CARD_QUEUE_PAGE_SIZE_MAX,
 } from '@languageflow/shared/src/studyConstants.js';
 import type {
+  JapanesePitchAccentResolvedBy,
+  JapanesePitchAccentUnresolvedReason,
   StudyAnswerPayload,
   StudyCardCandidateCommitItem,
   StudyCardCandidateKind,
@@ -63,6 +65,7 @@ import {
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyCardAnswerAudio,
   recordStudyReview,
+  resolveStudyCardPitchAccent,
   reorderStudyNewCardQueue,
   startStudySession,
   undoStudyReview,
@@ -117,6 +120,19 @@ const STUDY_MEDIA_SOURCES = new Set<StudyMediaRef['source']>([
   'imported_image',
   'imported_other',
 ]);
+const PITCH_ACCENT_RESOLVED_BY = new Set<JapanesePitchAccentResolvedBy>([
+  'single-candidate',
+  'local-reading',
+  'local-pattern',
+  'llm',
+]);
+const PITCH_ACCENT_UNRESOLVED_REASONS = new Set<JapanesePitchAccentUnresolvedReason>([
+  'not-japanese',
+  'no-expression',
+  'not-found',
+  'ambiguous-reading',
+  'invalid-pattern',
+]);
 const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
 const STUDY_PROMPT_ALLOWED_KEYS = new Set([
   'cueText',
@@ -144,6 +160,7 @@ const STUDY_ANSWER_ALLOWED_KEYS = new Set([
   'answerAudioTextOverride',
   'answerAudio',
   'answerImage',
+  'pitchAccent',
 ]);
 // Study card TTS is Japanese-only until card language becomes a first-class setting.
 // Keep this route validation in sync with the form voice picker when multi-language cards arrive.
@@ -373,6 +390,83 @@ function parseOptionalStudyMediaRef(
   };
 }
 
+function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccent'] | undefined {
+  if (typeof value === 'undefined') {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (!isPlainObject(value)) {
+    throw new AppError('answer.pitchAccent must be an object or null.', 400);
+  }
+
+  if (value.status === 'resolved') {
+    const expression = parseOptionalNullableStringField(
+      'answer.pitchAccent',
+      'expression',
+      value.expression
+    );
+    const reading = parseOptionalNullableStringField(
+      'answer.pitchAccent',
+      'reading',
+      value.reading
+    );
+    if (!expression || !reading) {
+      throw new AppError(
+        'answer.pitchAccent resolved payload requires expression and reading.',
+        400
+      );
+    }
+    if (typeof value.pitchNum !== 'number' || !Number.isSafeInteger(value.pitchNum)) {
+      throw new AppError('answer.pitchAccent.pitchNum must be an integer.', 400);
+    }
+    if (!Array.isArray(value.morae) || !value.morae.every((item) => typeof item === 'string')) {
+      throw new AppError('answer.pitchAccent.morae must be an array of strings.', 400);
+    }
+    if (!Array.isArray(value.pattern) || !value.pattern.every((item) => item === 0 || item === 1)) {
+      throw new AppError('answer.pitchAccent.pattern must be an array of 0/1 values.', 400);
+    }
+
+    return {
+      status: 'resolved',
+      expression,
+      reading,
+      pitchNum: value.pitchNum,
+      morae: value.morae,
+      pattern: value.pattern,
+      patternName:
+        parseOptionalNullableStringField('answer.pitchAccent', 'patternName', value.patternName) ??
+        '',
+      source: 'kanjium',
+      resolvedBy: PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)
+        ? (value.resolvedBy as JapanesePitchAccentResolvedBy)
+        : 'single-candidate',
+    };
+  }
+
+  if (value.status === 'unresolved') {
+    const expression =
+      parseOptionalNullableStringField('answer.pitchAccent', 'expression', value.expression) ?? '';
+    const reason = String(value.reason);
+    if (!PITCH_ACCENT_UNRESOLVED_REASONS.has(reason as JapanesePitchAccentUnresolvedReason)) {
+      throw new AppError('answer.pitchAccent.reason is not supported.', 400);
+    }
+
+    return {
+      status: 'unresolved',
+      expression,
+      reason: reason as JapanesePitchAccentUnresolvedReason,
+      source: 'kanjium',
+      resolvedBy: PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)
+        ? (value.resolvedBy as JapanesePitchAccentResolvedBy)
+        : 'none',
+    };
+  }
+
+  throw new AppError('answer.pitchAccent.status must be resolved or unresolved.', 400);
+}
+
 function parseStudyPromptPayload(value: Record<string, unknown>): StudyPromptPayload {
   assertKnownKeys('prompt', value, STUDY_PROMPT_ALLOWED_KEYS);
 
@@ -431,6 +525,7 @@ function parseStudyAnswerPayload(value: Record<string, unknown>): StudyAnswerPay
     answerAudioTextOverride: parseOptionalAnswerAudioTextOverride(value.answerAudioTextOverride),
     answerAudio: parseOptionalStudyMediaRef('answer', 'answerAudio', value.answerAudio),
     answerImage: parseOptionalStudyMediaRef('answer', 'answerImage', value.answerImage),
+    pitchAccent: parsePitchAccentPayload(value.pitchAccent),
   };
 }
 
@@ -1156,6 +1251,31 @@ router.patch(
       });
 
       res.json(updatedCard);
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.post(
+  '/cards/:cardId/pitch-accent',
+  rateLimitStudyRoute({ key: 'card-pitch-accent', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      if (!req.params.cardId) {
+        res.status(400).json({ message: 'cardId is required.' });
+        return;
+      }
+
+      const card = await resolveStudyCardPitchAccent({
+        userId: req.userId,
+        cardId: req.params.cardId,
+      });
+      res.json(card);
     } catch (error) {
       next(error);
     }

@@ -12,12 +12,14 @@ const {
   updateStudyCardMock,
   regenerateStudyAnswerAudioMock,
   cardActionMutateAsyncMock,
+  resolveStudyCardPitchAccentMock,
 } = vi.hoisted(() => ({
   useStudyBrowserMock: vi.fn(),
   useStudyBrowserNoteDetailMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
+  resolveStudyCardPitchAccentMock: vi.fn(),
 }));
 
 vi.mock('../../components/study/studyTimeZoneUtils', () => ({
@@ -168,6 +170,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
 const renderPage = () => {
@@ -202,6 +205,7 @@ describe('StudyBrowsePage', () => {
     updateStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
+    resolveStudyCardPitchAccentMock.mockReset();
 
     useStudyBrowserMock.mockReturnValue({
       data: browserData,
@@ -279,6 +283,10 @@ describe('StudyBrowsePage', () => {
         },
       })
     );
+    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
+      id: cardId,
+      answer: { pitchAccent: null },
+    }));
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {
       configurable: true,
       value: vi.fn().mockResolvedValue(undefined),
