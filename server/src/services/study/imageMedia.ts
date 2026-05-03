@@ -24,11 +24,13 @@ import {
 const STUDY_CARD_IMAGE_CONTENT_TYPE = 'image/webp';
 const STUDY_CARD_IMAGE_EXTENSION = 'webp';
 const STUDY_CARD_IMAGE_WEBP_QUALITY = 82;
+const STUDY_CARD_GENERATED_IMPORT_JOB_ID = 'generated';
 const STUDY_CARD_SUPPORTED_INPUT_IMAGE_CONTENT_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
 ]);
+type GeneratedStudyImageMediaRef = StudyMediaRef & { id: string };
 
 function shouldDeleteReplacedGeneratedImageMedia(
   media: StudyMediaRecord | null,
@@ -63,7 +65,7 @@ async function generateStudyCardImageMedia(input: {
   userId: string;
   cardId: string;
   imagePrompt: string;
-}): Promise<StudyMediaRef> {
+}): Promise<GeneratedStudyImageMediaRef> {
   const { buffer, contentType: openAIContentType } = await generateOpenAIImageBuffer(
     applyStudyImagePromptGuardrails(input.imagePrompt)
   );
@@ -77,7 +79,7 @@ async function generateStudyCardImageMedia(input: {
   const filename = `${normalizeFilename(input.cardId) || 'card'}-${randomUUID()}.${STUDY_CARD_IMAGE_EXTENSION}`;
   const persisted = await persistStudyMediaBuffer({
     userId: input.userId,
-    importJobId: 'generated',
+    importJobId: STUDY_CARD_GENERATED_IMPORT_JOB_ID,
     filename,
     buffer: webpBuffer,
   });
@@ -109,7 +111,7 @@ async function generateStudyCardImageMedia(input: {
   }
 }
 
-export async function regenerateStudyCardAnswerImage(input: {
+export async function regenerateStudyCardImage(input: {
   userId: string;
   cardId: string;
   imagePrompt: string;
@@ -168,12 +170,10 @@ export async function regenerateStudyCardAnswerImage(input: {
     throw new AppError('Study card not found.', 404);
   }
 
-  if (image.id) {
-    await cleanupReplacedGeneratedImageMedia({
-      media: existing.imageMedia,
-      replacementImageId: image.id,
-    });
-  }
+  await cleanupReplacedGeneratedImageMedia({
+    media: existing.imageMedia,
+    replacementImageId: image.id,
+  });
 
   const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
     where: {

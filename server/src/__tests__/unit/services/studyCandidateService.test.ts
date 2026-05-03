@@ -23,7 +23,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
 } from '../../../services/studyCandidateService.js';
-import { regenerateStudyCardAnswerImage } from '../../../services/study/imageMedia.js';
+import { regenerateStudyCardImage } from '../../../services/study/imageMedia.js';
 import {
   cleanupStudyCandidatePreviewMedia,
   resetStudyCandidatePreviewMediaCleanupSchedule,
@@ -722,7 +722,7 @@ describe('studyCandidateService', () => {
       },
     });
 
-    await regenerateStudyCardAnswerImage({
+    await regenerateStudyCardImage({
       userId: 'user-1',
       cardId: 'card-1',
       imagePrompt: 'A cloudy train platform.',

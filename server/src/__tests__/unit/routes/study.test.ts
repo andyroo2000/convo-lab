@@ -59,7 +59,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReviewMock,
   regenerateStudyCardAnswerAudioMock,
-  regenerateStudyCardAnswerImageMock,
+  regenerateStudyCardImageMock,
   resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
@@ -94,7 +94,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   regenerateStudyCardAnswerAudioMock: vi.fn(),
-  regenerateStudyCardAnswerImageMock: vi.fn(),
+  regenerateStudyCardImageMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -138,7 +138,7 @@ vi.mock('../../../services/studyService.js', () => ({
   regenerateStudyCardCandidatePreviewImage: regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReview: recordStudyReviewMock,
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
-  regenerateStudyCardAnswerImage: regenerateStudyCardAnswerImageMock,
+  regenerateStudyCardImage: regenerateStudyCardImageMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
@@ -180,7 +180,7 @@ describe('Study Routes', () => {
     generateStudyCardCandidatesMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
-    regenerateStudyCardAnswerImageMock.mockReset();
+    regenerateStudyCardImageMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
@@ -1304,7 +1304,7 @@ describe('Study Routes', () => {
   });
 
   it('regenerates an existing study card image for the requested side', async () => {
-    regenerateStudyCardAnswerImageMock.mockResolvedValue({
+    regenerateStudyCardImageMock.mockResolvedValue({
       id: 'card-1',
       prompt: {
         cueImage: {
@@ -1326,7 +1326,7 @@ describe('Study Routes', () => {
     });
 
     expect(response.status).toBe(200);
-    expect(regenerateStudyCardAnswerImageMock).toHaveBeenCalledWith({
+    expect(regenerateStudyCardImageMock).toHaveBeenCalledWith({
       userId: 'user-1',
       cardId: 'card-1',
       imagePrompt: '  A natural street scene showing cloudy weather.  ',
@@ -1344,7 +1344,7 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toBe('imageRole must be prompt or answer.');
-    expect(regenerateStudyCardAnswerImageMock).not.toHaveBeenCalled();
+    expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
   });
 
   it('passes card actions through to the service', async () => {

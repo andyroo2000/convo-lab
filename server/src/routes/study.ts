@@ -65,7 +65,7 @@ import {
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
   regenerateStudyCardAnswerAudio,
-  regenerateStudyCardAnswerImage,
+  regenerateStudyCardImage,
   recordStudyReview,
   resolveStudyCardPitchAccent,
   reorderStudyNewCardQueue,
@@ -1483,7 +1483,7 @@ router.post(
         throw new AppError('imageRole must be prompt or answer.', 400);
       }
 
-      const card = await regenerateStudyCardAnswerImage({
+      const card = await regenerateStudyCardImage({
         userId: req.userId,
         cardId: req.params.cardId,
         imagePrompt,

@@ -80,18 +80,32 @@ const StudyCardEditor = ({
     card.prompt.cueText ?? '',
   ].join('\u001f');
   const lastCardResetKeyRef = useRef(cardResetKey);
+  const cardMediaSnapshotRef = useRef({
+    answerAudio: card.answer.answerAudio ?? null,
+    image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
+    imageRole: getCardImageRole(card),
+    imagePrompt: getCardImagePrompt(card),
+  });
+  cardMediaSnapshotRef.current = {
+    answerAudio: card.answer.answerAudio ?? null,
+    image: card.prompt.cueImage ?? card.answer.answerImage ?? null,
+    imageRole: getCardImageRole(card),
+    imagePrompt: getCardImagePrompt(card),
+  };
+  // The parent mutation renders image regeneration errors in the editor-level error slot.
+  const imageRegenerateError = null;
 
   useEffect(() => {
     if (lastCardResetKeyRef.current === cardResetKey) {
       return;
     }
     lastCardResetKeyRef.current = cardResetKey;
-    setCurrentAnswerAudio(card.answer.answerAudio ?? null);
-    setCurrentImage(card.prompt.cueImage ?? card.answer.answerImage ?? null);
-    setImageRole(getCardImageRole(card));
-    setImagePrompt(getCardImagePrompt(card));
+    setCurrentAnswerAudio(cardMediaSnapshotRef.current.answerAudio);
+    setCurrentImage(cardMediaSnapshotRef.current.image);
+    setImageRole(cardMediaSnapshotRef.current.imageRole);
+    setImagePrompt(cardMediaSnapshotRef.current.imagePrompt);
     setRegeneratedAudioPlayRequest(0);
-  }, [card, cardResetKey]);
+  }, [cardResetKey]);
 
   useEffect(() => {
     let animationFrame: number | undefined;
@@ -176,7 +190,7 @@ const StudyCardEditor = ({
             }
           }}
           previewUrl={imageUrl}
-          regenerateError={null}
+          regenerateError={imageRegenerateError}
           regenerateLabel={
             isRegeneratingImage ? t('editor.regeneratingImage') : t('editor.regenerateImage')
           }
