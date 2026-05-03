@@ -52,7 +52,7 @@ const PitchAccentDiagram = ({ pitchAccent, className = '' }: PitchAccentDiagramP
         );
       })}
       {points.map((point, index) => (
-        <g key={`${pitchAccent.morae[index]}-${point.x}`}>
+        <g key={`mora-${point.x}`}>
           <circle cx={point.x} cy={point.y} r="4" fill="currentColor" />
           <text
             x={point.x}

@@ -61,5 +61,6 @@ export function collectPitchAccentReadingCandidates(input: {
   }
 
   addCandidate(candidates, input.answerAudioTextOverride);
+  addCandidate(candidates, input.sentenceJpKana);
   return candidates;
 }

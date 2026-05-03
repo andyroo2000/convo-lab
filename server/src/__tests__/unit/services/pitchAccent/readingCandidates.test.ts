@@ -9,9 +9,9 @@ describe('readingCandidates', () => {
         expressionReading: '上手[じょうず]',
         promptReading: '上手(うわて)',
         answerAudioTextOverride: 'じょうず',
-        sentenceJpKana: '彼はじょうずです。',
+        sentenceJpKana: 'ニホン',
       })
-    ).toEqual(['じょうず', 'うわて']);
+    ).toEqual(['じょうず', 'うわて', 'にほん']);
   });
 
   it('uses plain kana readings and ignores missing values', () => {

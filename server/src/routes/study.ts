@@ -123,7 +123,6 @@ const STUDY_MEDIA_SOURCES = new Set<StudyMediaRef['source']>([
 const PITCH_ACCENT_RESOLVED_BY = new Set<JapanesePitchAccentResolvedBy>([
   'single-candidate',
   'local-reading',
-  'local-pattern',
   'llm',
 ]);
 const PITCH_ACCENT_UNRESOLVED_REASONS = new Set<JapanesePitchAccentUnresolvedReason>([

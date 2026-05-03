@@ -23,6 +23,8 @@ interface PendingPitchAccentSelection {
   reject: (error: unknown) => void;
 }
 
+// Process-local coalescing keeps flashcard bursts to one provider call without changing callers.
+// If the provider fails, the whole batch rejects and each resolver falls back to unresolved.
 const pendingSelections: PendingPitchAccentSelection[] = [];
 let pendingFlushTimer: ReturnType<typeof setTimeout> | null = null;
 

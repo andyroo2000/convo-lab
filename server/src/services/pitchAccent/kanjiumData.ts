@@ -46,10 +46,6 @@ export function warmKanjiumAccentIndex(): Promise<Map<string, KanjiumPitchCandid
   return defaultKanjiumAccentStore.loadIndex();
 }
 
-export async function loadKanjiumAccentIndex(): Promise<Map<string, KanjiumPitchCandidate[]>> {
-  return defaultKanjiumAccentStore.loadIndex();
-}
-
 export async function getKanjiumCandidates(expression: string): Promise<KanjiumPitchCandidate[]> {
   return defaultKanjiumAccentStore.getCandidates(expression);
 }

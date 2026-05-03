@@ -176,36 +176,6 @@ export async function generateOpenAIResponseText(input: {
   return getOpenAIOutputText(payload);
 }
 
-export async function generateOpenAIPlainTextResponse(input: {
-  prompt: string;
-  systemInstruction: string;
-  model: string;
-  reasoningEffort: string;
-}): Promise<string> {
-  const payload = await postOpenAIJson<OpenAIResponsesPayload>(
-    'responses',
-    {
-      model: input.model,
-      input: [
-        {
-          role: 'system',
-          content: [{ type: 'input_text', text: input.systemInstruction }],
-        },
-        {
-          role: 'user',
-          content: [{ type: 'input_text', text: input.prompt }],
-        },
-      ],
-      reasoning: {
-        effort: input.reasoningEffort,
-      },
-    },
-    OPENAI_RESPONSES_TIMEOUT_MS
-  );
-
-  return getOpenAIOutputText(payload);
-}
-
 export async function generateOpenAIImageBuffer(prompt: string): Promise<{
   buffer: Buffer;
   contentType: string;

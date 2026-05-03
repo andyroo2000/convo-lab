@@ -81,11 +81,7 @@ export interface StudyAnswerPayload {
 
 export type JapanesePitchAccentSource = 'kanjium';
 
-export type JapanesePitchAccentResolvedBy =
-  | 'single-candidate'
-  | 'local-reading'
-  | 'local-pattern'
-  | 'llm';
+export type JapanesePitchAccentResolvedBy = 'single-candidate' | 'local-reading' | 'llm';
 
 export type JapanesePitchAccentUnresolvedReason =
   | 'not-japanese'
