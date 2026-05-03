@@ -684,14 +684,14 @@ describe('studySchedulerService', () => {
       source: 'kanjium' as const,
       resolvedBy: 'local-reading' as const,
     };
-    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce({
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing);
+    mockPrisma.studyCard.update.mockResolvedValue({
       ...existing,
       answerJson: {
         ...existing.answerJson,
         pitchAccent,
       },
     });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     resolvePitchAccentMock.mockResolvedValue(pitchAccent);
 
     const result = await resolveStudyCardPitchAccent({
@@ -706,8 +706,9 @@ describe('studySchedulerService', () => {
         promptReading: 'かいしゃ',
       })
     );
-    expect(mockPrisma.studyCard.updateMany).toHaveBeenCalledWith(
+    expect(mockPrisma.studyCard.update).toHaveBeenCalledWith(
       expect.objectContaining({
+        where: { id: 'pitch-card' },
         data: expect.objectContaining({
           answerJson: expect.objectContaining({
             pitchAccent,
@@ -729,14 +730,14 @@ describe('studySchedulerService', () => {
       source: 'kanjium' as const,
       resolvedBy: 'none' as const,
     };
-    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce({
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing);
+    mockPrisma.studyCard.update.mockResolvedValue({
       ...existing,
       answerJson: {
         ...existing.answerJson,
         pitchAccent,
       },
     });
-    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
     resolvePitchAccentMock.mockResolvedValue(pitchAccent);
 
     const result = await resolveStudyCardPitchAccent({

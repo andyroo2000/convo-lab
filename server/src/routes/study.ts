@@ -130,7 +130,6 @@ const PITCH_ACCENT_UNRESOLVED_REASONS = new Set<JapanesePitchAccentUnresolvedRea
   'no-expression',
   'not-found',
   'ambiguous-reading',
-  'invalid-pattern',
 ]);
 const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
 const STUDY_PROMPT_ALLOWED_KEYS = new Set([
@@ -427,6 +426,10 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
       throw new AppError('answer.pitchAccent.pattern must be an array of 0/1 values.', 400);
     }
 
+    if (!PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)) {
+      throw new AppError('answer.pitchAccent.resolvedBy is not supported.', 400);
+    }
+
     return {
       status: 'resolved',
       expression,
@@ -438,9 +441,7 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
         parseOptionalNullableStringField('answer.pitchAccent', 'patternName', value.patternName) ??
         '',
       source: 'kanjium',
-      resolvedBy: PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)
-        ? (value.resolvedBy as JapanesePitchAccentResolvedBy)
-        : 'single-candidate',
+      resolvedBy: value.resolvedBy as JapanesePitchAccentResolvedBy,
     };
   }
 
@@ -452,14 +453,20 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
       throw new AppError('answer.pitchAccent.reason is not supported.', 400);
     }
 
+    if (
+      value.resolvedBy !== 'none' &&
+      !PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)
+    ) {
+      throw new AppError('answer.pitchAccent.resolvedBy is not supported.', 400);
+    }
+
     return {
       status: 'unresolved',
       expression,
       reason: reason as JapanesePitchAccentUnresolvedReason,
       source: 'kanjium',
-      resolvedBy: PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)
-        ? (value.resolvedBy as JapanesePitchAccentResolvedBy)
-        : 'none',
+      resolvedBy:
+        value.resolvedBy === 'none' ? 'none' : (value.resolvedBy as JapanesePitchAccentResolvedBy),
     };
   }
 

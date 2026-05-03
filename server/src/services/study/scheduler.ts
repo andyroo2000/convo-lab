@@ -1340,28 +1340,13 @@ export async function resolveStudyCardPitchAccent(input: {
     pitchAccent,
   };
 
-  const updatedCardResult = await prisma.studyCard.updateMany({
-    where: { id: input.cardId, userId: input.userId },
+  const refreshed = await prisma.studyCard.update({
+    where: { id: input.cardId },
     data: {
       answerJson: toPrismaJson(nextAnswer),
     },
-  });
-
-  if (updatedCardResult.count !== 1) {
-    throw new AppError('Study card not found.', 404);
-  }
-
-  const refreshed: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
-    where: {
-      id: input.cardId,
-      userId: input.userId,
-    },
     include: STUDY_CARD_SUMMARY_INCLUDE,
   });
-
-  if (!refreshed) {
-    throw new AppError('Study card not found after update.', 404);
-  }
 
   return await toStudyCardSummary(refreshed);
 }

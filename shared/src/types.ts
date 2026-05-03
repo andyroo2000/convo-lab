@@ -87,8 +87,7 @@ export type JapanesePitchAccentUnresolvedReason =
   | 'not-japanese'
   | 'no-expression'
   | 'not-found'
-  | 'ambiguous-reading'
-  | 'invalid-pattern';
+  | 'ambiguous-reading';
 
 export interface JapanesePitchAccentAlternative {
   reading: string;

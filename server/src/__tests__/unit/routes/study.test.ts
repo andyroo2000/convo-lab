@@ -600,6 +600,50 @@ describe('Study Routes', () => {
     );
   });
 
+  it('rejects cached resolved pitch accent payloads with unsupported resolution metadata', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'future-method',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.resolvedBy is not supported');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with unsupported unresolved reasons', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'unresolved',
+          expression: '会社',
+          reason: 'invalid-pattern',
+          source: 'kanjium',
+          resolvedBy: 'none',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.reason is not supported');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('rejects oversized create payloads before hitting the service', async () => {
     const response = await withMutationCsrf(request(app).post('/study/cards')).send({
       cardType: 'recognition',

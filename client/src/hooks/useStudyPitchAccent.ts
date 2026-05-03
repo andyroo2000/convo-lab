@@ -14,8 +14,12 @@ export default function useStudyPitchAccent(
   const mutation = useMutation({
     mutationFn: resolveStudyCardPitchAccent,
   });
-  const { data, isError, isPending, mutate } = mutation;
+  const { data, isError, isPending, mutate, reset } = mutation;
   const resolvedCard = data?.id === card.id ? data : null;
+
+  useEffect(() => {
+    reset();
+  }, [card.id, reset]);
 
   useEffect(() => {
     if (enabled && !card.answer.pitchAccent && !resolvedCard && !isPending && !isError) {

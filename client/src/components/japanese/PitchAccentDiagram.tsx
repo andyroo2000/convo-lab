@@ -35,7 +35,6 @@ const PitchAccentDiagram = ({ pitchAccent, className = '' }: PitchAccentDiagramP
     >
       {points.slice(0, -1).map((point, index) => {
         const next = points[index + 1];
-        if (!next) return null;
         const isDownstep = point.y < next.y;
         return (
           <line
