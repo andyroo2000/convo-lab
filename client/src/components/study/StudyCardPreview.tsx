@@ -255,6 +255,7 @@ export const StudyCardFace = ({
             testId="study-answer-audio"
           />
         ) : null}
+        <StudyPitchAccentPanel card={card} enabled />
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {card.answer.meaning ? (
           <p

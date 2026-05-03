@@ -82,6 +82,44 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
   return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
 }
 
+function stripBracketRuby(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const stripped = value
+    .replace(/\[[^\]]+]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped.length > 0 ? stripped : null;
+}
+
+function getPitchAccentResolverPayload(
+  cardType: StudyCardWithRelations['cardType'],
+  normalized: {
+    prompt: StudyPromptPayload;
+    answer: StudyAnswerPayload;
+  }
+) {
+  if (cardType === 'cloze') {
+    return {
+      expression:
+        stripBracketRuby(normalized.answer.restoredText) ??
+        stripBracketRuby(normalized.answer.restoredTextReading) ??
+        stripBracketRuby(normalized.answer.expression),
+      expressionReading: normalized.answer.restoredTextReading,
+      promptReading: null,
+      sentenceJp: normalized.answer.restoredText ?? normalized.answer.sentenceJp,
+      sentenceJpKana: normalized.answer.sentenceJpKana,
+    };
+  }
+
+  return {
+    expression: normalized.answer.expression,
+    expressionReading: normalized.answer.expressionReading,
+    promptReading: normalized.prompt.cueReading,
+    sentenceJp: normalized.answer.sentenceJp,
+    sentenceJpKana: normalized.answer.sentenceJpKana,
+  };
+}
+
 function getStudyDayWindow(timeZone?: string, now: Date = new Date()) {
   const resolvedTimeZone = timeZone ? assertValidStudyTimeZone(timeZone) : 'UTC';
 
@@ -1286,18 +1324,15 @@ export async function resolveStudyCardPitchAccent(input: {
     throw new AppError('Study card not found.', 404);
   }
 
-  if (existing.cardType === 'cloze') {
-    throw new AppError('Pitch accent diagrams are not available for cloze cards yet.', 400);
-  }
-
   const normalized = await normalizeStudyCardPayload(existing);
+  const resolverPayload = getPitchAccentResolverPayload(existing.cardType, normalized);
   const pitchAccent = await resolvePitchAccent({
-    expression: normalized.answer.expression,
-    expressionReading: normalized.answer.expressionReading,
-    promptReading: normalized.prompt.cueReading,
+    expression: resolverPayload.expression,
+    expressionReading: resolverPayload.expressionReading,
+    promptReading: resolverPayload.promptReading,
     answerAudioTextOverride: normalized.answer.answerAudioTextOverride,
-    sentenceJp: normalized.answer.sentenceJp,
-    sentenceJpKana: normalized.answer.sentenceJpKana,
+    sentenceJp: resolverPayload.sentenceJp,
+    sentenceJpKana: resolverPayload.sentenceJpKana,
     cached: normalized.answer.pitchAccent,
   });
   const nextAnswer: StudyAnswerPayload = {

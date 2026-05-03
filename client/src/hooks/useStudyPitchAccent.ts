@@ -18,26 +18,10 @@ export default function useStudyPitchAccent(
   const resolvedCard = data?.id === card.id ? data : null;
 
   useEffect(() => {
-    if (
-      enabled &&
-      card.cardType !== 'cloze' &&
-      !card.answer.pitchAccent &&
-      !resolvedCard &&
-      !isPending &&
-      !isError
-    ) {
+    if (enabled && !card.answer.pitchAccent && !resolvedCard && !isPending && !isError) {
       mutate(card.id);
     }
-  }, [
-    card.answer.pitchAccent,
-    card.cardType,
-    card.id,
-    enabled,
-    isError,
-    isPending,
-    mutate,
-    resolvedCard,
-  ]);
+  }, [card.answer.pitchAccent, card.id, enabled, isError, isPending, mutate, resolvedCard]);
 
   return {
     pitchAccent: resolvedCard?.answer.pitchAccent ?? card.answer.pitchAccent ?? null,

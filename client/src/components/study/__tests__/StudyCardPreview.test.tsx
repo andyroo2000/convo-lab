@@ -115,6 +115,10 @@ describe('StudyCardPreview', () => {
     expect(screen.getAllByText('ふろ', { selector: 'rt' })).toHaveLength(2);
     expect(screen.getAllByText('むし', { selector: 'rt' })).toHaveLength(2);
     expect(screen.queryByText('お風呂[ふろ]に虫[むし]がいる！')).not.toBeInTheDocument();
+    expect(useStudyPitchAccentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ cardType: 'cloze' }),
+      true
+    );
   });
 
   it('keeps helper meaning hidden on media-led prompt cards', () => {

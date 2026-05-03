@@ -5,30 +5,51 @@ import { fileURLToPath } from 'node:url';
 import { indexKanjiumRows, parseKanjiumAccentText } from './kanjiumParser.js';
 import type { KanjiumPitchCandidate } from './types.js';
 
-let cachedIndex: Map<string, KanjiumPitchCandidate[]> | null = null;
+export interface KanjiumAccentStore {
+  getCandidates(expression: string): Promise<KanjiumPitchCandidate[]>;
+  loadIndex(): Promise<Map<string, KanjiumPitchCandidate[]>>;
+}
 
 function getDefaultKanjiumPath(): string {
   const currentFile = fileURLToPath(import.meta.url);
   return path.resolve(path.dirname(currentFile), '../../data/kanjium/accents.txt');
 }
 
-export async function loadKanjiumAccentIndex(
+export function createKanjiumAccentStore(
   accentsPath: string = getDefaultKanjiumPath()
-): Promise<Map<string, KanjiumPitchCandidate[]>> {
-  if (cachedIndex && accentsPath === getDefaultKanjiumPath()) {
-    return cachedIndex;
-  }
+): KanjiumAccentStore {
+  let indexPromise: Promise<Map<string, KanjiumPitchCandidate[]>> | null = null;
 
-  const text = await readFile(accentsPath, 'utf8');
-  const index = indexKanjiumRows(parseKanjiumAccentText(text));
-  if (accentsPath === getDefaultKanjiumPath()) {
-    cachedIndex = index;
-  }
+  const loadIndex = async (): Promise<Map<string, KanjiumPitchCandidate[]>> => {
+    indexPromise ??= readFile(accentsPath, 'utf8')
+      .then((text) => indexKanjiumRows(parseKanjiumAccentText(text)))
+      .catch((error) => {
+        indexPromise = null;
+        throw error;
+      });
 
-  return index;
+    return indexPromise;
+  };
+
+  return {
+    loadIndex,
+    async getCandidates(expression: string): Promise<KanjiumPitchCandidate[]> {
+      const index = await loadIndex();
+      return index.get(expression) ?? [];
+    },
+  };
+}
+
+export const defaultKanjiumAccentStore = createKanjiumAccentStore();
+
+export function warmKanjiumAccentIndex(): Promise<Map<string, KanjiumPitchCandidate[]>> {
+  return defaultKanjiumAccentStore.loadIndex();
+}
+
+export async function loadKanjiumAccentIndex(): Promise<Map<string, KanjiumPitchCandidate[]>> {
+  return defaultKanjiumAccentStore.loadIndex();
 }
 
 export async function getKanjiumCandidates(expression: string): Promise<KanjiumPitchCandidate[]> {
-  const index = await loadKanjiumAccentIndex();
-  return index.get(expression) ?? [];
+  return defaultKanjiumAccentStore.getCandidates(expression);
 }

@@ -33,6 +33,7 @@ import studyRoutes from './routes/study.js';
 import toolAnalyticsRoutes from './routes/toolAnalytics.js';
 import toolAudioRoutes from './routes/toolAudio.js';
 import verificationRoutes from './routes/verification.js';
+import { warmKanjiumAccentIndex } from './services/pitchAccent/kanjiumData.js';
 
 // Workers now run in Cloud Run Job, not embedded in API service
 
@@ -362,6 +363,10 @@ app.listen(PORT, () => {
   console.log(`🚀 LanguageFlow Studio server running on http://localhost:${PORT}`);
   // eslint-disable-next-line no-console
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  void warmKanjiumAccentIndex().catch((error) => {
+    // eslint-disable-next-line no-console
+    console.warn('[Pitch accent] Kanjium accent index warm-up failed:', error);
+  });
 });
 
 // Graceful shutdown

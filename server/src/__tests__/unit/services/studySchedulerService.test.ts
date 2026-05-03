@@ -718,6 +718,43 @@ describe('studySchedulerService', () => {
     expect(result.answer.pitchAccent).toEqual(pitchAccent);
   });
 
+  it('resolves cloze pitch accent from the restored answer sentence without furigana', async () => {
+    const existing = buildClozeStudyCardRecord(
+      '明日[あした]から早[はや]く起[お]きることにします。'
+    );
+    const pitchAccent = {
+      status: 'unresolved' as const,
+      expression: '明日から早く起きることにします。',
+      reason: 'not-found' as const,
+      source: 'kanjium' as const,
+      resolvedBy: 'none' as const,
+    };
+    mockPrisma.studyCard.findFirst.mockResolvedValueOnce(existing).mockResolvedValueOnce({
+      ...existing,
+      answerJson: {
+        ...existing.answerJson,
+        pitchAccent,
+      },
+    });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+    resolvePitchAccentMock.mockResolvedValue(pitchAccent);
+
+    const result = await resolveStudyCardPitchAccent({
+      userId: 'user-1',
+      cardId: 'card-1',
+    });
+
+    expect(resolvePitchAccentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expression: '明日から早く起きることにします。',
+        expressionReading: '明日[あした]から早[はや]く起[お]きることにします。',
+        promptReading: null,
+        sentenceJp: '明日から早く起きることにします。',
+      })
+    );
+    expect(result.answer.pitchAccent).toEqual(pitchAccent);
+  });
+
   it('updates a study card without changing scheduling and regenerates answer audio when spoken answer text changes', async () => {
     mockPrisma.studyCard.findFirst
       .mockResolvedValueOnce({
