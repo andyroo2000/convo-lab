@@ -1,6 +1,16 @@
 const PRECACHE_AUDIO_MESSAGE = 'PRECACHE_AUDIO_URLS';
 const CLEAR_AUDIO_CACHE_MESSAGE = 'CLEAR_AUDIO_CACHE';
 const AUDIO_CACHE_READY_TIMEOUT_MS = 1200;
+const GOOGLE_SIGNED_URL_PARAMS = [
+  'X-Goog-Algorithm',
+  'X-Goog-Credential',
+  'X-Goog-Expires',
+  'X-Goog-Signature',
+] as const;
+const GOOGLE_STORAGE_ORIGINS = new Set([
+  'https://storage.googleapis.com',
+  'https://storage.cloud.google.com',
+]);
 
 type AudioCacheMessage =
   | { type: typeof PRECACHE_AUDIO_MESSAGE; urls: string[] }
@@ -31,6 +41,26 @@ export const shouldWarmAudioCache = () => {
   return !['slow-2g', '2g'].includes(String(connection.effectiveType ?? '').toLowerCase());
 };
 
+export const isSignedGoogleStorageUrl = (url: string) => {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    const parsed = new URL(url, window.location.href);
+    if (!GOOGLE_STORAGE_ORIGINS.has(parsed.origin)) return false;
+
+    return GOOGLE_SIGNED_URL_PARAMS.some((param) => parsed.searchParams.has(param));
+  } catch {
+    return false;
+  }
+};
+
+export const shouldPreloadAudioUrl = (url: string) => !isSignedGoogleStorageUrl(url);
+
+export const getAudioPreloadMode = (url: string): 'auto' | 'metadata' | 'none' => {
+  if (!shouldPreloadAudioUrl(url)) return 'none';
+  return shouldWarmAudioCache() ? 'auto' : 'metadata';
+};
+
 export const normalizeAudioCacheUrls = (urls: Array<string | null | undefined>) => {
   if (typeof window === 'undefined') return [];
 
@@ -39,6 +69,7 @@ export const normalizeAudioCacheUrls = (urls: Array<string | null | undefined>) 
       urls
         .filter((url): url is string => typeof url === 'string' && url.trim().length > 0)
         .map((url) => new URL(url, window.location.href).href)
+        .filter((url) => !isSignedGoogleStorageUrl(url))
     )
   );
 };
@@ -75,12 +106,15 @@ const postServiceWorkerMessage = async (message: AudioCacheMessage) => {
 
 const fetchAudioUrls = async (urls: string[]) => {
   await Promise.allSettled(
-    urls.map((url) =>
-      fetch(url, {
+    urls.map((url) => {
+      const parsed = new URL(url, window.location.href);
+      const sameOrigin = parsed.origin === window.location.origin;
+
+      return fetch(parsed.href, {
         cache: 'force-cache',
-        credentials: 'include',
-      })
-    )
+        credentials: sameOrigin ? 'include' : 'omit',
+      });
+    })
   );
 };
 

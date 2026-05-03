@@ -308,6 +308,32 @@ describe('StudyCardPreview', () => {
     expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'metadata');
   });
 
+  it('does not eagerly preload signed Google Storage answer audio', () => {
+    const signedUrl =
+      'https://storage.googleapis.com/convolab-storage/study-media/card/answer.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=300&X-Goog-Signature=abc';
+
+    render(
+      <StudyCardFace
+        side="back"
+        layout="mobile-focus"
+        card={{
+          ...baseCard,
+          answer: {
+            ...baseCard.answer,
+            answerAudio: {
+              filename: 'answer.mp3',
+              url: signedUrl,
+              mediaKind: 'audio',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByTestId('study-answer-audio-element')).toHaveAttribute('preload', 'none');
+  });
+
   it('shows a visible audio playback error when playback fails', async () => {
     const playMock = vi.fn().mockRejectedValueOnce(new Error('blocked'));
     Object.defineProperty(HTMLMediaElement.prototype, 'play', {

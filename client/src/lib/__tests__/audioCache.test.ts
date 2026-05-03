@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearAudioCache,
+  getAudioPreloadMode,
+  isSignedGoogleStorageUrl,
   normalizeAudioCacheUrls,
+  shouldPreloadAudioUrl,
   shouldWarmAudioCache,
   warmAudioCache,
 } from '../audioCache';
@@ -69,6 +72,28 @@ describe('audioCache', () => {
     });
   });
 
+  it('filters signed Google Storage URLs from cache warming', async () => {
+    const postMessage = vi.fn();
+    defineNavigatorValue('serviceWorker', {
+      controller: { postMessage },
+      ready: Promise.resolve({ active: { postMessage } }),
+    });
+
+    const signedUrl =
+      'https://storage.googleapis.com/convolab-storage/study-media/card/audio.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=300&X-Goog-Signature=abc';
+
+    expect(isSignedGoogleStorageUrl(signedUrl)).toBe(true);
+    expect(shouldPreloadAudioUrl(signedUrl)).toBe(false);
+    expect(getAudioPreloadMode(signedUrl)).toBe('none');
+    expect(normalizeAudioCacheUrls([signedUrl, '/api/study/media/1'])).toEqual([
+      `${window.location.origin}/api/study/media/1`,
+    ]);
+
+    await warmAudioCache([signedUrl]);
+
+    expect(postMessage).not.toHaveBeenCalled();
+  });
+
   it('falls back to credentialed fetch when no service worker is active', async () => {
     vi.useFakeTimers();
     const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
@@ -86,6 +111,44 @@ describe('audioCache', () => {
       cache: 'force-cache',
       credentials: 'include',
     });
+  });
+
+  it('omits credentials for cross-origin fallback fetches', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
+    globalThis.fetch = fetchMock;
+    defineNavigatorValue('serviceWorker', {
+      controller: null,
+      ready: new Promise(() => {}),
+    });
+
+    const warmPromise = warmAudioCache(['https://cdn.test/audio.mp3']);
+    await vi.advanceTimersByTimeAsync(1200);
+    await warmPromise;
+
+    expect(fetchMock).toHaveBeenCalledWith('https://cdn.test/audio.mp3', {
+      cache: 'force-cache',
+      credentials: 'omit',
+    });
+  });
+
+  it('does not fallback-fetch signed Google Storage URLs', async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn().mockResolvedValue(new Response('ok'));
+    globalThis.fetch = fetchMock;
+    defineNavigatorValue('serviceWorker', {
+      controller: null,
+      ready: new Promise(() => {}),
+    });
+
+    const signedUrl =
+      'https://storage.googleapis.com/convolab-storage/study-media/card/audio.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=300&X-Goog-Signature=abc';
+
+    const warmPromise = warmAudioCache([signedUrl]);
+    await vi.advanceTimersByTimeAsync(1200);
+    await warmPromise;
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('detects constrained network conditions', () => {
