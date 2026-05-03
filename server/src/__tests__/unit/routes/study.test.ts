@@ -59,6 +59,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReviewMock,
   regenerateStudyCardAnswerAudioMock,
+  resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
   undoStudyReviewMock,
@@ -92,6 +93,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   regenerateStudyCardAnswerAudioMock: vi.fn(),
+  resolveStudyCardPitchAccentMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
@@ -134,6 +136,7 @@ vi.mock('../../../services/studyService.js', () => ({
   regenerateStudyCardCandidatePreviewImage: regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReview: recordStudyReviewMock,
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
+  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
   undoStudyReview: undoStudyReviewMock,
@@ -174,6 +177,7 @@ describe('Study Routes', () => {
     generateStudyCardCandidatesMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
+    resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
     getStudyImportUploadReadinessMock.mockReset();
@@ -532,6 +536,233 @@ describe('Study Routes', () => {
     expect(response.body.message).toContain(
       'prompt.cueAudio.mediaKind must be audio, image, or other'
     );
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves and caches pitch accent data for a study card', async () => {
+    resolveStudyCardPitchAccentMock.mockResolvedValue({
+      id: 'card-1',
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/pitch-accent')
+    ).send({});
+
+    expect(response.status).toBe(200);
+    expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+    });
+    expect(response.body.answer.pitchAccent).toMatchObject({
+      status: 'resolved',
+      reading: 'かいしゃ',
+    });
+  });
+
+  it('allows cached pitch accent data in card answer payloads', async () => {
+    updateStudyCardMock.mockResolvedValue({ id: 'card-1' });
+
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'unresolved',
+          expression: '会社',
+          reason: 'not-found',
+          source: 'kanjium',
+          resolvedBy: 'none',
+        },
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(updateStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: expect.objectContaining({
+          pitchAccent: expect.objectContaining({ status: 'unresolved' }),
+        }),
+      })
+    );
+  });
+
+  it('rejects cached resolved pitch accent payloads with unsupported resolution metadata', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'future-method',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.resolvedBy is not supported');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached resolved pitch accent payloads with negative pitch numbers', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: -1,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.pitchNum must be a non-negative');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads from unsupported sources', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: '平板',
+          source: 'other',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.source is not supported');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with mismatched mora and pattern lengths', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('morae and pattern must have equal length');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with oversized mora arrays', async () => {
+    const morae = Array.from({ length: 65 }, () => 'あ');
+
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '長い' },
+      answer: {
+        expression: '長い',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '長い',
+          reading: 'ながい',
+          pitchNum: 0,
+          morae,
+          pattern: morae.map(() => 1),
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.morae must contain 1-64 items');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with oversized pattern names', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1, 1],
+          patternName: 'a'.repeat(65),
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.patternName must be 64 characters');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with unsupported unresolved reasons', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'unresolved',
+          expression: '会社',
+          reason: 'invalid-pattern',
+          source: 'kanjium',
+          resolvedBy: 'none',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.reason is not supported');
     expect(updateStudyCardMock).not.toHaveBeenCalled();
   });
 

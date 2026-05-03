@@ -166,6 +166,15 @@ export async function regenerateStudyAnswerAudio(
   );
 }
 
+export async function resolveStudyCardPitchAccent(cardId: string): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(
+    `/api/study/cards/${encodeURIComponent(cardId)}/pitch-accent`,
+    {
+      method: 'POST',
+    }
+  );
+}
+
 export async function generateStudyCardCandidates(
   payload: StudyCardCandidateGenerateRequest
 ): Promise<StudyCardCandidateGenerateResponse> {

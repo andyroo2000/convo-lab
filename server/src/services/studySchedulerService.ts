@@ -6,6 +6,7 @@ export {
   performStudyCardAction,
   recordStudyReview,
   reorderStudyNewCardQueue,
+  resolveStudyCardPitchAccent,
   startStudySession,
   undoStudyReview,
   updateStudySettings,

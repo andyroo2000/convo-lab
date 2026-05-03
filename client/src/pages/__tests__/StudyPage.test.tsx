@@ -13,6 +13,7 @@ const {
   prepareStudyAnswerAudioMock,
   undoStudyReviewMock,
   mutateAsyncMock,
+  resolveStudyCardPitchAccentMock,
   updateStudyCardMock,
   regenerateStudyAnswerAudioMock,
   studyOverviewData,
@@ -23,6 +24,7 @@ const {
   prepareStudyAnswerAudioMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   mutateAsyncMock: vi.fn(),
+  resolveStudyCardPitchAccentMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   studyOverviewData: {
@@ -74,6 +76,7 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   startStudySession: startStudySessionMock,
   prepareStudyAnswerAudio: prepareStudyAnswerAudioMock,
+  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   undoStudyReview: undoStudyReviewMock,
 }));
 
@@ -152,6 +155,7 @@ describe('StudyPage', () => {
     cardActionMutateAsyncMock.mockReset();
     startStudySessionMock.mockReset();
     prepareStudyAnswerAudioMock.mockReset();
+    resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
     updateStudyCardMock.mockReset();
@@ -171,6 +175,14 @@ describe('StudyPage', () => {
         },
       },
       answerAudioSource: 'generated',
+    }));
+    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
+      ...baseCard,
+      id: cardId,
+      answer: {
+        ...baseCard.answer,
+        pitchAccent: null,
+      },
     }));
     undoStudyReviewMock.mockImplementation(async (reviewLogId: string) => ({
       reviewLogId,

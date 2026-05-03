@@ -20,6 +20,7 @@ const {
   generateCandidatesMock,
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
+  resolveStudyCardPitchAccentMock,
 } = vi.hoisted(() => ({
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
@@ -27,6 +28,7 @@ const {
   generateCandidatesMock: vi.fn(),
   regenerateCandidateAudioMock: vi.fn(),
   regenerateCandidateImageMock: vi.fn(),
+  resolveStudyCardPitchAccentMock: vi.fn(),
 }));
 
 vi.mock('../../hooks/useStudy', () => ({
@@ -55,6 +57,7 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
 vi.mock('../../components/common/VoicePreview', () => ({
@@ -111,6 +114,7 @@ describe('StudyCreatePage', () => {
     generateCandidatesMock.mockReset();
     regenerateCandidateAudioMock.mockReset();
     regenerateCandidateImageMock.mockReset();
+    resolveStudyCardPitchAccentMock.mockReset();
     commitCandidatesMock.mockResolvedValue({ cards: [{ id: 'created-1' }] });
     createStudyCardMock.mockResolvedValue({ cardType: 'recognition' });
     generateCandidatesMock.mockResolvedValue({ candidates: [], learnerContextSummary: null });
@@ -150,6 +154,10 @@ describe('StudyCreatePage', () => {
       },
       imagePrompt: 'A clear photo of a company office sign in Japan.',
     });
+    resolveStudyCardPitchAccentMock.mockImplementation(async (cardId: string) => ({
+      id: cardId,
+      answer: { pitchAccent: null },
+    }));
   });
 
   it('creates a recognition card and shows a success message', async () => {

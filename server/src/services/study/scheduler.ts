@@ -28,6 +28,7 @@ import { State, Rating, type Grade } from 'ts-fsrs';
 
 import { prisma } from '../../db/client.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { resolvePitchAccent } from '../pitchAccent/pitchAccentResolver.js';
 
 import { ensureGeneratedAnswerAudio, ensureStudyCardMediaAvailable } from './media.js';
 import type {
@@ -81,6 +82,44 @@ function isActiveDueQueueState(queueState: StudyQueueState): boolean {
   return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
 }
 
+function stripBracketRuby(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const stripped = value
+    .replace(/\[[^\]]+]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return stripped.length > 0 ? stripped : null;
+}
+
+function getPitchAccentResolverPayload(
+  cardType: StudyCardWithRelations['cardType'],
+  normalized: {
+    prompt: StudyPromptPayload;
+    answer: StudyAnswerPayload;
+  }
+) {
+  if (cardType === 'cloze') {
+    return {
+      expression:
+        stripBracketRuby(normalized.answer.restoredText) ??
+        stripBracketRuby(normalized.answer.restoredTextReading) ??
+        stripBracketRuby(normalized.answer.expression),
+      expressionReading: normalized.answer.restoredTextReading,
+      promptReading: null,
+      sentenceJp: normalized.answer.restoredText ?? normalized.answer.sentenceJp,
+      sentenceJpKana: normalized.answer.sentenceJpKana,
+    };
+  }
+
+  return {
+    expression: normalized.answer.expression,
+    expressionReading: normalized.answer.expressionReading,
+    promptReading: normalized.prompt.cueReading,
+    sentenceJp: normalized.answer.sentenceJp,
+    sentenceJpKana: normalized.answer.sentenceJpKana,
+  };
+}
+
 function getStudyDayWindow(timeZone?: string, now: Date = new Date()) {
   const resolvedTimeZone = timeZone ? assertValidStudyTimeZone(timeZone) : 'UTC';
 
@@ -105,6 +144,21 @@ function assertValidNewCardsPerDay(value: unknown): number {
   }
 
   return value;
+}
+
+function getPitchAccentInvalidationKey(payload: {
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+}): string {
+  return JSON.stringify({
+    expression: payload.answer.expression ?? payload.answer.restoredText ?? null,
+    expressionReading:
+      payload.answer.expressionReading ?? payload.answer.restoredTextReading ?? null,
+    promptReading: payload.prompt.cueReading ?? null,
+    answerAudioTextOverride: payload.answer.answerAudioTextOverride ?? null,
+    sentenceJp: payload.answer.sentenceJp ?? null,
+    sentenceJpKana: payload.answer.sentenceJpKana ?? null,
+  });
 }
 
 export async function getStudySettings(userId: string): Promise<StudySettings> {
@@ -1190,6 +1244,15 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
           answer: mergedAnswer,
         };
 
+  const previousPitchKey = getPitchAccentInvalidationKey(currentNormalized);
+  const nextPitchKey = getPitchAccentInvalidationKey(normalizedPayload);
+  if (
+    previousPitchKey !== nextPitchKey &&
+    typeof normalizedPayload.answer.pitchAccent === 'undefined'
+  ) {
+    normalizedPayload.answer.pitchAccent = null;
+  }
+
   const previousAudioText = getBestAnswerAudioText(currentNormalized.answer);
   const nextAudioText = getBestAnswerAudioText(normalizedPayload.answer);
   const shouldRegenerateAnswerAudio =
@@ -1241,6 +1304,54 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   if (!refreshed) {
     throw new AppError('Study card not found after update.', 404);
   }
+
+  return await toStudyCardSummary(refreshed);
+}
+
+export async function resolveStudyCardPitchAccent(input: {
+  userId: string;
+  cardId: string;
+}): Promise<StudyCardSummary> {
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+  });
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  const normalized = await normalizeStudyCardPayload(existing);
+  const resolverPayload = getPitchAccentResolverPayload(existing.cardType, normalized);
+  const pitchAccent = await resolvePitchAccent({
+    expression: resolverPayload.expression,
+    expressionReading: resolverPayload.expressionReading,
+    promptReading: resolverPayload.promptReading,
+    answerAudioTextOverride: normalized.answer.answerAudioTextOverride,
+    sentenceJp: resolverPayload.sentenceJp,
+    sentenceJpKana: resolverPayload.sentenceJpKana,
+    cached: normalized.answer.pitchAccent,
+  });
+  // resolvePitchAccent returns input.cached by reference on cache hits; new resolutions are new objects.
+  if (pitchAccent === normalized.answer.pitchAccent) {
+    return await toStudyCardSummary(existing);
+  }
+
+  const nextAnswer: StudyAnswerPayload = {
+    ...normalized.answer,
+    pitchAccent,
+  };
+
+  const refreshed = await prisma.studyCard.update({
+    where: { id: input.cardId },
+    data: {
+      answerJson: toPrismaJson(nextAnswer),
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+  });
 
   return await toStudyCardSummary(refreshed);
 }

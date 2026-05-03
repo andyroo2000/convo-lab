@@ -76,7 +76,46 @@ export interface StudyAnswerPayload {
   answerAudioTextOverride?: string | null;
   answerAudio?: StudyMediaRef | null;
   answerImage?: StudyMediaRef | null;
+  pitchAccent?: JapanesePitchAccentPayload | null;
 }
+
+export type JapanesePitchAccentSource = 'kanjium';
+
+export type JapanesePitchAccentResolvedBy = 'single-candidate' | 'local-reading' | 'llm';
+
+export type JapanesePitchAccentUnresolvedReason =
+  | 'not-japanese'
+  | 'no-expression'
+  | 'not-found'
+  | 'ambiguous-reading';
+
+export interface JapanesePitchAccentAlternative {
+  reading: string;
+  pitchNum: number;
+  morae: string[];
+  pattern: number[];
+  patternName: string;
+}
+
+export interface JapanesePitchAccentResolvedPayload extends JapanesePitchAccentAlternative {
+  status: 'resolved';
+  expression: string;
+  source: JapanesePitchAccentSource;
+  resolvedBy: JapanesePitchAccentResolvedBy;
+  alternatives?: JapanesePitchAccentAlternative[];
+}
+
+export interface JapanesePitchAccentUnresolvedPayload {
+  status: 'unresolved';
+  expression: string;
+  reason: JapanesePitchAccentUnresolvedReason;
+  source: JapanesePitchAccentSource;
+  resolvedBy: JapanesePitchAccentResolvedBy | 'none';
+}
+
+export type JapanesePitchAccentPayload =
+  | JapanesePitchAccentResolvedPayload
+  | JapanesePitchAccentUnresolvedPayload;
 
 export interface StudySourceSnapshot {
   noteId?: string | null;
