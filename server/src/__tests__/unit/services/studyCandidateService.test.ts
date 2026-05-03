@@ -601,7 +601,11 @@ describe('studyCandidateService', () => {
     });
 
     expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
-      'A minimal illustration of cloudy weather.'
+      expect.stringContaining('A minimal illustration of cloudy weather.')
+    );
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(expect.stringContaining('No text'));
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
+      expect.stringContaining('flashcard layout')
     );
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
     expect(webpMock).toHaveBeenCalledWith({ quality: 82 });

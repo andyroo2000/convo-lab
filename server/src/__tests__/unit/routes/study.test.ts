@@ -59,6 +59,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReviewMock,
   regenerateStudyCardAnswerAudioMock,
+  regenerateStudyCardAnswerImageMock,
   resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueueMock,
   startStudySessionMock,
@@ -93,6 +94,7 @@ const {
   regenerateStudyCardCandidatePreviewImageMock: vi.fn(),
   recordStudyReviewMock: vi.fn(),
   regenerateStudyCardAnswerAudioMock: vi.fn(),
+  regenerateStudyCardAnswerImageMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   reorderStudyNewCardQueueMock: vi.fn(),
   startStudySessionMock: vi.fn(),
@@ -136,6 +138,7 @@ vi.mock('../../../services/studyService.js', () => ({
   regenerateStudyCardCandidatePreviewImage: regenerateStudyCardCandidatePreviewImageMock,
   recordStudyReview: recordStudyReviewMock,
   regenerateStudyCardAnswerAudio: regenerateStudyCardAnswerAudioMock,
+  regenerateStudyCardAnswerImage: regenerateStudyCardAnswerImageMock,
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
   reorderStudyNewCardQueue: reorderStudyNewCardQueueMock,
   startStudySession: startStudySessionMock,
@@ -177,6 +180,7 @@ describe('Study Routes', () => {
     generateStudyCardCandidatesMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
+    regenerateStudyCardAnswerImageMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
     undoStudyReviewMock.mockReset();
     getCurrentStudyImportJobMock.mockReset();
@@ -1297,6 +1301,50 @@ describe('Study Routes', () => {
       answerAudioVoiceId: 'ja-JP-Neural2-C',
       answerAudioTextOverride: 'かいしゃ',
     });
+  });
+
+  it('regenerates an existing study card image for the requested side', async () => {
+    regenerateStudyCardAnswerImageMock.mockResolvedValue({
+      id: 'card-1',
+      prompt: {
+        cueImage: {
+          id: 'image-new',
+          filename: 'image-new.webp',
+          url: '/api/study/media/image-new',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      answer: {},
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-image')
+    ).send({
+      imagePrompt: '  A natural street scene showing cloudy weather.  ',
+      imageRole: 'prompt',
+    });
+
+    expect(response.status).toBe(200);
+    expect(regenerateStudyCardAnswerImageMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      imagePrompt: 'A natural street scene showing cloudy weather.',
+      imageRole: 'prompt',
+    });
+  });
+
+  it('rejects study card image regeneration without a valid image role', async () => {
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-image')
+    ).send({
+      imagePrompt: 'A natural street scene showing cloudy weather.',
+      imageRole: 'sideways',
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('imageRole must be prompt or answer.');
+    expect(regenerateStudyCardAnswerImageMock).not.toHaveBeenCalled();
   });
 
   it('passes card actions through to the service', async () => {

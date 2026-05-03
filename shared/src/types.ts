@@ -246,6 +246,11 @@ export interface StudyCardCandidatePreviewImageResponse {
   imagePrompt: string;
 }
 
+export interface StudyCardRegenerateImageRequest {
+  imagePrompt: string;
+  imageRole: 'prompt' | 'answer';
+}
+
 export interface StudyOverview {
   dueCount: number;
   newCount: number;

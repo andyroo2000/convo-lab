@@ -84,10 +84,14 @@
     "description": "保存すると、レビュー画面ではこのカードの表面に戻ります。",
     "currentAudio": "現在のカード音声",
     "noCurrentAudio": "カード音声はまだありません。",
+    "currentImage": "現在のカード画像",
+    "imagePrompt": "画像プロンプト",
     "save": "カードを保存",
     "saving": "保存中…",
     "regenerateAudio": "音声を再生成",
     "regeneratingAudio": "再生成中…",
+    "regenerateImage": "画像を再生成",
+    "regeneratingImage": "画像を再生成中…",
     "cancel": "キャンセル"
   },
   "form": {

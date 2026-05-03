@@ -15,6 +15,7 @@ import type {
   StudyCardCandidatePreviewAudioResponse,
   StudyCardCandidatePreviewImageRequest,
   StudyCardCandidatePreviewImageResponse,
+  StudyCardRegenerateImageRequest,
   StudyCardSummary,
   StudyExportManifest,
   StudyImportResult,
@@ -53,6 +54,10 @@ interface RegenerateStudyAnswerAudioPayload {
   cardId: string;
   answerAudioVoiceId?: string | null;
   answerAudioTextOverride?: string | null;
+}
+
+interface RegenerateStudyCardImagePayload extends StudyCardRegenerateImageRequest {
+  cardId: string;
 }
 
 interface StudyCardActionPayload {
@@ -161,6 +166,21 @@ export async function regenerateStudyAnswerAudio(
       body: JSON.stringify({
         answerAudioVoiceId: payload.answerAudioVoiceId,
         answerAudioTextOverride: payload.answerAudioTextOverride,
+      }),
+    }
+  );
+}
+
+export async function regenerateStudyCardImage(
+  payload: RegenerateStudyCardImagePayload
+): Promise<StudyCardSummary> {
+  return apiRequest<StudyCardSummary>(
+    `/api/study/cards/${encodeURIComponent(payload.cardId)}/regenerate-image`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        imagePrompt: payload.imagePrompt,
+        imageRole: payload.imageRole,
       }),
     }
   );
@@ -460,6 +480,12 @@ export function useUpdateStudyCard() {
 export function useRegenerateStudyAnswerAudio() {
   return useMutation({
     mutationFn: regenerateStudyAnswerAudio,
+  });
+}
+
+export function useRegenerateStudyCardImage() {
+  return useMutation({
+    mutationFn: regenerateStudyCardImage,
   });
 }
 
