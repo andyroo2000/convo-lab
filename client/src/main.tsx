@@ -1,16 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { registerSW } from 'virtual:pwa-register';
 import App from './App';
 import { installCsrfFetch } from './lib/csrf';
+import registerConvoLabServiceWorker from './lib/registerServiceWorker';
 import './styles/index.css';
 
-registerSW({
-  // Register before window load so first-session audio warming can reach the SW quickly.
-  // VitePWA's `immediate` controls registration timing, not skip-waiting activation.
-  immediate: true,
-});
+registerConvoLabServiceWorker();
 
 // Global error handler for chunk loading failures
 // This catches errors that might not be caught by ErrorBoundary
