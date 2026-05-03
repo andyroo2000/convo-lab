@@ -1335,6 +1335,10 @@ export async function resolveStudyCardPitchAccent(input: {
     sentenceJpKana: resolverPayload.sentenceJpKana,
     cached: normalized.answer.pitchAccent,
   });
+  if (pitchAccent === normalized.answer.pitchAccent) {
+    return await toStudyCardSummary(existing);
+  }
+
   const nextAnswer: StudyAnswerPayload = {
     ...normalized.answer,
     pitchAccent,

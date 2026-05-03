@@ -624,6 +624,56 @@ describe('Study Routes', () => {
     expect(updateStudyCardMock).not.toHaveBeenCalled();
   });
 
+  it('rejects cached pitch accent payloads with mismatched mora and pattern lengths', async () => {
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '会社',
+          reading: 'かいしゃ',
+          pitchNum: 0,
+          morae: ['か', 'い', 'しゃ'],
+          pattern: [0, 1],
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('morae and pattern must have equal length');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects cached pitch accent payloads with oversized mora arrays', async () => {
+    const morae = Array.from({ length: 65 }, () => 'あ');
+
+    const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
+      prompt: { cueText: '長い' },
+      answer: {
+        expression: '長い',
+        pitchAccent: {
+          status: 'resolved',
+          expression: '長い',
+          reading: 'ながい',
+          pitchNum: 0,
+          morae,
+          pattern: morae.map(() => 1),
+          patternName: '平板',
+          source: 'kanjium',
+          resolvedBy: 'local-reading',
+        },
+      },
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('answer.pitchAccent.morae must contain 1-64 items');
+    expect(updateStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('rejects cached pitch accent payloads with unsupported unresolved reasons', async () => {
     const response = await withMutationCsrf(request(app).patch('/study/cards/card-1')).send({
       prompt: { cueText: '会社' },

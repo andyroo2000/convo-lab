@@ -1,7 +1,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { StudyCardSummary } from '@languageflow/shared/src/types';
+import type { JapanesePitchAccentPayload, StudyCardSummary } from '@languageflow/shared/src/types';
 import { createWrapper } from '../../__tests__/hooks/test-utils';
 import useStudyPitchAccent from '../useStudyPitchAccent';
 
@@ -32,6 +32,18 @@ function buildCard(id: string): StudyCardSummary {
   };
 }
 
+const resolvedPitchAccent: JapanesePitchAccentPayload = {
+  status: 'resolved',
+  expression: '会社',
+  reading: 'かいしゃ',
+  pitchNum: 0,
+  morae: ['か', 'い', 'しゃ'],
+  pattern: [0, 1, 1],
+  patternName: '平板',
+  source: 'kanjium',
+  resolvedBy: 'local-reading',
+};
+
 describe('useStudyPitchAccent', () => {
   beforeEach(() => {
     resolveStudyCardPitchAccentMock.mockReset();
@@ -44,17 +56,7 @@ describe('useStudyPitchAccent', () => {
         ...buildCard('card-2'),
         answer: {
           ...buildCard('card-2').answer,
-          pitchAccent: {
-            status: 'resolved',
-            expression: '会社',
-            reading: 'かいしゃ',
-            pitchNum: 0,
-            morae: ['か', 'い', 'しゃ'],
-            pattern: [0, 1, 1],
-            patternName: '平板',
-            source: 'kanjium',
-            resolvedBy: 'local-reading',
-          },
+          pitchAccent: resolvedPitchAccent,
         },
       });
 
@@ -72,5 +74,25 @@ describe('useStudyPitchAccent', () => {
     await waitFor(() => {
       expect(resolveStudyCardPitchAccentMock).toHaveBeenCalledWith('card-2', expect.any(Object));
     });
+  });
+
+  it('returns resolved pitch accent data after the lazy request succeeds', async () => {
+    resolveStudyCardPitchAccentMock.mockResolvedValueOnce({
+      ...buildCard('card-1'),
+      answer: {
+        ...buildCard('card-1').answer,
+        pitchAccent: resolvedPitchAccent,
+      },
+    });
+
+    const { result } = renderHook(({ card }) => useStudyPitchAccent(card, true), {
+      initialProps: { card: buildCard('card-1') },
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.pitchAccent).toEqual(resolvedPitchAccent);
+    });
+    expect(result.current.isLoading).toBe(false);
   });
 });

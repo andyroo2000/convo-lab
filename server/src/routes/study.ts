@@ -131,6 +131,7 @@ const PITCH_ACCENT_UNRESOLVED_REASONS = new Set<JapanesePitchAccentUnresolvedRea
   'not-found',
   'ambiguous-reading',
 ]);
+const PITCH_ACCENT_PATTERN_MAX_LENGTH = 64;
 const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
 const STUDY_PROMPT_ALLOWED_KEYS = new Set([
   'cueText',
@@ -422,8 +423,17 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
     if (!Array.isArray(value.morae) || !value.morae.every((item) => typeof item === 'string')) {
       throw new AppError('answer.pitchAccent.morae must be an array of strings.', 400);
     }
+    if (value.morae.length === 0 || value.morae.length > PITCH_ACCENT_PATTERN_MAX_LENGTH) {
+      throw new AppError(
+        `answer.pitchAccent.morae must contain 1-${PITCH_ACCENT_PATTERN_MAX_LENGTH.toString()} items.`,
+        400
+      );
+    }
     if (!Array.isArray(value.pattern) || !value.pattern.every((item) => item === 0 || item === 1)) {
       throw new AppError('answer.pitchAccent.pattern must be an array of 0/1 values.', 400);
+    }
+    if (value.pattern.length !== value.morae.length) {
+      throw new AppError('answer.pitchAccent.morae and pattern must have equal length.', 400);
     }
 
     if (!PITCH_ACCENT_RESOLVED_BY.has(value.resolvedBy as JapanesePitchAccentResolvedBy)) {
@@ -448,7 +458,7 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
   if (value.status === 'unresolved') {
     const expression =
       parseOptionalNullableStringField('answer.pitchAccent', 'expression', value.expression) ?? '';
-    const reason = String(value.reason);
+    const reason = typeof value.reason === 'string' ? value.reason : '';
     if (!PITCH_ACCENT_UNRESOLVED_REASONS.has(reason as JapanesePitchAccentUnresolvedReason)) {
       throw new AppError('answer.pitchAccent.reason is not supported.', 400);
     }
