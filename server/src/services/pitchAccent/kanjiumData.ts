@@ -24,6 +24,7 @@ export function createKanjiumAccentStore(
     indexPromise ??= readFile(accentsPath, 'utf8')
       .then((text) => indexKanjiumRows(parseKanjiumAccentText(text)))
       .catch((error) => {
+        // Drop the rejected single-flight promise so a later request can retry the data load.
         indexPromise = null;
         throw error;
       });

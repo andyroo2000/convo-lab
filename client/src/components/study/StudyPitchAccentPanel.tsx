@@ -5,6 +5,7 @@ import useStudyPitchAccent from '../../hooks/useStudyPitchAccent';
 
 interface StudyPitchAccentPanelProps {
   card: StudyCardSummary;
+  // Kept explicit so dialogue reuse and future front/back gating can disable lazy resolution.
   enabled: boolean;
 }
 

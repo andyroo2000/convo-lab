@@ -103,8 +103,10 @@ function flushPitchAccentLlmBatch(): void {
 function enqueuePitchAccentReadingSelection(item: PitchAccentLlmBatchItem): Promise<string> {
   return new Promise((resolve, reject) => {
     pendingSelections.push({ item, resolve, reject });
-    if (pendingSelections.length >= PITCH_ACCENT_LLM_BATCH_MAX_SIZE && pendingFlushTimer !== null) {
-      clearTimeout(pendingFlushTimer);
+    if (pendingSelections.length >= PITCH_ACCENT_LLM_BATCH_MAX_SIZE) {
+      if (pendingFlushTimer !== null) {
+        clearTimeout(pendingFlushTimer);
+      }
       flushPitchAccentLlmBatch();
       return;
     }

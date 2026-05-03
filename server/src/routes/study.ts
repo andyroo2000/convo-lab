@@ -132,6 +132,7 @@ const PITCH_ACCENT_UNRESOLVED_REASONS = new Set<JapanesePitchAccentUnresolvedRea
   'ambiguous-reading',
 ]);
 const PITCH_ACCENT_PATTERN_MAX_LENGTH = 64;
+const PITCH_ACCENT_PATTERN_NAME_MAX_LENGTH = 64;
 const STUDY_MEDIA_REF_ALLOWED_KEYS = new Set(['id', 'filename', 'url', 'mediaKind', 'source']);
 const STUDY_PROMPT_ALLOWED_KEYS = new Set([
   'cueText',
@@ -443,6 +444,16 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
       throw new AppError('answer.pitchAccent.resolvedBy is not supported.', 400);
     }
 
+    const patternName =
+      parseOptionalNullableStringField('answer.pitchAccent', 'patternName', value.patternName) ??
+      '';
+    if (patternName.length > PITCH_ACCENT_PATTERN_NAME_MAX_LENGTH) {
+      throw new AppError(
+        `answer.pitchAccent.patternName must be ${PITCH_ACCENT_PATTERN_NAME_MAX_LENGTH.toString()} characters or fewer.`,
+        400
+      );
+    }
+
     return {
       status: 'resolved',
       expression,
@@ -450,9 +461,7 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
       pitchNum: value.pitchNum,
       morae: value.morae,
       pattern: value.pattern,
-      patternName:
-        parseOptionalNullableStringField('answer.pitchAccent', 'patternName', value.patternName) ??
-        '',
+      patternName,
       source: 'kanjium',
       resolvedBy: value.resolvedBy as JapanesePitchAccentResolvedBy,
     };
