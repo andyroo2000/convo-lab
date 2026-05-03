@@ -21,6 +21,9 @@ interface StudyAudioPlayerProps {
   url: string;
 }
 
+const isInterruptedPlayError = (error: unknown) =>
+  error instanceof DOMException && error.name === 'AbortError';
+
 const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
   (
     {
@@ -67,6 +70,11 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
         setPlayingState(true);
         return true;
       } catch (error) {
+        if (isInterruptedPlayError(error)) {
+          setPlayingState(false);
+          return false;
+        }
+
         console.error(`Unable to play ${label}:`, error);
         setPlayingState(false);
         setErrorMessage(t('preview.audioFailed'));

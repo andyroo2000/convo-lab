@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StudyCardFace } from '../StudyCardPreview';
@@ -361,5 +361,43 @@ describe('StudyCardPreview', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
 
     expect(await screen.findByText('Audio playback failed. Try again.')).toBeInTheDocument();
+  });
+
+  it('ignores interrupted audio play requests without surfacing an error', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const abortError = new DOMException(
+      'The play() request was interrupted by a call to pause().',
+      'AbortError'
+    );
+    const playMock = vi.fn().mockRejectedValueOnce(abortError);
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          prompt: {
+            cueAudio: {
+              filename: 'prompt.mp3',
+              url: 'https://example.com/prompt.mp3',
+              mediaKind: 'audio',
+              source: 'imported',
+            },
+          },
+        }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+
+    await waitFor(() => expect(playMock).toHaveBeenCalled());
+
+    expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 });
