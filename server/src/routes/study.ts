@@ -420,6 +420,9 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
     if (typeof value.pitchNum !== 'number' || !Number.isSafeInteger(value.pitchNum)) {
       throw new AppError('answer.pitchAccent.pitchNum must be an integer.', 400);
     }
+    if (value.source !== 'kanjium') {
+      throw new AppError('answer.pitchAccent.source is not supported.', 400);
+    }
     if (!Array.isArray(value.morae) || !value.morae.every((item) => typeof item === 'string')) {
       throw new AppError('answer.pitchAccent.morae must be an array of strings.', 400);
     }
@@ -459,6 +462,9 @@ function parsePitchAccentPayload(value: unknown): StudyAnswerPayload['pitchAccen
     const expression =
       parseOptionalNullableStringField('answer.pitchAccent', 'expression', value.expression) ?? '';
     const reason = typeof value.reason === 'string' ? value.reason : '';
+    if (value.source !== 'kanjium') {
+      throw new AppError('answer.pitchAccent.source is not supported.', 400);
+    }
     if (!PITCH_ACCENT_UNRESOLVED_REASONS.has(reason as JapanesePitchAccentUnresolvedReason)) {
       throw new AppError('answer.pitchAccent.reason is not supported.', 400);
     }

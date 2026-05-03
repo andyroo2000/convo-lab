@@ -1335,6 +1335,7 @@ export async function resolveStudyCardPitchAccent(input: {
     sentenceJpKana: resolverPayload.sentenceJpKana,
     cached: normalized.answer.pitchAccent,
   });
+  // resolvePitchAccent returns input.cached by reference on cache hits; new resolutions are new objects.
   if (pitchAccent === normalized.answer.pitchAccent) {
     return await toStudyCardSummary(existing);
   }

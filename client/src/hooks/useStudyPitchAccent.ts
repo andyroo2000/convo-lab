@@ -22,6 +22,7 @@ export default function useStudyPitchAccent(
   }, [card.id, reset]);
 
   useEffect(() => {
+    // Keep failed requests quiet for the current card; changing cards resets the mutation above.
     if (enabled && !card.answer.pitchAccent && !resolvedCard && !isPending && !isError) {
       mutate(card.id);
     }
