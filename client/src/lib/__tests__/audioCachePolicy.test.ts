@@ -66,4 +66,8 @@ describe('audioCachePolicy', () => {
       )
     ).toEqual([`${APP_ORIGIN}/audio/foo.mp3`]);
   });
+
+  it('returns no warmable URLs when the base href is malformed', () => {
+    expect(normalizeWarmableAudioUrls(['/audio/foo.mp3'], 'not a url')).toEqual([]);
+  });
 });

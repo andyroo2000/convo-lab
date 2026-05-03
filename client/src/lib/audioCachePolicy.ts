@@ -52,7 +52,8 @@ export const normalizeWarmableAudioUrls = (
   urls: Array<string | null | undefined>,
   baseHref: string
 ) => {
-  const baseUrl = new URL(baseHref);
+  const baseUrl = toUrl(baseHref, baseHref);
+  if (!baseUrl) return [];
 
   return Array.from(
     new Set(
@@ -86,7 +87,7 @@ export const isServiceWorkerAudioRoute = ({
   url: URL;
 }) => {
   if (!sameOrigin) return false;
-  if (!shouldPreloadAudioCacheUrl(url, url.origin)) return false;
+  if (!shouldPreloadAudioCacheUrl(url, url.href)) return false;
   if (request.destination === 'audio') return true;
   if (url.pathname.startsWith('/audio/')) return true;
   if (url.pathname.startsWith('/voice-previews/')) return true;
