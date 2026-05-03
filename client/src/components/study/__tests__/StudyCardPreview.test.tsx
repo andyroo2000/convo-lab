@@ -364,40 +364,51 @@ describe('StudyCardPreview', () => {
   });
 
   it('ignores interrupted audio play requests without surfacing an error', async () => {
+    const originalPlayDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLMediaElement.prototype,
+      'play'
+    );
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const abortError = new DOMException(
-      'The play() request was interrupted by a call to pause().',
-      'AbortError'
-    );
-    const playMock = vi.fn().mockRejectedValueOnce(abortError);
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-      configurable: true,
-      value: playMock,
-    });
 
-    render(
-      <StudyCardFace
-        side="front"
-        card={{
-          ...baseCard,
-          prompt: {
-            cueAudio: {
-              filename: 'prompt.mp3',
-              url: 'https://example.com/prompt.mp3',
-              mediaKind: 'audio',
-              source: 'imported',
+    try {
+      const abortError = new DOMException(
+        'The play() request was interrupted by a call to pause().',
+        'AbortError'
+      );
+      const playMock = vi.fn().mockRejectedValueOnce(abortError);
+      Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+        configurable: true,
+        value: playMock,
+      });
+
+      render(
+        <StudyCardFace
+          side="front"
+          card={{
+            ...baseCard,
+            prompt: {
+              cueAudio: {
+                filename: 'prompt.mp3',
+                url: 'https://example.com/prompt.mp3',
+                mediaKind: 'audio',
+                source: 'imported',
+              },
             },
-          },
-        }}
-      />
-    );
+          }}
+        />
+      );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Replay prompt audio' }));
 
-    await waitFor(() => expect(playMock).toHaveBeenCalled());
+      await waitFor(() => expect(playMock).toHaveBeenCalled());
 
-    expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
-    expect(consoleErrorSpy).not.toHaveBeenCalled();
-    consoleErrorSpy.mockRestore();
+      expect(screen.queryByText('Audio playback failed. Try again.')).not.toBeInTheDocument();
+      expect(consoleErrorSpy).not.toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+      if (originalPlayDescriptor) {
+        Object.defineProperty(HTMLMediaElement.prototype, 'play', originalPlayDescriptor);
+      }
+    }
   });
 });
