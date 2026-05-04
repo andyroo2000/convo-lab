@@ -299,7 +299,13 @@ jobs:
             fi
 
             echo "🛑 Stopping old web color if present..."
-            docker stop "convolab-server-$active_color" 2>/dev/null || echo "⚠️ Failed to stop old color convolab-server-$active_color; it may still be running."
+            if docker inspect "convolab-server-$active_color" >/dev/null 2>&1; then
+              if docker stop "convolab-server-$active_color"; then
+                docker rm "convolab-server-$active_color" 2>/dev/null || echo "⚠️ Failed to remove stopped old color convolab-server-$active_color."
+              else
+                echo "⚠️ Failed to stop old color convolab-server-$active_color; it may still be running."
+              fi
+            fi
 
             echo "♻️ Recreating worker after web traffic switch..."
             $COMPOSE up -d --no-deps --force-recreate worker

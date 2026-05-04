@@ -53,7 +53,7 @@ Use this only if a deploy succeeds but the new color is bad at runtime.
 7. Verify public health:
    `curl -fsS https://convo-lab.com/health`.
 8. Persist the rollback color:
-   `echo <previous> > /opt/convolab-runtime/prod-active-color`.
+   `printf '%s\n' <previous> > /opt/convolab-runtime/prod-active-color.tmp && mv /opt/convolab-runtime/prod-active-color.tmp /opt/convolab-runtime/prod-active-color`.
 9. Stop the bad color after health is confirmed:
    `docker stop convolab-server-<bad-color>`.
 
