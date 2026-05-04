@@ -548,46 +548,60 @@ describe('StudyPage', () => {
   });
 
   it('autoplays existing answer audio immediately when revealing a card', async () => {
-    startStudySessionMock.mockResolvedValue({
-      overview: {
-        dueCount: 1,
-        newCount: 0,
-        learningCount: 0,
-        reviewCount: 1,
-        suspendedCount: 0,
-        totalCards: 1,
-      },
-      cards: [
-        {
-          ...baseCard,
-          answer: {
-            ...baseCard.answer,
-            answerAudio: {
-              filename: 'answer.mp3',
-              url: 'https://example.com/answer.mp3',
-              mediaKind: 'audio',
-              source: 'generated',
-            },
-          },
-          answerAudioSource: 'generated',
+    const originalPlayDescriptor = Object.getOwnPropertyDescriptor(
+      HTMLMediaElement.prototype,
+      'play'
+    );
+    const playMock = vi.fn().mockImplementation(() => new Promise<void>(() => {}));
+    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+      configurable: true,
+      value: playMock,
+    });
+
+    try {
+      startStudySessionMock.mockResolvedValue({
+        overview: {
+          dueCount: 1,
+          newCount: 0,
+          learningCount: 0,
+          reviewCount: 1,
+          suspendedCount: 0,
+          totalCards: 1,
         },
-      ],
-    });
+        cards: [
+          {
+            ...baseCard,
+            answer: {
+              ...baseCard.answer,
+              answerAudio: {
+                filename: 'answer.mp3',
+                url: 'https://example.com/answer.mp3',
+                mediaKind: 'audio',
+                source: 'generated',
+              },
+            },
+            answerAudioSource: 'generated',
+          },
+        ],
+      });
 
-    renderStudyPage();
-    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+      renderStudyPage();
+      await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
 
-    await waitFor(() => {
-      expect(startStudySessionMock).toHaveBeenCalledTimes(1);
-    });
-    expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(startStudySessionMock).toHaveBeenCalledTimes(1);
+      });
+      expect(HTMLMediaElement.prototype.play).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
 
-    await waitFor(() => {
-      expect(HTMLMediaElement.prototype.play).toHaveBeenCalledTimes(1);
-    });
-    expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
+      expect(playMock).toHaveBeenCalledTimes(1);
+      expect(prepareStudyAnswerAudioMock).not.toHaveBeenCalled();
+    } finally {
+      if (originalPlayDescriptor) {
+        Object.defineProperty(HTMLMediaElement.prototype, 'play', originalPlayDescriptor);
+      }
+    }
   });
 
   it('uses space to pause, resume, and replay answer audio after reveal', async () => {
