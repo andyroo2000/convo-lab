@@ -238,6 +238,14 @@ jobs:
             echo "Active color: $active_color"
             echo "Deploying inactive color: $inactive_color"
 
+            echo "🧹 Removing stale inactive web color before memory check if present..."
+            if docker inspect "convolab-server-$inactive_color" >/dev/null 2>&1; then
+              docker rm -f "convolab-server-$inactive_color" || {
+                echo "❌ Failed to remove stale inactive color convolab-server-$inactive_color."
+                exit 1
+              }
+            fi
+
             echo "🧹 Pruning unused Docker data before memory check and image pull..."
             docker system prune -af
 
