@@ -329,6 +329,16 @@ export interface StudyCardActionResult {
   overview: StudyOverview;
 }
 
+export type StudyBrowserSortField =
+  | 'created_on'
+  | 'updated_on'
+  | 'sort_field'
+  | 'note_type'
+  | 'card_count'
+  | 'review_count';
+
+export type StudyBrowserSortDirection = 'asc' | 'desc';
+
 export interface StudyBrowserRow {
   noteId: string;
   displayText: string;
@@ -336,6 +346,7 @@ export interface StudyBrowserRow {
   cardCount: number;
   reviewCount: number;
   queueSummary: Partial<Record<StudyQueueState, number>>;
+  createdAt: string;
   updatedAt: string;
 }
 

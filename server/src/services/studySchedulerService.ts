@@ -1,5 +1,6 @@
 export {
   createStudyCard,
+  deleteStudyCard,
   getStudyNewCardQueue,
   getStudyOverview,
   getStudySettings,

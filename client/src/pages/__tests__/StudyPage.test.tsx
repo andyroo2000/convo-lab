@@ -15,6 +15,7 @@ const {
   mutateAsyncMock,
   resolveStudyCardPitchAccentMock,
   updateStudyCardMock,
+  deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   studyOverviewData,
   studyOverviewLoading,
@@ -26,6 +27,7 @@ const {
   mutateAsyncMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   studyOverviewData: {
     current: {
@@ -66,6 +68,11 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useUpdateStudyCard: () => ({
     mutateAsync: updateStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
+  useDeleteStudyCard: () => ({
+    mutateAsync: deleteStudyCardMock,
     isPending: false,
     error: null,
   }),
@@ -159,6 +166,7 @@ describe('StudyPage', () => {
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
     updateStudyCardMock.mockReset();
+    deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     vi.restoreAllMocks();
 
@@ -1339,6 +1347,75 @@ describe('StudyPage', () => {
 
     expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save card' })).not.toBeInTheDocument();
+  });
+
+  it('closes the delete confirmation and shows an error when card deletion fails', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+    deleteStudyCardMock.mockRejectedValue(new Error('Delete failed.'));
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+
+    expect(screen.getByText('Delete this card? This cannot be undone.')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('modal-button-confirm'));
+
+    await waitFor(() => {
+      expect(deleteStudyCardMock).toHaveBeenCalledWith('card-1');
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Delete this card? This cannot be undone.')
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText('Delete failed.')).toHaveLength(1);
+  });
+
+  it('deletes the current card from the review session after confirmation', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+    await userEvent.click(screen.getByTestId('modal-button-confirm'));
+
+    await waitFor(() => {
+      expect(deleteStudyCardMock).toHaveBeenCalledWith('card-1');
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          'No cards are ready right now. Import more cards or come back when something is due.'
+        )
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText('Delete this card? This cannot be undone.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reveal answer' })).not.toBeInTheDocument();
+    expect(screen.queryByText('company')).not.toBeInTheDocument();
   });
 
   it('regenerates answer audio from the in-place editor', async () => {

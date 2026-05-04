@@ -7,6 +7,8 @@ import type {
   StudyCardSetDueMode,
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
+  StudyBrowserSortDirection,
+  StudyBrowserSortField,
   StudyCardCandidateCommitRequest,
   StudyCardCandidateCommitResponse,
   StudyCardCandidateGenerateRequest,
@@ -74,6 +76,8 @@ export interface StudyBrowserQuery {
   noteType?: string;
   cardType?: 'recognition' | 'production' | 'cloze';
   queueState?: 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
+  sortField?: StudyBrowserSortField;
+  sortDirection?: StudyBrowserSortDirection;
   cursor?: string;
   limit?: number;
 }
@@ -100,6 +104,10 @@ async function apiRequest<T>(endpoint: string, init?: RequestInit): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
     throw new Error(error.message || error.error?.message || 'Request failed');
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return response.json() as Promise<T>;
@@ -256,6 +264,8 @@ export async function getStudyBrowser(
   if (query.noteType) searchParams.set('noteType', query.noteType);
   if (query.cardType) searchParams.set('cardType', query.cardType);
   if (query.queueState) searchParams.set('queueState', query.queueState);
+  if (query.sortField) searchParams.set('sortField', query.sortField);
+  if (query.sortDirection) searchParams.set('sortDirection', query.sortDirection);
   if (query.cursor) searchParams.set('cursor', query.cursor);
   if (typeof query.limit === 'number') searchParams.set('limit', String(query.limit));
 
@@ -274,6 +284,12 @@ export async function updateStudyCard(payload: UpdateStudyCardPayload): Promise<
       prompt: payload.prompt,
       answer: payload.answer,
     }),
+  });
+}
+
+export async function deleteStudyCard(cardId: string): Promise<void> {
+  await apiRequest<unknown>(`/api/study/cards/${encodeURIComponent(cardId)}`, {
+    method: 'DELETE',
   });
 }
 
@@ -471,6 +487,22 @@ export function useUpdateStudyCard() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteStudyCard() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteStudyCard,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['study', 'browser'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['study', 'session'] }),
         queryClient.invalidateQueries({ queryKey: ['study', 'export'] }),
       ]);
     },

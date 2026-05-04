@@ -23,6 +23,8 @@ import type {
   StudyCardCandidatePreviewAudioRequest,
   StudyCardCandidatePreviewImageRequest,
   StudyCardRegenerateImageRequest,
+  StudyBrowserSortDirection,
+  StudyBrowserSortField,
   StudyCardType,
   StudyMediaRef,
   StudyPromptPayload,
@@ -35,6 +37,10 @@ import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 import {
+  STUDY_BROWSER_SORT_DIRECTIONS,
+  STUDY_BROWSER_SORT_FIELDS,
+} from '../services/study/browserSort.js';
+import {
   cardTypeForStudyCardCandidateKind,
   parseOptionalStudyOverview,
   STUDY_CARD_CANDIDATE_KINDS,
@@ -44,6 +50,7 @@ import {
   completeStudyImportUpload,
   createStudyCard,
   createStudyImportUploadSession,
+  deleteStudyCard,
   exportStudyData,
   exportStudyCardsSection,
   exportStudyImportsSection,
@@ -1297,6 +1304,26 @@ router.patch(
   }
 );
 
+router.delete(
+  '/cards/:cardId',
+  rateLimitStudyRoute({ key: 'card-delete', max: 60, windowMs: 60 * 1000 }),
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) {
+        throw new AppError('Authenticated user is required.', 401);
+      }
+
+      await deleteStudyCard({
+        userId: req.userId,
+        cardId: req.params.cardId,
+      });
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 router.post(
   '/cards/:cardId/pitch-accent',
   rateLimitStudyRoute({ key: 'card-pitch-accent', max: 60, windowMs: 60 * 1000 }),
@@ -1535,6 +1562,27 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       );
     }
 
+    const sortField =
+      typeof req.query.sortField === 'undefined' ? undefined : String(req.query.sortField);
+    if (
+      typeof sortField !== 'undefined' &&
+      !STUDY_BROWSER_SORT_FIELDS.has(sortField as StudyBrowserSortField)
+    ) {
+      throw new AppError(
+        'sortField must be created_on, updated_on, sort_field, note_type, card_count, or review_count.',
+        400
+      );
+    }
+
+    const sortDirection =
+      typeof req.query.sortDirection === 'undefined' ? undefined : String(req.query.sortDirection);
+    if (
+      typeof sortDirection !== 'undefined' &&
+      !STUDY_BROWSER_SORT_DIRECTIONS.has(sortDirection as StudyBrowserSortDirection)
+    ) {
+      throw new AppError('sortDirection must be asc or desc.', 400);
+    }
+
     const result = await getStudyBrowserList({
       userId: req.userId,
       q,
@@ -1543,6 +1591,8 @@ router.get('/browser', async (req: AuthRequest, res, next) => {
       queueState: queueState as StudyQueueState | undefined,
       cursor,
       limit,
+      sortField: sortField as StudyBrowserSortField | undefined,
+      sortDirection: sortDirection as StudyBrowserSortDirection | undefined,
     });
 
     res.json(result);

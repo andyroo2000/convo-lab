@@ -12,6 +12,7 @@ const {
   reviewMutateAsyncMock,
   undoStudyReviewMock,
   updateStudyCardMock,
+  deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   warmAudioCacheMock,
 } = vi.hoisted(() => ({
@@ -21,6 +22,7 @@ const {
   reviewMutateAsyncMock: vi.fn(),
   undoStudyReviewMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   warmAudioCacheMock: vi.fn(),
 }));
@@ -36,6 +38,11 @@ vi.mock('../useStudy', () => ({
   }),
   useUpdateStudyCard: () => ({
     mutateAsync: updateStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
+  useDeleteStudyCard: () => ({
+    mutateAsync: deleteStudyCardMock,
     isPending: false,
     error: null,
   }),
@@ -138,6 +145,7 @@ describe('useStudyReviewSession', () => {
     cardActionMutateAsyncMock.mockReset();
     undoStudyReviewMock.mockReset();
     updateStudyCardMock.mockReset();
+    deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     warmAudioCacheMock.mockReset();
     warmAudioCacheMock.mockResolvedValue(undefined);

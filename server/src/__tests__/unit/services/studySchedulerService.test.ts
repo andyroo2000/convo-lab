@@ -15,6 +15,7 @@ import { mockPrisma } from '../../setup.js';
 import { addFuriganaBrackets } from '../../../services/furiganaService.js';
 import {
   createStudyCard,
+  deleteStudyCard,
   getStudyNewCardQueue,
   getStudyOverview,
   getStudySettings,
@@ -28,6 +29,7 @@ import {
   updateStudyCard,
 } from '../../../services/studySchedulerService.js';
 import { STUDY_SESSION_READY_CARD_LIMIT } from '../../../services/study/shared.js';
+import { getPrivateStudyMediaRoot } from '../../../services/study/shared/paths.js';
 import { synthesizeBatchedTexts } from '../../../services/batchedTTSClient.js';
 
 const SESSION_TEST_DUE_AT = new Date('2026-04-12T00:00:00.000Z');
@@ -980,6 +982,123 @@ describe('studySchedulerService', () => {
         }),
       })
     );
+  });
+
+  it('deletes a selected study card and removes an empty note', async () => {
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.count.mockResolvedValueOnce(0);
+    mockPrisma.studyCard.delete.mockResolvedValue({});
+    mockPrisma.studyNote.deleteMany.mockResolvedValue({ count: 1 });
+
+    await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
+
+    expect(mockPrisma.studyCard.delete).toHaveBeenCalledWith({
+      where: { id: 'card-1', userId: 'user-1' },
+    });
+    expect(mockPrisma.studyNote.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'note-1', userId: 'user-1' },
+    });
+  });
+
+  it('keeps the note when deleting one of several sibling cards', async () => {
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.count.mockResolvedValueOnce(2);
+    mockPrisma.studyCard.delete.mockResolvedValue({});
+
+    await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
+
+    expect(mockPrisma.studyCard.delete).toHaveBeenCalledWith({
+      where: { id: 'card-1', userId: 'user-1' },
+    });
+    expect(mockPrisma.studyNote.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('cleans up unreferenced generated media after deleting a card', async () => {
+    const storagePath = 'study-media/generated/card-1/audio.mp3';
+    const localMediaPath = path.join(getPrivateStudyMediaRoot(), storagePath);
+    await fs.mkdir(path.dirname(localMediaPath), { recursive: true });
+    await fs.writeFile(localMediaPath, 'audio');
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: {
+        id: 'media-1',
+        sourceKind: 'generated',
+        storagePath,
+      },
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.count.mockResolvedValueOnce(0).mockResolvedValueOnce(0);
+    mockPrisma.studyCard.delete.mockResolvedValue({});
+    mockPrisma.studyNote.deleteMany.mockResolvedValue({ count: 1 });
+    mockPrisma.studyMedia.deleteMany.mockResolvedValue({ count: 1 });
+
+    await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
+
+    expect(mockPrisma.studyMedia.deleteMany).toHaveBeenCalledWith({
+      where: {
+        id: 'media-1',
+        sourceKind: {
+          in: ['generated', 'generated_preview'],
+        },
+      },
+    });
+    await expect(fs.access(localMediaPath)).rejects.toThrow();
+  });
+
+  it('keeps generated media that is still referenced by another card', async () => {
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: {
+        id: 'media-1',
+        sourceKind: 'generated',
+        storagePath: 'study-media/generated/card-1/audio.mp3',
+      },
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.count.mockResolvedValueOnce(0).mockResolvedValueOnce(1);
+    mockPrisma.studyCard.delete.mockResolvedValue({});
+    mockPrisma.studyNote.deleteMany.mockResolvedValue({ count: 1 });
+
+    await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
+
+    expect(mockPrisma.studyMedia.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('returns not found when a card is concurrently deleted after lookup', async () => {
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.delete.mockRejectedValue({ code: 'P2025' });
+
+    await expect(deleteStudyCard({ userId: 'user-1', cardId: 'card-1' })).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Study card not found.',
+    });
   });
 
   it('starts a study session and returns overview plus visible cards', async () => {

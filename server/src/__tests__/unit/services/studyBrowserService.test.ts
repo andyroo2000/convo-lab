@@ -118,6 +118,7 @@ describe('studyBrowserService', () => {
         id: 'note-2',
         sourceNotetypeName: 'Japanese - Vocab',
         rawFieldsJson: { Expression: '会社' },
+        createdAt: new Date('2026-04-10T00:00:00.000Z'),
         updatedAt: new Date('2026-04-12T00:00:00.000Z'),
         cards: [
           {
@@ -136,6 +137,35 @@ describe('studyBrowserService', () => {
 
     const result = await getStudyBrowserList({ userId: 'user-1', limit: 1 });
     expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]?.createdAt).toBe('2026-04-10T00:00:00.000Z');
     expect(result.nextCursor).toBeTruthy();
+  });
+
+  it('defaults browser rows to created date descending sort cursors', async () => {
+    mockPrisma.$queryRaw
+      .mockResolvedValueOnce([{ count: BigInt(1) }])
+      .mockResolvedValueOnce([{ id: 'note-1', updatedAt: new Date(), sortValue: new Date() }])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+    mockPrisma.studyNote.findMany.mockResolvedValue([
+      {
+        id: 'note-1',
+        sourceNotetypeName: 'Japanese - Vocab',
+        rawFieldsJson: { Expression: '会社' },
+        createdAt: new Date('2026-04-10T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        cards: [],
+      },
+    ]);
+    mockPrisma.studyReviewLog.groupBy.mockResolvedValue([]);
+
+    await getStudyBrowserList({ userId: 'user-1' });
+
+    const pagedQuery = (
+      mockPrisma.$queryRaw.mock.calls[1]?.[0] as { strings?: string[] } | undefined
+    )?.strings?.join(' ');
+    expect(pagedQuery).toContain('"createdAt"');
+    expect(pagedQuery).toContain('DESC');
   });
 });

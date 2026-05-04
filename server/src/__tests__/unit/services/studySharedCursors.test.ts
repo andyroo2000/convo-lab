@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { normalizeStudyBrowserCursor } from '../../../services/study/browserSort.js';
 import {
   decodeStudyBrowserCursor,
   decodeStudyExportCursor,
@@ -26,5 +27,18 @@ describe('study shared cursors', () => {
 
   it('rejects malformed cursors', () => {
     expect(() => decodeStudyBrowserCursor('not-a-cursor')).toThrow(/cursor is invalid/i);
+  });
+
+  it('ignores legacy browser cursors when the current sort is not the legacy sort', () => {
+    expect(
+      normalizeStudyBrowserCursor({
+        cursor: {
+          updatedAt: '2026-04-22T12:00:00.000Z',
+          id: 'note-1',
+        },
+        sortField: 'created_on',
+        sortDirection: 'desc',
+      })
+    ).toBeNull();
   });
 });
