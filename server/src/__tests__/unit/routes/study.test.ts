@@ -1483,6 +1483,16 @@ describe('Study Routes', () => {
     });
   });
 
+  it('rejects card deletion without a CSRF token', async () => {
+    const response = await request(app)
+      .delete('/study/cards/card-1')
+      .set('Origin', 'http://localhost:5173');
+
+    expect(response.status).toBe(403);
+    expect(response.body.message).toContain('CSRF');
+    expect(deleteStudyCardMock).not.toHaveBeenCalled();
+  });
+
   it('rejects browser queries longer than 200 characters', async () => {
     const response = await request(app).get(`/study/browser?q=${'あ'.repeat(201)}`);
 

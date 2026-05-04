@@ -1310,10 +1310,10 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   return await toStudyCardSummary(refreshed);
 }
 
-async function cleanupUnreferencedGeneratedStudyMedia(
+function getUniqueDeletableGeneratedStudyMedia(
   media: Array<StudyCardWithRelations['promptAudioMedia']>
-): Promise<void> {
-  const uniqueMedia = [
+): Array<NonNullable<StudyCardWithRelations['promptAudioMedia']>> {
+  return [
     ...new Map(
       media
         .filter((item): item is NonNullable<StudyCardWithRelations['promptAudioMedia']> =>
@@ -1324,31 +1324,55 @@ async function cleanupUnreferencedGeneratedStudyMedia(
         .map((item) => [item.id, item])
     ).values(),
   ];
+}
 
-  await Promise.allSettled(
-    uniqueMedia.map(async (item) => {
-      const referenceCount = await prisma.studyCard.count({
-        where: {
-          OR: [
-            { promptAudioMediaId: item.id },
-            { answerAudioMediaId: item.id },
-            { imageMediaId: item.id },
-          ],
-        },
-      });
-      if (referenceCount > 0) return;
+async function deleteUnreferencedGeneratedStudyMediaRows(
+  tx: Prisma.TransactionClient,
+  media: Array<StudyCardWithRelations['promptAudioMedia']>
+): Promise<Array<NonNullable<StudyCardWithRelations['promptAudioMedia']>>> {
+  const deletedMedia: Array<NonNullable<StudyCardWithRelations['promptAudioMedia']>> = [];
 
-      await prisma.studyMedia.deleteMany({
-        where: {
-          id: item.id,
-          sourceKind: {
-            in: [...DELETABLE_STUDY_MEDIA_SOURCE_KINDS],
-          },
+  for (const item of getUniqueDeletableGeneratedStudyMedia(media)) {
+    const referenceCount = await tx.studyCard.count({
+      where: {
+        OR: [
+          { promptAudioMediaId: item.id },
+          { answerAudioMediaId: item.id },
+          { imageMediaId: item.id },
+        ],
+      },
+    });
+    if (referenceCount > 0) continue;
+
+    const result = await tx.studyMedia.deleteMany({
+      where: {
+        id: item.id,
+        sourceKind: {
+          in: [...DELETABLE_STUDY_MEDIA_SOURCE_KINDS],
         },
-      });
-      await deletePersistedStudyMediaByStoragePath(item.storagePath as string);
-    })
+      },
+    });
+    if (result.count > 0) {
+      deletedMedia.push(item);
+    }
+  }
+
+  return deletedMedia;
+}
+
+async function cleanupPersistedGeneratedStudyMedia(
+  media: Array<NonNullable<StudyCardWithRelations['promptAudioMedia']>>
+): Promise<void> {
+  const results = await Promise.allSettled(
+    media.map((item) => deletePersistedStudyMediaByStoragePath(item.storagePath as string))
   );
+
+  results.forEach((result, index) => {
+    if (result.status === 'rejected') {
+      const mediaId = media[index]?.id ?? 'unknown';
+      console.error(`[Study] Failed to clean up persisted study media ${mediaId}:`, result.reason);
+    }
+  });
 }
 
 export async function deleteStudyCard(input: { userId: string; cardId: string }): Promise<void> {
@@ -1364,7 +1388,7 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
     throw new AppError('Study card not found.', 404);
   }
 
-  await prisma.$transaction(async (tx) => {
+  const deletedMedia = await prisma.$transaction(async (tx) => {
     await tx.studyCard.delete({
       where: {
         id: input.cardId,
@@ -1386,13 +1410,15 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
         },
       });
     }
+
+    return await deleteUnreferencedGeneratedStudyMediaRows(tx, [
+      existing.promptAudioMedia,
+      existing.answerAudioMedia,
+      existing.imageMedia,
+    ]);
   });
 
-  await cleanupUnreferencedGeneratedStudyMedia([
-    existing.promptAudioMedia,
-    existing.answerAudioMedia,
-    existing.imageMedia,
-  ]);
+  await cleanupPersistedGeneratedStudyMedia(deletedMedia);
 }
 
 export async function resolveStudyCardPitchAccent(input: {
