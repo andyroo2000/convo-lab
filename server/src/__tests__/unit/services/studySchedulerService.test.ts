@@ -1000,7 +1000,7 @@ describe('studySchedulerService', () => {
     await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
 
     expect(mockPrisma.studyCard.delete).toHaveBeenCalledWith({
-      where: { id: 'card-1' },
+      where: { id: 'card-1', userId: 'user-1' },
     });
     expect(mockPrisma.studyNote.deleteMany).toHaveBeenCalledWith({
       where: { id: 'note-1', userId: 'user-1' },
@@ -1022,7 +1022,7 @@ describe('studySchedulerService', () => {
     await deleteStudyCard({ userId: 'user-1', cardId: 'card-1' });
 
     expect(mockPrisma.studyCard.delete).toHaveBeenCalledWith({
-      where: { id: 'card-1' },
+      where: { id: 'card-1', userId: 'user-1' },
     });
     expect(mockPrisma.studyNote.deleteMany).not.toHaveBeenCalled();
   });

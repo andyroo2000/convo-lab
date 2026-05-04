@@ -1399,6 +1399,7 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
       await tx.studyCard.delete({
         where: {
           id: input.cardId,
+          userId: input.userId,
         },
       });
 
