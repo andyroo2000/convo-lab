@@ -193,6 +193,18 @@ describe('studyCandidateService', () => {
     expect(result.candidates[1].answer.answerAudioVoiceId).toBe(
       japaneseCandidateVoiceIds[japaneseCandidateVoiceIds.length - 1]
     );
+    expect(synthesizeBatchedTextsMock).toHaveBeenNthCalledWith(
+      1,
+      ['会社'],
+      expect.objectContaining({ voiceId: japaneseCandidateVoiceIds[0] })
+    );
+    expect(synthesizeBatchedTextsMock).toHaveBeenNthCalledWith(
+      2,
+      ['かいしゃ'],
+      expect.objectContaining({
+        voiceId: japaneseCandidateVoiceIds[japaneseCandidateVoiceIds.length - 1],
+      })
+    );
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledTimes(2);
   });
 
@@ -557,6 +569,7 @@ describe('studyCandidateService', () => {
         prompt: { cueMeaning: 'company' },
         answer: {
           expression: '会社',
+          expressionReading: '会社[かいしゃ]',
           meaning: 'company',
           answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
         },
@@ -838,6 +851,36 @@ describe('studyCandidateService', () => {
       previewAudioRole: 'prompt',
     });
     expect(result.answer.answerAudio).toBeUndefined();
+    expect(synthesizeBatchedTextsMock).toHaveBeenCalledWith(
+      ['会社'],
+      expect.objectContaining({ voiceId: DEFAULT_NARRATOR_VOICES.ja })
+    );
+  });
+
+  it('uses phonetic override for audio-recognition preview audio when supplied', async () => {
+    await regenerateStudyCardCandidatePreviewAudio({
+      userId: 'user-1',
+      candidate: {
+        clientId: 'listen-company',
+        candidateKind: 'audio-recognition',
+        cardType: 'recognition',
+        prompt: {},
+        answer: {
+          expression: '会社',
+          expressionReading: '会社[かいしゃ]',
+          meaning: 'company',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+          answerAudioTextOverride: 'かいしゃ',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(synthesizeBatchedTextsMock).toHaveBeenCalledWith(
+      ['かいしゃ'],
+      expect.objectContaining({ voiceId: DEFAULT_NARRATOR_VOICES.ja })
+    );
   });
 
   it('commits selected audio-recognition candidates with owned preview media', async () => {
@@ -1046,6 +1089,7 @@ describe('studyCandidateService', () => {
           prompt: {},
           answer: {
             expression: '会社',
+            expressionReading: '会社[かいしゃ]',
             meaning: 'company',
           },
           previewAudio: null,
@@ -1058,6 +1102,10 @@ describe('studyCandidateService', () => {
     await commitStudyCardCandidates(input);
 
     expect(input).toEqual(originalInput);
+    expect(synthesizeBatchedTextsMock).toHaveBeenCalledWith(
+      ['会社'],
+      expect.objectContaining({ voiceId: DEFAULT_NARRATOR_VOICES.ja })
+    );
     expect(mockPrisma.studyCard.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
