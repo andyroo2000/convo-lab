@@ -47,6 +47,7 @@ import {
   getBestAnswerAudioText,
   getRequiredSchedulerState,
   getScheduledDaysForDue,
+  isRecord,
   normalizeClozePayload,
   normalizeStudyCardPayload,
   parseStudyImportStatus,
@@ -82,6 +83,10 @@ const DELETABLE_STUDY_MEDIA_SOURCE_KINDS = new Set(['generated', 'generated_prev
 
 function isActiveDueQueueState(queueState: StudyQueueState): boolean {
   return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
+}
+
+function isPrismaRecordNotFoundError(error: unknown): boolean {
+  return isRecord(error) && error.code === 'P2025';
 }
 
 function stripBracketRuby(value: string | null | undefined): string | null {
@@ -1388,35 +1393,44 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
     throw new AppError('Study card not found.', 404);
   }
 
-  const deletedMedia = await prisma.$transaction(async (tx) => {
-    await tx.studyCard.delete({
-      where: {
-        id: input.cardId,
-      },
-    });
-
-    const remainingNoteCardCount = await tx.studyCard.count({
-      where: {
-        noteId: existing.noteId,
-        userId: input.userId,
-      },
-    });
-
-    if (remainingNoteCardCount === 0) {
-      await tx.studyNote.deleteMany({
+  let deletedMedia: Array<NonNullable<StudyCardWithRelations['promptAudioMedia']>>;
+  try {
+    deletedMedia = await prisma.$transaction(async (tx) => {
+      await tx.studyCard.delete({
         where: {
-          id: existing.noteId,
+          id: input.cardId,
+        },
+      });
+
+      const remainingNoteCardCount = await tx.studyCard.count({
+        where: {
+          noteId: existing.noteId,
           userId: input.userId,
         },
       });
+
+      if (remainingNoteCardCount === 0) {
+        await tx.studyNote.deleteMany({
+          where: {
+            id: existing.noteId,
+            userId: input.userId,
+          },
+        });
+      }
+
+      return await deleteUnreferencedGeneratedStudyMediaRows(tx, [
+        existing.promptAudioMedia,
+        existing.answerAudioMedia,
+        existing.imageMedia,
+      ]);
+    });
+  } catch (error) {
+    if (isPrismaRecordNotFoundError(error)) {
+      throw new AppError('Study card not found.', 404);
     }
 
-    return await deleteUnreferencedGeneratedStudyMediaRows(tx, [
-      existing.promptAudioMedia,
-      existing.answerAudioMedia,
-      existing.imageMedia,
-    ]);
-  });
+    throw error;
+  }
 
   await cleanupPersistedGeneratedStudyMedia(deletedMedia);
 }

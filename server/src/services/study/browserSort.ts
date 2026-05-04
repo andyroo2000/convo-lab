@@ -68,8 +68,12 @@ export function normalizeStudyBrowserCursor(input: {
   const { cursor, sortField, sortDirection } = input;
   if (!cursor) return null;
 
-  if (cursor.updatedAt && sortField === 'updated_on' && sortDirection === 'desc') {
-    return new Date(cursor.updatedAt);
+  if (cursor.updatedAt) {
+    if (sortField === 'updated_on' && sortDirection === 'desc') {
+      return new Date(cursor.updatedAt);
+    }
+
+    return null;
   }
 
   if (cursor.sortField !== sortField || cursor.sortDirection !== sortDirection) {

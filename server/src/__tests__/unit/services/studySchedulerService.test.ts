@@ -1084,6 +1084,23 @@ describe('studySchedulerService', () => {
     expect(mockPrisma.studyMedia.deleteMany).not.toHaveBeenCalled();
   });
 
+  it('returns not found when a card is concurrently deleted after lookup', async () => {
+    mockPrisma.studyCard.findFirst.mockResolvedValue({
+      id: 'card-1',
+      userId: 'user-1',
+      noteId: 'note-1',
+      promptAudioMedia: null,
+      answerAudioMedia: null,
+      imageMedia: null,
+    });
+    mockPrisma.studyCard.delete.mockRejectedValue({ code: 'P2025' });
+
+    await expect(deleteStudyCard({ userId: 'user-1', cardId: 'card-1' })).rejects.toMatchObject({
+      statusCode: 404,
+      message: 'Study card not found.',
+    });
+  });
+
   it('starts a study session and returns overview plus visible cards', async () => {
     mockPrisma.studySettings.findUnique.mockResolvedValue({
       userId: 'user-1',
