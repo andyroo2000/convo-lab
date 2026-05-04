@@ -1380,7 +1380,7 @@ describe('StudyPage', () => {
         screen.queryByText('Delete this card? This cannot be undone.')
       ).not.toBeInTheDocument();
     });
-    expect(screen.getByText('Delete failed.')).toBeInTheDocument();
+    expect(screen.getAllByText('Delete failed.')).toHaveLength(1);
   });
 
   it('deletes the current card from the review session after confirmation', async () => {

@@ -161,16 +161,8 @@ const useStudyReviewSession = () => {
       return 'Audio regeneration failed.';
     }
 
-    if (deleteCardMutation.error instanceof Error) {
-      return deleteCardMutation.error.message;
-    }
-
-    if (deleteCardMutation.error) {
-      return 'Card delete failed.';
-    }
-
     return updateCardMutation.error ? 'Card update failed.' : null;
-  }, [deleteCardMutation.error, regenerateAudioMutation.error, updateCardMutation.error]);
+  }, [regenerateAudioMutation.error, updateCardMutation.error]);
 
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
