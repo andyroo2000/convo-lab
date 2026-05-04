@@ -69,7 +69,9 @@ export default function useStudyAudioAutoplay({
       if (!player) return;
 
       answerAutoplayKeys.current.add(autoplayKey);
-      runBackgroundTask(() => player.play(), {
+      // Keep the media play call inside the reveal tap's call stack. Mobile browsers
+      // can ignore or silently stall autoplay if play() is deferred to a microtask.
+      runBackgroundTask(player.play(), {
         label: 'Study answer-audio autoplay',
       });
     },
