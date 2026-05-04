@@ -149,6 +149,9 @@ jobs:
                 if [ "$status" = "healthy" ]; then
                   return 0
                 fi
+                if [ "$status" = "missing" ]; then
+                  echo "⚠️ $container does not exist yet; waiting..."
+                fi
                 if [ -z "$status" ]; then
                   echo "❌ $container has no Docker healthcheck; cannot health-gate it."
                   return 1
