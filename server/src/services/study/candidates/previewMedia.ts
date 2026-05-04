@@ -91,8 +91,8 @@ export function getCandidatePreviewAudioText(
   if (candidate.candidateKind === 'audio-recognition') {
     return (
       candidate.answer.answerAudioTextOverride ??
-      candidate.answer.expressionReading ??
       candidate.answer.expression ??
+      candidate.answer.expressionReading ??
       null
     );
   }
