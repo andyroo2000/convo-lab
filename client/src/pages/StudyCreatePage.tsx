@@ -9,6 +9,7 @@ import {
 import StudyCardFormFields from '../components/study/StudyCardFormFields';
 import StudyCandidateDraftList from '../components/study/StudyCandidateDraftList';
 import { useStudyCardForm } from '../components/study/studyCardFormModel';
+import useFakeProgress from '../hooks/useFakeProgress';
 import useGeneratedStudyCandidates from '../hooks/useGeneratedStudyCandidates';
 import { useCreateStudyCard } from '../hooks/useStudy';
 
@@ -23,6 +24,9 @@ const StudyCreatePage = () => {
   const [includeLearnerContext, setIncludeLearnerContext] = useState(true);
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
   const generated = useGeneratedStudyCandidates();
+  const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
+    expectedMs: 40_000,
+  });
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
@@ -157,6 +161,34 @@ const StudyCreatePage = () => {
                 ? t('create.generating')
                 : t('create.generateSubmit')}
             </button>
+            {generationProgress.isVisible && !generated.generateCandidates.error ? (
+              <div
+                role="status"
+                aria-label={t('create.generationProgressLabel')}
+                className="max-w-xl rounded-xl border border-blue-100 bg-blue-50 px-4 py-3"
+              >
+                <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
+                  <span>{t('create.generationProgressTitle')}</span>
+                  <span data-testid="study-generate-progress-percent">
+                    {Math.round(generationProgress.progress)}%
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(generationProgress.progress)}
+                  className="mt-2 h-2 overflow-hidden rounded-full bg-white"
+                >
+                  <div
+                    data-testid="study-generate-progress-bar"
+                    className="h-full rounded-full bg-navy transition-[width] duration-300 ease-out"
+                    style={{ width: `${generationProgress.progress}%` }}
+                  />
+                </div>
+                <p className="mt-2 text-xs text-gray-600">{t('create.generationProgressHint')}</p>
+              </div>
+            ) : null}
           </form>
         </section>
       ) : (
