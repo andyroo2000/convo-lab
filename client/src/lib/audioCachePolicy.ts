@@ -44,7 +44,9 @@ export const getAudioCachePreloadMode = (
   baseHref: string,
   canWarmAudioCache: boolean
 ): 'auto' | 'metadata' | 'none' => {
-  if (!shouldPreloadAudioCacheUrl(url, baseHref)) return 'none';
+  const parsed = toUrl(url, baseHref);
+  if (!parsed) return 'none';
+  if (isSignedGoogleStorageUrlValue(parsed, baseHref)) return 'none';
   return canWarmAudioCache ? 'auto' : 'metadata';
 };
 

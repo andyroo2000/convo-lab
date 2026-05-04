@@ -12,9 +12,10 @@ const signedGcsUrl =
   'https://storage.googleapis.com/convolab-storage/study-media/card/audio.mp3?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=300&X-Goog-Signature=abc';
 
 describe('audioCachePolicy', () => {
-  it('excludes redirected study media API URLs from client warming and preloading', () => {
+  it('excludes redirected study media API URLs from client warming but allows element preloading', () => {
     expect(normalizeWarmableAudioUrls(['/api/study/media/123'], APP_ORIGIN)).toEqual([]);
-    expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, true)).toBe('none');
+    expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, true)).toBe('auto');
+    expect(getAudioCachePreloadMode('/api/study/media/123', APP_ORIGIN, false)).toBe('metadata');
   });
 
   it('keeps static same-origin audio URLs warmable', () => {
@@ -28,6 +29,7 @@ describe('audioCachePolicy', () => {
     expect(normalizeWarmableAudioUrls([signedGcsUrl, '/audio/foo.mp3'], APP_ORIGIN)).toEqual([
       `${APP_ORIGIN}/audio/foo.mp3`,
     ]);
+    expect(getAudioCachePreloadMode(signedGcsUrl, APP_ORIGIN, true)).toBe('none');
     expect(normalizeServiceWorkerAudioMessageUrls([signedGcsUrl], APP_ORIGIN)).toEqual([]);
   });
 

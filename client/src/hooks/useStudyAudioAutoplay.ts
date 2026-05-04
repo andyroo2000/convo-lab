@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import type { StudyCardSummary } from '@languageflow/shared/src/types';
 
 import type { AudioPlayerHandle } from '../components/study/StudyAudioPlayer';
@@ -118,7 +118,9 @@ export default function useStudyAudioAutoplay({
     });
   }, [currentCard, focusMode, revealed, runBackgroundTask]);
 
-  useEffect(() => {
+  // The reveal commit mounts the answer player. Running this as a layout effect keeps
+  // mobile playback inside the reveal tap instead of waiting for a post-paint effect.
+  useLayoutEffect(() => {
     if (!focusMode || !currentCard || !revealed) return;
 
     autoplayAnswerAudioForCard(currentCard);
