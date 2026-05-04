@@ -25,7 +25,9 @@ interface StudyCardEditorProps {
     imagePrompt: string;
     imageRole: 'prompt' | 'answer';
   }) => Promise<StudyCardSummary | void> | StudyCardSummary | void;
+  onDelete?: () => Promise<void> | void;
   isSaving?: boolean;
+  isDeleting?: boolean;
   isRegeneratingAudio?: boolean;
   isRegeneratingImage?: boolean;
   error?: string | null;
@@ -53,7 +55,9 @@ const StudyCardEditor = ({
   onSave,
   onRegenerateAudio,
   onRegenerateImage,
+  onDelete,
   isSaving = false,
+  isDeleting = false,
   isRegeneratingAudio = false,
   isRegeneratingImage = false,
   error,
@@ -120,6 +124,8 @@ const StudyCardEditor = ({
     };
   }, [answerAudioUrl, regeneratedAudioPlayRequest]);
 
+  const isBusy = isSaving || isDeleting || isRegeneratingAudio || isRegeneratingImage;
+
   return (
     <form
       data-testid="study-card-editor"
@@ -161,9 +167,7 @@ const StudyCardEditor = ({
           imagePrompt={imagePrompt}
           imagePromptId="study-edit-image-prompt"
           imagePromptLabel={t('editor.imagePrompt')}
-          isRegenerateDisabled={
-            !onRegenerateImage || isSaving || isRegeneratingAudio || isRegeneratingImage
-          }
+          isRegenerateDisabled={!onRegenerateImage || isBusy}
           isRegenerating={isRegeneratingImage}
           onImagePromptChange={setImagePrompt}
           onRegenerate={async () => {
@@ -221,7 +225,7 @@ const StudyCardEditor = ({
       <div className="flex flex-wrap gap-3">
         <button
           type="submit"
-          disabled={isSaving || isRegeneratingAudio || isRegeneratingImage}
+          disabled={isBusy}
           className="rounded-full bg-navy px-5 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isSaving ? t('editor.saving') : t('editor.save')}
@@ -243,7 +247,7 @@ const StudyCardEditor = ({
                 // The owning mutation surfaces the user-facing error; avoid an unhandled rejection.
               }
             }}
-            disabled={isSaving || isRegeneratingAudio}
+            disabled={isBusy}
             className="rounded-full border border-navy/30 px-5 py-3 text-sm font-semibold text-navy hover:bg-navy/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isRegeneratingAudio ? t('editor.regeneratingAudio') : t('editor.regenerateAudio')}
@@ -252,11 +256,21 @@ const StudyCardEditor = ({
         <button
           type="button"
           onClick={onCancel}
-          disabled={isSaving || isRegeneratingAudio || isRegeneratingImage}
+          disabled={isBusy}
           className="rounded-full border border-gray-300 px-5 py-3 text-sm font-semibold text-navy hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {t('editor.cancel')}
         </button>
+        {onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isBusy}
+            className="rounded-full border border-red-300 px-5 py-3 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isDeleting ? t('editor.deleting') : t('editor.delete')}
+          </button>
+        ) : null}
       </div>
     </form>
   );

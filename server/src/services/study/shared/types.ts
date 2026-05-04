@@ -7,6 +7,8 @@ import type {
   StudyQueueState,
   StudyAnswerPayload,
   StudyAudioSource,
+  StudyBrowserSortDirection,
+  StudyBrowserSortField,
   StudyFsrsState,
   StudyPromptPayload,
 } from '@languageflow/shared/src/types.js';
@@ -236,7 +238,10 @@ export interface PerformStudyCardActionInput {
 }
 
 export interface StudyBrowserCursor {
-  updatedAt: string;
+  updatedAt?: string;
+  sortField?: StudyBrowserSortField;
+  sortDirection?: StudyBrowserSortDirection;
+  sortValue?: string | number;
   id: string;
 }
 

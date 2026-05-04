@@ -92,6 +92,9 @@
     "regeneratingAudio": "Regenerating…",
     "regenerateImage": "Regenerate image",
     "regeneratingImage": "Regenerating image…",
+    "delete": "Delete card",
+    "deleting": "Deleting…",
+    "confirmDelete": "Delete this card? This cannot be undone.",
     "cancel": "Cancel"
   },
   "form": {
@@ -126,6 +129,20 @@
     "noteType": "Note type",
     "cardType": "Card type",
     "queueState": "Queue state",
+    "sortBy": "Sort by",
+    "sortDirection": "Direction",
+    "sortFields": {
+      "created_on": "Created",
+      "updated_on": "Updated",
+      "sort_field": "Sort field",
+      "note_type": "Note type",
+      "card_count": "Cards",
+      "review_count": "Reviews"
+    },
+    "sortDirections": {
+      "asc": "Ascending",
+      "desc": "Descending"
+    },
     "allNoteTypes": "All note types",
     "allCardTypes": "All card types",
     "allQueueStates": "All queue states",

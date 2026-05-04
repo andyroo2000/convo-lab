@@ -53,7 +53,7 @@ const ConfirmModal = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50 animate-fadeIn"
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black bg-opacity-50 p-4 animate-fadeIn"
       onClick={!isLoading ? onCancel : undefined}
       onKeyDown={(e) => !isLoading && e.key === 'Escape' && onCancel()}
       role="button"

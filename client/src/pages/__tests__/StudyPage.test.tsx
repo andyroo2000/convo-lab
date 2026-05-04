@@ -15,6 +15,7 @@ const {
   mutateAsyncMock,
   resolveStudyCardPitchAccentMock,
   updateStudyCardMock,
+  deleteStudyCardMock,
   regenerateStudyAnswerAudioMock,
   studyOverviewData,
   studyOverviewLoading,
@@ -26,6 +27,7 @@ const {
   mutateAsyncMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
   updateStudyCardMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   studyOverviewData: {
     current: {
@@ -66,6 +68,11 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useUpdateStudyCard: () => ({
     mutateAsync: updateStudyCardMock,
+    isPending: false,
+    error: null,
+  }),
+  useDeleteStudyCard: () => ({
+    mutateAsync: deleteStudyCardMock,
     isPending: false,
     error: null,
   }),
@@ -159,6 +166,7 @@ describe('StudyPage', () => {
     undoStudyReviewMock.mockReset();
     mutateAsyncMock.mockReset();
     updateStudyCardMock.mockReset();
+    deleteStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     vi.restoreAllMocks();
 

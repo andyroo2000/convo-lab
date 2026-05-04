@@ -19,6 +19,7 @@ import {
   startStudySession,
   undoStudyReview,
   useRegenerateStudyAnswerAudio,
+  useDeleteStudyCard,
   useStudyCardAction,
   useSubmitStudyReview,
   useUpdateStudyCard,
@@ -105,6 +106,7 @@ const useStudyReviewSession = () => {
   const reviewMutation = useSubmitStudyReview();
   const cardActionMutation = useStudyCardAction();
   const updateCardMutation = useUpdateStudyCard();
+  const deleteCardMutation = useDeleteStudyCard();
   const regenerateAudioMutation = useRegenerateStudyAnswerAudio();
   const [focusMode, setFocusMode] = useState(false);
   const [session, setSession] = useState<StudySessionResponse | null>(null);
@@ -159,8 +161,16 @@ const useStudyReviewSession = () => {
       return 'Audio regeneration failed.';
     }
 
+    if (deleteCardMutation.error instanceof Error) {
+      return deleteCardMutation.error.message;
+    }
+
+    if (deleteCardMutation.error) {
+      return 'Card delete failed.';
+    }
+
     return updateCardMutation.error ? 'Card update failed.' : null;
-  }, [regenerateAudioMutation.error, updateCardMutation.error]);
+  }, [deleteCardMutation.error, regenerateAudioMutation.error, updateCardMutation.error]);
 
   useEffect(() => {
     sessionCardCountRef.current = session?.cards.length ?? 0;
@@ -574,6 +584,21 @@ const useStudyReviewSession = () => {
     ]
   );
 
+  const deleteCurrentCard = useCallback(async () => {
+    if (!currentCard) return;
+
+    stopAllAudio();
+    await deleteCardMutation.mutateAsync(currentCard.id);
+    setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+    setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+    removeCardFromSession(currentCard.id);
+    const nextLength = Math.max(cards.length - 1, 0);
+    setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
+    setEditing(false);
+    setRevealed(false);
+    setSessionError(null);
+  }, [cards.length, currentCard, deleteCardMutation, removeCardFromSession, stopAllAudio]);
+
   const handleUndo = useCallback(async () => {
     if (
       undoPending ||
@@ -736,6 +761,7 @@ const useStudyReviewSession = () => {
     reviewMutation,
     cardActionMutation,
     updateCardMutation,
+    deleteCardMutation,
     regenerateAudioMutation,
     updateCardErrorMessage,
     setEditing,
@@ -748,6 +774,7 @@ const useStudyReviewSession = () => {
     handleUndo,
     requestMotionPermission,
     saveCurrentCard,
+    deleteCurrentCard,
     regenerateCurrentCardAudio,
     enterFocusMode,
   };

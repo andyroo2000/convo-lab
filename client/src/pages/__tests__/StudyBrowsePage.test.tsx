@@ -12,6 +12,7 @@ const {
   updateStudyCardMock,
   regenerateStudyAnswerAudioMock,
   regenerateStudyCardImageMock,
+  deleteStudyCardMock,
   cardActionMutateAsyncMock,
   resolveStudyCardPitchAccentMock,
 } = vi.hoisted(() => ({
@@ -20,6 +21,7 @@ const {
   updateStudyCardMock: vi.fn(),
   regenerateStudyAnswerAudioMock: vi.fn(),
   regenerateStudyCardImageMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
   cardActionMutateAsyncMock: vi.fn(),
   resolveStudyCardPitchAccentMock: vi.fn(),
 }));
@@ -41,6 +43,7 @@ const browserData = {
       cardCount: 2,
       reviewCount: 4,
       queueSummary: { review: 1, new: 1 },
+      createdAt: new Date('2026-04-10T00:00:00.000Z').toISOString(),
       updatedAt: new Date('2026-04-12T00:00:00.000Z').toISOString(),
     },
     {
@@ -50,6 +53,7 @@ const browserData = {
       cardCount: 1,
       reviewCount: 1,
       queueSummary: { review: 1 },
+      createdAt: new Date('2026-04-11T00:00:00.000Z').toISOString(),
       updatedAt: new Date('2026-04-11T00:00:00.000Z').toISOString(),
     },
   ],
@@ -184,6 +188,12 @@ vi.mock('../../hooks/useStudy', () => ({
     isPending: false,
     error: null,
   }),
+  useDeleteStudyCard: () => ({
+    mutateAsync: deleteStudyCardMock,
+    isPending: false,
+    error: null,
+    reset: vi.fn(),
+  }),
   resolveStudyCardPitchAccent: resolveStudyCardPitchAccentMock,
 }));
 
@@ -219,6 +229,7 @@ describe('StudyBrowsePage', () => {
     updateStudyCardMock.mockReset();
     regenerateStudyAnswerAudioMock.mockReset();
     regenerateStudyCardImageMock.mockReset();
+    deleteStudyCardMock.mockReset();
     cardActionMutateAsyncMock.mockReset();
     resolveStudyCardPitchAccentMock.mockReset();
 
@@ -284,6 +295,7 @@ describe('StudyBrowsePage', () => {
         },
       })
     );
+    deleteStudyCardMock.mockResolvedValue(undefined);
     cardActionMutateAsyncMock.mockImplementation(
       async (payload: {
         cardId: string;
@@ -332,6 +344,13 @@ describe('StudyBrowsePage', () => {
     renderPage();
 
     expect(screen.getByText('Browse cards')).toBeInTheDocument();
+    expect(useStudyBrowserMock).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        sortField: 'created_on',
+        sortDirection: 'desc',
+      })
+    );
     expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
     expect(await screen.findByText('Imported fields')).toBeInTheDocument();
   });
@@ -364,6 +383,8 @@ describe('StudyBrowsePage', () => {
       screen.getByRole('combobox', { name: 'Card type' }),
       'recognition'
     );
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Sort by' }), 'note_type');
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Direction' }), 'asc');
     await userEvent.click(screen.getByRole('button', { name: 'Search' }));
 
     await waitFor(() => {
@@ -373,6 +394,8 @@ describe('StudyBrowsePage', () => {
           q: '会社',
           noteType: 'Japanese - Vocab',
           cardType: 'recognition',
+          sortField: 'note_type',
+          sortDirection: 'asc',
           cursor: undefined,
           limit: 100,
         })
@@ -493,6 +516,18 @@ describe('StudyBrowsePage', () => {
         'src',
         'https://example.com/company-regenerated.webp'
       );
+    });
+  });
+
+  it('deletes the selected card from the edit pane after confirmation', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+    await userEvent.click(screen.getByTestId('modal-button-confirm'));
+
+    await waitFor(() => {
+      expect(deleteStudyCardMock).toHaveBeenCalledWith('card-1');
     });
   });
 

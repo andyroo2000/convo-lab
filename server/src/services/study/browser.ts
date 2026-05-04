@@ -4,6 +4,8 @@ import type {
   StudyBrowserListResponse,
   StudyBrowserNoteDetail,
   StudyBrowserRow,
+  StudyBrowserSortDirection,
+  StudyBrowserSortField,
   StudyCardType,
   StudyQueueState,
 } from '@languageflow/shared/src/types.js';
@@ -11,6 +13,12 @@ import { Prisma } from '@prisma/client';
 
 import { prisma } from '../../db/client.js';
 
+import {
+  buildStudyBrowserSortExpression,
+  getStudyBrowserSort,
+  normalizeStudyBrowserCursor,
+  serializeStudyBrowserSortValue,
+} from './browserSort.js';
 import { ensureStudyCardMediaAvailable } from './media.js';
 import type {
   StudyBrowserDetailNoteRecord,
@@ -103,19 +111,28 @@ export async function getStudyBrowserList(params: {
   queueState?: StudyQueueState;
   cursor?: string;
   limit?: number;
+  sortField?: StudyBrowserSortField;
+  sortDirection?: StudyBrowserSortDirection;
 }): Promise<StudyBrowserListResponse> {
   const limit = Math.max(1, Math.min(100, params.limit ?? 100));
   const cursor = params.cursor ? decodeStudyBrowserCursor(params.cursor) : null;
+  const { sortField, sortDirection } = getStudyBrowserSort(params);
+  const sortExpression = buildStudyBrowserSortExpression({ sortField, userId: params.userId });
+  const cursorSortValue = normalizeStudyBrowserCursor({ cursor, sortField, sortDirection });
   const whereSql = buildStudyBrowserWhereSql(params);
   const cursorSql =
-    cursor === null
+    cursor === null || cursorSortValue === null
       ? Prisma.empty
       : Prisma.sql`
           AND (
-            n."updatedAt" < ${new Date(cursor.updatedAt)}
-            OR (n."updatedAt" = ${new Date(cursor.updatedAt)} AND n.id < ${cursor.id})
+            ${sortExpression} ${Prisma.raw(sortDirection === 'desc' ? '<' : '>')} ${cursorSortValue}
+            OR (
+              ${sortExpression} = ${cursorSortValue}
+              AND n.id ${Prisma.raw(sortDirection === 'desc' ? '<' : '>')} ${cursor.id}
+            )
           )
         `;
+  const sortDirectionSql = Prisma.raw(sortDirection === 'desc' ? 'DESC' : 'ASC');
 
   const [totalRows, pagedNoteRows, noteTypeRows, cardTypeRows, queueStateRows] = await Promise.all([
     prisma.$queryRaw<Array<{ count: bigint | number }>>(Prisma.sql`
@@ -123,12 +140,12 @@ export async function getStudyBrowserList(params: {
       FROM "study_notes" n
       ${whereSql}
     `),
-    prisma.$queryRaw<Array<{ id: string; updatedAt: Date }>>(Prisma.sql`
-      SELECT n.id, n."updatedAt"
+    prisma.$queryRaw<Array<{ id: string; updatedAt: Date; sortValue: unknown }>>(Prisma.sql`
+      SELECT n.id, n."updatedAt", ${sortExpression} AS "sortValue"
       FROM "study_notes" n
       ${whereSql}
       ${cursorSql}
-      ORDER BY n."updatedAt" DESC, n.id DESC
+      ORDER BY ${sortExpression} ${sortDirectionSql}, n.id ${sortDirectionSql}
       LIMIT ${limit + 1}
     `),
     prisma.$queryRaw<Array<{ value: string | null }>>(Prisma.sql`
@@ -256,6 +273,7 @@ export async function getStudyBrowserList(params: {
       cardCount: cards.length,
       reviewCount,
       queueSummary,
+      createdAt: note.createdAt.toISOString(),
       updatedAt: note.updatedAt.toISOString(),
     };
   });
@@ -267,7 +285,9 @@ export async function getStudyBrowserList(params: {
     nextCursor:
       hasMore && lastVisibleNote && lastVisibleUpdatedAt
         ? encodeStudyBrowserCursor({
-            updatedAt: lastVisibleUpdatedAt,
+            sortField,
+            sortDirection,
+            sortValue: serializeStudyBrowserSortValue(lastVisibleNote.sortValue),
             id: lastVisibleNote.id,
           })
         : null,

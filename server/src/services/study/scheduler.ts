@@ -43,6 +43,7 @@ import {
   createFreshSchedulerState,
   dateFromLocalDayStart,
   dateFromDayBoundary,
+  deletePersistedStudyMediaByStoragePath,
   getBestAnswerAudioText,
   getRequiredSchedulerState,
   getScheduledDaysForDue,
@@ -77,6 +78,7 @@ const DUE_CARD_ORDER = [
   { dueAt: 'asc' },
   { id: 'asc' },
 ] satisfies Prisma.StudyCardOrderByWithRelationInput[];
+const DELETABLE_STUDY_MEDIA_SOURCE_KINDS = new Set(['generated', 'generated_preview']);
 
 function isActiveDueQueueState(queueState: StudyQueueState): boolean {
   return ACTIVE_DUE_QUEUE_STATES.includes(queueState as (typeof ACTIVE_DUE_QUEUE_STATES)[number]);
@@ -1306,6 +1308,91 @@ export async function updateStudyCard(input: UpdateStudyCardInput): Promise<Stud
   }
 
   return await toStudyCardSummary(refreshed);
+}
+
+async function cleanupUnreferencedGeneratedStudyMedia(
+  media: Array<StudyCardWithRelations['promptAudioMedia']>
+): Promise<void> {
+  const uniqueMedia = [
+    ...new Map(
+      media
+        .filter((item): item is NonNullable<StudyCardWithRelations['promptAudioMedia']> =>
+          Boolean(
+            item && item.storagePath && DELETABLE_STUDY_MEDIA_SOURCE_KINDS.has(item.sourceKind)
+          )
+        )
+        .map((item) => [item.id, item])
+    ).values(),
+  ];
+
+  await Promise.allSettled(
+    uniqueMedia.map(async (item) => {
+      const referenceCount = await prisma.studyCard.count({
+        where: {
+          OR: [
+            { promptAudioMediaId: item.id },
+            { answerAudioMediaId: item.id },
+            { imageMediaId: item.id },
+          ],
+        },
+      });
+      if (referenceCount > 0) return;
+
+      await prisma.studyMedia.deleteMany({
+        where: {
+          id: item.id,
+          sourceKind: {
+            in: [...DELETABLE_STUDY_MEDIA_SOURCE_KINDS],
+          },
+        },
+      });
+      await deletePersistedStudyMediaByStoragePath(item.storagePath as string);
+    })
+  );
+}
+
+export async function deleteStudyCard(input: { userId: string; cardId: string }): Promise<void> {
+  const existing: StudyCardWithRelations | null = await prisma.studyCard.findFirst({
+    where: {
+      id: input.cardId,
+      userId: input.userId,
+    },
+    include: STUDY_CARD_SUMMARY_INCLUDE,
+  });
+
+  if (!existing) {
+    throw new AppError('Study card not found.', 404);
+  }
+
+  const noteCardCount = await prisma.studyCard.count({
+    where: {
+      noteId: existing.noteId,
+      userId: input.userId,
+    },
+  });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.studyCard.delete({
+      where: {
+        id: input.cardId,
+      },
+    });
+
+    if (noteCardCount <= 1) {
+      await tx.studyNote.deleteMany({
+        where: {
+          id: existing.noteId,
+          userId: input.userId,
+        },
+      });
+    }
+  });
+
+  await cleanupUnreferencedGeneratedStudyMedia([
+    existing.promptAudioMedia,
+    existing.answerAudioMedia,
+    existing.imageMedia,
+  ]);
 }
 
 export async function resolveStudyCardPitchAccent(input: {

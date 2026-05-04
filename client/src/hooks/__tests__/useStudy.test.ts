@@ -4,7 +4,9 @@ import { API_URL } from '../../config';
 import { CSRF_TOKEN_COOKIE_NAME, CSRF_TOKEN_HEADER_NAME } from '../../lib/csrf';
 import {
   commitStudyCardCandidates,
+  deleteStudyCard,
   generateStudyCardCandidates,
+  getStudyBrowser,
   getStudyImportStatus,
   regenerateStudyCardCandidatePreviewAudio,
   regenerateStudyCardCandidatePreviewImage,
@@ -161,6 +163,38 @@ describe('useStudy request helpers', () => {
     expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
     expect(headers.get('Content-Type')).toBeNull();
     expect(requestInit.method).toBe('POST');
+  });
+
+  it('deletes study cards with CSRF headers', async () => {
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => ({}),
+    } as Response);
+
+    await deleteStudyCard('card-1');
+
+    const fetchMock = vi.mocked(global.fetch);
+    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/study/cards/card-1`, expect.any(Object));
+
+    const requestInit = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+    expect(headers.get(CSRF_TOKEN_HEADER_NAME)).toBe('test-csrf-token');
+    expect(headers.get('Content-Type')).toBeNull();
+    expect(requestInit.method).toBe('DELETE');
+  });
+
+  it('passes browser sort params to the study API', async () => {
+    await getStudyBrowser({
+      sortField: 'created_on',
+      sortDirection: 'desc',
+      limit: 25,
+    });
+
+    expect(vi.mocked(global.fetch)).toHaveBeenCalledWith(
+      `${API_URL}/api/study/browser?sortField=created_on&sortDirection=desc&limit=25`,
+      expect.any(Object)
+    );
   });
 
   it('generates study card candidates with JSON and CSRF headers', async () => {

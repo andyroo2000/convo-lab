@@ -29,6 +29,7 @@ describe('studyService barrel', () => {
     expect(studyService.performStudyCardAction).toBe(studySchedulerService.performStudyCardAction);
     expect(studyService.updateStudyCard).toBe(studySchedulerService.updateStudyCard);
     expect(studyService.createStudyCard).toBe(studySchedulerService.createStudyCard);
+    expect(studyService.deleteStudyCard).toBe(studySchedulerService.deleteStudyCard);
     expect(studyService.getStudySettings).toBe(studySchedulerService.getStudySettings);
     expect(studyService.updateStudySettings).toBe(studySchedulerService.updateStudySettings);
     expect(studyService.getStudyNewCardQueue).toBe(studySchedulerService.getStudyNewCardQueue);

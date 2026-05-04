@@ -39,6 +39,7 @@ const {
   commitStudyCardCandidatesMock,
   execMock,
   createStudyCardMock,
+  deleteStudyCardMock,
   expireAtMock,
   exportStudyCardsSectionMock,
   exportStudyImportsSectionMock,
@@ -74,6 +75,7 @@ const {
   commitStudyCardCandidatesMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
+  deleteStudyCardMock: vi.fn(),
   expireAtMock: vi.fn(),
   exportStudyCardsSectionMock: vi.fn(),
   exportStudyImportsSectionMock: vi.fn(),
@@ -115,6 +117,7 @@ vi.mock('../../../services/studyService.js', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
   createStudyCard: createStudyCardMock,
+  deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
   createStudyImportUploadSession: createStudyImportUploadSessionMock,
   exportStudyData: vi.fn(),
@@ -177,6 +180,7 @@ describe('Study Routes', () => {
     commitStudyCardCandidatesMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
+    deleteStudyCardMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
@@ -1442,7 +1446,7 @@ describe('Study Routes', () => {
     });
 
     const response = await request(app).get(
-      '/study/browser?q=%E4%BC%9A%E7%A4%BE&noteType=Japanese%20-%20Vocab&cardType=recognition&queueState=review&cursor=cursor-1&limit=25'
+      '/study/browser?q=%E4%BC%9A%E7%A4%BE&noteType=Japanese%20-%20Vocab&cardType=recognition&queueState=review&sortField=created_on&sortDirection=desc&cursor=cursor-1&limit=25'
     );
 
     expect(response.status).toBe(200);
@@ -1452,8 +1456,30 @@ describe('Study Routes', () => {
       noteType: 'Japanese - Vocab',
       cardType: 'recognition',
       queueState: 'review',
+      sortField: 'created_on',
+      sortDirection: 'desc',
       cursor: 'cursor-1',
       limit: 25,
+    });
+  });
+
+  it('rejects invalid browser sort params', async () => {
+    const response = await request(app).get('/study/browser?sortField=bad&sortDirection=sideways');
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toContain('sortField must be');
+    expect(getStudyBrowserListMock).not.toHaveBeenCalled();
+  });
+
+  it('deletes owned study cards', async () => {
+    deleteStudyCardMock.mockResolvedValue(undefined);
+
+    const response = await withMutationCsrf(request(app).delete('/study/cards/card-1'));
+
+    expect(response.status).toBe(204);
+    expect(deleteStudyCardMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
     });
   });
 
