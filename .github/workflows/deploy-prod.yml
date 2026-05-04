@@ -296,13 +296,24 @@ jobs:
             fi
 
             echo "🛑 Stopping old web color if present..."
-            docker stop "convolab-server-$active_color" 2>/dev/null || true
+            docker stop "convolab-server-$active_color" 2>/dev/null || echo "⚠️ Failed to stop old color convolab-server-$active_color; it may still be running."
 
             echo "♻️ Recreating worker after web traffic switch..."
             $COMPOSE up -d --no-deps --force-recreate worker
+            echo "Worker has no Docker healthcheck; confirming it remains running briefly..."
+            for i in {1..4}; do
+              worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
+              if [ "$worker_state" != "running" ]; then
+                echo "❌ convolab-worker is $worker_state after recreate. Recent logs:"
+                docker logs --tail=200 convolab-worker || true
+                exit 1
+              fi
+              echo "convolab-worker status check $i/4: $worker_state"
+              sleep 5
+            done
             worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
             if [ "$worker_state" != "running" ]; then
-              echo "❌ convolab-worker is not running after recreate. Recent logs:"
+              echo "❌ convolab-worker did not stay running after recreate. Recent logs:"
               docker logs --tail=200 convolab-worker || true
               exit 1
             fi
