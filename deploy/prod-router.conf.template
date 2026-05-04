@@ -11,6 +11,7 @@ map $http_x_forwarded_proto $proxy_x_forwarded_proto {
 server {
     listen 3001;
     server_name _;
+    client_max_body_size 50m;
 
     resolver 127.0.0.11 valid=5s ipv6=off;
     set $convolab_upstream http://__UPSTREAM_SERVICE__:3001;

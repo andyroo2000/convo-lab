@@ -199,6 +199,22 @@ jobs:
               write_active_color "$previous_color"
             }
 
+            restore_legacy_app() {
+              docker rm -f convolab-server 2>/dev/null || true
+              if ! docker rename convolab-server-legacy-cutover convolab-server; then
+                echo "❌ Failed to restore legacy app container name from convolab-server-legacy-cutover."
+                return 1
+              fi
+              if ! docker start convolab-server; then
+                echo "❌ Failed to restart restored legacy app container."
+                return 1
+              fi
+              if ! verify_public_health; then
+                echo "❌ Legacy app was restored, but public health is still failing."
+                return 1
+              fi
+            }
+
             active_color="blue"
             if [ -s "$ACTIVE_COLOR_FILE" ]; then
               active_color="$(cat "$ACTIVE_COLOR_FILE")"
@@ -259,11 +275,8 @@ jobs:
               $COMPOSE up -d --no-deps router
               if ! wait_for_container_health convolab-server; then
                 echo "↩️ Router failed to become healthy; restoring legacy app container..."
-                docker rm -f convolab-server 2>/dev/null || true
-                docker rename convolab-server-legacy-cutover convolab-server 2>/dev/null || true
-                docker start convolab-server 2>/dev/null || true
-                if ! verify_public_health; then
-                  echo "❌ Legacy app was restored, but public health is still failing."
+                if ! restore_legacy_app; then
+                  echo "❌ Legacy app restore failed after router health failure."
                 fi
                 exit 1
               fi
@@ -280,11 +293,8 @@ jobs:
               echo "❌ Public health failed after switching to $inactive_color."
               if [ "$legacy_cutover" = "true" ]; then
                 echo "↩️ Restoring legacy app container after failed first router cutover..."
-                docker rm -f convolab-server 2>/dev/null || true
-                docker rename convolab-server-legacy-cutover convolab-server 2>/dev/null || true
-                docker start convolab-server 2>/dev/null || true
-                if ! verify_public_health; then
-                  echo "❌ Legacy app was restored, but public health is still failing."
+                if ! restore_legacy_app; then
+                  echo "❌ Legacy app restore failed after public health failure."
                 fi
               else
                 rollback_router "$active_color"
