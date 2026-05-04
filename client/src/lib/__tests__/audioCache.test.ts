@@ -40,7 +40,7 @@ describe('audioCache', () => {
     ).toEqual([`${window.location.origin}/audio/1.mp3`]);
   });
 
-  it('excludes redirected study media URLs from cache warming and preloading', async () => {
+  it('excludes redirected study media URLs from cache warming but allows element preloading', async () => {
     const postMessage = vi.fn();
     defineNavigatorValue('serviceWorker', {
       controller: { postMessage },
@@ -49,7 +49,7 @@ describe('audioCache', () => {
 
     expect(normalizeAudioCacheUrls(['/api/study/media/1'])).toEqual([]);
     expect(shouldPreloadAudioUrl('/api/study/media/1')).toBe(false);
-    expect(getAudioPreloadMode('/api/study/media/1')).toBe('none');
+    expect(getAudioPreloadMode('/api/study/media/1')).toBe('auto');
 
     await warmAudioCache(['/api/study/media/1']);
 
