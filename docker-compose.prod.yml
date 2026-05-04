@@ -122,6 +122,8 @@ services:
     image: nginx:1.27-alpine
     container_name: convolab-server
     restart: unless-stopped
+    labels:
+      convolab.role: router
     ports:
       - "3001:3001"
     volumes:

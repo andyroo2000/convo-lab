@@ -203,8 +203,8 @@ jobs:
 
             available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
             echo "Available memory: ${available_mb}MB"
-            if [ "$available_mb" -lt 1800 ]; then
-              echo "❌ Refusing blue/green deploy with less than 1800MB available memory."
+            if [ "$available_mb" -lt 2500 ]; then
+              echo "❌ Refusing blue/green deploy with less than 2500MB available memory."
               exit 1
             fi
 
@@ -215,7 +215,7 @@ jobs:
             docker system prune -af
 
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
-            $COMPOSE pull router server-blue server-green worker
+            timeout 600 $COMPOSE pull router server-blue server-green worker
 
             echo "🧱 Ensuring Postgres and Redis stay running..."
             $COMPOSE up -d postgres redis
@@ -229,8 +229,8 @@ jobs:
 
             legacy_cutover=false
             render_router_config "$inactive_color"
-            router_image="$(docker inspect -f '{{.Config.Image}}' convolab-server 2>/dev/null || true)"
-            if echo "$router_image" | grep -Eq '^nginx:'; then
+            router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
+            if [ "$router_role" = "router" ]; then
               echo "🔀 Reloading router to $inactive_color..."
               reload_router
             elif docker inspect convolab-server >/dev/null 2>&1; then

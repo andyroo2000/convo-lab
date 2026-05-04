@@ -18,6 +18,33 @@ cutover while the old `convolab-server` app container is replaced by the nginx
 router. Future successful deploys should not drop web traffic during the app
 switch.
 
+The GitHub Actions workflow is the authoritative way to start or switch the
+production web stack. It creates `/opt/convolab-runtime/prod-router/default.conf`
+before starting the router; a manual `docker compose up` on a fresh droplet will
+fail until that config exists.
+
+## Manual rollback
+
+Use this only if a deploy succeeds but the new color is bad at runtime.
+
+1. SSH to the droplet and enter `/opt/convolab`.
+2. Read the active color:
+   `cat /opt/convolab-runtime/prod-active-color`.
+3. Choose the previous color: if active is `blue`, previous is `green`; if
+   active is `green`, previous is `blue`.
+4. Confirm the previous app is present and healthy, or start it:
+   `docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production up -d --no-deps server-<previous>`.
+5. Render the router config back to the previous color:
+   `sed 's#__UPSTREAM_SERVICE__#convolab-server-<previous>#g' deploy/prod-router.conf.template > /opt/convolab-runtime/prod-router/default.conf`.
+6. Reload the router:
+   `docker exec convolab-server nginx -t && docker exec convolab-server nginx -s reload`.
+7. Verify public health:
+   `curl -fsS https://convo-lab.com/health`.
+8. Persist the rollback color:
+   `echo <previous> > /opt/convolab-runtime/prod-active-color`.
+9. Stop the bad color after health is confirmed:
+   `docker stop convolab-server-<bad-color>`.
+
 ## Migration compatibility checklist
 
 Blue/green deploys require the old and new app versions to tolerate the same
