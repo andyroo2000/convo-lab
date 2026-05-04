@@ -220,6 +220,9 @@ jobs:
 
             available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
             echo "Available memory: ${available_mb}MB"
+            # MemAvailable already reflects long-running Postgres, Redis, worker, and
+            # the active web color. Keep at least 2500MB free for the inactive web
+            # color, router work, image extraction, and rollback headroom.
             if [ "$available_mb" -lt 2500 ]; then
               echo "❌ Refusing blue/green deploy with less than 2500MB available memory."
               exit 1

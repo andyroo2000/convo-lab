@@ -23,6 +23,18 @@ production web stack. It creates `/opt/convolab-runtime/prod-router/default.conf
 before starting the router; a manual `docker compose up` on a fresh droplet will
 fail until that config exists.
 
+## Memory budget
+
+The workflow prunes unused Docker data and then requires at least 2500 MB of
+`MemAvailable` before it starts a blue/green switch. That value is headroom above
+the already-running production services: Postgres, Redis, the worker, the router
+if present, and the active web color.
+
+During the overlap window, the deploy briefly adds one inactive web container
+with a 1024 MB limit and 512 MB reservation, plus image extraction and rollback
+headroom. If normal production memory usage grows, raise the workflow threshold
+before increasing service limits or enabling larger synchronous workloads.
+
 ## Manual rollback
 
 Use this only if a deploy succeeds but the new color is bad at runtime.
