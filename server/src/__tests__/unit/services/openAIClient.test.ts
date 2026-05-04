@@ -23,7 +23,7 @@ describe('openAIClient', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('generates image buffers from the OpenAI Images API', async () => {
@@ -119,6 +119,7 @@ describe('openAIClient', () => {
       generateOpenAIResponseText({
         prompt: 'prompt',
         systemInstruction: 'system',
+        // The model name is inert here; this test only inspects request timeout behavior.
         model: 'gpt-5.5',
         reasoningEffort: 'medium',
       })
@@ -127,6 +128,35 @@ describe('openAIClient', () => {
       statusCode: 503,
     } satisfies Partial<AppError>);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('uses a 60 second timeout for OpenAI text responses', async () => {
+    const timeoutSpy = vi.spyOn(AbortSignal, 'timeout');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        mockJsonResponse(200, {
+          output_text: '{"candidates":[]}',
+        })
+      )
+    );
+
+    await expect(
+      generateOpenAIResponseText({
+        prompt: 'prompt',
+        systemInstruction: 'system',
+        model: 'gpt-5.5',
+        reasoningEffort: 'medium',
+      })
+    ).resolves.toBe('{"candidates":[]}');
+
+    expect(timeoutSpy).toHaveBeenCalledWith(60_000);
+    expect(fetch).toHaveBeenCalledWith(
+      'https://api.openai.com/v1/responses',
+      expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      })
+    );
   });
 
   it('maps rejected credentials to a configuration error', async () => {

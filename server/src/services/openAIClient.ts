@@ -1,6 +1,6 @@
 import { AppError } from '../middleware/errorHandler.js';
 
-const OPENAI_RESPONSES_TIMEOUT_MS = 30_000;
+const OPENAI_RESPONSES_TIMEOUT_MS = 60_000;
 const OPENAI_IMAGES_TIMEOUT_MS = 45_000;
 const DEFAULT_OPENAI_IMAGE_MODEL = 'gpt-image-1';
 const DEFAULT_OPENAI_IMAGE_SIZE = '1024x1024';

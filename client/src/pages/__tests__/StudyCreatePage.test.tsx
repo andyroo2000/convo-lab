@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import {
@@ -17,6 +17,7 @@ const {
   commitCandidatesMock,
   commitCandidatesState,
   createStudyCardMock,
+  generateCandidatesState,
   generateCandidatesMock,
   regenerateCandidateAudioMock,
   regenerateCandidateImageMock,
@@ -25,6 +26,7 @@ const {
   commitCandidatesMock: vi.fn(),
   commitCandidatesState: { isPending: false },
   createStudyCardMock: vi.fn(),
+  generateCandidatesState: { error: null as Error | null, isPending: false },
   generateCandidatesMock: vi.fn(),
   regenerateCandidateAudioMock: vi.fn(),
   regenerateCandidateImageMock: vi.fn(),
@@ -44,8 +46,8 @@ vi.mock('../../hooks/useStudy', () => ({
   }),
   useGenerateStudyCardCandidates: () => ({
     mutateAsync: generateCandidatesMock,
-    isPending: false,
-    error: null,
+    isPending: generateCandidatesState.isPending,
+    error: generateCandidatesState.error,
   }),
   useRegenerateStudyCardCandidatePreviewAudio: () => ({
     mutateAsync: regenerateCandidateAudioMock,
@@ -79,13 +81,18 @@ const renderPage = () => {
     },
   });
 
-  return render(
+  const getUi = () => (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <StudyCreatePage />
       </BrowserRouter>
     </QueryClientProvider>
   );
+  const view = render(getUi());
+  return {
+    ...view,
+    rerenderPage: () => view.rerender(getUi()),
+  };
 };
 
 const productionCandidate = (overrides: Record<string, unknown> = {}) => ({
@@ -111,6 +118,8 @@ describe('StudyCreatePage', () => {
     commitCandidatesMock.mockReset();
     commitCandidatesState.isPending = false;
     createStudyCardMock.mockReset();
+    generateCandidatesState.error = null;
+    generateCandidatesState.isPending = false;
     generateCandidatesMock.mockReset();
     regenerateCandidateAudioMock.mockReset();
     regenerateCandidateImageMock.mockReset();
@@ -160,6 +169,10 @@ describe('StudyCreatePage', () => {
     }));
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('creates a recognition card and shows a success message', async () => {
     renderPage();
 
@@ -200,6 +213,88 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
     expect(screen.getByLabelText('Answer audio voice')).toHaveValue(DEFAULT_NARRATOR_VOICES.ja);
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(DEFAULT_NARRATOR_VOICES.ja);
+  });
+
+  it('shows fake progress while candidate generation is pending', () => {
+    vi.useFakeTimers();
+    generateCandidatesState.isPending = true;
+
+    renderPage();
+
+    expect(
+      screen.getByRole('status', { name: 'Candidate generation progress' })
+    ).toBeInTheDocument();
+    expect(screen.getByText('Building candidate cards…')).toBeInTheDocument();
+    expect(screen.getByText('This can take a little while.')).toBeInTheDocument();
+    expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('0%');
+  });
+
+  it('advances fake generation progress but keeps it below complete while pending', () => {
+    vi.useFakeTimers();
+    generateCandidatesState.isPending = true;
+
+    renderPage();
+
+    act(() => {
+      vi.advanceTimersByTime(4_000);
+    });
+
+    const warmupPercentText =
+      screen.getByTestId('study-generate-progress-percent').textContent ?? '';
+    const warmupPercent = Number(warmupPercentText.replace('%', ''));
+    expect(warmupPercent).toBeGreaterThanOrEqual(24);
+    expect(warmupPercent).toBeLessThanOrEqual(26);
+
+    act(() => {
+      vi.advanceTimersByTime(56_000);
+    });
+
+    const percentText = screen.getByTestId('study-generate-progress-percent').textContent ?? '';
+    const percent = Number(percentText.replace('%', ''));
+    expect(percent).toBeGreaterThan(90);
+    expect(percent).toBeLessThan(100);
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', String(percent));
+  });
+
+  it('briefly completes and hides fake progress when candidate generation resolves', () => {
+    vi.useFakeTimers();
+    generateCandidatesState.isPending = true;
+    const { rerenderPage } = renderPage();
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
+
+    generateCandidatesState.isPending = false;
+    rerenderPage();
+
+    expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('100%');
+
+    act(() => {
+      vi.advanceTimersByTime(450);
+    });
+
+    expect(
+      screen.queryByRole('status', { name: 'Candidate generation progress' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides fake progress immediately when candidate generation fails', () => {
+    vi.useFakeTimers();
+    generateCandidatesState.isPending = true;
+    const { rerenderPage } = renderPage();
+
+    expect(
+      screen.getByRole('status', { name: 'Candidate generation progress' })
+    ).toBeInTheDocument();
+
+    generateCandidatesState.isPending = false;
+    generateCandidatesState.error = new Error('OpenAI failed to generate content.');
+    rerenderPage();
+
+    expect(
+      screen.queryByRole('status', { name: 'Candidate generation progress' })
+    ).not.toBeInTheDocument();
   });
 
   it('generates candidate cards and commits selected edited candidates', async () => {
