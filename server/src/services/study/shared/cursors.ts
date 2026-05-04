@@ -14,6 +14,7 @@ export function decodeStudyBrowserCursor(cursor: string): StudyBrowserCursor {
       throw new Error('Invalid cursor');
     }
 
+    // Support pre-sort cursors emitted before browser sorting added sort metadata.
     if (
       typeof parsed.updatedAt === 'string' &&
       !Number.isNaN(new Date(parsed.updatedAt).getTime())

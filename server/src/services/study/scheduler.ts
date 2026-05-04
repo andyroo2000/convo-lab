@@ -1364,13 +1364,6 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
     throw new AppError('Study card not found.', 404);
   }
 
-  const noteCardCount = await prisma.studyCard.count({
-    where: {
-      noteId: existing.noteId,
-      userId: input.userId,
-    },
-  });
-
   await prisma.$transaction(async (tx) => {
     await tx.studyCard.delete({
       where: {
@@ -1378,7 +1371,14 @@ export async function deleteStudyCard(input: { userId: string; cardId: string })
       },
     });
 
-    if (noteCardCount <= 1) {
+    const remainingNoteCardCount = await tx.studyCard.count({
+      where: {
+        noteId: existing.noteId,
+        userId: input.userId,
+      },
+    });
+
+    if (remainingNoteCardCount === 0) {
       await tx.studyNote.deleteMany({
         where: {
           id: existing.noteId,
