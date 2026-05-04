@@ -202,22 +202,24 @@ const StudyBrowsePage = () => {
     const deletedCardId = selectedCard.id;
     const remainingCards = selectedDetail?.cards.filter((card) => card.id !== deletedCardId) ?? [];
 
-    await deleteCardMutation.mutateAsync(deletedCardId);
+    try {
+      await deleteCardMutation.mutateAsync(deletedCardId);
 
-    if (remainingCards.length > 0) {
-      setSelectedCardId(remainingCards[0]?.id ?? '');
-      setIsDeleteConfirmOpen(false);
-      await detailQuery.refetch();
+      if (remainingCards.length > 0) {
+        setSelectedCardId(remainingCards[0]?.id ?? '');
+        await detailQuery.refetch();
+        await browserQuery.refetch();
+        return;
+      }
+
+      const nextRows = rows.filter((row) => row.noteId !== deletedNoteId);
+      setRows(nextRows);
+      setSelectedNoteId(nextRows[0]?.noteId ?? '');
+      setSelectedCardId('');
       await browserQuery.refetch();
-      return;
+    } finally {
+      setIsDeleteConfirmOpen(false);
     }
-
-    const nextRows = rows.filter((row) => row.noteId !== deletedNoteId);
-    setRows(nextRows);
-    setSelectedNoteId(nextRows[0]?.noteId ?? '');
-    setSelectedCardId('');
-    setIsDeleteConfirmOpen(false);
-    await browserQuery.refetch();
   };
 
   let updateCardErrorMessage: string | null = null;

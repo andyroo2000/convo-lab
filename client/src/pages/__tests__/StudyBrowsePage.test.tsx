@@ -531,6 +531,27 @@ describe('StudyBrowsePage', () => {
     });
   });
 
+  it('closes the delete confirmation when browse card deletion fails', async () => {
+    deleteStudyCardMock.mockRejectedValue(new Error('Delete failed.'));
+
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+
+    expect(screen.getByText('Delete this card? This cannot be undone.')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('modal-button-confirm'));
+
+    await waitFor(() => {
+      expect(deleteStudyCardMock).toHaveBeenCalledWith('card-1');
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Delete this card? This cannot be undone.')
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('does not autoplay another selected card after regenerating audio', async () => {
     renderPage();
 
