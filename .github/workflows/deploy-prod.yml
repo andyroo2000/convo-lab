@@ -134,6 +134,13 @@ jobs:
               mv "$ROUTER_CONFIG.tmp" "$ROUTER_CONFIG"
             }
 
+            write_active_color() {
+              color="$1"
+              mkdir -p "$(dirname "$ACTIVE_COLOR_FILE")"
+              printf '%s\n' "$color" > "$ACTIVE_COLOR_FILE.tmp"
+              mv "$ACTIVE_COLOR_FILE.tmp" "$ACTIVE_COLOR_FILE"
+            }
+
             wait_for_container_health() {
               container="$1"
               for i in {1..60}; do
@@ -189,6 +196,7 @@ jobs:
                 echo "❌ Public health is still failing after rollback to $previous_color."
                 return 1
               fi
+              write_active_color "$previous_color"
             }
 
             active_color="blue"
@@ -221,7 +229,7 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
-            timeout 600 $COMPOSE pull router server-blue server-green worker
+            timeout 600 $COMPOSE pull router "server-$inactive_color" worker
 
             echo "🧱 Ensuring Postgres and Redis stay running..."
             $COMPOSE up -d postgres redis
@@ -259,7 +267,10 @@ jobs:
             else
               echo "🔀 Starting router for new production stack..."
               $COMPOSE up -d --no-deps router
-              wait_for_container_health convolab-server
+              if ! wait_for_container_health convolab-server; then
+                echo "❌ Router failed to become healthy on the fresh production stack."
+                exit 1
+              fi
             fi
 
             if ! verify_public_health; then
@@ -278,7 +289,7 @@ jobs:
               exit 1
             fi
 
-            echo "$inactive_color" > "$ACTIVE_COLOR_FILE"
+            write_active_color "$inactive_color"
 
             if [ "$legacy_cutover" = "true" ]; then
               docker rm -f convolab-server-legacy-cutover 2>/dev/null || true
