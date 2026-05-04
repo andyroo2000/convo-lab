@@ -45,7 +45,7 @@ jobs:
 
       - name: Deploy to droplet
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'ENDSSH'
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} bash -s << 'ENDSSH'
             set -euo pipefail
 
             echo "🚀 Starting ConvoLab production deployment..."
@@ -148,6 +148,10 @@ jobs:
                 echo "$container health: $status"
                 if [ "$status" = "healthy" ]; then
                   return 0
+                fi
+                if [ -z "$status" ]; then
+                  echo "❌ $container has no Docker healthcheck; cannot health-gate it."
+                  return 1
                 fi
                 if [ "$status" = "unhealthy" ]; then
                   echo "❌ $container reported unhealthy. Recent logs:"
@@ -297,7 +301,9 @@ jobs:
                   echo "❌ Legacy app restore failed after public health failure."
                 fi
               else
-                rollback_router "$active_color"
+                if ! rollback_router "$active_color"; then
+                  echo "❌ Rollback also failed; manual intervention is required."
+                fi
               fi
               exit 1
             fi
