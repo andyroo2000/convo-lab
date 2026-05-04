@@ -12,6 +12,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to DigitalOcean (Production)
@@ -163,11 +167,13 @@ jobs:
             }
 
             reload_router() {
-              if docker inspect convolab-server >/dev/null 2>&1; then
+              router_running="$(docker inspect -f '{{.State.Running}}' convolab-server 2>/dev/null || echo "false")"
+              if [ "$router_running" = "true" ]; then
                 docker exec convolab-server nginx -t
                 docker exec convolab-server nginx -s reload
               else
                 $COMPOSE up -d --no-deps router
+                wait_for_container_health convolab-server
               fi
             }
 
@@ -197,8 +203,8 @@ jobs:
 
             available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
             echo "Available memory: ${available_mb}MB"
-            if [ "$available_mb" -lt 1200 ]; then
-              echo "❌ Refusing blue/green deploy with less than 1200MB available memory."
+            if [ "$available_mb" -lt 1800 ]; then
+              echo "❌ Refusing blue/green deploy with less than 1800MB available memory."
               exit 1
             fi
 
