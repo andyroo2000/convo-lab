@@ -234,7 +234,14 @@ jobs:
               docker rename convolab-server convolab-server-legacy-cutover
               docker stop convolab-server-legacy-cutover
               $COMPOSE up -d --no-deps router
-              wait_for_container_health convolab-server
+              if ! wait_for_container_health convolab-server; then
+                echo "↩️ Router failed to become healthy; restoring legacy app container..."
+                docker rm -f convolab-server 2>/dev/null || true
+                docker rename convolab-server-legacy-cutover convolab-server 2>/dev/null || true
+                docker start convolab-server 2>/dev/null || true
+                verify_public_health || true
+                exit 1
+              fi
             else
               echo "🔀 Starting router for new production stack..."
               $COMPOSE up -d --no-deps router
