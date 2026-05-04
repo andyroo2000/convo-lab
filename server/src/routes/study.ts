@@ -1313,11 +1313,6 @@ router.delete(
         throw new AppError('Authenticated user is required.', 401);
       }
 
-      if (!req.params.cardId) {
-        res.status(400).json({ message: 'cardId is required.' });
-        return;
-      }
-
       await deleteStudyCard({
         userId: req.userId,
         cardId: req.params.cardId,

@@ -229,16 +229,12 @@ const StudyBrowsePage = () => {
     updateCardErrorMessage = regenerateAudioMutation.error.message;
   } else if (regenerateImageMutation.error instanceof Error) {
     updateCardErrorMessage = regenerateImageMutation.error.message;
-  } else if (deleteCardMutation.error instanceof Error) {
-    updateCardErrorMessage = deleteCardMutation.error.message;
   } else if (updateCardMutation.error) {
     updateCardErrorMessage = 'Card update failed.';
   } else if (regenerateAudioMutation.error) {
     updateCardErrorMessage = 'Audio regeneration failed.';
   } else if (regenerateImageMutation.error) {
     updateCardErrorMessage = 'Image regeneration failed.';
-  } else if (deleteCardMutation.error) {
-    updateCardErrorMessage = 'Card delete failed.';
   }
 
   return (
