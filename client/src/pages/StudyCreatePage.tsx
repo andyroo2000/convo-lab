@@ -25,8 +25,10 @@ const StudyCreatePage = () => {
   const [manualSuccess, setManualSuccess] = useState<string | null>(null);
   const generated = useGeneratedStudyCandidates();
   const generationProgress = useFakeProgress(generated.generateCandidates.isPending, {
+    // Candidate generation often takes tens of seconds, so pace the visual feedback for that wait.
     expectedMs: 40_000,
   });
+  const roundedGenerationProgress = Math.round(generationProgress.progress);
   const { values, setField, setCardType, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
@@ -170,14 +172,14 @@ const StudyCreatePage = () => {
                 <div className="flex items-center justify-between gap-3 text-sm font-medium text-navy">
                   <span>{t('create.generationProgressTitle')}</span>
                   <span data-testid="study-generate-progress-percent">
-                    {Math.round(generationProgress.progress)}%
+                    {roundedGenerationProgress}%
                   </span>
                 </div>
                 <div
                   role="progressbar"
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-valuenow={Math.round(generationProgress.progress)}
+                  aria-valuenow={roundedGenerationProgress}
                   className="mt-2 h-2 overflow-hidden rounded-full bg-white"
                 >
                   <div

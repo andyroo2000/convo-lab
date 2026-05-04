@@ -119,6 +119,7 @@ describe('openAIClient', () => {
       generateOpenAIResponseText({
         prompt: 'prompt',
         systemInstruction: 'system',
+        // The model name is inert here; this test only inspects request timeout behavior.
         model: 'gpt-5.5',
         reasoningEffort: 'medium',
       })

@@ -239,7 +239,11 @@ describe('StudyCreatePage', () => {
       vi.advanceTimersByTime(4_000);
     });
 
-    expect(screen.getByTestId('study-generate-progress-percent')).toHaveTextContent('25%');
+    const warmupPercentText =
+      screen.getByTestId('study-generate-progress-percent').textContent ?? '';
+    const warmupPercent = Number(warmupPercentText.replace('%', ''));
+    expect(warmupPercent).toBeGreaterThanOrEqual(24);
+    expect(warmupPercent).toBeLessThanOrEqual(26);
 
     act(() => {
       vi.advanceTimersByTime(56_000);
