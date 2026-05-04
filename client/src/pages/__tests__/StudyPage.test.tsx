@@ -1349,6 +1349,40 @@ describe('StudyPage', () => {
     expect(screen.queryByRole('button', { name: 'Save card' })).not.toBeInTheDocument();
   });
 
+  it('closes the delete confirmation and shows an error when card deletion fails', async () => {
+    startStudySessionMock.mockResolvedValue({
+      overview: {
+        dueCount: 1,
+        newCount: 0,
+        learningCount: 0,
+        reviewCount: 1,
+        suspendedCount: 0,
+        totalCards: 1,
+      },
+      cards: [baseCard],
+    });
+    deleteStudyCardMock.mockRejectedValue(new Error('Delete failed.'));
+
+    renderStudyPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Begin Study' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Delete card' }));
+
+    expect(screen.getByText('Delete this card? This cannot be undone.')).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('modal-button-confirm'));
+
+    await waitFor(() => {
+      expect(deleteStudyCardMock).toHaveBeenCalledWith('card-1');
+    });
+    await waitFor(() => {
+      expect(
+        screen.queryByText('Delete this card? This cannot be undone.')
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Delete failed.')).toBeInTheDocument();
+  });
+
   it('regenerates answer audio from the in-place editor', async () => {
     startStudySessionMock.mockResolvedValue({
       overview: {

@@ -588,15 +588,20 @@ const useStudyReviewSession = () => {
     if (!currentCard) return;
 
     stopAllAudio();
-    await deleteCardMutation.mutateAsync(currentCard.id);
-    setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-    setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
-    removeCardFromSession(currentCard.id);
-    const nextLength = Math.max(cards.length - 1, 0);
-    setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
-    setEditing(false);
-    setRevealed(false);
-    setSessionError(null);
+    try {
+      await deleteCardMutation.mutateAsync(currentCard.id);
+      setAnsweredCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+      setFailedCardIds((current) => current.filter((cardId) => cardId !== currentCard.id));
+      removeCardFromSession(currentCard.id);
+      const nextLength = Math.max(cards.length - 1, 0);
+      setCurrentIndex((current) => (nextLength === 0 ? 0 : Math.min(current, nextLength - 1)));
+      setEditing(false);
+      setRevealed(false);
+      setSessionError(null);
+    } catch (error) {
+      setSessionError(error instanceof Error ? error.message : 'Unable to delete card.');
+      throw error;
+    }
   }, [cards.length, currentCard, deleteCardMutation, removeCardFromSession, stopAllAudio]);
 
   const handleUndo = useCallback(async () => {

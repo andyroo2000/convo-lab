@@ -257,8 +257,11 @@ const StudyPage = () => {
           onConfirm={() => {
             runBackgroundTask(
               async () => {
-                await reviewSession.deleteCurrentCard();
-                setIsDeleteConfirmOpen(false);
+                try {
+                  await reviewSession.deleteCurrentCard();
+                } finally {
+                  setIsDeleteConfirmOpen(false);
+                }
               },
               {
                 label: 'Study card delete',
