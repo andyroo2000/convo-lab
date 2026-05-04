@@ -12,6 +12,10 @@ env:
   REGISTRY: ghcr.io
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to DigitalOcean (Production)
@@ -41,26 +45,29 @@ jobs:
 
       - name: Deploy to droplet
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} << 'ENDSSH'
-            set -e
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DROPLET_USER }}@${{ secrets.DROPLET_HOST }} bash -s << 'ENDSSH'
+            set -euo pipefail
 
             echo "🚀 Starting ConvoLab production deployment..."
             IMAGE_TAG="${{ inputs.image_tag }}"
+            COMPOSE="docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production"
+            RUNTIME_DIR="/opt/convolab-runtime"
+            ROUTER_DIR="$RUNTIME_DIR/prod-router"
+            ACTIVE_COLOR_FILE="$RUNTIME_DIR/prod-active-color"
+            ROUTER_CONFIG="$ROUTER_DIR/default.conf"
+            ROUTER_TEMPLATE="deploy/prod-router.conf.template"
 
-            # Navigate to deployment directory
             cd /opt/convolab
 
-            # Configure git with token for private repo access
             git config credential.helper store
             echo "https://${{ secrets.GH_PAT }}@github.com" > ~/.git-credentials
             chmod 600 ~/.git-credentials
 
-            # Pull latest code
             echo "📦 Pulling latest code from GitHub..."
             git fetch origin
             git reset --hard origin/main
 
-            # Inject secrets not stored in repo (production)
+            echo "🔧 Updating production environment values..."
             if grep -q '^FISH_AUDIO_API_KEY=' .env.production; then
               sed -i "s#^FISH_AUDIO_API_KEY=.*#FISH_AUDIO_API_KEY=${{ secrets.FISH_AUDIO_API_KEY }}#g" .env.production
             else
@@ -96,89 +103,262 @@ jobs:
               exit 1
             fi
 
-            # Login to GitHub Container Registry
-            echo "🔐 Logging in to GitHub Container Registry..."
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            mkdir -p "$ROUTER_DIR"
+            export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
+            export CONVOLAB_ROUTER_CONFIG="$ROUTER_CONFIG"
 
-            # Free up disk space before pulling new images
-            echo "🧹 Pruning unused Docker data to free space..."
-            docker system prune -af
-
-            # Persist image tag in env file so containers can restart independently
             if grep -q '^CONVOLAB_IMAGE_TAG=' .env.production; then
               sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
             else
               echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.production
             fi
-            # Ensure compose interpolation uses this run's image tag (shell env takes precedence)
-            export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
 
-            # Pull latest images
-            echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
-            docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production pull
+            if grep -q '^CONVOLAB_ROUTER_CONFIG=' .env.production; then
+              sed -i "s#^CONVOLAB_ROUTER_CONFIG=.*#CONVOLAB_ROUTER_CONFIG=$ROUTER_CONFIG#g" .env.production
+            else
+              echo "CONVOLAB_ROUTER_CONFIG=$ROUTER_CONFIG" >> .env.production
+            fi
 
-            # Stop containers first to avoid metadata issues
-            echo "🛑 Stopping existing containers..."
-            # Force-stop any lingering production containers that might block network removal.
-            # Use explicit names instead of grepping docker IDs so stage stays untouched.
-            docker stop \
-              convolab-server \
-              convolab-worker \
-              convolab-postgres \
-              convolab-redis \
-              2>/dev/null || true
-            docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production down --remove-orphans 2>/dev/null || true
-            # Remove stale stopped containers to avoid name conflicts on recreate
-            docker rm -f \
-              convolab-server \
-              convolab-worker \
-              convolab-postgres \
-              convolab-redis \
-              2>/dev/null || true
-
-            # Start containers with environment file
-            echo "♻️  Starting containers..."
-            docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production up -d
-
-            # Wait for server health to avoid external health check flaps
-            echo "⏳ Waiting for convolab-server to become healthy..."
-            for i in {1..60}; do
-              status=$(docker inspect -f '{{.State.Health.Status}}' convolab-server 2>/dev/null || echo "missing")
-              echo "Server health: $status"
-              if [ "$status" = "healthy" ]; then
-                echo "✅ convolab-server is healthy."
-                break
-              fi
-              if [ "$status" = "unhealthy" ]; then
-                echo "❌ convolab-server reported unhealthy. Recent logs:"
-                docker logs --tail=200 convolab-server || true
+            render_router_config() {
+              color="$1"
+              upstream="convolab-server-$color"
+              if [ ! -s "$ROUTER_TEMPLATE" ]; then
+                echo "❌ Router template is missing or empty: $ROUTER_TEMPLATE"
                 exit 1
               fi
-              sleep 5
-            done
+              sed "s#__UPSTREAM_SERVICE__#$upstream#g" "$ROUTER_TEMPLATE" > "$ROUTER_CONFIG.tmp"
+              if ! grep -q "$upstream" "$ROUTER_CONFIG.tmp"; then
+                echo "❌ Generated router config does not reference $upstream"
+                exit 1
+              fi
+              mv "$ROUTER_CONFIG.tmp" "$ROUTER_CONFIG"
+            }
 
-            if [ "$status" != "healthy" ]; then
-              echo "❌ convolab-server did not become healthy in time. Recent logs:"
-              docker logs --tail=200 convolab-server || true
+            write_active_color() {
+              color="$1"
+              mkdir -p "$(dirname "$ACTIVE_COLOR_FILE")"
+              printf '%s\n' "$color" > "$ACTIVE_COLOR_FILE.tmp"
+              mv "$ACTIVE_COLOR_FILE.tmp" "$ACTIVE_COLOR_FILE"
+            }
+
+            wait_for_container_health() {
+              container="$1"
+              for i in {1..60}; do
+                status=$(docker inspect -f '{{.State.Health.Status}}' "$container" 2>/dev/null || echo "missing")
+                echo "$container health: $status"
+                if [ "$status" = "healthy" ]; then
+                  return 0
+                fi
+                if [ "$status" = "missing" ]; then
+                  echo "⚠️ $container does not exist yet; waiting..."
+                fi
+                if [ -z "$status" ]; then
+                  echo "❌ $container has no Docker healthcheck; cannot health-gate it."
+                  return 1
+                fi
+                if [ "$status" = "unhealthy" ]; then
+                  echo "❌ $container reported unhealthy. Recent logs:"
+                  docker logs --tail=200 "$container" || true
+                  return 1
+                fi
+                sleep 5
+              done
+              echo "❌ $container did not become healthy in time. Recent logs:"
+              docker logs --tail=200 "$container" || true
+              return 1
+            }
+
+            verify_public_health() {
+              for i in {1..20}; do
+                if curl -fsS https://convo-lab.com/health > /dev/null; then
+                  echo "✅ Public production health check passed."
+                  return 0
+                fi
+                echo "Public health attempt $i/20 failed; retrying in 3s..."
+                sleep 3
+              done
+              return 1
+            }
+
+            reload_router() {
+              router_running="$(docker inspect -f '{{.State.Running}}' convolab-server 2>/dev/null || echo "false")"
+              if [ "$router_running" = "true" ]; then
+                docker exec convolab-server nginx -t
+                docker exec convolab-server nginx -s reload
+              else
+                $COMPOSE up -d --no-deps router
+                wait_for_container_health convolab-server
+              fi
+            }
+
+            rollback_router() {
+              previous_color="$1"
+              echo "↩️ Rolling router back to $previous_color..."
+              render_router_config "$previous_color"
+              if ! reload_router; then
+                echo "❌ Router rollback reload failed; production may still be on the failed color."
+                return 1
+              fi
+              if ! verify_public_health; then
+                echo "❌ Public health is still failing after rollback to $previous_color."
+                return 1
+              fi
+              write_active_color "$previous_color"
+            }
+
+            restore_legacy_app() {
+              docker rm -f convolab-server 2>/dev/null || true
+              if ! docker rename convolab-server-legacy-cutover convolab-server; then
+                echo "❌ Failed to restore legacy app container name from convolab-server-legacy-cutover."
+                return 1
+              fi
+              if ! docker start convolab-server; then
+                echo "❌ Failed to restart restored legacy app container."
+                return 1
+              fi
+              if ! verify_public_health; then
+                echo "❌ Legacy app was restored, but public health is still failing."
+                return 1
+              fi
+            }
+
+            active_color="blue"
+            if [ -s "$ACTIVE_COLOR_FILE" ]; then
+              active_color="$(cat "$ACTIVE_COLOR_FILE")"
+            fi
+            case "$active_color" in
+              blue) inactive_color="green" ;;
+              green) inactive_color="blue" ;;
+              *)
+                echo "❌ Invalid active color '$active_color' in $ACTIVE_COLOR_FILE"
+                exit 1
+                ;;
+            esac
+
+            echo "Active color: $active_color"
+            echo "Deploying inactive color: $inactive_color"
+
+            echo "🧹 Pruning unused Docker data before memory check and image pull..."
+            docker system prune -af
+
+            available_mb="$(awk '/MemAvailable/ {print int($2 / 1024)}' /proc/meminfo)"
+            echo "Available memory: ${available_mb}MB"
+            # MemAvailable already reflects long-running Postgres, Redis, worker, and
+            # the active web color. Keep at least 2500MB free for the inactive web
+            # color, router work, image extraction, and rollback headroom.
+            if [ "$available_mb" -lt 2500 ]; then
+              echo "❌ Refusing blue/green deploy with less than 2500MB available memory."
               exit 1
             fi
 
-            # Show status
+            echo "🔐 Logging in to GitHub Container Registry..."
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            echo "🐋 Pulling Docker images (tag: $IMAGE_TAG)..."
+            timeout 600 $COMPOSE pull router "server-$inactive_color" worker
+
+            echo "🧱 Ensuring Postgres and Redis stay running..."
+            $COMPOSE up -d postgres redis
+
+            echo "🗄️ Running production migrations before traffic switch..."
+            $COMPOSE run --rm -T --no-deps "server-$inactive_color" npx prisma migrate deploy </dev/null
+
+            echo "🚦 Starting convolab-server-$inactive_color..."
+            $COMPOSE up -d --no-deps "server-$inactive_color"
+            wait_for_container_health "convolab-server-$inactive_color"
+
+            legacy_cutover=false
+            render_router_config "$inactive_color"
+            router_role="$(docker inspect -f '{{index .Config.Labels "convolab.role"}}' convolab-server 2>/dev/null || true)"
+            if [ "$router_role" = "router" ]; then
+              echo "🔀 Reloading router to $inactive_color..."
+              reload_router
+            elif docker inspect convolab-server >/dev/null 2>&1; then
+              echo "🔀 Performing one-time cutover from legacy app container to router..."
+              legacy_cutover=true
+              docker rm -f convolab-server-legacy-cutover 2>/dev/null || true
+              docker rename convolab-server convolab-server-legacy-cutover
+              docker stop convolab-server-legacy-cutover
+              $COMPOSE up -d --no-deps router
+              if ! wait_for_container_health convolab-server; then
+                echo "↩️ Router failed to become healthy; restoring legacy app container..."
+                if ! restore_legacy_app; then
+                  echo "❌ Legacy app restore failed after router health failure."
+                fi
+                exit 1
+              fi
+            else
+              echo "🔀 Starting router for new production stack..."
+              $COMPOSE up -d --no-deps router
+              if ! wait_for_container_health convolab-server; then
+                echo "❌ Router failed to become healthy on the fresh production stack."
+                exit 1
+              fi
+            fi
+
+            if ! verify_public_health; then
+              echo "❌ Public health failed after switching to $inactive_color."
+              if [ "$legacy_cutover" = "true" ]; then
+                echo "↩️ Restoring legacy app container after failed first router cutover..."
+                if ! restore_legacy_app; then
+                  echo "❌ Legacy app restore failed after public health failure."
+                fi
+              else
+                if ! rollback_router "$active_color"; then
+                  echo "❌ Rollback also failed; manual intervention is required."
+                fi
+              fi
+              exit 1
+            fi
+
+            write_active_color "$inactive_color"
+
+            if [ "$legacy_cutover" = "true" ]; then
+              docker rm -f convolab-server-legacy-cutover 2>/dev/null || true
+            fi
+
+            echo "🛑 Stopping old web color if present..."
+            if docker inspect "convolab-server-$active_color" >/dev/null 2>&1; then
+              if docker stop "convolab-server-$active_color"; then
+                docker rm "convolab-server-$active_color" 2>/dev/null || echo "⚠️ Failed to remove stopped old color convolab-server-$active_color."
+              else
+                echo "⚠️ Failed to stop old color convolab-server-$active_color; it may still be running."
+              fi
+            fi
+
+            echo "♻️ Recreating worker after web traffic switch..."
+            $COMPOSE up -d --no-deps --force-recreate worker
+            echo "Worker has no Docker healthcheck; confirming it remains running briefly..."
+            for i in {1..4}; do
+              worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
+              if [ "$worker_state" != "running" ]; then
+                echo "❌ convolab-worker is $worker_state after recreate. Recent logs:"
+                docker logs --tail=200 convolab-worker || true
+                exit 1
+              fi
+              echo "convolab-worker status check $i/4: $worker_state"
+              sleep 5
+            done
+            worker_state="$(docker inspect -f '{{.State.Status}}' convolab-worker 2>/dev/null || echo "missing")"
+            if [ "$worker_state" != "running" ]; then
+              echo "❌ convolab-worker did not stay running after recreate. Recent logs:"
+              docker logs --tail=200 convolab-worker || true
+              exit 1
+            fi
+
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            docker compose -p convolab-prod -f docker-compose.prod.yml --env-file .env.production ps
+            $COMPOSE ps
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-            # Cleanup old images
-            echo "🧹 Cleaning up old images..."
+            echo "🧹 Cleaning up dangling images..."
             docker image prune -f
 
-            echo "✅ Deployment complete!"
+            echo "✅ Production blue/green deployment complete!"
           ENDSSH
 
       - name: Health check
         run: |
           echo "🏥 Running health check..."
-          sleep 30
 
           for i in {1..20}; do
             if curl -f -s https://convo-lab.com/health > /dev/null; then
