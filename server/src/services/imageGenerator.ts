@@ -1,6 +1,7 @@
 import { prisma } from '../db/client.js';
 
 import { generateWithGemini } from './geminiClient.js';
+import { STUDY_IMAGE_PROMPT_STYLE } from './study/candidates/imagePromptGuardrails.js';
 
 interface GenerateImagesRequest {
   episodeId: string;
@@ -81,7 +82,7 @@ async function generateImagePrompt(
   dialogueSection: string,
   _targetLanguage: string
 ): Promise<string> {
-  const prompt = `Based on this story and dialogue section, create a detailed image prompt for a realistic scene:
+  const prompt = `Based on this story and dialogue section, create a detailed image prompt for this scene:
 
 Story: ${sourceText}
 
@@ -89,16 +90,17 @@ Dialogue section: ${dialogueSection}
 
 Generate a detailed image prompt that:
 1. Captures the key visual elements of this scene
-2. Uses photo-realistic style
+2. Uses a ${STUDY_IMAGE_PROMPT_STYLE} style
 3. Shows Japanese people if the language is Japanese
 4. Includes appropriate setting and atmosphere
 5. Is suitable for language learning (clear, engaging, culturally appropriate)
+6. Includes "No text" and avoids visible letters, labels, captions, signs, logos, or UI
 
 Return only the image prompt, no other text.`;
 
   const imagePrompt = await generateWithGemini(
     prompt,
-    'You are an expert at creating detailed, vivid image prompts for realistic scenes.'
+    `You are an expert at creating detailed, vivid image prompts in a ${STUDY_IMAGE_PROMPT_STYLE} style.`
   );
 
   return imagePrompt.trim();

@@ -621,6 +621,9 @@ describe('studyCandidateService', () => {
     expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
       expect.stringContaining('flashcard layout')
     );
+    expect(generateOpenAIImageBufferMock).toHaveBeenCalledWith(
+      expect.stringContaining("construction paper children's book illustration")
+    );
     expect(sharpMock).toHaveBeenCalledWith(Buffer.from('fake-png'));
     expect(webpMock).toHaveBeenCalledWith({ quality: 82 });
     expect(mockPrisma.studyMedia.create).toHaveBeenCalledWith(

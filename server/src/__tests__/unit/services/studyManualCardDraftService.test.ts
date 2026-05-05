@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
+import { STUDY_IMAGE_PROMPT_STYLE } from '../../../services/study/candidates/imagePromptGuardrails.js';
 import {
   generateCandidatePreviewImage,
   getOwnedPreviewMediaIds,
@@ -9,7 +10,6 @@ import {
 import {
   completeManualStudyCardDraft,
   createManualStudyCard,
-  selectStudyImagePromptTreatment,
 } from '../../../services/study/manualCardDraft.js';
 import { createStudyCard } from '../../../services/studySchedulerService.js';
 
@@ -71,6 +71,10 @@ describe('manual study card drafts', () => {
     expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
       expect.stringContaining('"creationKind": "cloze"'),
       expect.stringContaining('{{c1::...}}')
+    );
+    expect(generateStudyCardCandidateJson).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.stringContaining(STUDY_IMAGE_PROMPT_STYLE)
     );
   });
 
@@ -205,12 +209,6 @@ describe('manual study card drafts', () => {
         userId: 'user-1',
         imagePrompt: expect.stringContaining('No text'),
       })
-    );
-  });
-
-  it('uses a stable image prompt treatment for the same seed', () => {
-    expect(selectStudyImagePromptTreatment('曇り cloudy weather')).toBe(
-      selectStudyImagePromptTreatment('曇り cloudy weather')
     );
   });
 
