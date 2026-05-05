@@ -1109,7 +1109,7 @@ describe('Study Routes', () => {
     });
   });
 
-  it('rejects a manual draft when card type does not match creation kind', async () => {
+  it('derives manual draft card type from creation kind when client state is stale', async () => {
     const response = await withMutationCsrf(request(app).post('/study/cards/draft/complete')).send({
       creationKind: 'production-image',
       cardType: 'recognition',
@@ -1117,9 +1117,14 @@ describe('Study Routes', () => {
       answer: {},
     });
 
-    expect(response.status).toBe(400);
-    expect(response.body.message).toBe('cardType must match creationKind.');
-    expect(completeManualStudyCardDraftMock).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(completeManualStudyCardDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: expect.objectContaining({
+        creationKind: 'production-image',
+        cardType: 'production',
+      }),
+    });
   });
 
   it('generates a manual draft image preview for a selected placement', async () => {
@@ -1320,6 +1325,26 @@ describe('Study Routes', () => {
         answerAudioVoiceId: 'ja-JP-Neural2-B',
         answerAudioTextOverride: 'かぶしきがいしゃ',
       },
+    });
+  });
+
+  it('derives manual create card type from creation kind when client state is stale', async () => {
+    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
+
+    const response = await withMutationCsrf(request(app).post('/study/cards')).send({
+      creationKind: 'production-image',
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: { expression: '会社', meaning: 'company' },
+    });
+
+    expect(response.status).toBe(201);
+    expect(createManualStudyCardMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      creationKind: 'production-image',
+      cardType: 'production',
+      prompt: { cueText: 'company' },
+      answer: { expression: '会社', meaning: 'company' },
     });
   });
 
