@@ -1,3 +1,4 @@
+import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -10,6 +11,7 @@ import type { StudyCardFormPayload, StudyCardFormValues } from './studyCardFormM
 
 export const DEFAULT_STUDY_CARD_CREATION_KIND: StudyCardCreationKind = 'text-recognition';
 export const DEFAULT_STUDY_CARD_IMAGE_PLACEMENT: StudyCardImagePlacement = 'none';
+export const DEFAULT_AUDIO_RECOGNITION_VOICE_ID = 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f';
 
 export function cardTypeForStudyCardCreationKind(
   creationKind: StudyCardCreationKind
@@ -25,6 +27,18 @@ export function defaultCreationKindForCardType(cardType: StudyCardType): StudyCa
   if (cardType === 'production') return 'production-text';
   if (cardType === 'cloze') return 'cloze';
   return DEFAULT_STUDY_CARD_CREATION_KIND;
+}
+
+export function defaultVoiceIdForStudyCardCreationKind(
+  creationKind: StudyCardCreationKind
+): string {
+  return creationKind === 'audio-recognition'
+    ? DEFAULT_AUDIO_RECOGNITION_VOICE_ID
+    : DEFAULT_NARRATOR_VOICES.ja;
+}
+
+export function isStudyCardCreationDefaultVoice(voiceId: string): boolean {
+  return voiceId === DEFAULT_NARRATOR_VOICES.ja || voiceId === DEFAULT_AUDIO_RECOGNITION_VOICE_ID;
 }
 
 export function mergeBlankStudyCardFormFields(

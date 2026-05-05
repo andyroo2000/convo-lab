@@ -12,6 +12,7 @@ import {
 import type { StudyCardCandidatePreviewImageResponse } from '@languageflow/shared/src/types';
 
 import StudyCreatePage from '../StudyCreatePage';
+import { DEFAULT_AUDIO_RECOGNITION_VOICE_ID } from '../../components/study/studyCardCreationModel';
 
 async function chooseAnswerAudioVoice(name: RegExp | string) {
   await userEvent.click(screen.getByLabelText('Answer audio voice'));
@@ -467,6 +468,18 @@ describe('StudyCreatePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
     expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Shohei');
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(DEFAULT_NARRATOR_VOICES.ja);
+  });
+
+  it('defaults manual audio-recognition cards to Ren', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await chooseManualCardType(/Audio recognition/);
+
+    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Ren');
+    expect(screen.getByTestId('voice-preview')).toHaveTextContent(
+      DEFAULT_AUDIO_RECOGNITION_VOICE_ID
+    );
   });
 
   it('shows fake progress while candidate generation is pending', () => {

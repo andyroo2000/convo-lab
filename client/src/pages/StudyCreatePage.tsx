@@ -22,6 +22,8 @@ import {
   applyStudyCardImageToPayload,
   cardTypeForStudyCardCreationKind,
   DEFAULT_STUDY_CARD_CREATION_KIND,
+  defaultVoiceIdForStudyCardCreationKind,
+  isStudyCardCreationDefaultVoice,
   mergeBlankStudyCardFormFields,
 } from '../components/study/studyCardCreationModel';
 import { toAssetUrl } from '../components/study/studyCardUtils';
@@ -80,7 +82,7 @@ const StudyCreatePage = () => {
     expectedMs: 40_000,
   });
   const roundedGenerationProgress = Math.round(generationProgress.progress);
-  const { values, setField, setValues, setCardType, reset, buildPayload } = useStudyCardForm({
+  const { values, setField, setValues, reset, buildPayload } = useStudyCardForm({
     initialCardType: 'recognition',
   });
   const manualPreviewImageUrl = toAssetUrl(manualPreviewImage?.url);
@@ -103,7 +105,13 @@ const StudyCreatePage = () => {
   const handleCreationKindChange = (nextCreationKind: StudyCardCreationKind) => {
     const wasProductionImage = creationKind === 'production-image';
     setCreationKind(nextCreationKind);
-    setCardType(cardTypeForStudyCardCreationKind(nextCreationKind));
+    setValues((current) => ({
+      ...current,
+      cardType: cardTypeForStudyCardCreationKind(nextCreationKind),
+      answerAudioVoiceId: isStudyCardCreationDefaultVoice(current.answerAudioVoiceId)
+        ? defaultVoiceIdForStudyCardCreationKind(nextCreationKind)
+        : current.answerAudioVoiceId,
+    }));
     setManualSuccess(null);
     if (nextCreationKind === 'production-image' && manualImagePlacement === 'none') {
       setManualImagePlacement('prompt');
