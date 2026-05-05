@@ -21,7 +21,10 @@ const limitDailyAudioReads = rateLimitStudyRoute({
   key: 'daily-audio-practice-read',
   max: 240,
   windowMs: 60 * 1000,
+  allowAnonymousIdentity: true,
 });
+const DAILY_AUDIO_PRACTICE_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 router.use(limitDailyAudioReads);
 
@@ -62,6 +65,13 @@ function getLocalPracticeDate(timeZone: unknown): Date {
     throw new AppError('Unable to derive practice date.', 500);
   }
   return new Date(`${year}-${month}-${day}T00:00:00.000Z`);
+}
+
+function parsePracticeId(value: string): string {
+  if (!DAILY_AUDIO_PRACTICE_ID_PATTERN.test(value)) {
+    throw new AppError('Daily Audio Practice not found.', 404);
+  }
+  return value;
 }
 
 function serializePractice(
@@ -231,8 +241,9 @@ router.get(
   withDailyAudioAccess(async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) throw new AppError('Authentication required.', 401);
+      const practiceId = parsePracticeId(req.params.id);
       const practice = await prisma.dailyAudioPractice.findFirst({
-        where: { id: req.params.id, userId: req.userId },
+        where: { id: practiceId, userId: req.userId },
         include: { tracks: true },
       });
       if (!practice) throw new AppError('Daily Audio Practice not found.', 404);
@@ -248,8 +259,9 @@ router.get(
   withDailyAudioAccess(async (req: AuthRequest, res, next) => {
     try {
       if (!req.userId) throw new AppError('Authentication required.', 401);
+      const practiceId = parsePracticeId(req.params.id);
       const practice = await prisma.dailyAudioPractice.findFirst({
-        where: { id: req.params.id, userId: req.userId },
+        where: { id: practiceId, userId: req.userId },
         include: { tracks: true },
       });
       if (!practice) throw new AppError('Daily Audio Practice not found.', 404);
@@ -260,7 +272,11 @@ router.get(
         progress =
           typeof job?.progress === 'number'
             ? job.progress
-            : practice.tracks.filter((track) => track.status === 'ready').length * 30;
+            : Math.floor(
+                (practice.tracks.filter((track) => track.status === 'ready').length /
+                  DAILY_AUDIO_TRACKS.length) *
+                  100
+              );
       }
 
       res.json({

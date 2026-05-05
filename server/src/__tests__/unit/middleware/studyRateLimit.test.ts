@@ -196,6 +196,7 @@ describe('studyRateLimit middleware', () => {
       key: 'daily-audio-practice-read',
       max: 240,
       windowMs: 60_000,
+      allowAnonymousIdentity: true,
     });
     const next = vi.fn();
 
@@ -203,5 +204,25 @@ describe('studyRateLimit middleware', () => {
 
     expect(next).toHaveBeenCalledWith();
     expect(incrMock).toHaveBeenCalledWith('rate-limit:study:daily-audio-practice-read:127.0.0.1:0');
+  });
+
+  it('still requires an authenticated identity by default', async () => {
+    ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
+
+    const middleware = rateLimitStudyRoute({
+      key: 'reviews',
+      max: 2,
+      windowMs: 60_000,
+    });
+    const next = vi.fn();
+
+    await middleware({ ip: '127.0.0.1' } as never, {} as Response, next as never);
+
+    expect(next).toHaveBeenCalledWith(
+      expect.objectContaining({
+        statusCode: 401,
+      })
+    );
+    expect(multiMock).not.toHaveBeenCalled();
   });
 });

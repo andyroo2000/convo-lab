@@ -64,20 +64,24 @@ vi.mock('../../../middleware/studyRateLimit.js', () => ({
   rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
 }));
 
+const PRACTICE_ID = '106b92e8-53c9-4e9e-8046-32feca98b8e4';
+
 function createApp() {
   const app = express();
   app.use(expressJson());
   app.use('/api/daily-audio-practice', dailyAudioPracticeRoutes);
-  app.use((err: Error & { statusCode?: number }, _req: Request, res: Response) => {
-    res.status(err.statusCode ?? 500).json({ error: err.message });
-  });
+  app.use(
+    (err: Error & { statusCode?: number }, _req: Request, res: Response, _next: NextFunction) => {
+      res.status(err.statusCode ?? 500).json({ error: err.message });
+    }
+  );
   return app;
 }
 
 function makeTrack(overrides: Record<string, unknown> = {}) {
   return {
     id: 'track-1',
-    practiceId: 'practice-1',
+    practiceId: PRACTICE_ID,
     mode: 'drill',
     status: 'draft',
     title: 'Drills',
@@ -96,7 +100,7 @@ function makeTrack(overrides: Record<string, unknown> = {}) {
 
 function makePractice(overrides: Record<string, unknown> = {}) {
   return {
-    id: 'practice-1',
+    id: PRACTICE_ID,
     userId: 'user-1',
     practiceDate: new Date('2026-05-05T00:00:00.000Z'),
     status: 'draft',
@@ -139,11 +143,11 @@ describe('dailyAudioPractice routes', () => {
       .expect(202);
 
     expect(response.body).toMatchObject({
-      id: 'practice-1',
+      id: PRACTICE_ID,
       status: 'generating',
       practiceDate: '2026-05-05',
     });
-    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith('practice-1');
+    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith(PRACTICE_ID);
   });
 
   it('resumes an existing ready set without enqueuing a duplicate job', async () => {
@@ -176,7 +180,7 @@ describe('dailyAudioPractice routes', () => {
       .send({ timeZone: 'America/New_York' })
       .expect(500);
 
-    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith('practice-1');
+    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith(PRACTICE_ID);
     expect(mockPrisma.dailyAudioPractice.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -209,19 +213,28 @@ describe('dailyAudioPractice routes', () => {
     getJobMock.mockResolvedValue({ progress: 45 });
 
     const response = await request(createApp())
-      .get('/api/daily-audio-practice/practice-1/status')
+      .get(`/api/daily-audio-practice/${PRACTICE_ID}/status`)
       .expect(200);
 
     expect(response.body).toMatchObject({
-      id: 'practice-1',
+      id: PRACTICE_ID,
       status: 'generating',
       progress: 45,
     });
   });
 
+  it('rejects malformed practice ids before querying', async () => {
+    const response = await request(createApp())
+      .get('/api/daily-audio-practice/not-a-practice/status')
+      .expect(404);
+
+    expect(response.body.error).toBe('Daily Audio Practice not found.');
+    expect(mockPrisma.dailyAudioPractice.findFirst).not.toHaveBeenCalled();
+  });
+
   it('lists recent practice sets', async () => {
     mockPrisma.dailyAudioPractice.findMany.mockResolvedValue([
-      makePractice({ id: 'practice-1' }),
+      makePractice({ id: PRACTICE_ID }),
       makePractice({ id: 'practice-2', practiceDate: new Date('2026-05-04T00:00:00.000Z') }),
     ]);
 

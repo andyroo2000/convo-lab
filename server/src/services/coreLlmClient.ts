@@ -1,5 +1,6 @@
 import { generateOpenAIResponseText } from './openAIClient.js';
 
+// ConvoLab is configured for OpenAI gpt-5.5 access; override CORE_GENERATOR_MODEL if unavailable.
 const DEFAULT_CORE_GENERATOR_MODEL = 'gpt-5.5';
 const DEFAULT_CORE_GENERATOR_REASONING_EFFORT = 'medium';
 
