@@ -108,6 +108,25 @@ async function ensureDefaultTracks(practiceId: string) {
   );
 }
 
+async function getUserLanguagePreferences(userId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      preferredStudyLanguage: true,
+      preferredNativeLanguage: true,
+    },
+  });
+
+  if (!user) {
+    throw new AppError('User not found.', 404);
+  }
+
+  return {
+    targetLanguage: user.preferredStudyLanguage || 'ja',
+    nativeLanguage: user.preferredNativeLanguage || 'en',
+  };
+}
+
 router.post(
   '/',
   rateLimitStudyRoute({
@@ -124,6 +143,7 @@ router.post(
       const body = req.body as { timeZone?: unknown; targetDurationMinutes?: unknown };
       const practiceDate = getLocalPracticeDate(body.timeZone);
       const targetDurationMinutes = parseTargetDurationMinutes(body.targetDurationMinutes);
+      const languagePreferences = await getUserLanguagePreferences(req.userId);
 
       const practice = await prisma.dailyAudioPractice.upsert({
         where: {
@@ -137,12 +157,13 @@ router.post(
           practiceDate,
           status: 'draft',
           targetDurationMinutes,
-          targetLanguage: 'ja',
-          nativeLanguage: 'en',
+          targetLanguage: languagePreferences.targetLanguage,
+          nativeLanguage: languagePreferences.nativeLanguage,
         },
         update: {
           targetDurationMinutes,
-          ...(targetDurationMinutes !== DEFAULT_TARGET_DURATION_MINUTES ? { status: 'draft' } : {}),
+          targetLanguage: languagePreferences.targetLanguage,
+          nativeLanguage: languagePreferences.nativeLanguage,
         },
       });
       await ensureDefaultTracks(practice.id);
@@ -152,7 +173,16 @@ router.post(
           where: { id: practice.id },
           data: { status: 'generating', errorMessage: null },
         });
-        await enqueueDailyAudioPracticeJob(practice.id);
+        try {
+          await enqueueDailyAudioPracticeJob(practice.id);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await prisma.dailyAudioPractice.update({
+            where: { id: practice.id },
+            data: { status: 'error', errorMessage: message },
+          });
+          throw error;
+        }
       }
 
       const fullPractice = await prisma.dailyAudioPractice.findUniqueOrThrow({

@@ -26,7 +26,7 @@ vi.mock('../../../db/client.js', () => ({
 }));
 
 vi.mock('../../../services/coreLlmClient.js', () => ({
-  generateCoreLlmText: generateCoreLlmTextMock,
+  generateCoreLlmJsonText: generateCoreLlmTextMock,
 }));
 
 describe('dailyAudioPractice services', () => {

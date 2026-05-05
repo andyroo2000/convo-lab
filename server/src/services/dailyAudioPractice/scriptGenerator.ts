@@ -1,4 +1,4 @@
-import { generateCoreLlmText } from '../coreLlmClient.js';
+import { generateCoreLlmJsonText } from '../coreLlmClient.js';
 import type { LessonScriptUnit } from '../lessonScriptGenerator.js';
 
 import type { DailyAudioLearningAtom, DailyAudioPracticeTrackMode } from './types.js';
@@ -164,7 +164,7 @@ Return JSON only:
   ]
 }`;
   const parsed = parseJsonObject(
-    await generateCoreLlmText(prompt, 'Return valid JSON for an audio-only Japanese dialogue.')
+    await generateCoreLlmJsonText(prompt, 'Return valid JSON for an audio-only Japanese dialogue.')
   );
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
   const units: LessonScriptUnit[] = [
@@ -226,7 +226,7 @@ Return JSON only:
   ]
 }`;
   const parsed = parseJsonObject(
-    await generateCoreLlmText(prompt, 'Return valid JSON for an audio-only Japanese monologue.')
+    await generateCoreLlmJsonText(prompt, 'Return valid JSON for an audio-only Japanese monologue.')
   );
   const units: LessonScriptUnit[] = [
     { type: 'marker', label: 'Daily Audio Practice - Story' },

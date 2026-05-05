@@ -119,6 +119,10 @@ describe('dailyAudioPractice routes', () => {
     mockRequestContext.userId = 'user-1';
     mockRequestContext.role = 'user';
     mockFeatureFlags.flashcardsEnabled = true;
+    mockPrisma.user.findUnique.mockResolvedValue({
+      preferredStudyLanguage: 'ja',
+      preferredNativeLanguage: 'en',
+    });
     mockPrisma.dailyAudioPracticeTrack.upsert.mockResolvedValue(makeTrack());
   });
 
@@ -158,6 +162,30 @@ describe('dailyAudioPractice routes', () => {
 
     expect(response.body.status).toBe('ready');
     expect(enqueueDailyAudioPracticeJobMock).not.toHaveBeenCalled();
+  });
+
+  it('restarts an errored set and rolls back status when enqueue fails', async () => {
+    mockPrisma.dailyAudioPractice.upsert.mockResolvedValue(makePractice({ status: 'error' }));
+    mockPrisma.dailyAudioPractice.update
+      .mockResolvedValueOnce(makePractice({ status: 'generating' }))
+      .mockResolvedValueOnce(makePractice({ status: 'error', errorMessage: 'Redis unavailable' }));
+    enqueueDailyAudioPracticeJobMock.mockRejectedValue(new Error('Redis unavailable'));
+
+    await request(createApp())
+      .post('/api/daily-audio-practice')
+      .send({ timeZone: 'America/New_York' })
+      .expect(500);
+
+    expect(enqueueDailyAudioPracticeJobMock).toHaveBeenCalledWith('practice-1');
+    expect(mockPrisma.dailyAudioPractice.update).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'error',
+          errorMessage: 'Redis unavailable',
+        }),
+      })
+    );
   });
 
   it('returns queue progress for a generating set', async () => {
