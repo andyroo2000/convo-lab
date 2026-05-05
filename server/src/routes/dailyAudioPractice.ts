@@ -18,16 +18,14 @@ const router = Router();
 const DEFAULT_TARGET_DURATION_MINUTES = 30;
 const MIN_TARGET_DURATION_MINUTES = 5;
 const MAX_TARGET_DURATION_MINUTES = 60;
+const limitDailyAudioReads = rateLimitStudyRoute({
+  key: 'daily-audio-practice-read',
+  max: 240,
+  windowMs: 60 * 1000,
+});
+const authenticateDailyAudioRequest: typeof requireAuth = requireAuth;
 
-router.use(
-  rateLimitStudyRoute({
-    key: 'daily-audio-practice-read',
-    max: 240,
-    windowMs: 60 * 1000,
-  }),
-  // lgtm[js/missing-rate-limiting] rateLimitStudyRoute runs immediately before auth.
-  requireAuth
-);
+router.use(limitDailyAudioReads, authenticateDailyAudioRequest);
 router.use(requireFeatureFlag('flashcardsEnabled'));
 
 function parseTargetDurationMinutes(value: unknown): number {
