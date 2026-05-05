@@ -20,6 +20,7 @@ import type {
 } from '@languageflow/shared/src/types.js';
 
 import { AppError } from '../../middleware/errorHandler.js';
+import { IMAGE_PROMPT_IMMERSION_GUIDANCE, IMAGE_PROMPT_STYLE } from '../imagePromptGuidance.js';
 import { generateStudyCardCandidateJson } from '../llmClient.js';
 import { createStudyCard } from '../studySchedulerService.js';
 
@@ -57,14 +58,6 @@ type StudyAnswerTextKey =
   | 'answerAudioVoiceId'
   | 'answerAudioTextOverride';
 
-const IMAGE_PROMPT_TREATMENTS = [
-  'realistic photo with natural light',
-  "construction paper children's book illustration",
-  'vintage National Geographic editorial photo',
-  'soft gouache storybook painting',
-  'Japanese travel magazine still life photo',
-] as const;
-
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -89,18 +82,6 @@ export function getBestManualCardAudioText(answer: StudyAnswerPayload): string |
     parseNullableString(answer.restoredText) ??
     parseNullableString(answer.restoredTextReading)
   );
-}
-
-export function selectStudyImagePromptTreatment(seed: string): string {
-  const normalizedSeed = seed.trim();
-  if (!normalizedSeed) return IMAGE_PROMPT_TREATMENTS[0];
-
-  let hash = 0;
-  for (let index = 0; index < normalizedSeed.length; index += 1) {
-    hash = (hash * 31 + normalizedSeed.charCodeAt(index)) >>> 0;
-  }
-
-  return IMAGE_PROMPT_TREATMENTS[hash % IMAGE_PROMPT_TREATMENTS.length];
 }
 
 function hasText(value: unknown): value is string {
@@ -218,6 +199,7 @@ Rules:
 - Use bracket ruby readings like 会社[かいしゃ] in reading fields.
 - Include concise notes when useful.
 - Always return imagePrompt when the card has enough concrete visual context. Use this style treatment when writing it: ${input.imageTreatment}.
+- ${IMAGE_PROMPT_IMMERSION_GUIDANCE}
 - Image prompts must describe a scene only and include "No text". Never ask for visible labels, captions, signs, words, or flashcard UI.`;
 }
 
@@ -276,7 +258,7 @@ function getImagePromptFallback(input: {
     input.prompt.clozeText ??
     null;
   if (!subject) return null;
-  return `A ${input.imageTreatment} representing ${subject}. No text.`;
+  return `A ${input.imageTreatment} representing ${subject}. ${IMAGE_PROMPT_IMMERSION_GUIDANCE} No text.`;
 }
 
 function assertCreationKindMatchesCardType(
@@ -404,17 +386,7 @@ export async function completeManualStudyCardDraft(input: {
     request.creationKind === 'production-image' && requestedPlacement === 'none'
       ? 'prompt'
       : requestedPlacement;
-  const seed = [
-    request.prompt.cueText,
-    request.prompt.cueMeaning,
-    request.prompt.clozeText,
-    request.answer.expression,
-    request.answer.restoredText,
-    request.answer.meaning,
-  ]
-    .filter(Boolean)
-    .join(' ');
-  const imageTreatment = selectStudyImagePromptTreatment(seed);
+  const imageTreatment = IMAGE_PROMPT_STYLE;
   const rawResponse = await generateStudyCardCandidateJson(
     buildManualDraftUserPrompt(request),
     buildManualDraftSystemInstruction({

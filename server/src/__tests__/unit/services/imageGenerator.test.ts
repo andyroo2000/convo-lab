@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Import after mocking
 import { generateDialogueImages } from '../../../services/imageGenerator.js';
+import {
+  IMAGE_PROMPT_IMMERSION_GUIDANCE,
+  IMAGE_PROMPT_STYLE,
+} from '../../../services/imagePromptGuidance.js';
 
 // Hoisted mocks
 const mockGenerateWithGemini = vi.hoisted(() => vi.fn());
@@ -156,6 +160,23 @@ describe('imageGenerator', () => {
 
       expect(mockGenerateWithGemini).toHaveBeenCalledWith(
         expect.stringContaining('こんにちは'),
+        expect.any(String)
+      );
+    });
+
+    it('should apply shared style and Japan immersion guidance to image prompt generation', async () => {
+      await generateDialogueImages({
+        episodeId: 'episode-456',
+        dialogueId: 'dialogue-123',
+        imageCount: 1,
+      });
+
+      expect(mockGenerateWithGemini).toHaveBeenCalledWith(
+        expect.stringContaining(IMAGE_PROMPT_STYLE),
+        expect.stringContaining(IMAGE_PROMPT_STYLE)
+      );
+      expect(mockGenerateWithGemini).toHaveBeenCalledWith(
+        expect.stringContaining(IMAGE_PROMPT_IMMERSION_GUIDANCE),
         expect.any(String)
       );
     });

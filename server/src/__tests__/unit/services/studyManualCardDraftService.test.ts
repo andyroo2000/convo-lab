@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  IMAGE_PROMPT_IMMERSION_GUIDANCE,
+  IMAGE_PROMPT_STYLE,
+} from '../../../services/imagePromptGuidance.js';
 import { generateStudyCardCandidateJson } from '../../../services/llmClient.js';
 import {
   generateCandidatePreviewImage,
@@ -9,7 +13,6 @@ import {
 import {
   completeManualStudyCardDraft,
   createManualStudyCard,
-  selectStudyImagePromptTreatment,
 } from '../../../services/study/manualCardDraft.js';
 import { createStudyCard } from '../../../services/studySchedulerService.js';
 
@@ -72,6 +75,9 @@ describe('manual study card drafts', () => {
       expect.stringContaining('"creationKind": "cloze"'),
       expect.stringContaining('{{c1::...}}')
     );
+    const systemInstruction = vi.mocked(generateStudyCardCandidateJson).mock.calls[0]?.[1] ?? '';
+    expect(systemInstruction).toContain(IMAGE_PROMPT_STYLE);
+    expect(systemInstruction).toContain(IMAGE_PROMPT_IMMERSION_GUIDANCE);
   });
 
   it('fills only blank draft fields when the LLM returns nulls or conflicting values', async () => {
@@ -205,12 +211,6 @@ describe('manual study card drafts', () => {
         userId: 'user-1',
         imagePrompt: expect.stringContaining('No text'),
       })
-    );
-  });
-
-  it('uses a stable image prompt treatment for the same seed', () => {
-    expect(selectStudyImagePromptTreatment('曇り cloudy weather')).toBe(
-      selectStudyImagePromptTreatment('曇り cloudy weather')
     );
   });
 
