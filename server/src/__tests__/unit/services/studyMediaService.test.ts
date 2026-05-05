@@ -459,6 +459,124 @@ describe('studyMediaService', () => {
     expect(card.answer.answerAudio?.id).toBe('media-ren-new');
   });
 
+  it('does not sync prompt audio when a recognition prompt also has text', async () => {
+    const promptAudio = {
+      id: 'media-prompt',
+      filename: 'prompt.mp3',
+      url: '/api/study/media/media-prompt',
+      mediaKind: 'audio',
+      source: 'generated',
+    };
+    const oldAnswerAudio = {
+      id: 'media-answer-old',
+      filename: 'answer-old.mp3',
+      url: '/api/study/media/media-answer-old',
+      mediaKind: 'audio',
+      source: 'generated',
+    };
+    const newAnswerAudio = {
+      id: 'media-answer-new',
+      filename: 'card-text-recognition.mp3',
+      url: '/api/study/media/media-answer-new',
+      mediaKind: 'audio',
+      source: 'generated',
+    };
+
+    mockPrisma.studyCard.findFirst
+      .mockResolvedValueOnce({
+        id: 'card-text-recognition',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        answerAudioSource: 'generated',
+        promptAudioMediaId: 'media-prompt',
+        answerAudioMediaId: 'media-answer-old',
+        promptJson: { cueText: '会社', cueAudio: promptAudio },
+        answerJson: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
+          answerAudio: oldAnswerAudio,
+        },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      })
+      .mockResolvedValueOnce({
+        id: 'card-text-recognition',
+        userId: 'user-1',
+        noteId: 'note-1',
+        cardType: 'recognition',
+        queueState: 'review',
+        answerAudioSource: 'generated',
+        promptAudioMediaId: 'media-prompt',
+        answerAudioMediaId: 'media-answer-new',
+        promptJson: { cueText: '会社', cueAudio: promptAudio },
+        answerJson: {
+          expression: '会社',
+          meaning: 'company',
+          answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
+          answerAudio: newAnswerAudio,
+        },
+        schedulerStateJson: {
+          due: new Date('2026-04-12T00:00:00.000Z').toISOString(),
+          stability: 10,
+          difficulty: 4,
+          elapsed_days: 4,
+          scheduled_days: 10,
+          learning_steps: 0,
+          reps: 6,
+          lapses: 1,
+          state: 2,
+          last_review: new Date('2026-04-08T00:00:00.000Z').toISOString(),
+        },
+        createdAt: new Date('2026-04-01T00:00:00.000Z'),
+        updatedAt: new Date('2026-04-12T00:00:00.000Z'),
+        note: {},
+      });
+    mockPrisma.studyCard.updateMany.mockResolvedValue({ count: 1 });
+    mockPrisma.studyCard.findUnique.mockResolvedValue({
+      id: 'card-text-recognition',
+      userId: 'user-1',
+      cardType: 'recognition',
+      answerAudioSource: 'generated',
+      promptJson: { cueText: '会社', cueAudio: promptAudio },
+      answerJson: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
+        answerAudio: oldAnswerAudio,
+      },
+    });
+    mockPrisma.studyMedia.create.mockResolvedValue({ id: 'media-answer-new' });
+    mockPrisma.studyCard.update.mockResolvedValue({});
+
+    const card = await regenerateStudyCardAnswerAudio({
+      userId: 'user-1',
+      cardId: 'card-text-recognition',
+      answerAudioVoiceId: 'fishaudio:694e06f2dcc44e4297961d68d6a98313',
+    });
+
+    const updateData = mockPrisma.studyCard.update.mock.calls[0]?.[0].data;
+    expect(updateData).not.toHaveProperty('promptJson');
+    expect(updateData).not.toHaveProperty('promptAudioMediaId');
+    expect(card.prompt.cueAudio?.id).toBe('media-prompt');
+    expect(card.answer.answerAudio?.id).toBe('media-answer-new');
+  });
+
   it('renders existing mismatched audio-recognition cards with answer audio on the front', async () => {
     const oldPromptAudio = {
       id: 'media-shohei',
