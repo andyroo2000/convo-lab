@@ -409,7 +409,6 @@ describe('useStudyReviewSession', () => {
     });
     result.current.answerAudioRef.current = {
       play: playMock,
-      togglePlayPause: vi.fn(),
       stop: vi.fn(),
     };
     act(() => {

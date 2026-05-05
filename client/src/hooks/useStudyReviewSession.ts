@@ -662,8 +662,8 @@ const useStudyReviewSession = () => {
       return false;
     }
 
-    runBackgroundTask(() => answerAudioRef.current?.togglePlayPause(), {
-      label: 'Study answer-audio keyboard toggle',
+    runBackgroundTask(() => answerAudioRef.current?.play(), {
+      label: 'Study answer-audio keyboard replay',
     });
     return true;
   }, [answerAudioRef, editing, revealed, runBackgroundTask]);
