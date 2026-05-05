@@ -18,10 +18,11 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { STUDY_NEW_CARDS_PER_DAY_DEFAULT } from '@languageflow/shared/src/studyConstants';
-import type { StudyNewCardQueueItem } from '@languageflow/shared/src/types';
+import type { StudyCardSummary, StudyNewCardQueueItem } from '@languageflow/shared/src/types';
 import { GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import StudyCandidateCardPreviewModal from '../components/study/StudyCandidatePreview';
 import { useFeatureFlags } from '../hooks/useFeatureFlags';
 import {
   getStudyNewCardQueue,
@@ -34,10 +35,18 @@ import useStudyBackgroundTask from '../hooks/useStudyBackgroundTask';
 
 interface SortableQueueRowProps {
   item: StudyNewCardQueueItem;
+  onPreview: (item: StudyNewCardQueueItem) => void;
   ordinal: number;
 }
 
-const SortableQueueRow = ({ item, ordinal }: SortableQueueRowProps) => {
+const CLOZE_MARKER_PATTERN = /\{\{c\d+::([^}:]+)(?:::[^}]*)?}}/g;
+
+const toClozePromptDisplay = (text: string) => text.replace(CLOZE_MARKER_PATTERN, '[...]');
+
+const toRestoredClozeText = (text: string) =>
+  text.replace(CLOZE_MARKER_PATTERN, (_match, clozeText: string) => clozeText);
+
+const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) => {
   const { t } = useTranslation('study');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -79,10 +88,70 @@ const SortableQueueRow = ({ item, ordinal }: SortableQueueRowProps) => {
           {item.meaning ? (
             <p className="mt-1 break-words text-sm text-gray-600">{item.meaning}</p>
           ) : null}
+          <button
+            type="button"
+            onClick={() => onPreview(item)}
+            className="mt-3 rounded-full border border-gray-300 px-3 py-1.5 text-sm font-medium text-navy hover:bg-cream"
+          >
+            {t('create.previewCard')}
+          </button>
         </div>
       </div>
     </li>
   );
+};
+
+const toQueuePreviewCard = (item: StudyNewCardQueueItem): StudyCardSummary => {
+  if (item.cardType === 'cloze') {
+    return {
+      id: item.id,
+      noteId: item.noteId,
+      cardType: 'cloze',
+      prompt: {
+        clozeText: item.displayText,
+        clozeDisplayText: toClozePromptDisplay(item.displayText),
+      },
+      answer: {
+        restoredText: toRestoredClozeText(item.displayText),
+        meaning: item.meaning,
+      },
+      state: {
+        dueAt: null,
+        introducedAt: null,
+        queueState: 'new',
+        scheduler: null,
+        source: {},
+      },
+      answerAudioSource: 'missing',
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    };
+  }
+
+  const prompt = { cueText: item.displayText };
+  const answer = {
+    expression: item.displayText,
+    meaning: item.meaning,
+  };
+
+  return {
+    id: item.id,
+    noteId: item.noteId,
+    cardType: item.cardType,
+    prompt:
+      item.cardType === 'production' ? { cueMeaning: item.meaning ?? item.displayText } : prompt,
+    answer,
+    state: {
+      dueAt: null,
+      introducedAt: null,
+      queueState: 'new',
+      scheduler: null,
+      source: {},
+    },
+    answerAudioSource: 'missing',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
 };
 
 const StudySettingsPage = () => {
@@ -98,6 +167,7 @@ const StudySettingsPage = () => {
   const [loadMorePending, setLoadMorePending] = useState(false);
   const [settingsSavedVisible, setSettingsSavedVisible] = useState(false);
   const [settingsSaveFailedVisible, setSettingsSaveFailedVisible] = useState(false);
+  const [previewCard, setPreviewCard] = useState<StudyCardSummary | null>(null);
 
   const settingsQuery = useStudySettings(enabled);
   const updateSettingsMutation = useUpdateStudySettings();
@@ -311,7 +381,12 @@ const StudySettingsPage = () => {
           <SortableContext items={queueIds} strategy={verticalListSortingStrategy}>
             <ol className="space-y-2">
               {queueItems.map((item, index) => (
-                <SortableQueueRow key={item.id} item={item} ordinal={index + 1} />
+                <SortableQueueRow
+                  key={item.id}
+                  item={item}
+                  ordinal={index + 1}
+                  onPreview={(nextItem) => setPreviewCard(toQueuePreviewCard(nextItem))}
+                />
               ))}
             </ol>
           </SortableContext>
@@ -345,6 +420,9 @@ const StudySettingsPage = () => {
           >
             {loadMorePending ? t('settings.loadingMore') : t('settings.loadMore')}
           </button>
+        ) : null}
+        {previewCard ? (
+          <StudyCandidateCardPreviewModal card={previewCard} onClose={() => setPreviewCard(null)} />
         ) : null}
       </section>
     </div>

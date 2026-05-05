@@ -77,4 +77,51 @@ describe('StudyCardFormFields', () => {
 
     expect(onCardTypeChange).toHaveBeenCalledWith('production');
   });
+
+  it('uses a rich dropdown for manual creation kinds', async () => {
+    const user = userEvent.setup();
+    const onCreationKindChange = vi.fn();
+
+    render(
+      <StudyCardFormFields
+        values={{ ...baseValues, cardType: 'recognition' }}
+        idPrefix="test-study-card"
+        includeCardTypeSelect
+        creationKind="text-recognition"
+        onCreationKindChange={onCreationKindChange}
+        onFieldChange={vi.fn()}
+      />
+    );
+
+    const cardTypeSelect = screen.getByRole('combobox', { name: 'Card type' });
+    expect(cardTypeSelect).toHaveTextContent('Text recognition');
+    expect(cardTypeSelect).toHaveTextContent('Read Japanese, recall meaning');
+    expect(screen.queryByRole('radiogroup', { name: 'Card type' })).not.toBeInTheDocument();
+
+    await user.click(cardTypeSelect);
+    await user.click(screen.getByRole('option', { name: /Production from image/ }));
+
+    expect(onCreationKindChange).toHaveBeenCalledWith('production-image');
+  });
+
+  it('supports keyboard selection in the manual creation kind dropdown', async () => {
+    const user = userEvent.setup();
+    const onCreationKindChange = vi.fn();
+
+    render(
+      <StudyCardFormFields
+        values={{ ...baseValues, cardType: 'recognition' }}
+        idPrefix="test-study-card"
+        includeCardTypeSelect
+        creationKind="text-recognition"
+        onCreationKindChange={onCreationKindChange}
+        onFieldChange={vi.fn()}
+      />
+    );
+
+    screen.getByRole('combobox', { name: 'Card type' }).focus();
+    await user.keyboard('{Enter}{ArrowDown}{Enter}');
+
+    expect(onCreationKindChange).toHaveBeenCalledWith('audio-recognition');
+  });
 });

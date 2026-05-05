@@ -1,4 +1,12 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type MouseEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 
 import useWarmAudioCache from '../../hooks/useWarmAudioCache';
@@ -64,6 +72,9 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
 
       try {
         setErrorMessage(null);
+        if (audio.ended) {
+          audio.currentTime = 0;
+        }
         // Autoplay and manual replay intentionally share the same error surface because
         // browsers like iOS Safari may reject play() until media is user-gesture eligible.
         await audio.play();
@@ -147,7 +158,8 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
       setErrorMessage(null);
     }, [url]);
 
-    const handleClick = () => {
+    const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
       // Click rendering can use React state; the imperative Space-key toggle uses playingRef
       // so it does not drift when a key handler closes over a previous render.
       if (playing) {
@@ -179,6 +191,9 @@ const StudyAudioPlayer = forwardRef<AudioPlayerHandle, StudyAudioPlayerProps>(
             <button
               type="button"
               onClick={handleClick}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+              }}
               aria-label={label}
               data-testid={testId ? `${testId}-button` : undefined}
               className={`inline-flex items-center justify-center rounded-full border border-gray-400 bg-white text-navy shadow-sm transition hover:border-navy hover:shadow-md ${buttonSizeClasses}`}

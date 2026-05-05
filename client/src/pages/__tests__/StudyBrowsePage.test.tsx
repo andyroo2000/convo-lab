@@ -422,6 +422,22 @@ describe('StudyBrowsePage', () => {
     });
   });
 
+  it('opens a reusable preview modal for the selected browse card', async () => {
+    renderPage();
+
+    await userEvent.click(getNoteRow('会社'));
+    await userEvent.click(screen.getByRole('button', { name: 'Preview card' }));
+
+    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
+    expect(screen.getByText('Prompt side')).toBeInTheDocument();
+    expect(screen.getAllByText('会社').length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+    expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(resolveStudyCardPitchAccentMock.mock.calls[0]?.[0]).toBe('card-1');
+    });
+  });
+
   it('sends the device timezone when setting a browse card due tomorrow', async () => {
     renderPage();
 
