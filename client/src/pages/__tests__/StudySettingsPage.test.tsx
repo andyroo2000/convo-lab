@@ -188,6 +188,42 @@ describe('StudySettingsPage', () => {
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
   });
 
+  it('restores cloze text on the new-card queue preview answer side', async () => {
+    useStudyNewCardQueueMock.mockReturnValue({
+      data: {
+        items: [
+          {
+            id: 'card-cloze',
+            noteId: 'note-cloze',
+            cardType: 'cloze',
+            displayText: '試合に{{c1::勝ちました}}。',
+            meaning: 'I won the match.',
+            queuePosition: 1,
+            createdAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+            updatedAt: new Date('2026-04-01T00:00:00.000Z').toISOString(),
+          },
+        ],
+        total: 1,
+        limit: 100,
+        nextCursor: null,
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    renderPage();
+
+    const firstRow = screen.getAllByTestId('study-new-queue-row')[0];
+    await userEvent.click(within(firstRow).getByRole('button', { name: 'Preview card' }));
+
+    expect(await screen.findByRole('heading', { name: 'Card preview' })).toBeInTheDocument();
+    expect(screen.getByText('試合に[...]。')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Answer' }));
+
+    expect(screen.getByText('試合に勝ちました。')).toBeInTheDocument();
+  });
+
   it('shows a settings load error without blocking the queue', () => {
     useStudySettingsMock.mockReturnValue({
       data: undefined,

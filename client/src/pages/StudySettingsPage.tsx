@@ -39,6 +39,13 @@ interface SortableQueueRowProps {
   ordinal: number;
 }
 
+const CLOZE_MARKER_PATTERN = /\{\{c\d+::([^}:]+)(?:::[^}]*)?}}/g;
+
+const toClozePromptDisplay = (text: string) => text.replace(CLOZE_MARKER_PATTERN, '[...]');
+
+const toRestoredClozeText = (text: string) =>
+  text.replace(CLOZE_MARKER_PATTERN, (_match, clozeText: string) => clozeText);
+
 const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) => {
   const { t } = useTranslation('study');
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -95,20 +102,37 @@ const SortableQueueRow = ({ item, onPreview, ordinal }: SortableQueueRowProps) =
 };
 
 const toQueuePreviewCard = (item: StudyNewCardQueueItem): StudyCardSummary => {
-  const prompt =
-    item.cardType === 'cloze'
-      ? { clozeText: item.displayText, clozeHint: item.meaning }
-      : { cueText: item.displayText };
-  const answer =
-    item.cardType === 'cloze'
-      ? {
-          restoredText: item.displayText,
-          meaning: item.meaning,
-        }
-      : {
-          expression: item.displayText,
-          meaning: item.meaning,
-        };
+  if (item.cardType === 'cloze') {
+    return {
+      id: item.id,
+      noteId: item.noteId,
+      cardType: 'cloze',
+      prompt: {
+        clozeText: item.displayText,
+        clozeDisplayText: toClozePromptDisplay(item.displayText),
+      },
+      answer: {
+        restoredText: toRestoredClozeText(item.displayText),
+        meaning: item.meaning,
+      },
+      state: {
+        dueAt: null,
+        introducedAt: null,
+        queueState: 'new',
+        scheduler: null,
+        source: {},
+      },
+      answerAudioSource: 'missing',
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
+    };
+  }
+
+  const prompt = { cueText: item.displayText };
+  const answer = {
+    expression: item.displayText,
+    meaning: item.meaning,
+  };
 
   return {
     id: item.id,
