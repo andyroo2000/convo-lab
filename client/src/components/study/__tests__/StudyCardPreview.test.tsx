@@ -153,6 +153,29 @@ describe('StudyCardPreview', () => {
     );
   });
 
+  it('renders derived cloze blanks instead of raw manual cloze markup', () => {
+    render(
+      <StudyCardFace
+        side="front"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '試合に{{c1::勝ちました}}。',
+            clozeDisplayText: '試合に{{c1::勝ちました}}。',
+          },
+          answer: {
+            restoredText: '試合に勝ちました。',
+            meaning: 'I won the match.',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('試合に[...]。')).toBeInTheDocument();
+    expect(screen.queryByText(/{{c1::/)).not.toBeInTheDocument();
+  });
+
   it('keeps helper meaning hidden on media-led prompt cards', () => {
     render(
       <StudyCardFace

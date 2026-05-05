@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import { normalizeClozePayloadFields } from '@languageflow/shared/src/studyCloze';
 import type {
   StudyAnswerPayload,
   StudyCardSummary,
@@ -94,22 +95,27 @@ export const buildStudyCardFormPayload = (
   card?: StudyCardSummary
 ): StudyCardFormPayload => {
   if (values.cardType === 'cloze') {
-    return {
-      cardType: 'cloze',
-      prompt: {
+    const normalized = normalizeClozePayloadFields(
+      {
         ...(card?.prompt ?? {}),
         clozeText: values.cueText,
         clozeHint: emptyToNull(values.cueMeaning),
       },
-      answer: {
-        restoredText: values.answerExpression,
+      {
+        restoredText: emptyToNull(values.answerExpression),
         // Cloze cards display ruby from restoredTextReading; non-cloze cards use expressionReading.
         restoredTextReading: emptyToNull(values.answerReading),
         meaning: emptyToNull(values.answerMeaning),
         answerAudioVoiceId: emptyToNull(values.answerAudioVoiceId),
         answerAudioTextOverride: emptyToNull(values.answerAudioTextOverride),
         notes: emptyToNull(values.notes),
-      },
+      }
+    );
+
+    return {
+      cardType: 'cloze',
+      prompt: normalized.prompt,
+      answer: normalized.answer,
     };
   }
 

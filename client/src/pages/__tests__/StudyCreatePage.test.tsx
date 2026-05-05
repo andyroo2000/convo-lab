@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { BrowserRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -324,6 +324,23 @@ describe('StudyCreatePage', () => {
 
     expect(screen.getByText('Answer side')).toBeInTheDocument();
     expect(screen.getAllByText('company').length).toBeGreaterThan(0);
+  });
+
+  it('previews manual cloze bracket shorthand as a hidden blank', async () => {
+    renderPage();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
+    await chooseManualCardType(/Cloze/);
+    fireEvent.change(screen.getByLabelText('Cloze text'), {
+      target: { value: '試合に[勝ちました]。' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Preview card' }));
+
+    const dialog = screen.getByRole('dialog', { name: 'Card preview' });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText('試合に[...]。')).toBeInTheDocument();
+    expect(within(dialog).queryByText('試合に[勝ちました]。')).not.toBeInTheDocument();
+    expect(within(dialog).queryByText(/{{c1::/)).not.toBeInTheDocument();
   });
 
   it('auto-generates the image preview when filling production-from-image', async () => {

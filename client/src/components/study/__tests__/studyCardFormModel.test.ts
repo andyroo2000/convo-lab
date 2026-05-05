@@ -127,7 +127,7 @@ describe('studyCardFormModel', () => {
   it('builds a cloze payload with null-normalized hint and notes', () => {
     const payload = buildStudyCardFormPayload({
       cardType: 'cloze',
-      cueText: 'お風呂に虫{{c1::がいる}}！',
+      cueText: 'お風呂に虫[がいる]！',
       cueReading: '',
       cueMeaning: '',
       answerExpression: 'お風呂に虫がいる！',
@@ -144,6 +144,9 @@ describe('studyCardFormModel', () => {
       cardType: 'cloze',
       prompt: {
         clozeText: 'お風呂に虫{{c1::がいる}}！',
+        clozeDisplayText: 'お風呂に虫[...]！',
+        clozeAnswerText: 'がいる',
+        clozeResolvedHint: null,
         clozeHint: null,
       },
       answer: {

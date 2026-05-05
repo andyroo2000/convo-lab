@@ -3,6 +3,7 @@ import { createRequire } from 'module';
 import path from 'path';
 import * as zlib from 'zlib';
 
+import { normalizeLooseClozeText } from '@languageflow/shared/src/studyCloze.js';
 import { serializeStudyFsrsCard as serializeFsrsCard } from '@languageflow/shared/src/studyFsrs.js';
 import type {
   StudyAnswerPayload,
@@ -519,7 +520,7 @@ export async function normalizeClozePayload(params: {
   answer: StudyAnswerPayload;
 }) {
   const fallbackHint = stripHtml(params.prompt.clozeHint ?? params.prompt.clozeResolvedHint ?? '');
-  const rawClozeText = params.prompt.clozeText ?? '';
+  const rawClozeText = normalizeLooseClozeText(params.prompt.clozeText) ?? '';
   const hasAnkiClozeMarkup = /\{\{c\d+::/.test(rawClozeText);
 
   let clozeDisplayText = params.prompt.clozeDisplayText ?? null;
