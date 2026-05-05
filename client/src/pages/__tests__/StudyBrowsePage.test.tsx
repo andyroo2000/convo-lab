@@ -6,6 +6,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import StudyBrowsePage from '../StudyBrowsePage';
 
+async function chooseAnswerAudioVoice(name: RegExp | string) {
+  await userEvent.click(screen.getByLabelText('Answer audio voice'));
+  await userEvent.click(await screen.findByRole('option', { name }));
+}
+
 const {
   useStudyBrowserMock,
   useStudyBrowserNoteDetailMock,
@@ -90,7 +95,7 @@ const noteDetailById = {
         answer: {
           expression: '会社',
           meaning: 'company',
-          answerAudioVoiceId: 'ja-JP-Neural2-D',
+          answerAudioVoiceId: 'ja-JP-Wavenet-D',
           answerAudioTextOverride: 'かいしゃ',
           answerImage: {
             id: 'image-1',
@@ -449,7 +454,7 @@ describe('StudyBrowsePage', () => {
       'src',
       'https://example.com/company.webp'
     );
-    expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
+    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Naoki');
     expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
 
     await userEvent.clear(screen.getByLabelText('Answer meaning'));
@@ -473,7 +478,7 @@ describe('StudyBrowsePage', () => {
 
     await userEvent.click(getNoteRow('会社'));
     expect(screen.getByText('No card audio is available yet.')).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
+    await chooseAnswerAudioVoice(/Sato/);
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
@@ -481,7 +486,7 @@ describe('StudyBrowsePage', () => {
     await waitFor(() => {
       expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
         cardId: 'card-1',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'fishaudio:875668667eb94c20b09856b971d9ca2f',
         answerAudioTextOverride: 'かぶしきがいしゃ',
       });
     });

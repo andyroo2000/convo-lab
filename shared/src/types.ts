@@ -242,6 +242,7 @@ export interface StudyCardCandidatePreviewImageRequest {
 
 export interface StudyCardCandidatePreviewImageResponse {
   prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
   previewImage: StudyMediaRef;
   imagePrompt: string;
 }

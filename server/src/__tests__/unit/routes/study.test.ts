@@ -936,6 +936,10 @@ describe('Study Routes', () => {
           source: 'generated',
         },
       },
+      answer: {
+        expression: '曇り',
+        meaning: 'cloudy weather',
+      },
       previewImage: {
         id: 'image-regenerated',
         filename: 'candidate-regenerated.png',
@@ -1194,7 +1198,7 @@ describe('Study Routes', () => {
       answer: {
         expression: '会社',
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'ja-JP-Wavenet-D',
         answerAudioTextOverride: 'かいしゃ',
       },
     });
@@ -1206,7 +1210,7 @@ describe('Study Routes', () => {
       answer: {
         expression: '会社',
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'ja-JP-Wavenet-D',
         answerAudioTextOverride: 'かいしゃ',
       },
     });
@@ -1216,7 +1220,7 @@ describe('Study Routes', () => {
       answer: {
         expression: '会社',
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
+        answerAudioVoiceId: 'ja-JP-Neural2-B',
         answerAudioTextOverride: 'かぶしきがいしゃ',
       },
     });
@@ -1228,7 +1232,7 @@ describe('Study Routes', () => {
       answer: {
         expression: '会社',
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-D',
+        answerAudioVoiceId: 'ja-JP-Neural2-B',
         answerAudioTextOverride: 'かぶしきがいしゃ',
       },
     });
@@ -1257,6 +1261,46 @@ describe('Study Routes', () => {
 
     expect(regenerateResponse.status).toBe(400);
     expect(regenerateStudyCardAnswerAudioMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts known legacy answer-audio voices that are hidden from the picker', async () => {
+    createStudyCardMock.mockResolvedValue({ id: 'created-card' });
+    regenerateStudyCardAnswerAudioMock.mockResolvedValue({
+      id: 'card-1',
+      answerAudioSource: 'generated',
+    });
+
+    const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
+      cardType: 'recognition',
+      prompt: { cueText: 'company' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudioVoiceId: 'ja-JP-Neural2-D',
+      },
+    });
+
+    expect(createResponse.status).toBe(201);
+    expect(createStudyCardMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answer: expect.objectContaining({
+          answerAudioVoiceId: 'ja-JP-Neural2-D',
+        }),
+      })
+    );
+
+    const regenerateResponse = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-answer-audio')
+    ).send({
+      answerAudioVoiceId: 'ja-JP-Neural2-D',
+    });
+
+    expect(regenerateResponse.status).toBe(200);
+    expect(regenerateStudyCardAnswerAudioMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answerAudioVoiceId: 'ja-JP-Neural2-D',
+      })
+    );
   });
 
   it('rejects oversized answer-audio text overrides before create or regenerate', async () => {
@@ -1294,7 +1338,7 @@ describe('Study Routes', () => {
     const response = await withMutationCsrf(
       request(app).post('/study/cards/card-1/regenerate-answer-audio')
     ).send({
-      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioVoiceId: 'ja-JP-Wavenet-D',
       answerAudioTextOverride: 'かいしゃ',
     });
 
@@ -1302,7 +1346,7 @@ describe('Study Routes', () => {
     expect(regenerateStudyCardAnswerAudioMock).toHaveBeenCalledWith({
       userId: 'user-1',
       cardId: 'card-1',
-      answerAudioVoiceId: 'ja-JP-Neural2-C',
+      answerAudioVoiceId: 'ja-JP-Wavenet-D',
       answerAudioTextOverride: 'かいしゃ',
     });
   });

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
@@ -49,5 +50,31 @@ describe('StudyCardFormFields', () => {
 
     expect(screen.queryByLabelText('Answer audio voice')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Phonetic audio override')).not.toBeInTheDocument();
+  });
+
+  it('uses custom card type options instead of a native select', async () => {
+    const user = userEvent.setup();
+    const onCardTypeChange = vi.fn();
+
+    render(
+      <StudyCardFormFields
+        values={{ ...baseValues, cardType: 'recognition' }}
+        idPrefix="test-study-card"
+        includeCardTypeSelect
+        onCardTypeChange={onCardTypeChange}
+        onFieldChange={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('radiogroup', { name: 'Card type' })).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Card type' })).not.toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Recognition' })).toHaveAttribute(
+      'aria-checked',
+      'true'
+    );
+
+    await user.click(screen.getByRole('radio', { name: 'Production' }));
+
+    expect(onCardTypeChange).toHaveBeenCalledWith('production');
   });
 });

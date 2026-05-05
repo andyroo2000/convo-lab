@@ -255,6 +255,15 @@ export const StudyCardFace = ({
             testId="study-answer-audio"
           />
         ) : null}
+        {answerImageUrl ? (
+          <img
+            src={answerImageUrl}
+            alt="Answer visual"
+            className={`mx-auto object-contain sm:max-h-72 ${
+              compactMobile ? 'max-h-[30dvh] rounded-lg' : 'max-h-[34dvh] rounded-xl'
+            }`}
+          />
+        ) : null}
         <StudyPitchAccentPanel card={card} enabled />
         <div className="mx-auto h-px w-full max-w-3xl bg-gray-400/80" />
         {card.answer.meaning ? (

@@ -13,6 +13,11 @@ import type { StudyCardCandidatePreviewImageResponse } from '@languageflow/share
 
 import StudyCreatePage from '../StudyCreatePage';
 
+async function chooseAnswerAudioVoice(name: RegExp | string) {
+  await userEvent.click(screen.getByLabelText('Answer audio voice'));
+  await userEvent.click(await screen.findByRole('option', { name }));
+}
+
 const {
   commitCandidatesMock,
   commitCandidatesState,
@@ -113,6 +118,26 @@ const productionCandidate = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+const recognitionCandidate = (overrides: Record<string, unknown> = {}) => ({
+  clientId: 'recognize-1',
+  candidateKind: 'text-recognition',
+  cardType: 'recognition',
+  prompt: { cueText: 'company', cueMeaning: 'company' },
+  answer: {
+    expression: '会社',
+    expressionReading: '会社[かいしゃ]',
+    meaning: 'company',
+    answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+  },
+  rationale: 'Recognition checks understanding.',
+  warnings: [],
+  previewAudio: null,
+  previewAudioRole: null,
+  previewImage: null,
+  imagePrompt: null,
+  ...overrides,
+});
+
 describe('StudyCreatePage', () => {
   beforeEach(() => {
     commitCandidatesMock.mockReset();
@@ -154,6 +179,10 @@ describe('StudyCreatePage', () => {
           source: 'generated',
         },
       },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+      },
       previewImage: {
         id: 'image-regenerated',
         filename: 'candidate-regenerated.png',
@@ -180,7 +209,7 @@ describe('StudyCreatePage', () => {
     await userEvent.type(screen.getByLabelText('Prompt text'), '会社');
     await userEvent.type(screen.getByLabelText('Answer expression'), '会社');
     await userEvent.type(screen.getByLabelText('Answer meaning'), 'company');
-    await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
+    await chooseAnswerAudioVoice(/Sato/);
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Create card' }));
 
@@ -195,7 +224,7 @@ describe('StudyCreatePage', () => {
         expression: '会社',
         expressionReading: null,
         meaning: 'company',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'fishaudio:875668667eb94c20b09856b971d9ca2f',
         answerAudioTextOverride: 'かいしゃ',
         sentenceJp: null,
         sentenceEn: null,
@@ -211,7 +240,7 @@ describe('StudyCreatePage', () => {
     renderPage();
 
     await userEvent.click(screen.getByRole('button', { name: 'Create manually' }));
-    expect(screen.getByLabelText('Answer audio voice')).toHaveValue(DEFAULT_NARRATOR_VOICES.ja);
+    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Shohei');
     expect(screen.getByTestId('voice-preview')).toHaveTextContent(DEFAULT_NARRATOR_VOICES.ja);
   });
 
@@ -512,6 +541,12 @@ describe('StudyCreatePage', () => {
           source: 'generated',
         },
       },
+      answer: {
+        expression: '曇り',
+        expressionReading: '曇り[くもり]',
+        meaning: 'cloudy weather',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+      },
       previewImage: {
         id: 'image-2',
         filename: 'cloudy-new.png',
@@ -573,6 +608,95 @@ describe('StudyCreatePage', () => {
     });
   });
 
+  it('can add an optional generated answer image to recognition candidates', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [recognitionCandidate()],
+    });
+    regenerateCandidateImageMock.mockResolvedValueOnce({
+      prompt: { cueText: 'company', cueMeaning: 'company' },
+      answer: {
+        expression: '会社',
+        expressionReading: '会社[かいしゃ]',
+        meaning: 'company',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        answerImage: {
+          id: 'answer-image-1',
+          filename: 'company-answer.webp',
+          url: '/api/study/media/answer-image-1',
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: 'answer-image-1',
+        filename: 'company-answer.webp',
+        url: '/api/study/media/answer-image-1',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A small Japanese company office sign.',
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Answer image preview')).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByLabelText('Image prompt'),
+      'A small Japanese company office sign.'
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Regenerate image' }));
+
+    expect(await screen.findByAltText('Generated card answer')).toHaveAttribute(
+      'src',
+      'http://localhost:3001/api/study/media/answer-image-1'
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add 1 selected' }));
+
+    expect(commitCandidatesMock.mock.calls[0]?.[0]).toMatchObject({
+      candidates: [
+        {
+          candidateKind: 'text-recognition',
+          prompt: {
+            cueText: 'company',
+            cueMeaning: 'company',
+          },
+          answer: {
+            answerImage: {
+              id: 'answer-image-1',
+              mediaKind: 'image',
+            },
+          },
+          previewImage: {
+            id: 'answer-image-1',
+            mediaKind: 'image',
+          },
+          imagePrompt: 'A small Japanese company office sign.',
+        },
+      ],
+    });
+  });
+
+  it('shows an empty optional answer image prompt for recognition candidates without images', async () => {
+    generateCandidatesMock.mockResolvedValue({
+      learnerContextSummary: null,
+      candidates: [recognitionCandidate()],
+    });
+
+    renderPage();
+
+    await userEvent.type(screen.getByLabelText('Target word or sentence'), '会社');
+    await userEvent.click(screen.getByRole('button', { name: 'Generate candidates' }));
+
+    expect(await screen.findByText('Answer image preview')).toBeInTheDocument();
+    expect(screen.getByLabelText('Image prompt')).toHaveValue('');
+    expect(screen.getByRole('button', { name: 'Regenerate image' })).toBeDisabled();
+  });
+
   it('lazy-loads missing visual production images after candidates render', async () => {
     generateCandidatesMock.mockResolvedValue({
       learnerContextSummary: null,
@@ -600,6 +724,12 @@ describe('StudyCreatePage', () => {
           mediaKind: 'image',
           source: 'generated',
         },
+      },
+      answer: {
+        expression: '曇り',
+        expressionReading: '曇り[くもり]',
+        meaning: 'cloudy weather',
+        answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
       },
       previewImage: {
         id: 'image-lazy',
@@ -687,6 +817,12 @@ describe('StudyCreatePage', () => {
             source: 'generated',
           },
         },
+        answer: {
+          expression: '曇り',
+          expressionReading: '曇り[くもり]',
+          meaning: 'cloudy weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
+        },
         previewImage: {
           id: 'stale-image',
           filename: 'stale-image.webp',
@@ -756,6 +892,12 @@ describe('StudyCreatePage', () => {
             mediaKind: 'image',
             source: 'generated',
           },
+        },
+        answer: {
+          expression: '曇り',
+          expressionReading: '曇り[くもり]',
+          meaning: 'cloudy weather',
+          answerAudioVoiceId: DEFAULT_NARRATOR_VOICES.ja,
         },
         previewImage: {
           id: 'late-image',

@@ -62,6 +62,38 @@ describe('StudyCardPreview', () => {
     expect(screen.getByText('company')).toBeInTheDocument();
   });
 
+  it('renders optional answer images on cloze reveal sides', () => {
+    render(
+      <StudyCardFace
+        side="back"
+        card={{
+          ...baseCard,
+          cardType: 'cloze',
+          prompt: {
+            clozeText: '会社で働く',
+            clozeDisplayText: '[...]で働く',
+          },
+          answer: {
+            restoredText: '会社で働く',
+            restoredTextReading: '会社[かいしゃ]で働く',
+            meaning: 'work at a company',
+            answerImage: {
+              filename: 'company.webp',
+              url: 'https://example.com/company.webp',
+              mediaKind: 'image',
+              source: 'generated',
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByAltText('Answer visual')).toHaveAttribute(
+      'src',
+      'https://example.com/company.webp'
+    );
+  });
+
   it('renders Anki-style parenthetical furigana without showing raw parentheses', () => {
     render(
       <StudyCardFace

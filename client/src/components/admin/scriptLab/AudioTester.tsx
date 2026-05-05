@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { Play } from 'lucide-react';
 
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { API_URL } from '../../../config';
 import VoicePreview from '../../common/VoicePreview';
@@ -173,7 +173,7 @@ const AudioTester = ({ onResultsChange }: AudioTesterProps) => {
     });
   };
 
-  const japaneseVoiceOptions = TTS_VOICES.ja.voices.filter(
+  const japaneseVoiceOptions = getSelectableTtsVoices('ja').filter(
     (voice) => voice.provider === 'fishaudio'
   );
 

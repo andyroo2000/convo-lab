@@ -670,6 +670,50 @@ describe('studyCandidateService', () => {
     });
   });
 
+  it('regenerates non-production images onto the answer side', async () => {
+    const result = await regenerateStudyCardCandidatePreviewImage({
+      userId: 'user-1',
+      imagePrompt: 'A small Japanese company office sign.',
+      candidate: {
+        clientId: 'recognize-company',
+        candidateKind: 'text-recognition',
+        cardType: 'recognition',
+        prompt: {
+          cueText: 'company',
+          cueMeaning: 'company',
+        },
+        answer: {
+          expression: '会社',
+          meaning: 'company',
+        },
+        previewAudio: null,
+        previewAudioRole: null,
+      },
+    });
+
+    expect(result).toMatchObject({
+      imagePrompt: 'A small Japanese company office sign.',
+      prompt: {
+        cueText: 'company',
+        cueMeaning: 'company',
+      },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerImage: {
+          id: expect.stringMatching(/^media-/),
+          mediaKind: 'image',
+          source: 'generated',
+        },
+      },
+      previewImage: {
+        id: expect.stringMatching(/^media-/),
+        mediaKind: 'image',
+        source: 'generated',
+      },
+    });
+  });
+
   it('cleans up replaced generated study-card image media after regeneration', async () => {
     process.env.GCS_BUCKET_NAME = 'test-bucket';
     const now = new Date('2026-04-12T00:00:00.000Z');

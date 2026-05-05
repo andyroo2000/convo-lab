@@ -40,6 +40,15 @@ vi.mock('../../../../../shared/src/voiceSelection', () => ({
     narratorVoice: 'ja-voice-narrator',
     speakerVoices: ['ja-voice-1', 'ja-voice-2'],
   }),
+  getSelectableTtsVoices: (language: string) => [
+    { id: `${language}-voice-1`, description: 'Mock: Voice 1 - Warm', gender: 'male' },
+    { id: `${language}-voice-2`, description: 'Mock: Voice 2 - Clear', gender: 'female' },
+  ],
+  getTtsVoiceById: (language: string, voiceId: string) => ({
+    id: voiceId,
+    description: `Mock: ${voiceId === `${language}-voice-2` ? 'Voice 2' : 'Voice 1'} - Clear`,
+    gender: voiceId === `${language}-voice-2` ? 'female' : 'male',
+  }),
   voiceIdToFilename: (voiceId: string) => voiceId,
 }));
 

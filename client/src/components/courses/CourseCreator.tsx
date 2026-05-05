@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  getCourseSpeakerVoices,
+  getSelectableTtsVoices,
+} from '@languageflow/shared/src/voiceSelection';
 import { Episode, CreateCourseRequest, LanguageCode } from '../../types';
 import VoicePreview from '../common/VoicePreview';
 
@@ -135,8 +137,9 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
 
   if (!isOpen) return null;
 
-  const narratorVoices = TTS_VOICES[nativeLanguage]?.voices || [];
+  const narratorVoices = getSelectableTtsVoices(nativeLanguage);
   const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
+  const targetVoiceChoices = getSelectableTtsVoices(targetLanguage);
 
   return (
     <div
@@ -241,18 +244,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(TTS_VOICES[targetLanguage]?.voices || []).map(
-                    (voice: {
-                      id: string;
-                      description: string;
-                      gender: string;
-                      provider?: string;
-                    }) => (
-                      <option key={voice.id} value={voice.id}>
-                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
-                    )
-                  )}
+                  {targetVoiceChoices.map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                    </option>
+                  ))}
                 </select>
                 <VoicePreview voiceId={speaker1VoiceId} />
               </div>
@@ -272,18 +268,11 @@ const CourseCreator = ({ isOpen, episode, onClose, onCourseCreated }: CourseCrea
                   disabled={isCreating}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-navy focus:border-navy disabled:bg-gray-100"
                 >
-                  {(TTS_VOICES[targetLanguage]?.voices || []).map(
-                    (voice: {
-                      id: string;
-                      description: string;
-                      gender: string;
-                      provider?: string;
-                    }) => (
-                      <option key={voice.id} value={voice.id}>
-                        ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
-                      </option>
-                    )
-                  )}
+                  {targetVoiceChoices.map((voice) => (
+                    <option key={voice.id} value={voice.id}>
+                      ({voice.gender === 'male' ? 'M' : 'F'}) {voice.description}
+                    </option>
+                  ))}
                 </select>
                 <VoicePreview voiceId={speaker2VoiceId} />
               </div>

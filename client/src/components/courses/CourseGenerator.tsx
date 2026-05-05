@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getCourseSpeakerVoices } from '@languageflow/shared/src/voiceSelection';
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  getCourseSpeakerVoices,
+  getSelectableTtsVoices,
+} from '@languageflow/shared/src/voiceSelection';
 import { Episode, LanguageCode } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useInvalidateLibrary } from '../../hooks/useLibraryData';
@@ -315,9 +317,9 @@ const CourseGenerator = ({ episodeId }: CourseGeneratorProps) => {
     );
   }
 
-  const narratorVoices = TTS_VOICES[nativeLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const narratorVoices = getSelectableTtsVoices(nativeLanguage);
   const narratorVoiceChoices = narratorVoices.filter((voice) => voice.provider === 'fishaudio');
-  const targetVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
+  const targetVoices = getSelectableTtsVoices(targetLanguage);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

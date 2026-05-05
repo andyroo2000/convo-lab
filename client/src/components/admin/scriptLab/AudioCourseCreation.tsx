@@ -5,8 +5,8 @@ import { SENTENCE_SCRIPT_PROMPT } from '@languageflow/shared/src/scriptLabPrompt
 import {
   DEFAULT_NARRATOR_VOICES,
   DEFAULT_SPEAKER_VOICES,
-  TTS_VOICES,
 } from '@languageflow/shared/src/constants-new';
+import { getSelectableTtsVoices } from '@languageflow/shared/src/voiceSelection';
 
 import { API_URL } from '../../../config';
 import { LessonScriptUnit } from '../../../types';
@@ -98,12 +98,12 @@ const AudioCourseCreation = () => {
   const [selectedForDelete, setSelectedForDelete] = useState<Set<string>>(new Set());
 
   const narratorVoiceOptions = useMemo(
-    () => TTS_VOICES.en.voices.filter((voice) => voice.provider === 'fishaudio'),
+    () => getSelectableTtsVoices('en').filter((voice) => voice.provider === 'fishaudio'),
     []
   );
 
   const japaneseVoiceOptions = useMemo(
-    () => TTS_VOICES.ja.voices.filter((voice) => voice.provider === 'fishaudio'),
+    () => getSelectableTtsVoices('ja').filter((voice) => voice.provider === 'fishaudio'),
     []
   );
 

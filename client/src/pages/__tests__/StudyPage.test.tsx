@@ -7,6 +7,11 @@ import userEvent from '@testing-library/user-event';
 
 import StudyPage from '../StudyPage';
 
+async function chooseAnswerAudioVoice(name: RegExp | string) {
+  await userEvent.click(screen.getByLabelText('Answer audio voice'));
+  await userEvent.click(await screen.findByRole('option', { name }));
+}
+
 const {
   cardActionMutateAsyncMock,
   startStudySessionMock,
@@ -1433,7 +1438,7 @@ describe('StudyPage', () => {
           ...baseCard,
           answer: {
             ...baseCard.answer,
-            answerAudioVoiceId: 'ja-JP-Neural2-D',
+            answerAudioVoiceId: 'ja-JP-Wavenet-D',
             answerAudioTextOverride: 'かいしゃ',
             answerAudio: {
               filename: 'card-1.mp3',
@@ -1451,7 +1456,7 @@ describe('StudyPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Reveal answer' }));
     await userEvent.click(await screen.findByRole('button', { name: 'Edit card' }));
 
-    expect(screen.getByLabelText('Answer audio voice')).toHaveValue('ja-JP-Neural2-D');
+    expect(screen.getByLabelText('Answer audio voice')).toHaveTextContent('Naoki');
     expect(screen.getByLabelText('Phonetic audio override')).toHaveValue('かいしゃ');
     const currentAudio = screen.getByLabelText('Current card audio');
     const answerAudioVoice = screen.getByLabelText('Answer audio voice');
@@ -1463,7 +1468,7 @@ describe('StudyPage', () => {
     );
 
     vi.mocked(HTMLMediaElement.prototype.play).mockClear();
-    await userEvent.selectOptions(screen.getByLabelText('Answer audio voice'), 'ja-JP-Neural2-C');
+    await chooseAnswerAudioVoice(/Sato/);
     await userEvent.clear(screen.getByLabelText('Phonetic audio override'));
     await userEvent.type(screen.getByLabelText('Phonetic audio override'), 'かぶしきがいしゃ');
     await userEvent.click(screen.getByRole('button', { name: 'Regenerate audio' }));
@@ -1471,7 +1476,7 @@ describe('StudyPage', () => {
     await waitFor(() => {
       expect(regenerateStudyAnswerAudioMock).toHaveBeenCalledWith({
         cardId: 'card-1',
-        answerAudioVoiceId: 'ja-JP-Neural2-C',
+        answerAudioVoiceId: 'fishaudio:875668667eb94c20b09856b971d9ca2f',
         answerAudioTextOverride: 'かぶしきがいしゃ',
       });
     });

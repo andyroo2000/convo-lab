@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { TTS_VOICES } from '@languageflow/shared/src/constants-new';
+import { getTtsVoiceById } from '@languageflow/shared/src/voiceSelection';
 import { useEpisodes } from '../hooks/useEpisodes';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import useWarmAudioCache from '../hooks/useWarmAudioCache';
@@ -20,9 +20,8 @@ function getSpeakerAvatarFilename(
   targetLanguage: string,
   speakerIndex: number
 ): string {
-  // Determine gender from voiceId by looking it up in TTS_VOICES
-  const languageVoices = TTS_VOICES[targetLanguage as keyof typeof TTS_VOICES]?.voices || [];
-  const voiceInfo = languageVoices.find((v) => v.id === speaker.voiceId);
+  // Use all known voices here so existing episodes with hidden legacy voices still get avatars.
+  const voiceInfo = getTtsVoiceById(targetLanguage, speaker.voiceId);
   const gender = voiceInfo?.gender || 'male'; // Fallback to male if not found
 
   // Map speaker index to avatar variant

@@ -113,9 +113,6 @@ export async function regenerateStudyCardCandidatePreviewImage(input: {
   imagePrompt: string;
 }): Promise<StudyCardCandidatePreviewImageResponse> {
   const item = input.candidate;
-  if (item.candidateKind !== 'production' || item.cardType !== 'production') {
-    throw new AppError('Only production candidates can regenerate prompt images.', 400);
-  }
 
   const imagePrompt = input.imagePrompt;
   if (imagePrompt.length > STUDY_CANDIDATE_IMAGE_PROMPT_MAX_LENGTH) {
@@ -131,12 +128,17 @@ export async function regenerateStudyCardCandidatePreviewImage(input: {
     imagePrompt,
   });
 
+  const isPromptImage = item.candidateKind === 'production' && item.cardType === 'production';
+
   return {
-    prompt: {
-      ...item.prompt,
-      cueText: null,
-      cueImage: previewImage,
-    },
+    prompt: isPromptImage
+      ? {
+          ...item.prompt,
+          cueText: null,
+          cueImage: previewImage,
+        }
+      : item.prompt,
+    answer: isPromptImage ? item.answer : { ...item.answer, answerImage: previewImage },
     previewImage,
     imagePrompt,
   };
