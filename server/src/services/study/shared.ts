@@ -138,3 +138,5 @@ export {
   getStudyAudioRedisClient,
   persistStudyMediaBuffer,
 } from './shared/mediaHelpers.js';
+
+export { isAudioRecognitionPrompt } from './shared/audioRecognitionUtils.js';

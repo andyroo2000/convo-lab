@@ -3,7 +3,11 @@ import { promises as fs } from 'fs';
 import path from 'path';
 
 import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new.js';
-import type { StudyAnswerPayload } from '@languageflow/shared/src/types.js';
+import type {
+  StudyAnswerPayload,
+  StudyMediaRef,
+  StudyPromptPayload,
+} from '@languageflow/shared/src/types.js';
 import { getLanguageCodeFromVoiceId } from '@languageflow/shared/src/voiceSelection.js';
 
 import { createRedisConnection } from '../../../config/redis.js';
@@ -11,6 +15,7 @@ import { prisma } from '../../../db/client.js';
 import { synthesizeBatchedTexts } from '../../batchedTTSClient.js';
 import { uploadBufferToGCSPath } from '../../storageClient.js';
 
+import { isAudioRecognitionPrompt } from './audioRecognitionUtils.js';
 import { mergeStudyMediaRecord } from './cardMappers.js';
 import {
   STUDY_AUDIO_LOCK_POLL_INTERVAL_MS,
@@ -239,6 +244,7 @@ async function ensureGeneratedAnswerAudioLocally(
       return;
     }
 
+    const prompt: StudyPromptPayload = isRecord(card.promptJson) ? { ...card.promptJson } : {};
     const answer: StudyAnswerPayload = isRecord(card.answerJson) ? { ...card.answerJson } : {};
     const existingAnswerAudio = answer.answerAudio;
     const hasPlayableImportedAudio =
@@ -287,20 +293,29 @@ async function ensureGeneratedAnswerAudioLocally(
       },
     });
 
+    const generatedAudio: StudyMediaRef = {
+      id: mediaRecord.id,
+      filename,
+      url: getStudyMediaApiPath(mediaRecord.id),
+      mediaKind: 'audio',
+      source: 'generated',
+    };
     const nextAnswer: StudyAnswerPayload = {
       ...answer,
-      answerAudio: {
-        id: mediaRecord.id,
-        filename,
-        url: getStudyMediaApiPath(mediaRecord.id),
-        mediaKind: 'audio',
-        source: 'generated',
-      },
+      answerAudio: generatedAudio,
     };
+    const syncAudioRecognitionPrompt =
+      card.cardType === 'recognition' && isAudioRecognitionPrompt(prompt);
 
     await prisma.studyCard.update({
       where: { id: cardId },
       data: {
+        ...(syncAudioRecognitionPrompt
+          ? {
+              promptJson: toPrismaJson({ ...prompt, cueAudio: generatedAudio }),
+              promptAudioMediaId: mediaRecord.id,
+            }
+          : {}),
         answerJson: toPrismaJson(nextAnswer),
         answerAudioSource: 'generated',
         answerAudioMediaId: mediaRecord.id,

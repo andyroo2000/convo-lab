@@ -8,6 +8,7 @@ import type {
 
 import { AppError } from '../../../middleware/errorHandler.js';
 
+import { isAudioRecognitionPrompt } from './audioRecognitionUtils.js';
 import { ANKI_DECK_NAME } from './constants.js';
 import {
   isRecord,
@@ -100,6 +101,13 @@ export async function normalizeStudyCardPayload(record: StudyCardWithRelations):
     answerAudio: hydrateMediaRef(answer.answerAudio, record.answerAudioMedia) ?? answer.answerAudio,
     answerImage: hydrateMediaRef(answer.answerImage, record.imageMedia) ?? answer.answerImage,
   };
+
+  if (record.cardType === 'recognition' && isAudioRecognitionPrompt(prompt) && answer.answerAudio) {
+    prompt = {
+      ...prompt,
+      cueAudio: answer.answerAudio,
+    };
+  }
 
   if (record.cardType !== 'cloze') {
     return { prompt, answer };
