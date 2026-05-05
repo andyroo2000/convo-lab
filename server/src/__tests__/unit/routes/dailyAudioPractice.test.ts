@@ -60,6 +60,10 @@ vi.mock('../../../middleware/featureFlags.js', () => ({
     },
 }));
 
+vi.mock('../../../middleware/studyRateLimit.js', () => ({
+  rateLimitStudyRoute: () => (_req: Request, _res: Response, next: NextFunction) => next(),
+}));
+
 function createApp() {
   const app = express();
   app.use(expressJson());

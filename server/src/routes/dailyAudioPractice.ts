@@ -10,6 +10,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
+import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
 
 const router = Router();
 
@@ -107,53 +108,63 @@ async function ensureDefaultTracks(practiceId: string) {
   );
 }
 
-router.post('/', blockDemoUser, async (req: AuthRequest, res, next) => {
-  try {
-    if (!req.userId) throw new AppError('Authentication required.', 401);
+router.post(
+  '/',
+  rateLimitStudyRoute({
+    key: 'daily-audio-practice',
+    max: 10,
+    windowMs: 60 * 60 * 1000,
+    onBackendError: 'fail-closed',
+  }),
+  blockDemoUser,
+  async (req: AuthRequest, res, next) => {
+    try {
+      if (!req.userId) throw new AppError('Authentication required.', 401);
 
-    const body = req.body as { timeZone?: unknown; targetDurationMinutes?: unknown };
-    const practiceDate = getLocalPracticeDate(body.timeZone);
-    const targetDurationMinutes = parseTargetDurationMinutes(body.targetDurationMinutes);
+      const body = req.body as { timeZone?: unknown; targetDurationMinutes?: unknown };
+      const practiceDate = getLocalPracticeDate(body.timeZone);
+      const targetDurationMinutes = parseTargetDurationMinutes(body.targetDurationMinutes);
 
-    const practice = await prisma.dailyAudioPractice.upsert({
-      where: {
-        userId_practiceDate: {
+      const practice = await prisma.dailyAudioPractice.upsert({
+        where: {
+          userId_practiceDate: {
+            userId: req.userId,
+            practiceDate,
+          },
+        },
+        create: {
           userId: req.userId,
           practiceDate,
+          status: 'draft',
+          targetDurationMinutes,
+          targetLanguage: 'ja',
+          nativeLanguage: 'en',
         },
-      },
-      create: {
-        userId: req.userId,
-        practiceDate,
-        status: 'draft',
-        targetDurationMinutes,
-        targetLanguage: 'ja',
-        nativeLanguage: 'en',
-      },
-      update: {
-        targetDurationMinutes,
-        ...(targetDurationMinutes !== DEFAULT_TARGET_DURATION_MINUTES ? { status: 'draft' } : {}),
-      },
-    });
-    await ensureDefaultTracks(practice.id);
-
-    if (practice.status !== 'ready' && practice.status !== 'generating') {
-      await prisma.dailyAudioPractice.update({
-        where: { id: practice.id },
-        data: { status: 'generating', errorMessage: null },
+        update: {
+          targetDurationMinutes,
+          ...(targetDurationMinutes !== DEFAULT_TARGET_DURATION_MINUTES ? { status: 'draft' } : {}),
+        },
       });
-      await enqueueDailyAudioPracticeJob(practice.id);
-    }
+      await ensureDefaultTracks(practice.id);
 
-    const fullPractice = await prisma.dailyAudioPractice.findUniqueOrThrow({
-      where: { id: practice.id },
-      include: { tracks: true },
-    });
-    res.status(202).json(serializePractice(fullPractice));
-  } catch (error) {
-    next(error);
+      if (practice.status !== 'ready' && practice.status !== 'generating') {
+        await prisma.dailyAudioPractice.update({
+          where: { id: practice.id },
+          data: { status: 'generating', errorMessage: null },
+        });
+        await enqueueDailyAudioPracticeJob(practice.id);
+      }
+
+      const fullPractice = await prisma.dailyAudioPractice.findUniqueOrThrow({
+        where: { id: practice.id },
+        include: { tracks: true },
+      });
+      res.status(202).json(serializePractice(fullPractice));
+    } catch (error) {
+      next(error);
+    }
   }
-});
+);
 
 router.get('/', async (req: AuthRequest, res, next) => {
   try {
