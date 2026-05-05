@@ -105,7 +105,7 @@ jobs:
 
             mkdir -p "$ROUTER_DIR"
             export CONVOLAB_IMAGE_TAG="$IMAGE_TAG"
-            export CONVOLAB_ROUTER_CONFIG="$ROUTER_CONFIG"
+            export CONVOLAB_ROUTER_DIR="$ROUTER_DIR"
 
             if grep -q '^CONVOLAB_IMAGE_TAG=' .env.production; then
               sed -i "s#^CONVOLAB_IMAGE_TAG=.*#CONVOLAB_IMAGE_TAG=$IMAGE_TAG#g" .env.production
@@ -113,11 +113,12 @@ jobs:
               echo "CONVOLAB_IMAGE_TAG=$IMAGE_TAG" >> .env.production
             fi
 
-            if grep -q '^CONVOLAB_ROUTER_CONFIG=' .env.production; then
-              sed -i "s#^CONVOLAB_ROUTER_CONFIG=.*#CONVOLAB_ROUTER_CONFIG=$ROUTER_CONFIG#g" .env.production
+            if grep -q '^CONVOLAB_ROUTER_DIR=' .env.production; then
+              sed -i "s#^CONVOLAB_ROUTER_DIR=.*#CONVOLAB_ROUTER_DIR=$ROUTER_DIR#g" .env.production
             else
-              echo "CONVOLAB_ROUTER_CONFIG=$ROUTER_CONFIG" >> .env.production
+              echo "CONVOLAB_ROUTER_DIR=$ROUTER_DIR" >> .env.production
             fi
+            sed -i '/^CONVOLAB_ROUTER_CONFIG=/d' .env.production
 
             render_router_config() {
               color="$1"
@@ -189,8 +190,15 @@ jobs:
             reload_router() {
               router_running="$(docker inspect -f '{{.State.Running}}' convolab-server 2>/dev/null || echo "false")"
               if [ "$router_running" = "true" ]; then
-                docker exec convolab-server nginx -t
-                docker exec convolab-server nginx -s reload
+                router_config_dir_source="$(docker inspect -f '{{range .Mounts}}{{if eq .Destination "/etc/nginx/conf.d"}}{{.Source}}{{end}}{{end}}' convolab-server 2>/dev/null || true)"
+                if [ "$router_config_dir_source" = "$ROUTER_DIR" ]; then
+                  docker exec convolab-server nginx -t
+                  docker exec convolab-server nginx -s reload
+                else
+                  echo "♻️ Recreating router to bind the config directory..."
+                  $COMPOSE up -d --no-deps --force-recreate router
+                  wait_for_container_health convolab-server
+                fi
               else
                 $COMPOSE up -d --no-deps router
                 wait_for_container_health convolab-server
