@@ -6,6 +6,7 @@ const DEFAULT_CORE_GENERATOR_REASONING_EFFORT = 'medium';
 function getCoreGeneratorModel(): string {
   return (
     process.env.CORE_GENERATOR_MODEL ??
+    // Keep core generation aligned with the flashcard model unless explicitly overridden.
     process.env.STUDY_CARD_GENERATOR_MODEL ??
     DEFAULT_CORE_GENERATOR_MODEL
   );

@@ -29,6 +29,16 @@ function parseJsonObject(raw: string): Record<string, unknown> {
   return parsed as Record<string, unknown>;
 }
 
+function readingForText(atom: DailyAudioLearningAtom, text: string): string | undefined {
+  return text === atom.targetText ? (atom.reading ?? undefined) : undefined;
+}
+
+function languageName(languageCode: string): string {
+  if (languageCode === 'ja') return 'Japanese';
+  if (languageCode === 'en') return 'English';
+  return languageCode;
+}
+
 function pushAtomDrill(
   units: LessonScriptUnit[],
   atom: DailyAudioLearningAtom,
@@ -74,7 +84,7 @@ function pushAtomDrill(
       {
         type: 'L2',
         text: atom.exampleJp,
-        reading: atom.reading ?? undefined,
+        reading: readingForText(atom, atom.exampleJp),
         translation: atom.exampleEn ?? atom.english,
         voiceId: l2VoiceId,
         speed: 1,
@@ -119,7 +129,7 @@ function pushFallbackDialogueLines(units: LessonScriptUnit[], options: ScriptGen
       {
         type: 'L2',
         text: atom.exampleJp ?? atom.targetText,
-        reading: atom.reading ?? undefined,
+        reading: readingForText(atom, atom.exampleJp ?? atom.targetText),
         translation: atom.exampleEn ?? atom.english,
         voiceId: options.speakerVoiceIds[index % 2] ?? options.speakerVoiceIds[0],
         speed: 1,
@@ -135,7 +145,7 @@ function pushFallbackStoryLines(units: LessonScriptUnit[], options: ScriptGenera
       {
         type: 'L2',
         text: atom.exampleJp ?? atom.targetText,
-        reading: atom.reading ?? undefined,
+        reading: readingForText(atom, atom.exampleJp ?? atom.targetText),
         translation: atom.exampleEn ?? atom.english,
         voiceId: options.speakerVoiceIds[0],
         speed: 1,
@@ -146,7 +156,8 @@ function pushFallbackStoryLines(units: LessonScriptUnit[], options: ScriptGenera
 }
 
 async function buildDialogueScript(options: ScriptGenerationOptions): Promise<LessonScriptUnit[]> {
-  const prompt = `Create short Japanese dialogue scenes for audio-only language practice.
+  const targetLanguageName = languageName(options.targetLanguage);
+  const prompt = `Create short ${targetLanguageName} dialogue scenes for audio-only language practice.
 
 Use these learner items:
 ${options.atoms.map((atom, index) => `${index + 1}. ${atom.targetText} = ${atom.english}`).join('\n')}
@@ -164,7 +175,10 @@ Return JSON only:
   ]
 }`;
   const parsed = parseJsonObject(
-    await generateCoreLlmJsonText(prompt, 'Return valid JSON for an audio-only Japanese dialogue.')
+    await generateCoreLlmJsonText(
+      prompt,
+      `Return valid JSON for an audio-only ${targetLanguageName} dialogue.`
+    )
   );
   const scenes = Array.isArray(parsed.scenes) ? parsed.scenes : [];
   const units: LessonScriptUnit[] = [
@@ -213,7 +227,8 @@ Return JSON only:
 }
 
 async function buildStoryScript(options: ScriptGenerationOptions): Promise<LessonScriptUnit[]> {
-  const prompt = `Create one short Japanese monologue story for audio-only language practice.
+  const targetLanguageName = languageName(options.targetLanguage);
+  const prompt = `Create one short ${targetLanguageName} monologue story for audio-only language practice.
 
 Use and repeat these learner items naturally:
 ${options.atoms.map((atom, index) => `${index + 1}. ${atom.targetText} = ${atom.english}`).join('\n')}
@@ -226,7 +241,10 @@ Return JSON only:
   ]
 }`;
   const parsed = parseJsonObject(
-    await generateCoreLlmJsonText(prompt, 'Return valid JSON for an audio-only Japanese monologue.')
+    await generateCoreLlmJsonText(
+      prompt,
+      `Return valid JSON for an audio-only ${targetLanguageName} monologue.`
+    )
   );
   const units: LessonScriptUnit[] = [
     { type: 'marker', label: 'Daily Audio Practice - Story' },

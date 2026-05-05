@@ -2,6 +2,16 @@ import type { StudyCardType } from '@languageflow/shared/src/types.js';
 
 export type DailyAudioPracticeTrackMode = 'drill' | 'dialogue' | 'story';
 
+export const DAILY_AUDIO_TRACKS: Array<{
+  mode: DailyAudioPracticeTrackMode;
+  title: string;
+  sortOrder: number;
+}> = [
+  { mode: 'drill', title: 'Drills', sortOrder: 0 },
+  { mode: 'dialogue', title: 'Dialogues', sortOrder: 1 },
+  { mode: 'story', title: 'Story', sortOrder: 2 },
+];
+
 export interface DailyAudioLearningAtom {
   cardId: string;
   cardType: StudyCardType;

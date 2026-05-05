@@ -188,6 +188,13 @@ describe('dailyAudioPractice services', () => {
 
     expect(Object.keys(scripts)).toEqual(['drill', 'dialogue', 'story']);
     expect(scripts.drill.some((unit) => unit.type === 'pause')).toBe(true);
+    expect(scripts.drill).toContainEqual(
+      expect.objectContaining({
+        type: 'L2',
+        text: '朝ごはんを食べました。',
+        reading: undefined,
+      })
+    );
     expect(scripts.dialogue).toContainEqual(
       expect.objectContaining({ type: 'L2', voiceId: 'ja-JP-Neural2-B' })
     );

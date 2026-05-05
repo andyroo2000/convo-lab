@@ -45,8 +45,12 @@ const DailyAudioPracticePage = () => {
   const tracks = useMemo(() => practice?.tracks ?? [], [practice?.tracks]);
 
   const handleGenerate = async () => {
-    const nextPractice = await createPractice.mutateAsync();
-    setSelectedPracticeId(nextPractice.id);
+    try {
+      const nextPractice = await createPractice.mutateAsync();
+      setSelectedPracticeId(nextPractice.id);
+    } catch {
+      // React Query retains the mutation error for the inline alert below.
+    }
   };
 
   const loading = recentQuery.isLoading || Boolean(selectedPracticeId && detailQuery.isLoading);
@@ -101,6 +105,17 @@ const DailyAudioPracticePage = () => {
           <h2 className="text-xl font-bold text-red-900">Generation failed</h2>
           <p className="mt-2 text-red-700">
             {practice.errorMessage || 'Daily audio practice could not be generated.'}
+          </p>
+        </section>
+      ) : null}
+
+      {createPractice.isError ? (
+        <section className="retro-paper-panel border-2 border-red-200 bg-red-50 px-4 py-5">
+          <h2 className="text-xl font-bold text-red-900">Could not start practice</h2>
+          <p className="mt-2 text-red-700">
+            {createPractice.error instanceof Error
+              ? createPractice.error.message
+              : 'Daily audio practice could not be started.'}
           </p>
         </section>
       ) : null}

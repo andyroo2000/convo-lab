@@ -9,13 +9,7 @@ import { assembleLessonAudio } from '../audioCourseAssembler.js';
 
 import { buildDailyAudioLearningAtoms, selectDailyAudioPracticeCards } from './cardSelection.js';
 import { buildDailyAudioPracticeScripts } from './scriptGenerator.js';
-import type { DailyAudioPracticeTrackMode } from './types.js';
-
-const TRACKS: Array<{ mode: DailyAudioPracticeTrackMode; title: string; sortOrder: number }> = [
-  { mode: 'drill', title: 'Drills', sortOrder: 0 },
-  { mode: 'dialogue', title: 'Dialogues', sortOrder: 1 },
-  { mode: 'story', title: 'Story', sortOrder: 2 },
-];
+import { DAILY_AUDIO_TRACKS } from './types.js';
 
 export async function processDailyAudioPracticeJob(params: {
   practiceId: string;
@@ -72,7 +66,7 @@ export async function processDailyAudioPracticeJob(params: {
     });
     await onProgress(45);
 
-    for (const [index, trackConfig] of TRACKS.entries()) {
+    for (const [index, trackConfig] of DAILY_AUDIO_TRACKS.entries()) {
       const scriptUnits = scripts[trackConfig.mode];
       const track = await prisma.dailyAudioPracticeTrack.upsert({
         where: {
@@ -120,7 +114,7 @@ export async function processDailyAudioPracticeJob(params: {
           } as Prisma.InputJsonValue,
         },
       });
-      await onProgress(45 + Math.floor(((index + 1) / TRACKS.length) * 45));
+      await onProgress(45 + Math.floor(((index + 1) / DAILY_AUDIO_TRACKS.length) * 45));
     }
 
     const readyPractice = await prisma.dailyAudioPractice.update({

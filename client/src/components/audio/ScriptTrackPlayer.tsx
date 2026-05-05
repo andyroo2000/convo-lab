@@ -28,6 +28,10 @@ function visibleTranscriptUnits(units: LessonScriptUnit[]) {
   return units.filter((unit) => unit.type === 'L2' || unit.type === 'narration_L1');
 }
 
+function formatLanguageLabel(language: LanguageCode) {
+  return language === 'ja' ? 'Japanese' : language.toUpperCase();
+}
+
 const ScriptTrackPlayer = ({
   title,
   status,
@@ -124,7 +128,7 @@ const ScriptTrackPlayer = ({
                   className="border-2 border-[rgba(20,50,86,0.08)] bg-white/55 px-3 py-2"
                 >
                   <p className="text-sm uppercase tracking-[0.12em] text-[rgba(20,50,86,0.48)]">
-                    {unit.type === 'L2' ? 'Japanese' : 'Narrator'}
+                    {unit.type === 'L2' ? formatLanguageLabel(targetLanguage) : 'Narrator'}
                   </p>
                   <p className="text-lg font-semibold text-[rgba(20,50,86,0.9)]">{unit.text}</p>
                   {unit.type === 'L2' && unit.translation ? (

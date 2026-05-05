@@ -11,17 +11,13 @@ import { blockDemoUser } from '../middleware/demoAuth.js';
 import { AppError } from '../middleware/errorHandler.js';
 import { requireFeatureFlag } from '../middleware/featureFlags.js';
 import { rateLimitStudyRoute } from '../middleware/studyRateLimit.js';
+import { DAILY_AUDIO_TRACKS } from '../services/dailyAudioPractice/types.js';
 
 const router = Router();
 
 const DEFAULT_TARGET_DURATION_MINUTES = 30;
 const MIN_TARGET_DURATION_MINUTES = 5;
 const MAX_TARGET_DURATION_MINUTES = 60;
-const TRACK_DEFAULTS = [
-  { mode: 'drill', title: 'Drills', sortOrder: 0 },
-  { mode: 'dialogue', title: 'Dialogues', sortOrder: 1 },
-  { mode: 'story', title: 'Story', sortOrder: 2 },
-] as const;
 
 router.use(requireAuth);
 router.use(requireFeatureFlag('flashcardsEnabled'));
@@ -84,7 +80,7 @@ function serializePractice(
 
 async function ensureDefaultTracks(practiceId: string) {
   await Promise.all(
-    TRACK_DEFAULTS.map((track) =>
+    DAILY_AUDIO_TRACKS.map((track) =>
       prisma.dailyAudioPracticeTrack.upsert({
         where: {
           practiceId_mode: {

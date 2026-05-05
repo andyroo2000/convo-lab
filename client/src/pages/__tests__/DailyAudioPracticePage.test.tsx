@@ -126,6 +126,8 @@ describe('DailyAudioPracticePage', () => {
     mockUseCreateDailyAudioPractice.mockReturnValue({
       mutateAsync: mockCreateMutateAsync,
       isPending: false,
+      isError: false,
+      error: null,
     });
   });
 
@@ -191,5 +193,25 @@ describe('DailyAudioPracticePage', () => {
     expect(
       screen.getByText('No eligible study cards found for daily audio practice.')
     ).toBeInTheDocument();
+  });
+
+  it('surfaces create errors without throwing from the click handler', async () => {
+    mockUseCreateDailyAudioPractice.mockReturnValue({
+      mutateAsync: mockCreateMutateAsync,
+      isPending: false,
+      isError: true,
+      error: new Error('No eligible cards.'),
+    });
+    mockCreateMutateAsync.mockRejectedValue(new Error('No eligible cards.'));
+
+    renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: /create today/i }));
+
+    await waitFor(() => {
+      expect(mockCreateMutateAsync).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText('Could not start practice')).toBeInTheDocument();
+    expect(screen.getByText('No eligible cards.')).toBeInTheDocument();
   });
 });
