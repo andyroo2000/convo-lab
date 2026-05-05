@@ -184,4 +184,24 @@ describe('studyRateLimit middleware', () => {
     expect(next).toHaveBeenCalledWith();
     expect(incrMock).toHaveBeenCalledWith('rate-limit:study:media-read:admin-1:0');
   });
+
+  it('can rate limit before auth using the request IP', async () => {
+    ({ rateLimitStudyRoute } = await import('../../../middleware/studyRateLimit.js'));
+    execMock.mockResolvedValue([
+      [null, 1],
+      [null, 1],
+    ]);
+
+    const middleware = rateLimitStudyRoute({
+      key: 'daily-audio-practice-read',
+      max: 240,
+      windowMs: 60_000,
+    });
+    const next = vi.fn();
+
+    await middleware({ ip: '127.0.0.1' } as never, {} as Response, next as never);
+
+    expect(next).toHaveBeenCalledWith();
+    expect(incrMock).toHaveBeenCalledWith('rate-limit:study:daily-audio-practice-read:127.0.0.1:0');
+  });
 });
