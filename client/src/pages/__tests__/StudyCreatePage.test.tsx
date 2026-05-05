@@ -1376,8 +1376,8 @@ describe('StudyCreatePage', () => {
     const regenerateButtons = await screen.findAllByRole('button', { name: 'Regenerate audio' });
     await userEvent.click(regenerateButtons[0]);
 
-    expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
     expect(screen.getByRole('status', { name: 'Regenerating…' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Regenerating…' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeDisabled();
     const otherRegenerateButton = screen.getByRole('button', { name: 'Regenerate audio' });
     expect(otherRegenerateButton).toBeDisabled();
@@ -1430,7 +1430,8 @@ describe('StudyCreatePage', () => {
     });
 
     expect(regenerateCandidateAudioMock).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: 'Regenerating…' })).toBeDisabled();
+    expect(screen.getByRole('status', { name: 'Regenerating…' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Regenerating…' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Regenerate audio' })).toBeDisabled();
 
     await act(async () => {
