@@ -37,8 +37,10 @@ const {
   createStudyImportUploadSessionMock,
   createRedisConnectionMock,
   commitStudyCardCandidatesMock,
+  completeManualStudyCardDraftMock,
   execMock,
   createStudyCardMock,
+  createManualStudyCardMock,
   deleteStudyCardMock,
   expireAtMock,
   exportStudyCardsSectionMock,
@@ -53,6 +55,7 @@ const {
   getStudyImportUploadReadinessMock,
   getStudySettingsMock,
   generateStudyCardCandidatesMock,
+  generateManualStudyCardDraftImageMock,
   multiMock,
   performStudyCardActionMock,
   prepareStudyCardAnswerAudioMock,
@@ -73,8 +76,10 @@ const {
   createStudyImportUploadSessionMock: vi.fn(),
   createRedisConnectionMock: vi.fn(),
   commitStudyCardCandidatesMock: vi.fn(),
+  completeManualStudyCardDraftMock: vi.fn(),
   execMock: vi.fn(),
   createStudyCardMock: vi.fn(),
+  createManualStudyCardMock: vi.fn(),
   deleteStudyCardMock: vi.fn(),
   expireAtMock: vi.fn(),
   exportStudyCardsSectionMock: vi.fn(),
@@ -89,6 +94,7 @@ const {
   getStudyImportUploadReadinessMock: vi.fn(),
   getStudySettingsMock: vi.fn(),
   generateStudyCardCandidatesMock: vi.fn(),
+  generateManualStudyCardDraftImageMock: vi.fn(),
   multiMock: vi.fn(),
   performStudyCardActionMock: vi.fn(),
   prepareStudyCardAnswerAudioMock: vi.fn(),
@@ -116,6 +122,8 @@ vi.mock('../../../middleware/auth.js', () => ({
 vi.mock('../../../services/studyService.js', () => ({
   cancelStudyImportUpload: cancelStudyImportUploadMock,
   completeStudyImportUpload: completeStudyImportUploadMock,
+  completeManualStudyCardDraft: completeManualStudyCardDraftMock,
+  createManualStudyCard: createManualStudyCardMock,
   createStudyCard: createStudyCardMock,
   deleteStudyCard: deleteStudyCardMock,
   commitStudyCardCandidates: commitStudyCardCandidatesMock,
@@ -135,6 +143,7 @@ vi.mock('../../../services/studyService.js', () => ({
   getStudyOverview: vi.fn(),
   getStudySettings: getStudySettingsMock,
   generateStudyCardCandidates: generateStudyCardCandidatesMock,
+  generateManualStudyCardDraftImage: generateManualStudyCardDraftImageMock,
   performStudyCardAction: performStudyCardActionMock,
   prepareStudyCardAnswerAudio: prepareStudyCardAnswerAudioMock,
   regenerateStudyCardCandidatePreviewAudio: regenerateStudyCardCandidatePreviewAudioMock,
@@ -178,10 +187,13 @@ describe('Study Routes', () => {
     vi.resetModules();
     cancelStudyImportUploadMock.mockReset();
     commitStudyCardCandidatesMock.mockReset();
+    completeManualStudyCardDraftMock.mockReset();
+    createManualStudyCardMock.mockReset();
     createStudyImportUploadSessionMock.mockReset();
     completeStudyImportUploadMock.mockReset();
     deleteStudyCardMock.mockReset();
     generateStudyCardCandidatesMock.mockReset();
+    generateManualStudyCardDraftImageMock.mockReset();
     regenerateStudyCardCandidatePreviewAudioMock.mockReset();
     regenerateStudyCardCandidatePreviewImageMock.mockReset();
     regenerateStudyCardImageMock.mockReset();
@@ -525,7 +537,7 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('prompt contains unsupported field');
-    expect(createStudyCardMock).not.toHaveBeenCalled();
+    expect(createManualStudyCardMock).not.toHaveBeenCalled();
   });
 
   it('rejects update payloads with invalid media refs', async () => {
@@ -783,7 +795,7 @@ describe('Study Routes', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toContain('64 KB or smaller');
-    expect(createStudyCardMock).not.toHaveBeenCalled();
+    expect(createManualStudyCardMock).not.toHaveBeenCalled();
   });
 
   it('generates study card candidates with learner context enabled by default', async () => {
@@ -1065,6 +1077,78 @@ describe('Study Routes', () => {
     });
   });
 
+  it('completes a manual study card draft after validating creation kind and payloads', async () => {
+    completeManualStudyCardDraftMock.mockResolvedValue({
+      creationKind: 'production-text',
+      cardType: 'production',
+      prompt: { cueText: 'company' },
+      answer: { expression: '会社', meaning: 'company' },
+      imagePlacement: 'none',
+      imagePrompt: 'A realistic photo of a company office. No text.',
+      previewImage: null,
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/cards/draft/complete')).send({
+      creationKind: 'production-text',
+      cardType: 'production',
+      prompt: { cueText: 'company' },
+      answer: { expression: '', meaning: '' },
+      imagePlacement: 'none',
+      imagePrompt: null,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.imagePrompt).toContain('company office');
+    expect(completeManualStudyCardDraftMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      request: expect.objectContaining({
+        creationKind: 'production-text',
+        cardType: 'production',
+        imagePlacement: 'none',
+      }),
+    });
+  });
+
+  it('rejects a manual draft when card type does not match creation kind', async () => {
+    const response = await withMutationCsrf(request(app).post('/study/cards/draft/complete')).send({
+      creationKind: 'production-image',
+      cardType: 'recognition',
+      prompt: {},
+      answer: {},
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe('cardType must match creationKind.');
+    expect(completeManualStudyCardDraftMock).not.toHaveBeenCalled();
+  });
+
+  it('generates a manual draft image preview for a selected placement', async () => {
+    generateManualStudyCardDraftImageMock.mockResolvedValue({
+      previewImage: {
+        id: 'manual-image-1',
+        filename: 'manual-image.webp',
+        url: '/api/study/media/manual-image-1',
+        mediaKind: 'image',
+        source: 'generated',
+      },
+      imagePrompt: 'A realistic photo of cloudy weather. No text.',
+      imagePlacement: 'both',
+    });
+
+    const response = await withMutationCsrf(request(app).post('/study/cards/draft/image')).send({
+      imagePrompt: ' A realistic photo of cloudy weather. No text. ',
+      imagePlacement: 'both',
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body.previewImage.id).toBe('manual-image-1');
+    expect(generateManualStudyCardDraftImageMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      imagePrompt: 'A realistic photo of cloudy weather. No text.',
+      imagePlacement: 'both',
+    });
+  });
+
   it('commits selected generated candidates after validating media refs', async () => {
     commitStudyCardCandidatesMock.mockResolvedValue({
       cards: [{ id: 'card-1', cardType: 'recognition' }],
@@ -1189,7 +1273,7 @@ describe('Study Routes', () => {
   });
 
   it('passes answer-audio settings through create and update payloads', async () => {
-    createStudyCardMock.mockResolvedValue({ id: 'created-card' });
+    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
     updateStudyCardMock.mockResolvedValue({ id: 'card-1' });
 
     const createResponse = await withMutationCsrf(request(app).post('/study/cards')).send({
@@ -1203,8 +1287,9 @@ describe('Study Routes', () => {
       },
     });
     expect(createResponse.status).toBe(201);
-    expect(createStudyCardMock).toHaveBeenCalledWith({
+    expect(createManualStudyCardMock).toHaveBeenCalledWith({
       userId: 'user-1',
+      creationKind: 'text-recognition',
       cardType: 'recognition',
       prompt: { cueText: 'company' },
       answer: {
@@ -1251,7 +1336,7 @@ describe('Study Routes', () => {
 
     expect(createResponse.status).toBe(400);
     expect(createResponse.body.message).toContain('known TTS voice ID');
-    expect(createStudyCardMock).not.toHaveBeenCalled();
+    expect(createManualStudyCardMock).not.toHaveBeenCalled();
 
     const regenerateResponse = await withMutationCsrf(
       request(app).post('/study/cards/card-1/regenerate-answer-audio')
@@ -1264,7 +1349,7 @@ describe('Study Routes', () => {
   });
 
   it('accepts known legacy answer-audio voices that are hidden from the picker', async () => {
-    createStudyCardMock.mockResolvedValue({ id: 'created-card' });
+    createManualStudyCardMock.mockResolvedValue({ id: 'created-card' });
     regenerateStudyCardAnswerAudioMock.mockResolvedValue({
       id: 'card-1',
       answerAudioSource: 'generated',
@@ -1281,7 +1366,7 @@ describe('Study Routes', () => {
     });
 
     expect(createResponse.status).toBe(201);
-    expect(createStudyCardMock).toHaveBeenCalledWith(
+    expect(createManualStudyCardMock).toHaveBeenCalledWith(
       expect.objectContaining({
         answer: expect.objectContaining({
           answerAudioVoiceId: 'ja-JP-Neural2-D',
@@ -1317,7 +1402,7 @@ describe('Study Routes', () => {
 
     expect(createResponse.status).toBe(400);
     expect(createResponse.body.message).toContain('500 characters or fewer');
-    expect(createStudyCardMock).not.toHaveBeenCalled();
+    expect(createManualStudyCardMock).not.toHaveBeenCalled();
 
     const regenerateResponse = await withMutationCsrf(
       request(app).post('/study/cards/card-1/regenerate-answer-audio')
@@ -1382,6 +1467,29 @@ describe('Study Routes', () => {
     });
   });
 
+  it('allows regenerating an existing study card image for both sides', async () => {
+    regenerateStudyCardImageMock.mockResolvedValue({
+      id: 'card-1',
+      prompt: { cueImage: { id: 'image-new' } },
+      answer: { answerImage: { id: 'image-new' } },
+    });
+
+    const response = await withMutationCsrf(
+      request(app).post('/study/cards/card-1/regenerate-image')
+    ).send({
+      imagePrompt: 'A natural street scene showing cloudy weather.',
+      imageRole: 'both',
+    });
+
+    expect(response.status).toBe(200);
+    expect(regenerateStudyCardImageMock).toHaveBeenCalledWith({
+      userId: 'user-1',
+      cardId: 'card-1',
+      imagePrompt: 'A natural street scene showing cloudy weather.',
+      imageRole: 'both',
+    });
+  });
+
   it('rejects study card image regeneration without a valid image role', async () => {
     const response = await withMutationCsrf(
       request(app).post('/study/cards/card-1/regenerate-image')
@@ -1391,7 +1499,7 @@ describe('Study Routes', () => {
     });
 
     expect(response.status).toBe(400);
-    expect(response.body.message).toBe('imageRole must be prompt or answer.');
+    expect(response.body.message).toBe('imageRole must be prompt, answer, or both.');
     expect(regenerateStudyCardImageMock).not.toHaveBeenCalled();
   });
 

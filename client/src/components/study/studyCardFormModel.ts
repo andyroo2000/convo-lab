@@ -172,6 +172,7 @@ export const useStudyCardForm = ({ card, initialCardType }: StudyCardFormConfig)
     values,
     isCloze: values.cardType === 'cloze',
     setField,
+    setValues,
     setCardType,
     reset,
     buildPayload,

@@ -17,6 +17,11 @@ import type {
   StudyCardCandidatePreviewAudioResponse,
   StudyCardCandidatePreviewImageRequest,
   StudyCardCandidatePreviewImageResponse,
+  StudyCardCreationKind,
+  StudyCardDraftCompleteRequest,
+  StudyCardDraftCompleteResponse,
+  StudyCardDraftImageRequest,
+  StudyCardDraftImageResponse,
   StudyCardRegenerateImageRequest,
   StudyCardSummary,
   StudyExportManifest,
@@ -41,6 +46,7 @@ export interface StudySessionResponse {
 }
 
 interface CreateStudyCardPayload {
+  creationKind?: StudyCardCreationKind;
   cardType: 'recognition' | 'production' | 'cloze';
   prompt: StudyPromptPayload;
   answer: StudyAnswerPayload;
@@ -243,6 +249,24 @@ export async function regenerateStudyCardCandidatePreviewImage(
       body: JSON.stringify(payload),
     }
   );
+}
+
+export async function completeStudyCardDraft(
+  payload: StudyCardDraftCompleteRequest
+): Promise<StudyCardDraftCompleteResponse> {
+  return apiRequest<StudyCardDraftCompleteResponse>('/api/study/cards/draft/complete', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function generateStudyCardDraftImage(
+  payload: StudyCardDraftImageRequest
+): Promise<StudyCardDraftImageResponse> {
+  return apiRequest<StudyCardDraftImageResponse>('/api/study/cards/draft/image', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function undoStudyReview(
@@ -449,6 +473,18 @@ export function useCreateStudyCard() {
 export function useGenerateStudyCardCandidates() {
   return useMutation({
     mutationFn: generateStudyCardCandidates,
+  });
+}
+
+export function useCompleteStudyCardDraft() {
+  return useMutation({
+    mutationFn: completeStudyCardDraft,
+  });
+}
+
+export function useGenerateStudyCardDraftImage() {
+  return useMutation({
+    mutationFn: generateStudyCardDraftImage,
   });
 }
 

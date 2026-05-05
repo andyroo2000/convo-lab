@@ -1,5 +1,5 @@
-import type { StudyCardType } from '@languageflow/shared/src/types';
-import { Braces, Eye, Pencil } from 'lucide-react';
+import type { StudyCardCreationKind, StudyCardType } from '@languageflow/shared/src/types';
+import { Braces, Eye, Image, Pencil, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import StudyCardAudioSettingsFields from './StudyCardAudioSettingsFields';
@@ -13,7 +13,9 @@ interface StudyCardFormFieldsProps {
   includeAudioSettings?: boolean;
   hidePromptFields?: boolean;
   includeSentenceFields?: boolean;
+  creationKind?: StudyCardCreationKind;
   onCardTypeChange?: (cardType: StudyCardType) => void;
+  onCreationKindChange?: (creationKind: StudyCardCreationKind) => void;
   onFieldChange: <K extends keyof StudyCardFormValues>(
     field: K,
     value: StudyCardFormValues[K]
@@ -21,9 +23,17 @@ interface StudyCardFormFieldsProps {
 }
 
 const CARD_TYPE_OPTIONS = [
-  { value: 'recognition', Icon: Eye },
-  { value: 'production', Icon: Pencil },
-  { value: 'cloze', Icon: Braces },
+  { value: 'recognition', labelKey: 'recognition', Icon: Eye },
+  { value: 'production', labelKey: 'production', Icon: Pencil },
+  { value: 'cloze', labelKey: 'cloze', Icon: Braces },
+] as const;
+
+const CARD_CREATION_KIND_OPTIONS = [
+  { value: 'text-recognition', labelKey: 'textRecognition', Icon: Eye },
+  { value: 'audio-recognition', labelKey: 'audioRecognition', Icon: Volume2 },
+  { value: 'production-text', labelKey: 'productionText', Icon: Pencil },
+  { value: 'production-image', labelKey: 'productionImage', Icon: Image },
+  { value: 'cloze', labelKey: 'cloze', Icon: Braces },
 ] as const;
 
 const StudyCardFormFields = ({
@@ -33,7 +43,9 @@ const StudyCardFormFields = ({
   includeAudioSettings = true,
   hidePromptFields = false,
   includeSentenceFields = false,
+  creationKind,
   onCardTypeChange,
+  onCreationKindChange,
   onFieldChange,
 }: StudyCardFormFieldsProps) => {
   const { t } = useTranslation('study');
@@ -49,35 +61,47 @@ const StudyCardFormFields = ({
           <div
             role="radiogroup"
             aria-labelledby={cardTypeLabelId}
-            className="grid grid-cols-1 gap-2 sm:grid-cols-3"
+            className={`grid grid-cols-1 gap-2 ${
+              onCreationKindChange ? 'sm:grid-cols-2 lg:grid-cols-5' : 'sm:grid-cols-3'
+            }`}
           >
-            {CARD_TYPE_OPTIONS.map(({ value, Icon }) => {
-              const isSelected = values.cardType === value;
+            {(onCreationKindChange ? CARD_CREATION_KIND_OPTIONS : CARD_TYPE_OPTIONS).map(
+              ({ value, labelKey, Icon }) => {
+                const isSelected = onCreationKindChange
+                  ? creationKind === value
+                  : values.cardType === value;
 
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => onCardTypeChange?.(value as StudyCardType)}
-                  className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${
-                    isSelected
-                      ? 'border-navy/50 bg-cream text-navy shadow-sm'
-                      : 'border-gray-300 text-gray-700 hover:border-navy/30 hover:bg-cream/60'
-                  }`}
-                >
-                  <span
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
-                      isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => {
+                      if (onCreationKindChange) {
+                        onCreationKindChange(value as StudyCardCreationKind);
+                        return;
+                      }
+                      onCardTypeChange?.(value as StudyCardType);
+                    }}
+                    className={`flex min-h-[4.75rem] items-center gap-3 rounded-xl border bg-white px-3.5 py-3 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-navy/15 ${
+                      isSelected
+                        ? 'border-navy/50 bg-cream text-navy shadow-sm'
+                        : 'border-gray-300 text-gray-700 hover:border-navy/30 hover:bg-cream/60'
                     }`}
                   >
-                    <Icon aria-hidden="true" className="h-5 w-5" />
-                  </span>
-                  <span className="font-semibold">{t(`form.${value}`)}</span>
-                </button>
-              );
-            })}
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        isSelected ? 'bg-navy text-white' : 'bg-navy/5 text-navy'
+                      }`}
+                    >
+                      <Icon aria-hidden="true" className="h-5 w-5" />
+                    </span>
+                    <span className="font-semibold">{t(`form.${labelKey}`)}</span>
+                  </button>
+                );
+              }
+            )}
           </div>
         </div>
       ) : null}
@@ -132,9 +156,7 @@ const StudyCardFormFields = ({
       <div className="grid gap-4 md:grid-cols-2">
         <StudyFormField
           htmlFor={`${idPrefix}-answer-expression`}
-          label={
-            values.cardType === 'cloze' ? t('form.restoredAnswer') : t('form.answerExpression')
-          }
+          label={values.cardType === 'cloze' ? t('form.answer') : t('form.answerExpression')}
         >
           <input
             id={`${idPrefix}-answer-expression`}
@@ -144,12 +166,7 @@ const StudyCardFormFields = ({
             required
           />
         </StudyFormField>
-        <StudyFormField
-          htmlFor={`${idPrefix}-answer-reading`}
-          label={
-            values.cardType === 'cloze' ? t('form.restoredAnswerReading') : t('form.answerReading')
-          }
-        >
+        <StudyFormField htmlFor={`${idPrefix}-answer-reading`} label={t('form.answerReading')}>
           <input
             id={`${idPrefix}-answer-reading`}
             value={values.answerReading}

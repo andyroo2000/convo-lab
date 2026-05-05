@@ -37,6 +37,17 @@ export interface LanguageInfo {
 
 export type StudyCardType = 'recognition' | 'production' | 'cloze';
 
+export type StudyCardCreationKind =
+  | 'text-recognition'
+  | 'audio-recognition'
+  | 'production-text'
+  | 'production-image'
+  | 'cloze';
+
+export type StudyCardImageRole = 'prompt' | 'answer' | 'both';
+
+export type StudyCardImagePlacement = 'none' | StudyCardImageRole;
+
 export type StudyQueueState = 'new' | 'learning' | 'review' | 'relearning' | 'suspended' | 'buried';
 
 export type StudyAudioSource = 'imported' | 'generated' | 'missing';
@@ -249,7 +260,37 @@ export interface StudyCardCandidatePreviewImageResponse {
 
 export interface StudyCardRegenerateImageRequest {
   imagePrompt: string;
-  imageRole: 'prompt' | 'answer';
+  imageRole: StudyCardImageRole;
+}
+
+export interface StudyCardDraftCompleteRequest {
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  imagePlacement?: StudyCardImagePlacement;
+  imagePrompt?: string | null;
+}
+
+export interface StudyCardDraftCompleteResponse {
+  creationKind: StudyCardCreationKind;
+  cardType: StudyCardType;
+  prompt: StudyPromptPayload;
+  answer: StudyAnswerPayload;
+  imagePlacement: StudyCardImagePlacement;
+  imagePrompt: string | null;
+  previewImage: StudyMediaRef | null;
+}
+
+export interface StudyCardDraftImageRequest {
+  imagePrompt: string;
+  imagePlacement: StudyCardImagePlacement;
+}
+
+export interface StudyCardDraftImageResponse {
+  previewImage: StudyMediaRef;
+  imagePrompt: string;
+  imagePlacement: StudyCardImagePlacement;
 }
 
 export interface StudyOverview {

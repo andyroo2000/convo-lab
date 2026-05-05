@@ -367,11 +367,9 @@ describe('StudyBrowsePage', () => {
     await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
 
     expect(await screen.findByTestId('study-card-editor')).toBeInTheDocument();
-    expect(screen.getByLabelText('Restored answer')).toHaveValue('お風呂に虫がいる！');
-    expect(screen.getByLabelText('Restored answer reading')).toHaveValue(
-      'お風呂[ふろ]に虫[むし]がいる！'
-    );
-    expect(screen.getByLabelText('Restored answer reading')).toBeEnabled();
+    expect(screen.getByLabelText('Answer')).toHaveValue('お風呂に虫がいる！');
+    expect(screen.getByLabelText('Answer reading')).toHaveValue('お風呂[ふろ]に虫[むし]がいる！');
+    expect(screen.getByLabelText('Answer reading')).toBeEnabled();
     expect(screen.getByLabelText('Answer meaning')).toHaveValue('There are bugs in the bath!');
     expect(screen.queryByRole('button', { name: 'Front' })).not.toBeInTheDocument();
   });
@@ -570,7 +568,7 @@ describe('StudyBrowsePage', () => {
     const noteItems = await screen.findAllByTestId('study-browser-note-item');
     await userEvent.click(within(noteItems[1]).getByText('お風呂に虫[...]！'));
 
-    expect(await screen.findByLabelText('Restored answer')).toHaveValue('お風呂に虫がいる！');
+    expect(await screen.findByLabelText('Answer')).toHaveValue('お風呂に虫がいる！');
     await waitFor(() => {
       expect(screen.getByTestId('study-editor-answer-audio-source')).toHaveAttribute(
         'src',
