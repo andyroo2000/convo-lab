@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  DEFAULT_NARRATOR_VOICES,
+  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
+} from '@languageflow/shared/src/constants-new';
 import type { StudyMediaRef } from '@languageflow/shared/src/types';
 
 import {
@@ -45,14 +48,14 @@ describe('studyCardCreationModel', () => {
     expect(cardTypeForStudyCardCreationKind('cloze')).toBe('cloze');
   });
 
-  it('uses Ren as the manual audio-recognition default voice only', () => {
-    expect(defaultVoiceIdForStudyCardCreationKind('audio-recognition')).toBe(
-      DEFAULT_AUDIO_RECOGNITION_VOICE_ID
-    );
-    expect(defaultVoiceIdForStudyCardCreationKind('text-recognition')).toBe(
-      DEFAULT_NARRATOR_VOICES.ja
+  it('randomly chooses Ren or Yumi as the manual default voice', () => {
+    expect(defaultVoiceIdForStudyCardCreationKind('audio-recognition')).toMatch(/^fishaudio:/);
+    expect(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS).toContain(
+      defaultVoiceIdForStudyCardCreationKind('text-recognition')
     );
     expect(isStudyCardCreationDefaultVoice(DEFAULT_AUDIO_RECOGNITION_VOICE_ID)).toBe(true);
+    expect(isStudyCardCreationDefaultVoice(MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[1])).toBe(true);
+    expect(isStudyCardCreationDefaultVoice(DEFAULT_NARRATOR_VOICES.ja)).toBe(true);
     expect(isStudyCardCreationDefaultVoice('custom-voice')).toBe(false);
   });
 

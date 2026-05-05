@@ -1,4 +1,8 @@
-import { DEFAULT_NARRATOR_VOICES } from '@languageflow/shared/src/constants-new';
+import {
+  DEFAULT_NARRATOR_VOICES,
+  MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS,
+  selectManualStudyCardDefaultVoiceId,
+} from '@languageflow/shared/src/constants-new';
 import type {
   StudyCardCreationKind,
   StudyCardImagePlacement,
@@ -11,7 +15,7 @@ import type { StudyCardFormPayload, StudyCardFormValues } from './studyCardFormM
 
 export const DEFAULT_STUDY_CARD_CREATION_KIND: StudyCardCreationKind = 'text-recognition';
 export const DEFAULT_STUDY_CARD_IMAGE_PLACEMENT: StudyCardImagePlacement = 'none';
-export const DEFAULT_AUDIO_RECOGNITION_VOICE_ID = 'fishaudio:abb4362e736f40b7b5716f4fafcafa9f';
+export const DEFAULT_AUDIO_RECOGNITION_VOICE_ID = MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS[0];
 
 export function cardTypeForStudyCardCreationKind(
   creationKind: StudyCardCreationKind
@@ -30,15 +34,16 @@ export function defaultCreationKindForCardType(cardType: StudyCardType): StudyCa
 }
 
 export function defaultVoiceIdForStudyCardCreationKind(
-  creationKind: StudyCardCreationKind
+  _creationKind: StudyCardCreationKind
 ): string {
-  return creationKind === 'audio-recognition'
-    ? DEFAULT_AUDIO_RECOGNITION_VOICE_ID
-    : DEFAULT_NARRATOR_VOICES.ja;
+  return selectManualStudyCardDefaultVoiceId();
 }
 
 export function isStudyCardCreationDefaultVoice(voiceId: string): boolean {
-  return voiceId === DEFAULT_NARRATOR_VOICES.ja || voiceId === DEFAULT_AUDIO_RECOGNITION_VOICE_ID;
+  return (
+    voiceId === DEFAULT_NARRATOR_VOICES.ja ||
+    MANUAL_STUDY_CARD_DEFAULT_VOICE_IDS.some((manualVoiceId) => manualVoiceId === voiceId)
+  );
 }
 
 export function mergeBlankStudyCardFormFields(

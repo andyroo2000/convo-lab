@@ -119,6 +119,57 @@ describe('manual study card drafts', () => {
     });
   });
 
+  it('fills a draft with a Ren or Yumi voice and generated preview audio', async () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+    vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
+      JSON.stringify({
+        prompt: {
+          cueText: '会社',
+        },
+        answer: {
+          expression: '会社',
+          expressionReading: '会社[かいしゃ]',
+          meaning: 'company',
+        },
+        imagePrompt: null,
+      })
+    );
+    vi.mocked(synthesizeCandidatePreviewAudio).mockResolvedValue({
+      id: 'audio-1',
+      filename: 'manual-preview.mp3',
+      url: '/api/study/media/audio-1',
+      mediaKind: 'audio',
+      source: 'generated',
+    });
+
+    const result = await completeManualStudyCardDraft({
+      userId: 'user-1',
+      request: {
+        creationKind: 'text-recognition',
+        cardType: 'recognition',
+        prompt: { cueText: '会社' },
+        answer: {},
+        imagePlacement: 'none',
+        imagePrompt: null,
+      },
+    });
+
+    expect(result.answer.answerAudioVoiceId).toBe('fishaudio:9639f090aa6346329d7d3aca7e6b7226');
+    expect(result.previewAudio?.id).toBe('audio-1');
+    expect(result.previewAudioRole).toBe('answer');
+    expect(result.answer.answerAudio?.id).toBe('audio-1');
+    expect(synthesizeCandidatePreviewAudio).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        candidateKind: 'text-recognition',
+        answer: expect.objectContaining({
+          answerAudioVoiceId: 'fishaudio:9639f090aa6346329d7d3aca7e6b7226',
+        }),
+      })
+    );
+    randomSpy.mockRestore();
+  });
+
   it('auto-generates a preview image for production from image drafts', async () => {
     vi.mocked(generateStudyCardCandidateJson).mockResolvedValue(
       JSON.stringify({
@@ -242,6 +293,47 @@ describe('manual study card drafts', () => {
     );
     expect(createStudyCard).toHaveBeenCalledWith(
       expect.objectContaining({ imageMediaId: 'image-1' })
+    );
+  });
+
+  it('validates generated preview audio ownership before creating a manual card', async () => {
+    vi.mocked(getOwnedPreviewMediaIds).mockImplementation(async ({ mediaKind }) =>
+      mediaKind === 'audio' ? new Set(['audio-1']) : new Set()
+    );
+    vi.mocked(createStudyCard).mockResolvedValue({ id: 'card-1' } as never);
+
+    await createManualStudyCard({
+      userId: 'user-1',
+      creationKind: 'text-recognition',
+      cardType: 'recognition',
+      prompt: { cueText: '会社' },
+      answer: {
+        expression: '会社',
+        meaning: 'company',
+        answerAudio: {
+          id: 'audio-1',
+          filename: 'manual-preview.mp3',
+          url: '/api/study/media/audio-1',
+          mediaKind: 'audio',
+          source: 'generated',
+        },
+      },
+    });
+
+    expect(getOwnedPreviewMediaIds).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        mediaIds: ['audio-1'],
+        mediaKind: 'audio',
+      })
+    );
+    expect(createStudyCard).toHaveBeenCalledWith(
+      expect.objectContaining({
+        answerAudioMediaId: 'audio-1',
+        answer: expect.objectContaining({
+          answerAudio: expect.objectContaining({ id: 'audio-1' }),
+        }),
+      })
     );
   });
 

@@ -279,6 +279,8 @@ export interface StudyCardDraftCompleteResponse {
   answer: StudyAnswerPayload;
   imagePlacement: StudyCardImagePlacement;
   imagePrompt: string | null;
+  previewAudio: StudyMediaRef | null;
+  previewAudioRole: 'prompt' | 'answer' | null;
   previewImage: StudyMediaRef | null;
 }
 
